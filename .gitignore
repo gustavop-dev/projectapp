@@ -1,0 +1,5 @@
+venv/
+projectapp/media/3dmodels
+projectapp/media/components
+projectapp/media/designs
+projectapp/db.sqlite3
