@@ -3,7 +3,7 @@ axios.defaults.withCredentials = true;
 axios.defaults.xsrfCookieName = "csrftoken";
 axios.defaults.xsrfHeaderName = "X-CSRFToken";
 
-const route = "http://127.0.0.1:8000/";
+const route = `${window.location.origin}/`;
 
 /**
  * Request endpoint
