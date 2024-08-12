@@ -42,9 +42,9 @@
 </template>
 <script setup>
 import { useWebDevelopmentsStore } from '@/stores/web-developments';
-import Navbar from '@/components/Layouts/Navbar.vue';
+import Navbar from '@/components/layouts/Navbar.vue';
 import Dune from '@/components/spline/Backgrounds/Dune.vue';
-import Footer from '@/components/Layouts/Footer.vue';
+import Footer from '@/components/layouts/Footer.vue';
 import { useRouter } from 'vue-router';
 import { ref, onMounted } from 'vue';
 

@@ -25,8 +25,8 @@
   </template>
 
 <script setup>
-import Navbar from '@/components/Layouts/Navbar.vue';
-import Footer from '@/components/Layouts/Footer.vue';
+import Navbar from '@/components/layouts/Navbar.vue';
+import Footer from '@/components/layouts/Footer.vue';
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useWebDevelopmentsStore } from '@/stores/web-developments';

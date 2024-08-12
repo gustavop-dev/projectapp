@@ -5,7 +5,7 @@
         Project<br>App.
       </h1>
     </div>
-    <div class="flex absolute z-10 pe-8 pt-6 top-0 right-0">
+    <div class="flex absolute z-10 pt-6 top-0 right-0 lg:pe-8">
       <Popover class="relative">
         <PopoverButton class="inline-flex items-center gap-x-1 text-md bg-window-black bg-opacity-40 backdrop-blur-md text-white font-regular py-2 px-8 rounded-xl mx-2 transition duration-250 ease-out hover:bg-esmerald">
           <span>Menu</span>
@@ -43,7 +43,7 @@
 </template>
 
 <script setup>
-import Email from '@/components/Layouts/Email.vue';
+import Email from '@/components/layouts/Email.vue';
 import { ref } from 'vue';
 import { gsap } from 'gsap';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue';

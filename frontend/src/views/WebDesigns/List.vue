@@ -37,9 +37,9 @@
   </template>
   
   <script setup>
-  import Navbar from '@/components/Layouts/Navbar.vue';
+  import Navbar from '@/components/layouts/Navbar.vue';
   import Dune from '@/components/spline/Backgrounds/Dune.vue';
-  import Footer from '@/components/Layouts/Footer.vue';
+  import Footer from '@/components/layouts/Footer.vue';
   import Detail from '@/views/WebDesigns/Detail.vue';
   import { useWebDesignsStore } from '@/stores/web-designs';
   import { onMounted, ref } from 'vue';

@@ -65,10 +65,10 @@
     </div>
 </template>
 <script setup>
-import Navbar from '@/components/Layouts/Navbar.vue';
+import Navbar from '@/components/layouts/Navbar.vue';
 import Dune from '@/components/spline/Backgrounds/Dune.vue';
-import Footer from '@/components/Layouts/Footer.vue';
-import Contact from '@/components/Layouts/Contact.vue'
+import Footer from '@/components/layouts/Footer.vue';
+import Contact from '@/components/layouts/Contact.vue'
 import { onMounted, ref } from 'vue';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';

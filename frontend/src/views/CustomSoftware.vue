@@ -74,10 +74,10 @@
 </template>
 
 <script setup>
-import Navbar from '@/components/Layouts/Navbar.vue';
-import Footer from '@/components/Layouts/Footer.vue';
+import Navbar from '@/components/layouts/Navbar.vue';
+import Footer from '@/components/layouts/Footer.vue';
 import Dune from '@/components/spline/Backgrounds/Dune.vue';
-import Email from '@/components/Layouts/Email.vue';
+import Email from '@/components/layouts/Email.vue';
 import { ref } from 'vue';
 import { gsap } from 'gsap';
 

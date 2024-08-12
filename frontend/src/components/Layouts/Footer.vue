@@ -9,12 +9,12 @@
           <span ref="ballText" class="font-light text-xl">Play Reel</span>
         </div>
         <div class="absolute bottom-0 right-0 w-full h-1/2 rounded-b-xl bg-window-black bg-opacity-40 backdrop-blur-md">
-            <div class="grid grid-cols-2">
+            <div class="grid lg:grid-cols-2">
               <div>
-                <h3 class="ms-4 mb-4 absolute bottom-0 text-lg font-regular text-white opacity-40">Based in Colombia, working worldwild</h3>
+                <h3 class="hidden ms-4 mb-4 absolute bottom-0 text-lg font-regular text-white opacity-40 lg:block">Based in Colombia, working worldwild</h3>
               </div>
-              <div class="grid grid-cols-2">
-                <div class="w-max grid grid-cols-2 text-white mt-4">
+              <div class="grid lg:grid-cols-2">
+                <div class="md:w-max grid grid-cols-2 text-white mt-4">
                   <RouterLink
                     :to="{ name:  item.href }" 
                     v-for="item in solutions" 
@@ -30,7 +30,7 @@
                       ➜
                     </div>
                   </RouterLink>
-                  <h3 class="ms-4 mb-4 absolute bottom-0 text-lg font-regular text-white opacity-40">©2024 Project App</h3>
+                  <h3 class="hidden ms-4 mb-4 absolute bottom-0 text-lg font-regular text-white opacity-40 lg:block">©2024 Project App</h3>
                 </div>
                 <div class="w-60">
                   <div class="mt-4 p-2 ps-4">
@@ -55,8 +55,8 @@
     </div>
 
     <!-- Modal -->
-    <div v-if="showModal" class="fixed inset-0 flex items-center justify-center z-50" @mousemove="handleModalMouseMove">
-      <div class="relative w-screen h-screen">
+    <div v-if="showModal" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 backdrop-blur-md" @mousemove="handleModalMouseMove">
+      <div class="relative w-screen lg:h-screen">
         <video ref="modalVideo" class="w-full h-full object-cover" autoplay>
           <source src="@/assets/videos/presentationComp.mp4" type="video/mp4">
           Your browser does not support the video tag.
@@ -70,7 +70,7 @@
 </template>
 
 <script setup>
-import Email from '@/components/Layouts/Email.vue';
+import Email from '@/components/layouts/Email.vue';
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { gsap } from 'gsap';
 import { XMarkIcon } from '@heroicons/vue/24/outline'

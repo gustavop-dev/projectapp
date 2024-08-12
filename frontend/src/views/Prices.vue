@@ -406,9 +406,9 @@
   </div>
 </template>
 <script setup>
-import Navbar from "@/components/Layouts/Navbar.vue";
-import Footer from "@/components/Layouts/Footer.vue";
-import Contact from "@/components/Layouts/Contact.vue";
+import Navbar from "@/components/layouts/Navbar.vue";
+import Footer from "@/components/layouts/Footer.vue";
+import Contact from "@/components/layouts/Contact.vue";
 import Wordpress from "@/components/Utils/Wordpress.vue";
 import {
   BanknotesIcon,

@@ -48,8 +48,8 @@
 
 <script setup>
 import { ref, onMounted, defineAsyncComponent } from 'vue';
-import Navbar from '@/components/Layouts/Navbar.vue';
-import Footer from '@/components/Layouts/Footer.vue';
+import Navbar from '@/components/layouts/Navbar.vue';
+import Footer from '@/components/layouts/Footer.vue';
 import Detail from '@/views/3dAnimations/Detail.vue';
 import { useModels3dStore } from '@/stores/models-3d';
 
