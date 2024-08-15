@@ -1,6 +1,6 @@
 <template>
   <div class="flex justify-center">
-    <button class="relative flex justify-center items-center bg-lemon py-4 w-3/4 my-4 text-esmerald font-regular rounded-xl hover-button">
+    <button class="relative flex justify-center items-center py-4 w-3/4 my-4 font-regular rounded-xl bg-esmerald text-white hover-button lg:bg-lemon lg:text-esmerald">
       <span class="inline-block">Contact us</span>
       <ArrowRightIcon class="w-4 h-4 opacity-0 arrow-icon" />
     </button>

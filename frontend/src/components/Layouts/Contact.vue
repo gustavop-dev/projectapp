@@ -1,10 +1,10 @@
 <template>
     <section class="p-3">
-            <div class="border-t-2 border-t-gray-250 grid grid-cols-2 h-80">
-                <div class="ps-8 mt-16">
+            <div class="border-t-2 border-t-gray-250 grid lg:h-80 lg:grid-cols-2">
+                <div class="mt-16 lg:ps-8">
                     <h2 class="text-esmerald text-4xl font-regular">Connect with us today.<br>Start your project in minutes.<br>Experience excellence forever.</h2>
                 </div>
-                <div class="grid grid-cols-2 mt-16">
+                <div class="grid mt-16 lg:grid-cols-2">
                     <div class="relative border-s-2 border-s-gray-250 ps-4 py-8">
                         <h3 class="text-esmerald text-4xl font-regular">Mail Us</h3>
                         <p class="mt-4 text-green-light text-lg font-regular">Tell us about your vision to get started.</p>
@@ -32,7 +32,7 @@
 <script setup>
 import { ref } from 'vue';
 import { gsap } from 'gsap';
-import Email from '@/components/Layouts/Email.vue';
+import Email from '@/components/layouts/Email.vue';
 
 const showModalEmail = ref(false);
 

@@ -5,25 +5,25 @@
         </div>
         <section>
             <div class="p-3 h-screen">
-                <div class="w-full h-full grid grid-cols-2 rounded-xl overflow-hidden">
-                    <div class="flex items-center bg-lemon px-16">
-                        <h1><span class="text-6xl font-light text-esmerald">We prepare more than 500 web components only for You!</span><br><span class="text-md font-medium text-esmerald">Did you know that we do all our developments with Tailwind CSS, the best framework for styles in web development.</span></h1>
+                <div class="w-full h-full grid rounded-xl overflow-hidden lg:grid-cols-2">
+                    <div class="flex items-center bg-lemon px-16 py-24 order-2">
+                        <h1><span class="text-4xl font-light text-esmerald lg:text-6xl">We prepare more than 500 web components only for You!</span><br><span class="text-md font-medium text-esmerald">Did you know that we do all our developments with Tailwind CSS, the best framework for styles in web development.</span></h1>
                     </div>
-                    <div>
+                    <div class="order-1">
                         <Dune spline="/spline/Backgrounds/dune.splinecode"></Dune>
                     </div>
                 </div>
             </div>
         </section>
-        <section class="mt-52">
+        <section class="mt-24 px-3 lg:mt-52">
             <div v-for="development in developments" :key="development.id" class="container mx-auto sm:px-6 lg:px-8">
-                <h1 class="text-6xl font-light text-esmerald">{{ development.title_en }}</h1>
-                <h2 class="text-4xl font-light text-esmerald mt-20">{{ development.description_en }}</h2>
-                <div v-for="section in development.sections" :key="section.id" class="mt-40 grid grid-cols-4">
-                    <div class="col-span-1">
+                <h1 class="text-4xl font-light text-esmerald md:text-5xl lg:text-6xl">{{ development.title_en }}</h1>
+                <h2 class="text-2xl font-light text-esmerald mt-20 md:text:text-3xl lg:text-4xl">{{ development.description_en }}</h2>
+                <div v-for="section in development.sections" :key="section.id" class="mt-20 grid grid-cols-4 lg:mt-40">
+                    <div class="col-span-4 lg:col-span-1">
                         <h2 class="font-light text-esmerald text-lg">{{ section.title_en }}</h2>
                     </div>
-                    <div class="col-span-3 grid grid-cols-3 gap-8">
+                    <div class="col-span-4 mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3 lg:mt-0 lg:col-span-3">
                         <div v-for="component in section.components" :key="component.id" @click="goToDetail(development.id, section.id, component.id)" class="cursor-pointer">
                             <div class="border border-gray-200 rounded-lg">
                                 <img :src="component.image_url" :alt="component.id">
@@ -42,9 +42,9 @@
 </template>
 <script setup>
 import { useWebDevelopmentsStore } from '@/stores/web-developments';
-import Navbar from '@/components/Layouts/Navbar.vue';
+import Navbar from '@/components/layouts/Navbar.vue';
 import Dune from '@/components/spline/Backgrounds/Dune.vue';
-import Footer from '@/components/Layouts/Footer.vue';
+import Footer from '@/components/layouts/Footer.vue';
 import { useRouter } from 'vue-router';
 import { ref, onMounted } from 'vue';
 
