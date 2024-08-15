@@ -10,18 +10,18 @@
           Being visible is just no longer enough. It’s all about leveraging attention. And then moving forward together. Synced.
         </h2>
       </section>
-      <section class="grid grid-cols-3 animate-section">
+      <section class="grid grid-cols-3">
         <div class="col-span-1">
           <h1 class="hidden font-light text-sm ms-32 text-esmerald lg:inline">[SOFTWARE HOUSE]</h1>
         </div>
         <div class="col-span-3 lg:col-span-2">
           <div class="grid grid-cols-3 gap-12 lg:grid-cols-2">
             <div class="col-span-1 lg:hidden"></div>
-            <div class="col-span-2">
+            <div class="col-span-2 lg:col-span-1">
               <h1 class="bg-esmerald-light px-6 py-2 inline-block rounded-3xl text-esmerald text-sm">Our motto</h1>
               <h2 class="mt-20"><span class="text-esmerald font-regular text-lg">We make developments for brand with hight objectives,</span><span class="text-green-light text-lg font-regular"> we specialize in web development, creating unique and efficient experiences that drive our clients' growth.<br><br>Our commitment is to excellence and innovation. We work closely with our clients to understand their needs and deliver solutions that not only solve problems but also enhance their success in the digital world.</span></h2>
             </div>
-            <div class="col-span-3 lg:pe-4">
+            <div class="col-span-3 lg:pe-4 lg:col-span-1">
               <Suspense>
                 <template #default>
                   <Dune spline="/spline/cube/scene.splinecode"></Dune>
@@ -61,7 +61,7 @@
 
 <script setup>
 import Navbar from '@/components/layouts/Navbar.vue';
-import InitialVideo from '@/components/Home/InitialVideo.vue';
+import InitialVideo from '@/components/home/InitialVideo.vue';
 import Footer from '@/components/layouts/Footer.vue';
 import Contact from '@/components/layouts/Contact.vue';
 import { defineAsyncComponent } from 'vue';

@@ -3,23 +3,24 @@
     <div class="fixed top-0 left-0 w-full z-50">
       <Navbar></Navbar>
     </div>
-    <section class="pt-32">
-      <h1 class="text-center font-light text-8xl text-esmerald">
+    <div class="h-32"></div>
+    <section>
+      <h1 class="text-center font-light text-6xl text-esmerald lg:text-8xl">
         We don't use WordPress
         <br />
         We are real programmers
       </h1>
     </section>
     <Wordpress></Wordpress>
-    <section class="mt-32 px-32">
-      <h2 class="text-esmerald text-6xl font-light">
+    <section class="mt-32 w-full px-3">
+      <h2 class="text-esmerald text-4xl font-light lg:text-6xl">
         E-Commerce Landing Page V1.0
       </h2>
-      <div class="grid grid-cols-3 mt-6">
+      <div class="grid mt-6 lg:grid-cols-3">
         <div
-          class="bg-esmerald rounded-l-xl p-6 grid grid-cols-2 gap-2 col-span-2"
+          class="bg-esmerald rounded-b-xl p-6 grid order-2 gap-2 md:grid-cols-2 lg:rounded-r-none lg:rounded-l-xl lg:col-span-2 lg:order-1"
         >
-          <div class="grid">
+          <div class="grid gap-3 mt-6 order-2 lg:mt-0 lg:order-1">
             <div>
               <h3 class="text-xl text-white font-light">Views</h3>
               <ul class="font-regular text-lg text-green-light ps-6">
@@ -72,7 +73,7 @@
               </ul>
             </div>
           </div>
-          <div class="border-l border-l-green-light ps-4">
+          <div class="border-l border-l-green-light ps-4 order-1 lg:order-2">
             <p class="text-lg text-green-light font-regular">
               <span class="text-white">Our E-commerce Landing Page</span> is
               designed to focus on your business goals, ensuring a strong and
@@ -96,28 +97,28 @@
             </p>
           </div>
         </div>
-        <div class="flex justify-center items-center">
+        <div class="flex justify-center items-center order-1 lg:order-2">
           <img
             src="@/assets/images/prices/1.webp"
-            class="w-full rounded-r-xl"
+            class="w-full h-full object-cover rounded-t-xl lg:rounded-l-none lg:rounded-r-xl"
           />
         </div>
       </div>
     </section>
 
-    <section class="mt-32 px-32">
-      <h2 class="text-esmerald text-6xl font-light text-end">
+    <section class="mt-32 w-full px-3">
+      <h2 class="text-esmerald text-end text-4xl font-light lg:text-6xl">
         E-Commerce Standard V2.0
       </h2>
-      <div class="grid grid-cols-3 mt-6">
+      <div class="grid mt-6 lg:grid-cols-3">
         <div class="flex justify-center items-center">
           <img
             src="@/assets/images/prices/2.webp"
-            class="w-full rounded-l-xl"
+            class="w-full h-full object-cover rounded-t-xl lg:rounded-r-none lg:rounded-l-xl"
           />
         </div>
         <div
-          class="bg-esmerald rounded-r-xl p-6 grid grid-cols-2 gap-2 col-span-2"
+          class="bg-esmerald rounded-b-xl p-6 grid order-2 gap-2 md:grid-cols-2 lg:rounded-l-none lg:rounded-r-xl lg:col-span-2 lg:order-2"
         >
           <div class="border-r border-r-green-light pe-4">
             <p class="text-lg text-green-light font-regular text-end">
@@ -143,7 +144,7 @@
             3 Weeks <ClockIcon class="w-6 h-6 text-lemon"></ClockIcon>
             </p>
           </div>
-          <div class="grid text-end">
+          <div class="grid text-end mt-6 lg:mt-0">
             <div>
               <h3 class="text-xl text-white font-light">Views</h3>
               <ul class="font-regular text-lg text-green-light ps-6">
@@ -200,13 +201,13 @@
       </div>
     </section>
 
-    <section class="mt-32 px-32">
-      <h2 class="text-esmerald text-6xl font-light">
+    <section class="mt-32 w-full px-3">
+      <h2 class="text-esmerald text-4xl font-light lg:text-6xl">
         E-Commerce Premium V3.0
       </h2>
-      <div class="grid grid-cols-3 mt-6">
-        <div class="bg-esmerald rounded-l-xl p-6 grid grid-cols-2 gap-2 col-span-2">
-            <div class="grid">
+      <div class="grid mt-6 lg:grid-cols-3">
+        <div class="bg-esmerald rounded-b-xl p-6 grid order-2 gap-2 md:grid-cols-2 lg:rounded-l-none lg:rounded-r-xl lg:col-span-2 lg:order-1">
+            <div class="grid gap-3 mt-6 order-2 lg:mt-0 lg:order-1">
                 <div>
                 <h3 class="text-xl text-white font-light">Views</h3>
                 <ul class="font-regular text-lg text-green-light ps-6">
@@ -307,24 +308,24 @@
         <div class="flex justify-center items-center">
           <img
             src="@/assets/images/prices/3.webp"
-            class="w-full rounded-r-xl"
+            class="w-full h-full object-cover rounded-t-xl lg:rounded-r-none lg:rounded-l-xl"
           />
         </div>
       </div>
     </section>
 
-    <section class="mt-32 px-32">
-      <h2 class="text-esmerald text-6xl font-light text-end">
+    <section class="mt-32 w-full px-3">
+      <h2 class="text-esmerald text-end text-4xl font-light lg:text-6xl">
         E-Commerce Gold V4.0
       </h2>
-      <div class="grid grid-cols-3 mt-6">
+      <div class="grid mt-6 lg:grid-cols-3">
         <div class="flex justify-center items-center">
           <img
             src="@/assets/images/prices/4.webp"
-            class="w-full rounded-l-xl"
+            class="w-full h-full object-cover rounded-t-xl lg:rounded-r-none lg:rounded-l-xl"
           />
         </div>
-        <div class="bg-esmerald rounded-r-xl p-6 grid grid-cols-2 gap-2 col-span-2">
+        <div class="bg-esmerald rounded-b-xl p-6 grid order-2 gap-2 md:grid-cols-2 lg:rounded-l-none lg:rounded-r-xl lg:col-span-2 lg:order-2">
             <div class="border-r border-r-green-light pe-4">
                 <p class="text-lg text-green-light font-regular text-end">
                 <span class="text-white">Our E-commerce Gold + Premium</span> package
@@ -409,7 +410,7 @@
 import Navbar from "@/components/layouts/Navbar.vue";
 import Footer from "@/components/layouts/Footer.vue";
 import Contact from "@/components/layouts/Contact.vue";
-import Wordpress from "@/components/Utils/Wordpress.vue";
+import Wordpress from "@/components/utils/Wordpress.vue";
 import {
   BanknotesIcon,
   CheckBadgeIcon,

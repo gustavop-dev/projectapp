@@ -1,6 +1,6 @@
 <template>
   <div
-    class="mt-4 p-2 ps-4 border-transparent border-t-white border-opacity-40 border grid grid-cols-2"
+    class="mt-4 p-2 ps-4 border-transparent border-t-esmerald border-opacity-40 border grid grid-cols-2 lg:border-t-white"
   >
     <a href="https://www.instagram.com/paginaswebscolombia_?igsh=MWh3MHRha3A5MHFrbQ==" target="_blank" class="inline-block text-sm cursor-pointer font-regular social-link"
       >Instagram

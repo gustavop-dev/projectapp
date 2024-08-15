@@ -3,7 +3,7 @@
         <div class="fixed top-0 left-0 w-full z-50">
             <Navbar></Navbar>
         </div>
-        <section class="h-52"></section>
+        <section class="h-32 lg:h-52"></section>
         <section>
             <div class="px-4 sm:px-6 lg:px-8 xl:px-32">
                 <div v-if="data">
@@ -11,7 +11,7 @@
                     <h1 class="text-6xl font-light text-esmerald">{{ data.component.title_en }}</h1>
                     <div v-for="example in data.examples" class="mt-16 mb-16">
                         <h2 class="text-xl font-regular text-esmerald">{{ example.title_en }}</h2>
-                        <div class="mt-4 flex justify-center">
+                        <div class="mt-8 flex justify-center">
                             <img :src="example.image">
                         </div>
                     </div>

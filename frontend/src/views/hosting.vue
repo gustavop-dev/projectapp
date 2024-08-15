@@ -4,14 +4,14 @@
             <Navbar></Navbar>
         </div>
         <section class="pt-32">
-          <h1 class="text-center font-light text-8xl text-lemon">
+          <h1 class="text-center font-light text-6xl text-lemon lg:text-8xl">
             Exclusive Hosting, Exclusive Performance
             <br />
             Not Shared, Just Superior
           </h1>
         </section>
-        <section class="p-32 grid grid-cols-2">
-          <h2 class="text-6xl text-esmerald-light font-light">
+        <section class="p-3 mt-32 grid md:grid-cols-2 gap-16 max-w-7xl mx-auto">
+          <h2 class="text-4xl text-esmerald-light font-light lg:text-6xl">
             Our Hosting Stands Out
             <br>
             Experience the Difference of Dedicated Hosting
@@ -20,7 +20,7 @@
             At Project App, we understand the importance of reliable and high-performing hosting for web applications developed with custom code. That's why our dedicated hosting solutions are tailored to meet the needs of professional developers and businesses seeking top-notch performance and security.
           </p>
         </section>
-        <section>
+        <section class="mt-16">
           <Vue3Marquee :pause-on-hover="true" direction="reverse" duration="35">
             <div class="w-72 h-full mx-auto px-4" v-for="reason in hostingBenefits">
               <div class="bg-esmerald-light rounded-xl relative h-full">
@@ -31,7 +31,7 @@
           </Vue3Marquee>
         </section>
         <section>
-          <div class="py-24 sm:py-32 px-32">
+          <div class="py-24 sm:py-32 px-3">
             <div class="mx-auto max-w-max px-6 lg:px-8">
               <div class="grid justify-end">
                 <div class="max-w-4xl text-end">

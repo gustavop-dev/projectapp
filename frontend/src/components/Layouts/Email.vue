@@ -7,7 +7,7 @@
     <form
       ref="modalContent"
       @submit.prevent="handleSubmit"
-      class="relative z-50 w-1/2 h-2/3 rounded-xl bg-window-black bg-opacity-60 backdrop-blur-md"
+      class="relative z-50 h-4/5 rounded-xl bg-window-black bg-opacity-60 backdrop-blur-md md:w-4/5 lg:w-1/2 lg:h-2/3 "
     >
       <div
         class="w-full h-10 bg-black rounded-t-xl flex items-center justify-center"

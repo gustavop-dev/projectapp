@@ -1,7 +1,7 @@
 <template>
     <section class="p-3">
             <div class="py-32 bg-esmerald-dark rounded-xl">
-                <h2 class="ps-52 mb-12 text-start font-light text-6xl text-white">Our products are</h2>
+                <h2 class="max-w-7xl mx-auto mb-12 px-3 text-start font-light text-4xl text-white lg:text-6xl lg:px-0">Our products are</h2>
                 <Vue3Marquee :pause-on-hover="true">
                     <div class="w-72 h-full mx-auto px-4" v-for="attribute in qualityAttributes">
                         <div class="bg-esmerald rounded-xl relative h-full">
@@ -10,7 +10,7 @@
                         </div>
                     </div>
                 </Vue3Marquee>
-                <h2 class="pe-52 my-12 text-end font-light text-6xl text-white">Why not WordPress?</h2>
+                <h2 class="max-w-7xl mx-center my-12 px-3 text-end font-light text-4xl text-white lg:text-6xl lg:px-0">Why not WordPress?</h2>
                 <Vue3Marquee :pause-on-hover="true" direction="reverse" duration="35">
                     <div class="w-72 h-full mx-auto px-4" v-for="reason in reasons">
                         <div class="bg-esmerald rounded-xl relative h-full">

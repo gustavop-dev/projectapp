@@ -5,31 +5,24 @@
     </div>
     <section>
       <div class="h-screen p-3">
-        <div class="w-full h-full grid grid-cols-2 rounded-xl overflow-hidden">
-          <div class="bg-brown flex items-center px-16">
-            <h1 class="">
-              <span class="text-6xl font-light text-white">Try touch it!<br>All our animations made and rendered in code with JavaScript!</span><br>
+        <div class="w-full h-full grid rounded-xl overflow-hidden lg:grid-cols-2">
+          <div class="bg-brown flex items-center px-16 order-2 py-24">
+            <h1>
+              <span class="text-4xl font-light text-white lg:text-6xl">Try touch it!<br>All our animations made and rendered in code with JavaScript!</span><br>
               <span class="text-md font-medium text-white">Did you know that these animations are being rendered in your browser and the most surprising thing is that one feather is heavier than each of them.</span>
             </h1>
           </div>
-          <div>
-            <Suspense>
-              <template #default>
-                <Dune spline="/spline/Backgrounds/cats.splinecode"></Dune>
-              </template>
-              <template #fallback>
-                <div class="loader">Loading 3D content...</div>
-              </template>
-            </Suspense>
+          <div class="order-1">
+            <Dune spline="/spline/Backgrounds/cats.splinecode"></Dune>
           </div>
         </div>
       </div>
     </section>
-    <section>
-      <div class="mt-52 container mx-auto sm:px-6 lg:px-8">
-        <h1 class="text-6xl font-light text-esmerald">3D Animations</h1>
-        <h2 class="text-4xl font-light text-esmerald mt-20">Enjoy interactive and customized 3D animations, developed from scratch with JavaScript for a unique and immersive visual experience.</h2>
-        <div class="mt-40 grid grid-cols-4">
+    <section class="px-3">
+      <div class="mt-32 max-w-7xl mx-auto sm:px-6 lg:px-8 lg:mt-52">
+        <h1 class="text-4xl font-light text-esmerald lg:text-6xl">3D Animations</h1>
+        <h2 class="text-2xl font-light text-esmerald mt-20 lg:text-4xl">Enjoy interactive and customized 3D animations, developed from scratch with JavaScript for a unique and immersive visual experience.</h2>
+        <div class="mt-24 grid gap-4 md:grid-cols-2 lg:grid-cols-4 lg:mt-40">
           <div v-for="model3d in models3d" :key="model3d.id" @click="openModal(model3d.file_url)" class="cursor-pointer">
             <div class="border border-gray-200 rounded-lg">
               <img class="w-full rounded-lg" :src="model3d.image_url" :alt="model3d.title_en">
