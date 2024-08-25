@@ -15,21 +15,34 @@
   </template>
   
   <script setup>
+  /**
+   * Props received by the component:
+   * - visible (Boolean): Controls whether the modal is visible.
+   * - detailImageUrl (String): URL of the image to display in the modal.
+   */
   const props = defineProps({
     visible: Boolean,
     detailImageUrl: String
   });
   
+  /**
+   * Emits the 'update:visible' event to notify the parent component about visibility changes.
+   */
   const emit = defineEmits(['update:visible']);
   
+  /**
+   * Hides the modal by emitting the 'update:visible' event with a false value.
+   * This notifies the parent component to close the modal.
+   */
   const hideModal = () => {
-    emit('update:visible', false);
+    emit('update:visible', false); // Emit an event to hide the modal
   };
   </script>
   
-  <style scoped>
+  
+<style scoped>
   .overflow-auto {
     overflow-y: auto;
   }
-  </style>
+</style>
   

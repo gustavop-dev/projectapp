@@ -1,0 +1,57 @@
+export default {
+    navbar: {
+      menu_button: "Menú",
+      get_in_touch: "Contáctanos",
+      solutions: {
+        home: "Inicio",
+        about: "Sobre Nosotros",
+        web_designs: "Diseños Web",
+        web_developments: "Desarrollos Web",
+        custom_software: "Software Personalizado",
+        animations_3d: "Animaciones 3D",
+        prices: "Precios",
+        hosting: "Hosting",
+      },
+      contact_us: "Contáctanos",
+    },
+    email_contact: {
+      get_in_touch: "Contáctanos",
+      to_label: "Para",
+      to_value: "Project App (hello@proejctapp.co)",
+      from_label: "De",
+      email_placeholder: "Correo electrónico",
+      subject_label: "Asunto",
+      subject_placeholder: "Dale un título a tu idea",
+      message_placeholder: "Tu mensaje...",
+      send_button: "Enviar",
+    },
+    contact_section: {
+      heading: "Conéctate con nosotros hoy.<br>Comienza tu proyecto en minutos.<br>Experimenta la excelencia para siempre.",
+      mail_us_title: "Envíanos un correo",
+      mail_us_description: "Cuéntanos tu visión para comenzar.",
+      direct_contact_title: "Contacto Directo",
+      direct_contact_description: "Hablemos en detalle sobre tus necesidades. ¡Hablamos pronto!",
+      chat: "Chatear",
+      email_address: "hello@projectapp.co"
+    },
+    footer: {
+      based_in: "Con sede en Nueva York, trabajando en todo el mundo",
+      copyright: "©2024 Project App",
+      instagram: "Instagram",
+      facebook: "Facebook",
+      whatsapp: "WhatsApp",
+      email_address: "hello@projectapp.co",
+      play_reel: "Reproducir Video",
+      solutions: {
+        home: "Inicio",
+        about: "Sobre Nosotros",
+        web_designs: "Diseños Web",
+        web_developments: "Desarrollos Web",
+        custom_software: "Software Personalizado",
+        animations_3d: "Animaciones 3D",
+        prices: "Precios",
+        hosting: "Hosting",
+      },
+    },
+  };
+  

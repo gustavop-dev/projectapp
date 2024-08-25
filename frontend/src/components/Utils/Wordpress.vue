@@ -22,8 +22,9 @@
             </div>
     </section>
 </template>
+
 <script setup>
-import { Vue3Marquee } from 'vue3-marquee'
+import { Vue3Marquee } from 'vue3-marquee'; // Import the Vue3Marquee component for scrolling text
 import { 
     CheckCircleIcon,
     ShieldCheckIcon,
@@ -43,9 +44,10 @@ import {
     BookOpenIcon,
     AcademicCapIcon,
     SwatchIcon,
-CheckBadgeIcon,
- } from '@heroicons/vue/24/outline';
+    CheckBadgeIcon
+} from '@heroicons/vue/24/outline'; // Import various outline icons from Heroicons
 
+// List of quality attributes with corresponding icons and descriptions
 const qualityAttributes = [
     {
         icon: CheckCircleIcon,
@@ -79,8 +81,9 @@ const qualityAttributes = [
         icon: BeakerIcon,
         text: "Implementation of unit and integration tests within the codebase to facilitate updates and ensure that existing functionality is not broken, making it easier for new software providers to implement their solutions without issues."
     }
-]
+];
 
+// List of reasons with corresponding icons and descriptions for why certain software (e.g., WordPress) might be problematic
 const reasons = [
     {
         icon: ExclamationCircleIcon,
@@ -138,5 +141,5 @@ const reasons = [
         icon: ClockIcon,
         text: "Update your website with modern technologies like Django, Vue.js, MySQL, Tailwind CSS."
     }
-]
+];
 </script>
