@@ -1,7 +1,7 @@
 venv/
-projectapp/media/3dmodels
-projectapp/media/components
-projectapp/media/designs
-projectapp/db.sqlite3
-projectapp/content/__pycache__
-projectapp/content/models/__pycache__
+backend/media/3dmodels
+backend/media/components
+backend/media/designs
+backend/db.sqlite3
+backend/content/__pycache__
+backend/content/models/__pycache__
