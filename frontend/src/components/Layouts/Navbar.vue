@@ -8,11 +8,22 @@
     </div>
     <div class="flex absolute z-10 pt-6 top-0 right-0 lg:pe-8">
       <Popover class="relative">
-        <PopoverButton class="inline-flex items-center gap-x-1 text-md bg-window-black bg-opacity-40 backdrop-blur-md text-white font-regular py-2 px-8 rounded-xl mx-2 transition duration-250 ease-out hover:bg-esmerald">
-          <span>{{ globalMessages.menu_button }}</span>
+
+        <PopoverButton 
+          class="inline-flex items-center gap-x-1 text-md bg-window-black bg-opacity-40 backdrop-blur-md text-white font-regular py-2 px-8 rounded-xl mx-2 transition duration-250 ease-out hover:bg-esmerald">
+          <span>
+            {{ globalMessages.menu_button }}
+          </span>
         </PopoverButton>
 
-        <transition enter-active-class="transition ease-out duration-200" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-150" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
+        <transition 
+          enter-active-class="transition ease-out duration-200" 
+          enter-from-class="opacity-0 translate-y-1" 
+          enter-to-class="opacity-100 translate-y-0" 
+          leave-active-class="transition ease-in duration-150" 
+          leave-from-class="opacity-100 translate-y-0" 
+          leave-to-class="opacity-0 translate-y-1"
+          >
           <PopoverPanel class="absolute right-0 z-10 mt-5 flex max-w-min px-2">
             <div class="w-max grid grid-cols-2 rounded-xl bg-window-black bg-opacity-40 text-white backdrop-blur-md">
               <RouterLink
@@ -35,7 +46,9 @@
           </PopoverPanel>
         </transition>
       </Popover>
-      <button @click="showModalEmail = true" class="inline-flex items-center gap-x-1 text-md bg-window-black bg-opacity-40 backdrop-blur-md text-white font-regular py-2 px-8 rounded-xl mx-2 transition duration-250 ease-out hover:bg-esmerald">
+      <button 
+        @click="showModalEmail = true" 
+        class="inline-flex items-center gap-x-1 text-md bg-window-black bg-opacity-40 backdrop-blur-md text-white font-regular py-2 px-8 rounded-xl mx-2 transition duration-250 ease-out hover:bg-esmerald">
         {{ globalMessages.get_in_touch }}
       </button>
     </div>
@@ -58,9 +71,11 @@
   </div>
 
   <div class="fixed inset-0 flex justify-end z-50" v-show="showMenu">
-    <div ref="background" 
+    <div 
+      ref="background" 
       @click="closeMenu()" 
-      class="absolute inset-0 bg-gray-500 bg-opacity-40 backdrop-blur-md">
+      class="absolute inset-0 bg-gray-500 bg-opacity-40 backdrop-blur-md"
+      >
     </div>
     <div ref="menuBox" class="relative bg-lemon h-screen w-screen shadow-lg flex flex-col z-60">
       <div class="flex justify-end py-3 pe-3">
@@ -71,7 +86,7 @@
         v-for="(item, index) in solutions" 
         :key="index" 
         class="flex p-2 ps-4 font-regular text-esmerald text-4xl relative group"
-      >
+        >
         {{ item.name }}
       </RouterLink>
       <div class="absolute bottom-0 w-full">

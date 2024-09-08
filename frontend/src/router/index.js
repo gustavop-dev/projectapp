@@ -53,7 +53,7 @@ const router = createRouter({
     {
       path: '/hosting',
       name: 'hosting',
-      component: () => import("@/views/hosting.vue"), // Lazy-loaded Hosting page
+      component: () => import("@/views/Hosting.vue"), // Lazy-loaded Hosting page
     },
   ],
 });

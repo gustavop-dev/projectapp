@@ -6,13 +6,17 @@
         <section class="bg-lemon px-3 py-32 lg:pt-52 lg:pb-60">
             <div class="grid lg:grid-cols-2">
                 <div class="mb-24 lg:ps-6 lg:mb-0">
-                    <h1 class="bg-window-black bg-opacity-40 backdrop-blur-md px-6 py-2 inline-block rounded-3xl text-esmerald text-sm">{{ messages.about.label }}</h1>
+                    <h1 class="bg-window-black bg-opacity-40 backdrop-blur-md px-6 py-2 inline-block rounded-3xl text-esmerald text-sm">
+                        {{ messages.about.label }}
+                    </h1>
                 </div>
                 <div>
                     <h1 class="inline-block text-6xl font-regular text-esmerald">
                         {{ messages.about.main_title_1 }}<br>
                         {{ messages.about.main_title_2 }}<br>
-                        <span class="border-4 border-transparent border-b-esmerald">{{ messages.about.main_title_3 }}</span>
+                        <span class="border-4 border-transparent border-b-esmerald">
+                            {{ messages.about.main_title_3 }}
+                        </span>
                     </h1>
                     <h2 class="mt-6 font-regular text-esmerald text-md">
                         {{ messages.about.sub_title_1 }}<br>
@@ -27,16 +31,26 @@
             </div>
         </section>
         <section class="grid justify-items-end max-w-7xl mx-auto px-3 py-32 lg:py-52 lg:justify-items-start">
-            <h1 class="text-4xl text-esmerald font-light lg:text-6xl">{{ messages.digital_landscape.title }}</h1>
+            <h1 class="text-4xl text-esmerald font-light lg:text-6xl">
+                {{ messages.digital_landscape.title }}
+            </h1>
             <div class="grid flex-initial w-3/5 mt-20 lg:grid-cols-2 lg:mt-32 lg:w-full">
-                <h2 class="inline-block font-light text-sm text-esmerald">{{ messages.digital_landscape.section_label }}</h2>
+                <h2 class="inline-block font-light text-sm text-esmerald">
+                    {{ messages.digital_landscape.section_label }}
+                </h2>
                 <div>
                     <p class="lg:w-1/2">
-                        <span class="text-esmerald font-regular text-lg">{{ messages.digital_landscape.text_1 }}</span>
-                        <span class="text-green-light text-lg font-regular">{{ messages.digital_landscape.text_2 }}</span>
+                        <span class="text-esmerald font-regular text-lg">
+                            {{ messages.digital_landscape.text_1 }}
+                        </span>
+                        <span class="text-green-light text-lg font-regular">
+                            {{ messages.digital_landscape.text_2 }}
+                        </span>
                         <br>
                         <br>
-                        <span class="text-green-light text-lg font-regular">{{ messages.digital_landscape.text_3 }}</span>
+                        <span class="text-green-light text-lg font-regular">
+                            {{ messages.digital_landscape.text_3 }}
+                        </span>
                     </p>
                 </div>
             </div>
@@ -53,27 +67,40 @@
         </section>
         <section class="max-w-7xl mx-auto px-3 py-32 lg:py-52">
             <div class="inline-block mx-auto space-y-20">
-                <h2 class="inline-block font-regular text-esmerald text-4xl border-2 border-transparent border-b-esmerald">{{ messages.team_support.title }}</h2>
+                <h2 class="inline-block font-regular text-esmerald text-4xl border-2 border-transparent border-b-esmerald">
+                    {{ messages.team_support.title }}
+                </h2>
                 <h3 class="w-1/2 ms-32 inline-block font-regular text-lg">
-                    <span class="text-esmerald">{{ messages.team_support.text_1 }}</span>
-                    <span class="text-green-light">{{ messages.team_support.text_2 }}</span>
+                    <span class="text-esmerald">
+                        {{ messages.team_support.text_1 }}
+                    </span>
+                    <span class="text-green-light">
+                        {{ messages.team_support.text_2 }}
+                    </span>
                 </h3>
             </div>
         </section>
+
         <section class="h-screen p-3 relative">
             <div class="w-full h-full rounded-xl overflow-hidden">
                 <img src="@/assets/images/visual_intro.webp" class="h-full w-full object-cover">
                 <div class="absolute inset-0 flex items-center justify-center px-3">
                     <div class="text-center text-white">
-                        <h2 class="text-4xl font-bold mb-2 md:text-6xl">{{ messages.creatives.title_1 }}</h2>
+                        <h2 class="text-4xl font-bold mb-2 md:text-6xl">
+                            {{ messages.creatives.title_1 }}
+                        </h2>
                         <h2 class="text-4xl font-bold md:text-6xl">
-                            {{ messages.creatives.title_2_part_1 }} <br>
-                            <span class="border-b-2 border-white">{{ messages.creatives.title_2_part_2 }}</span>
+                            {{ messages.creatives.title_2_part_1 }} 
+                            <br>
+                            <span class="border-b-2 border-white">
+                                {{ messages.creatives.title_2_part_2 }}
+                            </span>
                         </h2>
                     </div>
                 </div>
             </div>
         </section>
+
         <section class="pt-32 lg:py-52">
             <h2 class="text-7xl text-esmerald font-light text-center lg:text-9xl">
                 {{ messages.motivation.title_1 }} <br>
@@ -81,7 +108,9 @@
                 {{ messages.motivation.title_3 }}
             </h2>
         </section>
+
         <Contact></Contact>
+
         <div class="mt-32">
             <Footer></Footer>
         </div>

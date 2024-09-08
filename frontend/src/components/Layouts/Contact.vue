@@ -6,21 +6,42 @@
               </div>
               <div class="grid mt-16 lg:grid-cols-2">
                   <div class="relative border-s-2 border-s-gray-250 ps-4 py-8">
-                      <h3 class="text-esmerald text-4xl font-regular">{{ globalMessages.mail_us_title }}</h3>
-                      <p class="mt-4 text-green-light text-lg font-regular">{{ globalMessages.mail_us_description }}</p>
-                      <a @click="showModalEmail = true" ref="emailLink" @mouseover="animateLink" @mouseleave="resetLink" class="inline-block text-xl absolute bottom-0 text-esmerald cursor-pointer">
-                      {{ globalMessages.email_address }}
-                      <span ref="underline" class="absolute left-0 bottom-0 h-0.5 w-0 bg-black transition-all duration-300"></span>
-                      <span ref="arrow" class="absolute right-0 top-1/2 transform -translate-y-1/2 opacity-0 transition-opacity duration-300">➜</span>
+                      <h3 class="text-esmerald text-4xl font-regular">
+                        {{ globalMessages.mail_us_title }}
+                      </h3>
+                      <p class="mt-4 text-green-light text-lg font-regular">
+                        {{ globalMessages.mail_us_description }}
+                      </p>
+                      <a 
+                        @click="showModalEmail = true" 
+                        ref="emailLink" 
+                        @mouseover="animateLink" 
+                        @mouseleave="resetLink" 
+                        class="inline-block text-xl absolute bottom-0 text-esmerald cursor-pointer"
+                        >
+                        {{ globalMessages.email_address }}
+                        <span ref="underline" class="absolute left-0 bottom-0 h-0.5 w-0 bg-black transition-all duration-300"></span>
+                        <span ref="arrow" class="absolute right-0 top-1/2 transform -translate-y-1/2 opacity-0 transition-opacity duration-300">➜</span>
                       </a>
                   </div>
                   <div class="relative border-s-2 border-s-gray-250 ps-4 py-8">
-                      <h3 class="text-esmerald text-4xl font-regular">{{ globalMessages.direct_contact_title }}</h3>
-                      <p class="mt-4 text-green-light text-lg font-regular">{{ globalMessages.direct_contact_description }}</p>
-                      <a href="https://wa.me/message/XX77FJEUEM26H1?src=qr" target="_blank" ref="chatLink" @mouseover="animateLinkChat" @mouseleave="resetLinkChat" class="inline-block text-xl absolute bottom-0 text-esmerald cursor-pointer">
-                      {{ globalMessages.chat }}
-                      <span ref="underlineChat" class="absolute left-0 bottom-0 h-0.5 w-0 bg-black transition-all duration-300"></span>
-                      <span ref="arrowChat" class="absolute right-0 top-1/2 transform -translate-y-1/2 opacity-0 transition-opacity duration-300">➜</span>
+                      <h3 class="text-esmerald text-4xl font-regular">
+                        {{ globalMessages.direct_contact_title }}
+                      </h3>
+                      <p class="mt-4 text-green-light text-lg font-regular">
+                        {{ globalMessages.direct_contact_description }}
+                      </p>
+                      <a 
+                        href="https://wa.me/message/XX77FJEUEM26H1?src=qr" 
+                        target="_blank" 
+                        ref="chatLink" 
+                        @mouseover="animateLinkChat" 
+                        @mouseleave="resetLinkChat" 
+                        class="inline-block text-xl absolute bottom-0 text-esmerald cursor-pointer"
+                        >
+                        {{ globalMessages.chat }}
+                        <span ref="underlineChat" class="absolute left-0 bottom-0 h-0.5 w-0 bg-black transition-all duration-300"></span>
+                        <span ref="arrowChat" class="absolute right-0 top-1/2 transform -translate-y-1/2 opacity-0 transition-opacity duration-300">➜</span>
                       </a>
                   </div>
               </div>

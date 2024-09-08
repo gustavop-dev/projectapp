@@ -3,3 +3,5 @@ projectapp/media/3dmodels
 projectapp/media/components
 projectapp/media/designs
 projectapp/db.sqlite3
+projectapp/content/__pycache__
+projectapp/content/models/__pycache__

@@ -5,8 +5,15 @@
           <source src="@/assets/videos/presentationPrevPc.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
-        <div ref="ball" class="absolute bg-window-black bg-opacity-40 backdrop-blur-md text-white rounded-full flex items-center justify-center w-32 h-32 transition-opacity duration-300 cursor-pointer" @click="showModal = true">
-          <span ref="ballText" class="font-light text-xl">{{ play_text }}</span>
+        <div 
+          ref="ball" 
+          class="absolute bg-window-black bg-opacity-40 backdrop-blur-md text-white rounded-full flex items-center justify-center w-32 h-32 transition-opacity duration-300 cursor-pointer" 
+          @click="showModal = true"
+          >
+          <span ref="ballText" 
+            class="font-light text-xl">
+            {{ play_text }}
+          </span>
         </div>
       </div>
     </div>
@@ -19,7 +26,10 @@
           Your browser does not support the video tag.
         </video>
       </div>
-      <div ref="modalBall" class="absolute z-50 bg-window-black bg-opacity-60 backdrop-blur-md text-white rounded-full flex items-center justify-center w-20 h-20 transition-opacity duration-300 cursor-pointer" @click="closeModal">
+      <div 
+        ref="modalBall" 
+        class="absolute z-50 bg-window-black bg-opacity-60 backdrop-blur-md text-white rounded-full flex items-center justify-center w-20 h-20 transition-opacity duration-300 cursor-pointer" 
+        @click="closeModal">
         <XMarkIcon ref="modalBallText" class="w-8"></XMarkIcon>
       </div>
     </div>

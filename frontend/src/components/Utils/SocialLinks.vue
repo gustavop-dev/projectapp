@@ -2,23 +2,35 @@
   <div
     class="mt-4 p-2 ps-4 border-transparent border-t-esmerald border-opacity-40 border grid grid-cols-2 lg:border-t-white"
   >
-    <a href="https://www.instagram.com/paginaswebscolombia_?igsh=MWh3MHRha3A5MHFrbQ==" target="_blank" class="inline-block text-sm cursor-pointer font-regular social-link"
-      >Instagram
-      <ArrowUpRightIcon class="w-3 inline arrow-icon"></ArrowUpRightIcon
-    ></a>
-    <a href="https://www.facebook.com/paginaswebscolombiaoficial" target="_blank" class="inline-block text-sm ms-2 cursor-pointer font-regular social-link"
-      >Facebook
-      <ArrowUpRightIcon class="w-3 inline arrow-icon"></ArrowUpRightIcon
-    ></a>
-    <a href="https://wa.me/message/XX77FJEUEM26H1?src=qr" target="_blank" class="inline-block text-sm cursor-pointer font-regular social-link"
-      >WhatsApp
-      <ArrowUpRightIcon class="w-3 inline arrow-icon"></ArrowUpRightIcon
-    ></a>
+    <a 
+      href="https://www.instagram.com/paginaswebscolombia_?igsh=MWh3MHRha3A5MHFrbQ==" 
+      target="_blank" 
+      class="inline-block text-sm cursor-pointer font-regular js-social-link"
+      >
+      Instagram
+      <ArrowUpRightIcon class="w-3 inline js-arrow-icon"></ArrowUpRightIcon>
+    </a>
+    <a 
+      href="https://www.facebook.com/paginaswebscolombiaoficial" 
+      target="_blank" 
+      class="inline-block text-sm ms-2 cursor-pointer font-regular js-social-link"
+      >
+      Facebook
+      <ArrowUpRightIcon class="w-3 inline js-arrow-icon"></ArrowUpRightIcon>
+    </a>
+    <a 
+      href="https://wa.me/message/XX77FJEUEM26H1?src=qr" 
+      target="_blank" 
+      class="inline-block text-sm cursor-pointer font-regular js-social-link"
+      >
+      WhatsApp
+      <ArrowUpRightIcon class="w-3 inline js-arrow-icon"></ArrowUpRightIcon>
+    </a>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue"; // Import ref for reactivity and onMounted for the lifecycle hook
+import { onMounted } from "vue"; // Import onMounted for the lifecycle hook
 import { gsap } from "gsap"; // Import GSAP for animations
 import ArrowUpRightIcon from "@heroicons/vue/20/solid/ArrowUpRightIcon"; // Import the ArrowUpRightIcon from Heroicons
 
@@ -30,10 +42,10 @@ import ArrowUpRightIcon from "@heroicons/vue/20/solid/ArrowUpRightIcon"; // Impo
  * arrow move diagonally and disappear, then resets it back to the starting position and fades it in.
  */
 onMounted(() => {
-  const links = document.querySelectorAll(".social-link"); // Select all elements with the "social-link" class
+  const links = document.querySelectorAll(".js-social-link"); // Select all elements with the "social-link" class
 
   links.forEach((link) => {
-    const arrow = link.querySelector(".arrow-icon"); // Find the arrow icon inside each link
+    const arrow = link.querySelector(".js-arrow-icon"); // Find the arrow icon inside each link
 
     // Add mouseenter event to trigger animation
     link.addEventListener("mouseenter", () => {
@@ -53,15 +65,3 @@ onMounted(() => {
   });
 });
 </script>
-
-<style scoped>
-.social-link {
-  position: relative;
-  display: inline-block;
-  overflow: hidden;
-}
-
-.arrow-icon {
-  display: inline-block;
-}
-</style>

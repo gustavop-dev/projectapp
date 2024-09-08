@@ -5,13 +5,23 @@
         <source src="@/assets/videos/presentationPrevPc.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
-      <div ref="ball" class="absolute bg-window-black bg-opacity-40 backdrop-blur-md text-white rounded-full flex items-center justify-center w-32 h-32 transition-opacity duration-300 cursor-pointer" @click="showModal = true">
-        <span ref="ballText" class="font-light text-xl">{{ globalMessages.play_reel }}</span>
+      <div 
+        ref="ball" 
+        class="absolute bg-window-black bg-opacity-40 backdrop-blur-md text-white rounded-full flex items-center justify-center w-32 h-32 transition-opacity duration-300 cursor-pointer" 
+        @click="showModal = true"
+        >
+        <span ref="ballText" class="font-light text-xl">
+          {{ globalMessages.play_reel }}
+        </span>
       </div>
       <div class="absolute bottom-0 right-0 w-full h-1/2 rounded-b-xl bg-window-black bg-opacity-40 backdrop-blur-md">
         <div class="grid lg:grid-cols-2">
           <div>
-            <h3 class="hidden ms-4 mb-4 absolute bottom-0 text-lg font-regular text-white opacity-40 lg:block">{{ globalMessages.based_in }}</h3>
+            <h3 
+              class="hidden ms-4 mb-4 absolute bottom-0 text-lg font-regular text-white opacity-40 lg:block"
+              >
+              {{ globalMessages.based_in }}
+            </h3>
           </div>
           <div class="grid lg:grid-cols-2">
             <div class="md:w-max grid grid-cols-2 text-white mt-4">
@@ -30,22 +40,44 @@
                   ➜
                 </div>
               </RouterLink>
-              <h3 class="hidden ms-4 mb-4 absolute bottom-0 text-lg font-regular text-white opacity-40 lg:block">{{ globalMessages.copyright }}</h3>
+              <h3 class="hidden ms-4 mb-4 absolute bottom-0 text-lg font-regular text-white opacity-40 lg:block">
+                {{ globalMessages.copyright }}
+              </h3>
             </div>
             <div class="w-60">
               <div class="mt-4 p-2 ps-4">
-                <a href="https://www.instagram.com/paginaswebscolombia_?igsh=MWh3MHRha3A5MHFrbQ==" target="_blank" class="block text-lg cursor-pointer social-link text-white font-regular">{{ globalMessages.instagram }} <ArrowUpRightIcon class="w-5 inline arrow-icon"></ArrowUpRightIcon></a>
-                <a href="https://www.facebook.com/paginaswebscolombiaoficial" target="_blank" class="block text-lg cursor-pointer social-link text-white font-regular">{{ globalMessages.facebook }} <ArrowUpRightIcon class="w-5 inline arrow-icon"></ArrowUpRightIcon></a>
-                <a href="https://wa.me/message/XX77FJEUEM26H1?src=qr" target="_blank" class="block text-lg cursor-pointer social-link text-white font-regular">{{ globalMessages.whatsapp }} <ArrowUpRightIcon class="w-5 inline arrow-icon"></ArrowUpRightIcon></a>
                 <a 
-                @click="showModalEmail = true"
-                class="flex cursor-pointer font-regular text-white text-lg relative group"
-                @mouseover="hoverMenu($event, true)" 
-                @mouseleave="hoverMenu($event, false)"
-              >
-                {{ globalMessages.email_address }}
-                <div class="absolute left-0 bottom-0 h-0.5 w-0 bg-white transition-all duration-300 group-hover:w-full"></div>
-              </a>
+                  href="https://www.instagram.com/paginaswebscolombia_?igsh=MWh3MHRha3A5MHFrbQ==" 
+                  target="_blank" 
+                  class="block text-lg cursor-pointer social-link text-white font-regular"
+                  >
+                  {{ globalMessages.instagram }} 
+                  <ArrowUpRightIcon class="w-5 inline arrow-icon"></ArrowUpRightIcon>
+                </a>
+                <a 
+                  href="https://www.facebook.com/paginaswebscolombiaoficial" 
+                  target="_blank" 
+                  class="block text-lg cursor-pointer social-link text-white font-regular"
+                  >
+                  {{ globalMessages.facebook }} 
+                  <ArrowUpRightIcon class="w-5 inline arrow-icon"></ArrowUpRightIcon>
+                </a>
+                <a 
+                  href="https://wa.me/message/XX77FJEUEM26H1?src=qr" 
+                  target="_blank" 
+                  class="block text-lg cursor-pointer social-link text-white font-regular">
+                  {{ globalMessages.whatsapp }} 
+                  <ArrowUpRightIcon class="w-5 inline arrow-icon"></ArrowUpRightIcon>
+                </a>
+                <a 
+                  @click="showModalEmail = true"
+                  class="flex cursor-pointer font-regular text-white text-lg relative group"
+                  @mouseover="hoverMenu($event, true)" 
+                  @mouseleave="hoverMenu($event, false)"
+                  >
+                  {{ globalMessages.email_address }}
+                  <div class="absolute left-0 bottom-0 h-0.5 w-0 bg-white transition-all duration-300 group-hover:w-full"></div>
+                </a>
               </div>
             </div>
           </div>
@@ -55,14 +87,22 @@
   </div>
 
   <!-- Modal -->
-  <div v-if="showModal" class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 backdrop-blur-md" @mousemove="handleModalMouseMove">
+  <div 
+    v-if="showModal" 
+    class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 backdrop-blur-md" 
+    @mousemove="handleModalMouseMove"
+    >
     <div class="relative w-screen lg:h-screen">
       <video ref="modalVideo" class="w-full h-full object-cover" autoplay>
         <source src="@/assets/videos/presentationComp.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
     </div>
-    <div ref="modalBall" class="absolute z-50 bg-window-black bg-opacity-60 backdrop-blur-md text-white rounded-full flex items-center justify-center w-20 h-20 transition-opacity duration-300 cursor-pointer" @click="closeModal">
+    <div 
+      ref="modalBall" 
+      class="absolute z-50 bg-window-black bg-opacity-60 backdrop-blur-md text-white rounded-full flex items-center justify-center w-20 h-20 transition-opacity duration-300 cursor-pointer" 
+      @click="closeModal"
+      >
       <XMarkIcon ref="modalBallText" class="w-8"></XMarkIcon>
     </div>
   </div>
