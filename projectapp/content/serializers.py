@@ -13,7 +13,7 @@ class ContactSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Contact
-        fields = "__all__"
+        fields = '__all__'
 
 
 class Models3DSerializer(serializers.ModelSerializer):
@@ -33,7 +33,7 @@ class Models3DSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Models3D
-        fields = "__all__"
+        fields = '__all__'
 
     def get_image_url(self, obj):
         """
@@ -71,7 +71,7 @@ class DesignsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Designs
-        fields = "__all__"
+        fields = '__all__'
 
     def get_presentation_image_url(self, obj):
         """
@@ -104,7 +104,7 @@ class ExampleSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Example
-        fields = "__all__"
+        fields = '__all__'
 
 
 class ComponentsSerializer(serializers.ModelSerializer):
@@ -124,7 +124,7 @@ class ComponentsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Components
-        fields = "__all__"
+        fields = '__all__'
 
     def get_image_url(self, obj):
         """
@@ -151,7 +151,7 @@ class SectionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Section
-        fields = "__all__"
+        fields = '__all__'
 
 
 class CategoriesDevelopmentSerializer(serializers.ModelSerializer):
@@ -171,4 +171,4 @@ class CategoriesDevelopmentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CategoriesDevelopment
-        fields = "__all__"
+        fields = '__all__'

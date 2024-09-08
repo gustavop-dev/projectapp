@@ -20,8 +20,17 @@
                         class="inline-block text-xl absolute bottom-0 text-esmerald cursor-pointer"
                         >
                         {{ globalMessages.email_address }}
-                        <span ref="underline" class="absolute left-0 bottom-0 h-0.5 w-0 bg-black transition-all duration-300"></span>
-                        <span ref="arrow" class="absolute right-0 top-1/2 transform -translate-y-1/2 opacity-0 transition-opacity duration-300">➜</span>
+                        <span 
+                          ref="underline" 
+                          class="absolute left-0 bottom-0 h-0.5 w-0 bg-black transition-all duration-300"
+                          >
+                        </span>
+                        <span 
+                          ref="arrow" 
+                          class="absolute right-0 top-1/2 transform -translate-y-1/2 opacity-0 transition-opacity duration-300"
+                          >
+                          ➜
+                        </span>
                       </a>
                   </div>
                   <div class="relative border-s-2 border-s-gray-250 ps-4 py-8">
@@ -40,8 +49,17 @@
                         class="inline-block text-xl absolute bottom-0 text-esmerald cursor-pointer"
                         >
                         {{ globalMessages.chat }}
-                        <span ref="underlineChat" class="absolute left-0 bottom-0 h-0.5 w-0 bg-black transition-all duration-300"></span>
-                        <span ref="arrowChat" class="absolute right-0 top-1/2 transform -translate-y-1/2 opacity-0 transition-opacity duration-300">➜</span>
+                        <span 
+                          ref="underlineChat" 
+                          class="absolute left-0 bottom-0 h-0.5 w-0 bg-black transition-all duration-300"
+                          >
+                        </span>
+                        <span 
+                          ref="arrowChat" 
+                          class="absolute right-0 top-1/2 transform -translate-y-1/2 opacity-0 transition-opacity duration-300"
+                          >
+                          ➜
+                        </span>
                       </a>
                   </div>
               </div>
