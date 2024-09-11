@@ -1,59 +1,93 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import Home from '@/views/Home.vue'
+import { createRouter, createWebHistory } from 'vue-router';
+import { useLanguageStore } from '@/stores/language'; // Import the language store
+import Home from '@/views/Home.vue';
 
 const router = createRouter({
+  /**
+   * Configures the router for the application using the history mode.
+   * 
+   * The routes array defines all the different paths and their associated components in the application.
+   */
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
       name: 'home',
-      component: Home
+      component: Home, // Home component for the main landing page
     },
     {
       path: '/web-developments',
       name: 'webDevelopments',
-      component: () => import("@/views/WebDevelopment/List.vue"),
+      component: () => import("@/views/WebDevelopment/List.vue"), // Lazy-loaded Web Developments list
     },
     {
       path: '/web-developments/detail/:development_id/:section_id/:component_id',
       name: 'webDevelopmentsDetail',
-      component: () => import("@/views/WebDevelopment/Detail.vue"),
+      component: () => import("@/views/WebDevelopment/Detail.vue"), // Lazy-loaded Web Development details
     },
     {
       path: '/web-designs',
       name: 'webDesigns',
-      component: () => import("@/views/WebDesigns/List.vue"),
+      component: () => import("@/views/WebDesigns/List.vue"), // Lazy-loaded Web Designs list
     },
     {
       path: '/3d-animations',
       name: '3dAnimations',
-      component: () => import("@/views/3dAnimations/List.vue"),
+      component: () => import("@/views/3dAnimations/List.vue"), // Lazy-loaded 3D Animations list
     },
     {
       path: '/about-us',
       name: 'aboutUs',
-      component: () => import("@/views/AboutUs.vue"),
+      component: () => import("@/views/AboutUs.vue"), // Lazy-loaded About Us page
     },
     {
       path: '/custom-software',
       name: 'customSoftware',
-      component: () => import("@/views/CustomSoftware.vue"),
+      component: () => import("@/views/CustomSoftware.vue"), // Lazy-loaded Custom Software page
     },
     {
       path: '/e-commerce-prices',
       name: 'eCommercePrices',
-      component: () => import("@/views/Prices.vue"),
+      component: () => import("@/views/Prices.vue"), // Lazy-loaded eCommerce Prices page
     },
     {
       path: '/hosting',
       name: 'hosting',
-      component: () => import("@/views/hosting.vue"),
-    }
-  ]
-})
+      component: () => import("@/views/Hosting.vue"), // Lazy-loaded Hosting page
+    },
+  ],
+});
 
+/**
+ * Scroll to the top of the page after each route change.
+ * 
+ * This hook ensures that the page is scrolled to the top after navigating to a new route.
+ */
 router.afterEach((to, from) => {
   window.scrollTo(0, 0);
 });
 
-export default router
+/**
+ * Before each route, ensure the language messages for the view are loaded.
+ * 
+ * This global navigation guard ensures that:
+ * - The user's browser language is detected if it hasn't been set.
+ * - The language messages for the view being navigated to are loaded.
+ */
+router.beforeEach(async (to, from, next) => {
+  const languageStore = useLanguageStore();
+
+  // Detect the browser language if it hasn't been set yet
+  if (!languageStore.currentLanguage) {
+    languageStore.detectBrowserLanguage();
+  }
+
+  // Load the messages for the view being navigated to
+  await languageStore.loadMessagesForView(to.name);
+
+  // Continue to the next route
+  next();
+});
+
+export default router;
+

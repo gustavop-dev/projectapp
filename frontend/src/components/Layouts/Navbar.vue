@@ -8,17 +8,28 @@
     </div>
     <div class="flex absolute z-10 pt-6 top-0 right-0 lg:pe-8">
       <Popover class="relative">
-        <PopoverButton class="inline-flex items-center gap-x-1 text-md bg-window-black bg-opacity-40 backdrop-blur-md text-white font-regular py-2 px-8 rounded-xl mx-2 transition duration-250 ease-out hover:bg-esmerald">
-          <span>Menu</span>
+
+        <PopoverButton 
+          class="inline-flex items-center gap-x-1 text-md bg-window-black bg-opacity-40 backdrop-blur-md text-white font-regular py-2 px-8 rounded-xl mx-2 transition duration-250 ease-out hover:bg-esmerald">
+          <span>
+            {{ globalMessages.menu_button }}
+          </span>
         </PopoverButton>
 
-        <transition enter-active-class="transition ease-out duration-200" enter-from-class="opacity-0 translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition ease-in duration-150" leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 translate-y-1">
+        <transition 
+          enter-active-class="transition ease-out duration-200" 
+          enter-from-class="opacity-0 translate-y-1" 
+          enter-to-class="opacity-100 translate-y-0" 
+          leave-active-class="transition ease-in duration-150" 
+          leave-from-class="opacity-100 translate-y-0" 
+          leave-to-class="opacity-0 translate-y-1"
+          >
           <PopoverPanel class="absolute right-0 z-10 mt-5 flex max-w-min px-2">
             <div class="w-max grid grid-cols-2 rounded-xl bg-window-black bg-opacity-40 text-white backdrop-blur-md">
               <RouterLink
                 :to="{ name:  item.href }" 
-                v-for="item in solutions" 
-                :key="item.name" 
+                v-for="(item, index) in solutions" 
+                :key="index" 
                 class="flex p-2 ps-4 font-regular text-white text-xl relative group"
                 @mouseenter="hoverMenu($event, true)" 
                 @mouseleave="hoverMenu($event, false)"
@@ -35,8 +46,10 @@
           </PopoverPanel>
         </transition>
       </Popover>
-      <button @click="showModalEmail = true" class="inline-flex items-center gap-x-1 text-md bg-window-black bg-opacity-40 backdrop-blur-md text-white font-regular py-2 px-8 rounded-xl mx-2 transition duration-250 ease-out hover:bg-esmerald">
-        Get in touch
+      <button 
+        @click="showModalEmail = true" 
+        class="inline-flex items-center gap-x-1 text-md bg-window-black bg-opacity-40 backdrop-blur-md text-white font-regular py-2 px-8 rounded-xl mx-2 transition duration-250 ease-out hover:bg-esmerald">
+        {{ globalMessages.get_in_touch }}
       </button>
     </div>
   </div>
@@ -58,9 +71,11 @@
   </div>
 
   <div class="fixed inset-0 flex justify-end z-50" v-show="showMenu">
-    <div ref="background" 
+    <div 
+      ref="background" 
       @click="closeMenu()" 
-      class="absolute inset-0 bg-gray-500 bg-opacity-40 backdrop-blur-md">
+      class="absolute inset-0 bg-gray-500 bg-opacity-40 backdrop-blur-md"
+      >
     </div>
     <div ref="menuBox" class="relative bg-lemon h-screen w-screen shadow-lg flex flex-col z-60">
       <div class="flex justify-end py-3 pe-3">
@@ -68,10 +83,10 @@
       </div>
       <RouterLink
         :to="{ name:  item.href }" 
-        v-for="item in solutions" 
-        :key="item.name" 
+        v-for="(item, index) in solutions" 
+        :key="index" 
         class="flex p-2 ps-4 font-regular text-esmerald text-4xl relative group"
-      >
+        >
         {{ item.name }}
       </RouterLink>
       <div class="absolute bottom-0 w-full">
@@ -86,107 +101,98 @@
 </template>
 
 <script setup>
-import Email from '@/components/layouts/Email.vue';
-import { ref } from 'vue';
-import { gsap } from 'gsap';
-import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue';
-import { Bars3Icon, XMarkIcon } from '@heroicons/vue/24/outline';
-import SocialLinks from '@/components/utils/SocialLinks.vue';
-import ButtonWhitArrow from '@/components/utils/ButtonWithArrow.vue'
+import Email from '@/components/layouts/Email.vue'; // Import the Email component
+import { ref } from 'vue'; // Import ref for reactive state
+import { gsap } from 'gsap'; // Import GSAP for animations
+import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'; // Import Popover components from Headless UI
+import { Bars3Icon, XMarkIcon } from '@heroicons/vue/24/outline'; // Import Heroicons for the menu and close icons
+import SocialLinks from '@/components/utils/SocialLinks.vue'; // Import the SocialLinks component
+import ButtonWhitArrow from '@/components/utils/ButtonWithArrow.vue'; // Import the ButtonWithArrow component
+import { useGlobalMessages } from '@/composables/useMessages'; // Import the custom composable to get global messages
 
-const background = ref(null);
-const menuBox = ref(null)
+const { globalMessages } = useGlobalMessages('navbar'); // Get the global messages for the 'navbar' section
 
-const showModalEmail = ref(false);
-const showMenu = ref(false);
+// Reactive references for various states
+const background = ref(null); // Reference to the background element for animations
+const menuBox = ref(null); // Reference to the menu box element for animations
+const showModalEmail = ref(false); // Controls visibility of the email modal
+const showMenu = ref(false); // Controls visibility of the menu
+
+// Solutions array, populated with global messages for navbar links
 const solutions = ref([
-  { name: 'Home', href: 'home' },
-  { name: 'About', href: 'aboutUs' },
-  { name: 'Web Designs', href: 'webDesigns' },
-  { name: 'Web Developments', href: 'webDevelopments' },
-  { name: 'Custom Software', href: 'customSoftware' },
-  { name: '3D Animations', href: '3dAnimations' },
-  { name: 'Prices', href: 'eCommercePrices'},
-  { name: 'Hosting', href: 'hosting' },
+  { name: globalMessages.solutions.home, href: 'home' },
+  { name: globalMessages.solutions.about, href: 'aboutUs' },
+  { name: globalMessages.solutions.web_designs, href: 'webDesigns' },
+  { name: globalMessages.solutions.web_developments, href: 'webDevelopments' },
+  { name: globalMessages.solutions.custom_software, href: 'customSoftware' },
+  { name: globalMessages.solutions.animations_3d, href: '3dAnimations' },
+  { name: globalMessages.solutions.prices, href: 'eCommercePrices' },
+  { name: globalMessages.solutions.hosting, href: 'hosting' },
 ]);
 
-
+/**
+ * Handles hover animations for menu items.
+ * 
+ * @param {Event} event - The hover event.
+ * @param {Boolean} isHover - Whether the menu item is being hovered over.
+ */
 const hoverMenu = (event, isHover) => {
-  const underline = event.target.querySelector('.underline');
-  const arrow = event.target.querySelector('.arrow');
+  const underline = event.target.querySelector('.underline'); // Find underline element
+  const arrow = event.target.querySelector('.arrow'); // Find arrow element
   if (isHover) {
-    gsap.to(underline, { width: '50%', duration: 0.05 });
-    gsap.to(arrow, { opacity: 1, duration: 0.05 });
+    gsap.to(underline, { width: '50%', duration: 0.05 }); // Expand underline on hover
+    gsap.to(arrow, { opacity: 1, duration: 0.05 }); // Show arrow on hover
   } else {
-    gsap.to(underline, { width: '0%', duration: 0.05 });
-    gsap.to(arrow, { opacity: 0, duration: 0.05 });
+    gsap.to(underline, { width: '0%', duration: 0.05 }); // Hide underline on hover out
+    gsap.to(arrow, { opacity: 0, duration: 0.05 }); // Hide arrow on hover out
   }
 };
 
+/**
+ * Opens the menu with GSAP animations.
+ * 
+ * Animates the background and menu box into view when the menu is opened.
+ */
 const openMenu = () => {
-  showMenu.value = true;
+  showMenu.value = true; // Show the menu
   if (background.value && menuBox.value) {
     gsap.fromTo(
       background.value,
-      {
-        opacity: 0,
-      },
-      {
-        opacity: 1,
-        duration: 1,
-        ease: "power2.inOut",
-      }
+      { opacity: 0 },
+      { opacity: 1, duration: 1, ease: "power2.inOut" } // Fade in the background
     );
   
     gsap.fromTo(
       menuBox.value,
-      {
-        x: window.innerWidth,
-      },
-      {
-        x: 0,
-        duration: 1,
-        ease: "power2.inOut",
-      }
+      { x: window.innerWidth }, // Start the menu off-screen
+      { x: 0, duration: 1, ease: "power2.inOut" } // Slide the menu into view
     );
   }
-}
+};
 
+/**
+ * Closes the menu with GSAP animations.
+ * 
+ * Animates the background and menu box out of view when the menu is closed.
+ */
 const closeMenu = () => {
-        // Create the animations like a promises
-        const menuAnimation = gsap
-            .fromTo(
-                menuBox.value,
-                {
-                    x: 0,
-                },
-                {
-                    x: menuBox.value.offsetWidth,
-                    duration: 1,
-                    ease: "power2.inOut",
-                }
-            )
-            .then();
+  // Animate the menu box sliding out
+  const menuAnimation = gsap.fromTo(
+    menuBox.value,
+    { x: 0 },
+    { x: menuBox.value.offsetWidth, duration: 1, ease: "power2.inOut" }
+  ).then();
 
-        const backgroundAnimation = gsap
-            .fromTo(
-                background.value,
-                {
-                    opacity: 1,
-                },
-                {
-                    opacity: 0,
-                    duration: 1,
-                    ease: "power2.inOut",
-                }
-            )
-            .then();
+  // Animate the background fading out
+  const backgroundAnimation = gsap.fromTo(
+    background.value,
+    { opacity: 1 },
+    { opacity: 0, duration: 1, ease: "power2.inOut" }
+  ).then();
 
-        // Wait while both are finished
-        Promise.all([menuAnimation, backgroundAnimation]).then(() => {
-          showMenu.value = false;
-        });
-    };
+  // Wait for both animations to complete before hiding the menu
+  Promise.all([menuAnimation, backgroundAnimation]).then(() => {
+    showMenu.value = false; // Hide the menu
+  });
+};
 </script>
-
-

@@ -44,23 +44,47 @@
                 </div>
                 <div class="mt-16 flex justify-end">
                   <fieldset aria-label="Payment frequency">
-                    <RadioGroup v-model="frequency" class="grid grid-cols-2 gap-x-1 rounded-full p-1 text-center text-sm font-regular leading-5 ring-1 ring-inset ring-esmerald-light bg-window-black bg-opacity-40 backdrop-blur-md">
+                    <RadioGroup 
+                      v-model="frequency" 
+                      class="grid grid-cols-2 gap-x-1 rounded-full p-1 text-center text-sm font-regular leading-5 ring-1 ring-inset ring-esmerald-light bg-window-black bg-opacity-40 backdrop-blur-md"
+                      >
                       <RadioGroupOption as="template" v-for="option in frequencies" :key="option.value" :value="option" v-slot="{ checked }">
-                        <div :class="[checked ? 'bg-lemon text-esmerald' : 'text-esmerald-light', 'cursor-pointer rounded-full px-2.5 py-1']">{{ option.label }}</div>
+                        <div 
+                          :class="[checked ? 'bg-lemon text-esmerald' : 'text-esmerald-light', 'cursor-pointer rounded-full px-2.5 py-1']"
+                          >
+                          {{ option.label }}
+                        </div>
                       </RadioGroupOption>
                     </RadioGroup>
                   </fieldset>
                 </div>
               </div>
               <div class="isolate mx-auto mt-10 grid max-w-md grid-cols-1 gap-8 md:max-w-2xl md:grid-cols-2 lg:max-w-4xl xl:mx-0 xl:max-w-none xl:grid-cols-4">
-                <div v-for="tier in tiers" :key="tier.id" :class="[tier.mostPopular ? 'ring-2 ring-lemon bg-lemon' : 'ring-1 ring-esmerald-light bg-esmerald-light', 'rounded-xl p-8']">
-                  <h3 :id="tier.id" class="text-2xl font-LIGHT leading-8 text-esmerald">{{ tier.name }}</h3>
-                  <p class="mt-4 text-md font-regular leading-6 text-esmerald">{{ tier.description }}</p>
-                  <p class="mt-6 flex items-baseline gap-x-1">
-                    <span class="text-4xl font-medium tracking-tight text-esmerald">{{ tier.price[frequency.value] }}</span>
-                    <span class="text-sm font-semibold leading-6 text-gray-600">{{ frequency.priceSuffix }}</span>
+                <div 
+                  v-for="tier in tiers" 
+                  :key="tier.id" 
+                    Q:class="[tier.mostPopular ? 'ring-2 ring-lemon bg-lemon' : 'ring-1 ring-esmerald-light bg-esmerald-light', 'rounded-xl p-8']">
+                  <h3 :id="tier.id" class="text-2xl font-LIGHT leading-8 text-esmerald">
+                    {{ tier.name }}
+                  </h3>
+                  <p class="mt-4 text-md font-regular leading-6 text-esmerald">
+                    {{ tier.description }}
                   </p>
-                  <a :href="tier.href" :aria-describedby="tier.id" :class="[tier.mostPopular ? 'bg-esmerald-light text-esmerald shadow-sm' : 'bg-lemon text-esmerald ring-indigo-200 hover:ring-indigo-300', 'mt-6 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2']">Contact Sales</a>
+                  <p class="mt-6 flex items-baseline gap-x-1">
+                    <span class="text-4xl font-medium tracking-tight text-esmerald">
+                      {{ tier.price[frequency.value] }}
+                    </span>
+                    <span class="text-sm font-semibold leading-6 text-gray-600">
+                      {{ frequency.priceSuffix }}
+                    </span>
+                  </p>
+                  <a 
+                    :href="tier.href" 
+                    :aria-describedby="tier.id" 
+                    :class="[tier.mostPopular ? 'bg-esmerald-light text-esmerald shadow-sm' : 'bg-lemon text-esmerald ring-indigo-200 hover:ring-indigo-300', 'mt-6 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2']"
+                    >
+                    Contact Sales
+                  </a>
                   <ul role="list" class="mt-8 space-y-3 text-sm leading-6 text-gray-600">
                     <li v-for="feature in tier.features" :key="feature" class="flex gap-x-3">
                       <CheckIcon class="h-6 w-5 flex-none text-esmerald" aria-hidden="true" />
@@ -84,10 +108,10 @@
 import Navbar from '@/components/layouts/Navbar.vue';
 import Footer from '@/components/layouts/Footer.vue';
 import Contact from '@/components/layouts/Contact.vue';
-import { Vue3Marquee } from 'vue3-marquee'
-import { ref } from 'vue'
-import { RadioGroup, RadioGroupOption } from '@headlessui/vue'
-import { CheckIcon } from '@heroicons/vue/20/solid'
+import { Vue3Marquee } from 'vue3-marquee';
+import { ref } from 'vue';
+import { RadioGroup, RadioGroupOption } from '@headlessui/vue';
+import { CheckIcon } from '@heroicons/vue/20/solid';
 import { CheckCircleIcon, ServerIcon, ShieldCheckIcon, ArrowTrendingUpIcon, UsersIcon, CodeBracketIcon } from '@heroicons/vue/24/outline';
 
 const frequencies = [
