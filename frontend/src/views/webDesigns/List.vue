@@ -43,7 +43,7 @@
 import Navbar from '@/components/layouts/Navbar.vue'; // Import the Navbar component for the navigation bar
 import Dune from '@/components/spline/Backgrounds/Dune.vue'; // Import the Dune component, likely a 3D background
 import Footer from '@/components/layouts/Footer.vue'; // Import the Footer component for the website's footer
-import Detail from '@/views/WebDesigns/Detail.vue'; // Import the Detail view for web designs
+import Detail from '@/views/webDesigns/Detail.vue'; // Import the Detail view for web designs
 import { useWebDesignsStore } from '@/stores/web-designs'; // Import the web designs store
 import { onMounted, ref, computed } from 'vue'; // Import Vue's lifecycle hook, ref for reactivity, and computed
 import { useMessages } from '@/composables/useMessages'; // Import the custom composable to get localized messages
