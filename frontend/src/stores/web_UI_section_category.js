@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { get_request } from './services/request_http';
 import { useLanguageStore } from '@/stores/language'; // Import the language store
 
-export const useWebDevelopmentsStore = defineStore('web-developments', {
+export const useWebDevelopmentsStore = defineStore('web_UI_section_category', {
   /**
    * State of the WebDevelopments store.
    * 
@@ -109,7 +109,7 @@ export const useWebDevelopmentsStore = defineStore('web-developments', {
     async fetchDevelopmentsData() {
       if (this.areUpdateDevelopments) return;
 
-      let response = await get_request('api/categories-development/');
+      let response = await get_request('api/ui_section_categories/');
       let jsonData = response.data;
 
       if (jsonData && typeof jsonData === 'string') {

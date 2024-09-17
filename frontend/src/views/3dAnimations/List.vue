@@ -46,7 +46,7 @@ import { ref, onMounted, defineAsyncComponent } from 'vue'; // Import Vue utilit
 import Navbar from '@/components/layouts/Navbar.vue'; // Import the Navbar component
 import Footer from '@/components/layouts/Footer.vue'; // Import the Footer component
 import Detail from '@/views/3dAnimations/Detail.vue'; // Import the Detail view for 3D animations
-import { useModels3dStore } from '@/stores/models-3d'; // Import the models 3D store
+import { useModels3dStore } from '@/stores/models_3d'; // Import the models 3D store
 import { useMessages } from '@/composables/useMessages'; // Import the custom composable for localized messages
 
 const { messages } = useMessages(); // Destructure the localized messages from the custom composable

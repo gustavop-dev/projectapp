@@ -1,8 +1,8 @@
 from django.db import models
 
-class Models3D(models.Model):
+class Model3D(models.Model):
     """
-    Models3D model representing 3D models in the ProjectApp.
+    Model3D model representing 3D models in the ProjectApp.
 
     Attributes:
         title_en (str): The title of the 3D model in English.

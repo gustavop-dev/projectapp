@@ -1,6 +1,5 @@
 from django.db import models
 
-
 class Example(models.Model):
     """
     Example model representing an example associated with components.
@@ -18,9 +17,9 @@ class Example(models.Model):
         return self.title_en
 
 
-class Components(models.Model):
+class Component(models.Model):
     """
-    Components model representing individual components of a project.
+    Component model representing individual components of a project.
 
     Attributes:
         title_en (str): The title of the component in English.
@@ -48,15 +47,15 @@ class Section(models.Model):
     """
     title_en = models.CharField(max_length=255, verbose_name="Title (English)")
     title_es = models.CharField(max_length=255, verbose_name="Title (Spanish)")
-    components = models.ManyToManyField(Components, related_name='sections')
+    components = models.ManyToManyField(Component, related_name='sections')
 
     def __str__(self):
         return self.title_en
 
 
-class CategoriesDevelopment(models.Model):
+class UISectionCategory(models.Model):
     """
-    CategoriesDevelopment model representing a development category which contains multiple sections.
+    UISectionCategory model representing a development category which contains multiple sections.
 
     Attributes:
         title_en (str): The title of the category in English.

@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { get_request } from './services/request_http';
 import { useLanguageStore } from '@/stores/language'; // Import the language store
 
-export const useModels3dStore = defineStore('models-3d', {
+export const useModels3dStore = defineStore('models_3d', {
   /**
    * State of the Models3d store.
    * 
@@ -59,7 +59,7 @@ export const useModels3dStore = defineStore('models-3d', {
     async fetchModels3dData() {
       if (this.areUpdateModels3d) return;
       try {
-        let response = await get_request('api/models-3d/');
+        let response = await get_request('api/models_3d/');
         let jsonData = response.data;
 
         if (jsonData && typeof jsonData === 'string') {

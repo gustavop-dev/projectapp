@@ -29,7 +29,7 @@ import Navbar from '@/components/layouts/Navbar.vue'; // Import the Navbar compo
 import Footer from '@/components/layouts/Footer.vue'; // Import the Footer component for the website's footer
 import { ref, onMounted } from 'vue'; // Import ref for reactivity and onMounted for lifecycle hook
 import { useRoute } from 'vue-router'; // Import useRoute to access route parameters
-import { useWebDevelopmentsStore } from '@/stores/web-developments'; // Import the web developments store
+import { useWebDevelopmentsStore } from '@/stores/web_UI_section_category'; // Import the web developments store
 
 const route = useRoute(); // Get the current route and its parameters
 const developmentsStore = useWebDevelopmentsStore(); // Access the store to handle web developments
