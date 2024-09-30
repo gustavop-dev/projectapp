@@ -1,5 +1,6 @@
 import random
 from faker import Faker
+from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from content.models import Product, Category, Item
 
@@ -13,15 +14,10 @@ class Command(BaseCommand):
         number_of_products = options['number_of_products']
         fake = Faker()
 
-        # List of test images for products
-        test_images = [
-            'media/temp/products/image_temp1.jpg',
-            'media/temp/products/image_temp2.jpg',
-            'media/temp/products/image_temp3.jpg',
-            'media/temp/products/image_temp4.jpg',
-        ]
+        # Simular archivo de imagen en memoria
+        image_content = ContentFile(b'fake_image_data', name='product_1.webp')
 
-        # Create fake items
+        # Crear elementos falsos
         items = []
         for i in range(1, 11):
             item = Item.objects.create(
@@ -31,7 +27,7 @@ class Command(BaseCommand):
             items.append(item)
             self.stdout.write(self.style.SUCCESS(f'Item "{item.name_en}" created'))
 
-        # Create fake categories and associate items
+        # Crear categorías falsas y asociar elementos
         categories = []
         for i in range(1, 6):
             category = Category.objects.create(
@@ -42,7 +38,7 @@ class Command(BaseCommand):
             categories.append(category)
             self.stdout.write(self.style.SUCCESS(f'Category "{category.name_en}" created'))
 
-        # Create fake products and associate categories
+        # Crear productos falsos y asociar categorías
         for i in range(1, number_of_products + 1):
             title_en = f'Product {i} EN'
             title_es = f'Product {i} ES'
@@ -52,6 +48,7 @@ class Command(BaseCommand):
             development_time_es = f'{random.randint(1, 6)} semanas (ES)'
             price = random.uniform(100, 1000)
 
+            # Crear un nuevo producto con la imagen simulada
             product = Product.objects.create(
                 title_en=title_en,
                 title_es=title_es,
@@ -60,10 +57,10 @@ class Command(BaseCommand):
                 price=round(price, 2),
                 development_time_en=development_time_en,
                 development_time_es=development_time_es,
-                image=random.choice(test_images)
+                image=image_content  # Usar archivo de imagen en memoria
             )
             product.categories.add(*random.sample(categories, k=random.randint(1, len(categories))))
 
-            self.stdout.write(self.style.SUCCESS(f'Product "{product.title_en}" created'))
+            self.stdout.write(self.style.SUCCESS(f'Product "{product.title_en}" created'))  # <- Línea corregida
 
         self.stdout.write(self.style.SUCCESS(f'{number_of_products} Product records created'))

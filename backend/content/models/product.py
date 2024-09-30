@@ -1,3 +1,4 @@
+import os
 from django.db import models
 
 class Item(models.Model):
@@ -59,3 +60,9 @@ class Product(models.Model):
 
     def __str__(self):
         return self.title_en
+
+    def delete(self, *args, **kwargs):
+        # Remove image file before deleting the record
+        if self.image and os.path.isfile(self.image.path):
+            os.remove(self.image.path)
+        super().delete(*args, **kwargs)

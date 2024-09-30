@@ -1,3 +1,4 @@
+import os
 from django.db import models
 
 class Design(models.Model):
@@ -21,3 +22,11 @@ class Design(models.Model):
 
     def __str__(self):
         return self.title_en
+    
+    def delete(self, *args, **kwargs):
+        # Remove cover and detail images before deleting the record
+        if self.cover_image and os.path.isfile(self.cover_image.path):
+            os.remove(self.cover_image.path)
+        if self.detail_image and os.path.isfile(self.detail_image.path):
+            os.remove(self.detail_image.path)
+        super().delete(*args, **kwargs)

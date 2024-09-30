@@ -1,3 +1,4 @@
+import os
 from django.db import models
 
 class Model3D(models.Model):
@@ -17,3 +18,11 @@ class Model3D(models.Model):
 
     def __str__(self):
         return self.title_en
+    
+    def delete(self, *args, **kwargs):
+        # Remove image and 3D model file before deleting the record
+        if self.image and os.path.isfile(self.image.path):
+            os.remove(self.image.path)
+        if self.file and os.path.isfile(self.file.path):
+            os.remove(self.file.path)
+        super().delete(*args, **kwargs)

@@ -1,7 +1,9 @@
 import random
+import os
 from faker import Faker
 from django.core.management.base import BaseCommand
 from content.models import Example, Component, Section, UISectionCategory
+from django.conf import settings
 
 class Command(BaseCommand):
     help = 'Create fake data for Example, Component, Section, and UISectionCategory models'
@@ -13,18 +15,21 @@ class Command(BaseCommand):
         number_of_records = options['number_of_records']
         fake = Faker()
 
+        # Ruta base donde se encuentran las imágenes
+        media_path = os.path.join(settings.MEDIA_ROOT, 'temp')
+
         # Step 1: Create Example data
         self.stdout.write(self.style.SUCCESS('Creating fake examples...'))
         examples = []
+        example_image_path = os.path.join(media_path, 'component/example/example_image_1.png')
         for i in range(1, number_of_records + 1):
             title_en = f'Title Example {i} EN'
             title_es = f'Title Example {i} ES'
-            image = fake.image_url()
 
             example = Example.objects.create(
                 title_en=title_en,
                 title_es=title_es,
-                image=image
+                image=example_image_path  # Usando la imagen local
             )
             examples.append(example)
             self.stdout.write(self.style.SUCCESS(f'Example "{example.title_en}" created'))
@@ -32,15 +37,15 @@ class Command(BaseCommand):
         # Step 2: Create Component data and associate examples
         self.stdout.write(self.style.SUCCESS('Creating fake components...'))
         components = []
+        component_image_path = os.path.join(media_path, 'component/components_image_1.png')
         for i in range(1, number_of_records + 1):
             title_en = f'Title Component {i} EN'
             title_es = f'Title Component {i} ES'
-            image = fake.image_url()
 
             component = Component.objects.create(
                 title_en=title_en,
                 title_es=title_es,
-                image=image
+                image=component_image_path  # Usando la imagen local
             )
 
             # Add random examples to the component

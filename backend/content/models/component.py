@@ -1,3 +1,4 @@
+import os
 from django.db import models
 
 class Example(models.Model):
@@ -15,6 +16,13 @@ class Example(models.Model):
 
     def __str__(self):
         return self.title_en
+    
+    def delete(self, *args, **kwargs):
+        # Remove image file before deleting the record
+        if self.image:
+            if os.path.isfile(self.image.path):
+                os.remove(self.image.path)
+        super().delete(*args, **kwargs)
 
 
 class Component(models.Model):
@@ -34,6 +42,13 @@ class Component(models.Model):
 
     def __str__(self):
         return self.title_en
+    
+    def delete(self, *args, **kwargs):
+        # Remove image file before deleting the record
+        if self.image:
+            if os.path.isfile(self.image.path):
+                os.remove(self.image.path)
+        super().delete(*args, **kwargs)
 
 
 class Section(models.Model):
