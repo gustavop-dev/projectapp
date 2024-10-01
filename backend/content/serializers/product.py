@@ -26,17 +26,7 @@ class ProductSerializer(serializers.ModelSerializer):
     Serializer for the Product model, including related categories and image URL.
     """
     categories = CategorySerializer(many=True, read_only=True)
-    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = '__all__'
-
-    def get_image_url(self, obj):
-        """
-        Returns the full URL of the image.
-        """
-        request = self.context.get('request')
-        if obj.image and request:
-            return request.build_absolute_uri(obj.image.url)
-        return None

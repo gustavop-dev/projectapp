@@ -109,7 +109,7 @@ export const useWebDevelopmentsStore = defineStore('web_UI_section_category', {
     async fetchDevelopmentsData() {
       if (this.areUpdateDevelopments) return;
 
-      let response = await get_request('api/ui_section_categories/');
+      let response = await get_request('/ui_section_categories/');
       let jsonData = response.data;
 
       if (jsonData && typeof jsonData === 'string') {

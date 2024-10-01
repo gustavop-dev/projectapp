@@ -41,7 +41,7 @@ export const useContactsStore = defineStore('contacts', {
     async fetchContactsData() {
       if (this.areUpdateContacts) return;
       try {
-        let response = await get_request('api/contacts/');
+        let response = await get_request('/contacts/');
         let jsonData = response.data;
 
         if (jsonData && typeof jsonData === 'string') {

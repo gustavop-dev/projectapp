@@ -1,8 +1,7 @@
 venv/
-backend/media/3dmodels
-backend/media/components
-backend/media/designs
+backend/media/**
 backend/db.sqlite3
 **/__pycache__/
 *.pyc
+!media/temp/
 

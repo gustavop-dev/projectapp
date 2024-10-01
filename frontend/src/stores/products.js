@@ -62,7 +62,7 @@ export const useProductStore = defineStore('products', {
     async fetchProductData() {
       if (this.areProductsUpdated) return;
       try {
-        let response = await get_request('api/products/');
+        let response = await get_request('/products/');
         let jsonData = response.data;
 
         if (jsonData && typeof jsonData === 'string') {
