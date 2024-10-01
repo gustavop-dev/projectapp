@@ -59,7 +59,7 @@ export const useModels3dStore = defineStore('models_3d', {
     async fetchModels3dData() {
       if (this.areUpdateModels3d) return;
       try {
-        let response = await get_request('api/models_3d/');
+        let response = await get_request('api/models3d/');
         let jsonData = response.data;
 
         if (jsonData && typeof jsonData === 'string') {
