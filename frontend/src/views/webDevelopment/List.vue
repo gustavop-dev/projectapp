@@ -45,7 +45,7 @@
 </template>
 
 <script setup>
-import { useWebDevelopmentsStore } from '@/stores/web-developments'; // Import the store for handling web developments
+import { useWebDevelopmentsStore } from '@/stores/web_UI_section_category'; // Import the store for handling web developments
 import Navbar from '@/components/layouts/Navbar.vue'; // Import the Navbar component for the navigation bar
 import Dune from '@/components/spline/Backgrounds/Dune.vue'; // Import the Dune component (possibly a 3D background)
 import Footer from '@/components/layouts/Footer.vue'; // Import the Footer component for the website's footer

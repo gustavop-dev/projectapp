@@ -16,17 +16,17 @@ const router = createRouter({
       component: Home, // Home component for the main landing page
     },
     {
-      path: '/web-developments',
+      path: '/web_UI_section_category',
       name: 'webDevelopments',
       component: () => import("@/views/webDevelopment/List.vue"), // Lazy-loaded Web Developments list
     },
     {
-      path: '/web-developments/detail/:development_id/:section_id/:component_id',
+      path: '/web_UI_section_category/detail/:development_id/:section_id/:component_id',
       name: 'webDevelopmentsDetail',
       component: () => import("@/views/webDevelopment/Detail.vue"), // Lazy-loaded Web Development details
     },
     {
-      path: '/web-designs',
+      path: '/web_designs',
       name: 'webDesigns',
       component: () => import("@/views/webDesigns/List.vue"), // Lazy-loaded Web Designs list
     },
