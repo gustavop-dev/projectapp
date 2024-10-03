@@ -1,5 +1,3 @@
-import random
-from faker import Faker
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from content.models import Design
@@ -12,9 +10,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         number_of_records = options['number_of_records']
-        fake = Faker()
 
-        # Simular archivos de imagen (esto crea imágenes ficticias en memoria)
+        # Simulate image files (this creates dummy images in memory)
         cover_image_content = ContentFile(b'fake_image_data', name='cover_image_1.png')
         detail_image_content = ContentFile(b'fake_image_data', name='detail_image_1.jpg')
 
@@ -24,12 +21,12 @@ class Command(BaseCommand):
             category_title_en = f'Category Title {i} EN'
             category_title_es = f'Category Title {i} ES'
 
-            # Crear el objeto Design con las imágenes simuladas
+            # Create the Design object with the simulated images
             design = Design.objects.create(
                 title_en=title_en,
                 title_es=title_es,
-                cover_image=cover_image_content,  # Usar archivo en memoria para cover_image
-                detail_image=detail_image_content,  # Usar archivo en memoria para detail_image
+                cover_image=cover_image_content,  # Use in-memory file for cover_image
+                detail_image=detail_image_content,  # Use in-memory file for detail_image
                 category_title_en=category_title_en,
                 category_title_es=category_title_es
             )

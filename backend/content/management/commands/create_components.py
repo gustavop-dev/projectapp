@@ -15,7 +15,6 @@ class Command(BaseCommand):
         number_of_records = options['number_of_records']
         fake = Faker()
 
-        # Ruta base donde se encuentran las imágenes
         media_path = os.path.join(settings.MEDIA_ROOT, 'temp')
 
         # Step 1: Create Example data
@@ -29,7 +28,7 @@ class Command(BaseCommand):
             example = Example.objects.create(
                 title_en=title_en,
                 title_es=title_es,
-                image=example_image_path  # Usando la imagen local
+                image=example_image_path
             )
             examples.append(example)
             self.stdout.write(self.style.SUCCESS(f'Example "{example.title_en}" created'))
@@ -45,7 +44,7 @@ class Command(BaseCommand):
             component = Component.objects.create(
                 title_en=title_en,
                 title_es=title_es,
-                image=component_image_path  # Usando la imagen local
+                image=component_image_path
             )
 
             # Add random examples to the component

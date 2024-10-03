@@ -14,10 +14,10 @@ class Command(BaseCommand):
         number_of_products = options['number_of_products']
         fake = Faker()
 
-        # Simular archivo de imagen en memoria
+        # Simulate image file in memory
         image_content = ContentFile(b'fake_image_data', name='product_1.webp')
 
-        # Crear elementos falsos
+        # Create fake items
         items = []
         for i in range(1, 11):
             item = Item.objects.create(
@@ -27,7 +27,7 @@ class Command(BaseCommand):
             items.append(item)
             self.stdout.write(self.style.SUCCESS(f'Item "{item.name_en}" created'))
 
-        # Crear categorías falsas y asociar elementos
+        # Create fake categories and associate elements
         categories = []
         for i in range(1, 6):
             category = Category.objects.create(
@@ -38,7 +38,7 @@ class Command(BaseCommand):
             categories.append(category)
             self.stdout.write(self.style.SUCCESS(f'Category "{category.name_en}" created'))
 
-        # Crear productos falsos y asociar categorías
+        # Create fake products and associate categories
         for i in range(1, number_of_products + 1):
             title_en = f'Product {i} EN'
             title_es = f'Product {i} ES'
@@ -48,7 +48,7 @@ class Command(BaseCommand):
             development_time_es = f'{random.randint(1, 6)} semanas (ES)'
             price = random.uniform(100, 1000)
 
-            # Crear un nuevo producto con la imagen simulada
+            # Create a new product with the mock image
             product = Product.objects.create(
                 title_en=title_en,
                 title_es=title_es,
@@ -57,10 +57,10 @@ class Command(BaseCommand):
                 price=round(price, 2),
                 development_time_en=development_time_en,
                 development_time_es=development_time_es,
-                image=image_content  # Usar archivo de imagen en memoria
+                image=image_content  # Use image file in memory
             )
             product.categories.add(*random.sample(categories, k=random.randint(1, len(categories))))
 
-            self.stdout.write(self.style.SUCCESS(f'Product "{product.title_en}" created'))  # <- Línea corregida
+            self.stdout.write(self.style.SUCCESS(f'Product "{product.title_en}" created'))
 
         self.stdout.write(self.style.SUCCESS(f'{number_of_products} Product records created'))
