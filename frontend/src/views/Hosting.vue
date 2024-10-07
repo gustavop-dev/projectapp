@@ -63,7 +63,7 @@
                 <div 
                   v-for="tier in tiers" 
                   :key="tier.id" 
-                    Q:class="[tier.mostPopular ? 'ring-2 ring-lemon bg-lemon' : 'ring-1 ring-esmerald-light bg-esmerald-light', 'rounded-xl p-8']">
+                  :class="[tier.mostPopular ? 'ring-2 ring-lemon bg-lemon' : 'ring-1 ring-esmerald-light bg-esmerald-light', 'rounded-xl p-8']">
                   <h3 :id="tier.id" class="text-2xl font-LIGHT leading-8 text-esmerald">
                     {{ tier.name }}
                   </h3>
