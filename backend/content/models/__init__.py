@@ -16,3 +16,4 @@ from .design import Design
 from .model_3d import Model3D
 from .product import Item, Category, Product
 from .component import Example, Component, Section, UISectionCategory
+from .hosting import Hosting

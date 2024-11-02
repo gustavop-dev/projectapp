@@ -4,6 +4,7 @@ from content.views.contact import contact_list
 from content.views.design import design_list
 from content.views.model_3d import model3d_list
 from content.views.product import product_list
+from content.views.hosting import hosting_list
 
 urlpatterns = [
     path('ui_section_categories/', uisectioncategory_list, name='uisectioncategory-list'),
@@ -11,4 +12,5 @@ urlpatterns = [
     path('designs/', design_list, name='design-list'),
     path('models3d/', model3d_list, name='model3d-list'),
     path('products/', product_list, name='product-list'),
+    path('hostings/', hosting_list, name='hosting-list'),
 ]
