@@ -147,9 +147,5 @@ onMounted(async () => {
   designs.value = fetchedDesigns;
   designsFiltered.value = fetchedDesigns;
   categories.value = fetchedCategories;
-
-  // Optional: For debugging purposes
-  console.log(designs.value);
-  console.log(categories.value);
 });
 </script>

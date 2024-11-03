@@ -41,7 +41,7 @@ export default {
       facebook: "Facebook",
       whatsapp: "WhatsApp",
       email_address: "hello@projectapp.co",
-      play_reel: "Reproducir Video",
+      play_reel: "Reproducir",
       solutions: {
         home: "Inicio",
         about: "Sobre Nosotros",
