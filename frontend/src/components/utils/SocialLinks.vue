@@ -3,7 +3,7 @@
     class="mt-4 p-2 ps-4 border-transparent border-t-esmerald border-opacity-40 border grid grid-cols-2 lg:border-t-white"
   >
     <a 
-      href="https://www.instagram.com/paginaswebscolombia_?igsh=MWh3MHRha3A5MHFrbQ==" 
+      href="https://www.instagram.com/projectapp.co/" 
       target="_blank" 
       class="inline-block text-sm cursor-pointer font-regular js-social-link"
       >
@@ -11,7 +11,7 @@
       <ArrowUpRightIcon class="w-3 inline js-arrow-icon"></ArrowUpRightIcon>
     </a>
     <a 
-      href="https://www.facebook.com/paginaswebscolombiaoficial" 
+      href="https://www.facebook.com/projectapp.co" 
       target="_blank" 
       class="inline-block text-sm ms-2 cursor-pointer font-regular js-social-link"
       >
