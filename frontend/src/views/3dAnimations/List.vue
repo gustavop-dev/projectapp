@@ -15,7 +15,13 @@
             </h1>
           </div>
           <div class="order-1">
-            <Dune spline="/spline/Backgrounds/cats.splinecode"></Dune>
+            <div class="relative w-full h-screen overflow-hidden">
+              <img
+                src="@/assets/images/3dAnimations/mountainFaces.webp"
+                alt="3d Animations view"
+                class="absolute inset-0 w-auto h-full object-cover object-center"
+              />
+            </div>
           </div>
         </div>
       </div>

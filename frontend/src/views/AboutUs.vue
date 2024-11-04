@@ -27,7 +27,10 @@
         </section>
         <section class="bg-lemon h-auto p-3">
             <div class="w-full h-80 rounded-xl overflow-hidden lg:h-full">
-                <Dune spline="/spline/Backgrounds/planet.splinecode"></Dune>
+                <video autoplay muted loop playsinline>
+                    <source src="@/assets/videos/aboutUs/particlePlanet.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                </video>
             </div>
         </section>
         <section class="grid justify-items-end max-w-7xl mx-auto px-3 py-32 lg:py-52 lg:justify-items-start">

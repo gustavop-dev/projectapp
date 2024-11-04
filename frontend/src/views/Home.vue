@@ -22,7 +22,10 @@
               <h2 class="mt-20"><span class="text-esmerald font-regular text-lg">{{ messages.section_2.text.first }}</span><span class="text-green-light text-lg font-regular">{{ messages.section_2.text.second }}<br><br> {{ messages.section_2.text.third }}</span></h2>
             </div>
             <div class="col-span-3 lg:pe-4 lg:col-span-1">
-              <Dune spline="/spline/cube/scene.splinecode"></Dune>
+              <video autoplay muted loop playsinline>
+                <source src="@/assets/videos/home/cubic.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
             </div>
           </div>
         </div>
@@ -31,7 +34,7 @@
         <h2 class="block font-light text-5xl mb-24 text-esmerald lg:mb-40 lg:text-6xl lg:text-end">{{ messages.section_3.title }}</h2>
         <div class="grid lg:grid-cols-2">
           <div class="h-80 order-2 mt-24 lg:mt-0 lg:order-1 lg:h-auto">
-            <Dune spline="/spline/gradientColor/scene.splinecode"></Dune>
+            <img src="@/assets/images/home/cube_illusion.webp" alt="Section 3">
           </div>
           <div class="order-1 lg:order-2 lg:ps-32">
             <h3 class="text-end text-4xl font-light text-esmerald">{{ messages.section_3.web_development.title }}</h3>
@@ -57,13 +60,7 @@ import InitialVideo from '@/components/home/InitialVideo.vue'; // Import the Ini
 import Footer from '@/components/layouts/Footer.vue'; // Import the Footer component for the website's footer
 import Contact from '@/components/layouts/Contact.vue'; // Import the Contact component for the contact section
 import { useMessages } from '@/composables/useMessages'; // Import the custom composable to get localized messages
-import { defineAsyncComponent } from 'vue'; // Import the function to define asynchronous components
 
 // Get the localized messages for the current view using the custom useMessages composable
 const { messages } = useMessages();
-
-// Dynamically import the Dune component, which is loaded only when needed (async loading)
-const Dune = defineAsyncComponent(() =>
-  import('@/components/spline/Backgrounds/Dune.vue')
-);
 </script>

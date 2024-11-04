@@ -92,12 +92,15 @@ router.beforeEach(async (to, from, next) => {
 
   // Load the appropriate metadata based on the current language
   const metaTexts = languageStore.currentLanguage === 'es' ? esMeta : enMeta;
-  const pageMeta = metaTexts[to.name];
+
+  // Exception for 3dAnimations view to use Animations3D in metadata
+  const metaKey = to.name === '3dAnimations' ? 'animations3D' : to.name;
+  const pageMeta = metaTexts[metaKey];
 
   // If metadata exists for the view, set the page title, description, and keywords
   if (pageMeta) {
     // Set the page title
-    document.title = pageMeta.title || 'Imagine Apps';
+    document.title = pageMeta.title || 'Project App.';
 
     // Set the meta description
     const metaDescription = document.querySelector('meta[name="description"]');
