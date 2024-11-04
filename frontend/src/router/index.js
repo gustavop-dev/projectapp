@@ -2,6 +2,10 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useLanguageStore } from '@/stores/language'; // Import the language store
 import Home from '@/views/Home.vue';
 
+// Import metadata translations for both languages
+import enMeta from '@/locales/router/en';
+import esMeta from '@/locales/router/es';
+
 const router = createRouter({
   /**
    * Configures the router for the application using the history mode.
@@ -63,16 +67,17 @@ const router = createRouter({
  * 
  * This hook ensures that the page is scrolled to the top after navigating to a new route.
  */
-router.afterEach((to, from) => {
+router.afterEach(() => {
   window.scrollTo(0, 0);
 });
 
 /**
- * Before each route, ensure the language messages for the view are loaded.
+ * Before each route, ensure the language messages for the view are loaded and metadata is set.
  * 
- * This global navigation guard ensures that:
- * - The user's browser language is detected if it hasn't been set.
- * - The language messages for the view being navigated to are loaded.
+ * This global navigation guard performs the following:
+ * - Detects the user's browser language if not previously set.
+ * - Loads the messages for the current view based on the selected language.
+ * - Sets the page's title, description, and keywords based on the view's metadata.
  */
 router.beforeEach(async (to, from, next) => {
   const languageStore = useLanguageStore();
@@ -85,9 +90,40 @@ router.beforeEach(async (to, from, next) => {
   // Load the messages for the view being navigated to
   await languageStore.loadMessagesForView(to.name);
 
+  // Load the appropriate metadata based on the current language
+  const metaTexts = languageStore.currentLanguage === 'es' ? esMeta : enMeta;
+  const pageMeta = metaTexts[to.name];
+
+  // If metadata exists for the view, set the page title, description, and keywords
+  if (pageMeta) {
+    // Set the page title
+    document.title = pageMeta.title || 'Imagine Apps';
+
+    // Set the meta description
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute('content', pageMeta.description);
+    } else {
+      const descriptionElement = document.createElement('meta');
+      descriptionElement.name = 'description';
+      descriptionElement.content = pageMeta.description;
+      document.head.appendChild(descriptionElement);
+    }
+
+    // Set the meta keywords
+    const metaKeywords = document.querySelector('meta[name="keywords"]');
+    if (metaKeywords) {
+      metaKeywords.setAttribute('content', pageMeta.keywords);
+    } else {
+      const keywordsElement = document.createElement('meta');
+      keywordsElement.name = 'keywords';
+      keywordsElement.content = pageMeta.keywords;
+      document.head.appendChild(keywordsElement);
+    }
+  }
+
   // Continue to the next route
   next();
 });
 
 export default router;
-
