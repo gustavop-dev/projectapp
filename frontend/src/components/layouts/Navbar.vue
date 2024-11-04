@@ -3,7 +3,12 @@
   <div class="hidden lg:block relative w-screen">
     <div class="absolute ps-8 pt-6 z-10">
       <h1 class="text-xl font-bold text-esmerald">
-        Project<br>App.
+        <router-link 
+          :to="{ name: 'home' }"
+          class="cursor-pointer"
+          >
+            Project<br>App.
+        </router-link>
       </h1>
     </div>
     <div class="flex absolute z-10 pt-6 top-0 right-0 lg:pe-8">

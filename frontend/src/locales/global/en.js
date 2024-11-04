@@ -17,7 +17,7 @@ export default {
     email_contact: {
       get_in_touch: "Get in touch",
       to_label: "To",
-      to_value: "Project App (hello@proejctapp.co)",
+      to_value: "Project App. (team@projectapp.co)",
       from_label: "From",
       email_placeholder: "Email",
       subject_label: "Subject",
@@ -32,7 +32,7 @@ export default {
       direct_contact_title: "Direct Contact",
       direct_contact_description: "Let’s discuss your needs in detail. Speak soon!",
       chat: "Chat",
-      email_address: "hello@projectapp.co"
+      email_address: "team@projectapp.co"
     },
     footer: {
       based_in: "Based in New York, working worldwide",
@@ -40,7 +40,7 @@ export default {
       instagram: "Instagram",
       facebook: "Facebook",
       whatsapp: "WhatsApp",
-      email_address: "hello@projectapp.co",
+      email_address: "team@projectapp.co",
       play_reel: "Play Reel",
       solutions: {
         home: "Home",

@@ -47,7 +47,7 @@
             <div class="w-60">
               <div class="mt-4 p-2 ps-4">
                 <a 
-                  href="https://www.instagram.com/paginaswebscolombia_?igsh=MWh3MHRha3A5MHFrbQ==" 
+                  href="https://www.instagram.com/projectapp.co/" 
                   target="_blank" 
                   class="block text-lg cursor-pointer social-link text-white font-regular"
                   >
@@ -55,7 +55,7 @@
                   <ArrowUpRightIcon class="w-5 inline arrow-icon"></ArrowUpRightIcon>
                 </a>
                 <a 
-                  href="https://www.facebook.com/paginaswebscolombiaoficial" 
+                  href="https://www.facebook.com/projectapp.co" 
                   target="_blank" 
                   class="block text-lg cursor-pointer social-link text-white font-regular"
                   >
