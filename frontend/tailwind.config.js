@@ -23,9 +23,10 @@ export default {
         'esmerald-dark': '#001713',
         'green-light' : '#809490',
         'lemon': '#F0FF3D',
-        'pink': '#C55FFF',
+        'bone': '#FAF3E0',
         'brown': '#623721',
-        'black': '#121212'
+        'black': '#121212',
+        'dark' : '#000000'
       }
     },
   },

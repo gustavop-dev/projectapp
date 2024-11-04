@@ -8,19 +8,30 @@
         <div
           class="w-full h-full grid rounded-xl overflow-hidden lg:grid-cols-2"
         >
-          <div class="bg-pink flex items-center px-16 order-2 py-24">
+          <div class="bg-bone flex items-center px-16 order-2 py-24">
             <h1>
-              <span class="text-4xl font-light text-white lg:text-6xl">{{
+              <span class="text-4xl font-light text-esmerald lg:text-6xl">{{
                 messages.header_title
               }}</span
               ><br />
-              <span class="text-md font-medium text-white">{{
+              <span class="text-md font-medium text-esmerald">{{
                 messages.header_subtitle
               }}</span>
             </h1>
           </div>
           <div class="order-1">
-            <Dune spline="/spline/Backgrounds/webDesign.splinecode"></Dune>
+            <div class="relative w-full h-screen overflow-hidden">
+              <video
+                autoplay
+                muted
+                loop
+                playsinline
+                class="absolute inset-0 w-auto h-full object-cover"
+              >
+                <source src="@/assets/videos/webDesigns/Dunes.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
           </div>
         </div>
       </div>

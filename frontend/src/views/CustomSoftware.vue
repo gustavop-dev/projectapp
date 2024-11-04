@@ -7,21 +7,38 @@
             <div class="absolute z-20 w-1/3 px-3 h-full flex items-center md:px-16">
                 <h1 class="text-white font-light text-6xl md:text-8xl">{{ messages.hero_section.title }}</h1>
             </div>
-            <Dune spline="/spline/Backgrounds/particles.splinecode"></Dune>
+            <div class="relative w-full h-screen overflow-hidden">
+                            <video
+                                autoplay
+                                muted
+                                loop
+                                playsinline
+                                class="absolute inset-0 w-auto h-full object-cover"
+                            >
+                                <source src="@/assets/videos/customSoftware/chips.mp4" type="video/mp4" />
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
         </section>
-        <section class="bg-black grid md:grid-cols-2 lg:pt-52">
+        <section class="bg-dark grid md:grid-cols-2 lg:pt-52">
             <div class="pb-32">
                 <h2 class="px-3 max-w-7xl text-white text-6xl font-light">{{ messages.erp_section.title }}</h2>
                 <p class="px-3 mt-20 text-white text-lg font-regular">{{ messages.erp_section.paragraph_1 }}</p>
                 <p class="px-3 mt-8 text-white text-lg font-regular">{{ messages.erp_section.paragraph_2 }}</p>
             </div>
             <div class="flex items-center justify-center">
-                <img class="h-full w-full object-cover rounded-xl" src="@/assets/images/lightningBulb.webp" alt="Light Bulb 3D">
+                <video autoplay muted loop playsinline>
+                    <source src="@/assets/videos/customSoftware/trails.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                </video>
             </div>
         </section>
-        <section class="bg-black grid md:grid-cols-2 lg:pt-52">
+        <section class="bg-dark grid md:grid-cols-2 lg:pt-52">
             <div class="flex items-center justify-center order-2 md:order-1 h-80 md:h-auto">
-                <Dune spline="/spline/Backgrounds/bubleBlue.splinecode"></Dune>
+                <video autoplay muted loop playsinline>
+                    <source src="@/assets/videos/customSoftware/meeet.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                </video>
             </div>
             <div class="pb-32 order-1 md:order-2">
                 <h2 class="px-3 max-w-7xl text-white text-6xl font-light">{{ messages.crm_section.title }}</h2>
@@ -29,17 +46,20 @@
                 <p class="px-3 mt-8 text-white text-lg font-regular">{{ messages.crm_section.paragraph_2 }}</p>
             </div>
         </section>
-        <section class="bg-black pt-32 grid md:grid-cols-2 lg:pt-52">
+        <section class="bg-dark pt-32 grid md:grid-cols-2 lg:pt-52">
             <div class="pb-32">
                 <h2 class="px-3 max-w-7xl text-white text-6xl font-light">{{ messages.tailored_solutions_section.title }}</h2>
                 <p class="px-3 mt-20 text-white text-lg font-regular">{{ messages.tailored_solutions_section.paragraph_1 }}</p>
                 <p class="px-3 mt-8 text-white text-lg font-regular">{{ messages.tailored_solutions_section.paragraph_2 }}</p>
             </div>
             <div class="flex items-center justify-center h-80 md:h-auto">
-                <Dune spline="/spline/Backgrounds/bubles.splinecode"></Dune>
+                <video autoplay muted loop playsinline>
+                    <source src="@/assets/videos/customSoftware/infinityBlubs.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                </video>
             </div>
         </section>
-        <section class="p-3 bg-black">
+        <section class="p-3 bg-dark">
             <div class="border-t-2 border-t-gray-250 grid lg:h-80 lg:grid-cols-2">
                 <div class="ps-8 mt-16">
                     <h2 class="text-white text-4xl font-regular">{{ messages.contact_section.title }}</h2>
@@ -66,7 +86,7 @@
                 </div>
             </div>
         </section>
-        <div class="pt-32 bg-black">
+        <div class="pt-32 bg-dark">
             <Footer></Footer>
         </div>
     </div>
