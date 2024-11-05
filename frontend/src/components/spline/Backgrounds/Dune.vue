@@ -1,5 +1,5 @@
   <template>
-    <div ref="canvasContainer" class="canvas-container"></div>
+    <div ref="canvasContainer" class="canvas-container rounded-xl"></div>
   </template>
   
   <script setup>
@@ -36,8 +36,8 @@
   
   <style scoped>
     .canvas-container {
-      width: 100%;
-      height: 100%;
+      width: 95%;
+      height: 90%;
       overflow: hidden;
       display: flex;
       justify-content: center;

@@ -163,6 +163,7 @@ import {
 } from "@heroicons/vue/24/outline";
 import { useHostingStore } from "@/stores/hosting";
 import { useMessages } from "@/composables/useMessages";
+import FooterMobile from '@/components/layouts/FooterMobile.vue';
 
 const { messages } = useMessages();
 const hostingStore = useHostingStore();

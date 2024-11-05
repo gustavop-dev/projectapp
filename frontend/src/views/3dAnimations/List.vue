@@ -86,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineAsyncComponent } from 'vue'; // Import Vue utilities
+import { ref, onMounted } from 'vue'; // Import Vue utilities
 import Navbar from '@/components/layouts/Navbar.vue'; // Import the Navbar component
 import Footer from '@/components/layouts/Footer.vue'; // Import the Footer component
 import Detail from '@/views/3dAnimations/Detail.vue'; // Import the Detail view for 3D animations

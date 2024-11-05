@@ -7,7 +7,9 @@
             <div @click="hideModal" class="w-3 h-3 bg-yellow-600 rounded-full cursor-pointer"></div>
             <div @click="hideModal" class="w-3 h-3 bg-gray-600 rounded-full cursor-pointer"></div>
         </div>
-        <Dune :spline="splineUrl" />
+        <div class="relative h-full flex justify-center items-center">
+          <Dune :spline="splineUrl" />
+        </div>
       </div>
     </div>
   </template>
