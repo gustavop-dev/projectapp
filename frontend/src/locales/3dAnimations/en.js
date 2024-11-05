@@ -8,6 +8,7 @@ export default {
     animations_section: {
       section_title: "3D Animations",
       section_subtitle: "Enjoy interactive and customized 3D animations, developed from scratch with JavaScript for a unique and immersive visual experience.",
+      all: "All"
     },
   };
   
