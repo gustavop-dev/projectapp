@@ -26,14 +26,52 @@
         </div>
       </div>
     </section>
+    <!-- Bloque de categorías y filtrado -->
     <section class="px-3">
       <div class="mt-32 max-w-7xl mx-auto sm:px-6 lg:px-8 lg:mt-52">
-        <h1 class="text-4xl font-light text-esmerald lg:text-6xl">{{ messages.animations_section.section_title }}</h1>
-        <h2 class="text-2xl font-light text-esmerald mt-20 lg:text-4xl">{{ messages.animations_section.section_subtitle }}</h2>
-        <div class="mt-24 grid gap-4 md:grid-cols-2 lg:grid-cols-4 lg:mt-40">
-          <div v-for="model3d in models3d" :key="model3d.id" @click="openModal(model3d.file_url)" class="cursor-pointer">
+        <h1 class="text-6xl font-light text-esmerald">
+          {{ messages.animations_section.section_title }}
+        </h1>
+        <h2 class="text-4xl font-light text-esmerald mt-20">
+          {{ messages.animations_section.section_subtitle }}
+        </h2>
+        <!-- Categorías para el filtrado -->
+        <div class="mt-24 flex flex-wrap justify-center items-center gap-3">
+          <!-- Botón para 'All' categoría -->
+          <button
+            @click="getFilteredModels('All')"
+            :class="
+              selectedCategory === 'All' ? 'bg-lemon' : 'bg-esmerald-light'
+            "
+            class="px-6 py-2 inline-block rounded-3xl text-esmerald text-sm"
+          >
+            {{ messages.animations_section.all }}
+          </button>
+
+          <!-- Botones para otras categorías -->
+          <button
+            v-for="(category, index) in categories"
+            :key="index"
+            @click="getFilteredModels(category)"
+            :class="
+              selectedCategory === category ? 'bg-lemon' : 'bg-esmerald-light'
+            "
+            class="px-6 py-2 inline-block rounded-3xl text-esmerald text-sm"
+          >
+            {{ category }}
+          </button>
+        </div>
+
+        <!-- Contenido de modelos 3D -->
+        <div class="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4 lg:mt-24">
+          <div
+            v-for="model3d in models3dFiltered"
+            :key="model3d.id"
+            @click="openModal(model3d.file)"
+            class="cursor-pointer"
+          >
             <div class="border border-gray-200 rounded-lg">
-              <img class="w-full rounded-lg" :src="model3d.image_url" :alt="model3d.title">
+              <img class="w-full rounded-lg" :src="model3d.image" :alt="model3d.title">
             </div>
             <h3 class="mt-4 font-regular text-esmerald text-md">{{ model3d.title }}</h3>
           </div>
@@ -57,37 +95,40 @@ import { useMessages } from '@/composables/useMessages'; // Import the custom co
 
 const { messages } = useMessages(); // Destructure the localized messages from the custom composable
 
-// Dynamically import the Dune background component
-const Dune = defineAsyncComponent(() =>
-  import('@/components/spline/Backgrounds/Dune.vue')
-);
-
-// Store for managing 3D models data
+// Store para gestionar los datos de los modelos 3D
 const models3dStore = useModels3dStore();
-const models3d = ref([]); // Reactive reference to store the list of 3D models
+const models3d = ref([]); // Lista completa de modelos 3D
+const models3dFiltered = ref([]); // Lista filtrada de modelos 3D por categoría
+const categories = ref([]); // Lista de categorías de modelos 3D
+const selectedCategory = ref("All"); // 'All' seleccionado por defecto
 
-const isModalVisible = ref(false); // State to control the visibility of the modal
-const currentSplineUrl = ref(''); // State to store the URL of the current Spline scene
+const isModalVisible = ref(false); // Estado para controlar la visibilidad del modal
+const currentSplineUrl = ref(''); // Estado para almacenar la URL de la escena actual de Spline
 
-/**
- * Opens a modal to display a Spline 3D model.
- * 
- * @param {string} splineUrl - The URL of the Spline model to display.
- */
+// Abre el modal para mostrar un modelo 3D de Spline
 const openModal = (splineUrl) => {
-  currentSplineUrl.value = splineUrl; // Set the URL of the Spline model to show
-  isModalVisible.value = true; // Show the modal
+  currentSplineUrl.value = splineUrl;
+  isModalVisible.value = true;
 };
 
-/**
- * Lifecycle hook that runs after the component is mounted.
- * 
- * This hook initializes the 3D models store and fetches the models data.
- * The data is then stored in the `models3d` ref.
- */
+// Método para obtener los modelos 3D filtrados basados en la categoría seleccionada
+const getFilteredModels = (category) => {
+  selectedCategory.value = category;
+  models3dFiltered.value = models3dStore.getFilteredByCategory(models3d.value, selectedCategory.value);
+};
+
+// Hook que se ejecuta después de que el componente se monta
 onMounted(async () => {
-  await models3dStore.init(); // Initialize the 3D models store
-  models3d.value = models3dStore.getModels3d; // Update the local reactive state with the fetched 3D models
+  await models3dStore.init(); // Inicializar el store de modelos 3D
+
+  // Desestructurar el objeto devuelto para obtener los modelos y las categorías
+  const { models: fetchedModels, categories: fetchedCategories } =
+    models3dStore.getFilteredModelsAndCategories;
+
+  // Asignar los valores obtenidos a las variables reactivas
+  models3d.value = fetchedModels;
+  models3dFiltered.value = fetchedModels;
+  categories.value = fetchedCategories;
 });
 </script>
 

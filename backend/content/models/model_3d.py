@@ -15,6 +15,8 @@ class Model3D(models.Model):
     title_es = models.CharField(max_length=255, verbose_name="Title (Spanish)")
     image = models.ImageField(upload_to='3dmodels/images/')
     file = models.FileField(upload_to='3dmodels/files/')
+    category_title_en = models.CharField(max_length=255, verbose_name="Category Title (English)")
+    category_title_es = models.CharField(max_length=255, verbose_name="Category Title (Spanish)")
 
     def __str__(self):
         return self.title_en

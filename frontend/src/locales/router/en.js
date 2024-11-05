@@ -5,14 +5,14 @@ export default {
       keywords: "Project App., software development, frontend, backend, databases, custom web design, Figma, Photoshop, Illustrator, no templates"
     },
     webDevelopments: {
-      title: "Web Development Components Library - Project App.",
-      description: "Explore our library of web development components, similar to Tailwind UI Components, designed for a variety of UI needs.",
-      keywords: "Project App., web components, UI library, Tailwind UI, frontend design, development components"
+      title: "UI/UX Components Library - Project App.",
+      description: "Explore our library of UI/UX components, similar to Tailwind UI Components, designed for a variety of UI needs.",
+      keywords: "Project App., UI/UX components, UI library, UX library, Tailwind UI, frontend design, development components"
     },
     webDevelopmentsDetail: {
-      title: "Detailed Web Development Component - Project App.",
-      description: "View detailed information about this web development component, including usage and integration tips.",
-      keywords: "Project App., web component detail, frontend, backend, UI design"
+      title: "Detailed UI/UX Components - Project App.",
+      description: "View detailed information about this UI/UX component, including usage and integration tips.",
+      keywords: "Project App., web component detail, frontend, backend, UI design, UX design"
     },
     webDesigns: {
       title: "Web Design Gallery - Project App.",

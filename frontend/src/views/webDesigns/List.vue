@@ -76,13 +76,13 @@
           <div
             v-for="design in designsFiltered"
             :key="design.id"
-            @click="openModal(design.detail_image_url)"
+            @click="openModal(design.detail_image)"
             class="cursor-pointer"
           >
             <div class="border border-gray-200 rounded-lg">
               <img
                 class="w-full rounded-lg"
-                :src="design.presentation_image_url"
+                :src="design.cover_image"
                 :alt="design.title"
               />
             </div>

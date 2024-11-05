@@ -40,7 +40,7 @@
                     <div class="col-span-4 mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3 lg:mt-0 lg:col-span-3">
                         <div v-for="component in section.components" :key="component.id" @click="goToDetail(development.id, section.id, component.id)" class="cursor-pointer">
                             <div class="border border-gray-200 rounded-lg">
-                                <img :src="component.image_url" :alt="component.id">
+                                <img :src="component.image" :alt="component.id">
                             </div>
                             <h3 class="mt-4 font-regular text-esmerald text-md">{{ component.title }}</h3>
                             <p class="mt-2 bg-esmerald-light px-6 py-2 inline-block rounded-3xl text-esmerald text-sm">{{ component.examples.length }} {{ messages.component_count_label }}</p>
