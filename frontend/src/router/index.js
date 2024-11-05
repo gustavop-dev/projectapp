@@ -12,7 +12,7 @@ const router = createRouter({
    * 
    * The routes array defines all the different paths and their associated components in the application.
    */
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes: [
     {
       path: '/',

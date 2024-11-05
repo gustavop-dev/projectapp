@@ -164,13 +164,13 @@ const openMenu = () => {
     gsap.fromTo(
       background.value,
       { opacity: 0 },
-      { opacity: 1, duration: 1, ease: "power2.inOut" } // Fade in the background
+      { opacity: 1, duration: 0.25, ease: "power2.inOut" } // Fade in the background
     );
   
     gsap.fromTo(
       menuBox.value,
       { x: window.innerWidth }, // Start the menu off-screen
-      { x: 0, duration: 1, ease: "power2.inOut" } // Slide the menu into view
+      { x: 0, duration: 0.25, ease: "power2.inOut" } // Slide the menu into view
     );
   }
 };
@@ -185,14 +185,14 @@ const closeMenu = () => {
   const menuAnimation = gsap.fromTo(
     menuBox.value,
     { x: 0 },
-    { x: menuBox.value.offsetWidth, duration: 1, ease: "power2.inOut" }
+    { x: menuBox.value.offsetWidth, duration: 0.25, ease: "power2.inOut" }
   ).then();
 
   // Animate the background fading out
   const backgroundAnimation = gsap.fromTo(
     background.value,
     { opacity: 1 },
-    { opacity: 0, duration: 1, ease: "power2.inOut" }
+    { opacity: 0, duration: 0.25, ease: "power2.inOut" }
   ).then();
 
   // Wait for both animations to complete before hiding the menu
