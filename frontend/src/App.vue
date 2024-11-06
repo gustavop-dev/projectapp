@@ -1,9 +1,9 @@
 <template>
   <!-- Displays a loading screen while the app is initializing -->
-  <LoadingScreen v-show="loading"></LoadingScreen>
+  <LoadingScreen v-if="loading"></LoadingScreen>
 
   <!-- Main router view, only shown when loading is complete -->
-  <RouterView v-show="!loading"/>
+  <RouterView v-else/>
 </template>
 
 <script setup>
