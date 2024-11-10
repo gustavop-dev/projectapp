@@ -3,11 +3,11 @@
         <div class="fixed top-0 left-0 w-full z-50">
             <Navbar></Navbar>
         </div>
-        <section class="h-screen relative">
+        <section class="h-svh relative">
             <div class="absolute z-20 w-1/3 px-3 h-full flex items-center md:px-16">
                 <h1 class="text-white font-light text-6xl md:text-8xl">{{ messages.hero_section.title }}</h1>
             </div>
-            <div class="relative w-full h-screen overflow-hidden">
+            <div class="relative w-full h-svh overflow-hidden">
                             <video
                                 autoplay
                                 muted

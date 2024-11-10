@@ -26,7 +26,7 @@
             </div>
         </section>
         <section class="bg-lemon h-auto p-3">
-            <div class="w-full h-80 rounded-xl overflow-hidden lg:h-full">
+            <div class="w-full h-auto rounded-xl overflow-hidden lg:h-full">
                 <video autoplay muted loop playsinline>
                     <source src="@/assets/videos/aboutUs/particlePlanet.mp4" type="video/mp4" />
                     Your browser does not support the video tag.
@@ -61,10 +61,23 @@
         <section>
             <div class="grid lg:grid-cols-2 p-3">
                 <div ref="imageContainer" class="overflow-hidden">
-                    <img ref="leftImage" class="w-full rounded-xl" src="@/assets/images/left.webp" alt="A man in a computer" @load="initScrollTrigger">
+                    <img 
+                        ref="leftImage" 
+                        class="w-full rounded-xl" 
+                        loading="lazy"
+                        src="@/assets/images/left.webp" 
+                        alt="A man in a computer" 
+                        @load="initScrollTrigger"
+                    >
                 </div>
                 <div>
-                    <img ref="mobileImage" class="w-full rounded-xl" src="@/assets/images/mobile.webp" alt="A mobile in the hand of a man">
+                    <img 
+                        ref="mobileImage" 
+                        class="w-full rounded-xl" 
+                        src="@/assets/images/mobile.webp" 
+                        loading="lazy"
+                        alt="A mobile in the hand of a man"
+                    >
                 </div>
             </div>
         </section>
@@ -84,9 +97,13 @@
             </div>
         </section>
 
-        <section class="h-screen p-3 relative">
+        <section class="h-svh p-3 relative">
             <div class="w-full h-full rounded-xl overflow-hidden">
-                <img src="@/assets/images/visual_intro.webp" class="h-full w-full object-cover">
+                <img 
+                    src="@/assets/images/visual_intro.webp" 
+                    loading="lazy"
+                    class="h-full w-full object-cover"
+                >
                 <div class="absolute inset-0 flex items-center justify-center px-3">
                     <div class="text-center text-white">
                         <h2 class="text-4xl font-bold mb-2 md:text-6xl">

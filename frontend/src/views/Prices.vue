@@ -51,6 +51,7 @@
           <div class="flex justify-center items-center order-1 lg:order-2">
             <img
               :src="product.image"
+              loading="lazy"
               class="w-full h-full object-cover rounded-t-xl lg:rounded-l-none lg:rounded-r-xl"
             />
           </div>
@@ -65,6 +66,7 @@
           <div class="flex justify-center items-center">
             <img
               :src="product.image"
+              loading="lazy"
               class="w-full h-full object-cover rounded-t-xl lg:rounded-r-none lg:rounded-l-xl"
             />
           </div>

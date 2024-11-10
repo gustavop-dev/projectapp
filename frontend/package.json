@@ -15,6 +15,7 @@
     "axios": "^1.7.2",
     "dompurify": "^3.1.5",
     "gsap": "^3.12.5",
+    "lottie-web": "^5.12.2",
     "pinia": "^2.1.7",
     "sweetalert2": "^11.11.1",
     "v-runtime-template": "^1.10.0",
@@ -22,6 +23,7 @@
     "vite-plugin-pwa": "^0.20.5",
     "vue": "^3.4.21",
     "vue-router": "^4.3.0",
+    "vue3-lottie": "^3.3.1",
     "vue3-marquee": "^4.2.0",
     "vue3-spline": "^1.0.0"
   },

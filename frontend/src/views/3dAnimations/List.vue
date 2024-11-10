@@ -4,18 +4,18 @@
       <Navbar></Navbar>
     </div>
     <section>
-      <div class="h-screen p-3">
-        <div class="w-full h-full grid rounded-xl overflow-hidden lg:grid-cols-2">
-          <div class="bg-brown flex items-center px-16 order-2 py-24">
+      <div class="h-svh p-3">
+        <div class="relative w-full h-full grid rounded-xl overflow-hidden lg:grid-cols-2">
+          <div class="absolute z-10 top-1/3 bg-transparent flex items-center px-16 order-2 py-24 xl:bg-brown xl:top-0 xl:relative xl:z-0">
             <h1>
-              <span class="text-4xl font-light text-white lg:text-6xl">{{ messages.intro_section.title_line1 }}</span><br>
-              <span class="text-4xl font-light text-white lg:text-6xl">{{ messages.intro_section.title_line2 }}</span><br>
-              <span class="text-md font-medium text-white">{{ messages.intro_section.subtitle_line1 }}</span><br>
-              <span class="text-md font-medium text-white">{{ messages.intro_section.subtitle_line2 }}</span>
+              <span class="text-4xl font-light text-esmerald xl:text-white lg:text-6xl">{{ messages.intro_section.title_line1 }}</span><br>
+              <span class="text-4xl font-light text-esmerald xl:text-white lg:text-6xl">{{ messages.intro_section.title_line2 }}</span><br>
+              <span class="text-md font-medium text-esmerald xl:text-white">{{ messages.intro_section.subtitle_line1 }}</span><br>
+              <span class="text-md font-medium text-esmerald xl:text-white">{{ messages.intro_section.subtitle_line2 }}</span>
             </h1>
           </div>
           <div class="order-1">
-            <div class="relative w-full h-screen overflow-hidden">
+            <div class="relative w-full h-svh overflow-hidden">
               <img
                 src="@/assets/images/3dAnimations/mountainFaces.webp"
                 alt="3d Animations view"
@@ -71,7 +71,10 @@
             class="cursor-pointer"
           >
             <div class="border border-gray-200 rounded-lg">
-              <img class="w-full rounded-lg" :src="model3d.image" :alt="model3d.title">
+              <ImageLoader 
+                :src="model3d.image"
+                :alt="model3d.title"
+              />
             </div>
             <h3 class="mt-4 font-regular text-esmerald text-md">{{ model3d.title }}</h3>
           </div>
@@ -86,10 +89,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'; // Import Vue utilities
+import { ref, onMounted, watch } from 'vue'; // Import Vue utilities
 import Navbar from '@/components/layouts/Navbar.vue'; // Import the Navbar component
 import Footer from '@/components/layouts/Footer.vue'; // Import the Footer component
 import Detail from '@/views/3dAnimations/Detail.vue'; // Import the Detail view for 3D animations
+import ImageLoader from "@/components/layouts/ImageLoader.vue"; // Import the ImageLoader component for the loading animation
 import { useModels3dStore } from '@/stores/models_3d'; // Import the models 3D store
 import { useMessages } from '@/composables/useMessages'; // Import the custom composable for localized messages
 
@@ -110,6 +114,15 @@ const openModal = (splineUrl) => {
   currentSplineUrl.value = splineUrl;
   isModalVisible.value = true;
 };
+
+// Watcher for active/disactive the scroll
+watch(isModalVisible, (newVal) => {
+  if (newVal) {
+    document.body.style.overflow = 'hidden' // Desactiva el scroll
+  } else {
+    document.body.style.overflow = '' // Activa el scroll
+  }
+})
 
 // Método para obtener los modelos 3D filtrados basados en la categoría seleccionada
 const getFilteredModels = (category) => {

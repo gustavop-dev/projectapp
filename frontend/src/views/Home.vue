@@ -48,7 +48,10 @@
       <h2 class="block font-light text-5xl mb-24 text-esmerald lg:mb-40 lg:text-6xl lg:text-end">{{ messages.section_3.title }}</h2>
       <div class="grid lg:grid-cols-2">
         <div class="h-80 order-2 mt-24 lg:mt-0 lg:order-1 lg:h-auto">
-          <img src="@/assets/images/home/cube_illusion.webp" alt="Section 3">
+          <img 
+            src="@/assets/images/home/cube_illusion.webp" 
+            loading="lazy"
+            alt="Section 3">
         </div>
         <div class="order-1 lg:order-2 lg:ps-32">
           <h3 class="text-end text-4xl font-light text-esmerald">{{ messages.section_3.web_development.title }}</h3>

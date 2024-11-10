@@ -138,9 +138,9 @@
     </section>
     <div class="p-3 bg-white">
       <Contact></Contact>
-      <div class="mt-6">
-        <Footer></Footer>
-      </div>
+    </div>
+    <div class="mt-6">
+      <Footer></Footer>
     </div>
   </div>
 </template>
