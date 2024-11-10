@@ -82,7 +82,7 @@
       class="absolute inset-0 bg-gray-500 bg-opacity-40 backdrop-blur-md"
       >
     </div>
-    <div ref="menuBox" class="relative bg-lemon h-screen w-screen shadow-lg flex flex-col z-60">
+    <div ref="menuBox" class="relative bg-lemon h-svh w-screen shadow-lg flex flex-col z-60">
       <div class="flex justify-end py-3 pe-3">
         <XMarkIcon @click="closeMenu()" class="text-esmerald w-8 h-8"></XMarkIcon>
       </div>

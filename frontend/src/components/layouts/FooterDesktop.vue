@@ -1,5 +1,5 @@
 <template>
-  <div class="p-3 h-screen" @mousemove="handleMouseMove">
+  <div class="p-3 h-svh" @mousemove="handleMouseMove">
     <div class="relative w-full h-full overflow-hidden">
       <video class="absolute top-0 left-0 w-full h-full object-cover rounded-xl" autoplay muted loop>
         <source src="@/assets/videos/presentationPrevPc.mp4" type="video/mp4">
@@ -91,7 +91,7 @@
     class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 backdrop-blur-md" 
     @mousemove="handleModalMouseMove"
     >
-    <div class="relative w-screen lg:h-screen">
+    <div class="relative w-screen lg:h-svh">
       <video ref="modalVideo" class="w-full h-full object-cover" autoplay>
         <source src="@/assets/videos/presentationComp.mp4" type="video/mp4">
         Your browser does not support the video tag.

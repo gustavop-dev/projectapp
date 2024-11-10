@@ -12,7 +12,10 @@
                     <div v-for="example in data.examples" class="mt-16 mb-16">
                         <h2 class="text-xl font-regular text-esmerald">{{ example.title }}</h2>
                         <div class="mt-8 flex justify-center">
-                            <img :src="example.image">
+                            <img 
+                                loading="lazy"
+                                :src="example.image"
+                            >
                         </div>
                     </div>
                 </div>

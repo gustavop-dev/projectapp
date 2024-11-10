@@ -4,23 +4,23 @@
       <Navbar></Navbar>
     </div>
     <section>
-      <div class="h-screen p-3">
+      <div class="h-svh p-3">
         <div
-          class="w-full h-full grid rounded-xl overflow-hidden lg:grid-cols-2"
+          class="relative w-full h-full grid rounded-xl overflow-hidden lg:grid-cols-2"
         >
-          <div class="bg-bone flex items-center px-16 order-2 py-24">
+          <div class="absolute z-10 top-1/3 flex items-center px-16 order-2 py-24 xl:bg-bone xl:top-0 xl:relative xl:z-0">
             <h1>
-              <span class="text-4xl font-light text-esmerald lg:text-6xl">{{
+              <span class="text-4xl font-light text-white lg:text-6xl xl:text-esmerald">{{
                 messages.header_title
               }}</span
               ><br />
-              <span class="text-md font-medium text-esmerald">{{
+              <span class="text-md font-medium text-white xl:text-esmerald">{{
                 messages.header_subtitle
               }}</span>
             </h1>
           </div>
           <div class="order-1">
-            <div class="relative w-full h-screen overflow-hidden">
+            <div class="relative w-full h-svh overflow-hidden">
               <video
                 autoplay
                 muted
@@ -80,8 +80,7 @@
             class="cursor-pointer"
           >
             <div class="border border-gray-200 rounded-lg">
-              <img
-                class="w-full rounded-lg"
+              <ImageLoader 
                 :src="design.cover_image"
                 :alt="design.title"
               />
@@ -106,11 +105,11 @@
 
 <script setup>
 import Navbar from "@/components/layouts/Navbar.vue"; // Import the Navbar component for the navigation bar
-import Dune from "@/components/spline/Backgrounds/Dune.vue"; // Import the Dune component, likely a 3D background
+import ImageLoader from "@/components/layouts/ImageLoader.vue"; // Import the ImageLoader component for the loading animation
 import Footer from "@/components/layouts/Footer.vue"; // Import the Footer component for the website's footer
 import Detail from "@/views/webDesigns/Detail.vue"; // Import the Detail view for web designs
 import { useWebDesignsStore } from "@/stores/web_designs"; // Import the web designs store
-import { onMounted, ref } from "vue"; // Import Vue's lifecycle hook and ref for reactivity
+import { onMounted, ref, watch } from "vue"; // Import Vue's lifecycle hook and ref for reactivity
 import { useMessages } from "@/composables/useMessages"; // Import the custom composable to get localized messages
 
 const { messages } = useMessages(); // Destructure the localized messages from the custom composable
@@ -134,6 +133,15 @@ const openModal = (detailImageUrl) => {
   currentDetailImageUrl.value = detailImageUrl; // Set the current image URL to be shown in the modal
   isModalVisible.value = true; // Show the modal
 };
+
+// Watcher for active/disactive the scroll
+watch(isModalVisible, (newVal) => {
+  if (newVal) {
+    document.body.style.overflow = 'hidden' // Desactiva el scroll
+  } else {
+    document.body.style.overflow = '' // Activa el scroll
+  }
+})
 
 // Method to get filtered designs based on the selected category
 const getFilteredDesigns = (category) => {
