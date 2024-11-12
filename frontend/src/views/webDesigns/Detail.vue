@@ -39,10 +39,12 @@
         <!-- Image Content -->
         <div v-show="!isLoading">
           <img
+            ref="detailImage"
             @load="onImageLoad"
             :src="detailImageUrl"
             alt="Detail"
             class="mt-6 w-full h-auto object-contain rounded-xl"
+            loading="lazy"
           />
         </div>
       </div>
@@ -54,9 +56,11 @@
 import { ref, watch } from "vue";
 import { Vue3Lottie } from "vue3-lottie";
 import whiteAnimation from "@/assets/loading/white.json";
+import { useFreeResources } from '@/composables/useFreeResources'; // Import the composable for freeing resources
 
 // State to control loading
 const isLoading = ref(true);
+const detailImage = ref(null); // Reference to the detail image
 
 /**
  * Props received by the component:
@@ -98,6 +102,11 @@ watch(() => props.visible, (newVal) => {
     isLoading.value = true; // Reset loading state when modal becomes visible
   }
 });
+
+// Use `useFreeResources` to manage cleanup for the image resource
+useFreeResources({
+  images: [detailImage]
+});
 </script>
 
 <style scoped>
@@ -105,4 +114,5 @@ watch(() => props.visible, (newVal) => {
   overflow-y: auto;
 }
 </style>
+
 

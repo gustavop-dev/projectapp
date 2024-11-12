@@ -1,43 +1,63 @@
+<template>
+  <div ref="canvasContainer" class="canvas-container rounded-xl"></div>
+</template>
+
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, onBeforeUnmount } from 'vue';
 import { Application } from '@splinetool/runtime';
 
 const props = defineProps({
   spline: {
     type: String,
     required: true,
-  }
+  },
 });
 
-const emit = defineEmits(['loaded']); // Define the 'loaded' event
+const emit = defineEmits(['loaded']);
 const canvasContainer = ref(null);
+let app = null; // Almacena la instancia de Spline Application
 
-onMounted(() => {
+/**
+ * Inicializa el canvas de Spline y lo monta en el DOM.
+ */
+const initializeCanvas = () => {
   const canvas = document.createElement('canvas');
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
   canvasContainer.value.appendChild(canvas);
 
-  const app = new Application(canvas);
+  app = new Application(canvas);
 
-  // Load the Spline model and listen for when it's fully loaded
+  // Cargar el modelo de Spline y emitir el evento 'loaded' cuando esté listo
   app.load(props.spline).then(() => {
-    emit('loaded'); // Emit the 'loaded' event when the model is ready
+    emit('loaded');
+  }).catch(error => {
+    console.error("Error loading Spline model:", error);
   });
+};
+
+// Monta el canvas cuando el componente se monta
+onMounted(() => {
+  initializeCanvas();
+});
+
+// Limpia los recursos de Spline cuando el componente se desmonta
+onBeforeUnmount(() => {
+  if (app) {
+    app.dispose();
+    app = null;
+  }
 });
 </script>
 
-<template>
-  <div ref="canvasContainer" class="canvas-container rounded-xl"></div>
-</template>
-
 <style scoped>
 .canvas-container {
-  width: 95%;
-  height: 90%;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
 }
-</style>
 
-  
+</style>

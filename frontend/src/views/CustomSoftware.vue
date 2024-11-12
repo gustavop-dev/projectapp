@@ -8,17 +8,18 @@
                 <h1 class="text-white font-light text-6xl md:text-8xl">{{ messages.hero_section.title }}</h1>
             </div>
             <div class="relative w-full h-svh overflow-hidden">
-                            <video
-                                autoplay
-                                muted
-                                loop
-                                playsinline
-                                class="absolute inset-0 w-auto h-full object-cover"
-                            >
-                                <source src="@/assets/videos/customSoftware/chips.mp4" type="video/mp4" />
-                                Your browser does not support the video tag.
-                            </video>
-                        </div>
+                <video
+                    ref="heroVideo"
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    class="absolute inset-0 w-auto h-full object-cover"
+                >
+                    <source src="@/assets/videos/customSoftware/chips.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                </video>
+            </div>
         </section>
         <section class="bg-dark grid md:grid-cols-2 lg:pt-52">
             <div class="pb-32">
@@ -27,7 +28,7 @@
                 <p class="px-3 mt-8 text-white text-lg font-regular">{{ messages.erp_section.paragraph_2 }}</p>
             </div>
             <div class="flex items-center justify-center">
-                <video autoplay muted loop playsinline>
+                <video ref="erpVideo" autoplay muted loop playsinline>
                     <source src="@/assets/videos/customSoftware/trails.mp4" type="video/mp4" />
                     Your browser does not support the video tag.
                 </video>
@@ -35,7 +36,7 @@
         </section>
         <section class="bg-dark grid md:grid-cols-2 lg:pt-52">
             <div class="flex items-center justify-center order-2 md:order-1 h-80 md:h-auto">
-                <video autoplay muted loop playsinline>
+                <video ref="crmVideo" autoplay muted loop playsinline>
                     <source src="@/assets/videos/customSoftware/meeet.mp4" type="video/mp4" />
                     Your browser does not support the video tag.
                 </video>
@@ -53,7 +54,7 @@
                 <p class="px-3 mt-8 text-white text-lg font-regular">{{ messages.tailored_solutions_section.paragraph_2 }}</p>
             </div>
             <div class="flex items-center justify-center h-80 md:h-auto">
-                <video autoplay muted loop playsinline>
+                <video ref="tailoredSolutionsVideo" autoplay muted loop playsinline>
                     <source src="@/assets/videos/customSoftware/infinityBlubs.mp4" type="video/mp4" />
                     Your browser does not support the video tag.
                 </video>
@@ -96,11 +97,11 @@
 <script setup>
 import Navbar from '@/components/layouts/Navbar.vue'; // Import the Navbar component for the navigation bar
 import Footer from '@/components/layouts/Footer.vue'; // Import the Footer component for the website's footer
-import Dune from '@/components/spline/Backgrounds/Dune.vue'; // Import the Dune background component (possibly a 3D background)
 import Email from '@/components/layouts/Email.vue'; // Import the Email component for email-related functionality
 import { ref } from 'vue'; // Import ref for reactive state management
 import { gsap } from 'gsap'; // Import GSAP (GreenSock Animation Platform) for animations
 import { useMessages } from '@/composables/useMessages'; // Import the custom composable for localized messages
+import { useFreeResources } from '@/composables/useFreeResources'; // Import the free resources composable
 
 const { messages } = useMessages(); // Destructure the localized messages from the custom composable
 
@@ -114,6 +115,12 @@ const underline = ref(null);
 const arrow = ref(null);
 const underlineChat = ref(null);
 const arrowChat = ref(null);
+
+// Refs for video elements
+const heroVideo = ref(null);
+const erpVideo = ref(null);
+const crmVideo = ref(null);
+const tailoredSolutionsVideo = ref(null);
 
 // Animation functions using GSAP
 
@@ -149,4 +156,9 @@ const resetLinkChat = () => {
   gsap.to(arrowChat.value, { opacity: 0, x: 20, duration: 0.05 });
 };
 
+// Use free resources to manage video resources
+useFreeResources({
+  videos: [heroVideo, erpVideo, crmVideo, tailoredSolutionsVideo]
+});
 </script>
+

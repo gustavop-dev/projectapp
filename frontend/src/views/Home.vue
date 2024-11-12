@@ -2,15 +2,15 @@
   <div>
     <!-- Fixed navbar component at the top of the page -->
     <div class="fixed top-0 left-0 w-full z-50">
-      <Navbar></Navbar>
+      <Navbar />
     </div>
 
     <!-- Render InitialVideo component only on desktop screens -->
-    <InitialVideo v-if="isDesktop" :play_text="messages.video.text"></InitialVideo>
+    <InitialVideo v-if="isDesktop" :play_text="messages.video.text" />
 
     <!-- Render InitialVideoMobile component only on mobile screens -->
-    <InitialVideoMobile v-else></InitialVideoMobile>
-    
+    <InitialVideoMobile v-else />
+
     <!-- First section of the home page with a title -->
     <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52">
       <h2 class="block font-light text-4xl text-esmerald lg:pe-60 lg:text-6xl">
@@ -34,7 +34,8 @@
             </h2>
           </div>
           <div class="col-span-3 lg:pe-4 lg:col-span-1">
-            <video autoplay muted loop playsinline>
+            <!-- Video element reference for resource management -->
+            <video ref="videoRef" autoplay muted loop playsinline>
               <source src="@/assets/videos/home/cubic.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
@@ -45,13 +46,18 @@
 
     <!-- Third section of the home page with image and text content -->
     <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52">
-      <h2 class="block font-light text-5xl mb-24 text-esmerald lg:mb-40 lg:text-6xl lg:text-end">{{ messages.section_3.title }}</h2>
+      <h2 class="block font-light text-5xl mb-24 text-esmerald lg:mb-40 lg:text-6xl lg:text-end">
+        {{ messages.section_3.title }}
+      </h2>
       <div class="grid lg:grid-cols-2">
         <div class="h-80 order-2 mt-24 lg:mt-0 lg:order-1 lg:h-auto">
+          <!-- Image element reference for resource management -->
           <img 
+            ref="imageRef" 
             src="@/assets/images/home/cube_illusion.webp" 
-            loading="lazy"
-            alt="Section 3">
+            loading="lazy" 
+            alt="Section 3" 
+          />
         </div>
         <div class="order-1 lg:order-2 lg:ps-32">
           <h3 class="text-end text-4xl font-light text-esmerald">{{ messages.section_3.web_development.title }}</h3>
@@ -64,44 +70,57 @@
 
     <!-- Contact section at the bottom of the page -->
     <section class="mt-16">
-      <Contact></Contact>
+      <Contact />
     </section>
 
     <!-- Footer component at the very end of the page -->
     <section class="mt-16 relative">
-      <Footer></Footer>
+      <Footer />
     </section>
   </div>
 </template>
 
 <script setup>
 // Import components for the homepage layout
-import Navbar from '@/components/layouts/Navbar.vue'; // Navbar component for navigation at the top
-import InitialVideo from '@/components/home/InitialVideo.vue'; // Video component for desktop
-import InitialVideoMobile from '@/components/home/InitialVideoMobile.vue'; // Video component for mobile
-import Footer from '@/components/layouts/Footer.vue'; // Footer component for the end of the page
-import Contact from '@/components/layouts/Contact.vue'; // Contact section component
-import { useMessages } from '@/composables/useMessages'; // Custom composable to retrieve localized messages
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue'
+import Navbar from '@/components/layouts/Navbar.vue' // Navbar component for navigation at the top
+import Footer from '@/components/layouts/Footer.vue' // Footer component for the end of the page
+import Contact from '@/components/layouts/Contact.vue' // Contact section component
+import { useMessages } from '@/composables/useMessages' // Custom composable to retrieve localized messages
+import { useFreeResources } from '@/composables/useFreeResources' // Custom composable to free resources
 
-// Retrieve localized messages for the current view using a custom composable
-const { messages } = useMessages();
-const isDesktop = ref(window.innerWidth >= 1024);
+// Lazy load video components for optimal performance
+const InitialVideo = defineAsyncComponent(() => import('@/components/home/InitialVideo.vue')) // Video component for desktop
+const InitialVideoMobile = defineAsyncComponent(() => import('@/components/home/InitialVideoMobile.vue')) // Video component for mobile
+
+// Retrieve localized messages for the current view
+const { messages } = useMessages()
+
+// State to determine if the screen is desktop size
+const isDesktop = ref(window.innerWidth >= 1024)
+
+// Refs for the video and image elements
+const videoRef = ref(null)
+const imageRef = ref(null)
+
+// Use `useFreeResources` composable to release video and image resources on component unmount
+useFreeResources({
+  videos: [videoRef],
+  images: [imageRef]
+})
 
 // Function to handle screen resize events
 function handleResize() {
-  isDesktop.value = window.innerWidth >= 1024;
+  isDesktop.value = window.innerWidth >= 1024
 }
 
 // Add event listener for window resize
 onMounted(() => {
-  window.addEventListener('resize', handleResize);
-});
+  window.addEventListener('resize', handleResize)
+})
 
 // Remove event listener when component is destroyed
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleResize);
-});
-
+  window.removeEventListener('resize', handleResize)
+})
 </script>
-

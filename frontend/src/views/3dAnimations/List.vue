@@ -6,7 +6,7 @@
     <section>
       <div class="h-svh p-3">
         <div class="relative w-full h-full grid rounded-xl overflow-hidden lg:grid-cols-2">
-          <div class="absolute z-10 top-1/3 bg-transparent flex items-center px-16 order-2 py-24 xl:bg-brown xl:top-0 xl:relative xl:z-0">
+          <div class="absolute z-10 bottom-0 bg-transparent flex items-center px-16 order-2 py-24 xl:bg-brown xl:top-0 xl:relative xl:z-0">
             <h1>
               <span class="text-4xl font-light text-esmerald xl:text-white lg:text-6xl">{{ messages.intro_section.title_line1 }}</span><br>
               <span class="text-4xl font-light text-esmerald xl:text-white lg:text-6xl">{{ messages.intro_section.title_line2 }}</span><br>
@@ -17,6 +17,7 @@
           <div class="order-1">
             <div class="relative w-full h-svh overflow-hidden">
               <img
+                loading="lazy"
                 src="@/assets/images/3dAnimations/mountainFaces.webp"
                 alt="3d Animations view"
                 class="absolute inset-0 w-auto h-full object-cover object-center"
@@ -65,7 +66,7 @@
         <!-- Contenido de modelos 3D -->
         <div class="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4 lg:mt-24">
           <div
-            v-for="model3d in models3dFiltered"
+            v-for="model3d in models3dFiltered.slice().reverse().slice(0, visibleCount)"
             :key="model3d.id"
             @click="openModal(model3d.file)"
             class="cursor-pointer"
@@ -79,79 +80,90 @@
             <h3 class="mt-4 font-regular text-esmerald text-md">{{ model3d.title }}</h3>
           </div>
         </div>
+        <!-- Button for load more content -->
+        <div v-if="visibleCount < models3dFiltered.length" class="text-center mt-8">
+          <button @click="loadMore" class="px-6 py-2 font-regular text-md bg-lemon text-esmerlad rounded-full hover:bg-esmerald hover:text-esmerald-light">
+            {{ messages.animations_section.see_more }}
+          </button>
+        </div>
       </div>
     </section>
     <div class="mt-52">
       <Footer></Footer>
     </div>
-    <Detail :visible="isModalVisible" :spline-url="currentSplineUrl" @update:visible="isModalVisible = $event"></Detail>
+    <!-- Renderiza Detail solo si isModalVisible es true -->
+    <Detail 
+      v-if="isModalVisible" 
+      :visible="isModalVisible" 
+      :spline-url="currentSplineUrl" 
+      @update:visible="closeModal" 
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'; // Import Vue utilities
-import Navbar from '@/components/layouts/Navbar.vue'; // Import the Navbar component
-import Footer from '@/components/layouts/Footer.vue'; // Import the Footer component
-import Detail from '@/views/3dAnimations/Detail.vue'; // Import the Detail view for 3D animations
-import ImageLoader from "@/components/layouts/ImageLoader.vue"; // Import the ImageLoader component for the loading animation
-import { useModels3dStore } from '@/stores/models_3d'; // Import the models 3D store
-import { useMessages } from '@/composables/useMessages'; // Import the custom composable for localized messages
+import { ref, onMounted, watch } from 'vue';
+import Navbar from '@/components/layouts/Navbar.vue';
+import Footer from '@/components/layouts/Footer.vue';
+import Detail from '@/views/3dAnimations/Detail.vue';
+import ImageLoader from "@/components/layouts/ImageLoader.vue";
+import { useModels3dStore } from '@/stores/models_3d';
+import { useMessages } from '@/composables/useMessages';
+import { useFreeResources } from '@/composables/useFreeResources';
 
-const { messages } = useMessages(); // Destructure the localized messages from the custom composable
+const { messages } = useMessages();
 
-// Store para gestionar los datos de los modelos 3D
 const models3dStore = useModels3dStore();
-const models3d = ref([]); // Lista completa de modelos 3D
-const models3dFiltered = ref([]); // Lista filtrada de modelos 3D por categoría
-const categories = ref([]); // Lista de categorías de modelos 3D
-const selectedCategory = ref("All"); // 'All' seleccionado por defecto
+const models3d = ref([]);
+const models3dFiltered = ref([]);
+const categories = ref([]);
+const selectedCategory = ref("All");
+const visibleCount = ref(16); // Number of pictures for showing
 
-const isModalVisible = ref(false); // Estado para controlar la visibilidad del modal
-const currentSplineUrl = ref(''); // Estado para almacenar la URL de la escena actual de Spline
+const isModalVisible = ref(false);
+const currentSplineUrl = ref('');
 
-// Abre el modal para mostrar un modelo 3D de Spline
+// Método para abrir el modal y cargar la URL del modelo 3D
 const openModal = (splineUrl) => {
   currentSplineUrl.value = splineUrl;
   isModalVisible.value = true;
 };
 
-// Watcher for active/disactive the scroll
+// Método para cerrar el modal y limpiar la URL del modelo 3D
+const closeModal = () => {
+  isModalVisible.value = false;
+  currentSplineUrl.value = ''; // Limpia la URL para liberar memoria
+};
+
 watch(isModalVisible, (newVal) => {
   if (newVal) {
-    document.body.style.overflow = 'hidden' // Desactiva el scroll
+    document.body.style.overflow = 'hidden';
   } else {
-    document.body.style.overflow = '' // Activa el scroll
+    document.body.style.overflow = '';
   }
-})
+});
 
-// Método para obtener los modelos 3D filtrados basados en la categoría seleccionada
 const getFilteredModels = (category) => {
   selectedCategory.value = category;
   models3dFiltered.value = models3dStore.getFilteredByCategory(models3d.value, selectedCategory.value);
 };
 
-// Hook que se ejecuta después de que el componente se monta
 onMounted(async () => {
-  await models3dStore.init(); // Inicializar el store de modelos 3D
-
-  // Desestructurar el objeto devuelto para obtener los modelos y las categorías
+  await models3dStore.init();
   const { models: fetchedModels, categories: fetchedCategories } =
     models3dStore.getFilteredModelsAndCategories;
 
-  // Asignar los valores obtenidos a las variables reactivas
   models3d.value = fetchedModels;
   models3dFiltered.value = fetchedModels;
   categories.value = fetchedCategories;
 });
-</script>
 
-<style scoped>
-.loader {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  font-size: 1.5em;
-  color: #888;
-}
-</style>
+useFreeResources({
+  images: models3dFiltered.value.map(model => ref(model.image))
+});
+
+// Use loadMore for increment the number of images for showing
+const loadMore = () => {
+  visibleCount.value += 16;
+};
+</script>
