@@ -1,7 +1,7 @@
 <template>
   <div class="p-3 h-svh" @mousemove="handleMouseMove">
     <div class="relative w-full h-full overflow-hidden">
-      <video class="absolute top-0 left-0 w-full h-full object-cover rounded-xl" autoplay muted loop>
+      <video ref="mainVideo" class="absolute top-0 left-0 w-full h-full object-cover rounded-xl" autoplay muted loop>
         <source src="@/assets/videos/presentationPrevPc.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
@@ -91,8 +91,29 @@
     class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 backdrop-blur-md" 
     @mousemove="handleModalMouseMove"
     >
-    <div class="relative w-screen lg:h-svh">
-      <video ref="modalVideo" class="w-full h-full object-cover" autoplay>
+    <!-- Loading Animation -->
+    <div
+      v-show="isLoading"
+      class="absolute inset-0 flex items-center justify-center"
+    >
+        <Vue3Lottie
+          :animationData="whiteAnimation"
+          :height="500"
+          :width="500"
+          :loop="true"
+          :autoplay="true"
+        />
+    </div>
+    <div 
+      v-show="!isLoading" 
+      class="relative w-screen lg:h-svh"
+    >
+      <video 
+        ref="modalVideo" 
+        class="w-full h-full object-cover" 
+        autoplay
+        @loadeddata="onVideoLoad"
+      >
         <source src="@/assets/videos/presentationComp.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
@@ -115,8 +136,15 @@ import { gsap } from 'gsap'; // Import GSAP for animations
 import { XMarkIcon } from '@heroicons/vue/24/outline'; // Import Heroicons for the close icon
 import ArrowUpRightIcon from '@heroicons/vue/20/solid/ArrowUpRightIcon'; // Import Heroicons for the arrow icon
 import { useGlobalMessages } from '@/composables/useMessages'; // Import the custom composable for global messages
+import { useFreeResources } from '@/composables/useFreeResources'; // Import useFreeResources composable
+
+import { Vue3Lottie } from "vue3-lottie";
+import whiteAnimation from "@/assets/loading/white.json";
 
 const { globalMessages } = useGlobalMessages('footer'); // Get the global messages for the 'footer' section
+
+// State to control loading
+const isLoading = ref(true);
 
 // Reactive state
 const showModalEmail = ref(false); // Controls the visibility of the email modal
@@ -136,12 +164,21 @@ const ball = ref(null); // Reference for the interactive ball element
 const ballText = ref(null); // Reference for the text inside the ball
 const modalBall = ref(null); // Reference for the ball element in the modal
 const modalBallText = ref(null); // Reference for the text inside the modal ball
+const mainVideo = ref(null); // Reference for the main video
 const modalVideo = ref(null); // Reference for the modal video
 
 // Variables to track the mouse and element positions
 let mouseX = 0, mouseY = 0, modalMouseX = 0, modalMouseY = 0;
 let ballX = 0, ballY = 0, textX = 0, textY = 0;
 let modalBallX = 0, modalBallY = 0, modalTextX = 0, modalTextY = 0;
+
+/**
+ * Function to handle when the image has fully loaded.
+ */
+ const onVideoLoad = () => {
+  // Set isLoading to false immediately once the image has loaded
+  isLoading.value = false;
+};
 
 /**
  * Handles mouse movement inside a specific element.
@@ -234,7 +271,13 @@ onMounted(() => {
 
   // Watch for changes to the showModal state and play/pause the video accordingly
   watch(showModal, (newVal) => {
+    if (newVal) {
+      document.body.style.overflow = 'hidden' // Desactiva el scroll
+    } else {
+      document.body.style.overflow = '' // Activa el scroll
+    }
     if (newVal && modalVideo.value) {
+      isLoading.value = true; // Reset loading state when modal becomes visible
       modalVideo.value.muted = false;
       modalVideo.value.play();
     }
@@ -262,6 +305,11 @@ onMounted(() => {
 // Lifecycle hook that runs when the component is unmounted
 onUnmounted(() => {
   cancelAnimationFrame(updateBallPosition); // Stop the ball position updates
+});
+
+// Use free resources to clean up video resources on unmount
+useFreeResources({
+  videos: [mainVideo, modalVideo],
 });
 </script>
 

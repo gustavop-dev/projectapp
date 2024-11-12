@@ -13,6 +13,7 @@
                         <h2 class="text-xl font-regular text-esmerald">{{ example.title }}</h2>
                         <div class="mt-8 flex justify-center">
                             <img 
+                                ref="exampleImages[example.id]" 
                                 loading="lazy"
                                 :src="example.image"
                             >
@@ -25,7 +26,7 @@
             <Footer></Footer>
         </div>
     </div>
-  </template>
+</template>
 
 <script setup>
 import Navbar from '@/components/layouts/Navbar.vue'; // Import the Navbar component for the navigation bar
@@ -33,11 +34,13 @@ import Footer from '@/components/layouts/Footer.vue'; // Import the Footer compo
 import { ref, onMounted } from 'vue'; // Import ref for reactivity and onMounted for lifecycle hook
 import { useRoute } from 'vue-router'; // Import useRoute to access route parameters
 import { useWebDevelopmentsStore } from '@/stores/web_UI_section_category'; // Import the web developments store
+import { useFreeResources } from '@/composables/useFreeResources'; // Import composable for managing free resources
 
 const route = useRoute(); // Get the current route and its parameters
 const developmentsStore = useWebDevelopmentsStore(); // Access the store to handle web developments
 
 const data = ref(null); // Reactive reference to store the fetched data
+const exampleImages = ref({}); // Reactive reference to manage image resources for each example
 
 /**
  * Lifecycle hook that runs after the component is mounted.
@@ -49,5 +52,10 @@ onMounted(async () => {
   await developmentsStore.init(); // Initialize the web developments store
   const { development_id, section_id, component_id } = route.params; // Destructure route parameters
   data.value = developmentsStore.getExamplesById(development_id, section_id, component_id); // Fetch the data based on the route params
+});
+
+// Use `useFreeResources` to manage cleanup for example images
+useFreeResources({
+  images: Object.values(exampleImages.value) // Pass all image refs to `useFreeResources`
 });
 </script>

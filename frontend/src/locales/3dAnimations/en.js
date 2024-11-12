@@ -8,7 +8,11 @@ export default {
     animations_section: {
       section_title: "3D Animations",
       section_subtitle: "Enjoy interactive and customized 3D animations, developed from scratch with JavaScript for a unique and immersive visual experience.",
-      all: "All"
+      all: "All",
+      see_more: "See more",
+    },
+    model_3d: {
+      mobile_message: "We sorry, the 3d models are only available for a desktop device for improve your experience.",
     },
   };
   

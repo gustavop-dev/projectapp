@@ -21,7 +21,6 @@ onMounted(() => {
   window.addEventListener('resize', handleResize);
 });
 
-// Remove event listener when component is destroyed
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize);
 });

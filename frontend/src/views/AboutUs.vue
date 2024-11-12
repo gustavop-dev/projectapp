@@ -27,7 +27,7 @@
         </section>
         <section class="bg-lemon h-auto p-3">
             <div class="w-full h-auto rounded-xl overflow-hidden lg:h-full">
-                <video autoplay muted loop playsinline>
+                <video ref="particlePlanetVideo" autoplay muted loop playsinline>
                     <source src="@/assets/videos/aboutUs/particlePlanet.mp4" type="video/mp4" />
                     Your browser does not support the video tag.
                 </video>
@@ -139,13 +139,13 @@
 
 <script setup>
 import Navbar from '@/components/layouts/Navbar.vue'; // Import the Navbar component for the navigation bar
-import Dune from '@/components/spline/Backgrounds/Dune.vue'; // Import the Dune component, likely a 3D background
 import Footer from '@/components/layouts/Footer.vue'; // Import the Footer component for the website's footer
 import Contact from '@/components/layouts/Contact.vue'; // Import the Contact component for the contact section
 import { onMounted, ref } from 'vue'; // Import Vue's lifecycle hook and ref for reactivity
 import { gsap } from 'gsap'; // Import GSAP (GreenSock Animation Platform) for animations
 import { ScrollTrigger } from 'gsap/ScrollTrigger'; // Import the GSAP ScrollTrigger plugin
 import { useMessages } from '@/composables/useMessages'; // Import the custom composable to get localized messages
+import { useFreeResources } from '@/composables/useFreeResources'; // Import the custom composable for resource cleanup
 
 const { messages } = useMessages(); // Destructure the localized messages from the custom composable
 
@@ -155,6 +155,9 @@ gsap.registerPlugin(ScrollTrigger); // Register ScrollTrigger plugin with GSAP
 const leftImage = ref(null);
 const imageContainer = ref(null);
 const mobileImage = ref(null);
+
+// Ref for video elements
+const particlePlanetVideo = ref(null);
 
 /**
  * Initializes the ScrollTrigger animation on the leftImage element.
@@ -185,5 +188,10 @@ onMounted(() => {
   if (mobileImage.value.complete) { // Ensure the image is fully loaded before initializing animations
     initScrollTrigger();
   }
+});
+
+// Use `useFreeResources` to manage cleanup for the video
+useFreeResources({
+  videos: [particlePlanetVideo]
 });
 </script>

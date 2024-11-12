@@ -20,8 +20,26 @@
 
     <!-- Modal -->
     <div v-if="showModal" class="fixed inset-0 flex items-center justify-center z-50" @mousemove="handleModalMouseMove">
-      <div class="relative w-screen h-svh">
-        <video ref="modalVideo" class="w-full h-full object-cover" autoplay>
+      <!-- Loading Animation -->
+      <div
+        v-show="isLoading"
+        class="absolute inset-0 flex items-center justify-center"
+      >
+        <Vue3Lottie
+          :animationData="whiteAnimation"
+          :height="500"
+          :width="500"
+          :loop="true"
+          :autoplay="true"
+        />
+      </div>
+      <div v-show="!isLoading" class="relative w-screen h-svh">
+        <video 
+          ref="modalVideo" 
+          class="w-full h-full object-cover" 
+          autoplay
+          @loadeddata="onVideoLoad"
+        >
           <source src="@/assets/videos/presentationComp.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
@@ -39,6 +57,8 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'; // Import Vue utilities for reactivity and lifecycle hooks
 import { gsap } from 'gsap'; // Import GSAP for animations
 import { XMarkIcon } from '@heroicons/vue/24/outline'; // Import Heroicon for the close icon
+import { Vue3Lottie } from "vue3-lottie";
+import whiteAnimation from "@/assets/loading/white.json";
 
 // Reactive references for controlling the modal, ball, and video elements
 const showModal = ref(false); // Controls the visibility of the modal
@@ -47,6 +67,7 @@ const ballText = ref(null); // Reference for the text inside the ball
 const modalBall = ref(null); // Reference for the ball in the modal
 const modalBallText = ref(null); // Reference for the text inside the modal ball
 const modalVideo = ref(null); // Reference for the video in the modal
+const isLoading = ref(true); // Reference for the video is loading
 
 // Variables to track mouse and element positions
 let mouseX = 0, mouseY = 0, modalMouseX = 0, modalMouseY = 0;
@@ -57,6 +78,14 @@ let modalBallX = 0, modalBallY = 0, modalTextX = 0, modalTextY = 0;
 const props = defineProps({
   play_text: String, // The play button text passed from the parent component
 });
+
+/**
+ * Function to handle when the image has fully loaded.
+ */
+ const onVideoLoad = () => {
+  // Set isLoading to false immediately once the image has loaded
+  isLoading.value = false;
+};
 
 /**
  * Handles mouse movement and updates the coordinates for the ball element.
@@ -144,7 +173,13 @@ onMounted(() => {
 
   // Watch for changes to the showModal state and play the video if the modal is opened
   watch(showModal, (newVal) => {
+    if (newVal) {
+      document.body.style.overflow = 'hidden' // Desactiva el scroll
+    } else {
+      document.body.style.overflow = '' // Activa el scroll
+    }
     if (newVal && modalVideo.value) {
+      isLoading.value = true; // Reset loading state when modal becomes visible
       modalVideo.value.muted = false;
       modalVideo.value.play();
     }

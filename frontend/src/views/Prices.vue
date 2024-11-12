@@ -124,14 +124,19 @@ import {
 } from "@heroicons/vue/24/outline";
 import { useProductStore } from "@/stores/products";
 import { onMounted, ref } from "vue";
+import { useFreeResources } from '@/composables/useFreeResources'; // Import the composable for freeing resources
 
 const products = ref([]);
-
 const productStore = useProductStore();
 
 onMounted(async () => {
   await productStore.init();
   products.value = productStore.getProducts;
-  console.log(products.value)
-})
+  console.log(products.value);
+});
+
+// Use free resources to ensure images and videos are cleaned up when unmounted
+useFreeResources({
+  images: products.value.map(product => ref(product.image)),
+});
 </script>

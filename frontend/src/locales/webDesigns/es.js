@@ -4,5 +4,6 @@ export default {
     section_title: "Diseños Web",
     section_subtitle: "Hemos convertido ideas en realidad, creando diseños web únicos con pasión y dedicación.",
     all: "Todo",
+    see_more: "Cargar más",
   };
   

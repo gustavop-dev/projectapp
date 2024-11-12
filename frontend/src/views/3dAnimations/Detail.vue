@@ -12,9 +12,20 @@
         <div @click="hideModal" class="w-3 h-3 bg-yellow-600 rounded-full cursor-pointer"></div>
         <div @click="hideModal" class="w-3 h-3 bg-gray-600 rounded-full cursor-pointer"></div>
       </div>
-      
-      <!-- Main content container -->
-      <div class="relative h-full flex justify-center items-center">
+
+      <!-- Main content container for mobile version -->
+      <div v-if="!isDesktop" class="relative h-full w-full flex justify-center items-center">
+        <!-- Message for mobile -->
+        <div class="relative w-full h-full py-4 flex flex-col gap-4 justify-center items-center">
+          <CubeTransparentIcon class="text-esmerald-light h-40 w-40"></CubeTransparentIcon>
+          <p class="text-2xl font-regular text-esmerald-light text-center">
+            {{ messages.model_3d.mobile_message }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Main content container for desktop version -->
+      <div v-if="isDesktop" class="relative h-full w-full flex justify-center items-center">
         <!-- Loading animation -->
         <div v-show="isLoading" class="absolute inset-0 flex items-center justify-center">
           <Vue3Lottie
@@ -27,7 +38,7 @@
         </div>
         
         <!-- Main content (Dune) -->
-        <div v-show="!isLoading" class="relative h-full flex justify-center items-center">
+        <div v-show="!isLoading" class="relative w-full h-full py-4 flex justify-center items-center">
           <Dune :spline="splineUrl" @loaded="onDuneLoad" />
         </div>
       </div>
@@ -40,9 +51,15 @@ import { ref, watch } from "vue";
 import { Vue3Lottie } from "vue3-lottie";
 import Dune from "@/components/spline/Backgrounds/Dune.vue";
 import whiteAnimation from "@/assets/loading/white.json";
+import { CubeTransparentIcon } from "@heroicons/vue/20/solid";
+import { useMessages } from '@/composables/useMessages';
+
+const { messages } = useMessages();
 
 // Loading state
 const isLoading = ref(true);
+// Verification for the device
+const isDesktop = ref(window.innerWidth >= 1024);
 
 /**
  * Props received by the component:
