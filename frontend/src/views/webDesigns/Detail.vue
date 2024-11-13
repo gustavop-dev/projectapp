@@ -44,7 +44,6 @@
             :src="detailImageUrl"
             alt="Detail"
             class="mt-6 w-full h-auto object-contain rounded-xl"
-            loading="lazy"
           />
         </div>
       </div>
@@ -58,8 +57,7 @@ import { Vue3Lottie } from "vue3-lottie";
 import whiteAnimation from "@/assets/loading/white.json";
 import { useFreeResources } from '@/composables/useFreeResources'; // Import the composable for freeing resources
 
-// State to control loading
-const isLoading = ref(true);
+const isLoading = ref(true); // State to control loading
 const detailImage = ref(null); // Reference to the detail image
 
 /**
@@ -83,6 +81,7 @@ const emit = defineEmits(["update:visible"]);
 const onImageLoad = () => {
   // Set isLoading to false immediately once the image has loaded
   isLoading.value = false;
+  console.log("Hola")
 };
 
 /**
