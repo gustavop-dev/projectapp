@@ -14,7 +14,7 @@
     <Wordpress></Wordpress>
     
     <!-- Products -->
-    <div v-for="(product, index) in products" :key="index">
+    <div v-if="products.length" v-for="(product, index) in products" :key="index">
       <section v-if="index % 2 === 0" class="mt-32 w-full px-3">
         <h2 class="text-esmerald text-4xl font-light lg:text-6xl">
           {{ product.title }}
@@ -24,7 +24,7 @@
             class="bg-esmerald rounded-b-xl p-6 grid order-2 gap-2 md:grid-cols-2 lg:rounded-r-none lg:rounded-l-xl lg:col-span-2 lg:order-1"
           >
             <div class="grid gap-3 mt-6 order-2 lg:mt-0 lg:order-1">
-              <div v-for="category in product.categories">
+              <div v-if="product.categories && product.categories.length" v-for="category in product.categories">
                 <h3 class="text-xl text-white font-light">{{ category.name }}</h3>
                 <ul class="font-regular text-lg text-green-light ps-6">
                   <li v-for="item in category.items" class="flex items-center gap-2">
@@ -148,7 +148,7 @@
               
             </div>
             <div class="grid text-end mt-6 lg:mt-0">
-              <div v-for="category in product.categories">
+              <div v-if="product.categories && product.categories.length" v-for="category in product.categories">
                 <h3 class="text-xl text-white font-light">{{ category.name }}</h3>
                 <ul class="font-regular text-lg text-green-light ps-6">
                   <li v-for="item in category.items" class="flex items-center gap-2 justify-end">
@@ -185,19 +185,16 @@ import {
   CheckIcon,
   XMarkIcon
 } from "@heroicons/vue/24/outline";
-import { QuestionMarkCircleIcon } from "@heroicons/vue/24/solid";
 import { useProductStore } from "@/stores/products";
 import { onMounted, ref } from "vue";
 import { useFreeResources } from '@/composables/useFreeResources';
 import { useMessages } from '@/composables/useMessages';
 import { useLanguageStore } from '@/stores/language';
-import { useRouter } from 'vue-router';
 
 // Obtener los stores necesarios
 const products = ref([]);
 const productStore = useProductStore();
 const languageStore = useLanguageStore();
-const router = useRouter();
 
 // Obtener los mensajes para la vista actual
 const { messages } = useMessages();

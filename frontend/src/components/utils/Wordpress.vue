@@ -11,7 +11,7 @@
                     </div>
                 </Vue3Marquee>
                 <h2 class="max-w-7xl mx-center my-12 px-3 text-end font-light text-4xl text-white lg:text-6xl lg:px-0">{{ messages.wordpress_component.why_not_wordpress }}</h2>
-                <Vue3Marquee :pause-on-hover="true" direction="reverse" duration="35">
+                <Vue3Marquee :pause-on-hover="true" direction="reverse" :duration="35">
                     <div class="w-72 h-full mx-auto px-4" v-for="(reason, index) in reasons" :key="index">
                         <div class="bg-esmerald rounded-xl relative h-full">
                             <component :is="reason.icon" class="w-16 h-16 text-lemon text-center p-4"></component>
