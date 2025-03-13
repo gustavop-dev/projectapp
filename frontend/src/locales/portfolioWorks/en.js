@@ -1,0 +1,15 @@
+export default {
+  header_title: "Where Technology Meets Vision: Our Digital Creations in Motion",
+  header_subtitle: "An immersive journey through innovation, where every line of code is a step towards transforming ideas into game-changing solutions.",
+  section_title: "Transforming Ideas into Impact",
+  section_subtitle: "Each project is more than just code—it’s a seamless blend of creativity, strategy, and technology that brings businesses to life in the digital world.",
+  portfolio_description: "We don’t just build software; we engineer digital experiences that redefine industries. Explore our portfolio and see how we turn bold ideas into powerful, scalable solutions that leave a lasting impression.",
+  custom_software_notice: "All showcased projects are fully customized software solutions tailored to specific client needs. Each project is unique and developed under a personalized quotation process. If you're looking for a standard e-commerce solution, please visit our dedicated section.",
+  dynamic_web_notice: "Dynamic websites include interactive animations and enhanced visual effects, offering an engaging experience. These features require additional development and are quoted separately.",
+  all: "Explore All Creations",
+  categories_intro: "Browse through our diverse projects and see the impact we’ve made across industries.",
+  see_more: "Dive Deeper into Our Work",
+  empty_results: "No projects match this category. Try another filter or explore all our creations.",
+  project_click_hint: "Click on any project to see our expertise in action and experience innovation firsthand.",
+};
+

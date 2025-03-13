@@ -29,7 +29,7 @@ class Hosting(models.Model):
     title_es = models.CharField(max_length=255, verbose_name="Title (Spanish)")
     description_en = models.CharField(max_length=255, verbose_name="Description (English)")
     description_es = models.CharField(max_length=255, verbose_name="Description (Spanish)")
-    monthly_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Monthly Price")
+    semi_annually_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Semi Annually Price")
     annual_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Annual Price")
     cpu_cores_en = models.CharField(max_length=255, verbose_name="CPU Cores (English)")
     cpu_cores_es = models.CharField(max_length=255, verbose_name="CPU Cores (Spanish)")

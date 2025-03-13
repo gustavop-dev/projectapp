@@ -82,6 +82,7 @@
             <div
               v-for="(hosting, index) in hostings"
               :key="hosting.title"
+              :id="`hosting_plan_${index + 1}`"
               :class="[index === 2 ? 'ring-2 ring-lemon bg-lemon' : 'ring-1 ring-esmerald-light bg-esmerald-light', 'rounded-xl p-8']"
             >
               <h3 class="text-2xl font-LIGHT leading-8 text-esmerald">
@@ -92,15 +93,15 @@
               </p>
               <p class="mt-6 flex items-baseline gap-x-1">
                 <span class="text-4xl font-medium tracking-tight text-esmerald">
-                  {{ frequency.value === "monthly" ? hosting.monthly_price : hosting.annual_price }}
+                  {{ formatHostingPrice(frequency.value === "semi_annually" ? hosting.semi_annually_price : hosting.annual_price) }}
                 </span>
                 <span class="text-sm font-semibold leading-6 text-gray-600">
-                  {{ frequency.priceSuffix }}
+                  {{ languageStore.currentLanguage === 'en' ? 'USD/ Month' : 'COP/ Mensual' }} {{ frequency.priceSuffix }}
                 </span>
               </p>
               <a
-                :href="hosting.href"
-                class="mt-6 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                @click="showEmailForPlan(hosting)"
+                class="mt-6 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 cursor-pointer"
                 :class="[index === 2 ? 'bg-esmerald-light text-esmerald shadow-sm' : 'bg-lemon text-esmerald ring-indigo-200 hover:ring-indigo-300']"
               >
                 {{ messages.contact_sales }}
@@ -142,6 +143,9 @@
     <div class="mt-6">
       <Footer></Footer>
     </div>
+    
+    <!-- Modal de Email -->
+    <Email :visible="showEmailModal" :selectedPlan="selectedPlan" @update:visible="showEmailModal = $event"></Email>
   </div>
 </template>
 
@@ -149,8 +153,9 @@
 import Navbar from "@/components/layouts/Navbar.vue";
 import Footer from "@/components/layouts/Footer.vue";
 import Contact from "@/components/layouts/Contact.vue";
+import Email from "@/components/layouts/Email.vue"; // Importar componente Email
 import { Vue3Marquee } from "vue3-marquee";
-import { ref, onMounted } from "vue";
+import { ref, onMounted, nextTick, watch} from "vue";
 import { RadioGroup, RadioGroupOption } from "@headlessui/vue";
 import { CheckIcon } from "@heroicons/vue/20/solid";
 import {
@@ -163,14 +168,33 @@ import {
 } from "@heroicons/vue/24/outline";
 import { useHostingStore } from "@/stores/hosting";
 import { useMessages } from "@/composables/useMessages";
-import FooterMobile from '@/components/layouts/FooterMobile.vue';
+import { useLanguageStore } from '@/stores/language';
+import { useRoute } from 'vue-router';
 
 const { messages } = useMessages();
 const hostingStore = useHostingStore();
+const languageStore = useLanguageStore();
 const hostings = ref([]);
+const route = useRoute(); // Get access to the route object
 
 // Define the selected frequency
 const frequency = ref(messages.value.frequencies[0]);
+
+// Estado para controlar la visibilidad del modal de Email
+const showEmailModal = ref(false);
+// Estado para guardar el plan seleccionado
+const selectedPlan = ref(null);
+
+// Función para abrir el modal de Email con el plan seleccionado
+const showEmailForPlan = (plan) => {
+  selectedPlan.value = {
+    name: plan.title,
+    price: formatHostingPrice(frequency.value === "semi_annually" ? plan.semi_annually_price : plan.annual_price),
+    currency: languageStore.currentLanguage === 'en' ? 'USD' : 'COP',
+    period: frequency.value === "semi_annually" ? messages.value.frequencies[0].label : messages.value.frequencies[1].label
+  };
+  showEmailModal.value = true;
+};
 
 const hostingBenefits = [
   { icon: CodeBracketIcon },
@@ -181,9 +205,125 @@ const hostingBenefits = [
   { icon: UsersIcon },
 ];
 
-onMounted(async () => {
-  await hostingStore.init();
-  hostings.value = hostingStore.getHostings;
-});
-</script>
+// Función para formatear el precio según el idioma actual
+const formatHostingPrice = (price) => {
+  
+  // Verificar el tipo y formato del precio
+  let numericPrice;
+  
+  if (typeof price === 'string') {
+    // Si el precio viene como "50.000" (formato colombiano) 
+    // necesitamos eliminar los puntos para convertirlo correctamente
+    // pero solo si los puntos son separadores de miles
+    
+    // Comprobamos si tiene formato colombiano (puntos como separador de miles)
+    if (price.match(/^\d{1,3}(\.\d{3})+$/)) {
+      // Es un formato colombiano con puntos como separadores
+      const cleanPrice = price.replace(/\./g, '');
+      numericPrice = parseFloat(cleanPrice);
+    }
+    // Si termina en ".00" podría ser un decimal normal, no un separador
+    else if (price.endsWith('.00')) {
+      numericPrice = parseFloat(price);
+    }
+    // En cualquier otro caso, intentamos parsear directamente
+    else {
+      numericPrice = parseFloat(price);
+    }
+  } else {
+    // Si es número, lo usamos directamente
+    numericPrice = parseFloat(price);
+  }
+  
+  if (isNaN(numericPrice)) {
+    console.error('Valor de precio inválido:', price);
+    return price;
+  }
+  
+  
+  // Aplicar tasa de conversión según idioma
+  const conversionRate = languageStore.currentLanguage === 'en' ? 0.0006 : 1;
+  const convertedValue = numericPrice * conversionRate;
+  
+  // Formatear según el idioma
+  if (languageStore.currentLanguage === 'es') {
+    // Formato colombiano: usar puntos como separadores de miles
+    const roundedValue = Math.round(convertedValue);
+    return roundedValue.toLocaleString('es-CO').replace(/,/g, '.');
+  } else {
+    // Formato inglés: usar comas como separadores y mostrar 2 decimales
+    return convertedValue.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+};
 
+/**
+ * Scrolls to the specified hosting plan with a smooth animation.
+ * 
+ * @param {string} planId - The ID of the plan to scroll to
+ */
+ const scrollToPlan = async (planId) => {
+  // Wait for the DOM to be updated
+  await nextTick();
+  
+  // Find the plan element by its ID
+  const planElement = document.getElementById(planId);
+  
+  if (planElement) {
+    // Scroll to the element with a smooth animation
+    planElement.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
+    
+    // Highlight the plan temporarily
+    planElement.classList.add('highlight-plan');
+    setTimeout(() => {
+      planElement.classList.remove('highlight-plan');
+    }, 2000);
+  }
+};
+
+onMounted(async () => {
+  await Promise.all([
+    hostingStore.init(),
+    languageStore.loadMessagesForView('hosting')
+  ]);
+  hostings.value = hostingStore.getHostings;
+  
+  
+  // Verificamos específicamente los valores de precio
+  if (hostings.value && hostings.value.length > 0) {
+    hostings.value.forEach((hosting, index) => {
+      
+      // Verificamos si es posible que haya un problema con decimales
+      if (typeof hosting.semi_annually_price === 'string' && hosting.semi_annually_price.includes('.')) {
+        const parts = hosting.semi_annually_price.split('.');
+        if (parts[1].length > 2) {
+          console.warn('Posible error de formato: el precio tiene más de 2 decimales');
+        }
+      }
+    });
+  }
+
+  // Check if we need to scroll to a specific plan
+  if (route.params.plan) {
+    // Allow some time for the component to fully render
+    setTimeout(() => {
+      scrollToPlan(route.params.plan);
+    }, 500); 
+  }
+});
+
+// Watch for changes in the route params to handle direct navigation
+watch(
+  () => route.params.plan,
+  (newPlanId) => {
+    if (newPlanId && hostings.value.length > 0) {
+      scrollToPlan(newPlanId);
+    }
+  }
+);
+</script>

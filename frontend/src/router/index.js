@@ -55,10 +55,15 @@ const router = createRouter({
       component: () => import("@/views/Prices.vue"), // Lazy-loaded eCommerce Prices page
     },
     {
-      path: '/hosting',
+      path: '/hosting/:plan?', // The ? makes the parameter optional
       name: 'hosting',
       component: () => import("@/views/Hosting.vue"), // Lazy-loaded Hosting page
     },
+    {
+      path: '/portfolio-works/:example?',
+      name: 'portfolioWorks',
+      component: () => import("@/views/PortfolioWorks.vue"), // Lazy-loaded PortfolioWorks list
+    }
   ],
 });
 

@@ -2,6 +2,11 @@ export default {
     hero_section: {
       title: "Innovation and Efficiency with Custom Software",
     },
+    eCommerce_section: {
+      title: "E-Commerce Solutions",
+      paragraph_1: "Transform your business with custom e-commerce platforms designed to drive sales, enhance user experience, and streamline operations. Our tailored solutions empower you to thrive in the digital marketplace.",
+      paragraph_2: "Our custom e-commerce solutions are built to address your unique business challenges and goals. From intuitive shopping experiences to robust inventory management, secure payment processing, and comprehensive analytics dashboards, we deliver end-to-end platforms that grow with your business. Whether you need a B2C storefront, B2B portal, marketplace, or subscription-based service, our team creates scalable, mobile-responsive solutions that maximize conversions and customer retention while integrating seamlessly with your existing systems and workflows.",
+    },
     erp_section: {
       title: "ERP Systems",
       paragraph_1: "Streamline your operations, improve efficiency, and enhance decision-making with our robust ERP solutions. We build systems that integrate seamlessly with your existing processes.",

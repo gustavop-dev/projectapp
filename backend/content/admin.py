@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-from .models import Component, Contact, Design, Model3D, UISectionCategory, Section, Example, Product, Category, Item, Hosting
+from .models import Component, Contact, Design, Model3D, UISectionCategory, Section, Example, Product, Category, Item, Hosting, PortfolioWork
 
 class ComponentAdmin(admin.ModelAdmin):
     """
@@ -9,6 +9,14 @@ class ComponentAdmin(admin.ModelAdmin):
     """
     list_display = ('title_en', 'title_es', 'image')
     filter_horizontal = ('examples',)
+
+class PortfolioWorkAdmin(admin.ModelAdmin):
+    """
+    Custom admin configuration for the PortfolioWork model.
+    Display specific fields of the PortfolioWork model.
+    """
+    list_display = ('title_en', 'title_es', 'cover_image', 'project_url', 'category_title_en')
+
 
 class UISectionCategoryAdmin(admin.ModelAdmin):
     """
@@ -67,7 +75,7 @@ class HostingAdmin(admin.ModelAdmin):
     Custom admin configuration for the Hosting model.
     Display specific fields of the Hosting model.
     """
-    list_display = ('title_en', 'title_es', 'monthly_price', 'annual_price', 'cpu_cores_en', 'ram_en', 'storage_en', 'bandwidth_en')
+    list_display = ('title_en', 'title_es', 'semi_annually_price', 'annual_price', 'cpu_cores_en', 'ram_en', 'storage_en', 'bandwidth_en')
 
 class ProjectAppAdminSite(admin.AdminSite):
     """
@@ -113,6 +121,14 @@ class ProjectAppAdminSite(admin.AdminSite):
                 ]
             },
             {
+                'name': _('Portfolio Works Management'),
+                'app_label': 'portfolio_works_management',
+                'models': [
+                    model for model in app_dict.get('content', {}).get('models', [])
+                    if model['object_name'] == 'PortfolioWork'
+                ]
+            },
+            {
                 'name': _('Product Management'),
                 'app_label': 'product_management',
                 'models': [
@@ -144,3 +160,4 @@ admin_site.register(Product, ProductAdmin)
 admin_site.register(Category, CategoryAdmin)
 admin_site.register(Item, ItemAdmin)
 admin_site.register(Hosting, HostingAdmin)
+admin_site.register(PortfolioWork, PortfolioWorkAdmin)

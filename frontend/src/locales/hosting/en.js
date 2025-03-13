@@ -8,8 +8,8 @@ export default {
     pricing_subtitle: "Choose an affordable plan that’s packed with the best features for engaging your audience, creating customer loyalty, and driving sales.",
     contact_sales: "Contact Sales",
     frequencies: [
-      { value: "monthly", label: "Monthly", priceSuffix: "/COP month" },
-      { value: "annually", label: "Annually", priceSuffix: "/COP year" },
+      { value: "semi_annually", label: "Semi-annually"},
+      { value: "annually", label: "Annually"},
     ],
     hostingBenefits: [
       {

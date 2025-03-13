@@ -38,7 +38,7 @@ export const useHostingStore = defineStore('hosting', {
             data_center_location: languageStore.currentLanguage === 'es' ? hosting.data_center_location_es : hosting.data_center_location_en,
             operating_system: languageStore.currentLanguage === 'es' ? hosting.operating_system_es : hosting.operating_system_en,
             // Include any additional properties that don't require translation
-            monthly_price: hosting.monthly_price,
+            semi_annually_price: hosting.semi_annually_price,
             annual_price: hosting.annual_price,
           };
         });

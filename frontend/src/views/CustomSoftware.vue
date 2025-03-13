@@ -22,6 +22,19 @@
             </div>
         </section>
         <section class="bg-dark grid md:grid-cols-2 lg:pt-52">
+            <div class="flex items-center justify-center order-2 md:order-1 h-80 md:h-auto">
+                <video ref="crmVideo" autoplay muted loop playsinline>
+                    <source src="@/assets/videos/customSoftware/liquidGradient.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="pb-32 order-1 md:order-2">
+                <h2 class="px-3 max-w-7xl text-white text-6xl font-light">{{ messages.eCommerce_section.title }}</h2>
+                <p class="px-3 mt-20 text-white text-lg font-regular">{{ messages.eCommerce_section.paragraph_1 }}</p>
+                <p class="px-3 mt-8 text-white text-lg font-regular">{{ messages.eCommerce_section.paragraph_2 }}</p>
+            </div>
+        </section>
+        <section class="bg-dark grid md:grid-cols-2 lg:pt-52">
             <div class="pb-32">
                 <h2 class="px-3 max-w-7xl text-white text-6xl font-light">{{ messages.erp_section.title }}</h2>
                 <p class="px-3 mt-20 text-white text-lg font-regular">{{ messages.erp_section.paragraph_1 }}</p>

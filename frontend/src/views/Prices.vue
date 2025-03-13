@@ -6,9 +6,9 @@
     <div class="h-32"></div>
     <section>
       <h1 class="text-center font-light text-6xl text-esmerald lg:text-8xl">
-        We don't use WordPress
+        {{ messages.hero_section.title_line1 }}
         <br />
-        We are real programmers
+        {{ messages.hero_section.title_line2 }}
       </h1>
     </section>
     <Wordpress></Wordpress>
@@ -34,18 +34,70 @@
                 </ul>
               </div>
             </div>
-            <div class="border-l border-l-green-light ps-4 order-1 lg:order-2">
+            <div class="border-l border-l-green-light ps-4 order-1 lg:order-2 space-y-2">
               <p class="text-lg text-green-light font-regular whitespace-pre-line">
                 {{ product.description }}
               </p>
               <br />
+              <p class="text-md font-regular text-white flex gap-2 items-center">
+                <CheckIcon class="w-6 h-6 text-lemon"></CheckIcon>
+                {{ messages.product_details.figma_design.title }} 
+                <Tooltip width="w-60" backgroundColor="bg-lemon" textColor="text-esmerald">
+                  <div>
+                    <p>{{ messages.product_details.figma_design.description }}</p>
+                  </div>
+                </Tooltip>
+              </p>
+              <p class="text-md font-regular text-white flex gap-2 items-center">
+                <CheckIcon class="w-6 h-6 text-lemon"></CheckIcon>
+                {{ messages.product_details.responsive_design.title }} 
+                <Tooltip width="w-60" backgroundColor="bg-lemon" textColor="text-esmerald">
+                  <div>
+                    <p>{{ messages.product_details.responsive_design.description }}</p>
+                  </div>
+                </Tooltip>
+              </p>
+              <p class="text-md font-regular text-white flex gap-2 items-center">
+                <XMarkIcon class="w-6 h-6 text-lemon"></XMarkIcon>
+                {{ messages.product_details.animations.title }} 
+                <router-link
+                  :to="{name: 'portfolioWorks', params: { example: 'see-dynamic-webs' }}"
+                >
+                  <Tooltip width="w-60" backgroundColor="bg-lemon" textColor="text-esmerald">
+                    <div>
+                      <p>{{ messages.product_details.animations.description }}</p>
+                      <p>
+                        {{ messages.product_details.animations.click }}
+                      </p>
+                    </div>
+                  </Tooltip>
+                </router-link>
+              </p>
+              <p class="text-md font-regular text-white flex gap-2 items-center">
+                <XMarkIcon class="w-6 h-6 text-lemon"></XMarkIcon>
+                {{ messages.product_details.mobile_app.title }} 
+                <Tooltip width="w-60" backgroundColor="bg-lemon" textColor="text-esmerald">
+                  <div>
+                    <p>{{ messages.product_details.mobile_app.description }}</p>
+                  </div>
+                </Tooltip>
+              </p>
               <p class="text-md font-regular text-white flex gap-2">
-                <BanknotesIcon class="w-6 h-6 text-lemon"></BanknotesIcon> $
-                {{ product.price }} COP
+                <BanknotesIcon class="w-6 h-6 text-lemon"></BanknotesIcon> 
+                {{ messages.product_details?.price_label || '$' }} {{ formatPrice(product.price) }} {{ languageStore.currentLanguage === 'en' ? 'USD' : 'COP' }}
               </p>
               <p class="text-md font-regular text-white flex gap-2 mt-2">
                 <ClockIcon class="w-6 h-6 text-lemon"></ClockIcon> {{ product.development_time }}
               </p>
+              
+              <router-link 
+                v-if="product.hosting_name" 
+                :to="{name: 'hosting', params: { plan: `hosting_plan_${product.hosting_id || '1'}` }}"
+                class="text-md font-regular text-white flex gap-2 mt-2 cursor-pointer hover:text-lemon transition-colors"
+              >
+                <ServerStackIcon class="w-6 h-6 text-lemon"></ServerStackIcon>
+                {{messages.product_details.server}} ({{ product.hosting_name }})
+              </router-link>
             </div>
           </div>
           <div class="flex justify-center items-center order-1 lg:order-2">
@@ -79,14 +131,21 @@
               </p>
               <br />
               <p class="text-md font-regular text-white flex gap-2 justify-end">
-                  $ {{ product.price }} COP
+                  {{ messages.product_details?.price_label || '$' }} {{ formatPrice(product.price) }} {{ languageStore.currentLanguage === 'en' ? 'USD' : 'COP' }}
                   <BanknotesIcon class="w-6 h-6 text-lemon"></BanknotesIcon> 
               </p>
-              <p
-                class="text-md font-regular text-white flex gap-2 mt-2 justify-end"
-              >
-              {{ product.development_time }} <ClockIcon class="w-6 h-6 text-lemon"></ClockIcon>
+              <p class="text-md font-regular text-white flex gap-2 mt-2 justify-end">
+                {{ product.development_time }} <ClockIcon class="w-6 h-6 text-lemon"></ClockIcon>
               </p>
+              
+              <router-link 
+                v-if="product.hosting_name" 
+                :to="{name: 'hosting', params: { plan: `hosting_plan_${product.hosting_id || '1'}` }}"
+                class="text-md font-regular text-white flex gap-2 mt-2 justify-end cursor-pointer hover:text-lemon transition-colors"
+              >
+                {{messages.product_details.server}} ({{ product.hosting_name }}) <ServerStackIcon class="w-6 h-6 text-lemon"></ServerStackIcon>
+              </router-link>
+              
             </div>
             <div class="grid text-end mt-6 lg:mt-0">
               <div v-for="category in product.categories">
@@ -117,22 +176,80 @@ import Navbar from "@/components/layouts/Navbar.vue";
 import Footer from "@/components/layouts/Footer.vue";
 import Contact from "@/components/layouts/Contact.vue";
 import Wordpress from "@/components/utils/Wordpress.vue";
+import Tooltip from "@/components/ui/Tooltip.vue"
 import {
   BanknotesIcon,
   CheckBadgeIcon,
   ClockIcon,
+  ServerStackIcon,
+  CheckIcon,
+  XMarkIcon
 } from "@heroicons/vue/24/outline";
+import { QuestionMarkCircleIcon } from "@heroicons/vue/24/solid";
 import { useProductStore } from "@/stores/products";
 import { onMounted, ref } from "vue";
-import { useFreeResources } from '@/composables/useFreeResources'; // Import the composable for freeing resources
+import { useFreeResources } from '@/composables/useFreeResources';
+import { useMessages } from '@/composables/useMessages';
+import { useLanguageStore } from '@/stores/language';
+import { useRouter } from 'vue-router';
 
+// Obtener los stores necesarios
 const products = ref([]);
 const productStore = useProductStore();
+const languageStore = useLanguageStore();
+const router = useRouter();
+
+// Obtener los mensajes para la vista actual
+const { messages } = useMessages();
+
+// Función para formatear el precio según el idioma actual
+const formatPrice = (price) => {
+  // El precio puede venir como "500.000" (string con formato colombiano)
+  // Primero limpiamos el precio eliminando los puntos para poder convertirlo correctamente a número
+  let cleanPrice = String(price).replace(/\./g, '');
+  let numericPrice = Number(cleanPrice);
+  
+  // Si sigue sin ser un número válido, intentamos una limpieza más agresiva
+  if (isNaN(numericPrice)) {
+    cleanPrice = String(price).replace(/[^\d]/g, '');
+    numericPrice = Number(cleanPrice);
+    
+    if (isNaN(numericPrice)) {
+      console.error('Invalid price value:', price);
+      return price; // Devolvemos el original si no podemos procesarlo
+    }
+  }
+  
+  // Obtener la tasa de conversión según el idioma
+  const conversionRate = languageStore.currentLanguage === 'en' ? 0.0006 : 1;
+  
+  // Aplicar la conversión
+  const convertedValue = numericPrice * conversionRate;
+  
+  // Formatear según el idioma
+  if (languageStore.currentLanguage === 'es') {
+    // Formato colombiano: usar puntos como separadores de miles y millones
+    // Redondeamos para eliminar decimales en el formato colombiano
+    const roundedValue = Math.round(convertedValue);
+    
+    // Usamos toLocaleString con el formato 'es-CO' para obtener el formato colombiano correcto
+    return roundedValue.toLocaleString('es-CO').replace(/,/g, '.');
+  } else {
+    // Formato inglés: 1,000,000.00 (coma como separador de miles, dos decimales)
+    return convertedValue.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+};
 
 onMounted(async () => {
-  await productStore.init();
+  // Al montar el componente, cargar los mensajes para la vista "eCommercePrices"
+  await Promise.all([
+    productStore.init(),
+    languageStore.loadMessagesForView('eCommercePrices')
+  ]);
   products.value = productStore.getProducts;
-  console.log(products.value);
 });
 
 // Use free resources to ensure images and videos are cleaned up when unmounted

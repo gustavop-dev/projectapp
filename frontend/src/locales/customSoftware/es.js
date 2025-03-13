@@ -2,6 +2,11 @@ export default {
     hero_section: {
       title: "Innovación y Eficiencia con Software Personalizado",
     },
+    eCommerce_section: {
+      title: "Soluciones de Comercio Electrónico",
+      paragraph_1: "Transforma tu negocio con plataformas de comercio electrónico personalizadas diseñadas para impulsar ventas, mejorar la experiencia de usuario y optimizar operaciones. Nuestras soluciones a medida te permiten destacar en el mercado digital.",
+      paragraph_2: "Nuestras soluciones de comercio electrónico están construidas para abordar tus desafíos y objetivos empresariales específicos. Desde experiencias de compra intuitivas hasta gestión robusta de inventario, procesamiento seguro de pagos y paneles analíticos completos, ofrecemos plataformas integrales que crecen con tu negocio. Ya sea que necesites una tienda B2C, un portal B2B, un marketplace o un servicio por suscripción, nuestro equipo crea soluciones escalables y adaptables a dispositivos móviles que maximizan conversiones y retención de clientes, integrándose perfectamente con tus sistemas y flujos de trabajo existentes.",
+    },
     erp_section: {
       title: "Sistemas ERP",
       paragraph_1: "Optimiza tus operaciones, mejora la eficiencia y toma decisiones más acertadas con nuestras robustas soluciones ERP. Construimos sistemas que se integran sin problemas con tus procesos actuales.",

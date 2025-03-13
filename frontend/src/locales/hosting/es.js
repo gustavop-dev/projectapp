@@ -8,8 +8,8 @@ export default {
     pricing_subtitle: "Elige un plan asequible que esté lleno de las mejores características para atraer a tu audiencia, crear lealtad de clientes y aumentar las ventas.",
     contact_sales: "Contactar Ventas",
     frequencies: [
-      { value: "monthly", label: "Mensual", priceSuffix: "/COP mes" },
-      { value: "annually", label: "Anual", priceSuffix: "/COP año" },
+      { value: "semi_annually", label: "Mensual"},
+      { value: "annually", label: "Anual" },
     ],
     hostingBenefits: [
       {

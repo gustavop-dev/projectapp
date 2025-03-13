@@ -47,6 +47,8 @@ class Product(models.Model):
         development_time_es (str): The development time of the product in Spanish.
         categories (ManyToManyField): A relation to multiple categories associated with the product.
         image (ImageField): An image representing the product.
+        hosting_name (str): The name of the associated hosting plan.
+        hosting_id (str): The identifier for the associated hosting plan for scroll targeting.
     """
     title_en = models.CharField(max_length=255, verbose_name="Title (English)")
     title_es = models.CharField(max_length=255, verbose_name="Title (Spanish)")
@@ -57,6 +59,8 @@ class Product(models.Model):
     development_time_es = models.CharField(max_length=255, verbose_name="Development Time (Spanish)")
     categories = models.ManyToManyField(Category, related_name='products')
     image = models.ImageField(upload_to='products/images/')
+    hosting_name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Associated Hosting Plan Name")
+    hosting_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="Hosting Plan ID for Scroll Targeting")
 
     def __str__(self):
         return self.title_en
