@@ -56,7 +56,10 @@ export const useProductStore = defineStore('products', {
       return state.products.map((product) => {
         return {
           ...filterByLanguage(product),
-          price: formatPrice(product.price), // Apply the price formatting
+          price: formatPrice(product.price), // Format price
+          mobile_app_price: product.mobile_app_price
+            ? formatPrice(product.mobile_app_price)
+            : product.mobile_app_price, // Also format mobile_app_price if it exists
           categories: product.categories.map((category) => ({
             ...filterByLanguage(category),
             items: category.items.map((item) => filterByLanguage(item)),

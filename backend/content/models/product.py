@@ -43,6 +43,7 @@ class Product(models.Model):
         description_en (TextField): The description of the product in English.
         description_es (TextField): The description of the product in Spanish.
         price (DecimalField): The price of the product.
+        mobile_app_price (DecimalField): The mobile application price of the product.
         development_time_en (str): The development time of the product in English.
         development_time_es (str): The development time of the product in Spanish.
         categories (ManyToManyField): A relation to multiple categories associated with the product.
@@ -55,6 +56,13 @@ class Product(models.Model):
     description_en = models.TextField(verbose_name="Description (English)")
     description_es = models.TextField(verbose_name="Description (Spanish)")
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Price")
+    mobile_app_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Mobile App Price",
+        null=True,
+        blank=True
+    )
     development_time_en = models.CharField(max_length=255, verbose_name="Development Time (English)")
     development_time_es = models.CharField(max_length=255, verbose_name="Development Time (Spanish)")
     categories = models.ManyToManyField(Category, related_name='products')
