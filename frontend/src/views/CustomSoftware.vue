@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="bg-dark">
         <div class="fixed top-0 left-0 w-full z-50">
             <Navbar></Navbar>
         </div>
@@ -24,7 +24,7 @@
         <section class="bg-dark grid md:grid-cols-2 lg:pt-52">
             <div class="flex items-center justify-center order-2 md:order-1 h-80 md:h-auto">
                 <video ref="crmVideo" autoplay muted loop playsinline>
-                    <source src="@/assets/videos/customSoftware/liquidGradient.mp4" type="video/mp4" />
+                    <source src="@/assets/videos/customSoftware/holo-blobs.mp4" type="video/mp4" />
                     Your browser does not support the video tag.
                 </video>
             </div>

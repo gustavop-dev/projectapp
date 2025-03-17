@@ -7,6 +7,7 @@
 
   <!-- Floating WhatsApp button with neon glow -->
   <a
+    v-if="!loading"
     href="https://wa.me/573238122373"
     target="_blank"
     class="fixed z-50 bottom-4 right-4 w-12 h-12 rounded-full bg-green-500 
@@ -59,7 +60,6 @@ const initializeApp = async () => {
     await languageStore.detectBrowserLanguage();
   }
   document.documentElement.lang = languageStore.currentLanguage;
-  loading.value = false;
 };
 
 watch(() => languageStore.currentLanguage, (newLang) => {
@@ -67,8 +67,13 @@ watch(() => languageStore.currentLanguage, (newLang) => {
 });
 
 onMounted(async () => {
-  await initializeApp();
+  await Promise.all([
+    initializeApp(),
+    new Promise(resolve => setTimeout(resolve, 3000))
+  ]);
+  loading.value = false;
 });
+
 </script>
 
 <style>

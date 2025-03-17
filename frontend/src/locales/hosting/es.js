@@ -7,8 +7,10 @@ export default {
     pricing_title: "Planes de precios para equipos de todos los tamaños",
     pricing_subtitle: "Elige un plan asequible que esté lleno de las mejores características para atraer a tu audiencia, crear lealtad de clientes y aumentar las ventas.",
     contact_sales: "Contactar Ventas",
+    free_price: "Sin costo",
+    free_condition: "Este servicio de hosting no tiene costo con la compra de nuestra Página de Aterrizaje de E-Commerce V1.0",
     frequencies: [
-      { value: "semi_annually", label: "Mensual"},
+      { value: "semi_annually", label: "Semestral"},
       { value: "annually", label: "Anual" },
     ],
     hostingBenefits: [

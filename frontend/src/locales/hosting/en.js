@@ -7,6 +7,8 @@ export default {
     pricing_title: "Pricing plans for teams of all sizes",
     pricing_subtitle: "Choose an affordable plan that’s packed with the best features for engaging your audience, creating customer loyalty, and driving sales.",
     contact_sales: "Contact Sales",
+    free_price: "Free",
+    free_condition: "This hosting service is free with the purchase of our E-Commerce Landing Page V1.0",
     frequencies: [
       { value: "semi_annually", label: "Semi-annually"},
       { value: "annually", label: "Annually"},

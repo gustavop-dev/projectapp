@@ -85,18 +85,52 @@
               :id="`hosting_plan_${index + 1}`"
               :class="[index === 2 ? 'ring-2 ring-lemon bg-lemon' : 'ring-1 ring-esmerald-light bg-esmerald-light', 'rounded-xl p-8']"
             >
-              <h3 class="text-2xl font-LIGHT leading-8 text-esmerald">
+              <h3 class="text-2xl font-light leading-8 text-esmerald">
                 {{ hosting.title }}
               </h3>
               <p class="mt-4 text-md font-regular leading-6 text-esmerald">
                 {{ hosting.description }}
               </p>
-              <p class="mt-6 flex items-baseline gap-x-1">
+              <!-- Hosting Price / Free Indicator -->
+              <p 
+                v-if="parseFloat(frequency.value === 'semi_annually' 
+                  ? hosting.semi_annually_price 
+                  : hosting.annual_price) === 0" 
+                class="mt-6 flex flex-col gap-y-1 items-start"
+              >
+                <!-- Large 'Free' text -->
                 <span class="text-4xl font-medium tracking-tight text-esmerald">
-                  {{ formatHostingPrice(frequency.value === "semi_annually" ? hosting.semi_annually_price : hosting.annual_price) }}
+                  {{ messages.free_price }}
                 </span>
-                <span class="text-sm font-semibold leading-6 text-gray-600">
-                  {{ languageStore.currentLanguage === 'en' ? 'USD/ Month' : 'COP/ Mensual' }} {{ frequency.priceSuffix }}
+                <!-- Asterisk note -->
+                <span class="text-sm font-regular text-gray-600 mt-1">
+                  *{{ messages.free_condition }}
+                </span>
+              </p>
+
+              <p v-else class="mt-6 flex flex-col items-start">
+                <!-- Price per month block -->
+                <div class="flex items-baseline gap-x-1">
+                  <span class="text-4xl font-medium tracking-tight text-esmerald">
+                    {{ formatHostingPrice(
+                        frequency.value === "semi_annually" 
+                          ? hosting.semi_annually_price 
+                          : hosting.annual_price
+                    ) }}
+                  </span>
+                  <span class="text-sm font-semibold leading-6 text-gray-600">
+                    {{ languageStore.currentLanguage === 'en' ? 'USD/ Month' : 'COP/ Mensual' }} {{ frequency.priceSuffix }}
+                  </span>
+                </div>
+                <!-- Single payment note -->
+                <span class="text-sm font-regular text-gray-600 mt-1">
+                  *{{ languageStore.currentLanguage === 'en' ? 'Single payment: ' : 'Pago único: ' }}
+                  {{ formatHostingPrice(
+                        frequency.value === "semi_annually" 
+                          ? hosting.semi_annually_price * 6 
+                          : hosting.annual_price * 12
+                  ) }}
+                  {{ languageStore.currentLanguage === 'en' ? 'USD' : 'COP' }}
                 </span>
               </p>
               <a

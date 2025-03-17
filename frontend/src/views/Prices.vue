@@ -137,10 +137,13 @@
                 <router-link 
                   v-if="product.hosting_name" 
                   :to="{name: 'hosting', params: { plan: `hosting_plan_${product.hosting_id || '1'}` }}"
-                  class="text-md font-regular text-white flex gap-2 mt-2 cursor-pointer hover:text-lemon transition-colors"
+                  class="text-md font-regular text-white flex gap-2 mt-2 cursor-pointer"
                 >
                   <ServerStackIcon class="w-6 h-6 text-lemon"></ServerStackIcon>
-                  {{ messages.product_details.server }} ({{ product.hosting_name }})
+                  <p class="py-px px-3 bg-lemon text-esmerald rounded-xl">
+                    <span>{{ messages.product_details.server }} ~ </span> 
+                    <span class="italic">{{ product.hosting_name }}</span>
+                  </p>
                 </router-link>
               </div>
             </div>
@@ -267,7 +270,11 @@
                   :to="{name: 'hosting', params: { plan: `hosting_plan_${product.hosting_id || '1'}` }}"
                   class="text-md font-regular text-white flex gap-2 mt-2 justify-end cursor-pointer hover:text-lemon transition-colors"
                 >
-                  {{ messages.product_details.server }} ({{ product.hosting_name }}) <ServerStackIcon class="w-6 h-6 text-lemon"></ServerStackIcon>
+                  <p class="py-px px-3 bg-lemon text-esmerald rounded-xl">
+                    <span>{{ messages.product_details.server }} ~ </span>
+                    <span class="italic">{{ product.hosting_name }}</span>
+                  </p>
+                  <ServerStackIcon class="w-6 h-6 text-lemon"></ServerStackIcon>
                 </router-link>
               </div>
               <!-- Categories list -->
