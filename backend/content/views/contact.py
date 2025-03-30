@@ -12,3 +12,14 @@ def contact_list(request):
     contacts = Contact.objects.all()
     serializer = ContactSerializer(contacts, many=True, context={'request': request})
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def new_contact(request):
+    """
+    API view to create a new Contact message.
+    """
+    serializer = ContactSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

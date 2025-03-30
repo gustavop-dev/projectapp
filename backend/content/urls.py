@@ -1,6 +1,6 @@
 from django.urls import path
 from content.views.component import uisectioncategory_list
-from content.views.contact import contact_list
+from content.views.contact import contact_list, new_contact
 from content.views.design import design_list
 from content.views.model_3d import model3d_list
 from content.views.product import product_list
@@ -15,4 +15,5 @@ urlpatterns = [
     path('products/', product_list, name='product-list'),
     path('hostings/', hosting_list, name='hosting-list'),
     path('portfolio_works/', portfolio_works_list, name='portfolio-works-list'),
+    path('new-contact/', new_contact, name='new-contact'),
 ]
