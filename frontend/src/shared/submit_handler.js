@@ -13,7 +13,7 @@ import { create_request } from "@/stores/services/request_http.js";
 export async function submitHandler(formData) {
   try {
     // Send form data to the backend as a POST request
-    const response = await create_request('api/contact/', JSON.stringify(formData));
+    const response = await create_request('contact/', JSON.stringify(formData));
     
     // If the request is successful and the status is 201 (created)
     if (response && response.status === 201) {

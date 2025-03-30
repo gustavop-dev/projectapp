@@ -88,7 +88,7 @@ const solutions = ref([ // Array of solution links populated from global message
 { name: globalMessages.solutions.home, href: 'home' },
 { name: globalMessages.solutions.about, href: 'aboutUs' },
 { name: globalMessages.solutions.web_designs, href: 'webDesigns' },
-{ name: globalMessages.solutions.web_developments, href: 'webDevelopments' },
+{ name: globalMessages.solutions.web_developments, href: 'portfolioWorks' },
 { name: globalMessages.solutions.custom_software, href: 'customSoftware' },
 { name: globalMessages.solutions.animations_3d, href: '3dAnimations' },
 { name: globalMessages.solutions.prices, href: 'eCommercePrices' },

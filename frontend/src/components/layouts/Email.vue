@@ -103,7 +103,6 @@ const props = defineProps({
 const emit = defineEmits(["update:visible"]);
 
 // Refs for the modal elements and form data
-const modalContainer = ref(null); // Reference for the modal container
 const modalContent = ref(null); // Reference for the modal content
 
 // Reactive form data
