@@ -1,7 +1,7 @@
 <template>
     <div class="bg-dark">
         <div class="fixed top-0 left-0 w-full z-50">
-            <Navbar></Navbar>
+            <Navbar theme="dark"></Navbar>
         </div>
         <section class="h-svh relative">
             <div class="absolute z-20 w-1/3 px-3 h-full flex items-center md:px-16">

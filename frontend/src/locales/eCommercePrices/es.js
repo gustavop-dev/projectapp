@@ -4,6 +4,7 @@ export default {
     title_line2: "Somos programadores reales"
   },
   product_details: {
+    call_to_action: "Empezar Ahora",
     figma_design: {
       title: "Diseño en Figma",
       description: "Usamos herramientas profesionales como Adobe Photoshop, Adobe Illustrator y Figma. Figma es una plataforma avanzada de diseño que permite la colaboración en tiempo real y la creación de prototipos de alta fidelidad, garantizando resultados precisos para tu proyecto web.",

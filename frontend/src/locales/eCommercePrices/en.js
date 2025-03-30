@@ -4,6 +4,7 @@ export default {
     title_line2: "We are real programmers"
   },
   product_details: {
+    call_to_action: "Start Now",
     figma_design: {
       title: "Figma Design",
       description: "We use professional tools like Adobe Photoshop, Adobe Illustrator, and Figma. Figma is a powerful design platform that enables real-time collaboration and high-fidelity prototypes, ensuring pixel-perfect results for your web project.",

@@ -13,6 +13,10 @@ export default {
       { value: "semi_annually", label: "Semi-annually"},
       { value: "annually", label: "Annually"},
     ],
+    save_plan: {
+      text: "With annual plan",
+      badge: "Save",
+    },
     hostingBenefits: [
       {
         text: "Tailored for Code-Based Applications: Optimized for websites and applications developed from scratch, ensuring seamless integration and superior performance."

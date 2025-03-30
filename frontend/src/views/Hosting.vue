@@ -1,7 +1,7 @@
 <template>
   <div class="bg-esmerald">
     <div class="fixed top-0 left-0 w-full z-50">
-      <Navbar></Navbar>
+      <Navbar theme="dark" ></Navbar>
     </div>
     <section class="pt-32">
       <h1 class="text-center font-light text-6xl text-lemon lg:text-8xl">
@@ -108,9 +108,18 @@
                 </span>
               </p>
 
-              <p v-else class="mt-6 flex flex-col items-start">
+              <p v-else class="mt-4 flex flex-col items-start">
+                <!-- Save Badge -->
+                <p class="mt-4 font-regular text-md text-esmerald flex items-center space-x-2">
+                  <span v-if="frequency.value === 'annually'" class="line-through">
+                    {{ formatHostingPrice(hosting.semi_annually_price) }}
+                    {{ languageStore.currentLanguage === 'en' ? 'USD' : 'COP' }}
+                  </span>
+                  <span v-else>{{ messages.save_plan.text }}</span>
+                  <span :class="[index === 2 ? 'bg-esmerald-light' : 'bg-lemon', 'px-4 py-0 rounded-2xl']">{{ messages.save_plan.badge }} 40%</span>
+                </p>
                 <!-- Price per month block -->
-                <div class="flex items-baseline gap-x-1">
+                <div class="mt-2 flex items-baseline gap-x-1">
                   <span class="text-4xl font-medium tracking-tight text-esmerald">
                     {{ formatHostingPrice(
                         frequency.value === "semi_annually" 
@@ -212,7 +221,7 @@ const hostings = ref([]);
 const route = useRoute(); // Get access to the route object
 
 // Define the selected frequency
-const frequency = ref(messages.value.frequencies[0]);
+const frequency = ref(messages.value.frequencies[1]);
 
 // Estado para controlar la visibilidad del modal de Email
 const showEmailModal = ref(false);

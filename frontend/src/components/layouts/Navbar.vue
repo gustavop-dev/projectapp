@@ -2,7 +2,10 @@
   <!--Navbar Desktop-->
   <div class="hidden lg:block relative w-screen">
     <div class="absolute ps-8 pt-6 z-10">
-      <h1 class="text-xl font-bold text-esmerald">
+      <h1 :class="[
+        'text-xl font-bold',
+        theme === 'dark' ? 'text-white' : 'text-esmerald'
+      ]">
         <router-link 
           :to="{ name: 'home' }"
           class="cursor-pointer"
@@ -68,9 +71,12 @@
       </h1>
     </div>
 
-    <div class="flex absolute z-10 pt-6 pe-6 top-0 right-0">
-      <span class="bg-window-black bg-opacity-40 backdrop-blur-md rounded-xl p-2">
-        <Bars3Icon @click="openMenu()" class="text-white w-8 h-8"></Bars3Icon>
+    <div class="flex absolute z-10 pt-6 pe-6 top-0 right-0 space-x-2 text-white">
+      <span @click="openMenu()" class="bg-window-black bg-opacity-40 backdrop-blur-md rounded-xl px-4 py-3 text-md">
+        {{ globalMessages.menu_button }}
+      </span>
+      <span @click="showModalEmail = true" class="bg-window-black bg-opacity-40 backdrop-blur-md rounded-xl px-4 py-3 flex justify-center items-center font-regular text-md">
+        {{ globalMessages.get_in_touch }}
       </span>
     </div>
   </div>
@@ -110,12 +116,20 @@ import Email from '@/components/layouts/Email.vue'; // Import the Email componen
 import { ref } from 'vue'; // Import ref for reactive state
 import { gsap } from 'gsap'; // Import GSAP for animations
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'; // Import Popover components from Headless UI
-import { Bars3Icon, XMarkIcon } from '@heroicons/vue/24/outline'; // Import Heroicons for the menu and close icons
+import { XMarkIcon } from '@heroicons/vue/24/outline'; // Import Heroicons for the menu and close icons
 import SocialLinks from '@/components/utils/SocialLinks.vue'; // Import the SocialLinks component
 import ButtonWhitArrow from '@/components/utils/ButtonWithArrow.vue'; // Import the ButtonWithArrow component
 import { useGlobalMessages } from '@/composables/useMessages'; // Import the custom composable to get global messages
 
 const { globalMessages } = useGlobalMessages('navbar'); // Get the global messages for the 'navbar' section
+
+// Props to recieving
+defineProps({
+  theme: {
+    type: String,
+    default: 'light', // colud be 'light' or 'dark'
+  }
+})
 
 // Reactive references for various states
 const background = ref(null); // Reference to the background element for animations

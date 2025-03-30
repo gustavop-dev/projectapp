@@ -69,7 +69,7 @@ watch(() => languageStore.currentLanguage, (newLang) => {
 onMounted(async () => {
   await Promise.all([
     initializeApp(),
-    new Promise(resolve => setTimeout(resolve, 1250)) 
+    new Promise(resolve => setTimeout(resolve, 1000)) 
   ]);
   loading.value = false;
 });

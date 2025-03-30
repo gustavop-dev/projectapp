@@ -49,6 +49,13 @@
                   {{ product.description }}
                 </p>
                 <br />
+                <!-- Call to action -->
+                <button @click="showModalEmail = true" class="w-full flex justify-center items-center px-4 py-2 bg-lemon rounded-xl">
+                  <span class="font-regular text-esmerald text-md">
+                    {{ messages.product_details.call_to_action }}
+                  </span>
+                </button>
+                <br />
                 <!-- Figma Design Information with Tooltip (checkbox checked & disabled) -->
                 <p class="text-md font-regular text-white flex gap-2 items-center">
                   <div class="flex h-6 shrink-0 items-center text-esmerald">
@@ -180,6 +187,13 @@
                   {{ product.description }}
                 </p>
                 <br />
+                <!-- Call to action -->
+                <button @click="showModalEmail = true" class="w-full flex justify-center items-center px-4 py-2 bg-lemon rounded-xl">
+                  <span class="font-regular text-esmerald text-md">
+                    {{ messages.product_details.call_to_action }}
+                  </span>
+                </button>
+                <br />
                 <!-- Figma Design Information with Tooltip (checkbox checked & disabled) -->
                 <p class="text-md font-regular text-white flex gap-2 justify-end items-center">
                   <Tooltip width="w-60" backgroundColor="bg-lemon" textColor="text-esmerald">
@@ -302,6 +316,9 @@
     <div class="mt-16">
       <Footer></Footer>
     </div>
+
+    <!-- Email Modal -->
+    <Email :visible="showModalEmail" @update:visible="showModalEmail = $event"></Email>
   </div>
 </template>
 
@@ -318,6 +335,7 @@ import {
   ClockIcon,
   ServerStackIcon,
 } from "@heroicons/vue/24/outline";
+import Email from "@/components/layouts/Email.vue";
 
 // Import stores and Vue functions
 import { useProductStore } from "@/stores/products";
@@ -340,6 +358,9 @@ const { messages } = useMessages();
 
 // Create a reactive array to hold state for each product
 const productStates = ref([]);
+
+// Show Email Modal
+const showModalEmail = ref(false);
 
 /**
  * Format the given price based on the current language.
