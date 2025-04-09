@@ -20,16 +20,6 @@ const router = createRouter({
       component: Home, // Home component for the main landing page
     },
     {
-      path: '/web_UI_section_category',
-      name: 'webDevelopments',
-      component: () => import("@/views/webDevelopment/List.vue"), // Lazy-loaded Web Developments list
-    },
-    {
-      path: '/web_UI_section_category/detail/:development_id/:section_id/:component_id',
-      name: 'webDevelopmentsDetail',
-      component: () => import("@/views/webDevelopment/Detail.vue"), // Lazy-loaded Web Development details
-    },
-    {
       path: '/web_designs',
       name: 'webDesigns',
       component: () => import("@/views/webDesigns/List.vue"), // Lazy-loaded Web Designs list

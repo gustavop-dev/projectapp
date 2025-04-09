@@ -1,105 +1,105 @@
 export default {
   hero_section: {
-    title_line1: "No usamos WordPress",
-    title_line2: "Somos programadores reales"
+    title_line1: "Artesanos digitales para",
+    title_line2: "tu negocio ;)"
   },
   product_details: {
-    call_to_action: "Empezar Ahora",
+    call_to_action: "Iniciar Su Proyecto Web",
     figma_design: {
-      title: "Diseño en Figma",
-      description: "Usamos herramientas profesionales como Adobe Photoshop, Adobe Illustrator y Figma. Figma es una plataforma avanzada de diseño que permite la colaboración en tiempo real y la creación de prototipos de alta fidelidad, garantizando resultados precisos para tu proyecto web.",
+      title: "Diseño Web Profesional",
+      description: "Nuestra empresa de diseño web utiliza herramientas profesionales como Adobe Photoshop, Adobe Illustrator y Figma. Como desarrolladores web experimentados, utilizamos esta potente plataforma de diseño que permite la colaboración en tiempo real y prototipos de alta fidelidad, garantizando resultados de diseño web perfectos para su proyecto de comercio electrónico.",
     },
     responsive_design: {
-      title: "Diseño Responsivo",
-      description: "Tu sitio web se adaptará perfectamente a todos los tamaños de pantalla, desde computadoras hasta teléfonos móviles. Un diseño responsivo mejora la experiencia del usuario, asegurando accesibilidad y usabilidad en cualquier dispositivo.",
+      title: "Diseño Web Responsivo",
+      description: "Su sitio web se adaptará perfectamente a todos los tamaños de pantalla, desde computadoras hasta teléfonos móviles. Nuestro equipo de desarrollo web crea diseños responsivos que mejoran la experiencia del usuario, asegurando accesibilidad y usabilidad en cualquier dispositivo - un elemento crítico del diseño web profesional en el mercado actual.",
     },
     animations: {
-      title: "Animaciones",
-      description: "Creamos animaciones fluidas e interactivas para mejorar la experiencia del usuario. Desde transiciones sutiles hasta efectos dinámicos, las animaciones dan vida a tu sitio web, haciéndolo más moderno e inmersivo.",
-      click: "Haz clic para ver ejemplos.",
+      title: "Animaciones Web",
+      description: "Nuestros desarrolladores web crean animaciones fluidas e interactivas para mejorar la experiencia del usuario. Desde transiciones sutiles hasta efectos dinámicos, nuestro diseño web profesional incorpora animaciones que dan vida a su sitio web de comercio electrónico, haciéndolo más moderno e inmersivo.",
+      click: "Haz clic para ver ejemplos de nuestro trabajo de desarrollo web.",
     },
     mobile_app: {
-      title: "App Móvil (Híbrida)",
-      description: "Una app híbrida funciona tanto en la web como en dispositivos móviles, permitiendo a los usuarios instalarla en su teléfono sin necesidad de una tienda de aplicaciones. Combina accesibilidad web con el rendimiento de una app móvil.",
+      title: "Aplicación Web Móvil (Híbrida)",
+      description: "Como empresa de diseño web integral, desarrollamos aplicaciones híbridas que funcionan tanto en la web como en dispositivos móviles, permitiendo a los usuarios instalar su sitio web en su teléfono sin necesidad de una tienda de aplicaciones. Nuestros desarrolladores web combinan accesibilidad web con el rendimiento de una aplicación móvil para una experiencia de usuario excepcional.",
     },
     price_label: "$",
     currency: "COP",
     conversion_rate: 1, // Tasa de conversión es 1 para COP (moneda base)
     development_time_label: "",
-    server: "Servidor recomendado"
+    server: "Hosting web recomendado"
   },
   wordpress_component: {
-    our_products_are: "Nuestros productos son",
-    why_not_wordpress: "¿Por qué no WordPress?",
+    our_products_are: "Nuestras soluciones de desarrollo web son",
+    why_not_wordpress: "Por qué el desarrollo web profesional supera a WordPress",
     quality_attributes: [
       {
-        text: "La capacidad del software para cumplir con los requisitos especificados, incluida la precisión y la interoperabilidad."
+        text: "Nuestro diseño web personalizado asegura que su software cumpla con los requisitos especificados, incluida la precisión y la interoperabilidad - componentes clave del desarrollo web profesional."
       },
       {
-        text: "La capacidad del software para funcionar correctamente y de manera predecible en diversas condiciones durante un período específico."
+        text: "Los sitios web profesionales desarrollados por nuestro equipo funcionan correctamente y de manera predecible en diversas condiciones a lo largo del tiempo, demostrando la fiabilidad del diseño web experto."
       },
       {
-        text: "La facilidad con la que los usuarios pueden aprender a usar el software, así como su efectividad, eficiencia y satisfacción del usuario."
+        text: "Nuestros desarrolladores web se centran en la usabilidad - creando sitios que son fáciles de aprender, efectivos, eficientes y que ofrecen alta satisfacción al usuario en comparación con soluciones de plantillas."
       },
       {
-        text: "El rendimiento del software en términos de tiempo de respuesta, uso de memoria y utilización del procesador."
+        text: "El desarrollo web profesional optimiza el rendimiento del software en términos de tiempo de respuesta, uso de memoria y utilización del procesador - crítico para el éxito del comercio electrónico."
       },
       {
-        text: "La facilidad con la que se puede modificar o corregir el software, incluida la capacidad para localizar y corregir defectos, y la claridad y modularidad del código."
+        text: "Nuestra empresa de diseño web prioriza la mantenibilidad - creando sitios que son fáciles de modificar o corregir, con una estructura de código clara y modular por desarrolladores profesionales."
       },
       {
-        text: "La capacidad del software para proteger datos y recursos del sistema contra accesos no autorizados y su resistencia a ataques y vulnerabilidades."
+        text: "La seguridad es primordial en el desarrollo web profesional - nuestros sitios web protegen datos y recursos del sistema contra accesos no autorizados con robusta resistencia a ataques y vulnerabilidades."
       },
       {
-        text: "La capacidad del software para adaptarse y crecer en términos de capacidad y rendimiento en respuesta a una mayor carga de trabajo o número de usuarios. Una arquitectura escalable garantiza un rendimiento óptimo incluso con demandas más altas, ya sea mediante la adición de recursos adicionales o la optimización de los existentes."
+        text: "Nuestros servicios de diseño web ofrecen una arquitectura escalable que garantiza un rendimiento óptimo incluso con demandas más altas, ya sea mediante la adición de recursos adicionales o la optimización de los existentes - esencial para negocios de comercio electrónico en crecimiento."
       },
       {
-        text: "Implementación de pruebas unitarias y de integración dentro del código para facilitar actualizaciones y garantizar que la funcionalidad existente no se rompa, facilitando a los nuevos proveedores de software implementar sus soluciones sin problemas."
+        text: "Los desarrolladores web profesionales implementan pruebas unitarias y de integración dentro del código para facilitar actualizaciones y garantizar que la funcionalidad existente permanezca intacta, haciendo que las transiciones entre equipos de desarrollo sean fluidas."
       }
     ],
     reasons: [
       {
-        text: "Los plugins desarrollados por personas aleatorias pueden volverse inestables con nuevas actualizaciones."
+        text: "Los plugins de WordPress desarrollados por personas aleatorias pueden volverse inestables con actualizaciones, a diferencia del desarrollo web profesional con control de calidad consistente."
       },
       {
-        text: "Actualizar plugins puede convertirse en una pesadilla de tiempo, dinero y recursos."
+        text: "Actualizar plugins de WordPress puede volverse costoso e intensivo en recursos, mientras que nuestra empresa de diseño web proporciona soluciones de mantenimiento optimizadas."
       },
       {
-        text: "Con el tiempo, WordPress se vuelve pesado y menos seguro."
+        text: "Con el tiempo, WordPress se vuelve pesado y menos seguro, mientras que el desarrollo web personalizado mantiene un rendimiento y seguridad óptimos."
       },
       {
-        text: "La incompatibilidad con Chrome puede afectar el rendimiento de su sitio web."
+        text: "Los problemas de compatibilidad de WordPress pueden afectar el rendimiento de su sitio web - nuestros desarrolladores web garantizan compatibilidad con todos los navegadores."
       },
       {
-        text: "Los plugins pueden representar riesgos para la seguridad de su sitio web y clientes."
+        text: "Los plugins de WordPress representan riesgos de seguridad para su sitio de comercio electrónico y los datos de sus clientes - el desarrollo web profesional implementa medidas de seguridad robustas."
       },
       {
-        text: "Las funcionalidades adicionales pueden tener costos ocultos y problemas de integración."
+        text: "Las funcionalidades adicionales de WordPress a menudo tienen costos ocultos - nuestros servicios de diseño web proporcionan precios transparentes con todas las características incluidas."
       },
       {
-        text: "La falta de innovación y plugins obsoletos no ayudan a mantener su sitio web actualizado."
+        text: "WordPress carece de innovación en comparación con el desarrollo web personalizado que mantiene su sitio web a la vanguardia con las últimas tecnologías."
       },
       {
-        text: "WordPress no se especializa en nada; opte por herramientas específicas y mejores."
+        text: "WordPress es una solución generalista - nuestra empresa de diseño web proporciona herramientas especializadas adaptadas a las necesidades específicas de su negocio."
       },
       {
-        text: "Falta de guías claras para plugins y el sistema en general."
+        text: "WordPress carece de documentación clara - nuestros desarrolladores web proporcionan guías completas para todas las características de su sitio web personalizado."
       },
       {
-        text: "Crear sitios web sin saber programar puede comprometer la profesionalidad y la calidad."
+        text: "Los sitios web basados en plantillas comprometen el profesionalismo - nuestro desarrollo web personalizado garantiza resultados únicos y de alta calidad."
       },
       {
-        text: "Limitado a plantillas y difícil de integrar con bibliotecas modernas como Tailwind CSS."
+        text: "WordPress limita la flexibilidad de diseño - nuestro diseño web integra bibliotecas modernas como Tailwind CSS para resultados superiores."
       },
       {
-        text: "WordPress puede no admitir el crecimiento futuro y sistemas complejos."
+        text: "WordPress puede no soportar el crecimiento futuro - nuestras soluciones de desarrollo web están construidas para escalabilidad y sistemas complejos."
       },
       {
-        text: "La disponibilidad, accesibilidad, rendimiento y escalabilidad son esenciales."
+        text: "La disponibilidad, accesibilidad, rendimiento y escalabilidad son esenciales - nuestro diseño web profesional prioriza estos factores críticos."
       },
       {
-        text: "Actualice su sitio web con tecnologías modernas como Django, Vue.js, MySQL, Tailwind CSS."
+        text: "Nuestra empresa de diseño web utiliza tecnologías modernas como Django, Vue.js, MySQL y Tailwind CSS para un desarrollo web superior."
       }
     ]
   }
-};;
+};

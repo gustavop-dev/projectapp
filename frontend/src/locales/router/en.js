@@ -1,48 +1,48 @@
 export default {
     home: {
-      title: "Project App. - Custom Software Development",
-      description: "We are a software house specializing in frontend, backend, and database technologies. No WordPress or templates—our sites are custom-coded by professional programmers using tools like Photoshop, Illustrator, and Figma for web design.",
-      keywords: "Project App., software development, frontend, backend, databases, custom web design, Figma, Photoshop, Illustrator, no templates"
+      title: "Project App. - Professional Web Design & Development Company",
+      description: "Project App. is a professional web design and development company specializing in custom software solutions. Our team of expert website developers creates bespoke websites without WordPress or templates.",
+      keywords: "Project App., web design, website design, website design company, web development, website developers, web design company, custom software development, professional programmers"
     },
     webDevelopments: {
-      title: "UI/UX Components Library - Project App.",
-      description: "Explore our library of UI/UX components, similar to Tailwind UI Components, designed for a variety of UI needs.",
-      keywords: "Project App., UI/UX components, UI library, UX library, Tailwind UI, frontend design, development components"
+      title: "Web Development Services & UI/UX Components - Project App.",
+      description: "Project App. offers professional web development services with a comprehensive library of UI/UX components designed for modern business needs and optimal user experience.",
+      keywords: "Project App., web development, website developers, UI/UX components, UI library, professional web design, frontend development"
     },
     webDevelopmentsDetail: {
-      title: "Detailed UI/UX Components - Project App.",
-      description: "View detailed information about this UI/UX component, including usage and integration tips.",
-      keywords: "Project App., web component detail, frontend, backend, UI design, UX design"
+      title: "Custom Web Development Components - Project App.",
+      description: "Explore our detailed web development components created by professional website developers to enhance your digital presence with modern design principles.",
+      keywords: "Project App., web development, website developers, web design company, UI design, UX design, custom components"
     },
     webDesigns: {
-      title: "Web Design Gallery - Project App.",
-      description: "Discover our web design portfolio, similar to Dribbble, showcasing creative and customized web designs for diverse industries.",
-      keywords: "Project App., web design, design portfolio, UI/UX, Dribbble, creative designs"
+      title: "Professional Web Design Portfolio - Project App.",
+      description: "Browse our web design portfolio showcasing custom website designs created by our talented team of professional web designers for businesses across diverse industries.",
+      keywords: "Project App., web design, website design, web design company, website design company, design portfolio, UI/UX, creative designs"
     },
     animations3D: {
-      title: "3D Animations in JavaScript - Project App.",
-      description: "Enjoy immersive 3D animations rendered directly in your browser using JavaScript, providing an interactive experience like no other.",
-      keywords: "Project App., 3D animations, JavaScript, interactive design, browser rendering"
+      title: "3D Animations for Website Design - Project App.",
+      description: "Enhance your website with immersive 3D animations rendered directly in the browser, providing an interactive experience that sets your business apart online.",
+      keywords: "Project App., 3D animations, web design, website design, interactive design, browser rendering, modern website development"
     },
     aboutUs: {
-      title: "About Us - Project App.",
-      description: "Learn about Project App. and our mission for perfection in software development. We are a team of expert developers, designers, and 3D artists dedicated to bringing your brand to life.",
-      keywords: "Project App., about us, software development, team, expert developers, designers, 3D artists"
+      title: "About Project App. - Professional Website Development Company",
+      description: "Project App. is a team of expert web developers, designers, and 3D artists dedicated to creating exceptional websites and software solutions tailored to your business needs.",
+      keywords: "Project App., about us, web development company, website developers, web design company, expert developers, designers, professional web design"
     },
     customSoftware: {
-      title: "Custom Software Solutions - Project App.",
-      description: "We offer custom software solutions tailored to your needs, including ERP, CRM, and advanced web development.",
-      keywords: "Project App., custom software, ERP, CRM, enterprise solutions, web development"
+      title: "Custom Software & Web Development Solutions - Project App.",
+      description: "We offer bespoke software and web development solutions tailored to your business requirements, including ERP, CRM, and advanced website design and development.",
+      keywords: "Project App., custom software, web development, website developers, web design, enterprise solutions, ERP, CRM, bespoke website solutions"
     },
     eCommercePrices: {
-      title: "E-Commerce Pricing Plans - Project App.",
-      description: "Explore our standardized e-commerce pricing plans, from basic landing pages to robust e-commerce platforms.",
-      keywords: "Project App., e-commerce, pricing, online store, web development"
+      title: "E-Commerce Website Development Pricing - Project App.",
+      description: "Explore our transparent e-commerce website development pricing plans, from basic landing pages to comprehensive online stores built by professional web developers.",
+      keywords: "Project App., e-commerce, website development, web design company, online store, e-commerce pricing, website developers, website design company"
     },
     hosting: {
-      title: "Reliable Hosting Services - Project App.",
-      description: "Discover our secure and reliable hosting solutions designed for high-performance websites and applications.",
-      keywords: "Project App., hosting, secure hosting, web hosting, server performance"
+      title: "Website Hosting Services - Project App.",
+      description: "Reliable and secure website hosting solutions designed for high-performance web applications and e-commerce sites, optimized for speed and security.",
+      keywords: "Project App., website hosting, secure hosting, web hosting, server performance, website design, web development"
     },
   };
   

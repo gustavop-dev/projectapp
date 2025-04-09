@@ -2,32 +2,39 @@
   <div
     v-if="visible"
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-md"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="contact-form-title"
   >
-    <div @click="hideModal" class="absolute inset-0"></div>
+    <div @click="hideModal" class="absolute inset-0" aria-label="Close contact form" role="button" tabindex="0"></div>
     <form
       ref="modalContent"
       @submit.prevent="handleSubmit"
       class="relative z-50 h-4/5 rounded-xl bg-window-black bg-opacity-60 backdrop-blur-md md:w-4/5 lg:w-1/2 lg:h-2/3 "
+      aria-labelledby="contact-form-title"
     >
       <div
         class="w-full h-10 bg-black rounded-t-xl flex items-center justify-center"
       >
-        <h1 class="text-white font-regular text-md inline-block">
+        <h1 id="contact-form-title" class="text-white font-regular text-md inline-block">
           {{ globalMessages.get_in_touch }}
         </h1>
         <div class="absolute flex gap-2 left-0 ps-4">
-          <div
+          <button
             @click="hideModal"
             class="w-3 h-3 bg-red-600 rounded-full cursor-pointer"
-          ></div>
-          <div
+            aria-label="Close contact form"
+          ></button>
+          <button
             @click="hideModal"
             class="w-3 h-3 bg-yellow-600 rounded-full cursor-pointer"
-          ></div>
-          <div
+            aria-label="Close contact form"
+          ></button>
+          <button
             @click="hideModal"
             class="w-3 h-3 bg-gray-600 rounded-full cursor-pointer"
-          ></div>
+            aria-label="Close contact form"
+          ></button>
         </div>
       </div>
       <div class="h-14 border-b border-b-zinc-400 mx-6 flex items-center">
@@ -40,32 +47,48 @@
         </h2>
       </div>
       <div class="h-14 border-b border-b-zinc-400 mx-6 flex items-center">
-        <label class="font-regular text-white text-lg">{{ globalMessages.from_label }}</label>
+        <label for="email-input" class="font-regular text-white text-lg">{{ globalMessages.from_label }}</label>
         <input
+          id="email-input"
           type="email"
           v-model="form.email"
           class="ms-4 w-full bg-transparent border-none outline-none focus:ring-0 text-white placeholder-white placeholder:text-zinc-400"
           :placeholder="globalMessages.email_placeholder"
           required
+          aria-required="true"
+          aria-invalid="false"
+          aria-describedby="email-description"
         />
+        <span id="email-description" class="sr-only">Enter your email address so we can respond to your inquiry</span>
       </div>
       <div class="h-14 border-b border-b-zinc-400 mx-6 flex items-center">
-        <label class="font-regular text-white text-lg">{{ globalMessages.subject_label }}</label>
+        <label for="subject-input" class="font-regular text-white text-lg">{{ globalMessages.subject_label }}</label>
         <input
+          id="subject-input"
           type="text"
           v-model="form.subject"
           class="ms-4 w-full bg-transparent border-none outline-none focus:ring-0 text-white placeholder-white placeholder:text-zinc-400"
           :placeholder="globalMessages.subject_placeholder"
           required
+          aria-required="true"
+          aria-invalid="false"
+          aria-describedby="subject-description"
         />
+        <span id="subject-description" class="sr-only">Enter the subject of your message related to web design or development</span>
       </div>
       <div class="mx-6 h-1/2">
+        <label for="message-input" class="sr-only">Message</label>
         <textarea
+          id="message-input"
           v-model="form.message"
           class="mt-4 w-full h-full bg-transparent border-none outline-none focus:ring-0 text-white resize-none placeholder-white"
           :placeholder="globalMessages.message_placeholder"
           required
+          aria-required="true"
+          aria-invalid="false"
+          aria-describedby="message-description"
         ></textarea>
+        <span id="message-description" class="sr-only">Describe your website design or development needs in detail</span>
       </div>
       <div
         class="h-14 border-t border-t-zinc-400 flex items-center justify-end"
@@ -78,8 +101,10 @@
           }"
           type="submit"
           class="mt-12 mx-6 px-8 py-4 rounded-xl"
+          aria-label="Send message to our web development team"
         >
           {{ globalMessages.send_button }}
+          <span class="sr-only">Submit your contact information and message to our web design team</span>
         </button>
       </div>
     </form>

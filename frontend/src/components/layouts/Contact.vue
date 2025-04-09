@@ -1,11 +1,11 @@
 <template>
-  <section class="p-3">
+  <section class="p-3" aria-label="Contact and get in touch with our web design team">
           <div class="border-t-2 border-t-gray-250 grid lg:h-80 lg:grid-cols-2">
               <div class="mt-16 lg:ps-8">
                   <h2 class="text-esmerald text-4xl font-regular" v-html="globalMessages.heading"></h2>
               </div>
               <div class="grid mt-16 lg:grid-cols-2">
-                  <div class="relative border-s-2 border-s-gray-250 ps-4 py-8">
+                  <article class="relative border-s-2 border-s-gray-250 ps-4 py-8">
                       <h3 class="text-esmerald text-4xl font-regular">
                         {{ globalMessages.mail_us_title }}
                       </h3>
@@ -18,22 +18,26 @@
                         @mouseover="animateLink" 
                         @mouseleave="resetLink" 
                         class="inline-block text-xl absolute bottom-0 text-esmerald cursor-pointer"
+                        aria-label="Email our website design and development team"
                         >
                         {{ globalMessages.email_address }}
                         <span 
                           ref="underline" 
                           class="absolute left-0 bottom-0 h-0.5 w-0 bg-black transition-all duration-300"
+                          aria-hidden="true"
                           >
                         </span>
                         <span 
                           ref="arrow" 
                           class="absolute right-0 top-1/2 transform -translate-y-1/2 opacity-0 transition-opacity duration-300"
+                          aria-hidden="true"
                           >
                           ➜
                         </span>
+                        <span class="sr-only">Open contact form to email our web development team</span>
                       </a>
-                  </div>
-                  <div class="relative border-s-2 border-s-gray-250 ps-4 py-8">
+                  </article>
+                  <article class="relative border-s-2 border-s-gray-250 ps-4 py-8">
                       <h3 class="text-esmerald text-4xl font-regular">
                         {{ globalMessages.direct_contact_title }}
                       </h3>
@@ -43,25 +47,30 @@
                       <a 
                         href="https://wa.me/message/XX77FJEUEM26H1?src=qr" 
                         target="_blank" 
+                        rel="noopener noreferrer"
                         ref="chatLink" 
                         @mouseover="animateLinkChat" 
                         @mouseleave="resetLinkChat" 
                         class="inline-block text-xl absolute bottom-0 text-esmerald cursor-pointer"
+                        aria-label="Start a WhatsApp chat with our web design team"
                         >
                         {{ globalMessages.chat }}
                         <span 
                           ref="underlineChat" 
                           class="absolute left-0 bottom-0 h-0.5 w-0 bg-black transition-all duration-300"
+                          aria-hidden="true"
                           >
                         </span>
                         <span 
                           ref="arrowChat" 
                           class="absolute right-0 top-1/2 transform -translate-y-1/2 opacity-0 transition-opacity duration-300"
+                          aria-hidden="true"
                           >
                           ➜
                         </span>
+                        <span class="sr-only">Opens WhatsApp in a new window to chat with our website developers</span>
                       </a>
-                  </div>
+                  </article>
               </div>
           </div>
       </section>

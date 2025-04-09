@@ -1,6 +1,7 @@
 export default {
     hero_section: {
       title: "Innovación y Eficiencia con Software Personalizado",
+      description: "Creamos soluciones de software personalizadas que transforman la forma en que tu negocio opera, mejorando la eficiencia y potenciando el crecimiento. Nuestro enfoque se centra en tus necesidades específicas para ofrecer herramientas tecnológicas que impulsen tu éxito."
     },
     eCommerce_section: {
       title: "Soluciones de Comercio Electrónico",
@@ -24,6 +25,11 @@ export default {
     },
     contact_section: {
       title: "Conéctate con nosotros hoy. Comienza tu proyecto en minutos. Experimenta la excelencia para siempre.",
+      description: "Estamos listos para escuchar tus necesidades y ayudarte a encontrar la solución de software personalizada que mejor se adapte a tu negocio. Nuestro equipo de expertos está disponible para guiarte en cada paso del proceso.",
+      buttons: {
+        mail: "Envíanos un correo",
+        whatsapp: "Contactar por WhatsApp"
+      },
       mail_title: "Envíanos un correo",
       mail_description: "Cuéntanos tu visión para comenzar.",
       direct_contact_title: "Contacto Directo",

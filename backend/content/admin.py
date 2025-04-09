@@ -1,14 +1,6 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-from .models import Component, Contact, Design, Model3D, UISectionCategory, Section, Example, Product, Category, Item, Hosting, PortfolioWork
-
-class ComponentAdmin(admin.ModelAdmin):
-    """
-    Custom admin configuration for the Component model.
-    Display specific fields of the Component model.
-    """
-    list_display = ('title_en', 'title_es', 'image')
-    filter_horizontal = ('examples',)
+from .models import Contact, Design, Model3D, Product, Category, Item, Hosting, PortfolioWork
 
 class PortfolioWorkAdmin(admin.ModelAdmin):
     """
@@ -16,15 +8,6 @@ class PortfolioWorkAdmin(admin.ModelAdmin):
     Display specific fields of the PortfolioWork model.
     """
     list_display = ('title_en', 'title_es', 'cover_image', 'project_url', 'category_title_en')
-
-
-class UISectionCategoryAdmin(admin.ModelAdmin):
-    """
-    Custom admin configuration for the UISectionCategory model.
-    Display specific fields of the UISectionCategory model.
-    """
-    list_display = ('title_en', 'title_es', 'description_en', 'description_es')
-    filter_horizontal = ('sections',)
 
 class ContactAdmin(admin.ModelAdmin):
     """
@@ -89,14 +72,6 @@ class ProjectAppAdminSite(admin.AdminSite):
         app_dict = self._build_app_dict(request)
         custom_app_list = [
             {
-                'name': _('Component Management'),
-                'app_label': 'component_management',
-                'models': [
-                    model for model in app_dict.get('content', {}).get('models', [])
-                    if model['object_name'] in ['Component', 'UISectionCategory', 'Section', 'Example']
-                ]
-            },
-            {
                 'name': _('Contact Management'),
                 'app_label': 'contact_management',
                 'models': [
@@ -149,10 +124,6 @@ class ProjectAppAdminSite(admin.AdminSite):
 
 admin_site = ProjectAppAdminSite(name='myadmin')
 
-admin_site.register(Component, ComponentAdmin)
-admin_site.register(UISectionCategory, UISectionCategoryAdmin)
-admin_site.register(Section)
-admin_site.register(Example)
 admin_site.register(Contact, ContactAdmin)
 admin_site.register(Design, DesignAdmin)
 admin_site.register(Model3D, Model3DAdmin)

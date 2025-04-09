@@ -1,7 +1,7 @@
 <template>
-    <div class="relative">
+    <footer class="relative" aria-label="Website footer section">
         <component :is="isDesktop ? FooterDesktop : FooterMobile" />
-    </div>
+    </footer>
 </template>
 <script setup>
 import { defineAsyncComponent, ref, onMounted, onBeforeUnmount, shallowRef } from 'vue';

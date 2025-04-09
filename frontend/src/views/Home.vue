@@ -1,46 +1,66 @@
 <template>
-  <div>
+  <div itemscope itemtype="https://schema.org/WebPage">
     <!-- Fixed navbar component at the top of the page -->
-    <div class="fixed top-0 left-0 w-full z-50">
+    <header class="fixed top-0 left-0 w-full z-50">
       <Navbar />
-    </div>
+    </header>
 
-    <!-- Render video components with lazy loading -->
+    <!-- Hero video with lazy loading -->
     <Suspense>
       <template #default>
-        <component :is="isDesktop ? InitialVideo : InitialVideoMobile" :play_text="isDesktop ? messages.video.text : undefined" />
+        <component 
+          :is="isDesktop ? InitialVideo : InitialVideoMobile" 
+          :play_text="isDesktop ? messages.video.text : undefined" 
+          aria-label="Project App web design and development company showcase" 
+          itemscope itemtype="https://schema.org/VideoObject"
+        />
       </template>
       <template #fallback>
-        <div class="h-screen flex items-center justify-center bg-esmerald-light">
+        <div class="h-screen flex items-center justify-center bg-esmerald-light" aria-live="polite" role="status">
           <div class="w-12 h-12 border-4 border-esmerald rounded-full border-t-transparent animate-spin"></div>
+          <span class="sr-only">Loading Project App. hero video</span>
         </div>
       </template>
     </Suspense>
 
-    <!-- First section of the home page with a title -->
-    <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52">
-      <h2 class="block font-light text-4xl text-esmerald lg:pe-60 lg:text-6xl">
+    <!-- Introduction section with main heading -->
+    <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52" aria-labelledby="main-intro-title" itemscope itemtype="https://schema.org/WebPageElement">
+      <h1 id="main-intro-title" class="block font-light text-4xl text-esmerald lg:pe-60 lg:text-6xl" itemprop="headline">
         {{ messages.section_1.title }}
-      </h2>
+        <span class="sr-only">Project App. - Professional Web Development</span>
+      </h1>
     </section>
 
-    <!-- Grid section with responsive text layout -->
-    <section class="grid grid-cols-3">
+    <!-- About our web design company section -->
+    <section class="grid grid-cols-3" aria-labelledby="about-section-title" itemscope itemtype="https://schema.org/AboutPage">
       <div class="col-span-1">
-        <h1 class="hidden font-light text-sm ms-32 text-esmerald lg:inline">{{ messages.section_2.software_house }}</h1>
+        <h2 id="about-section-title" class="hidden font-light text-sm ms-32 text-esmerald lg:inline" itemprop="name">
+          {{ messages.section_2.software_house }}
+          <span class="sr-only">Project App.</span>
+        </h2>
       </div>
       <div class="col-span-3 lg:col-span-2">
         <div class="grid grid-cols-3 gap-12 lg:grid-cols-2">
           <div class="col-span-1 lg:hidden"></div>
           <div class="col-span-2 lg:col-span-1">
-            <h1 class="bg-esmerald-light px-6 py-2 inline-block rounded-3xl text-esmerald text-sm">{{ messages.section_2.our_motto }}</h1>
-            <h2 class="mt-20">
-              <span class="text-esmerald font-regular text-lg">{{ messages.section_2.text.first }}</span>
-              <span class="text-green-light text-lg font-regular">{{ messages.section_2.text.second }}<br><br>{{ messages.section_2.text.third }}</span>
-            </h2>
+            <h3 class="bg-esmerald-light px-6 py-2 inline-block rounded-3xl text-esmerald text-sm">
+              {{ messages.section_2.our_motto }}
+              <span class="sr-only">Project App.</span>
+            </h3>
+            <div class="mt-20" itemprop="description">
+              <p>
+                <span class="text-esmerald font-regular text-lg">{{ messages.section_2.text.first }}</span>
+                <span class="text-green-light text-lg font-regular">{{ messages.section_2.text.second }}</span>
+                <span class="sr-only">Project App. services</span>
+              </p>
+              <p class="text-green-light text-lg font-regular mt-4">
+                {{ messages.section_2.text.third }}
+                <span class="sr-only">Project App. solutions</span>
+              </p>
+            </div>
           </div>
-          <div class="col-span-3 lg:pe-4 lg:col-span-1">
-            <!-- Video optimizado -->
+          <div class="col-span-3 lg:pe-4 lg:col-span-1" itemscope itemtype="https://schema.org/VideoObject">
+            <!-- Optimized video with descriptive elements -->
             <video 
               ref="videoRef" 
               autoplay 
@@ -51,47 +71,70 @@
               width="640"
               height="360"
               class="w-full h-auto will-change-transform"
+              aria-label="Web design and development showcase animation"
+              itemprop="contentUrl"
             >
               <source src="@/assets/videos/home/cubic.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
+              <p class="sr-only">Animated cube showcasing Project App. web design services and expertise</p>
             </video>
+            <meta itemprop="name" content="Project App. Web Design Services Animation">
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Third section of the home page with image and text content -->
-    <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52">
-      <h2 class="block font-light text-5xl mb-24 text-esmerald lg:mb-40 lg:text-6xl lg:text-end">
+    <!-- Web development services section -->
+    <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52" aria-labelledby="services-section-title" itemscope itemtype="https://schema.org/Service">
+      <h2 id="services-section-title" class="block font-light text-5xl mb-24 text-esmerald lg:mb-40 lg:text-6xl lg:text-end" itemprop="name">
         {{ messages.section_3.title }}
+        <span class="sr-only">by Project App.</span>
       </h2>
       <div class="grid lg:grid-cols-2">
-        <div class="h-80 order-2 mt-24 lg:mt-0 lg:order-1 lg:h-auto">
-          <!-- Imagen optimizada con atributos nativos de lazy loading -->
+        <div class="h-80 order-2 mt-24 lg:mt-0 lg:order-1 lg:h-auto" itemscope itemtype="https://schema.org/ImageObject">
+          <!-- Optimized image with proper alt text -->
           <img 
             ref="imageRef" 
             src="@/assets/images/home/cube_illusion.webp" 
             loading="lazy" 
             decoding="async"
-            alt="Section 3" 
+            alt="Cube illusion representing Project App.'s innovative web design approach" 
             width="800"
             height="600"
             fetchpriority="low"
             class="w-full h-full object-cover will-change-transform"
+            itemprop="contentUrl"
           />
+          <meta itemprop="name" content="Project App. innovative web design approach">
         </div>
-        <div class="order-1 lg:order-2 lg:ps-32">
-          <h3 class="text-end text-4xl font-light text-esmerald">{{ messages.section_3.web_development.title }}</h3>
-          <p class="text-end text-lg font-regular mt-8 text-green-light">{{ messages.section_3.web_development.text }}</p>
-          <h3 class="text-end text-4xl font-light text-esmerald mt-24 lg:mt-32">{{ messages.section_3.custom_development.title }}</h3>
-          <p class="text-end text-lg font-regular mt-8 text-green-light">{{ messages.section_3.custom_development.text }}</p>
-        </div>
+        <article class="order-1 lg:order-2 lg:ps-32" itemprop="description">
+          <h3 class="text-end text-4xl font-light text-esmerald">
+            {{ messages.section_3.web_development.title }}
+            <span class="sr-only">Project App.</span>
+          </h3>
+          <p class="text-end text-lg font-regular mt-8 text-green-light">
+            {{ messages.section_3.web_development.text }}
+            <span class="sr-only">by Project App.</span>
+          </p>
+          <h3 class="text-end text-4xl font-light text-esmerald mt-24 lg:mt-32">
+            {{ messages.section_3.custom_development.title }}
+            <span class="sr-only">Project App.</span>
+          </h3>
+          <p class="text-end text-lg font-regular mt-8 text-green-light">
+            {{ messages.section_3.custom_development.text }}
+            <span class="sr-only">by Project App.</span>
+          </p>
+        </article>
       </div>
     </section>
 
     <!-- Contact and Footer sections loaded lazily -->
-    <LazyContactSection />
-    <LazyFooterSection />
+    <section aria-label="Contact Project App. for web design services" itemscope itemtype="https://schema.org/ContactPoint">
+      <LazyContactSection />
+    </section>
+    
+    <footer itemscope itemtype="https://schema.org/WPFooter">
+      <LazyFooterSection />
+    </footer>
   </div>
 </template>
 

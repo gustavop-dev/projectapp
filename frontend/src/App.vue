@@ -1,9 +1,11 @@
 <template>
   <!-- Displays a loading screen while the app is initializing -->
-  <LoadingScreen v-if="loading" />
+  <LoadingScreen v-if="loading" aria-live="polite" aria-label="Loading website" />
 
   <!-- Main router view, only shown when loading is complete -->
-  <RouterView v-else />
+  <main v-else>
+    <RouterView />
+  </main>
 
   <!-- Floating WhatsApp button with neon glow -->
   <a
@@ -15,7 +17,7 @@
           flex items-center justify-center 
           shadow-[0_0_15px_4px_rgba(34,197,94,0.6)]
           cursor-pointer transition-transform hover:scale-110"
-    aria-label="Contactar por WhatsApp"
+    aria-label="Contact our web design team via WhatsApp"
   >
     <svg 
       class="w-6 h-6 text-white" 
@@ -24,7 +26,10 @@
       aria-hidden="true"
       width="24"
       height="24"
+      role="img"
+      focusable="false"
     >
+      <title>WhatsApp</title>
       <path
         fill="currentColor"
         d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 
@@ -45,9 +50,10 @@
           c-1.3-2.5-5-3.9-10.5-6.6"
       />
     </svg>
+    <span class="sr-only">Chat with our website development team</span>
   </a>
 
-  <!-- Optimizador de medios -->
+  <!-- Media Optimizer for performance -->
   <MediaOptimizer v-if="!loading" />
 </template>
 
@@ -67,6 +73,15 @@ const initializeApp = async () => {
       await languageStore.detectBrowserLanguage();
     }
     document.documentElement.lang = languageStore.currentLanguage;
+    
+    // Add metadata for better SEO
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (!metaDescription) {
+      const descElement = document.createElement('meta');
+      descElement.name = 'description';
+      descElement.content = 'Project App - Professional web design and development company specializing in custom websites, e-commerce solutions, and web applications.';
+      document.head.appendChild(descElement);
+    }
   } catch (error) {
     console.error('Error initializing app:', error);
     // Fallback to default language

@@ -1,56 +1,69 @@
 <template>
-  <div class="bg-esmerald">
+  <div class="bg-esmerald" itemscope itemtype="https://schema.org/WebPage">
     <div class="fixed top-0 left-0 w-full z-50">
       <Navbar theme="dark" ></Navbar>
     </div>
-    <section class="pt-32">
-      <h1 class="text-center font-light text-6xl text-lemon lg:text-8xl">
+    <section class="pt-32" itemscope itemtype="https://schema.org/WPHeader">
+      <h1 class="text-center font-light text-6xl text-lemon lg:text-8xl" itemprop="headline">
         {{ messages.main_title }}
+        <span class="sr-only">Project App.</span>
         <br/>
         {{ messages.main_subtitle }}
+        <span class="sr-only">Project App. Hosting Solutions</span>
       </h1>
     </section>
-    <section class="p-3 mt-32 grid md:grid-cols-2 gap-16 max-w-7xl mx-auto">
-      <h2 class="text-4xl text-esmerald-light font-light lg:text-6xl">
+    <section class="p-3 mt-32 grid md:grid-cols-2 gap-16 max-w-7xl mx-auto" itemscope itemtype="https://schema.org/WebPageElement">
+      <h2 class="text-4xl text-esmerald-light font-light lg:text-6xl" itemprop="name">
         {{ messages.section_title }}
         <br />
         {{ messages.section_subtitle }}
+        <span class="sr-only">Project App. hosting services</span>
       </h2>
-      <p class="font-regular text-lg text-esmerald-light">
+      <p class="font-regular text-lg text-esmerald-light" itemprop="description">
         {{ messages.description }}
+        <span class="sr-only">Project App.</span>
       </p>
     </section>
-    <section class="mt-16">
+    <section class="mt-16" aria-label="Hosting benefits" itemscope itemtype="https://schema.org/ItemList">
       <Vue3Marquee :pause-on-hover="true" direction="reverse" duration="35">
         <div
           class="w-72 h-full mx-auto px-4"
           v-for="(benefit, index) in messages.hostingBenefits"
           :key="index"
+          itemscope itemtype="https://schema.org/ListItem"
+          itemprop="itemListElement"
         >
           <div class="bg-esmerald-light rounded-xl relative h-full">
             <component
               :is="hostingBenefits[index].icon"
               class="w-16 h-16 text-esmerald text-center p-4"
             ></component>
-            <p class="text-esmerald m-4 font-regular">{{ benefit.text }}</p>
+            <p class="text-esmerald m-4 font-regular" itemprop="description">
+              {{ benefit.text }}
+              <span class="sr-only">- Project App. hosting benefit</span>
+            </p>
+            <meta itemprop="position" :content="index + 1" />
           </div>
         </div>
       </Vue3Marquee>
     </section>
-    <section>
+    <section itemscope itemtype="https://schema.org/OfferCatalog">
       <div class="py-24 sm:py-32 px-3">
         <div class="mx-auto max-w-max px-6 lg:px-8">
           <div class="grid justify-end">
             <div class="max-w-4xl text-end">
-              <h2 class="mt-2 text-4xl font-light text-lemon sm:text-6xl">
+              <h2 class="mt-2 text-4xl font-light text-lemon sm:text-6xl" itemprop="name">
                 {{ messages.pricing_title }}
+                <span class="sr-only">Project App. hosting plans</span>
               </h2>
             </div>
             <div class="flex justify-end">
               <p
                 class="mt-6 max-w-2xl text-end text-lg leading-8 text-esmerald-light"
+                itemprop="description"
               >
                 {{ messages.pricing_subtitle }}
+                <span class="sr-only">from Project App.</span>
               </p>
             </div>
             <div class="mt-16 flex justify-end">
@@ -84,31 +97,39 @@
               :key="hosting.title"
               :id="`hosting_plan_${index + 1}`"
               :class="[index === 2 ? 'ring-2 ring-lemon bg-lemon' : 'ring-1 ring-esmerald-light bg-esmerald-light', 'rounded-xl p-8']"
+              itemscope itemtype="https://schema.org/Product"
+              itemprop="itemOffered"
             >
-              <h3 class="text-2xl font-light leading-8 text-esmerald">
+              <h3 class="text-2xl font-light leading-8 text-esmerald" itemprop="name">
                 {{ hosting.title }}
+                <span class="sr-only">Project App. hosting plan</span>
               </h3>
-              <p class="mt-4 text-md font-regular leading-6 text-esmerald">
+              <p class="mt-4 text-md font-regular leading-6 text-esmerald" itemprop="description">
                 {{ hosting.description }}
+                <span class="sr-only">by Project App.</span>
               </p>
               <!-- Hosting Price / Free Indicator -->
-              <p 
+              <div 
                 v-if="parseFloat(frequency.value === 'semi_annually' 
                   ? hosting.semi_annually_price 
                   : hosting.annual_price) === 0" 
                 class="mt-6 flex flex-col gap-y-1 items-start"
+                itemprop="offers" itemscope itemtype="https://schema.org/Offer"
               >
                 <!-- Large 'Free' text -->
-                <span class="text-4xl font-medium tracking-tight text-esmerald">
+                <span class="text-4xl font-medium tracking-tight text-esmerald" itemprop="price" content="0">
                   {{ messages.free_price }}
+                  <span class="sr-only">Project App hosting plan</span>
                 </span>
+                <meta itemprop="priceCurrency" content="USD" />
+                <meta itemprop="availability" content="https://schema.org/InStock" />
                 <!-- Asterisk note -->
                 <span class="text-sm font-regular text-gray-600 mt-1">
                   *{{ messages.free_condition }}
                 </span>
-              </p>
+              </div>
 
-              <p v-else class="mt-4 flex flex-col items-start">
+              <div v-else class="mt-4 flex flex-col items-start" itemprop="offers" itemscope itemtype="https://schema.org/Offer">
                 <!-- Save Badge -->
                 <p class="mt-4 font-regular text-md text-esmerald flex items-center space-x-2">
                   <span v-if="frequency.value === 'annually'" class="line-through">
@@ -120,7 +141,12 @@
                 </p>
                 <!-- Price per month block -->
                 <div class="mt-2 flex items-baseline gap-x-1">
-                  <span class="text-4xl font-medium tracking-tight text-esmerald">
+                  <span class="text-4xl font-medium tracking-tight text-esmerald" itemprop="price" 
+                    :content="formatHostingPrice(
+                      frequency.value === 'semi_annually' 
+                        ? hosting.semi_annually_price 
+                        : hosting.annual_price
+                    ).replace(/,/g, '')">
                     {{ formatHostingPrice(
                         frequency.value === "semi_annually" 
                           ? hosting.semi_annually_price 
@@ -129,7 +155,11 @@
                   </span>
                   <span class="text-sm font-semibold leading-6 text-gray-600">
                     {{ languageStore.currentLanguage === 'en' ? 'USD/ Month' : 'COP/ Mensual' }} {{ frequency.priceSuffix }}
+                    <span class="sr-only">Project App hosting service</span>
                   </span>
+                  <meta itemprop="priceCurrency" :content="languageStore.currentLanguage === 'en' ? 'USD' : 'COP'" />
+                  <meta itemprop="availability" content="https://schema.org/InStock" />
+                  <meta itemprop="billingDuration" :content="frequency.value === 'semi_annually' ? 'P6M' : 'P1Y'" />
                 </div>
                 <!-- Single payment note -->
                 <span class="text-sm font-regular text-gray-600 mt-1">
@@ -141,50 +171,58 @@
                   ) }}
                   {{ languageStore.currentLanguage === 'en' ? 'USD' : 'COP' }}
                 </span>
-              </p>
+              </div>
               <a
                 @click="showEmailForPlan(hosting)"
                 class="mt-6 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 cursor-pointer"
                 :class="[index === 2 ? 'bg-esmerald-light text-esmerald shadow-sm' : 'bg-lemon text-esmerald ring-indigo-200 hover:ring-indigo-300']"
+                itemprop="url"
               >
                 {{ messages.contact_sales }}
+                <span class="sr-only">for Project App. hosting</span>
               </a>
-              <ul role="list" class="mt-8 space-y-3 text-sm leading-6 text-gray-600">
-                <li class="flex gap-x-3">
+              <ul role="list" class="mt-8 space-y-3 text-sm leading-6 text-gray-600" itemprop="additionalProperty" itemscope itemtype="https://schema.org/PropertyValue">
+                <li class="flex gap-x-3" itemprop="value">
                   <CheckIcon class="h-6 w-5 flex-none text-esmerald" aria-hidden="true" />
                   {{ hosting.cpu_cores }}
                 </li>
-                <li class="flex gap-x-3">
+                <li class="flex gap-x-3" itemprop="value">
                   <CheckIcon class="h-6 w-5 flex-none text-esmerald" aria-hidden="true" />
                   {{ hosting.ram }}
                 </li>
-                <li class="flex gap-x-3">
+                <li class="flex gap-x-3" itemprop="value">
                   <CheckIcon class="h-6 w-5 flex-none text-esmerald" aria-hidden="true" />
                   {{ hosting.storage }}
                 </li>
-                <li class="flex gap-x-3">
+                <li class="flex gap-x-3" itemprop="value">
                   <CheckIcon class="h-6 w-5 flex-none text-esmerald" aria-hidden="true" />
                   {{ hosting.bandwidth }}
                 </li>
-                <li class="flex gap-x-3">
+                <li class="flex gap-x-3" itemprop="value">
                   <CheckIcon class="h-6 w-5 flex-none text-esmerald" aria-hidden="true" />
                   {{ hosting.data_center_location }}
                 </li>
-                <li class="flex gap-x-3">
+                <li class="flex gap-x-3" itemprop="value">
                   <CheckIcon class="h-6 w-5 flex-none text-esmerald" aria-hidden="true" />
                   {{ hosting.operating_system }}
                 </li>
               </ul>
+              <meta itemprop="brand" content="Project App." />
+              <meta itemprop="category" content="Web Hosting" />
             </div>
           </div>
         </div>
       </div>
     </section>
     <div class="p-3 bg-white">
-      <Contact></Contact>
+      <section aria-label="Contact Project App. for hosting solutions" itemscope itemtype="https://schema.org/ContactPoint">
+        <Contact></Contact>
+      </section>
     </div>
     <div class="mt-6">
-      <Footer></Footer>
+      <footer itemscope itemtype="https://schema.org/WPFooter">
+        <Footer></Footer>
+      </footer>
     </div>
     
     <!-- Modal de Email -->
@@ -227,6 +265,8 @@ const frequency = ref(messages.value.frequencies[1]);
 const showEmailModal = ref(false);
 // Estado para guardar el plan seleccionado
 const selectedPlan = ref(null);
+
+// SEO is handled through other means in the project
 
 // Función para abrir el modal de Email con el plan seleccionado
 const showEmailForPlan = (plan) => {

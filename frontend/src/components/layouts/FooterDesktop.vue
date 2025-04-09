@@ -1,22 +1,23 @@
 <template>
-  <div class="p-3 h-svh" @mousemove="handleMouseMove">
+  <footer class="p-3 h-svh" @mousemove="handleMouseMove">
     <div class="relative w-full h-full overflow-hidden">
       <video ref="mainVideo" class="absolute top-0 left-0 w-full h-full object-cover rounded-xl" autoplay muted loop preload="metadata">
         <source src="@/assets/videos/presentationPrevPc.mp4" type="video/mp4">
-        Your browser does not support the video tag.
+        <p class="sr-only">Video showcasing our web design and development services</p>
       </video>
-      <div 
+      <button 
         ref="ball" 
         class="absolute bg-window-black bg-opacity-40 backdrop-blur-md text-white rounded-full flex items-center justify-center w-32 h-32 transition-opacity duration-300 cursor-pointer" 
         @click="showModal = true"
+        aria-label="Play our web design portfolio showcase video"
         >
         <span ref="ballText" class="font-light text-xl">
           {{ globalMessages.play_reel }}
         </span>
-      </div>
+      </button>
       <div class="absolute bottom-0 right-0 w-full h-1/2 rounded-b-xl bg-window-black bg-opacity-40 backdrop-blur-md">
           <div class="flex justify-end w-full">
-            <div class="md:w-max grid grid-cols-2 text-white mt-4">
+            <nav aria-label="Website sections" class="md:w-max grid grid-cols-2 text-white mt-4">
               <RouterLink
                 :to="{ name:  item.href }" 
                 v-for="item in solutions" 
@@ -25,14 +26,16 @@
                 class="flex p-2 ps-4 font-regular text-white text-xl relative group"
                 @mouseover="hoverMenu($event, true)" 
                 @mouseleave="hoverMenu($event, false)"
+                aria-label="Navigate to {{ item.name }}"
               >
                 {{ item.name }}
                 <div class="absolute ms-4 left-0 bottom-0 h-0.5 w-0 bg-white transition-all duration-300 group-hover:w-full"></div>
                 <div class="relative ps-2 transform opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-regular">
                   ➜
                 </div>
+                <span class="sr-only">Visit our {{ item.name }} page</span>
               </RouterLink>
-            </div>
+            </nav>
             <div class="w-60">
               <div class="mt-4 p-2 ps-4">
                 <a 
@@ -40,26 +43,32 @@
                   target="_blank" 
                   rel="noopener noreferrer"
                   class="block text-lg cursor-pointer social-link text-white font-regular"
+                  aria-label="Visit our Instagram profile"
                   >
                   {{ globalMessages.instagram }} 
                   <ArrowUpRightIcon class="w-5 inline arrow-icon"></ArrowUpRightIcon>
+                  <span class="sr-only">Opens in a new window</span>
                 </a>
                 <a 
                   href="https://www.facebook.com/projectapp.co" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   class="block text-lg cursor-pointer social-link text-white font-regular"
+                  aria-label="Visit our Facebook page"
                   >
                   {{ globalMessages.facebook }} 
                   <ArrowUpRightIcon class="w-5 inline arrow-icon"></ArrowUpRightIcon>
+                  <span class="sr-only">Opens in a new window</span>
                 </a>
                 <a 
                   href="https://wa.me/message/XX77FJEUEM26H1?src=qr" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  class="block text-lg cursor-pointer social-link text-white font-regular">
+                  class="block text-lg cursor-pointer social-link text-white font-regular"
+                  aria-label="Contact us on WhatsApp">
                   {{ globalMessages.whatsapp }} 
                   <ArrowUpRightIcon class="w-5 inline arrow-icon"></ArrowUpRightIcon>
+                  <span class="sr-only">Opens in a new window</span>
                 </a>
                 <a 
                   @click.prevent="showModalEmail = true"
@@ -67,9 +76,11 @@
                   class="flex cursor-pointer font-regular text-white text-lg relative group"
                   @mouseover="hoverMenu($event, true)" 
                   @mouseleave="hoverMenu($event, false)"
+                  aria-label="Email our web design team"
                   >
                   {{ globalMessages.email_address }}
                   <div class="absolute left-0 bottom-0 h-0.5 w-0 bg-white transition-all duration-300 group-hover:w-full"></div>
+                  <span class="sr-only">Open contact form</span>
                 </a>
               </div>
             </div>
@@ -86,7 +97,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </footer>
 
   <!-- Modal -->
   <Teleport to="body">
@@ -94,11 +105,17 @@
       v-if="showModal" 
       class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 backdrop-blur-md" 
       @mousemove="handleModalMouseMove"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="video-modal-title"
       >
+      <span id="video-modal-title" class="sr-only">Project App web design showcase video</span>
       <!-- Loading Animation -->
       <div
         v-show="isLoading"
         class="absolute inset-0 flex items-center justify-center"
+        aria-live="polite"
+        aria-label="Loading video"
       >
           <Vue3Lottie
             :animationData="whiteAnimation"
@@ -118,18 +135,21 @@
           muted
           preload="metadata"
           @loadeddata="onVideoLoad"
+          aria-label="Project App web design portfolio showcase video"
         >
           <source src="@/assets/videos/presentationComp.mp4" type="video/mp4">
-          Your browser does not support the video tag.
+          <p class="sr-only">Video showcasing our web design and development portfolio</p>
         </video>
       </div>
-      <div 
+      <button 
         ref="modalBall" 
         class="absolute z-50 bg-window-black bg-opacity-60 backdrop-blur-md text-white rounded-full flex items-center justify-center w-20 h-20 transition-opacity duration-300 cursor-pointer" 
         @click="closeModal"
+        aria-label="Close video"
         >
         <XMarkIcon ref="modalBallText" class="w-8"></XMarkIcon>
-      </div>
+        <span class="sr-only">Close showcase video</span>
+      </button>
     </div>
   </Teleport>
   
@@ -247,12 +267,6 @@ const updateBallPosition = () => {
     modalBallX += (modalMouseX - modalBallX - window.innerWidth / 2) * 0.2;
     modalBallY += (modalMouseY - modalBallY - window.innerHeight / 2) * 0.2;
     gsap.to(modalBall.value, { x: modalBallX, y: modalBallY, duration: 0.1, ease: 'power2.out' });
-  
-    if (modalBallText.value) {
-      modalTextX += (modalMouseX - modalBallX - modalTextX - window.innerWidth / 2) * 0.15;
-      modalTextY += (modalMouseY - modalBallY - modalTextY - window.innerHeight / 2) * 0.15;
-      gsap.to(modalBallText.value, { x: modalTextX, y: modalTextY, duration: 0.1, ease: 'power2.out' });
-    }
   }
 
   animationFrameId = requestAnimationFrame(updateBallPosition);

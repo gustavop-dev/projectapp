@@ -1,18 +1,14 @@
-from django.core.management import call_command
 from django.core.management.base import BaseCommand
+from django.core.management import call_command
 
 class Command(BaseCommand):
-    help = 'Create fake data for components, contacts, designs, and models3d'
+    help = 'Create fake data for contacts, designs, and models3d'
 
     def add_arguments(self, parser):
-        parser.add_argument('number_of_records', type=int, nargs='?', default=12)
+        parser.add_argument('number', type=int, help='Number of records to create')
 
     def handle(self, *args, **options):
-        number_of_records = options['number_of_records']
-
-        # Create fake data for components
-        self.stdout.write(self.style.SUCCESS('Creating fake components...'))
-        call_command('create_components', number_of_records)
+        number_of_records = options['number']
 
         # Create fake data for contacts
         self.stdout.write(self.style.SUCCESS('Creating fake contacts...'))
@@ -24,10 +20,10 @@ class Command(BaseCommand):
 
         # Create fake data for 3D models
         self.stdout.write(self.style.SUCCESS('Creating fake 3D models...'))
-        call_command('create_models_3d', number_of_records)
+        call_command('create_model3ds', number_of_records)
 
-        # Create fake data for products, categories, and items
-        self.stdout.write(self.style.SUCCESS('Creating fake products, categories, and items...'))
+        # Create fake data for products
+        self.stdout.write(self.style.SUCCESS('Creating fake products...'))
         call_command('create_products', number_of_records)
 
-        self.stdout.write(self.style.SUCCESS('All fake data created successfully'))
+        self.stdout.write(self.style.SUCCESS('All fake data has been created'))
