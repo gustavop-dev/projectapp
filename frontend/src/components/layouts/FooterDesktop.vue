@@ -1,7 +1,7 @@
 <template>
   <div class="p-3 h-svh" @mousemove="handleMouseMove">
     <div class="relative w-full h-full overflow-hidden">
-      <video ref="mainVideo" class="absolute top-0 left-0 w-full h-full object-cover rounded-xl" autoplay muted loop>
+      <video ref="mainVideo" class="absolute top-0 left-0 w-full h-full object-cover rounded-xl" autoplay muted loop preload="metadata">
         <source src="@/assets/videos/presentationPrevPc.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
@@ -15,7 +15,6 @@
         </span>
       </div>
       <div class="absolute bottom-0 right-0 w-full h-1/2 rounded-b-xl bg-window-black bg-opacity-40 backdrop-blur-md">
-
           <div class="flex justify-end w-full">
             <div class="md:w-max grid grid-cols-2 text-white mt-4">
               <RouterLink
@@ -39,6 +38,7 @@
                 <a 
                   href="https://www.instagram.com/projectapp.co/" 
                   target="_blank" 
+                  rel="noopener noreferrer"
                   class="block text-lg cursor-pointer social-link text-white font-regular"
                   >
                   {{ globalMessages.instagram }} 
@@ -47,6 +47,7 @@
                 <a 
                   href="https://www.facebook.com/projectapp.co" 
                   target="_blank" 
+                  rel="noopener noreferrer"
                   class="block text-lg cursor-pointer social-link text-white font-regular"
                   >
                   {{ globalMessages.facebook }} 
@@ -55,12 +56,14 @@
                 <a 
                   href="https://wa.me/message/XX77FJEUEM26H1?src=qr" 
                   target="_blank" 
+                  rel="noopener noreferrer"
                   class="block text-lg cursor-pointer social-link text-white font-regular">
                   {{ globalMessages.whatsapp }} 
                   <ArrowUpRightIcon class="w-5 inline arrow-icon"></ArrowUpRightIcon>
                 </a>
                 <a 
-                  @click="showModalEmail = true"
+                  @click.prevent="showModalEmail = true"
+                  href="#"
                   class="flex cursor-pointer font-regular text-white text-lg relative group"
                   @mouseover="hoverMenu($event, true)" 
                   @mouseleave="hoverMenu($event, false)"
@@ -86,69 +89,85 @@
   </div>
 
   <!-- Modal -->
-  <div 
-    v-if="showModal" 
-    class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 backdrop-blur-md" 
-    @mousemove="handleModalMouseMove"
-    >
-    <!-- Loading Animation -->
-    <div
-      v-show="isLoading"
-      class="absolute inset-0 flex items-center justify-center"
-    >
-        <Vue3Lottie
-          :animationData="whiteAnimation"
-          :height="500"
-          :width="500"
-          :loop="true"
-          :autoplay="true"
-        />
-    </div>
+  <Teleport to="body">
     <div 
-      v-show="!isLoading" 
-      class="relative w-screen lg:h-svh"
-    >
-      <video 
-        ref="modalVideo" 
-        class="w-full h-full object-cover" 
-        autoplay
-        @loadeddata="onVideoLoad"
+      v-if="showModal" 
+      class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 backdrop-blur-md" 
+      @mousemove="handleModalMouseMove"
       >
-        <source src="@/assets/videos/presentationComp.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-      </video>
-    </div>
-    <div 
-      ref="modalBall" 
-      class="absolute z-50 bg-window-black bg-opacity-60 backdrop-blur-md text-white rounded-full flex items-center justify-center w-20 h-20 transition-opacity duration-300 cursor-pointer" 
-      @click="closeModal"
+      <!-- Loading Animation -->
+      <div
+        v-show="isLoading"
+        class="absolute inset-0 flex items-center justify-center"
       >
-      <XMarkIcon ref="modalBallText" class="w-8"></XMarkIcon>
+          <Vue3Lottie
+            :animationData="whiteAnimation"
+            :height="300"
+            :width="300"
+            :loop="true"
+            :autoplay="true"
+          />
+      </div>
+      <div 
+        v-show="!isLoading" 
+        class="relative w-screen lg:h-svh"
+      >
+        <video 
+          ref="modalVideo" 
+          class="w-full h-full object-cover" 
+          muted
+          preload="metadata"
+          @loadeddata="onVideoLoad"
+        >
+          <source src="@/assets/videos/presentationComp.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+      <div 
+        ref="modalBall" 
+        class="absolute z-50 bg-window-black bg-opacity-60 backdrop-blur-md text-white rounded-full flex items-center justify-center w-20 h-20 transition-opacity duration-300 cursor-pointer" 
+        @click="closeModal"
+        >
+        <XMarkIcon ref="modalBallText" class="w-8"></XMarkIcon>
+      </div>
     </div>
-  </div>
+  </Teleport>
+  
   <Email :visible="showModalEmail" @update:visible="showModalEmail = $event"></Email>
 </template>
 
 <script setup>
-import Email from '@/components/layouts/Email.vue'; // Import the Email component
-import { ref, onMounted, onUnmounted, watch } from 'vue'; // Import Vue utilities for state management and lifecycle hooks
-import { gsap } from 'gsap'; // Import GSAP for animations
-import { XMarkIcon } from '@heroicons/vue/24/outline'; // Import Heroicons for the close icon
-import ArrowUpRightIcon from '@heroicons/vue/20/solid/ArrowUpRightIcon'; // Import Heroicons for the arrow icon
-import { useGlobalMessages } from '@/composables/useMessages'; // Import the custom composable for global messages
-import { useFreeResources } from '@/composables/useFreeResources'; // Import useFreeResources composable
+import Email from '@/components/layouts/Email.vue';
+import { ref, onMounted, onUnmounted, watch, shallowRef } from 'vue';
+import { gsap } from 'gsap';
+import { XMarkIcon } from '@heroicons/vue/24/outline';
+import ArrowUpRightIcon from '@heroicons/vue/20/solid/ArrowUpRightIcon';
+import { useGlobalMessages } from '@/composables/useMessages';
+import { useFreeResources } from '@/composables/useFreeResources';
 
-import { Vue3Lottie } from "vue3-lottie";
-import whiteAnimation from "@/assets/loading/white.json";
+// Usar importación dinámica para reducir el tamaño del bundle inicial
+const Vue3Lottie = shallowRef(null);
+const whiteAnimation = shallowRef(null);
 
-const { globalMessages } = useGlobalMessages('footer'); // Get the global messages for the 'footer' section
+// Cargar componentes no críticos de forma diferida
+onMounted(async () => {
+  const [lottieModule, animationModule] = await Promise.all([
+    import("vue3-lottie"),
+    import("@/assets/loading/white.json")
+  ]);
+  
+  Vue3Lottie.value = lottieModule.Vue3Lottie;
+  whiteAnimation.value = animationModule.default;
+});
 
-// State to control loading
+const { globalMessages } = useGlobalMessages('footer');
+
+// Animación de estado de carga
 const isLoading = ref(true);
 
-// Reactive state
-const showModalEmail = ref(false); // Controls the visibility of the email modal
-const solutions = ref([ // Array of solution links populated from global messages
+// Estado reactivo
+const showModalEmail = ref(false);
+const solutions = ref([
   { name: globalMessages.solutions.home, href: 'home' },
   { name: globalMessages.solutions.about, href: 'aboutUs' },
   { name: globalMessages.solutions.web_designs, href: 'webDesigns' },
@@ -159,32 +178,35 @@ const solutions = ref([ // Array of solution links populated from global message
   { name: globalMessages.solutions.hosting, href: 'hosting' },
 ]);
 
-const showModal = ref(false); // Controls the visibility of another modal
-const ball = ref(null); // Reference for the interactive ball element
-const ballText = ref(null); // Reference for the text inside the ball
-const modalBall = ref(null); // Reference for the ball element in the modal
-const modalBallText = ref(null); // Reference for the text inside the modal ball
-const mainVideo = ref(null); // Reference for the main video
-const modalVideo = ref(null); // Reference for the modal video
+const showModal = ref(false);
+const ball = ref(null);
+const ballText = ref(null);
+const modalBall = ref(null);
+const modalBallText = ref(null);
+const mainVideo = ref(null);
+const modalVideo = ref(null);
 
-// Variables to track the mouse and element positions
+// Variables para seguimiento de ratón y posiciones de elementos
 let mouseX = 0, mouseY = 0, modalMouseX = 0, modalMouseY = 0;
 let ballX = 0, ballY = 0, textX = 0, textY = 0;
 let modalBallX = 0, modalBallY = 0, modalTextX = 0, modalTextY = 0;
+let animationFrameId = null;
 
 /**
- * Function to handle when the image has fully loaded.
+ * Función que se ejecuta cuando el video se ha cargado completamente.
  */
- const onVideoLoad = () => {
-  // Set isLoading to false immediately once the image has loaded
+const onVideoLoad = () => {
   isLoading.value = false;
+  if (modalVideo.value) {
+    modalVideo.value.play();
+  }
 };
 
 /**
- * Handles mouse movement inside a specific element.
- * Updates the mouse coordinates relative to the element's position.
+ * Maneja el movimiento del ratón dentro de un elemento específico.
+ * Actualiza las coordenadas del ratón relativas a la posición del elemento.
  * 
- * @param {Event} event - The mouse move event.
+ * @param {Event} event - El evento de movimiento del ratón.
  */
 const handleMouseMove = (event) => {
   const rect = event.currentTarget.getBoundingClientRect();
@@ -193,10 +215,10 @@ const handleMouseMove = (event) => {
 };
 
 /**
- * Handles mouse movement inside the modal.
- * Updates the modal-specific mouse coordinates.
+ * Maneja el movimiento del ratón dentro del modal.
+ * Actualiza las coordenadas específicas del modal.
  * 
- * @param {Event} event - The mouse move event inside the modal.
+ * @param {Event} event - El evento de movimiento del ratón dentro del modal.
  */
 const handleModalMouseMove = (event) => {
   const rect = event.currentTarget.getBoundingClientRect();
@@ -205,8 +227,8 @@ const handleModalMouseMove = (event) => {
 };
 
 /**
- * Continuously updates the position of the ball and its text based on mouse movement.
- * Uses GSAP for smooth animations.
+ * Actualiza continuamente la posición de la bola y su texto basado en el movimiento del ratón.
+ * Utiliza GSAP para animaciones suaves.
  */
 const updateBallPosition = () => {
   if (ball.value) {
@@ -216,28 +238,28 @@ const updateBallPosition = () => {
   }
 
   if (ballText.value) {
-    textX += (mouseX - ballX - textX - ball.value.offsetWidth / 2) * 0.15;
-    textY += (mouseY - ballY - textY - ball.value.offsetHeight / 2) * 0.15;
+    textX += (mouseX - ballX - textX - ball.value?.offsetWidth / 2 || 0) * 0.15;
+    textY += (mouseY - ballY - textY - ball.value?.offsetHeight / 2 || 0) * 0.15;
     gsap.to(ballText.value, { x: textX, y: textY, duration: 0.1, ease: 'power2.out' });
   }
 
-  if (modalBall.value) {
+  if (showModal.value && modalBall.value) {
     modalBallX += (modalMouseX - modalBallX - window.innerWidth / 2) * 0.2;
     modalBallY += (modalMouseY - modalBallY - window.innerHeight / 2) * 0.2;
     gsap.to(modalBall.value, { x: modalBallX, y: modalBallY, duration: 0.1, ease: 'power2.out' });
+  
+    if (modalBallText.value) {
+      modalTextX += (modalMouseX - modalBallX - modalTextX - window.innerWidth / 2) * 0.15;
+      modalTextY += (modalMouseY - modalBallY - modalTextY - window.innerHeight / 2) * 0.15;
+      gsap.to(modalBallText.value, { x: modalTextX, y: modalTextY, duration: 0.1, ease: 'power2.out' });
+    }
   }
 
-  if (modalBallText.value) {
-    modalTextX += (modalMouseX - modalBallX - modalTextX - window.innerWidth / 2) * 0.15;
-    modalTextY += (modalMouseY - modalBallY - modalTextY - window.innerHeight / 2) * 0.15;
-    gsap.to(modalBallText.value, { x: modalTextX, y: modalTextY, duration: 0.1, ease: 'power2.out' });
-  }
-
-  requestAnimationFrame(updateBallPosition); // Continue updating position on each frame
+  animationFrameId = requestAnimationFrame(updateBallPosition);
 };
 
 /**
- * Closes the modal and pauses the video if applicable.
+ * Cierra el modal y pausa el video si corresponde.
  */
 const closeModal = () => {
   showModal.value = false;
@@ -248,72 +270,80 @@ const closeModal = () => {
 };
 
 /**
- * Handles hover animations for menu items.
+ * Maneja animaciones de hover para elementos de menú.
  * 
- * @param {Event} event - The hover event.
- * @param {Boolean} isHover - Whether the menu item is being hovered over.
+ * @param {Event} event - El evento de hover.
+ * @param {Boolean} isHover - Si el elemento del menú está siendo hover o no.
  */
 const hoverMenu = (event, isHover) => {
   const underline = event.target.querySelector('.underline');
   const arrow = event.target.querySelector('.arrow');
-  if (isHover) {
-    gsap.to(underline, { width: '100%', duration: 0.3 }); // Expand underline on hover
-    gsap.to(arrow, { opacity: 1, duration: 0.3 }); // Show arrow on hover
-  } else {
-    gsap.to(underline, { width: '0%', duration: 0.3 }); // Hide underline on hover out
-    gsap.to(arrow, { opacity: 0, duration: 0.3 }); // Hide arrow on hover out
+  if (underline) {
+    gsap.to(underline, { width: isHover ? '100%' : '0%', duration: 0.3 });
+  }
+  if (arrow) {
+    gsap.to(arrow, { opacity: isHover ? 1 : 0, duration: 0.3 });
   }
 };
 
-// Lifecycle hook that runs when the component is mounted
+// Hook de ciclo de vida que se ejecuta cuando el componente está montado
 onMounted(() => {
-  updateBallPosition(); // Start updating the ball position based on mouse movement
+  // Iniciar la actualización de la posición de la bola
+  animationFrameId = requestAnimationFrame(updateBallPosition);
 
-  // Watch for changes to the showModal state and play/pause the video accordingly
+  // Observar cambios en el estado showModal y reproducir/pausar el video en consecuencia
   watch(showModal, (newVal) => {
     if (newVal) {
-      document.body.style.overflow = 'hidden' // Desactiva el scroll
+      document.body.style.overflow = 'hidden';
+      isLoading.value = true;
+      
+      // Cargar el video solo cuando se muestra el modal
+      if (modalVideo.value) {
+        modalVideo.value.load();
+      }
     } else {
-      document.body.style.overflow = '' // Activa el scroll
-    }
-    if (newVal && modalVideo.value) {
-      isLoading.value = true; // Reset loading state when modal becomes visible
-      modalVideo.value.muted = false;
-      modalVideo.value.play();
+      document.body.style.overflow = '';
     }
   });
 
-  // Add hover effects to social links
-  const links = document.querySelectorAll('.social-link');
-  links.forEach(link => {
-    const arrow = link.querySelector('.arrow-icon');
-    link.addEventListener('mouseenter', () => {
-      gsap.to(arrow, {
-        x: 10,
-        y: -10,
-        opacity: 0,
-        duration: 0.1,
-        onComplete: () => {
-          gsap.set(arrow, { x: -10, y: 10, opacity: 0 });
-          gsap.to(arrow, { x: 0, y: 0, opacity: 1, duration: 0.1 });
+  // Añadir efectos hover a los enlaces sociales usando delegación de eventos
+  const container = document.querySelector('.w-60');
+  if (container) {
+    container.addEventListener('mouseenter', (e) => {
+      if (e.target.classList.contains('social-link')) {
+        const arrow = e.target.querySelector('.arrow-icon');
+        if (arrow) {
+          gsap.to(arrow, {
+            x: 10,
+            y: -10,
+            opacity: 0,
+            duration: 0.1,
+            onComplete: () => {
+              gsap.set(arrow, { x: -10, y: 10, opacity: 0 });
+              gsap.to(arrow, { x: 0, y: 0, opacity: 1, duration: 0.1 });
+            }
+          });
         }
-      });
-    });
-  });
+      }
+    }, true);
+  }
 });
 
-// Lifecycle hook that runs when the component is unmounted
+// Hook de ciclo de vida que se ejecuta cuando el componente es desmontado
 onUnmounted(() => {
-  cancelAnimationFrame(updateBallPosition); // Stop the ball position updates
+  // Detener las actualizaciones de la posición de la bola
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+  }
 });
 
-// Use free resources to clean up video resources on unmount
+// Usar recursos gratuitos para limpiar los recursos de video al desmontar
 useFreeResources({
   videos: [mainVideo, modalVideo],
 });
 </script>
 
-<style>
+<style scoped>
 .group:hover .group-hover\:w-full {
   width: 50%;
 }

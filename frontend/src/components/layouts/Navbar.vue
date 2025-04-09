@@ -81,64 +81,68 @@
     </div>
   </div>
 
-  <div class="fixed inset-0 flex justify-end z-50" v-show="showMenu">
-    <div 
-      ref="background" 
-      @click="closeMenu()" 
-      class="absolute inset-0 bg-gray-500 bg-opacity-40 backdrop-blur-md"
-      >
-    </div>
-    <div ref="menuBox" class="relative bg-lemon h-svh w-screen shadow-lg flex flex-col z-60">
-      <div class="flex justify-end py-3 pe-3">
-        <XMarkIcon @click="closeMenu()" class="text-esmerald w-8 h-8"></XMarkIcon>
-      </div>
-      <RouterLink
-        :to="{ name:  item.href }" 
-        v-for="(item, index) in solutions" 
-        :key="index" 
-        class="flex p-2 ps-4 font-regular text-esmerald text-4xl relative group"
+  <Teleport to="body">
+    <div class="fixed inset-0 flex justify-end z-50" v-show="showMenu">
+      <div 
+        ref="background" 
+        @click="closeMenu()" 
+        class="absolute inset-0 bg-gray-500 bg-opacity-40 backdrop-blur-md"
         >
-        {{ item.name }}
-      </RouterLink>
-      <div class="absolute bottom-0 w-full">
-        <SocialLinks></SocialLinks>
-        <div class="border-transparent border-t-esmerald border-opacity-40 border"></div>
-        <ButtonWhitArrow @click="showModalEmail = true"></ButtonWhitArrow>
+      </div>
+      <div ref="menuBox" class="relative bg-lemon h-svh w-screen shadow-lg flex flex-col z-60">
+        <div class="flex justify-end py-3 pe-3">
+          <XMarkIcon @click="closeMenu()" class="text-esmerald w-8 h-8"></XMarkIcon>
+        </div>
+        <RouterLink
+          :to="{ name:  item.href }" 
+          v-for="(item, index) in solutions" 
+          :key="index" 
+          class="flex p-2 ps-4 font-regular text-esmerald text-4xl relative group"
+          >
+          {{ item.name }}
+        </RouterLink>
+        <div class="absolute bottom-0 w-full">
+          <SocialLinks></SocialLinks>
+          <div class="border-transparent border-t-esmerald border-opacity-40 border"></div>
+          <ButtonWhitArrow @click="showModalEmail = true"></ButtonWhitArrow>
+        </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 
   <Email :visible="showModalEmail" @update:visible="showModalEmail = $event"></Email>
 </template>
 
 <script setup>
-import Email from '@/components/layouts/Email.vue'; // Import the Email component
-import { ref } from 'vue'; // Import ref for reactive state
-import { gsap } from 'gsap'; // Import GSAP for animations
-import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'; // Import Popover components from Headless UI
-import { XMarkIcon } from '@heroicons/vue/24/outline'; // Import Heroicons for the menu and close icons
-import SocialLinks from '@/components/utils/SocialLinks.vue'; // Import the SocialLinks component
-import ButtonWhitArrow from '@/components/utils/ButtonWithArrow.vue'; // Import the ButtonWithArrow component
-import { useGlobalMessages } from '@/composables/useMessages'; // Import the custom composable to get global messages
+import { defineAsyncComponent, ref, shallowRef, onMounted } from 'vue';
+import { gsap } from 'gsap';
+import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue';
+import { XMarkIcon } from '@heroicons/vue/24/outline';
+import SocialLinks from '@/components/utils/SocialLinks.vue';
+import ButtonWhitArrow from '@/components/utils/ButtonWithArrow.vue';
+import { useGlobalMessages } from '@/composables/useMessages';
 
-const { globalMessages } = useGlobalMessages('navbar'); // Get the global messages for the 'navbar' section
+// Cargar componentes no críticos de forma diferida
+const Email = defineAsyncComponent(() => import('@/components/layouts/Email.vue'));
 
-// Props to recieving
+const { globalMessages } = useGlobalMessages('navbar');
+
+// Props 
 defineProps({
   theme: {
     type: String,
-    default: 'light', // colud be 'light' or 'dark'
+    default: 'light', // puede ser 'light' o 'dark'
   }
 })
 
-// Reactive references for various states
-const background = ref(null); // Reference to the background element for animations
-const menuBox = ref(null); // Reference to the menu box element for animations
-const showModalEmail = ref(false); // Controls visibility of the email modal
-const showMenu = ref(false); // Controls visibility of the menu
+// Referencias reactivas
+const background = ref(null);
+const menuBox = ref(null);
+const showModalEmail = ref(false);
+const showMenu = ref(false);
 
-// Solutions array, populated with global messages for navbar links
-const solutions = ref([
+// Memoización de los elementos de menú para evitar recálculos innecesarios
+const solutions = shallowRef([
   { name: globalMessages.solutions.home, href: 'home' },
   { name: globalMessages.solutions.about, href: 'aboutUs' },
   { name: globalMessages.solutions.web_designs, href: 'webDesigns' },
@@ -147,72 +151,96 @@ const solutions = ref([
   { name: globalMessages.solutions.animations_3d, href: '3dAnimations' },
   { name: globalMessages.solutions.prices, href: 'eCommercePrices' },
   { name: globalMessages.solutions.hosting, href: 'hosting' },
-
 ]);
 
 /**
- * Handles hover animations for menu items.
- * 
- * @param {Event} event - The hover event.
- * @param {Boolean} isHover - Whether the menu item is being hovered over.
+ * Optimización de las animaciones de hover para los elementos del menú
+ * Usa un único listener con delegación de eventos
  */
 const hoverMenu = (event, isHover) => {
-  const underline = event.target.querySelector('.underline'); // Find underline element
-  const arrow = event.target.querySelector('.arrow'); // Find arrow element
-  if (isHover) {
-    gsap.to(underline, { width: '50%', duration: 0.05 }); // Expand underline on hover
-    gsap.to(arrow, { opacity: 1, duration: 0.05 }); // Show arrow on hover
-  } else {
-    gsap.to(underline, { width: '0%', duration: 0.05 }); // Hide underline on hover out
-    gsap.to(arrow, { opacity: 0, duration: 0.05 }); // Hide arrow on hover out
+  const target = event.currentTarget;
+  const underline = target.querySelector('.underline');
+  const arrow = target.querySelector('.arrow');
+  
+  if (underline) {
+    gsap.to(underline, { width: isHover ? '50%' : '0%', duration: 0.05 });
+  }
+  if (arrow) {
+    gsap.to(arrow, { opacity: isHover ? 1 : 0, duration: 0.05 });
   }
 };
 
 /**
- * Opens the menu with GSAP animations.
- * 
- * Animates the background and menu box into view when the menu is opened.
+ * Abre el menú con animaciones GSAP.
  */
 const openMenu = () => {
-  showMenu.value = true; // Show the menu
-  if (background.value && menuBox.value) {
-    gsap.fromTo(
-      background.value,
-      { opacity: 0 },
-      { opacity: 1, duration: 0.25, ease: "power2.inOut" } // Fade in the background
-    );
+  showMenu.value = true;
   
-    gsap.fromTo(
-      menuBox.value,
-      { x: window.innerWidth }, // Start the menu off-screen
-      { x: 0, duration: 0.25, ease: "power2.inOut" } // Slide the menu into view
-    );
-  }
+  // Retrasamos las animaciones hasta el siguiente frame para evitar bloqueo de renderizado
+  requestAnimationFrame(() => {
+    if (background.value && menuBox.value) {
+      gsap.fromTo(
+        background.value,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.25, ease: "power2.inOut" }
+      );
+    
+      gsap.fromTo(
+        menuBox.value,
+        { x: window.innerWidth },
+        { x: 0, duration: 0.25, ease: "power2.inOut" }
+      );
+    }
+  });
 };
 
 /**
- * Closes the menu with GSAP animations.
- * 
- * Animates the background and menu box out of view when the menu is closed.
+ * Cierra el menú con animaciones GSAP.
  */
 const closeMenu = () => {
-  // Animate the menu box sliding out
-  const menuAnimation = gsap.fromTo(
-    menuBox.value,
-    { x: 0 },
-    { x: menuBox.value.offsetWidth, duration: 0.25, ease: "power2.inOut" }
-  ).then();
-
-  // Animate the background fading out
-  const backgroundAnimation = gsap.fromTo(
-    background.value,
-    { opacity: 1 },
-    { opacity: 0, duration: 0.25, ease: "power2.inOut" }
-  ).then();
-
-  // Wait for both animations to complete before hiding the menu
-  Promise.all([menuAnimation, backgroundAnimation]).then(() => {
-    showMenu.value = false; // Hide the menu
+  if (!background.value || !menuBox.value) return;
+  
+  const tl = gsap.timeline({
+    onComplete: () => {
+      showMenu.value = false;
+    }
   });
+  
+  // Usar timeline para coordinar animaciones
+  tl.to(menuBox.value, {
+    x: menuBox.value.offsetWidth,
+    duration: 0.25,
+    ease: "power2.inOut"
+  }, 0);
+  
+  tl.to(background.value, {
+    opacity: 0,
+    duration: 0.25,
+    ease: "power2.inOut"
+  }, 0);
 };
+
+// Inicialización de efectos al montar el componente
+onMounted(() => {
+  document.addEventListener('click', (e) => {
+    // Cerrar menú al hacer clic fuera (para mejorar accesibilidad)
+    if (showMenu.value && !menuBox.value?.contains(e.target) && e.target !== background.value) {
+      closeMenu();
+    }
+  });
+  
+  // Cerrar menú al presionar Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && showMenu.value) {
+      closeMenu();
+    }
+  });
+});
 </script>
+
+<style scoped>
+.underline, 
+.arrow {
+  will-change: transform, opacity, width;
+}
+</style>

@@ -5,11 +5,17 @@
       <Navbar />
     </div>
 
-    <!-- Render InitialVideo component only on desktop screens -->
-    <InitialVideo v-if="isDesktop" :play_text="messages.video.text" />
-
-    <!-- Render InitialVideoMobile component only on mobile screens -->
-    <InitialVideoMobile v-else />
+    <!-- Render video components with lazy loading -->
+    <Suspense>
+      <template #default>
+        <component :is="isDesktop ? InitialVideo : InitialVideoMobile" :play_text="isDesktop ? messages.video.text : undefined" />
+      </template>
+      <template #fallback>
+        <div class="h-screen flex items-center justify-center bg-esmerald-light">
+          <div class="w-12 h-12 border-4 border-esmerald rounded-full border-t-transparent animate-spin"></div>
+        </div>
+      </template>
+    </Suspense>
 
     <!-- First section of the home page with a title -->
     <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52">
@@ -34,8 +40,18 @@
             </h2>
           </div>
           <div class="col-span-3 lg:pe-4 lg:col-span-1">
-            <!-- Video element reference for resource management -->
-            <video ref="videoRef" autoplay muted loop playsinline>
+            <!-- Video optimizado -->
+            <video 
+              ref="videoRef" 
+              autoplay 
+              muted 
+              loop 
+              playsinline
+              preload="metadata"
+              width="640"
+              height="360"
+              class="w-full h-auto will-change-transform"
+            >
               <source src="@/assets/videos/home/cubic.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
@@ -51,12 +67,17 @@
       </h2>
       <div class="grid lg:grid-cols-2">
         <div class="h-80 order-2 mt-24 lg:mt-0 lg:order-1 lg:h-auto">
-          <!-- Image element reference for resource management -->
+          <!-- Imagen optimizada con atributos nativos de lazy loading -->
           <img 
             ref="imageRef" 
             src="@/assets/images/home/cube_illusion.webp" 
             loading="lazy" 
+            decoding="async"
             alt="Section 3" 
+            width="800"
+            height="600"
+            fetchpriority="low"
+            class="w-full h-full object-cover will-change-transform"
           />
         </div>
         <div class="order-1 lg:order-2 lg:ps-32">
@@ -68,59 +89,79 @@
       </div>
     </section>
 
-    <!-- Contact section at the bottom of the page -->
-    <section class="mt-16">
-      <Contact />
-    </section>
-
-    <!-- Footer component at the very end of the page -->
-    <section class="mt-16 relative">
-      <Footer />
-    </section>
+    <!-- Contact and Footer sections loaded lazily -->
+    <LazyContactSection />
+    <LazyFooterSection />
   </div>
 </template>
 
 <script setup>
-// Import components for the homepage layout
-import { ref, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue'
-import Navbar from '@/components/layouts/Navbar.vue' // Navbar component for navigation at the top
-import Footer from '@/components/layouts/Footer.vue' // Footer component for the end of the page
-import Contact from '@/components/layouts/Contact.vue' // Contact section component
-import { useMessages } from '@/composables/useMessages' // Custom composable to retrieve localized messages
-import { useFreeResources } from '@/composables/useFreeResources' // Custom composable to free resources
+import { ref, onMounted, onBeforeUnmount, defineAsyncComponent, shallowRef } from 'vue'
+import Navbar from '@/components/layouts/Navbar.vue'
+import { useMessages } from '@/composables/useMessages'
+import { useFreeResources } from '@/composables/useFreeResources'
 
-// Lazy load video components for optimal performance
-const InitialVideo = defineAsyncComponent(() => import('@/components/home/InitialVideo.vue')) // Video component for desktop
-const InitialVideoMobile = defineAsyncComponent(() => import('@/components/home/InitialVideoMobile.vue')) // Video component for mobile
+// Lazy load video components with Suspense
+const InitialVideo = defineAsyncComponent(() => 
+  import('@/components/home/InitialVideo.vue')
+)
+const InitialVideoMobile = defineAsyncComponent(() => 
+  import('@/components/home/InitialVideoMobile.vue')
+)
 
-// Retrieve localized messages for the current view
+// Lazy load sections that are below the fold
+const LazyContactSection = defineAsyncComponent(() => 
+  import('./partials/ContactSection.vue')
+)
+const LazyFooterSection = defineAsyncComponent(() => 
+  import('./partials/FooterSection.vue')
+)
+
 const { messages } = useMessages()
 
 // State to determine if the screen is desktop size
 const isDesktop = ref(window.innerWidth >= 1024)
 
-// Refs for the video and image elements
+// Referencias para liberación de recursos
 const videoRef = ref(null)
 const imageRef = ref(null)
 
-// Use `useFreeResources` composable to release video and image resources on component unmount
+// Liberar recursos cuando el componente se desmonta
 useFreeResources({
   videos: [videoRef],
-  images: [imageRef]
+  images: [imageRef],
 })
 
-// Function to handle screen resize events
+// Debounced resize handler with passive listener for better performance
+let resizeTimeout
 function handleResize() {
-  isDesktop.value = window.innerWidth >= 1024
+  clearTimeout(resizeTimeout)
+  resizeTimeout = setTimeout(() => {
+    isDesktop.value = window.innerWidth >= 1024
+  }, 150)
 }
 
-// Add event listener for window resize
+// Add event listener for window resize with passive option for better performance
 onMounted(() => {
-  window.addEventListener('resize', handleResize)
+  window.addEventListener('resize', handleResize, { passive: true })
 })
 
 // Remove event listener when component is destroyed
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
+  clearTimeout(resizeTimeout)
 })
 </script>
+
+<style scoped>
+/* Use CSS containment for improved rendering performance */
+section {
+  contain: content;
+}
+
+/* Define content-visibility for elements below the fold */
+section:not(:first-child):not(:nth-child(2)) {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 500px;
+}
+</style>

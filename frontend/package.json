@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "optimize-images": "node scripts/optimize-images.js"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.22",
@@ -20,7 +21,6 @@
     "sweetalert2": "^11.11.1",
     "v-runtime-template": "^1.10.0",
     "video.js": "^8.12.0",
-    "vite-plugin-pwa": "^0.20.5",
     "vue": "^3.4.21",
     "vue-router": "^4.3.0",
     "vue3-lottie": "^3.3.1",
@@ -32,6 +32,7 @@
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
+    "terser": "^5.29.1",
     "vite": "^5.4.4"
   }
 }

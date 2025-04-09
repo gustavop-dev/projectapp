@@ -10,16 +10,20 @@
     v-if="!loading"
     href="https://wa.me/573238122373"
     target="_blank"
+    rel="noopener noreferrer"
     class="fixed z-50 bottom-4 right-4 w-12 h-12 rounded-full bg-green-500 
           flex items-center justify-center 
           shadow-[0_0_15px_4px_rgba(34,197,94,0.6)]
           cursor-pointer transition-transform hover:scale-110"
+    aria-label="Contactar por WhatsApp"
   >
     <svg 
       class="w-6 h-6 text-white" 
       viewBox="0 0 448 512" 
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
+      width="24"
+      height="24"
     >
       <path
         fill="currentColor"
@@ -43,7 +47,8 @@
     </svg>
   </a>
 
-
+  <!-- Optimizador de medios -->
+  <MediaOptimizer v-if="!loading" />
 </template>
 
 <script setup>
@@ -51,35 +56,50 @@ import { useLanguageStore } from '@/stores/language';
 import { ref, onMounted, watch } from 'vue';
 import LoadingScreen from '@/components/layouts/LoadingScreen.vue';
 import { RouterView } from 'vue-router';
+import MediaOptimizer from '@/components/layouts/MediaOptimizer.vue';
 
 const languageStore = useLanguageStore();
 const loading = ref(true);
 
 const initializeApp = async () => {
-  if (!languageStore.currentLanguage) {
-    await languageStore.detectBrowserLanguage();
+  try {
+    if (!languageStore.currentLanguage) {
+      await languageStore.detectBrowserLanguage();
+    }
+    document.documentElement.lang = languageStore.currentLanguage;
+  } catch (error) {
+    console.error('Error initializing app:', error);
+    // Fallback to default language
+    document.documentElement.lang = 'es';
   }
-  document.documentElement.lang = languageStore.currentLanguage;
 };
 
+// Optimize watcher with immediate option
 watch(() => languageStore.currentLanguage, (newLang) => {
   document.documentElement.lang = newLang;
-});
+}, { immediate: true });
 
 onMounted(async () => {
-  await Promise.all([
-    initializeApp(),
-    new Promise(resolve => setTimeout(resolve, 1000)) 
-  ]);
-  loading.value = false;
+  try {
+    await Promise.all([
+      initializeApp(),
+      new Promise(resolve => setTimeout(resolve, 1000)) 
+    ]);
+  } catch (error) {
+    console.error('Error during app initialization:', error);
+  } finally {
+    loading.value = false;
+  }
 });
-
 </script>
 
 <style>
-/* Hide horizontal overflow */
+/* Hide horizontal overflow and optimize scrolling */
 body {
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 </style>
 
