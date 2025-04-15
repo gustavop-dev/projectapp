@@ -8,8 +8,8 @@
         <div class="relative w-full h-full grid rounded-xl overflow-hidden lg:grid-cols-2">
           <div class="absolute z-10 bottom-0 bg-transparent flex items-center px-16 order-2 py-24 xl:bg-brown xl:top-0 xl:relative xl:z-0">
             <h1>
-              <span class="text-4xl font-light text-esmerald xl:text-white lg:text-6xl">{{ messages.intro_section.title_line1 }}</span><br>
-              <span class="text-4xl font-light text-esmerald xl:text-white lg:text-6xl">{{ messages.intro_section.title_line2 }}</span><br>
+              <span class="text-3xl font-light text-esmerald xl:text-white lg:text-6xl">{{ messages.intro_section.title_line1 }}</span><br>
+              <span class="text-3xl font-light text-esmerald xl:text-white lg:text-6xl">{{ messages.intro_section.title_line2 }}</span><br>
               <span class="text-md font-medium text-esmerald xl:text-white">{{ messages.intro_section.subtitle_line1 }}</span><br>
               <span class="text-md font-medium text-esmerald xl:text-white">{{ messages.intro_section.subtitle_line2 }}</span>
             </h1>

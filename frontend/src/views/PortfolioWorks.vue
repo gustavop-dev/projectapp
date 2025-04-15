@@ -29,7 +29,7 @@
       </section>
       <section class="px-3" itemscope itemtype="https://schema.org/CreativeWorkSeries">
         <div class="mt-32 max-w-7xl mx-auto sm:px-6 lg:mt-52 lg:px-8">
-          <h1 class="text-6xl font-light text-esmerald" itemprop="name">
+          <h1 class="text-5xl font-light text-esmerald" itemprop="name">
             {{ messages.section_title }}
             <span class="sr-only">by Project App.</span>
           </h1>

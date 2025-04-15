@@ -6,7 +6,7 @@
         <main>
             <section class="h-svh relative" aria-labelledby="hero-title" itemscope itemtype="https://schema.org/WPHeader">
                 <div class="absolute z-20 w-1/3 px-3 h-full flex items-center md:px-16">
-                    <h1 id="hero-title" class="text-white font-light text-6xl md:text-8xl" itemprop="headline">
+                    <h1 id="hero-title" class="text-white font-light text-5xl md:text-8xl" itemprop="headline">
                         {{ messages.hero_section.title }}
                         <span class="sr-only">by Project App. - Soluciones de software personalizadas</span>
                     </h1>
@@ -38,7 +38,7 @@
                     </video>
                 </div>
                 <div class="pb-32 order-1 md:order-2">
-                    <h2 id="ecommerce-title" class="px-3 max-w-7xl text-white text-6xl font-light" itemprop="name">
+                    <h2 id="ecommerce-title" class="px-3 max-w-7xl text-white text-5xl font-light" itemprop="name">
                         {{ messages.eCommerce_section.title }}
                         <span class="sr-only">de Project App.</span>
                     </h2>
@@ -57,7 +57,7 @@
             
             <section class="bg-dark grid md:grid-cols-2 lg:pt-52" aria-labelledby="erp-title" itemscope itemtype="https://schema.org/Service">
                 <div class="pb-32">
-                    <h2 id="erp-title" class="px-3 max-w-7xl text-white text-6xl font-light" itemprop="name">
+                    <h2 id="erp-title" class="px-3 max-w-7xl text-white text-5xl font-light" itemprop="name">
                         {{ messages.erp_section.title }}
                         <span class="sr-only">de Project App.</span>
                     </h2>
@@ -88,7 +88,7 @@
                     </video>
                 </div>
                 <div class="pb-32 order-1 md:order-2">
-                    <h2 id="crm-title" class="px-3 max-w-7xl text-white text-6xl font-light" itemprop="name">
+                    <h2 id="crm-title" class="px-3 max-w-7xl text-white text-5xl font-light" itemprop="name">
                         {{ messages.crm_section.title }}
                         <span class="sr-only">de Project App.</span>
                     </h2>
@@ -107,7 +107,7 @@
             
             <section class="bg-dark pt-32 grid md:grid-cols-2 lg:pt-52" aria-labelledby="custom-solutions-title" itemscope itemtype="https://schema.org/Service">
                 <div class="pb-32">
-                    <h2 id="custom-solutions-title" class="px-3 max-w-7xl text-white text-6xl font-light" itemprop="name">
+                    <h2 id="custom-solutions-title" class="px-3 max-w-7xl text-white text-5xl font-light" itemprop="name">
                         {{ messages.tailored_solutions_section.title }}
                         <span class="sr-only">de Project App.</span>
                     </h2>

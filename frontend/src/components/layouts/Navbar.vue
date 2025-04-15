@@ -70,9 +70,12 @@
   </nav>
 
   <!--Navbar Mobile-->
-  <nav class="block lg:hidden relative h-8 w-screen" aria-label="Mobile navigation">
+  <nav class="block lg:hidden relative min-h-[60px] w-screen" aria-label="Mobile navigation">
     <div class="absolute ps-8 pt-6 z-10">
-      <h1 class="text-xl font-bold text-esmerald">
+      <h1 :class="[
+        'text-xl font-bold',
+        theme === 'dark' ? 'text-white' : 'text-esmerald'
+      ]">
         <router-link 
           :to="{ name: 'home' }" 
           class="cursor-pointer"
@@ -110,7 +113,7 @@
         class="absolute inset-0 bg-gray-500 bg-opacity-40 backdrop-blur-md"
         aria-hidden="true">
       </div>
-      <nav ref="menuBox" class="relative bg-lemon h-svh w-screen shadow-lg flex flex-col z-60" aria-label="Mobile navigation options">
+      <nav ref="menuBox" class="relative bg-lemon h-svh w-full max-w-[100vw] shadow-lg flex flex-col z-60 overflow-y-auto" aria-label="Mobile navigation options">
         <div class="flex justify-end py-3 pe-3">
           <button 
             @click="closeMenuMobile" 
@@ -120,17 +123,20 @@
             <span class="sr-only">Close navigation menu</span>
           </button>
         </div>
-        <RouterLink
-          :to="{ name:  item.href }" 
-          v-for="(item, index) in solutions" 
-          :key="index" 
-          class="flex p-2 ps-4 font-regular text-esmerald text-4xl relative group"
-          aria-label="Navigate to {{ item.name }}"
-          >
-          {{ item.name }}
-          <span class="sr-only">Navigate to {{ item.name }} page</span>
-        </RouterLink>
-        <div class="absolute bottom-0 w-full">
+        <div class="flex flex-col flex-grow py-4">
+          <RouterLink
+            :to="{ name:  item.href }" 
+            v-for="(item, index) in solutions" 
+            :key="index" 
+            class="flex p-2 ps-4 font-regular text-esmerald text-4xl relative group"
+            @click="closeMenuMobile"
+            aria-label="Navigate to {{ item.name }}"
+            >
+            {{ item.name }}
+            <span class="sr-only">Navigate to {{ item.name }} page</span>
+          </RouterLink>
+        </div>
+        <div class="w-full pb-4">
           <SocialLinks></SocialLinks>
           <div class="border-transparent border-t-esmerald border-opacity-40 border"></div>
           <ButtonWhitArrow @click="showModalEmail = true"></ButtonWhitArrow>

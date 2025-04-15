@@ -7,7 +7,7 @@
           </video>
       </div>
 
-      <div class="absolute bottom-0 right-0 w-full h-1/2 p-3">
+      <div class="absolute bottom-0 right-0 w-full h-2/3 p-3">
         <div class="h-full grid auto-rows-min rounded-b-xl bg-window-black bg-opacity-40 backdrop-blur-md">
             <nav aria-label="Mobile website sections" class="md:w-max grid grid-cols-2 auto-rows-min text-white mt-4">
               <RouterLink
