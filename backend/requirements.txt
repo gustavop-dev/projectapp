@@ -5,6 +5,7 @@ djangorestframework==3.15.1
 Faker==28.4.1
 pillow==10.3.0
 python-dateutil
+requests==2.31.0
 six==1.16.0
 sqlparse==0.5.0
 tzdata==2024.1

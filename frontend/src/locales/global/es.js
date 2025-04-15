@@ -17,12 +17,12 @@ export default {
     email_contact: {
       get_in_touch: "Contacta a nuestros desarrolladores web",
       to_label: "Para",
-      to_value: "Project App. - Empresa Profesional de Diseño Web (team@projectapp.co)",
+      to_value: "Project App. (team@projectapp.co)",
       from_label: "De",
       email_placeholder: "Correo electrónico",
       subject_label: "Asunto",
       subject_placeholder: "Cuéntanos sobre tu proyecto de desarrollo web",
-      message_placeholder: "Describe tus necesidades de diseño web...",
+      message_placeholder: "Describenos tu proyecto...",
       send_button: "Enviar",
     },
     contact_section: {

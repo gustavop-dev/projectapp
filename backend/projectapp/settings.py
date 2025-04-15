@@ -133,3 +133,8 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
+
+# CallMeBot WhatsApp API configuration
+# Replace these values with your own
+WHATSAPP_PHONE = "+573238122373"  # Phone number with country code
+CALLMEBOT_API_KEY = "2080773"    # CallMeBot API Key
