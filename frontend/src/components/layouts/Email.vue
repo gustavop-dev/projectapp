@@ -100,6 +100,7 @@
         class="border-t border-t-zinc-400 flex items-center justify-end p-4"
       >
         <button
+          id="form-submit-btn"
           :disabled="!isFormValid"
           :class="{
             'bg-lemon text-esmerald': isFormValid,
