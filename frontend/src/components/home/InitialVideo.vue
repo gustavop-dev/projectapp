@@ -1,64 +1,77 @@
 <template>
-    <div class="p-3 h-svh" @mousemove="handleMouseMove" @mouseenter="showBall" @mouseleave="hideBall">
-      <div class="relative w-full h-full overflow-hidden">
-        <video class="absolute top-0 left-0 w-full h-full object-cover rounded-xl" autoplay muted loop>
-          <source src="@/assets/videos/presentationPrevPc.mp4" type="video/mp4">
-          Your browser does not support the video tag.
-        </video>
-        <div 
-          ref="ball" 
-          class="absolute bg-window-black bg-opacity-40 backdrop-blur-md text-white rounded-full flex items-center justify-center w-32 h-32 transition-opacity duration-300 cursor-pointer" 
-          @click="showModal = true"
+    <div v-bind="$attrs">
+      <div class="p-3 h-svh" @mousemove="handleMouseMove" @mouseenter="showBall" @mouseleave="hideBall">
+        <div class="relative w-full h-full overflow-hidden">
+          <video 
+            ref="backgroundVideo"
+            class="absolute top-0 left-0 w-full h-full object-cover rounded-xl" 
+            autoplay 
+            muted 
+            loop
           >
-          <span ref="ballText" 
-            class="font-light text-xl">
-            {{ play_text }}
-          </span>
+            <source src="@/assets/videos/presentationPrevPc.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+          <div 
+            ref="ball" 
+            class="absolute bg-window-black bg-opacity-40 backdrop-blur-md text-white rounded-full flex items-center justify-center w-32 h-32 transition-opacity duration-300 cursor-pointer" 
+            @click="showModal = true"
+            >
+            <span ref="ballText" 
+              class="font-light text-xl">
+              {{ play_text }}
+            </span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Modal -->
-    <div v-if="showModal" class="fixed inset-0 flex items-center justify-center z-50 bg-window-black bg-opacity-40 backdrop-blur-md" @mousemove="handleModalMouseMove">
-      <!-- Loading Animation -->
-      <div
-        v-show="isLoading"
-        class="absolute inset-0 flex items-center justify-center"
-      >
-        <Vue3Lottie
-          :animationData="whiteAnimation"
-          :height="500"
-          :width="500"
-          :loop="true"
-          :autoplay="true"
-        />
-      </div>
-      <div v-show="!isLoading" class="relative w-screen h-svh">
-        <video 
-          ref="modalVideo" 
-          class="w-full h-full object-cover" 
-          autoplay
-          @loadeddata="onVideoLoad"
+      <!-- Modal -->
+      <div v-if="showModal" class="fixed inset-0 flex items-center justify-center z-50 bg-window-black bg-opacity-40 backdrop-blur-md" @mousemove="handleModalMouseMove">
+        <!-- Loading Animation -->
+        <div
+          v-show="isLoading"
+          class="absolute inset-0 flex items-center justify-center"
         >
-          <source src="@/assets/videos/presentationComp.mp4" type="video/mp4">
-          Your browser does not support the video tag.
-        </video>
-      </div>
-      <div 
-        ref="modalBall" 
-        class="absolute z-50 bg-window-black bg-opacity-60 backdrop-blur-md text-white rounded-full flex items-center justify-center w-20 h-20 transition-opacity duration-300 cursor-pointer" 
-        @click="closeModal">
-        <XMarkIcon ref="modalBallText" class="w-8"></XMarkIcon>
+          <Vue3Lottie
+            :animationData="whiteAnimation"
+            :height="500"
+            :width="500"
+            :loop="true"
+            :autoplay="true"
+          />
+        </div>
+        <div v-show="!isLoading" class="relative w-screen h-svh">
+          <video 
+            ref="modalVideo" 
+            class="w-full h-full object-cover" 
+            autoplay
+            @loadeddata="onVideoLoad"
+          >
+            <source src="@/assets/videos/presentationComp.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+        <div 
+          ref="modalBall" 
+          class="absolute z-50 bg-window-black bg-opacity-60 backdrop-blur-md text-white rounded-full flex items-center justify-center w-20 h-20 transition-opacity duration-300 cursor-pointer" 
+          @click="closeModal">
+          <XMarkIcon ref="modalBallText" class="w-8"></XMarkIcon>
+        </div>
       </div>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'; // Import Vue utilities for reactivity and lifecycle hooks
+import { ref, onMounted, onUnmounted, watch, onActivated } from 'vue'; // Import Vue utilities for reactivity and lifecycle hooks
 import { gsap } from 'gsap'; // Import GSAP for animations
 import { XMarkIcon } from '@heroicons/vue/24/outline'; // Import Heroicon for the close icon
 import { Vue3Lottie } from "vue3-lottie";
 import whiteAnimation from "@/assets/loading/white.json";
+
+// Allow non-prop attributes to be inherited by the root element
+defineOptions({
+  inheritAttrs: false
+});
 
 // Reactive references for controlling the modal, ball, and video elements
 const showModal = ref(false); // Controls the visibility of the modal
@@ -68,11 +81,13 @@ const modalBall = ref(null); // Reference for the ball in the modal
 const modalBallText = ref(null); // Reference for the text inside the modal ball
 const modalVideo = ref(null); // Reference for the video in the modal
 const isLoading = ref(true); // Reference for the video is loading
+const backgroundVideo = ref(null); // Reference to the background video
 
 // Variables to track mouse and element positions
 let mouseX = 0, mouseY = 0, modalMouseX = 0, modalMouseY = 0;
 let ballX = 0, ballY = 0, textX = 0, textY = 0;
 let modalBallX = 0, modalBallY = 0, modalTextX = 0, modalTextY = 0;
+let animationFrameId = null;
 
 // Props passed to the component
 const props = defineProps({
@@ -138,7 +153,7 @@ const updateBallPosition = () => {
     gsap.to(modalBallText.value, { x: modalTextX, y: modalTextY, duration: 0.1, ease: 'power2.out' });
   }
 
-  requestAnimationFrame(updateBallPosition); // Keep updating the position on each animation frame
+  animationFrameId = requestAnimationFrame(updateBallPosition); // Keep updating the position on each animation frame
 };
 
 /**
@@ -188,6 +203,27 @@ onMounted(() => {
 
 // Lifecycle hook that runs when the component is unmounted
 onUnmounted(() => {
-  cancelAnimationFrame(updateBallPosition); // Stop updating the ball's position
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId); // Stop updating the ball's position
+    animationFrameId = null;
+  }
+});
+
+// Handle component reactivation with keep-alive
+onActivated(() => {
+  // Restart background video if it exists
+  if (backgroundVideo.value && backgroundVideo.value.paused) {
+    backgroundVideo.value.play().catch(err => console.error('Error playing background video on activation:', err));
+  }
+  
+  // Restart animation frame for ball position
+  if (!animationFrameId) {
+    animationFrameId = requestAnimationFrame(updateBallPosition);
+  }
+  
+  // Reset ball opacity
+  if (ball.value) {
+    gsap.set(ball.value, { opacity: 0 });
+  }
 });
 </script>

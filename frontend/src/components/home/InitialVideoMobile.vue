@@ -1,77 +1,85 @@
 <template>
-    <div class="p-3 h-svh">
-      <!-- Background video container -->
-      <div class="relative w-full h-full overflow-hidden">
-        <video
-          class="absolute top-0 left-0 w-full h-full object-cover rounded-xl"
-          autoplay
-          muted
-          loop
-        >
-          <source src="@/assets/videos/presentationMobile.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-  
-        <!-- "Play Reel" button -->
-        <button
-          class="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-3 py-2 bg-window-black bg-opacity-40 backdrop-blur-md rounded-xl text-white font-regular flex items-center gap-2"
-          @click="playReel"
-        >
-          <PlayIcon class="size-4" />
-          {{ play_text }}
-        </button>
-      </div>
-  
-      <!-- Video Modal -->
-      <Teleport to="body">
-        <div
-          v-if="showModal"
-          class="fixed inset-0 bg-window-black bg-opacity-75 backdrop-blur-sm z-[999] flex items-center justify-center h-screen w-screen"
-        >
-          <!-- Loading Animation -->
-          <div
-            v-if="isLoading"
-            class="absolute inset-0 flex items-center justify-center"
-          >
-            <Vue3Lottie
-              :animationData="whiteAnimation"
-              :height="300"
-              :width="300"
-              :loop="true"
-              :autoplay="true"
-            />
-          </div>
-          
-          <!-- Video element only mounts if showVideo is true -->
+    <div v-bind="$attrs">
+      <div class="p-3 h-svh">
+        <!-- Background video container -->
+        <div class="relative w-full h-full overflow-hidden">
           <video
-            v-if="showVideo"
-            ref="videoRef"
-            class="w-full h-auto max-h-screen px-1"
+            ref="backgroundVideo"
+            class="absolute top-0 left-0 w-full h-full object-cover rounded-xl"
             autoplay
-            playsinline
-            :muted="false"
-            @loadeddata="onVideoLoad"
+            muted
+            loop
           >
-            <source src="@/assets/videos/presentationComp.mp4" type="video/mp4" />
+            <source src="@/assets/videos/presentationMobile.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
-    
-          <!-- Close button in the top-right corner -->
-          <div class="absolute top-6 right-6 z-[1000]">
-            <button @click="closeModal" class="p-4 bg-transparent flex items-center justify-center">
-              <XMarkIcon class="size-8 text-white" />
-            </button>
-          </div>
+  
+          <!-- "Play Reel" button -->
+          <button
+            class="absolute bottom-4 left-1/2 transform -translate-x-1/2 px-3 py-2 bg-window-black bg-opacity-40 backdrop-blur-md rounded-xl text-white font-regular flex items-center gap-2"
+            @click="playReel"
+          >
+            <PlayIcon class="size-4" />
+            {{ play_text }}
+          </button>
         </div>
-      </Teleport>
+  
+        <!-- Video Modal -->
+        <Teleport to="body">
+          <div
+            v-if="showModal"
+            class="fixed inset-0 bg-window-black bg-opacity-75 backdrop-blur-sm z-[999] flex items-center justify-center h-screen w-screen"
+          >
+            <!-- Loading Animation -->
+            <div
+              v-if="isLoading"
+              class="absolute inset-0 flex items-center justify-center"
+            >
+              <Vue3Lottie
+                :animationData="whiteAnimation"
+                :height="300"
+                :width="300"
+                :loop="true"
+                :autoplay="true"
+              />
+            </div>
+            
+            <!-- Video element only mounts if showVideo is true -->
+            <video
+              v-if="showVideo"
+              ref="videoRef"
+              class="w-full h-auto max-h-screen px-1"
+              autoplay
+              playsinline
+              :muted="false"
+              @loadeddata="onVideoLoad"
+            >
+              <source src="@/assets/videos/presentationComp.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+    
+            <!-- Close button in the top-right corner -->
+            <div class="absolute top-6 right-6 z-[1000]">
+              <button @click="closeModal" class="p-4 bg-transparent flex items-center justify-center">
+                <XMarkIcon class="size-8 text-white" />
+              </button>
+            </div>
+          </div>
+        </Teleport>
+      </div>
     </div>
   </template>
   
   <script setup>
-  import { ref, nextTick, watch } from 'vue';
+  import { ref, nextTick, watch, onActivated } from 'vue';
   import { PlayIcon, XMarkIcon } from '@heroicons/vue/24/outline';
   import { Vue3Lottie } from "vue3-lottie";
   import whiteAnimation from "@/assets/loading/white.json";
+  
+  // Allow non-prop attributes to be inherited by the root element
+  defineOptions({
+    inheritAttrs: false
+  });
   
   // Reactive variables to control modal and video mounting
   const showModal = ref(false);
@@ -79,6 +87,7 @@
   const isLoading = ref(true);
   // Reference to the video element inside the modal
   const videoRef = ref(null);
+  const backgroundVideo = ref(null);
 
   // Props passed to the component
   const props = defineProps({
@@ -234,5 +243,20 @@
       showVideo.value = false;
     }, 300);
   };
+  
+  // Handle component reactivation with keep-alive
+  onActivated(() => {
+    // Restart background video if it exists
+    if (backgroundVideo.value && backgroundVideo.value.paused) {
+      backgroundVideo.value.play().catch(err => console.error('Error playing background video on activation:', err));
+    }
+    
+    // Reset state if needed
+    if (showModal.value) {
+      showModal.value = false;
+      showVideo.value = false;
+      isLoading.value = true;
+    }
+  });
   </script>
   

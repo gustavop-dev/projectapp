@@ -12,7 +12,11 @@
 
   <!-- Main router view, only shown when loading and preloader are complete -->
   <main v-else>
-    <RouterView />
+    <router-view v-slot="{ Component }">
+      <keep-alive include="Home">
+        <component :is="Component" />
+      </keep-alive>
+    </router-view>
   </main>
 
   <!-- Floating WhatsApp button with neon glow -->

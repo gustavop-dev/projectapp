@@ -1,4 +1,4 @@
-import { onUnmounted, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 
 export function useFreeResources({ videos = [], images = [], modals = [] } = {}) {
   // Referencia para manejar el estado de los modales
@@ -33,10 +33,8 @@ export function useFreeResources({ videos = [], images = [], modals = [] } = {})
     }
   })
 
-  onUnmounted(() => {
-    freeMediaResources()
-    closeModals()
-  })
+  // Ya no usamos onUnmounted aquí, dejamos que el componente lo maneje
+  // durante su fase de setup
 
   return {
     modalRefs,

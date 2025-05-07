@@ -666,19 +666,24 @@ const finishAnimation = () => {
       // Notify the parent component
       emit('animationComplete')
       
-      // Animate the appearance of the main content immediately
-      document.querySelectorAll(props.revealClass).forEach(el => {
-        el.style.opacity = "0";
-        el.style.transform = "translateY(30px)";
-      });
-      
-      gsap.to(props.revealClass, {
-        y: 0,
-        opacity: 1,
-        stagger: 0.05,
-        duration: 0.3,
-        ease: 'power2.out'
-      });
+      // Check if elements with the reveal class exist before animating
+      const elementsToAnimate = document.querySelectorAll(props.revealClass);
+      if (elementsToAnimate.length > 0) {
+        // Set initial state
+        elementsToAnimate.forEach(el => {
+          el.style.opacity = "0";
+          el.style.transform = "translateY(30px)";
+        });
+        
+        // Animate them
+        gsap.to(elementsToAnimate, {
+          y: 0,
+          opacity: 1,
+          stagger: 0.05,
+          duration: 0.3,
+          ease: 'power2.out'
+        });
+      }
     }
   });
   
