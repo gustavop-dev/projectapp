@@ -1,12 +1,5 @@
 <template>
   <div itemscope itemtype="https://schema.org/WebPage">
-    <!-- Integrar el componente de animación de preloader -->
-    <PreloaderAnimation 
-      :active="true" 
-      revealClass=".animate-on-reveal" 
-      @animationComplete="handleAnimationComplete" 
-    />
-    
     <!-- Fixed navbar component at the top of the page -->
     <header class="fixed top-0 left-0 w-full z-50 animate-on-reveal">
       <Navbar />
@@ -151,7 +144,6 @@ import { ref, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue'
 import Navbar from '@/components/layouts/Navbar.vue'
 import { useMessages } from '@/composables/useMessages'
 import { useFreeResources } from '@/composables/useFreeResources'
-import PreloaderAnimation from '@/components/animations/PreloaderAnimation.vue'
 
 // Lazy load video components with Suspense
 const InitialVideo = defineAsyncComponent(() => 
@@ -183,21 +175,6 @@ useFreeResources({
   videos: [videoRef],
   images: [imageRef],
 })
-
-// Función para manejar la finalización de la animación del preloader
-const handleAnimationComplete = () => {
-  console.log('Preloader animation completed')
-  
-  // Asegurar que el contenido principal es visible
-  setTimeout(() => {
-    document.querySelectorAll('.animate-on-reveal').forEach(el => {
-      if (getComputedStyle(el).opacity === '0') {
-        el.style.opacity = '1';
-        el.style.transform = 'translateY(0)';
-      }
-    });
-  }, 500);
-}
 
 // Debounced resize handler with passive listener for better performance
 let resizeTimeout

@@ -5,15 +5,15 @@
       <!-- Scattered images like thrown photographs -->
       <div class="relative w-full h-full flex items-center justify-center">
         <!-- Central cube image -->
-        <div ref="centralCube" class="absolute w-64 h-64 rounded-xl overflow-hidden shadow-lg border-4 border-white transform scale-0 z-10">
-          <img ref="centralImage" src="@/assets/images/home/cube_illusion.webp" alt="Project App central cube" class="w-full h-full object-cover" @load="handleImageLoad" />
+        <div ref="centralCube" class="absolute rounded-xl bg-white overflow-hidden shadow-lg border-4 border-white transform scale-0 z-10 flex items-center justify-center">
+          <img ref="centralImage" src="@/assets/images/preloadingAnimation/Logo-White-ProjectApp.png" alt="Project App central cube" class="max-w-full max-h-full object-contain" @load="handleImageLoad" />
         </div>
         
         <!-- Image 1 -->
-        <div ref="photoContainer1" class="absolute rounded-xl overflow-hidden shadow-lg border-4 border-white" style="transform: scale(0); rotate: -12deg; z-index: 1;">
-          <img ref="photo1" src="@/assets/images/home/cube_illusion.webp" alt="Project App showcase 1" class="w-full h-full object-cover" @load="handleImageLoad" />
+        <div ref="photoContainer1" class="absolute rounded-xl overflow-hidden shadow-lg border-4 border-white flex items-center justify-center" style="transform: scale(0); rotate: -12deg; z-index: 1;">
+          <img ref="photo1" src="@/assets/images/preloadingAnimation/1.jpg" alt="Project App showcase 1" class="max-w-full max-h-full object-contain" @load="handleImageLoad" />
           <div ref="photoText1" class="absolute bottom-4 left-4 flex items-center opacity-0">
-            <span :class="[fontState.text1, sizeState.text1, 'text-white transform -rotate-3']">NUESTRO ENFOQUE 2025</span>
+            <span :class="[fontState.text1, sizeState.text1, 'text-white transform -rotate-3']">{{ globalMessages.photo_text1 }}</span>
             <img 
               ref="photoArrow1" 
               :src="arrowState.arrow1 ? simplyArrow1 : simplyArrow2" 
@@ -25,10 +25,10 @@
         </div>
         
         <!-- Image 2 -->
-        <div ref="photoContainer2" class="absolute rounded-xl overflow-hidden shadow-lg border-4 border-white" style="transform: scale(0); rotate: 8deg; z-index: 2;">
-          <img ref="photo2" src="@/assets/images/home/cube_illusion.webp" alt="Project App showcase 2" class="w-full h-full object-cover" @load="handleImageLoad" />
+        <div ref="photoContainer2" class="absolute rounded-xl overflow-hidden shadow-lg border-4 border-white flex items-center justify-center" style="transform: scale(0); rotate: 8deg; z-index: 2;">
+          <img ref="photo2" src="@/assets/images/preloadingAnimation/2.jpg" alt="Project App showcase 2" class="max-w-full max-h-full object-contain" @load="handleImageLoad" />
           <div ref="photoText2" class="absolute top-4 right-4 flex items-center opacity-0">
-            <span :class="[fontState.text2, sizeState.text2, 'text-white transform rotate-2']">ESPÍRITU DIGITAL</span>
+            <span :class="[fontState.text2, sizeState.text2, 'text-white transform rotate-2']">{{ globalMessages.photo_text2 }}</span>
             <img 
               ref="photoArrow2" 
               :src="arrowState.arrow2 ? loopArrow1 : loopArrow2" 
@@ -40,10 +40,10 @@
         </div>
 
         <!-- Image 3 -->
-        <div ref="photoContainer3" class="absolute rounded-xl overflow-hidden shadow-lg border-4 border-white" style="transform: scale(0); rotate: -6deg; z-index: 3;">
-          <img ref="photo3" src="@/assets/images/home/cube_illusion.webp" alt="Project App showcase 3" class="w-full h-full object-cover" @load="handleImageLoad" />
+        <div ref="photoContainer3" class="absolute rounded-xl overflow-hidden shadow-lg border-4 border-white flex items-center justify-center" style="transform: scale(0); rotate: -6deg; z-index: 3;">
+          <img ref="photo3" src="@/assets/images/preloadingAnimation/3.jpg" alt="Project App showcase 3" class="max-w-full max-h-full object-contain" @load="handleImageLoad" />
           <div ref="photoText3" class="absolute bottom-4 right-4 flex items-center opacity-0">
-            <span :class="[fontState.text3, sizeState.text3, 'text-white transform -rotate-1']">EXPERIENCIA VISUAL</span>
+            <span :class="[fontState.text3, sizeState.text3, 'text-white transform -rotate-1']">{{ globalMessages.photo_text3 }}</span>
             <img 
               ref="photoArrow3" 
               :src="arrowState.arrow3 ? simplyArrow1 : simplyArrow2" 
@@ -55,10 +55,10 @@
         </div>
 
         <!-- Image 4 -->
-        <div ref="photoContainer4" class="absolute rounded-xl overflow-hidden shadow-lg border-4 border-white" style="transform: scale(0); rotate: 9deg; z-index: 4;">
-          <img ref="photo4" src="@/assets/images/home/cube_illusion.webp" alt="Project App showcase 4" class="w-full h-full object-cover" @load="handleImageLoad" />
+        <div ref="photoContainer4" class="absolute rounded-xl overflow-hidden shadow-lg border-4 border-white flex items-center justify-center" style="transform: scale(0); rotate: 9deg; z-index: 4;">
+          <img ref="photo4" src="@/assets/images/preloadingAnimation/4.jpg" alt="Project App showcase 4" class="max-w-full max-h-full object-contain" @load="handleImageLoad" />
           <div ref="photoText4" class="absolute top-4 left-4 flex items-center opacity-0">
-            <span :class="[fontState.text4, sizeState.text4, 'text-white transform rotate-1']">DISEÑO CREATIVO</span>
+            <span :class="[fontState.text4, sizeState.text4, 'text-white transform rotate-1']">{{ globalMessages.photo_text4 }}</span>
             <img 
               ref="photoArrow4" 
               :src="arrowState.arrow4 ? loopArrow1 : loopArrow2" 
@@ -70,10 +70,10 @@
         </div>
 
         <!-- Image 5 - The one that fades at the end -->
-        <div ref="photoContainer5" class="absolute rounded-xl overflow-hidden shadow-lg border-4 border-white" style="transform: scale(0); rotate: -5deg; z-index: 5;">
-          <img ref="photo5" src="@/assets/images/home/cube_illusion.webp" alt="Project App showcase 5" class="w-full h-full object-cover" @load="handleImageLoad" />
+        <div ref="photoContainer5" class="absolute rounded-xl overflow-hidden shadow-lg border-4 border-white flex items-center justify-center" style="transform: scale(0); rotate: -5deg; z-index: 5;">
+          <img ref="photo5" src="@/assets/images/preloadingAnimation/5.jpeg" alt="Project App showcase 5" class="max-w-full max-h-full object-contain" @load="handleImageLoad" />
           <div ref="photoText5" class="absolute bottom-4 left-4 flex items-center opacity-0">
-            <span :class="[fontState.text5, sizeState.text5, 'text-white transform -rotate-2']">QUECHUA SPIRIT</span>
+            <span :class="[fontState.text5, sizeState.text5, 'text-white transform -rotate-2']">{{ globalMessages.photo_text5 }}</span>
             <img 
               ref="photoArrow5" 
               :src="arrowState.arrow5 ? simplyArrow1 : simplyArrow2" 
@@ -86,31 +86,53 @@
       </div>
       
       <!-- Collection texts with animated arrows - initially hidden with v-show -->
-      <div ref="collectionContainer" v-show="imagesLoaded" class="absolute left-44 bottom-52 flex items-center opacity-0">
-        <span :class="[fontState.mainText1, sizeState.mainText1, 'text-black transform -rotate-12']">OUR NEW COLLECTION 2025</span>
+      <div ref="collectionContainer" v-show="imagesLoaded" 
+           class="absolute flex items-center opacity-0"
+           :class="[
+             isDesktop ? 'left-44 bottom-52' : 'left-8 bottom-36'
+           ]">
+        <span :class="[
+          fontState.mainText1, 
+          isDesktop ? sizeState.mainText1 : 'text-[22px]', 
+          'text-black transform -rotate-12 whitespace-pre-line'
+        ]">{{ globalMessages.left_text }}</span>
         <img 
           ref="simplyArrowMain" 
           :src="mainArrowState.simply ? simplyArrow1 : simplyArrow2" 
           alt="Simply Arrow" 
-          class="ml-4 w-32 h-24 rotate-180" 
+          :class="[
+            'ml-4 rotate-180',
+            isDesktop ? 'w-32 h-24' : 'w-20 h-16'
+          ]"
           @load="handleArrowLoad"
         />
       </div>
       
-      <div ref="spiritContainer" v-show="imagesLoaded" class="absolute right-80 top-72 flex items-center opacity-0">
+      <div ref="spiritContainer" v-show="imagesLoaded" 
+           class="absolute flex items-center opacity-0"
+           :class="[
+             isDesktop ? 'right-80 top-72' : 'right-8 top-32'
+           ]">
         <img 
           ref="loopArrowMain" 
           :src="mainArrowState.loop ? loopArrow1 : loopArrow2" 
           alt="Loop Arrow" 
-          class="ml-4 w-32 h-24 -rotate-45 scale-y-[-1]" 
+          :class="[
+            'ml-4 -rotate-45 scale-y-[-1] mr-4',
+            isDesktop ? 'w-32 h-24' : 'w-20 h-16'
+          ]"
           @load="handleArrowLoad"
         />
-        <span :class="[fontState.mainText2, sizeState.mainText2, 'text-black -ms-8 pb-12 transform rotate-12']">QUECHUA SPIRIT</span>
+        <span :class="[
+          fontState.mainText2, 
+          isDesktop ? sizeState.mainText2 : 'text-[22px]', 
+          'text-black pb-12 transform rotate-12 whitespace-pre-line ml-2'
+        ]">{{ globalMessages.right_text }}</span>
       </div>
       
       <!-- Only the percentage centered on screen -->
       <div class="absolute bottom-10 left-0 right-0 flex justify-center">
-        <div class="text-esmerald text-2xl font-light">
+        <div :class="[isDesktop ? 'text-2xl' : 'text-lg', 'text-esmerald font-light']">
           <span ref="progressText">0%</span>
         </div>
       </div>
@@ -124,12 +146,16 @@
 <script setup>
 import { ref, onMounted, computed, watch, reactive } from 'vue'
 import { gsap } from 'gsap'
+import { useGlobalMessages } from '@/composables/useMessages'
 
 // Import arrow images
 import simplyArrow1 from '../../assets/images/arrows/simply_arrow_1.png'
 import simplyArrow2 from '../../assets/images/arrows/simply_arrow_2.png'
 import loopArrow1 from '../../assets/images/arrows/loop_arrow_1.png'
 import loopArrow2 from '../../assets/images/arrows/loop_arrow_2.png'
+
+// Usar mensajes globales para la sección preloader
+const { globalMessages } = useGlobalMessages('preloader')
 
 // Props to allow control from parent component
 const props = defineProps({
@@ -219,8 +245,8 @@ const sizeState = reactive({
   text3: 'text-[16.25px]',
   text4: 'text-[16px]',
   text5: 'text-[16.25px]',
-  mainText1: 'text-[22px]',
-  mainText2: 'text-[22.25px]'
+  mainText1: 'text-[28px]',
+  mainText2: 'text-[28px]'
 })
 
 // Array of fonts to rotate
@@ -228,7 +254,7 @@ const fontClasses = ['font-caveat-regular', 'font-caveat-medium', 'font-caveat-s
 
 // Array of sizes to alternate - subtle micro variations
 const textSizes = ['text-[16px]', 'text-[16.25px]']
-const mainTextSizes = ['text-[22px]', 'text-[22.25px]']
+const mainTextSizes = ['text-[28px]', 'text-[28.5px]']
 
 // References for main arrows and texts
 const collectionContainer = ref(null)
@@ -260,8 +286,26 @@ const whiteOverlay = ref(null)
 // Watch for changes in the active prop
 const isDesktop = ref(window.innerWidth >= 1024)
 
+// Redefinir posiciones cuando cambia el tamaño de la pantalla
+const updatePositions = () => {
+  isDesktop.value = window.innerWidth >= 1024;
+  
+  // Si ya se han cargado las imágenes y están visibles, actualizar posiciones
+  if (imagesLoaded.value && collectionContainer.value && spiritContainer.value) {
+    if (isDesktop.value) {
+      // Posiciones para escritorio
+      gsap.set(collectionContainer.value, { left: '11rem', bottom: '13rem' });
+      gsap.set(spiritContainer.value, { right: '20rem', top: '18rem' });
+    } else {
+      // Posiciones para móvil - ajustadas para mejor visibilidad
+      gsap.set(collectionContainer.value, { left: '2rem', bottom: '7rem' });
+      gsap.set(spiritContainer.value, { right: '2rem', top: '3rem' });
+    }
+  }
+}
+
 // Total estimated animation duration (in seconds)
-const ANIMATION_DURATION = 2.5  // Total scene duration
+const ANIMATION_DURATION = 2.0  // Reduced to 2 seconds maximum
 
 // Function to animate arrows by switching their variants
 const animateArrows = () => {
@@ -329,14 +373,22 @@ const animateFonts = () => {
 
 // Function to set photo sizes and positions
 const setPhotoSizes = () => {
-  const baseSize = isDesktop.value ? 1 : 0.75 // Scale factor for mobile
+  const baseSize = isDesktop.value ? 1 : 0.7 // Reducido ligeramente para móvil
   
   // All photo containers centered, varying slightly in position
+  
+  // Central cube (logo) - Tamaño y posición ajustados
+  gsap.set(centralCube.value, {
+    width: `${260 * baseSize}px`,
+    height: `${175 * baseSize}px`,
+    x: 0,
+    y: isDesktop.value ? 0 : '-50px', // Mover hacia arriba en móviles
+  })
   
   // Photo 1 - Slightly down and left
   gsap.set(photoContainer1.value, { 
     width: `${300 * baseSize}px`, 
-    height: `${220 * baseSize}px`,
+    height: `${200 * baseSize}px`,
     x: `${-20 * baseSize}px`, 
     y: `${15 * baseSize}px`,
   })
@@ -344,7 +396,7 @@ const setPhotoSizes = () => {
   // Photo 2 - Slightly up and right
   gsap.set(photoContainer2.value, { 
     width: `${280 * baseSize}px`, 
-    height: `${200 * baseSize}px`,
+    height: `${190 * baseSize}px`,
     x: `${30 * baseSize}px`, 
     y: `${-25 * baseSize}px`,
   })
@@ -352,7 +404,7 @@ const setPhotoSizes = () => {
   // Photo 3 - Slightly down and left
   gsap.set(photoContainer3.value, { 
     width: `${310 * baseSize}px`, 
-    height: `${230 * baseSize}px`,
+    height: `${210 * baseSize}px`,
     x: `${-25 * baseSize}px`, 
     y: `${-10 * baseSize}px`,
   })
@@ -360,7 +412,7 @@ const setPhotoSizes = () => {
   // Photo 4 - Slightly up and right
   gsap.set(photoContainer4.value, { 
     width: `${290 * baseSize}px`, 
-    height: `${210 * baseSize}px`,
+    height: `${195 * baseSize}px`,
     x: `${20 * baseSize}px`, 
     y: `${25 * baseSize}px`,
   })
@@ -368,7 +420,7 @@ const setPhotoSizes = () => {
   // Photo 5 - Centered
   gsap.set(photoContainer5.value, { 
     width: `${320 * baseSize}px`, 
-    height: `${235 * baseSize}px`,
+    height: `${215 * baseSize}px`,
     x: `${0}px`, 
     y: `${0}px`,
   })
@@ -382,10 +434,19 @@ const animatePreloader = () => {
   // Mark that the animation has started
   animationStarted.value = true;
   
+  // Set a maximum timeout to ensure animation ends after 2 seconds
+  const forceFinishTimeout = setTimeout(() => {
+    if (isLoading.value) {
+      console.log('Forcing preloader to finish after timeout');
+      finishAnimation();
+    }
+  }, 2000);
+  
   // Main timeline
   const mainTimeline = gsap.timeline({
     onComplete: () => {
       // When the main timeline completes, run the finish animation immediately
+      clearTimeout(forceFinishTimeout); // Clear the timeout if animation completes naturally
       finishAnimation();
     }
   });
@@ -578,6 +639,9 @@ const startFloatingAnimation = () => {
 
 // Separate function to handle the end of the animation
 const finishAnimation = () => {
+  // Check if animation already finished to prevent duplicate calls
+  if (!isLoading.value) return;
+  
   // Timeline for the exit animation, must complete in 0.5 seconds
   const finishTl = gsap.timeline({
     onComplete: () => {
@@ -666,8 +730,8 @@ let resizeTimeout
 function handleResize() {
   clearTimeout(resizeTimeout)
   resizeTimeout = setTimeout(() => {
-    isDesktop.value = window.innerWidth >= 1024
-    setPhotoSizes() // Update sizes when screen size changes
+    updatePositions(); // Actualizar posiciones cuando cambia el tamaño de la pantalla
+    setPhotoSizes(); // Update sizes when screen size changes
   }, 150)
 }
 
@@ -680,6 +744,9 @@ onMounted(() => {
   
   // Set initial photo sizes
   setPhotoSizes()
+  
+  // Establecer posiciones iniciales
+  updatePositions();
   
   // Only start the animation when images are loaded
   // This is now handled in checkImagesLoaded

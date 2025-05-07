@@ -14,6 +14,15 @@ export default {
       },
       contact_us: "Contactanos",
     },
+    preloader: {
+      right_text: "Donde la creatividad\nse encuentra con el código",
+      left_text: "Artesanos\ndel código",
+      photo_text1: "NUESTRO ENFOQUE 2025",
+      photo_text2: "ESPÍRITU DIGITAL",
+      photo_text3: "EXPERIENCIA VISUAL",
+      photo_text4: "DISEÑO CREATIVO",
+      photo_text5: "ESPÍRITU QUECHUA"
+    },
     email_contact: {
       get_in_touch: "Contacta a nuestros desarrolladores web",
       to_label: "Para",

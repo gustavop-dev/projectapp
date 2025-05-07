@@ -14,6 +14,15 @@ export default {
       },
       contact_us: "Contact Us"
     },
+    preloader: {
+      right_text: "Where code\nmeets creativity",
+      left_text: "Born for\nthe web",
+      photo_text1: "OUR APPROACH 2025",
+      photo_text2: "DIGITAL SPIRIT",
+      photo_text3: "VISUAL EXPERIENCE",
+      photo_text4: "CREATIVE DESIGN",
+      photo_text5: "QUECHUA SPIRIT"
+    },
     email_contact: {
       get_in_touch: "Get in touch with our website developers",
       to_label: "To",

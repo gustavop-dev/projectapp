@@ -2,14 +2,22 @@
   <!-- Displays a loading screen while the app is initializing -->
   <LoadingScreen v-if="loading" aria-live="polite" aria-label="Loading website" />
 
-  <!-- Main router view, only shown when loading is complete -->
+  <!-- Preloader animation shown after initial load but before content -->
+  <PreloaderAnimation 
+    v-else-if="showPreloader"
+    :active="true" 
+    revealClass=".animate-on-reveal" 
+    @animationComplete="handlePreloaderComplete" 
+  />
+
+  <!-- Main router view, only shown when loading and preloader are complete -->
   <main v-else>
     <RouterView />
   </main>
 
   <!-- Floating WhatsApp button with neon glow -->
   <a
-    v-if="!loading"
+    v-if="!loading && !showPreloader"
     href="https://wa.me/573238122373"
     target="_blank"
     rel="noopener noreferrer"
@@ -54,7 +62,7 @@
   </a>
 
   <!-- Media Optimizer for performance -->
-  <MediaOptimizer v-if="!loading" />
+  <MediaOptimizer v-if="!loading && !showPreloader" />
 </template>
 
 <script setup>
@@ -63,9 +71,27 @@ import { ref, onMounted, watch } from 'vue';
 import LoadingScreen from '@/components/layouts/LoadingScreen.vue';
 import { RouterView } from 'vue-router';
 import MediaOptimizer from '@/components/layouts/MediaOptimizer.vue';
+import PreloaderAnimation from '@/components/animations/PreloaderAnimation.vue';
 
 const languageStore = useLanguageStore();
 const loading = ref(true);
+const showPreloader = ref(true);
+
+// Función para manejar la finalización de la animación del preloader
+const handlePreloaderComplete = () => {
+  console.log('Preloader animation completed');
+  showPreloader.value = false;
+  
+  // Asegurar que el contenido principal es visible
+  setTimeout(() => {
+    document.querySelectorAll('.animate-on-reveal').forEach(el => {
+      if (getComputedStyle(el).opacity === '0') {
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+      }
+    });
+  }, 500);
+}
 
 const initializeApp = async () => {
   try {
@@ -115,6 +141,13 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+/* Inicialmente ocultar elementos que deben animarse */
+.animate-on-reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 </style>
 
