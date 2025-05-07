@@ -9,8 +9,9 @@
     <Suspense>
       <template #default>
         <component 
+          v-if="isDesktop !== null"
           :is="isDesktop ? InitialVideo : InitialVideoMobile" 
-          :play_text="messages?.video?.text || ''" 
+          :play_text="messages?.video?.text ?? 'Play'" 
           aria-label="Project App web design and development company showcase" 
           itemscope itemtype="https://schema.org/VideoObject"
           class="animate-on-reveal"
@@ -27,7 +28,7 @@
     <!-- Introduction section with main heading -->
     <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52 animate-on-reveal" aria-labelledby="main-intro-title" itemscope itemtype="https://schema.org/WebPageElement">
       <h1 id="main-intro-title" class="block font-light text-4xl text-esmerald lg:pe-60 lg:text-6xl" itemprop="headline">
-        {{ messages?.section_1?.title || '' }}
+        {{ messages?.section_1?.title ?? '' }}
         <span class="sr-only">Project App. - Professional Web Development</span>
       </h1>
     </section>
@@ -36,7 +37,7 @@
     <section class="grid grid-cols-3 animate-on-reveal" aria-labelledby="about-section-title" itemscope itemtype="https://schema.org/AboutPage">
       <div class="col-span-1">
         <h2 id="about-section-title" class="hidden font-light text-sm ms-32 text-esmerald lg:inline" itemprop="name">
-          {{ messages?.section_2?.software_house || '' }}
+          {{ messages?.section_2?.software_house ?? '' }}
           <span class="sr-only">Project App.</span>
         </h2>
       </div>
@@ -45,17 +46,17 @@
           <div class="col-span-1 lg:hidden"></div>
           <div class="col-span-2 lg:col-span-1">
             <h3 class="bg-esmerald-light px-6 py-2 inline-block rounded-3xl text-esmerald text-sm">
-              {{ messages?.section_2?.our_motto || '' }}
+              {{ messages?.section_2?.our_motto ?? '' }}
               <span class="sr-only">Project App.</span>
             </h3>
             <div class="mt-20" itemprop="description">
               <p>
-                <span class="text-esmerald font-regular text-lg">{{ messages?.section_2?.text?.first || '' }}</span>
-                <span class="text-green-light text-lg font-regular">{{ messages?.section_2?.text?.second || '' }}</span>
+                <span class="text-esmerald font-regular text-lg">{{ messages?.section_2?.text?.first ?? '' }}</span>
+                <span class="text-green-light text-lg font-regular">{{ messages?.section_2?.text?.second ?? '' }}</span>
                 <span class="sr-only">Project App. services</span>
               </p>
               <p class="text-green-light text-lg font-regular mt-4">
-                {{ messages?.section_2?.text?.third || '' }}
+                {{ messages?.section_2?.text?.third ?? '' }}
                 <span class="sr-only">Project App. solutions</span>
               </p>
             </div>
@@ -87,7 +88,7 @@
     <!-- Web development services section -->
     <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52 animate-on-reveal" aria-labelledby="services-section-title" itemscope itemtype="https://schema.org/Service">
       <h2 id="services-section-title" class="block font-light text-5xl mb-24 text-esmerald lg:mb-40 lg:text-6xl lg:text-end" itemprop="name">
-        {{ messages?.section_3?.title || '' }}
+        {{ messages?.section_3?.title ?? '' }}
         <span class="sr-only">by Project App.</span>
       </h2>
       <div class="grid lg:grid-cols-2">
@@ -109,33 +110,47 @@
         </div>
         <article class="order-1 lg:order-2 lg:ps-32" itemprop="description">
           <h3 class="text-end text-4xl font-light text-esmerald">
-            {{ messages?.section_3?.web_development?.title || '' }}
+            {{ messages?.section_3?.web_development?.title ?? '' }}
             <span class="sr-only">Project App.</span>
           </h3>
           <p class="text-end text-lg font-regular mt-8 text-green-light">
-            {{ messages?.section_3?.web_development?.text || '' }}
+            {{ messages?.section_3?.web_development?.text ?? '' }}
             <span class="sr-only">by Project App.</span>
           </p>
           <h3 class="text-end text-4xl font-light text-esmerald mt-24 lg:mt-32">
-            {{ messages?.section_3?.custom_development?.title || '' }}
+            {{ messages?.section_3?.custom_development?.title ?? '' }}
             <span class="sr-only">Project App.</span>
           </h3>
           <p class="text-end text-lg font-regular mt-8 text-green-light">
-            {{ messages?.section_3?.custom_development?.text || '' }}
+            {{ messages?.section_3?.custom_development?.text ?? '' }}
             <span class="sr-only">by Project App.</span>
           </p>
         </article>
       </div>
     </section>
 
-    <!-- Contact and Footer sections loaded lazily -->
-    <section aria-label="Contact Project App. for web design services" itemscope itemtype="https://schema.org/ContactPoint" class="animate-on-reveal">
-      <LazyContactSection />
-    </section>
+    <!-- Contact and Footer sections loaded lazily but with improved error handling -->
+    <Suspense v-if="componentsReady">
+      <template #default>
+        <section aria-label="Contact Project App. for web design services" itemscope itemtype="https://schema.org/ContactPoint" class="animate-on-reveal">
+          <LazyContactSection />
+        </section>
+      </template>
+      <template #fallback>
+        <div class="mt-24 p-8 text-center text-green-light">Loading contact information...</div>
+      </template>
+    </Suspense>
     
-    <footer itemscope itemtype="https://schema.org/WPFooter" class="animate-on-reveal">
-      <LazyFooterSection />
-    </footer>
+    <Suspense v-if="componentsReady">
+      <template #default>
+        <footer itemscope itemtype="https://schema.org/WPFooter" class="animate-on-reveal">
+          <LazyFooterSection />
+        </footer>
+      </template>
+      <template #fallback>
+        <div class="p-8 text-center text-green-light">Loading footer...</div>
+      </template>
+    </Suspense>
   </div>
 </template>
 
@@ -168,8 +183,11 @@ const LazyFooterSection = defineAsyncComponent(() =>
 
 const { messages } = useMessages()
 
-// State to determine if the screen is desktop size
-const isDesktop = ref(window.innerWidth >= 1024)
+// State to determine if the screen is desktop size (null initially to avoid rendering before detection)
+const isDesktop = ref(null)
+
+// State to control when to load contact and footer components
+const componentsReady = ref(false)
 
 // Referencias para liberación de recursos
 const videoRef = ref(null)
@@ -188,6 +206,11 @@ onActivated(() => {
     el.style.opacity = '1'
     el.style.transform = 'translateY(0)'
   })
+  
+  // Make sure isDesktop is set on activation
+  if (typeof window !== 'undefined') {
+    isDesktop.value = window.innerWidth >= 1024
+  }
 })
 
 // Handle deactivation to prevent errors when component is cached
@@ -208,7 +231,16 @@ function handleResize() {
 
 // Add event listener for window resize with passive option for better performance
 onMounted(() => {
-  window.addEventListener('resize', handleResize, { passive: true })
+  // Initialize isDesktop properly after the component is mounted
+  if (typeof window !== 'undefined') {
+    isDesktop.value = window.innerWidth >= 1024
+    window.addEventListener('resize', handleResize, { passive: true })
+    
+    // Delayed loading of contact and footer to avoid initial rendering issues
+    setTimeout(() => {
+      componentsReady.value = true
+    }, 1000)
+  }
   
   // Ensure elements are visible
   document.querySelectorAll('.animate-on-reveal').forEach(el => {
@@ -219,7 +251,7 @@ onMounted(() => {
 
 // Remove event listener when component is destroyed
 onBeforeUnmount(() => {
-  if (window) {
+  if (typeof window !== 'undefined') {
     window.removeEventListener('resize', handleResize)
   }
   if (resizeTimeout) {
