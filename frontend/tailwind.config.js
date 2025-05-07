@@ -15,6 +15,10 @@ export default {
         'mediumitalic': ['Ubuntu-MediumItalic', 'sans-serif'],
         'italic': ['Ubuntu-Italic', 'sans-serif'],
         'lightitalic': ['Ubuntu-LightItalic', 'sans-serif'],
+        'caveat-regular': ['Caveat-Regular', 'cursive'],
+        'caveat-medium': ['Caveat-Medium', 'cursive'],
+        'caveat-semibold': ['Caveat-SemiBold', 'cursive'],
+        'caveat-bold': ['Caveat-Bold', 'cursive'],
       },
       colors: {
         'window-black': '#191919',

@@ -58,6 +58,38 @@
     font-style: normal;
   }
 
+/* Caveat Font Family */
+@font-face {
+    font-family: 'Caveat-Regular';
+    src: url('@/assets/fonts/caveat/Caveat-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Caveat-Medium';
+    src: url('@/assets/fonts/caveat/Caveat-Medium.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Caveat-SemiBold';
+    src: url('@/assets/fonts/caveat/Caveat-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Caveat-Bold';
+    src: url('@/assets/fonts/caveat/Caveat-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
 
 
 .swal2-icon.swal2-success .swal2-success-circular-line-left,
