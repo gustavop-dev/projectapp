@@ -30,7 +30,7 @@ export default {
       from_label: "De",
       email_placeholder: "Correo electrónico",
       subject_label: "Asunto",
-      subject_placeholder: "Cuéntanos sobre tu proyecto de desarrollo web",
+      subject_placeholder: "Cuéntanos sobre tu proyecto",
       message_placeholder: "Describenos tu proyecto...",
       send_button: "Enviar",
     },

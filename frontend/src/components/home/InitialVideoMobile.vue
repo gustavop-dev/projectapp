@@ -23,45 +23,47 @@
       </div>
   
       <!-- Video Modal -->
-      <div
-        v-if="showModal"
-        class="fixed inset-0 bg-window-black bg-opacity-90 backdrop-blur-md z-50 flex items-center justify-center"
-      >
-        <!-- Loading Animation -->
+      <Teleport to="body">
         <div
-          v-if="isLoading"
-          class="absolute inset-0 flex items-center justify-center"
+          v-if="showModal"
+          class="fixed inset-0 bg-window-black bg-opacity-75 backdrop-blur-sm z-[999] flex items-center justify-center h-screen w-screen"
         >
-          <Vue3Lottie
-            :animationData="whiteAnimation"
-            :height="300"
-            :width="300"
-            :loop="true"
-            :autoplay="true"
-          />
+          <!-- Loading Animation -->
+          <div
+            v-if="isLoading"
+            class="absolute inset-0 flex items-center justify-center"
+          >
+            <Vue3Lottie
+              :animationData="whiteAnimation"
+              :height="300"
+              :width="300"
+              :loop="true"
+              :autoplay="true"
+            />
+          </div>
+          
+          <!-- Video element only mounts if showVideo is true -->
+          <video
+            v-if="showVideo"
+            ref="videoRef"
+            class="w-full h-auto max-h-screen px-1"
+            autoplay
+            playsinline
+            :muted="false"
+            @loadeddata="onVideoLoad"
+          >
+            <source src="@/assets/videos/presentationComp.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+    
+          <!-- Close button in the top-right corner -->
+          <div class="absolute top-6 right-6 z-[1000]">
+            <button @click="closeModal" class="p-4 bg-transparent flex items-center justify-center">
+              <XMarkIcon class="size-8 text-white" />
+            </button>
+          </div>
         </div>
-        
-        <!-- Video element only mounts if showVideo is true -->
-        <video
-          v-if="showVideo"
-          ref="videoRef"
-          class="w-full max-w-screen h-auto"
-          autoplay
-          playsinline
-          :muted="false"
-          @loadeddata="onVideoLoad"
-        >
-          <source src="@/assets/videos/presentationComp.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-  
-        <!-- Close button in the top-right corner -->
-        <div class="absolute top-4 right-4 z-10">
-          <button @click="closeModal" class="p-2">
-            <XMarkIcon class="size-6 text-white" />
-          </button>
-        </div>
-      </div>
+      </Teleport>
     </div>
   </template>
   
@@ -116,8 +118,37 @@
   watch(showModal, (newVal) => {
     if (newVal) {
       document.body.style.overflow = 'hidden'; // Desactiva el scroll
+      
+      // No ocultamos los elementos fijos, solo aseguramos que estén por debajo del modal
+      // para que se vean a través del efecto semitransparente
+      document.querySelectorAll('.fixed:not(.z-\\[999\\]), .absolute:not(.z-\\[1000\\])').forEach(el => {
+        if (!el.closest('.z-\\[999\\]')) {
+          // En lugar de ocultar, solo reducimos el z-index para que queden por debajo
+          const currentZIndex = getComputedStyle(el).zIndex;
+          if (currentZIndex === 'auto' || Number(currentZIndex) > 10) {
+            el.style.zIndex = '10';
+          }
+        }
+      });
+      
+      // Asegurarnos que el modal esté por encima de todo
+      const modalElement = document.querySelector('.z-\\[999\\]');
+      if (modalElement) {
+        modalElement.style.position = 'fixed';
+        modalElement.style.top = '0';
+        modalElement.style.left = '0';
+        modalElement.style.right = '0';
+        modalElement.style.bottom = '0';
+      }
     } else {
       document.body.style.overflow = ''; // Activa el scroll
+      
+      // Restaurar z-index original
+      document.querySelectorAll('.fixed, .absolute').forEach(el => {
+        if (el.style.zIndex === '10') {
+          el.style.zIndex = '';
+        }
+      });
     }
   });
   
@@ -131,6 +162,16 @@
     showModal.value = true;
     isLoading.value = true;
     showVideo.value = true;
+    
+    // No ocultamos el navbar, solo reducimos su z-index
+    const navbarElements = document.querySelectorAll('.fixed.top-0');
+    navbarElements.forEach(el => {
+      const currentZIndex = getComputedStyle(el).zIndex;
+      if (currentZIndex === 'auto' || Number(currentZIndex) > 10) {
+        el.dataset.originalZIndex = currentZIndex;
+        el.style.zIndex = '10';
+      }
+    });
   
     await nextTick(); // Wait for the video element to mount in the DOM
     const video = videoRef.value;
@@ -176,6 +217,17 @@
   
     showModal.value = false;
     isLoading.value = true;
+    
+    // Restaurar z-index original del navbar
+    const navbarElements = document.querySelectorAll('.fixed.top-0');
+    navbarElements.forEach(el => {
+      if (el.dataset.originalZIndex) {
+        el.style.zIndex = el.dataset.originalZIndex;
+        delete el.dataset.originalZIndex;
+      } else {
+        el.style.zIndex = '';
+      }
+    });
   
     // Unmount the video element to fully stop the video and release resources
     setTimeout(() => {
