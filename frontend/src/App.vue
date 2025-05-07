@@ -98,7 +98,7 @@ onMounted(async () => {
   try {
     await Promise.all([
       initializeApp(),
-      new Promise(resolve => setTimeout(resolve, 1000)) 
+      new Promise(resolve => setTimeout(resolve, 0)) 
     ]);
   } catch (error) {
     console.error('Error during app initialization:', error);

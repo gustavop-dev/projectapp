@@ -1,7 +1,14 @@
 <template>
   <div itemscope itemtype="https://schema.org/WebPage">
+    <!-- Integrar el componente de animación de preloader -->
+    <PreloaderAnimation 
+      :active="true" 
+      revealClass=".animate-on-reveal" 
+      @animationComplete="handleAnimationComplete" 
+    />
+    
     <!-- Fixed navbar component at the top of the page -->
-    <header class="fixed top-0 left-0 w-full z-50">
+    <header class="fixed top-0 left-0 w-full z-50 animate-on-reveal">
       <Navbar />
     </header>
 
@@ -13,6 +20,7 @@
           :play_text=" messages.video.text " 
           aria-label="Project App web design and development company showcase" 
           itemscope itemtype="https://schema.org/VideoObject"
+          class="animate-on-reveal"
         />
       </template>
       <template #fallback>
@@ -24,7 +32,7 @@
     </Suspense>
 
     <!-- Introduction section with main heading -->
-    <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52" aria-labelledby="main-intro-title" itemscope itemtype="https://schema.org/WebPageElement">
+    <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52 animate-on-reveal" aria-labelledby="main-intro-title" itemscope itemtype="https://schema.org/WebPageElement">
       <h1 id="main-intro-title" class="block font-light text-4xl text-esmerald lg:pe-60 lg:text-6xl" itemprop="headline">
         {{ messages.section_1.title }}
         <span class="sr-only">Project App. - Professional Web Development</span>
@@ -32,7 +40,7 @@
     </section>
 
     <!-- About our web design company section -->
-    <section class="grid grid-cols-3" aria-labelledby="about-section-title" itemscope itemtype="https://schema.org/AboutPage">
+    <section class="grid grid-cols-3 animate-on-reveal" aria-labelledby="about-section-title" itemscope itemtype="https://schema.org/AboutPage">
       <div class="col-span-1">
         <h2 id="about-section-title" class="hidden font-light text-sm ms-32 text-esmerald lg:inline" itemprop="name">
           {{ messages.section_2.software_house }}
@@ -84,7 +92,7 @@
     </section>
 
     <!-- Web development services section -->
-    <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52" aria-labelledby="services-section-title" itemscope itemtype="https://schema.org/Service">
+    <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52 animate-on-reveal" aria-labelledby="services-section-title" itemscope itemtype="https://schema.org/Service">
       <h2 id="services-section-title" class="block font-light text-5xl mb-24 text-esmerald lg:mb-40 lg:text-6xl lg:text-end" itemprop="name">
         {{ messages.section_3.title }}
         <span class="sr-only">by Project App.</span>
@@ -128,21 +136,22 @@
     </section>
 
     <!-- Contact and Footer sections loaded lazily -->
-    <section aria-label="Contact Project App. for web design services" itemscope itemtype="https://schema.org/ContactPoint">
+    <section aria-label="Contact Project App. for web design services" itemscope itemtype="https://schema.org/ContactPoint" class="animate-on-reveal">
       <LazyContactSection />
     </section>
     
-    <footer itemscope itemtype="https://schema.org/WPFooter">
+    <footer itemscope itemtype="https://schema.org/WPFooter" class="animate-on-reveal">
       <LazyFooterSection />
     </footer>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, defineAsyncComponent, shallowRef } from 'vue'
+import { ref, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue'
 import Navbar from '@/components/layouts/Navbar.vue'
 import { useMessages } from '@/composables/useMessages'
 import { useFreeResources } from '@/composables/useFreeResources'
+import PreloaderAnimation from '@/components/animations/PreloaderAnimation.vue'
 
 // Lazy load video components with Suspense
 const InitialVideo = defineAsyncComponent(() => 
@@ -174,6 +183,21 @@ useFreeResources({
   videos: [videoRef],
   images: [imageRef],
 })
+
+// Función para manejar la finalización de la animación del preloader
+const handleAnimationComplete = () => {
+  console.log('Preloader animation completed')
+  
+  // Asegurar que el contenido principal es visible
+  setTimeout(() => {
+    document.querySelectorAll('.animate-on-reveal').forEach(el => {
+      if (getComputedStyle(el).opacity === '0') {
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+      }
+    });
+  }, 500);
+}
 
 // Debounced resize handler with passive listener for better performance
 let resizeTimeout
