@@ -19,7 +19,7 @@
     </div>
 
     <!-- Modal -->
-    <div v-if="showModal" class="fixed inset-0 flex items-center justify-center z-50" @mousemove="handleModalMouseMove">
+    <div v-if="showModal" class="fixed inset-0 flex items-center justify-center z-50 bg-window-black bg-opacity-40 backdrop-blur-md" @mousemove="handleModalMouseMove">
       <!-- Loading Animation -->
       <div
         v-show="isLoading"

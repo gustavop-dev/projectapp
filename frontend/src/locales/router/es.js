@@ -44,5 +44,10 @@ export default {
       description: "Soluciones de hosting de sitios web confiables y seguras diseñadas para aplicaciones web y sitios e-commerce de alto rendimiento, optimizados para velocidad y seguridad.",
       keywords: "Project App., hosting de sitios web, hosting seguro, alojamiento web, rendimiento del servidor, diseño web, desarrollo web"
     },
+    "404View": {
+      title: "Viaje Creativo en Pausa (404) - Project App.",
+      description: "Te has aventurado en territorio digital inexplorado. Permítenos guiarte de vuelta a donde nuestra excepcional experiencia en diseño y desarrollo web te espera.",
+      keywords: "Project App., 404, diseño web creativo, experiencia digital, desarrollo de sitios web, experiencia de usuario"
+    }
   };
   

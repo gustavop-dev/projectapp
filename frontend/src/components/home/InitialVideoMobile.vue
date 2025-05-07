@@ -18,7 +18,7 @@
           @click="playReel"
         >
           <PlayIcon class="size-4" />
-          Play Reel
+          {{ play_text }}
         </button>
       </div>
   
@@ -27,6 +27,20 @@
         v-if="showModal"
         class="fixed inset-0 bg-window-black bg-opacity-90 backdrop-blur-md z-50 flex items-center justify-center"
       >
+        <!-- Loading Animation -->
+        <div
+          v-if="isLoading"
+          class="absolute inset-0 flex items-center justify-center"
+        >
+          <Vue3Lottie
+            :animationData="whiteAnimation"
+            :height="300"
+            :width="300"
+            :loop="true"
+            :autoplay="true"
+          />
+        </div>
+        
         <!-- Video element only mounts if showVideo is true -->
         <video
           v-if="showVideo"
@@ -35,6 +49,7 @@
           autoplay
           playsinline
           :muted="false"
+          @loadeddata="onVideoLoad"
         >
           <source src="@/assets/videos/presentationComp.mp4" type="video/mp4" />
           Your browser does not support the video tag.
@@ -51,14 +66,22 @@
   </template>
   
   <script setup>
-  import { ref, nextTick } from 'vue';
+  import { ref, nextTick, watch } from 'vue';
   import { PlayIcon, XMarkIcon } from '@heroicons/vue/24/outline';
+  import { Vue3Lottie } from "vue3-lottie";
+  import whiteAnimation from "@/assets/loading/white.json";
   
   // Reactive variables to control modal and video mounting
   const showModal = ref(false);
   const showVideo = ref(false);
+  const isLoading = ref(true);
   // Reference to the video element inside the modal
   const videoRef = ref(null);
+
+  // Props passed to the component
+  const props = defineProps({
+    play_text: String, // The play button text passed from the parent component
+  });
   
   /**
    * Event handler that forces the video to play if it gets paused.
@@ -82,6 +105,23 @@
   };
   
   /**
+   * Function to handle when the video has fully loaded.
+   */
+  const onVideoLoad = () => {
+    // Set isLoading to false once the video has loaded
+    isLoading.value = false;
+  };
+  
+  // Watch for changes to the showModal state to control scroll
+  watch(showModal, (newVal) => {
+    if (newVal) {
+      document.body.style.overflow = 'hidden'; // Desactiva el scroll
+    } else {
+      document.body.style.overflow = ''; // Activa el scroll
+    }
+  });
+  
+  /**
    * Handles the "Play Reel" button click.
    * - Displays the modal and mounts the video.
    * - Starts playback with sound enabled.
@@ -89,6 +129,7 @@
    */
   const playReel = async () => {
     showModal.value = true;
+    isLoading.value = true;
     showVideo.value = true;
   
     await nextTick(); // Wait for the video element to mount in the DOM
@@ -134,6 +175,7 @@
     }
   
     showModal.value = false;
+    isLoading.value = true;
   
     // Unmount the video element to fully stop the video and release resources
     setTimeout(() => {

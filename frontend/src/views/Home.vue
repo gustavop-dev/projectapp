@@ -10,7 +10,7 @@
       <template #default>
         <component 
           :is="isDesktop ? InitialVideo : InitialVideoMobile" 
-          :play_text="isDesktop ? messages.video.text : undefined" 
+          :play_text=" messages.video.text " 
           aria-label="Project App web design and development company showcase" 
           itemscope itemtype="https://schema.org/VideoObject"
         />

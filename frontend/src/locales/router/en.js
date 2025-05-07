@@ -44,5 +44,10 @@ export default {
       description: "Reliable and secure website hosting solutions designed for high-performance web applications and e-commerce sites, optimized for speed and security.",
       keywords: "Project App., website hosting, secure hosting, web hosting, server performance, website design, web development"
     },
+    "404View": {
+      title: "Creative Journey Paused (404) - Project App.",
+      description: "You've ventured into uncharted digital territory. Let's guide you back to where our exceptional web design and development expertise awaits.",
+      keywords: "Project App., 404, creative web design, digital experience, website development, user journey"
+    }
   };
   

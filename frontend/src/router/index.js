@@ -20,7 +20,7 @@ const router = createRouter({
       component: Home, // Home component for the main landing page
     },
     {
-      path: '/web_designs',
+      path: '/web-designs',
       name: 'webDesigns',
       component: () => import("@/views/webDesigns/List.vue"), // Lazy-loaded Web Designs list
     },
@@ -53,6 +53,11 @@ const router = createRouter({
       path: '/portfolio-works/:example?',
       name: 'portfolioWorks',
       component: () => import("@/views/PortfolioWorks.vue"), // Lazy-loaded PortfolioWorks list
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: '404View',
+      component: () => import("@/views/NotFound.vue"), // Lazy-loaded 404 page
     }
   ],
 });

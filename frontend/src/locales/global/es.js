@@ -41,7 +41,7 @@ export default {
       facebook: "Facebook",
       whatsapp: "WhatsApp",
       email_address: "team@projectapp.co",
-      play_reel: "Ver Nuestro Portafolio de Diseño Web",
+      play_reel: "Reproducir",
       solutions: {
         home: "Inicio",
         about: "Nosotros",
