@@ -10,7 +10,8 @@ import { defineAsyncComponent, ref, onMounted, onBeforeUnmount, shallowRef } fro
 const FooterDesktop = defineAsyncComponent(() => import('@/components/layouts/FooterDesktop.vue'));
 const FooterMobile = defineAsyncComponent(() => import('@/components/layouts/FooterMobile.vue'));
 
-const isDesktop = ref(window.innerWidth >= 1024);
+// Inicializar isDesktop con un valor por defecto de false
+const isDesktop = ref(false);
 
 // Debounce para optimizar la gestión de resize
 let resizeTimeout;
@@ -23,8 +24,10 @@ function handleResize() {
   }, 150);
 }
 
-// Añadir event listener para window resize
+// Añadir event listener para window resize y establecer valor inicial
 onMounted(() => {
+  // Establecer el valor inicial después de montar el componente
+  isDesktop.value = window.innerWidth >= 1024;
   window.addEventListener('resize', handleResize, { passive: true });
 });
 
