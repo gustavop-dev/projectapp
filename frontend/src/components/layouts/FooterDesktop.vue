@@ -117,13 +117,16 @@
         aria-live="polite"
         aria-label="Loading video"
       >
-          <Vue3Lottie
-            :animationData="whiteAnimation"
-            :height="300"
-            :width="300"
-            :loop="true"
-            :autoplay="true"
-          />
+          <div v-if="Vue3Lottie">
+            <Vue3Lottie
+              :animationData="whiteAnimation"
+              :height="300"
+              :width="300"
+              :loop="true"
+              :autoplay="true"
+            />
+          </div>
+          <div v-else class="w-12 h-12 border-4 border-white rounded-full border-t-transparent animate-spin"></div>
       </div>
       <div 
         v-show="!isLoading" 
@@ -158,26 +161,25 @@
 
 <script setup>
 import Email from '@/components/layouts/Email.vue';
-import { ref, onMounted, onUnmounted, watch, shallowRef } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { gsap } from 'gsap';
 import { XMarkIcon } from '@heroicons/vue/24/outline';
 import ArrowUpRightIcon from '@heroicons/vue/20/solid/ArrowUpRightIcon';
 import { useGlobalMessages } from '@/composables/useMessages';
 import { useFreeResources } from '@/composables/useFreeResources';
 
-// Usar importación dinámica para reducir el tamaño del bundle inicial
-const Vue3Lottie = shallowRef(null);
-const whiteAnimation = shallowRef(null);
+// Cargar componentes de Lottie de forma convencional
+import { Vue3Lottie } from "vue3-lottie";
+let whiteAnimation = null;
 
-// Cargar componentes no críticos de forma diferida
+// Cargar la animación de forma diferida
 onMounted(async () => {
-  const [lottieModule, animationModule] = await Promise.all([
-    import("vue3-lottie"),
-    import("@/assets/loading/white.json")
-  ]);
-  
-  Vue3Lottie.value = lottieModule.Vue3Lottie;
-  whiteAnimation.value = animationModule.default;
+  try {
+    const animationModule = await import("@/assets/loading/white.json");
+    whiteAnimation = animationModule.default;
+  } catch (error) {
+    console.error("Error loading animation:", error);
+  }
 });
 
 const { globalMessages } = useGlobalMessages('footer');
@@ -302,6 +304,9 @@ const hoverMenu = (event, isHover) => {
 
 // Hook de ciclo de vida que se ejecuta cuando el componente está montado
 onMounted(() => {
+  // Verificar que window esté definido
+  if (typeof window === 'undefined') return;
+  
   // Iniciar la actualización de la posición de la bola
   animationFrameId = requestAnimationFrame(updateBallPosition);
 
@@ -345,6 +350,9 @@ onMounted(() => {
 
 // Hook de ciclo de vida que se ejecuta cuando el componente es desmontado
 onUnmounted(() => {
+  // Verificar que window esté definido
+  if (typeof window === 'undefined') return;
+  
   // Detener las actualizaciones de la posición de la bola
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);

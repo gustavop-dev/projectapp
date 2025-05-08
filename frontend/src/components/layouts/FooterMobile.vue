@@ -108,8 +108,15 @@ const solutions = ref([
 const mainVideo = ref(null);
 
 // Limpiar recursos cuando el componente se desmonta
-useFreeResources({
+const { freeMediaResources } = useFreeResources({
   videos: [mainVideo],
+});
+
+// Limpiar recursos correctamente
+onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    freeMediaResources();
+  }
 });
 </script>
 

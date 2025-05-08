@@ -4,7 +4,7 @@
     </footer>
 </template>
 <script setup>
-import { defineAsyncComponent, ref, onMounted, onBeforeUnmount, shallowRef } from 'vue';
+import { defineAsyncComponent, ref, onMounted, onBeforeUnmount } from 'vue';
 
 // Carga diferida de componentes para mejor rendimiento inicial
 const FooterDesktop = defineAsyncComponent(() => import('@/components/layouts/FooterDesktop.vue'));
@@ -26,16 +26,21 @@ function handleResize() {
 
 // Añadir event listener para window resize y establecer valor inicial
 onMounted(() => {
-  // Establecer el valor inicial después de montar el componente
-  isDesktop.value = window.innerWidth >= 1024;
-  window.addEventListener('resize', handleResize, { passive: true });
+  // Verificar que window esté definido antes de usarlo
+  if (typeof window !== 'undefined') {
+    // Establecer el valor inicial después de montar el componente
+    isDesktop.value = window.innerWidth >= 1024;
+    window.addEventListener('resize', handleResize, { passive: true });
+  }
 });
 
 // Limpiar event listener y timeout cuando el componente se desmonta
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleResize);
-  if (resizeTimeout) {
-    clearTimeout(resizeTimeout);
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', handleResize);
+    if (resizeTimeout) {
+      clearTimeout(resizeTimeout);
+    }
   }
 });
 </script>
