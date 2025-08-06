@@ -15,7 +15,15 @@ export function useMessages() {
   const route = useRoute();
 
   // Computed property that returns the messages for the current route/view
-  const messages = computed(() => languageStore.getMessagesForView(route.name));
+  // Remove locale suffix from route name to match the folder structure
+  const messages = computed(() => {
+    let routeName = route.name;
+    if (routeName) {
+      // Remove locale suffix (-es-co or -en-us) to get the base route name
+      routeName = routeName.replace(/-es-co$|-en-us$/, '');
+    }
+    return languageStore.getMessagesForView(routeName);
+  });
 
   return {
     messages,

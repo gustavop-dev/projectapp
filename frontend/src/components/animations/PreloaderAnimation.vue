@@ -154,7 +154,7 @@ import simplyArrow2 from '../../assets/images/arrows/simply_arrow_2.png'
 import loopArrow1 from '../../assets/images/arrows/loop_arrow_1.png'
 import loopArrow2 from '../../assets/images/arrows/loop_arrow_2.png'
 
-// Usar mensajes globales para la sección preloader
+// Use global messages for the preloader section
 const { globalMessages } = useGlobalMessages('preloader')
 
 // Props to allow control from parent component
@@ -286,20 +286,28 @@ const whiteOverlay = ref(null)
 // Watch for changes in the active prop
 const isDesktop = ref(window.innerWidth >= 1024)
 
-// Redefinir posiciones cuando cambia el tamaño de la pantalla
+// Redefine positions when screen size changes
 const updatePositions = () => {
   isDesktop.value = window.innerWidth >= 1024;
   
-  // Si ya se han cargado las imágenes y están visibles, actualizar posiciones
-  if (imagesLoaded.value && collectionContainer.value && spiritContainer.value) {
-    if (isDesktop.value) {
-      // Posiciones para escritorio
-      gsap.set(collectionContainer.value, { left: '11rem', bottom: '13rem' });
-      gsap.set(spiritContainer.value, { right: '20rem', top: '18rem' });
-    } else {
-      // Posiciones para móvil - ajustadas para mejor visibilidad
-      gsap.set(collectionContainer.value, { left: '2rem', bottom: '7rem' });
-      gsap.set(spiritContainer.value, { right: '2rem', top: '3rem' });
+  // If images are already loaded and visible, update positions
+  if (imagesLoaded.value) {
+    if (collectionContainer.value) {
+      if (isDesktop.value) {
+        // Desktop positions
+        gsap.set(collectionContainer.value, { left: '11rem', bottom: '13rem' });
+      } else {
+        // Mobile positions - adjusted for better visibility
+        gsap.set(collectionContainer.value, { left: '2rem', bottom: '7rem' });
+      }
+    }
+    
+    if (spiritContainer.value) {
+      if (isDesktop.value) {
+        gsap.set(spiritContainer.value, { right: '20rem', top: '18rem' });
+      } else {
+        gsap.set(spiritContainer.value, { right: '2rem', top: '3rem' });
+      }
     }
   }
 }
@@ -373,61 +381,85 @@ const animateFonts = () => {
 
 // Function to set photo sizes and positions
 const setPhotoSizes = () => {
-  const baseSize = isDesktop.value ? 1 : 0.7 // Reducido ligeramente para móvil
+  const baseSize = isDesktop.value ? 1 : 0.7 // Slightly reduced for mobile
   
   // All photo containers centered, varying slightly in position
   
-  // Central cube (logo) - Tamaño y posición ajustados
-  gsap.set(centralCube.value, {
-    width: `${260 * baseSize}px`,
-    height: `${175 * baseSize}px`,
-    x: 0,
-    y: isDesktop.value ? 0 : '-50px', // Mover hacia arriba en móviles
-  })
+  // Central cube (logo) - Size and position adjusted
+  if (centralCube.value) {
+    gsap.set(centralCube.value, {
+      width: `${260 * baseSize}px`,
+      height: `${175 * baseSize}px`,
+      x: 0,
+      y: isDesktop.value ? 0 : '-50px', // Move up on mobile devices
+    });
+  }
   
   // Photo 1 - Slightly down and left
-  gsap.set(photoContainer1.value, { 
-    width: `${300 * baseSize}px`, 
-    height: `${200 * baseSize}px`,
-    x: `${-20 * baseSize}px`, 
-    y: `${15 * baseSize}px`,
-  })
+  if (photoContainer1.value) {
+    gsap.set(photoContainer1.value, { 
+      width: `${300 * baseSize}px`, 
+      height: `${200 * baseSize}px`,
+      x: `${-20 * baseSize}px`, 
+      y: `${15 * baseSize}px`,
+    });
+  }
   
   // Photo 2 - Slightly up and right
-  gsap.set(photoContainer2.value, { 
-    width: `${280 * baseSize}px`, 
-    height: `${190 * baseSize}px`,
-    x: `${30 * baseSize}px`, 
-    y: `${-25 * baseSize}px`,
-  })
+  if (photoContainer2.value) {
+    gsap.set(photoContainer2.value, { 
+      width: `${280 * baseSize}px`, 
+      height: `${190 * baseSize}px`,
+      x: `${30 * baseSize}px`, 
+      y: `${-25 * baseSize}px`,
+    });
+  }
   
   // Photo 3 - Slightly down and left
-  gsap.set(photoContainer3.value, { 
-    width: `${310 * baseSize}px`, 
-    height: `${210 * baseSize}px`,
-    x: `${-25 * baseSize}px`, 
-    y: `${-10 * baseSize}px`,
-  })
+  if (photoContainer3.value) {
+    gsap.set(photoContainer3.value, { 
+      width: `${310 * baseSize}px`, 
+      height: `${210 * baseSize}px`,
+      x: `${-25 * baseSize}px`, 
+      y: `${-10 * baseSize}px`,
+    });
+  }
   
   // Photo 4 - Slightly up and right
-  gsap.set(photoContainer4.value, { 
-    width: `${290 * baseSize}px`, 
-    height: `${195 * baseSize}px`,
-    x: `${20 * baseSize}px`, 
-    y: `${25 * baseSize}px`,
-  })
+  if (photoContainer4.value) {
+    gsap.set(photoContainer4.value, { 
+      width: `${290 * baseSize}px`, 
+      height: `${195 * baseSize}px`,
+      x: `${20 * baseSize}px`, 
+      y: `${25 * baseSize}px`,
+    });
+  }
   
   // Photo 5 - Centered
-  gsap.set(photoContainer5.value, { 
-    width: `${320 * baseSize}px`, 
-    height: `${215 * baseSize}px`,
-    x: `${0}px`, 
-    y: `${0}px`,
-  })
+  if (photoContainer5.value) {
+    gsap.set(photoContainer5.value, { 
+      width: `${320 * baseSize}px`, 
+      height: `${215 * baseSize}px`,
+      x: `${0}px`, 
+      y: `${0}px`,
+    });
+  }
 }
 
 // Variable to store the arrow animation interval
 let arrowInterval = null
+
+// Helper function to safely animate elements with null checks
+const safeAnimate = (timeline, target, properties, timing = undefined) => {
+  if (target) {
+    if (timing !== undefined) {
+      return timeline.to(target, properties, timing);
+    } else {
+      return timeline.to(target, properties);
+    }
+  }
+  return timeline;
+};
 
 // Function to animate the preloader with 5 photos
 const animatePreloader = () => {
@@ -463,123 +495,135 @@ const animatePreloader = () => {
     duration: ANIMATION_DURATION,
     ease: "linear",
     onUpdate: () => {
-      // Update the percentage text on each frame
-      progressText.value.textContent = `${Math.round(progress.value)}%`;
+      // Update the percentage text on each frame with null check
+      if (progressText.value) {
+        progressText.value.textContent = `${Math.round(progress.value)}%`;
+      }
     }
   }, 0);
   
   // Animate the main texts with arrows (now at the beginning)
-  mainTimeline.to(collectionContainer.value, {
-    opacity: 1,
-    x: 0,
-    duration: 0.6,
-    ease: 'back.out'
-  }, 0.1);
+  if (collectionContainer.value) {
+    mainTimeline.to(collectionContainer.value, {
+      opacity: 1,
+      x: 0,
+      duration: 0.6,
+      ease: 'back.out'
+    }, 0.1);
+  }
   
-  mainTimeline.to(spiritContainer.value, {
-    opacity: 1,
-    x: 0,
-    duration: 0.6,
-    ease: 'back.out'
-  }, 0.2);
+  if (spiritContainer.value) {
+    mainTimeline.to(spiritContainer.value, {
+      opacity: 1,
+      x: 0,
+      duration: 0.6,
+      ease: 'back.out'
+    }, 0.2);
+  }
   
   // Photo 1 - Slower movement
-  mainTimeline.to(photoContainer1.value, { 
-    scale: 1, 
-    duration: 0.45, // Increased duration
-    ease: 'back.out(1.3)', // Smoother easing
-    rotation: -12
-  }, 0.05);
+  if (photoContainer1.value) {
+    mainTimeline.to(photoContainer1.value, { 
+      scale: 1, 
+      duration: 0.45, // Increased duration
+      ease: 'back.out(1.3)', // Smoother easing
+      rotation: -12
+    }, 0.05);
+  }
   
-  mainTimeline.to(photoText1.value, { 
-    opacity: 1, 
-    duration: 0.3 // Increased duration
-  }, "+=0.05");
+  if (photoText1.value) {
+    mainTimeline.to(photoText1.value, { 
+      opacity: 1, 
+      duration: 0.3 // Increased duration
+    }, "+=0.05");
+  }
   
-  mainTimeline.to(photoArrow1.value, { 
-    opacity: 1, 
-    x: 0, 
-    duration: 0.2 // Increased duration
-  }, "-=0.15");
+  if (photoArrow1.value) {
+    mainTimeline.to(photoArrow1.value, { 
+      opacity: 1, 
+      x: 0, 
+      duration: 0.2 // Increased duration
+    }, "-=0.15");
+  }
   
   // Photo 2 - Slower movement
-  mainTimeline.to(photoContainer2.value, { 
+  safeAnimate(mainTimeline, photoContainer2.value, { 
     scale: 1, 
     duration: 0.45, // Increased duration
     ease: 'back.out(1.3)', // Smoother easing
     rotation: 8
   }, 0.30); // Slightly delayed start
   
-  mainTimeline.to(photoText2.value, { 
+  safeAnimate(mainTimeline, photoText2.value, { 
     opacity: 1, 
     duration: 0.3 // Increased duration
   }, "+=0.05");
   
-  mainTimeline.to(photoArrow2.value, { 
+  safeAnimate(mainTimeline, photoArrow2.value, { 
     opacity: 1, 
     x: 0, 
     duration: 0.2 // Increased duration
   }, "-=0.15");
   
   // Photo 3 - Slower movement
-  mainTimeline.to(photoContainer3.value, { 
+  safeAnimate(mainTimeline, photoContainer3.value, { 
     scale: 1, 
     duration: 0.45, // Increased duration
     ease: 'back.out(1.3)', // Smoother easing
     rotation: -6
   }, 0.55); // Slightly delayed start
   
-  mainTimeline.to(photoText3.value, { 
+  safeAnimate(mainTimeline, photoText3.value, { 
     opacity: 1, 
     duration: 0.3 // Increased duration
   }, "+=0.05");
   
-  mainTimeline.to(photoArrow3.value, { 
+  safeAnimate(mainTimeline, photoArrow3.value, { 
     opacity: 1, 
     x: 0, 
     duration: 0.2 // Increased duration
   }, "-=0.15");
   
   // Photo 4 - Slower movement
-  mainTimeline.to(photoContainer4.value, { 
+  safeAnimate(mainTimeline, photoContainer4.value, { 
     scale: 1, 
     duration: 0.45, // Increased duration
     ease: 'back.out(1.3)', // Smoother easing
     rotation: 9
   }, 0.80); // Slightly delayed start
   
-  mainTimeline.to(photoText4.value, { 
+  safeAnimate(mainTimeline, photoText4.value, { 
     opacity: 1, 
     duration: 0.3 // Increased duration
   }, "+=0.05");
   
-  mainTimeline.to(photoArrow4.value, { 
+  safeAnimate(mainTimeline, photoArrow4.value, { 
     opacity: 1, 
     x: 0, 
     duration: 0.2 // Increased duration
   }, "-=0.15");
   
   // Photo 5 - The last one that fades away - Slower movement
-  mainTimeline.to(photoContainer5.value, { 
+  safeAnimate(mainTimeline, photoContainer5.value, { 
     scale: 1, 
     duration: 0.45, // Increased duration
     ease: 'back.out(1.3)', // Smoother easing
     rotation: -5
   }, 1.05); // Slightly delayed start
   
-  mainTimeline.to(photoText5.value, { 
+  safeAnimate(mainTimeline, photoText5.value, { 
     opacity: 1, 
     duration: 0.3 // Increased duration
   }, "+=0.05");
   
-  mainTimeline.to(photoArrow5.value, { 
+  safeAnimate(mainTimeline, photoArrow5.value, { 
     opacity: 1, 
     x: 0, 
     duration: 0.2 // Increased duration
   }, "-=0.15");
   
   // Animate the central cube - after the photos
-  mainTimeline.to(centralCube.value, {
+  safeAnimate(mainTimeline, centralCube.value, {
     scale: 1,
     rotation: 0,
     duration: 0.5, // Increased duration
@@ -605,36 +649,41 @@ const startFloatingAnimation = () => {
   });
   
   // Animate all photo containers with a smooth floating effect
-  floatingTl.value.to([photoContainer1.value, photoContainer2.value, photoContainer3.value, 
-                     photoContainer4.value, photoContainer5.value], {
-    y: '-=4',       // Move 4px up
-    duration: 1.2,  // For 1.2 seconds
-    ease: 'sine.inOut',
-    stagger: {
-      each: 0.15,   // Offset between elements
-      from: "random" // Start from a random element for more naturalness
-    }
-  }).to([photoContainer1.value, photoContainer2.value, photoContainer3.value, 
-         photoContainer4.value, photoContainer5.value], {
-    y: '+=4',       // Move back 4px down
-    duration: 1.2,  // For 1.2 seconds
-    ease: 'sine.inOut',
-    stagger: {
-      each: 0.15,   // Offset between elements
-      from: "random" // Start from a random element for more naturalness
-    }
-  });
+  const photoContainers = [photoContainer1.value, photoContainer2.value, photoContainer3.value, 
+                          photoContainer4.value, photoContainer5.value].filter(el => el !== null);
+  
+  if (photoContainers.length > 0) {
+    floatingTl.value.to(photoContainers, {
+      y: '-=4',       // Move 4px up
+      duration: 1.2,  // For 1.2 seconds
+      ease: 'sine.inOut',
+      stagger: {
+        each: 0.15,   // Offset between elements
+        from: "random" // Start from a random element for more naturalness
+      }
+    }).to(photoContainers, {
+      y: '+=4',       // Move back 4px down
+      duration: 1.2,  // For 1.2 seconds
+      ease: 'sine.inOut',
+      stagger: {
+        each: 0.15,   // Offset between elements
+        from: "random" // Start from a random element for more naturalness
+      }
+    });
+  }
   
   // Also slightly animate the central cube
-  floatingTl.value.to(centralCube.value, {
-    y: '-=2',       // Move only 2px for a more subtle effect
-    duration: 1.5,  // Slightly slower
-    ease: 'sine.inOut',
-  }, 0).to(centralCube.value, {
-    y: '+=2',       // Move back 2px down
-    duration: 1.5,  // Slightly slower
-    ease: 'sine.inOut',
-  }, 1.5);
+  if (centralCube.value) {
+    floatingTl.value.to(centralCube.value, {
+      y: '-=2',       // Move only 2px for a more subtle effect
+      duration: 1.5,  // Slightly slower
+      ease: 'sine.inOut',
+    }, 0).to(centralCube.value, {
+      y: '+=2',       // Move back 2px down
+      duration: 1.5,  // Slightly slower
+      ease: 'sine.inOut',
+    }, 1.5);
+  }
 }
 
 // Separate function to handle the end of the animation
@@ -688,46 +737,66 @@ const finishAnimation = () => {
   });
   
   // Parallel timeline for fading out the container with fade-out
-  gsap.to(preloaderContainer.value, {
-    opacity: 0,
-    duration: 0.3,
-    ease: 'power2.inOut'
-  });
+  if (preloaderContainer.value) {
+    gsap.to(preloaderContainer.value, {
+      opacity: 0,
+      duration: 0.3,
+      ease: 'power2.inOut'
+    });
+  }
   
   // First animate the exit of the main texts
-  gsap.to([collectionContainer.value, spiritContainer.value], {
-    opacity: 0,
-    duration: 0.18, // Adjusted duration
-    ease: 'power2.in'
-  });
+  const mainTexts = [collectionContainer.value, spiritContainer.value].filter(el => el !== null);
+  if (mainTexts.length > 0) {
+    gsap.to(mainTexts, {
+      opacity: 0,
+      duration: 0.18, // Adjusted duration
+      ease: 'power2.in'
+    });
+  }
   
   // Animate the exit of the photos and overlay in parallel and quickly
-  finishTl
-    .to(centralCube.value, {
+  // Central cube animation with null check
+  if (centralCube.value) {
+    finishTl.to(centralCube.value, {
       scale: 1.4,
       opacity: 0,
       duration: 0.22, // Adjusted duration
       ease: 'power2.in'
-    }, 0)
-    .to(photoContainer5.value, {
+    }, 0);
+  }
+  
+  // Photo 5 animation with null check
+  if (photoContainer5.value) {
+    finishTl.to(photoContainer5.value, {
       scale: 1.2,
       opacity: 0,
       duration: 0.18, // Adjusted duration
       ease: 'power2.in'
-    }, 0.03) // Adjusted timing
-    .to([photoContainer1.value, photoContainer2.value, photoContainer3.value, photoContainer4.value], {
+    }, 0.03); // Adjusted timing
+  }
+  
+  // Photos 1-4 animation with null check
+  const photoContainers = [photoContainer1.value, photoContainer2.value, photoContainer3.value, photoContainer4.value].filter(el => el !== null);
+  if (photoContainers.length > 0) {
+    finishTl.to(photoContainers, {
       scale: 0.8,
       opacity: 0,
       stagger: 0.02,
       duration: 0.15, // Maintained duration
       ease: 'power2.in'
-    }, 0.06) // Adjusted timing
-    .to(whiteOverlay.value, {
+    }, 0.06); // Adjusted timing
+  }
+  
+  // White overlay animation with null check
+  if (whiteOverlay.value) {
+    finishTl.to(whiteOverlay.value, {
       scale: 12,
       rotate: 360,
       duration: 0.25, // Adjusted duration
       ease: 'power3.inOut'
     }, 0.1); // Adjusted timing
+  }
 }
 
 // Debounced resize handler
@@ -750,7 +819,7 @@ onMounted(() => {
   // Set initial photo sizes
   setPhotoSizes()
   
-  // Establecer posiciones iniciales
+  // Set initial positions
   updatePositions();
   
   // Only start the animation when images are loaded
