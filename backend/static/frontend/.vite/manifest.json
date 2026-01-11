@@ -1,0 +1,579 @@
+{
+  "_Dunes.CiEAeNYr.js": {
+    "file": "assets/Dunes.CiEAeNYr.js",
+    "name": "Dunes",
+    "assets": [
+      "assets/Dunes.BwLxgZSh.mp4"
+    ]
+  },
+  "_ImageLoader.CXpTM8U4.js": {
+    "file": "assets/ImageLoader.CXpTM8U4.js",
+    "name": "ImageLoader",
+    "imports": [
+      "index.html"
+    ]
+  },
+  "_howler.CcdQYWhE.js": {
+    "file": "assets/howler.CcdQYWhE.js",
+    "name": "howler",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html"
+    ]
+  },
+  "_vue3-marquee.es.CV6K537G.js": {
+    "file": "assets/vue3-marquee.es.CV6K537G.js",
+    "name": "vue3-marquee.es",
+    "imports": [
+      "index.html"
+    ]
+  },
+  "index.html": {
+    "file": "assets/index.BLL38fba.js",
+    "name": "index",
+    "src": "index.html",
+    "isEntry": true,
+    "isDynamicEntry": true,
+    "dynamicImports": [
+      "src/locales/global/en.js",
+      "src/locales/global/es.js",
+      "src/locales/3dAnimations/en.js",
+      "src/locales/3dAnimations/es.js",
+      "src/locales/404View/en.js",
+      "src/locales/404View/es.js",
+      "src/locales/aboutUs/en.js",
+      "src/locales/aboutUs/es.js",
+      "src/locales/contact/en.js",
+      "src/locales/contact/es.js",
+      "src/locales/contactSuccess/en.js",
+      "src/locales/contactSuccess/es.js",
+      "src/locales/customSoftware/en.js",
+      "src/locales/customSoftware/es.js",
+      "src/locales/eCommercePrices/en.js",
+      "src/locales/eCommercePrices/es.js",
+      "src/locales/global/en.js",
+      "src/locales/global/es.js",
+      "src/locales/home/en.js",
+      "src/locales/home/es.js",
+      "src/locales/hosting/en.js",
+      "src/locales/hosting/es.js",
+      "src/locales/portfolioWorks/en.js",
+      "src/locales/portfolioWorks/es.js",
+      "src/locales/webDesigns/en.js",
+      "src/locales/webDesigns/es.js",
+      "src/components/layouts/FooterDesktop.vue",
+      "src/components/layouts/FooterMobile.vue",
+      "src/views/webDesigns/List.vue",
+      "src/views/3dAnimations/List.vue",
+      "src/views/AboutUs.vue",
+      "src/views/CustomSoftware.vue",
+      "src/views/Prices.vue",
+      "src/views/Hosting.vue",
+      "src/views/PortfolioWorks.vue",
+      "src/views/Contact.vue",
+      "src/views/ContactSuccess.vue",
+      "src/views/webDesigns/List.vue",
+      "src/views/3dAnimations/List.vue",
+      "src/views/AboutUs.vue",
+      "src/views/CustomSoftware.vue",
+      "src/views/Prices.vue",
+      "src/views/Hosting.vue",
+      "src/views/PortfolioWorks.vue",
+      "src/views/Contact.vue",
+      "src/views/ContactSuccess.vue",
+      "src/views/webDesigns/List.vue",
+      "src/views/3dAnimations/List.vue",
+      "src/views/AboutUs.vue",
+      "src/views/CustomSoftware.vue",
+      "src/views/Prices.vue",
+      "src/views/Hosting.vue",
+      "src/views/PortfolioWorks.vue",
+      "src/views/Contact.vue",
+      "src/views/ContactSuccess.vue",
+      "src/views/NotFound.vue"
+    ],
+    "css": [
+      "assets/index.GXjdmtPs.css"
+    ],
+    "assets": [
+      "assets/cubic.CQNy3BtW.mp4",
+      "assets/cube_illusion.DYL4WbFP.webp",
+      "assets/presentationPrevPc.CNehcl2i.mp4",
+      "assets/presentationComp.ARlWhQQr.mp4",
+      "assets/presentationMobile.Cpdkya5B.mp4",
+      "assets/Ubuntu-Bold.BGoo8i9Y.ttf",
+      "assets/Ubuntu-BoldItalic.DiND6kz9.ttf",
+      "assets/Ubuntu-Italic.BxSEJX07.ttf",
+      "assets/Ubuntu-Light.DlXMI-yU.ttf",
+      "assets/Ubuntu-LightItalic.BBGxubWq.ttf",
+      "assets/Ubuntu-Medium.C-1-7KOl.ttf",
+      "assets/Ubuntu-MediumItalic.Cp5nc9PY.ttf",
+      "assets/Ubuntu-Regular.D14tH6yt.ttf",
+      "assets/Caveat-Regular.UJ9gNz5N.ttf",
+      "assets/Caveat-Medium.DOXsaZdg.ttf",
+      "assets/Caveat-SemiBold.Cw4oUA2D.ttf",
+      "assets/Caveat-Bold.IavRZg2G.ttf"
+    ]
+  },
+  "node_modules/@splinetool/runtime/build/boolean.js": {
+    "file": "assets/boolean.Cuf2Mi8k.js",
+    "name": "boolean",
+    "src": "node_modules/@splinetool/runtime/build/boolean.js",
+    "isDynamicEntry": true
+  },
+  "node_modules/@splinetool/runtime/build/gaussian-splat-compression.js": {
+    "file": "assets/gaussian-splat-compression.BblNKJdU.js",
+    "name": "gaussian-splat-compression",
+    "src": "node_modules/@splinetool/runtime/build/gaussian-splat-compression.js",
+    "isDynamicEntry": true
+  },
+  "node_modules/@splinetool/runtime/build/navmesh.js": {
+    "file": "assets/navmesh.BFd9Mv4x.js",
+    "name": "navmesh",
+    "src": "node_modules/@splinetool/runtime/build/navmesh.js",
+    "isDynamicEntry": true
+  },
+  "node_modules/@splinetool/runtime/build/opentype.js": {
+    "file": "assets/opentype.D6jUvuOk.js",
+    "name": "opentype",
+    "src": "node_modules/@splinetool/runtime/build/opentype.js",
+    "isDynamicEntry": true
+  },
+  "node_modules/@splinetool/runtime/build/physics.js": {
+    "file": "assets/physics.BM4kW-A5.js",
+    "name": "physics",
+    "src": "node_modules/@splinetool/runtime/build/physics.js",
+    "isDynamicEntry": true
+  },
+  "node_modules/@splinetool/runtime/build/process.js": {
+    "file": "assets/process.BpGnRvBL.js",
+    "name": "process",
+    "src": "node_modules/@splinetool/runtime/build/process.js",
+    "isDynamicEntry": true
+  },
+  "node_modules/@splinetool/runtime/build/ui.js": {
+    "file": "assets/ui.Ds7EeOeb.js",
+    "name": "ui",
+    "src": "node_modules/@splinetool/runtime/build/ui.js",
+    "isDynamicEntry": true
+  },
+  "src/assets/fonts/Ubuntu-Bold.ttf": {
+    "file": "assets/Ubuntu-Bold.BGoo8i9Y.ttf",
+    "src": "src/assets/fonts/Ubuntu-Bold.ttf"
+  },
+  "src/assets/fonts/Ubuntu-BoldItalic.ttf": {
+    "file": "assets/Ubuntu-BoldItalic.DiND6kz9.ttf",
+    "src": "src/assets/fonts/Ubuntu-BoldItalic.ttf"
+  },
+  "src/assets/fonts/Ubuntu-Italic.ttf": {
+    "file": "assets/Ubuntu-Italic.BxSEJX07.ttf",
+    "src": "src/assets/fonts/Ubuntu-Italic.ttf"
+  },
+  "src/assets/fonts/Ubuntu-Light.ttf": {
+    "file": "assets/Ubuntu-Light.DlXMI-yU.ttf",
+    "src": "src/assets/fonts/Ubuntu-Light.ttf"
+  },
+  "src/assets/fonts/Ubuntu-LightItalic.ttf": {
+    "file": "assets/Ubuntu-LightItalic.BBGxubWq.ttf",
+    "src": "src/assets/fonts/Ubuntu-LightItalic.ttf"
+  },
+  "src/assets/fonts/Ubuntu-Medium.ttf": {
+    "file": "assets/Ubuntu-Medium.C-1-7KOl.ttf",
+    "src": "src/assets/fonts/Ubuntu-Medium.ttf"
+  },
+  "src/assets/fonts/Ubuntu-MediumItalic.ttf": {
+    "file": "assets/Ubuntu-MediumItalic.Cp5nc9PY.ttf",
+    "src": "src/assets/fonts/Ubuntu-MediumItalic.ttf"
+  },
+  "src/assets/fonts/Ubuntu-Regular.ttf": {
+    "file": "assets/Ubuntu-Regular.D14tH6yt.ttf",
+    "src": "src/assets/fonts/Ubuntu-Regular.ttf"
+  },
+  "src/assets/fonts/caveat/Caveat-Bold.ttf": {
+    "file": "assets/Caveat-Bold.IavRZg2G.ttf",
+    "src": "src/assets/fonts/caveat/Caveat-Bold.ttf"
+  },
+  "src/assets/fonts/caveat/Caveat-Medium.ttf": {
+    "file": "assets/Caveat-Medium.DOXsaZdg.ttf",
+    "src": "src/assets/fonts/caveat/Caveat-Medium.ttf"
+  },
+  "src/assets/fonts/caveat/Caveat-Regular.ttf": {
+    "file": "assets/Caveat-Regular.UJ9gNz5N.ttf",
+    "src": "src/assets/fonts/caveat/Caveat-Regular.ttf"
+  },
+  "src/assets/fonts/caveat/Caveat-SemiBold.ttf": {
+    "file": "assets/Caveat-SemiBold.Cw4oUA2D.ttf",
+    "src": "src/assets/fonts/caveat/Caveat-SemiBold.ttf"
+  },
+  "src/assets/images/3dAnimations/mountainFaces.webp": {
+    "file": "assets/mountainFaces.By42TWRN.webp",
+    "src": "src/assets/images/3dAnimations/mountainFaces.webp"
+  },
+  "src/assets/images/home/cube_illusion.webp": {
+    "file": "assets/cube_illusion.DYL4WbFP.webp",
+    "src": "src/assets/images/home/cube_illusion.webp"
+  },
+  "src/assets/images/left.webp": {
+    "file": "assets/left.CCxTpepo.webp",
+    "src": "src/assets/images/left.webp"
+  },
+  "src/assets/images/mobile.webp": {
+    "file": "assets/mobile.UnRW_u7Z.webp",
+    "src": "src/assets/images/mobile.webp"
+  },
+  "src/assets/images/visual_intro.webp": {
+    "file": "assets/visual_intro.M8XkudFM.webp",
+    "src": "src/assets/images/visual_intro.webp"
+  },
+  "src/assets/videos/aboutUs/particlePlanet.mp4": {
+    "file": "assets/particlePlanet.Dypyjc1f.mp4",
+    "src": "src/assets/videos/aboutUs/particlePlanet.mp4"
+  },
+  "src/assets/videos/customSoftware/chips.mp4": {
+    "file": "assets/chips.CZs0k9Tr.mp4",
+    "src": "src/assets/videos/customSoftware/chips.mp4"
+  },
+  "src/assets/videos/customSoftware/holo-blobs.mp4": {
+    "file": "assets/holo-blobs.DmbQLWN3.mp4",
+    "src": "src/assets/videos/customSoftware/holo-blobs.mp4"
+  },
+  "src/assets/videos/customSoftware/infinityBlubs.mp4": {
+    "file": "assets/infinityBlubs.DhKgZx-9.mp4",
+    "src": "src/assets/videos/customSoftware/infinityBlubs.mp4"
+  },
+  "src/assets/videos/customSoftware/meeet.mp4": {
+    "file": "assets/meeet.Vz3MuLPd.mp4",
+    "src": "src/assets/videos/customSoftware/meeet.mp4"
+  },
+  "src/assets/videos/customSoftware/trails.mp4": {
+    "file": "assets/trails.Dl_eck6H.mp4",
+    "src": "src/assets/videos/customSoftware/trails.mp4"
+  },
+  "src/assets/videos/home/cubic.mp4": {
+    "file": "assets/cubic.CQNy3BtW.mp4",
+    "src": "src/assets/videos/home/cubic.mp4"
+  },
+  "src/assets/videos/presentationComp.mp4": {
+    "file": "assets/presentationComp.ARlWhQQr.mp4",
+    "src": "src/assets/videos/presentationComp.mp4"
+  },
+  "src/assets/videos/presentationMobile.mp4": {
+    "file": "assets/presentationMobile.Cpdkya5B.mp4",
+    "src": "src/assets/videos/presentationMobile.mp4"
+  },
+  "src/assets/videos/presentationPrevPc.mp4": {
+    "file": "assets/presentationPrevPc.CNehcl2i.mp4",
+    "src": "src/assets/videos/presentationPrevPc.mp4"
+  },
+  "src/assets/videos/webDesigns/Dunes.mp4": {
+    "file": "assets/Dunes.BwLxgZSh.mp4",
+    "src": "src/assets/videos/webDesigns/Dunes.mp4"
+  },
+  "src/assets/videos/webDevelopments/abstractGradientBackground.mp4": {
+    "file": "assets/abstractGradientBackground.DWmLXWpy.mp4",
+    "src": "src/assets/videos/webDevelopments/abstractGradientBackground.mp4"
+  },
+  "src/components/layouts/FooterDesktop.vue": {
+    "file": "assets/FooterDesktop.Cpj_ZjZp.js",
+    "name": "FooterDesktop",
+    "src": "src/components/layouts/FooterDesktop.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html"
+    ],
+    "dynamicImports": [
+      "index.html"
+    ],
+    "css": [
+      "assets/FooterDesktop.CEW6YHCd.css"
+    ]
+  },
+  "src/components/layouts/FooterMobile.vue": {
+    "file": "assets/FooterMobile.C499pNYB.js",
+    "name": "FooterMobile",
+    "src": "src/components/layouts/FooterMobile.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html"
+    ],
+    "css": [
+      "assets/FooterMobile.DJJKgdM8.css"
+    ]
+  },
+  "src/locales/3dAnimations/en.js": {
+    "file": "assets/en.Ch2sCmTG.js",
+    "name": "en",
+    "src": "src/locales/3dAnimations/en.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/3dAnimations/es.js": {
+    "file": "assets/es.ConWRUa1.js",
+    "name": "es",
+    "src": "src/locales/3dAnimations/es.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/404View/en.js": {
+    "file": "assets/en.z2g6qq-I.js",
+    "name": "en",
+    "src": "src/locales/404View/en.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/404View/es.js": {
+    "file": "assets/es.CAy0PkQm.js",
+    "name": "es",
+    "src": "src/locales/404View/es.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/aboutUs/en.js": {
+    "file": "assets/en.C_4cvpQ2.js",
+    "name": "en",
+    "src": "src/locales/aboutUs/en.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/aboutUs/es.js": {
+    "file": "assets/es.D2LyfJjM.js",
+    "name": "es",
+    "src": "src/locales/aboutUs/es.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/contact/en.js": {
+    "file": "assets/en.CC0dy6cC.js",
+    "name": "en",
+    "src": "src/locales/contact/en.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/contact/es.js": {
+    "file": "assets/es.mt36Yy2u.js",
+    "name": "es",
+    "src": "src/locales/contact/es.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/contactSuccess/en.js": {
+    "file": "assets/en.C7lrUE-r.js",
+    "name": "en",
+    "src": "src/locales/contactSuccess/en.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/contactSuccess/es.js": {
+    "file": "assets/es.D7XrP6dN.js",
+    "name": "es",
+    "src": "src/locales/contactSuccess/es.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/customSoftware/en.js": {
+    "file": "assets/en.DMU6bpV8.js",
+    "name": "en",
+    "src": "src/locales/customSoftware/en.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/customSoftware/es.js": {
+    "file": "assets/es.DQYiiSYR.js",
+    "name": "es",
+    "src": "src/locales/customSoftware/es.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/eCommercePrices/en.js": {
+    "file": "assets/en.B0GJT73E.js",
+    "name": "en",
+    "src": "src/locales/eCommercePrices/en.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/eCommercePrices/es.js": {
+    "file": "assets/es.5GsrV1Om.js",
+    "name": "es",
+    "src": "src/locales/eCommercePrices/es.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/global/en.js": {
+    "file": "assets/en.DDBk0o_k.js",
+    "name": "en",
+    "src": "src/locales/global/en.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/global/es.js": {
+    "file": "assets/es.CB4hMqrk.js",
+    "name": "es",
+    "src": "src/locales/global/es.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/home/en.js": {
+    "file": "assets/en.D8PkKPe3.js",
+    "name": "en",
+    "src": "src/locales/home/en.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/home/es.js": {
+    "file": "assets/es.CVydk17D.js",
+    "name": "es",
+    "src": "src/locales/home/es.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/hosting/en.js": {
+    "file": "assets/en.CHzEyWAT.js",
+    "name": "en",
+    "src": "src/locales/hosting/en.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/hosting/es.js": {
+    "file": "assets/es.BZl8iVgE.js",
+    "name": "es",
+    "src": "src/locales/hosting/es.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/portfolioWorks/en.js": {
+    "file": "assets/en.DZm2vrW-.js",
+    "name": "en",
+    "src": "src/locales/portfolioWorks/en.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/portfolioWorks/es.js": {
+    "file": "assets/es.yfuIy2YG.js",
+    "name": "es",
+    "src": "src/locales/portfolioWorks/es.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/webDesigns/en.js": {
+    "file": "assets/en.UzFC2RcB.js",
+    "name": "en",
+    "src": "src/locales/webDesigns/en.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/webDesigns/es.js": {
+    "file": "assets/es.BBiCLKOf.js",
+    "name": "es",
+    "src": "src/locales/webDesigns/es.js",
+    "isDynamicEntry": true
+  },
+  "src/views/3dAnimations/List.vue": {
+    "file": "assets/List.DZqYDKLy.js",
+    "name": "List",
+    "src": "src/views/3dAnimations/List.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_ImageLoader.CXpTM8U4.js"
+    ],
+    "dynamicImports": [
+      "node_modules/@splinetool/runtime/build/navmesh.js",
+      "node_modules/@splinetool/runtime/build/physics.js",
+      "node_modules/@splinetool/runtime/build/process.js",
+      "node_modules/@splinetool/runtime/build/boolean.js",
+      "_howler.CcdQYWhE.js",
+      "node_modules/@splinetool/runtime/build/opentype.js",
+      "node_modules/@splinetool/runtime/build/ui.js",
+      "node_modules/@splinetool/runtime/build/gaussian-splat-compression.js"
+    ],
+    "css": [
+      "assets/List.DCQEETp8.css"
+    ],
+    "assets": [
+      "assets/mountainFaces.By42TWRN.webp"
+    ]
+  },
+  "src/views/AboutUs.vue": {
+    "file": "assets/AboutUs.BzjRVuUt.js",
+    "name": "AboutUs",
+    "src": "src/views/AboutUs.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html"
+    ],
+    "assets": [
+      "assets/particlePlanet.Dypyjc1f.mp4",
+      "assets/left.CCxTpepo.webp",
+      "assets/mobile.UnRW_u7Z.webp",
+      "assets/visual_intro.M8XkudFM.webp"
+    ]
+  },
+  "src/views/Contact.vue": {
+    "file": "assets/Contact.DokJ-JEY.js",
+    "name": "Contact",
+    "src": "src/views/Contact.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html"
+    ]
+  },
+  "src/views/ContactSuccess.vue": {
+    "file": "assets/ContactSuccess.DSe2gigD.js",
+    "name": "ContactSuccess",
+    "src": "src/views/ContactSuccess.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html"
+    ]
+  },
+  "src/views/CustomSoftware.vue": {
+    "file": "assets/CustomSoftware.O0xk9NMt.js",
+    "name": "CustomSoftware",
+    "src": "src/views/CustomSoftware.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html"
+    ],
+    "assets": [
+      "assets/chips.CZs0k9Tr.mp4",
+      "assets/holo-blobs.DmbQLWN3.mp4",
+      "assets/trails.Dl_eck6H.mp4",
+      "assets/meeet.Vz3MuLPd.mp4",
+      "assets/infinityBlubs.DhKgZx-9.mp4"
+    ]
+  },
+  "src/views/Hosting.vue": {
+    "file": "assets/Hosting.BxO-2W7v.js",
+    "name": "Hosting",
+    "src": "src/views/Hosting.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_vue3-marquee.es.CV6K537G.js"
+    ]
+  },
+  "src/views/NotFound.vue": {
+    "file": "assets/NotFound.B0AnWC-0.js",
+    "name": "NotFound",
+    "src": "src/views/NotFound.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_Dunes.CiEAeNYr.js",
+      "index.html"
+    ]
+  },
+  "src/views/PortfolioWorks.vue": {
+    "file": "assets/PortfolioWorks.EDb09usU.js",
+    "name": "PortfolioWorks",
+    "src": "src/views/PortfolioWorks.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_ImageLoader.CXpTM8U4.js"
+    ],
+    "assets": [
+      "assets/abstractGradientBackground.DWmLXWpy.mp4"
+    ]
+  },
+  "src/views/Prices.vue": {
+    "file": "assets/Prices.DoWQqZYB.js",
+    "name": "Prices",
+    "src": "src/views/Prices.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_vue3-marquee.es.CV6K537G.js"
+    ]
+  },
+  "src/views/webDesigns/List.vue": {
+    "file": "assets/List.DL9XeL1v.js",
+    "name": "List",
+    "src": "src/views/webDesigns/List.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_Dunes.CiEAeNYr.js",
+      "index.html",
+      "_ImageLoader.CXpTM8U4.js"
+    ],
+    "css": [
+      "assets/List.Dn6VphUk.css"
+    ]
+  }
+}
