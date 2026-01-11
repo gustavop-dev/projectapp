@@ -25,4 +25,64 @@ export default {
             text: "We offer custom software development for companies seeking personalized and efficient web solutions. Our website developers understand your unique needs and create applications that optimize your processes and enhance your productivity. Our web development approach focuses on quality, innovation, and client satisfaction to deliver exceptional results."
         },
     },
+
+    // Our Work Section
+    section_4: {
+        title: "We're the best not because we say it,",
+        subtitle: "but because we can show it.",
+        description: "We understand your business. Here's how we've transformed digital experiences for companies across different industries.",
+        projects: [
+            {
+                client: "MOOSER Hotel",
+                industry: "Luxury Hospitality & Alpine Tourism", 
+                challenge: "They needed a website that captured the unique experience of their ski-in ski-out hotel in St. Anton am Arlberg, showcasing their exclusive location and premium amenities.",
+                what_they_wanted: "A digital presence that reflects their luxury positioning while making bookings seamless and highlighting their unbeatable location directly on the slopes.",
+                our_solution: "We created an immersive web experience with stunning visuals, direct booking integration, and interactive location features that convert visitors into guests.",
+                media_type: "video",
+                media_file: "mooser_hotel.mp4",
+                website_url: "https://www.mooserhotel.at/de/hotel/",
+                view_site_text: "View Live Site",
+                technologies: ["Vue.js", "Alpine.js", "WebGL", "Booking Integration"]
+            },
+            {
+                client: "Gentlerain",
+                industry: "AI-Powered Professional Training",
+                challenge: "They needed to communicate complex AI role-play technology in an approachable way while building trust with enterprise clients seeking innovative training solutions.",
+                what_they_wanted: "A platform that demonstrates their AI capabilities while clearly explaining the value proposition to both individual users and business decision-makers.",
+                our_solution: "We designed an intuitive interface with interactive demos, clear value propositions, and seamless onboarding flows that converted visitors into active users.",
+                media_type: "image",
+                media_file: "gentlerain.jpg",
+                website_url: "https://www.gentlerain.ai/",
+                view_site_text: "View Live Site",
+                technologies: ["React", "Next.js", "AI Integration", "Enterprise SSO"]
+            },
+            {
+                client: "Constance Hotels",
+                industry: "Luxury Resort & Hospitality",
+                challenge: "They required a sophisticated booking platform that showcased their premium resorts across multiple destinations while handling complex reservation systems.",
+                what_they_wanted: "An elegant digital experience that reflects their luxury brand while streamlining the booking process and showcasing their unique properties worldwide.",
+                our_solution: "We built a comprehensive resort showcase with advanced booking functionality, virtual tours, and personalized guest experiences that increased direct bookings significantly.",
+                media_type: "image", 
+                media_file: "constance_hotels.jpg",
+                website_url: "https://www.constancehotels.com/en/",
+                view_site_text: "View Live Site",
+                technologies: ["Vue.js", "Node.js", "CMS Integration", "Payment Systems"]
+            }
+        ]
+    },
+
+    // Additional UI texts
+    ui: {
+        success_stories: {
+            cta_title: "Ready to Create Your Success Story?",
+            cta_description: "Let's discuss how we can help transform your business with custom web development solutions.",
+            cta_button: "Start Your Project",
+            view_more_projects: "View More Projects",
+            industry_label: "Industry:",
+            challenge_label: "The Challenge:",
+            what_they_wanted_label: "What They Wanted:",
+            our_solution_label: "Our Solution:",
+            technologies_label: "Technologies Used:"
+        }
+    }
 }

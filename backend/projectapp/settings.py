@@ -138,3 +138,13 @@ CORS_ALLOWED_ORIGINS = [
 # Replace these values with your own
 WHATSAPP_PHONE = "+573238122373"  # Phone number with country code
 CALLMEBOT_API_KEY = "2080773"    # CallMeBot API Key
+
+# Email configuration (GoDaddy SMTP)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtpout.secureserver.net'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = 'team@projectapp.co'
+EMAIL_HOST_PASSWORD = 'Cerroton24724715'
+DEFAULT_FROM_EMAIL = 'team@projectapp.co'
+NOTIFICATION_EMAIL = 'dev.gustavo.perezp@gmail.com'

@@ -3,7 +3,7 @@ from rest_framework import status
 from content.models import Contact
 from content.serializers.contact import ContactSerializer
 from rest_framework.decorators import api_view
-from content.utils import send_whatsapp_notification
+from content.utils import send_email_notification
 
 @api_view(['GET'])
 def contact_list(request):
@@ -23,15 +23,35 @@ def new_contact(request):
     if serializer.is_valid():
         contact = serializer.save()
         
-        # Create a message for WhatsApp notification
+        # Prepare data for email notification
         email = contact.email
+        phone = contact.phone_number or 'No proporcionado'
         subject = contact.subject
         message = contact.message
+        budget = contact.budget or 'No especificado'
         
-        whatsapp_message = f"New contact message:\nEmail: {email}\nSubject: {subject}\nMessage: {message}"
+        # Create email subject and body
+        email_subject = f"Nuevo mensaje de contacto: {subject}"
+        email_body = f"""
+Nuevo mensaje de contacto recibido:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📧 Email: {email}
+📱 Teléfono: {phone}
+💰 Presupuesto: {budget}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 Asunto: {subject}
+
+💬 Mensaje:
+{message}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Este mensaje fue enviado desde el formulario de contacto de projectapp.co
+        """
         
-        # Send WhatsApp notification
-        send_whatsapp_notification(whatsapp_message)
+        # Send email notification
+        send_email_notification(email_subject, email_body)
         
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

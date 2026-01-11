@@ -1,0 +1,5 @@
+export default {
+    title: "Thank you for contacting us!",
+    message: "We have received your information. We will get in touch with you very soon to discuss your web project.",
+    button: "View our portfolio"
+}

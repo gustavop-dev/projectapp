@@ -58,6 +58,16 @@ const router = createRouter({
       name: 'portfolioWorks',
       component: () => import("@/views/PortfolioWorks.vue"),
     },
+    {
+      path: '/contact',
+      name: 'contact',
+      component: () => import("@/views/Contact.vue"),
+    },
+    {
+      path: '/contact-success',
+      name: 'contactSuccess',
+      component: () => import("@/views/ContactSuccess.vue"),
+    },
     
     // Locale-specific routes for es-co (Spanish Colombia)
     {
@@ -102,6 +112,16 @@ const router = createRouter({
           path: 'portfolio-works/:example?',
           name: 'portfolioWorks-es-co',
           component: () => import("@/views/PortfolioWorks.vue"),
+        },
+        {
+          path: 'contact',
+          name: 'contact-es-co',
+          component: () => import("@/views/Contact.vue"),
+        },
+        {
+          path: 'contact-success',
+          name: 'contactSuccess-es-co',
+          component: () => import("@/views/ContactSuccess.vue"),
         },
       ]
     },
@@ -149,6 +169,16 @@ const router = createRouter({
           path: 'portfolio-works/:example?',
           name: 'portfolioWorks-en-us',
           component: () => import("@/views/PortfolioWorks.vue"),
+        },
+        {
+          path: 'contact',
+          name: 'contact-en-us',
+          component: () => import("@/views/Contact.vue"),
+        },
+        {
+          path: 'contact-success',
+          name: 'contactSuccess-en-us',
+          component: () => import("@/views/ContactSuccess.vue"),
         },
       ]
     },

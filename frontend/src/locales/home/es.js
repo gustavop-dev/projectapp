@@ -25,4 +25,238 @@ export default {
             text: "Ofrecemos desarrollo de software personalizado para empresas que buscan soluciones web personalizadas y eficientes. Nuestros desarrolladores web entienden tus necesidades únicas y crean aplicaciones que optimizan tus procesos y mejoran tu productividad. Nuestro enfoque de desarrollo web se centra en la calidad, la innovación y la satisfacción del cliente para entregar resultados excepcionales."
         },
     },
+    // Sección de Nuestro Trabajo
+    section_4: {
+        title: "Somos los mejores no porque lo digamos,",
+        subtitle: "sino porque podemos demostrarlo.",
+        description: "Entendemos tu negocio. Así es como hemos transformado experiencias digitales para empresas de diferentes industrias.",
+        projects: [
+            {
+                client: "MOOSER Hotel",
+                industry: "Hospitalidad de Lujo y Turismo Alpino",
+                challenge: "Necesitaban un sitio web que capturara la experiencia única de su hotel ski-in ski-out en St. Anton am Arlberg, mostrando su ubicación exclusiva y amenidades premium.",
+                what_they_wanted: "Una presencia digital que reflejara su posicionamiento de lujo mientras hacía las reservas fluidas y destacara su ubicación inmejorable directamente en las pistas.",
+                our_solution: "Creamos una experiencia web inmersiva con visuales impresionantes, integración directa de reservas y características interactivas de ubicación que convierten visitantes en huéspedes.",
+                media_type: "video",
+                media_file: "mooser_hotel.mp4",
+                website_url: "https://www.mooserhotel.at/de/hotel/",
+                view_site_text: "Ver Sitio Web",
+                technologies: ["Vue.js", "Alpine.js", "WebGL", "Integración de Reservas"]
+            },
+            {
+                client: "Gentlerain",
+                industry: "Entrenamiento Profesional con IA",
+                challenge: "Necesitaban comunicar tecnología compleja de role-play con IA de manera accesible mientras construían confianza con clientes empresariales buscando soluciones innovadoras de entrenamiento.",
+                what_they_wanted: "Una plataforma que demostrara sus capacidades de IA mientras explicaba claramente la propuesta de valor tanto a usuarios individuales como a tomadores de decisiones empresariales.",
+                our_solution: "Diseñamos una interfaz intuitiva con demos interactivos, propuestas de valor claras y flujos de incorporación sin fricción que convirtieron visitantes en usuarios activos.",
+                media_type: "image",
+                media_file: "gentlerain.jpg",
+                website_url: "https://www.gentlerain.ai/",
+                view_site_text: "Ver Sitio Web",
+                technologies: ["React", "Next.js", "Integración IA", "SSO Empresarial"]
+            },
+            {
+                client: "Constance Hotels",
+                industry: "Resorts de Lujo y Hospitalidad",
+                challenge: "Requerían una plataforma sofisticada de reservas que mostrara sus resorts premium en múltiples destinos mientras manejaba sistemas complejos de reservaciones.",
+                what_they_wanted: "Una experiencia digital elegante que reflejara su marca de lujo mientras optimizara el proceso de reservas y mostrara sus propiedades únicas mundialmente.",
+                our_solution: "Construimos un showcase completo de resorts con funcionalidad avanzada de reservas, tours virtuales y experiencias personalizadas para huéspedes que aumentaron significativamente las reservas directas.",
+                media_type: "image",
+                media_file: "constance_hotels.jpg", 
+                website_url: "https://www.constancehotels.com/en/",
+                view_site_text: "Ver Sitio Web",
+                technologies: ["Vue.js", "Node.js", "Integración CMS", "Sistemas de Pago"]
+            }
+        ]
+    },
+    
+    // Sección de Servicios Detallados
+    section_5: {
+        title: "Nuestros Servicios de Desarrollo Web",
+        subtitle: "Soluciones Web Integrales para Empresas Modernas",
+        services: [
+            {
+                icon: "🌐",
+                title: "Desarrollo Web Personalizado",
+                description: "Soluciones web a medida construidas desde cero usando tecnologías de vanguardia. Sin plantillas, sin limitaciones – solo código personalizado adaptado a las necesidades de tu negocio.",
+                features: ["Diseño Responsivo", "Optimización de Rendimiento", "SEO Integrado", "Arquitectura Escalable"]
+            },
+            {
+                icon: "🛒",
+                title: "Desarrollo E-commerce",
+                description: "Soluciones completas de tienda online desde páginas de aterrizaje simples hasta plataformas complejas multi-vendedor. Integración de pagos, gestión de inventario y optimización de conversiones incluidas.",
+                features: ["Integración de Pasarelas de Pago", "Gestión de Inventario", "Soporte Multi-vendedor", "Comercio Móvil"]
+            },
+            {
+                icon: "⚙️",
+                title: "Desarrollo de Software Personalizado",
+                description: "Aplicaciones web de nivel empresarial y soluciones de software que optimizan los procesos de tu negocio y mejoran la productividad.",
+                features: ["Automatización de Procesos", "Desarrollo de APIs", "Diseño de Bases de Datos", "Integración en la Nube"]
+            },
+            {
+                icon: "📱",
+                title: "Aplicaciones Web Progresivas",
+                description: "Aplicaciones web modernas que funcionan como apps móviles nativas, proporcionando la mejor experiencia de usuario en todos los dispositivos y plataformas.",
+                features: ["Funcionalidad Offline", "Notificaciones Push", "Experiencia de App", "Carga Rápida"]
+            }
+        ]
+    },
+    
+    // Sección de Nuestro Proceso
+    section_6: {
+        title: "Nuestro Proceso de Desarrollo Web",
+        subtitle: "Del Concepto al Lanzamiento: Una Metodología Probada",
+        description: "Seguimos un enfoque estructurado para asegurar que tu proyecto de desarrollo web se entregue a tiempo, dentro del presupuesto y superando las expectativas.",
+        steps: [
+            {
+                number: "01",
+                title: "Descubrimiento y Estrategia",
+                description: "Comenzamos entendiendo tus objetivos de negocio, audiencia objetivo y requerimientos técnicos para crear una hoja de ruta integral del proyecto.",
+                duration: "1-2 semanas"
+            },
+            {
+                number: "02",
+                title: "Diseño y Prototipado",
+                description: "Nuestro equipo de diseño crea wireframes y prototipos, asegurando que la experiencia de usuario sea intuitiva y se alinee con tu identidad de marca.",
+                duration: "2-3 semanas"
+            },
+            {
+                number: "03",
+                title: "Desarrollo y Pruebas",
+                description: "Nuestros desarrolladores construyen tu sitio web usando tecnologías modernas, con pruebas continuas para asegurar calidad y rendimiento.",
+                duration: "4-8 semanas"
+            },
+            {
+                number: "04",
+                title: "Lanzamiento y Soporte",
+                description: "Manejamos el despliegue y proporcionamos soporte continuo para asegurar que tu sitio web siga funcionando de manera óptima.",
+                duration: "Continuo"
+            }
+        ]
+    },
+    
+    // Sección de Tecnologías
+    section_7: {
+        title: "Tecnologías que Dominamos",
+        subtitle: "Herramientas de Vanguardia para Desarrollo Web Moderno",
+        description: "Nos mantenemos a la vanguardia de la tecnología de desarrollo web para entregar soluciones rápidas, seguras y escalables.",
+        categories: [
+            {
+                title: "Desarrollo Frontend",
+                technologies: ["React", "Vue.js", "Angular", "TypeScript", "Tailwind CSS", "Next.js"]
+            },
+            {
+                title: "Desarrollo Backend", 
+                technologies: ["Node.js", "Python", "PHP", "Express.js", "Django", "Laravel"]
+            },
+            {
+                title: "Bases de Datos",
+                technologies: ["PostgreSQL", "MySQL", "MongoDB", "Redis", "Elasticsearch"]
+            },
+            {
+                title: "Nube y DevOps",
+                technologies: ["AWS", "Google Cloud", "Docker", "Kubernetes", "CI/CD", "Nginx"]
+            }
+        ]
+    },
+    
+    // Sección Por qué Elegirnos
+    section_8: {
+        title: "¿Por qué Elegir Project App?",
+        subtitle: "Tu Socio de Confianza para la Excelencia en Desarrollo Web",
+        reasons: [
+            {
+                icon: "🎯",
+                title: "Soluciones Hechas a Medida",
+                description: "Cada línea de código se escribe específicamente para tu proyecto. Sin WordPress, sin plantillas – solo desarrollo personalizado puro que se ajusta perfectamente a tus necesidades."
+            },
+            {
+                icon: "⚡",
+                title: "Enfoque Rendimiento-Primero",
+                description: "Construimos sitios web ultrarrápidos, optimizados para SEO y diseñados para convertir visitantes en clientes desde el primer día."
+            },
+            {
+                icon: "🔧",
+                title: "Escalable y Flexible",
+                description: "Nuestras soluciones crecen con tu negocio. Añade características, elimina componentes o escala a millones de usuarios – tu sitio web se adapta a tus necesidades."
+            },
+            {
+                icon: "🚀",
+                title: "Stack Tecnológico Moderno",
+                description: "Usamos las últimas tecnologías de desarrollo web y mejores prácticas para asegurar que tu sitio web sea a prueba del futuro y mantenible."
+            },
+            {
+                icon: "🤝",
+                title: "Alianza Continua",
+                description: "No somos solo desarrolladores; somos tus socios digitales a largo plazo. Desde hosting hasta mantenimiento, te tenemos cubierto."
+            },
+            {
+                icon: "🌍",
+                title: "Experiencia Global, Entendimiento Local",
+                description: "Con sede en Colombia, trabajando mundialmente. Entendemos tanto los mercados locales como las tendencias digitales globales."
+            }
+        ]
+    },
+    
+    // Textos adicionales de UI
+    ui: {
+        success_stories: {
+            cta_title: "¿Listo para Crear tu Historia de Éxito?",
+            cta_description: "Hablemos sobre cómo podemos ayudar a transformar tu negocio con soluciones de desarrollo web personalizadas.",
+            cta_button: "Iniciar tu Proyecto",
+            view_more_projects: "Ver Más Proyectos",
+            industry_label: "Industria:",
+            challenge_label: "El Desafío:",
+            what_they_wanted_label: "Lo que Buscaban:",
+            our_solution_label: "Nuestra Solución:",
+            technologies_label: "Tecnologías Utilizadas:"
+        },
+        detailed_services: {
+            features_title: "Características Clave:",
+            learn_more: "Conoce Más Sobre",
+            custom_solution_title: "¿Necesitas una Solución Personalizada?",
+            custom_solution_description: "Cada negocio es único. Nos especializamos en crear soluciones de desarrollo web a medida que se ajustan perfectamente a tus requerimientos y objetivos específicos.",
+            discuss_button: "Discutir tu Proyecto",
+            view_work_button: "Ver Nuestro Trabajo"
+        },
+        process: {
+            duration_label: "Duración:",
+            cta_title: "¿Listo para Comenzar tu Viaje de Desarrollo Web?",
+            cta_description: "Hablemos sobre tu proyecto y creemos un plan de desarrollo personalizado que se alinee con tus objetivos y cronograma.",
+            cta_button: "Iniciar Fase de Descubrimiento"
+        },
+        technologies: {
+            used_label: "Tecnologías utilizadas:",
+            why_title: "Por Qué Elegimos Tecnologías Modernas",
+            performance_title: "Rendimiento",
+            performance_description: "Sitios web ultrarrápidos que brindan experiencias de usuario excepcionales",
+            scalability_title: "Escalabilidad",
+            scalability_description: "Soluciones que crecen con tu negocio desde startup hasta empresa",
+            security_title: "Seguridad", 
+            security_description: "Medidas de seguridad de nivel empresarial para proteger tus datos y usuarios",
+            cta_button: "Discutir Necesidades Tecnológicas",
+            categories_descriptions: {
+                frontend: "Creando interfaces de usuario hermosas y responsivas",
+                backend: "Soluciones robustas del lado del servidor y APIs",
+                databases: "Almacenamiento y gestión confiable de datos",
+                cloud: "Infraestructura escalable en la nube y despliegue"
+            }
+        },
+        why_choose: {
+            track_record_title: "Nuestro Historial",
+            stats: {
+                projects: "Proyectos Completados",
+                satisfaction: "Satisfacción del Cliente",
+                experience: "Años de Experiencia", 
+                countries: "Países Atendidos"
+            },
+            testimonial: "Project App transformó nuestra presencia digital con una solución web personalizada que capturó perfectamente nuestra marca y superó nuestras expectativas de rendimiento.",
+            testimonial_author: "CEO, Marca de Moda E-commerce",
+            final_cta_title: "¿Listo para Experimentar la Diferencia de Project App?",
+            final_cta_description: "Únete al creciente número de empresas que confían en nosotros para sus necesidades de desarrollo web. Creemos algo extraordinario juntos.",
+            start_button: "Comienza tu Proyecto Hoy",
+            see_work_button: "Ver Nuestro Trabajo",
+            contact_description: "¿Listo para discutir tu proyecto? Ponte en contacto con nuestro equipo"
+        }
+    }
 }

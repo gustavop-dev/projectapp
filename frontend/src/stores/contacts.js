@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { get_request } from './services/request_http';
+import { get_request, create_request } from './services/request_http';
 
 export const useContactsStore = defineStore('contacts', {
   /**
@@ -8,10 +8,16 @@ export const useContactsStore = defineStore('contacts', {
    * Properties:
    * - contacts (Array): Stores the list of contacts.
    * - areUpdateContacts (Boolean): Tracks if the contact data has been updated.
+   * - isSubmitting (Boolean): Tracks if a form submission is in progress.
+   * - submitError (String|null): Stores any error message from submission.
+   * - submitSuccess (Boolean): Tracks if the last submission was successful.
    */
   state: () => ({
     contacts: [],
     areUpdateContacts: false,
+    isSubmitting: false,
+    submitError: null,
+    submitSuccess: false,
   }),
 
   getters: {
@@ -58,6 +64,68 @@ export const useContactsStore = defineStore('contacts', {
       } catch (error) {
         console.error('Error fetching contacts:', error);
       }
+    },
+
+    /**
+     * sendContact: Sends contact form data to the API.
+     * 
+     * @param {Object} formData - The form data to send
+     * @param {string} formData.fullName - Full name (used as subject)
+     * @param {string} formData.email - Email address (required)
+     * @param {string} formData.phone - Phone number (optional)
+     * @param {string} formData.project - Project description (used as message, required)
+     * @param {string} formData.budget - Budget range (optional)
+     * @returns {Promise<Object>} Response data from the API
+     */
+    async sendContact(formData) {
+      this.isSubmitting = true;
+      this.submitError = null;
+      this.submitSuccess = false;
+
+      try {
+        const payload = {
+          email: formData.email,
+          phone_number: formData.phone || null,
+          subject: formData.fullName,
+          message: formData.project,
+          budget: formData.budget || null
+        };
+
+        const response = await create_request('new-contact/', payload);
+        
+        this.submitSuccess = true;
+        this.isSubmitting = false;
+        
+        return {
+          success: true,
+          data: response.data
+        };
+      } catch (error) {
+        this.isSubmitting = false;
+        this.submitSuccess = false;
+        
+        if (error.response && error.response.data) {
+          this.submitError = error.response.data;
+        } else {
+          this.submitError = 'Error al enviar el formulario. Por favor intenta de nuevo.';
+        }
+        
+        console.error('Error sending contact form:', error);
+        
+        return {
+          success: false,
+          error: this.submitError
+        };
+      }
+    },
+
+    /**
+     * resetSubmitState: Resets the submission state flags.
+     */
+    resetSubmitState() {
+      this.submitError = null;
+      this.submitSuccess = false;
+      this.isSubmitting = false;
     }
   }
 });

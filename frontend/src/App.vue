@@ -78,8 +78,8 @@ import MediaOptimizer from '@/components/layouts/MediaOptimizer.vue';
 import PreloaderAnimation from '@/components/animations/PreloaderAnimation.vue';
 
 const languageStore = useLanguageStore();
-const loading = ref(true);
-const showPreloader = ref(true);
+const loading = ref(false);
+const showPreloader = ref(false);
 
 // Función para manejar la finalización de la animación del preloader
 const handlePreloaderComplete = () => {

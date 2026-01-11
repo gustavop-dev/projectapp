@@ -15,7 +15,7 @@
     "@splinetool/runtime": "^1.9.37",
     "axios": "^1.7.2",
     "dompurify": "^3.1.5",
-    "gsap": "^3.12.5",
+    "gsap": "^3.13.0",
     "lottie-web": "^5.12.2",
     "pinia": "^2.1.7",
     "sweetalert2": "^11.11.1",
