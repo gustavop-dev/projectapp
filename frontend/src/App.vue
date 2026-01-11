@@ -1,27 +1,11 @@
 <template>
-  <!-- Displays a loading screen while the app is initializing -->
-  <LoadingScreen v-if="loading" aria-live="polite" aria-label="Loading website" />
-
-  <!-- Preloader animation shown after initial load but before content -->
-  <PreloaderAnimation 
-    v-else-if="showPreloader"
-    :active="true" 
-    revealClass=".animate-on-reveal" 
-    @animationComplete="handlePreloaderComplete" 
-  />
-
-  <!-- Main router view, only shown when loading and preloader are complete -->
-  <main v-else>
-    <router-view v-slot="{ Component }">
-      <keep-alive include="Home">
-        <component :is="Component" />
-      </keep-alive>
-    </router-view>
+  <!-- Main router view -->
+  <main>
+    <router-view />
   </main>
 
   <!-- Floating WhatsApp button with neon glow -->
   <a
-    v-if="!loading && !showPreloader"
     href="https://wa.me/573238122373"
     target="_blank"
     rel="noopener noreferrer"
@@ -66,36 +50,15 @@
   </a>
 
   <!-- Media Optimizer for performance -->
-  <MediaOptimizer v-if="!loading && !showPreloader" />
+  <MediaOptimizer />
 </template>
 
 <script setup>
 import { useLanguageStore } from '@/stores/language';
-import { ref, onMounted, watch } from 'vue';
-import LoadingScreen from '@/components/layouts/LoadingScreen.vue';
-import { RouterView } from 'vue-router';
+import { onMounted, watch } from 'vue';
 import MediaOptimizer from '@/components/layouts/MediaOptimizer.vue';
-import PreloaderAnimation from '@/components/animations/PreloaderAnimation.vue';
 
 const languageStore = useLanguageStore();
-const loading = ref(false);
-const showPreloader = ref(false);
-
-// Función para manejar la finalización de la animación del preloader
-const handlePreloaderComplete = () => {
-  console.log('Preloader animation completed');
-  showPreloader.value = false;
-  
-  // Asegurar que el contenido principal es visible
-  setTimeout(() => {
-    document.querySelectorAll('.animate-on-reveal').forEach(el => {
-      if (getComputedStyle(el).opacity === '0') {
-        el.style.opacity = '1';
-        el.style.transform = 'translateY(0)';
-      }
-    });
-  }, 500);
-}
 
 const initializeApp = async () => {
   try {
@@ -132,8 +95,6 @@ onMounted(async () => {
     ]);
   } catch (error) {
     console.error('Error during app initialization:', error);
-  } finally {
-    loading.value = false;
   }
 });
 </script>
