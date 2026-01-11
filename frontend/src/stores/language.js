@@ -52,48 +52,15 @@ export const useLanguageStore = defineStore("language", {
     },
 
     /**
-     * Detect the browser's language preference and geographical location.
+     * Detect the browser's language preference.
      * 
-     * This action detects the user's browser language and geographical location to determine
-     * the appropriate locale. It sets the currentLocale to 'es-co' for Spanish speakers or
-     * 'en-us' for English speakers, with geographical detection when possible.
+     * Usa únicamente el idioma del navegador para decidir entre 'es-co' y 'en-us'.
      */
     async detectBrowserLanguageAndRegion() {
       const userLang = navigator.language || navigator.userLanguage;
-      let language = userLang.startsWith('es') ? 'es' : 'en';
-      let region = language === 'es' ? 'co' : 'us'; // Default regions
-      
-      try {
-        // Try to detect user's geographical location using IP geolocation
-        const response = await fetch('https://ipapi.co/json/');
-        const data = await response.json();
-        
-        if (data.country_code) {
-          // Map country codes to our supported regions
-          const countryToRegion = {
-            'CO': 'co', // Colombia
-            'US': 'us', // United States
-            'MX': 'co', // Mexico -> Colombia region for Spanish
-            'ES': 'co', // Spain -> Colombia region for Spanish
-            'AR': 'co', // Argentina -> Colombia region for Spanish
-            'PE': 'co', // Peru -> Colombia region for Spanish
-            'CL': 'co', // Chile -> Colombia region for Spanish
-            'VE': 'co', // Venezuela -> Colombia region for Spanish
-          };
-          
-          region = countryToRegion[data.country_code] || region;
-          
-          // Adjust language based on geographical detection
-          if (['CO', 'MX', 'ES', 'AR', 'PE', 'CL', 'VE'].includes(data.country_code)) {
-            language = 'es';
-          } else if (data.country_code === 'US') {
-            language = 'en';
-          }
-        }
-      } catch (error) {
-        console.warn('Could not detect geographical location, using browser language only:', error);
-      }
-      
+      const language = userLang && userLang.startsWith('es') ? 'es' : 'en';
+      const region = language === 'es' ? 'co' : 'us';
+
       const locale = `${language}-${region}`;
       this.setCurrentLocale(locale);
       await this.loadMessages(language);
