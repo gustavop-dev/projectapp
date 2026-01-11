@@ -110,7 +110,7 @@ export const useWebDesignsStore = defineStore("web_designs", {
     async fetchDesignsData() {
       if (this.areUpdateDesigns) return;
 
-      let response = await get_request("/designs/");
+      let response = await get_request("designs/");
       let jsonData = response.data;
 
       if (jsonData && typeof jsonData === "string") {

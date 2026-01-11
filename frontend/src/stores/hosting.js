@@ -68,7 +68,7 @@ export const useHostingStore = defineStore('hosting', {
     async fetchHostingData() {
       if (this.areHostingsUpdated) return;
       try {
-        const response = await get_request('/hostings/');
+        const response = await get_request('hostings/');
         let jsonData = response.data;
 
         if (jsonData && typeof jsonData === 'string') {

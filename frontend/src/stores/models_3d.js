@@ -103,7 +103,7 @@ export const useModels3dStore = defineStore('models_3d', {
       if (this.areUpdateModels3d) return;
 
       try {
-        let response = await get_request('/models3d/');
+        let response = await get_request('models3d/');
         let jsonData = response.data;
 
         if (jsonData && typeof jsonData === 'string') {

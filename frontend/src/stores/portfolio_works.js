@@ -112,7 +112,7 @@ export const usePortfolioWorksStore = defineStore("portfolio_works", {
       if (this.areUpdatePortfolioWorks) return;
 
       try {
-        let response = await get_request("/portfolio_works/");
+        let response = await get_request("portfolio_works/");
         let jsonData = response.data;
 
         if (jsonData && typeof jsonData === "string") {
