@@ -161,77 +161,49 @@
 
     <!-- Success Stories section -->
     <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52" aria-labelledby="success-stories-title" itemscope itemtype="https://schema.org/WebPageElement">
-      <LazySuccessStoriesSection />
+      <SuccessStoriesSection />
     </section>
 
     <!-- Detailed Services section -->
     <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52" aria-labelledby="detailed-services-title" itemscope itemtype="https://schema.org/Service">
-      <LazyDetailedServicesSection />
+      <DetailedServicesSection />
     </section>
 
     <!-- Our Process section -->
     <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52" aria-labelledby="process-title" itemscope itemtype="https://schema.org/WebPageElement">
-      <LazyProcessSection />
+      <ProcessSection />
     </section>
 
     <!-- Technologies section -->
     <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52" aria-labelledby="technologies-title" itemscope itemtype="https://schema.org/WebPageElement">
-      <LazyTechnologiesSection />
+      <TechnologiesSection />
     </section>
 
-    <!-- Why Choose Us section -->
-    <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52" aria-labelledby="why-choose-title" itemscope itemtype="https://schema.org/WebPageElement">
-      <LazyWhyChooseSection />
-    </section>
-
-    <!-- Contact and Footer sections loaded lazily -->
+    <!-- Contact and Footer sections -->
     <section aria-label="Contact Project App. for web design services" itemscope itemtype="https://schema.org/ContactPoint">
-      <LazyContactSection />
+      <ContactSection />
     </section>
     
     <footer itemscope itemtype="https://schema.org/WPFooter">
-      <LazyFooterSection />
+      <FooterSection />
     </footer>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, defineAsyncComponent, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import Navbar from '@/components/layouts/Navbar.vue'
 import { useMessages } from '@/composables/useMessages'
 import { useFreeResources } from '@/composables/useFreeResources'
 import { useTextAnimations, textAnimationPresets } from '@/composables/useTextAnimations'
-
-// Lazy load video components with Suspense
-const InitialVideo = defineAsyncComponent(() => 
-  import('@/components/home/InitialVideo.vue')
-)
-const InitialVideoMobile = defineAsyncComponent(() => 
-  import('@/components/home/InitialVideoMobile.vue')
-)
-
-// Lazy load sections that are below the fold
-const LazySuccessStoriesSection = defineAsyncComponent(() => 
-  import('./partials/SuccessStoriesSection.vue')
-)
-const LazyDetailedServicesSection = defineAsyncComponent(() => 
-  import('./partials/DetailedServicesSection.vue')
-)
-const LazyProcessSection = defineAsyncComponent(() => 
-  import('./partials/ProcessSection.vue')
-)
-const LazyTechnologiesSection = defineAsyncComponent(() => 
-  import('./partials/TechnologiesSection.vue')
-)
-const LazyWhyChooseSection = defineAsyncComponent(() => 
-  import('./partials/WhyChooseSection.vue')
-)
-const LazyContactSection = defineAsyncComponent(() => 
-  import('./partials/ContactSection.vue')
-)
-const LazyFooterSection = defineAsyncComponent(() => 
-  import('./partials/FooterSection.vue')
-)
+import SuccessStoriesSection from './partials/SuccessStoriesSection.vue'
+import DetailedServicesSection from './partials/DetailedServicesSection.vue'
+import ProcessSection from './partials/ProcessSection.vue'
+import TechnologiesSection from './partials/TechnologiesSection.vue'
+import ContactSection from './partials/ContactSection.vue'
+import FooterSection from './partials/FooterSection.vue'
+import InitialVideo from '@/components/home/InitialVideo.vue'
+import InitialVideoMobile from '@/components/home/InitialVideoMobile.vue'
 
 const { messages } = useMessages()
 
