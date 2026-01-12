@@ -52,18 +52,15 @@ export const useLanguageStore = defineStore("language", {
     },
 
     /**
-     * Detect the browser's language preference.
+     * Initialize language to default (en-us).
      * 
-     * Usa únicamente el idioma del navegador para decidir entre 'es-co' y 'en-us'.
+     * Always defaults to English (en-us). Language can only be changed manually by the user.
      */
     async detectBrowserLanguageAndRegion() {
-      const userLang = navigator.language || navigator.userLanguage;
-      const language = userLang && userLang.startsWith('es') ? 'es' : 'en';
-      const region = language === 'es' ? 'co' : 'us';
-
-      const locale = `${language}-${region}`;
+      // Always default to English (en-us)
+      const locale = 'en-us';
       this.setCurrentLocale(locale);
-      await this.loadMessages(language);
+      await this.loadMessages('en');
     },
 
     /**

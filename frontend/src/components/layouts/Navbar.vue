@@ -16,6 +16,13 @@
       </h1>
     </div>
     <div class="flex absolute z-10 pt-6 top-0 right-0 lg:pe-8">
+      <button
+        @click="toggleLanguage"
+        class="inline-flex items-center gap-x-1 text-sm bg-window-black bg-opacity-40 backdrop-blur-md text-white font-regular py-2 px-4 rounded-xl mx-2 transition duration-250 ease-out hover:bg-esmerald"
+        :aria-label="`Switch to ${languageStore.currentLanguage === 'en' ? 'Spanish' : 'English'}`">
+        <span class="uppercase font-bold">{{ languageStore.currentLanguage === 'en' ? 'EN' : 'ES' }}</span>
+        <span class="sr-only">Change language</span>
+      </button>
       <Popover class="relative">
         <PopoverButton 
           class="inline-flex items-center gap-x-1 text-md bg-window-black bg-opacity-40 backdrop-blur-md text-white font-regular py-2 px-8 rounded-xl mx-2 transition duration-250 ease-out hover:bg-esmerald"
@@ -86,6 +93,13 @@
     </div>
 
     <div class="flex absolute z-10 pt-6 pe-6 top-0 right-0 space-x-2 text-white">
+      <button
+        @click="toggleLanguage"
+        class="bg-window-black bg-opacity-40 backdrop-blur-md rounded-xl px-3 py-3 text-sm font-bold"
+        :aria-label="`Switch to ${languageStore.currentLanguage === 'en' ? 'Spanish' : 'English'}`">
+        {{ languageStore.currentLanguage === 'en' ? 'EN' : 'ES' }}
+        <span class="sr-only">Change language</span>
+      </button>
       <button 
         @click="openMenuMobile" 
         class="bg-window-black bg-opacity-40 backdrop-blur-md rounded-xl px-4 py-3 text-md"
@@ -156,11 +170,29 @@ import { XMarkIcon } from '@heroicons/vue/24/outline';
 import SocialLinks from '@/components/utils/SocialLinks.vue';
 import ButtonWhitArrow from '@/components/utils/ButtonWithArrow.vue';
 import { useGlobalMessages } from '@/composables/useMessages';
+import { useLanguageStore } from '@/stores/language';
 
 // Cargar componentes no críticos de forma diferida
 const Email = defineAsyncComponent(() => import('@/components/layouts/Email.vue'));
 
 const { globalMessages } = useGlobalMessages('navbar');
+
+// Language store
+const languageStore = useLanguageStore();
+
+/**
+ * Toggle between English and Spanish
+ */
+const toggleLanguage = async () => {
+  const newLocale = languageStore.currentLanguage === 'en' ? 'es-co' : 'en-us';
+  const newLanguage = languageStore.currentLanguage === 'en' ? 'es' : 'en';
+  
+  languageStore.setCurrentLocale(newLocale);
+  await languageStore.loadMessages(newLanguage);
+  
+  // Reload current route to update messages
+  window.location.reload();
+};
 
 // Props 
 defineProps({

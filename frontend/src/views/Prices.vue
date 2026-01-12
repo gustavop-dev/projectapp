@@ -139,7 +139,7 @@
                 <!-- Product Price -->
                 <p class="text-md font-regular text-white flex gap-2">
                   <BanknotesIcon class="w-6 h-6 text-lemon"></BanknotesIcon> 
-                  {{ messages.product_details?.price_label || '$' }} {{ formatPrice(calculateTotalPrice(product, productStates[index])) }} {{ languageStore.currentLanguage === 'en' ? 'USD' : 'COP' }}
+                  {{ messages.product_details?.price_label || '$' }} {{ formatPrice(calculateTotalPrice(product, productStates[index], index)) }} {{ languageStore.currentLanguage === 'en' ? 'USD' : 'COP' }}
                 </p>
                 <!-- Development Time -->
                 <p class="text-md font-regular text-white flex gap-2 mt-2">
@@ -280,7 +280,7 @@
                 </p>
                 <!-- Product Price -->
                 <p class="text-md font-regular text-white flex gap-2 justify-end">
-                  {{ messages.product_details?.price_label || '$' }} {{ formatPrice(calculateTotalPrice(product, productStates[index])) }} {{ languageStore.currentLanguage === 'en' ? 'USD' : 'COP' }}
+                  {{ messages.product_details?.price_label || '$' }} {{ formatPrice(calculateTotalPrice(product, productStates[index], index)) }} {{ languageStore.currentLanguage === 'en' ? 'USD' : 'COP' }}
                   <BanknotesIcon class="w-6 h-6 text-lemon"></BanknotesIcon>
                 </p>
                 <!-- Development Time -->
@@ -377,19 +377,36 @@ const productStates = ref([]);
 const showModalEmail = ref(false);
 
 /**
+ * Predefined USD prices for each product when locale is en-us.
+ * Index corresponds to product position (0-based).
+ */
+const USD_PRICES = {
+  base: [699, 1599, 3399, 4799],
+  mobileApp: [300, 500, 800, 1000],
+  animations: [150, 250, 400, 500]
+};
+
+/**
  * Format the given price based on the current language.
  *
- * This function cleans the input price (removes dots or non-digit characters),
- * converts it to a number, applies a conversion rate, and formats it using the appropriate locale.
+ * For en-us: Uses predefined USD prices.
+ * For es-co: Uses COP prices from the API and formats them.
  *
  * @param {number|string} price - The raw price value.
  * @returns {string} - The formatted price string.
  */
 const formatPrice = (price) => {
-  // Remove dots from the price string
+  // For English (USD), the price is already calculated in calculateTotalPrice
+  if (languageStore.currentLanguage === 'en') {
+    return price.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+  
+  // For Spanish (COP), format the price from the API
   let cleanPrice = String(price).replace(/\./g, '');
   let numericPrice = Number(cleanPrice);
-  // If the cleaned value is not a number, try removing non-digit characters
   if (isNaN(numericPrice)) {
     cleanPrice = String(price).replace(/[^\d]/g, '');
     numericPrice = Number(cleanPrice);
@@ -398,43 +415,49 @@ const formatPrice = (price) => {
       return price;
     }
   }
-  // Determine conversion rate based on current language (e.g., for USD conversion)
-  const conversionRate = languageStore.currentLanguage === 'en' ? 0.0006 : 1;
-  const convertedValue = numericPrice * conversionRate;
-  // Format price based on locale
-  if (languageStore.currentLanguage === 'es') {
-    const roundedValue = Math.round(convertedValue);
-    return roundedValue.toLocaleString('es-CO').replace(/,/g, '.');
-  } else {
-    return convertedValue.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  }
+  const roundedValue = Math.round(numericPrice);
+  return roundedValue.toLocaleString('es-CO').replace(/,/g, '.');
 };
 
 /**
  * Calculates the total price for a product.
- * - Starts with the base price from product.price.
- * - If the mobile app checkbox is active, adds product.mobile_app_price.
- * - If the animations checkbox is active, adds half of the base price.
+ * - For en-us: Uses predefined USD prices from USD_PRICES.
+ * - For es-co: Uses prices from the API (product.price and product.mobile_app_price).
+ * - If the mobile app checkbox is active, adds mobile app price.
+ * - If the animations checkbox is active, adds animation price.
  *
  * @param {Object} product - The product object.
+ * @param {Object} state - The state object with checkbox values.
+ * @param {number} index - The product index.
  * @returns {number} - The total price before formatting.
  */
- const calculateTotalPrice = (product, state) => {
+ const calculateTotalPrice = (product, state, index) => {
+  // For English (USD), use predefined prices
+  if (languageStore.currentLanguage === 'en') {
+    let total = USD_PRICES.base[index] || 0;
+    
+    if (state.mobileAppChecked) {
+      total += USD_PRICES.mobileApp[index] || 0;
+    }
+    
+    if (state.animationChecked) {
+      total += USD_PRICES.animations[index] || 0;
+    }
+    
+    return total;
+  }
+  
+  // For Spanish (COP), use prices from API
   let basePrice = parseFloat(String(product.price).replace(/\./g, '').replace(/[^\d\.]/g, ''));
   let mobilePrice = parseFloat(String(product.mobile_app_price).replace(/\./g, '').replace(/[^\d\.]/g, ''));
-  console.log(product)
+  
   if (isNaN(basePrice)) basePrice = 0;
   let total = basePrice;
   
-  // Add mobile app price if active
   if (state.mobileAppChecked && product.mobile_app_price) {
     if (!isNaN(mobilePrice)) total += mobilePrice;
   }
   
-  // Add half of the base price if animations checkbox is active
   if (state.animationChecked) {
     total += mobilePrice / 2;
   }
