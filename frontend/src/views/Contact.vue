@@ -140,6 +140,9 @@ const handleSubmit = async () => {
   const result = await contactsStore.sendContact(form.value)
   
   if (result.success) {
+    if (typeof window !== 'undefined' && window.fbq) {
+      window.fbq('track', 'Contact')
+    }
     const successRoute = currentLocale.value 
       ? `/${currentLocale.value}/contact-success` 
       : '/contact-success'
