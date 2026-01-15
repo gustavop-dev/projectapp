@@ -138,9 +138,11 @@ const selectBudget = (option) => {
 
 const handleSubmit = async () => {
   const result = await contactsStore.sendContact(form.value)
+  console.log('Contact form result:', result)
   
   if (result.success) {
     if (typeof window !== 'undefined' && window.fbq) {
+      console.log('Facebook Pixel: Contact event tracked')
       window.fbq('track', 'Contact')
     }
     const successRoute = currentLocale.value 
