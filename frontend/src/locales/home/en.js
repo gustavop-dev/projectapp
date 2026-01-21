@@ -1,4 +1,74 @@
 export default {
+    hero: {
+        badge: "PROJECT APP",
+        title_part1: "Turn Your Website Into",
+        title_part2: "Your Best Salesperson",
+        subtitle: "In 2025, we increased our clients' <strong>conversion rates by an average of 78%</strong>. Beautiful design meets measurable results.",
+        cta_primary: "Get In Touch",
+        cta_book_call: "Book a Call",
+        cta_email: "Email",
+        cta_whatsapp: "WhatsApp",
+        benefit1_title: "50+ Successful Projects",
+        benefit1_text: "Proven track record across multiple industries and markets",
+        benefit2_title: "Top 3 SEO Rankings",
+        benefit2_text: "85% of our clients rank in top 3 for their main keywords",
+        benefit3_title: "+2.5 Min. Session Time",
+        benefit3_text: "Users stay longer with optimized UX and engaging content",
+        benefit4_title: "<1s Load Time",
+        benefit4_text: "Lightning-fast performance that keeps visitors engaged",
+        carousel: {
+            before: "Before",
+            after: "After",
+            visit_resource: "Visit Resource",
+            obsesd: {
+                title: "Obsesd",
+                before: "High ad spend with poor SEO visibility. Difficult for customers to find organically.",
+                after: "Top 3 SEO rankings. 70% reduction in ad spend with increased organic traffic."
+            },
+            constance: {
+                title: "Constance Hotels",
+                before: "Low conversion rates, poorly targeted audience, and minimal direct bookings.",
+                after: "+85% increase in direct bookings with optimized conversion funnel and precise targeting."
+            },
+            luminaire: {
+                title: "Luminaire Authentik",
+                before: "Outdated e-commerce platform with poor user experience and low sales conversion.",
+                after: "Modern e-commerce experience with +120% increase in online sales and improved customer retention."
+            }
+        },
+        techstack: {
+            title: "Technologies We Use",
+            subtitle: "We work with cutting-edge tools to deliver exceptional results"
+        },
+        services: {
+            card1: {
+                title: 'Your Brand',
+                description: 'Stand out with a brand that captures attention and leaves a lasting impression.'
+            },
+            card2: {
+                title: 'Awesome UI Design',
+                description: 'Get a dedicated design team specialized in Figma, Adobe Illustrator, Photoshop, and Webflow to bring your vision to life.'
+            },
+            card3: {
+                title: 'Results That Matter',
+                description: 'Drive conversions and boost ROI with data-driven solutions.'
+            }
+        },
+        contactForm: {
+            title: 'Hi there!',
+            subtitle: 'Tell us what you need',
+            fullName: 'Full name',
+            phone: 'Phone number',
+            email: 'Your email address',
+            message: 'Tell us about your project',
+            budgetLabel: 'Project budget (USD)',
+            privacy: 'By submitting this form, your information will be sent directly to the listed business. It will not be sold, shared, or disclosed by Chilliwack Connect. For more details, please see our',
+            privacyLink: 'Privacy Policy.',
+            submit: 'Submit',
+            sending: 'Sending...',
+            bookCall: 'Book a Call'
+        }
+    },
     video: {
         text: "Play Reel"
     },

@@ -1,4 +1,74 @@
 export default {
+    hero: {
+        badge: "PROJECT APP",
+        title_part1: "Convierte Tu Sitio Web En",
+        title_part2: "Tu Mejor Vendedor",
+        subtitle: "En 2025, aumentamos la <strong>tasa de conversión de nuestros clientes en un promedio de 78%</strong>. Diseño hermoso con resultados medibles.",
+        cta_primary: "Contáctanos",
+        cta_book_call: "Agenda una llamada",
+        cta_email: "Email",
+        cta_whatsapp: "WhatsApp",
+        benefit1_title: "50+ Proyectos Exitosos",
+        benefit1_text: "Historial comprobado en múltiples industrias y mercados",
+        benefit2_title: "Top 3 en Rankings SEO",
+        benefit2_text: "85% de nuestros clientes rankean en top 3 para sus palabras clave principales",
+        benefit3_title: "+2.5 Min. Tiempo de Sesión",
+        benefit3_text: "Los usuarios permanecen más tiempo con UX optimizado y contenido atractivo",
+        benefit4_title: "<1s Tiempo de Carga",
+        benefit4_text: "Rendimiento ultra-rápido que mantiene a los visitantes comprometidos",
+        carousel: {
+            before: 'Antes',
+            after: 'Después',
+            visit_resource: 'Visitar Recurso',
+            obsesd: {
+              title: 'Obsesd',
+              before: 'Alto gasto en publicidad con poca visibilidad SEO. Difícil para los clientes encontrar orgánicamente.',
+              after: 'Top 3 en rankings SEO. 70% de reducción en gasto publicitario con mayor tráfico orgánico.'
+            },
+            constance: {
+              title: 'Constance Hotels',
+              before: 'Bajas tasas de conversión, audiencia mal segmentada y reservas directas mínimas.',
+              after: '+85% de aumento en reservas directas con embudo de conversión optimizado y segmentación precisa.'
+            },
+            luminaire: {
+              title: 'Luminaire Authentik',
+              before: 'Plataforma e-commerce obsoleta con mala experiencia de usuario y baja conversión de ventas.',
+              after: 'Experiencia e-commerce moderna con +120% de aumento en ventas online y mejor retención de clientes.'
+            }
+          },
+          techstack: {
+            title: 'Tecnologías que Usamos',
+            subtitle: 'Trabajamos con herramientas de vanguardia para entregar resultados excepcionales'
+          },
+          services: {
+            card1: {
+              title: 'Tu Marca',
+              description: 'Destaca con una marca que captura la atención y deja una impresión duradera.'
+            },
+            card2: {
+              title: 'Diseño UI Increíble',
+              description: 'Obtén un equipo de diseño dedicado especializado en Figma, Adobe Illustrator, Photoshop y Webflow para dar vida a tu visión.'
+            },
+            card3: {
+              title: 'Resultados que Importan',
+              description: 'Impulsa conversiones y aumenta el ROI con soluciones basadas en datos.'
+            }
+          },
+          contactForm: {
+            title: '¡Hola!',
+            subtitle: 'cuéntanos qué necesitas',
+            fullName: 'Nombre completo',
+            phone: 'Número de teléfono',
+            email: 'Tu dirección de correo',
+            message: 'Cuéntanos sobre tu proyecto',
+            budgetLabel: 'Presupuesto del proyecto (USD)',
+            privacy: 'Al enviar este formulario, tu información será enviada directamente al negocio listado. No será vendida, compartida o divulgada por Chilliwack Connect. Para más detalles, consulta nuestra',
+            privacyLink: 'Política de Privacidad.',
+            submit: 'Enviar',
+            sending: 'Enviando...',
+            bookCall: 'Agendar una Llamada'
+          },
+    },
     video: {
         text: "Reproducir"
     },

@@ -29,7 +29,7 @@
           aria-expanded="auto"
           aria-haspopup="true">
           <span>
-            {{ globalMessages.menu_button }}
+            {{ globalMessages?.menu_button || 'Menu' }}
           </span>
           <span class="sr-only">Open website navigation menu</span>
         </PopoverButton>
@@ -70,7 +70,7 @@
         @click="showModalEmail = true" 
         class="inline-flex items-center gap-x-1 text-md bg-window-black bg-opacity-40 backdrop-blur-md text-white font-regular py-2 px-8 rounded-xl mx-2 transition duration-250 ease-out hover:bg-esmerald"
         aria-label="Contact our website development team">
-        {{ globalMessages.get_in_touch }}
+        {{ globalMessages?.get_in_touch || 'Get in touch' }}
         <span class="sr-only">Open contact form</span>
       </button>
     </div>
@@ -106,14 +106,14 @@
         aria-expanded="false"
         aria-haspopup="true"
         aria-controls="mobile-menu">
-        {{ globalMessages.menu_button }}
+        {{ globalMessages?.menu_button || 'Menu' }}
         <span class="sr-only">Open mobile navigation menu</span>
       </button>
       <button 
         @click="showModalEmail = true" 
         class="bg-window-black bg-opacity-40 backdrop-blur-md rounded-xl px-4 py-3 flex justify-center items-center font-regular text-md"
         aria-label="Contact our web design team">
-        {{ globalMessages.get_in_touch }}
+        {{ globalMessages?.get_in_touch || 'Get in touch' }}
         <span class="sr-only">Open contact form</span>
       </button>
     </div>
@@ -163,7 +163,7 @@
 </template>
 
 <script setup>
-import { defineAsyncComponent, ref, shallowRef, onMounted } from 'vue';
+import { ref, shallowRef, onMounted } from 'vue';
 import { gsap } from 'gsap';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue';
 import { XMarkIcon } from '@heroicons/vue/24/outline';
@@ -171,9 +171,7 @@ import SocialLinks from '@/components/utils/SocialLinks.vue';
 import ButtonWhitArrow from '@/components/utils/ButtonWithArrow.vue';
 import { useGlobalMessages } from '@/composables/useMessages';
 import { useLanguageStore } from '@/stores/language';
-
-// Cargar componentes no críticos de forma diferida
-const Email = defineAsyncComponent(() => import('@/components/layouts/Email.vue'));
+import Email from '@/components/layouts/Email.vue';
 
 const { globalMessages } = useGlobalMessages('navbar');
 
@@ -210,14 +208,14 @@ const showMenu = ref(false);
 
 // Memoización de los elementos de menú para evitar recálculos innecesarios
 const solutions = shallowRef([
-  { name: globalMessages.solutions.home, href: 'home' },
-  { name: globalMessages.solutions.about, href: 'aboutUs' },
-  { name: globalMessages.solutions.web_designs, href: 'webDesigns' },
-  { name: globalMessages.solutions.web_developments, href: 'portfolioWorks' },
-  { name: globalMessages.solutions.custom_software, href: 'customSoftware' },
-  { name: globalMessages.solutions.animations_3d, href: '3dAnimations' },
-  { name: globalMessages.solutions.prices, href: 'eCommercePrices' },
-  { name: globalMessages.solutions.hosting, href: 'hosting' },
+  { name: globalMessages?.solutions?.home || 'Home', href: 'home' },
+  { name: globalMessages?.solutions?.about || 'About', href: 'aboutUs' },
+  { name: globalMessages?.solutions?.web_designs || 'Web designs', href: 'webDesigns' },
+  { name: globalMessages?.solutions?.web_developments || 'Web developments', href: 'portfolioWorks' },
+  { name: globalMessages?.solutions?.custom_software || 'Custom software', href: 'customSoftware' },
+  { name: globalMessages?.solutions?.animations_3d || '3D animations', href: '3dAnimations' },
+  { name: globalMessages?.solutions?.prices || 'Prices', href: 'eCommercePrices' },
+  { name: globalMessages?.solutions?.hosting || 'Hosting', href: 'hosting' },
 ]);
 
 /**

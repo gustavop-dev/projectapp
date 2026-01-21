@@ -5,26 +5,14 @@
       <Navbar />
     </header>
 
-    <!-- Hero video with lazy loading -->
-    <Suspense>
-      <template #default>
-        <component 
-          :is="isDesktop ? InitialVideo : InitialVideoMobile" 
-          :play_text="messages?.video?.text || 'Play'" 
-          aria-label="Project App web design and development company showcase" 
-          itemscope itemtype="https://schema.org/VideoObject"
-        />
-      </template>
-      <template #fallback>
-        <div class="h-screen flex items-center justify-center bg-esmerald-light" aria-live="polite" role="status">
-          <div class="w-12 h-12 border-4 border-esmerald rounded-full border-t-transparent animate-spin"></div>
-          <span class="sr-only">Loading Project App. hero video</span>
-        </div>
-      </template>
-    </Suspense>
+    <!-- Hero section -->
+    <Hero />
+
+    <!-- Tech Stack section -->
+    <TechStack />
 
     <!-- Introduction section with main heading -->
-    <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52" aria-labelledby="main-intro-title" itemscope itemtype="https://schema.org/WebPageElement">
+    <section class="mt-12 mb-40 px-3 lg:px-32 lg:mt-16" aria-labelledby="main-intro-title" itemscope itemtype="https://schema.org/WebPageElement">
       <h1 
         ref="mainTitleRef"
         id="main-intro-title" 
@@ -34,6 +22,9 @@
         {{ messages?.section_1?.title || '' }}
         <span class="sr-only">Project App. - Professional Web Development</span>
       </h1>
+      
+      <!-- Services Cards -->
+      <ServicesCards />
     </section>
 
     <!-- About our web design company section -->
@@ -178,8 +169,11 @@ import { useFreeResources } from '@/composables/useFreeResources'
 import { useTextAnimations, textAnimationPresets } from '@/composables/useTextAnimations'
 import ContactSection from './partials/ContactSection.vue'
 import FooterSection from './partials/FooterSection.vue'
-import InitialVideo from '@/components/home/InitialVideo.vue'
-import InitialVideoMobile from '@/components/home/InitialVideoMobile.vue'
+import Hero from '@/components/home/Hero.vue'
+import TechStack from '@/components/home/TechStack.vue'
+import ServicesCards from '@/components/home/ServicesCards.vue'
+// import InitialVideo from '@/components/home/InitialVideo.vue'
+// import InitialVideoMobile from '@/components/home/InitialVideoMobile.vue'
 
 const { messages } = useMessages()
 
