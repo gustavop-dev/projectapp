@@ -35,6 +35,11 @@ const cleanupUnusedResources = () => {
   
   // Identificar recursos para liberar
   loadedResources.forEach((resource, key) => {
+    // No liberar recursos marcados explícitamente como "no optimizar"
+    if (resource.element && resource.element.getAttribute && resource.element.getAttribute('data-no-optimize') === 'true') {
+      return;
+    }
+
     // Si el recurso no ha sido accedido recientemente o ya no está visible
     if (now - resource.lastAccessed > config.resourceCleanupInterval || !resource.inViewport) {
       deleteKeys.push(key);
@@ -86,6 +91,12 @@ const initResourceObserver = () => {
   resourceObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       const element = entry.target;
+
+      // Ignorar elementos marcados como no optimizables
+      if (element.getAttribute && element.getAttribute('data-no-optimize') === 'true') {
+        return;
+      }
+
       const src = element.tagName === 'IMG' ? element.getAttribute('src') : 
                 element.tagName === 'VIDEO' ? element.getAttribute('src') : null;
       

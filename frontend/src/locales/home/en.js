@@ -50,9 +50,56 @@ export default {
                 description: 'Get a dedicated design team specialized in Figma, Adobe Illustrator, Photoshop, and Webflow to bring your vision to life.'
             },
             card3: {
-                title: 'Results That Matter',
-                description: 'Drive conversions and boost ROI with data-driven solutions.'
+                title: 'Data-Driven Performance',
+                description: 'Maximize conversions, retention, and SEO rankings with Google Tag Manager and Clarity analytics tracking every user interaction.'
             }
+        },
+        bentoGrid: {
+            title1: 'Design and code',
+            title2: 'made Simple',
+            subtitle: 'Our team of experts is here to turn your vision into reality',
+            portfolio: {
+                title: 'Portfolio',
+                description: 'Our team of experts is here to turn your vision into reality',
+                ctaPrimary: 'Get in Touch',
+                ctaSecondary: 'Go to Portfolio',
+                recentWork: 'RECENT WORK:'
+            },
+            apps: {
+                title: 'UI/UX, websites,',
+                subtitle: 'platforms & more',
+                cta: "LET'S TALK",
+                watchVideo: 'Watch Video',
+                tooltip: 'Click here to see our presentation ;)'
+            }
+        },
+        unrepeatable: {
+            title: 'unrepeatable.',
+            processTitle1: 'A Thoughtful Process Designed for',
+            processTitle2: 'Outstanding Results',
+            card1Title: 'Architecture & Planning',
+            card1Description: 'We define the complete project structure: site map, user flows, strategic CTAs, required forms, and necessary integrations to achieve your goals.',
+            card2Title: 'UI/UX Design',
+            card2Description: 'We create the complete design in Figma for all project views. We work in iterations with you until achieving final design approval.',
+            card3Title: 'Development & Implementation',
+            card3Description: 'We implement the approved design, configure CMS if needed, integrate tools (CRM, WhatsApp, analytics), and apply basic technical SEO.',
+            card4Title: 'Deployment & Validation',
+            card4Description: 'We publish the project on hosting, perform final tests on forms, integrations, tracking, and performance to ensure everything works perfectly.'
+        },
+        contract: {
+            title: 'SI Design',
+            price: '$999',
+            oldPrice: '$1499',
+            priceSubtitle: 'Single Price. All included.',
+            featuresTitle: 'Code Included',
+            feature1: 'Landing UI Design',
+            feature2: 'Mobile Responsive Design',
+            feature3: 'Initial Consultation',
+            feature4: 'Up to 3 rounds of revisions',
+            feature5: 'Timely Delivery (2-3 days)',
+            feature6: 'Cost-Effective',
+            cta: "LET'S TALK",
+            playReel: 'Play Reel'
         },
         contactForm: {
             title: 'Hi there!',

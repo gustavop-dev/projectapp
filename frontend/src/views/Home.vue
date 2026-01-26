@@ -1,5 +1,5 @@
 <template>
-  <div itemscope itemtype="https://schema.org/WebPage">
+  <div class="overflow-x-hidden bg-esmerald-light" itemscope itemtype="https://schema.org/WebPage">
     <!-- Fixed navbar component at the top of the page -->
     <header class="fixed top-0 left-0 w-full z-50">
       <Navbar />
@@ -27,8 +27,29 @@
       <ServicesCards />
     </section>
 
-    <!-- About our web design company section -->
-    <section class="grid grid-cols-3" aria-labelledby="about-section-title" itemscope itemtype="https://schema.org/AboutPage">
+    <!-- Study Cases Section -->
+    <StudyCases />
+
+    <!-- Bento Grid Section -->
+    <BentoGrid />
+
+    <!-- Unrepeatable Section -->
+    <UnrepeatableSection />
+
+    <!-- Contract Section -->
+    <ContractSection />
+
+    <!-- Contact Form Section -->
+    <ContactFormSection />
+
+    <!-- Marquee Strips Section -->
+    <MarqueeStrips />
+
+    <!-- Book a Call Section -->
+    <BookCallSection />
+
+    <!-- About our web design company section - COMMENTED OUT -->
+    <!-- <section class="grid grid-cols-3" aria-labelledby="about-section-title" itemscope itemtype="https://schema.org/AboutPage">
       <div class="col-span-1">
         <h2 
           ref="softwareHouseRef"
@@ -69,7 +90,6 @@
             itemscope 
             itemtype="https://schema.org/VideoObject"
           >
-            <!-- Optimized video with descriptive elements -->
             <video 
               ref="videoRef" 
               autoplay 
@@ -90,10 +110,10 @@
           </div>
         </div>
       </div>
-    </section>
+    </section> -->
 
-    <!-- Web development services section -->
-    <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52" aria-labelledby="services-section-title" itemscope itemtype="https://schema.org/Service">
+    <!-- Web development services section - COMMENTED OUT -->
+    <!-- <section class="mt-24 mb-40 px-3 lg:px-32 lg:mt-52" aria-labelledby="services-section-title" itemscope itemtype="https://schema.org/Service">
       <h2 
         ref="servicesTitleRef"
         id="services-section-title" 
@@ -110,7 +130,6 @@
           itemscope 
           itemtype="https://schema.org/ImageObject"
         >
-          <!-- Optimized image with proper alt text -->
           <img 
             ref="imageRef" 
             src="@/assets/images/home/cube_illusion.webp"
@@ -148,7 +167,7 @@
           </p>
         </article>
       </div>
-    </section>
+    </section> -->
 
     <!-- Contact and Footer sections -->
     <section aria-label="Contact Project App. for web design services" itemscope itemtype="https://schema.org/ContactPoint">
@@ -172,6 +191,13 @@ import FooterSection from './partials/FooterSection.vue'
 import Hero from '@/components/home/Hero.vue'
 import TechStack from '@/components/home/TechStack.vue'
 import ServicesCards from '@/components/home/ServicesCards.vue'
+import BentoGrid from '@/components/home/BentoGrid.vue'
+import UnrepeatableSection from '@/components/home/UnrepeatableSection.vue'
+import ContractSection from '@/components/home/ContractSection.vue'
+import ContactFormSection from '@/components/home/ContactSection.vue'
+import MarqueeStrips from '@/components/home/MarqueeStrips.vue'
+import BookCallSection from '@/components/home/BookCallSection.vue'
+import StudyCases from '@/components/home/StudyCases.vue'
 // import InitialVideo from '@/components/home/InitialVideo.vue'
 // import InitialVideoMobile from '@/components/home/InitialVideoMobile.vue'
 

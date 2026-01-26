@@ -6,7 +6,7 @@
         {{ messages?.contactForm?.title || 'Hi there!' }} <span ref="waveEmoji" class="inline-block">👋</span><br>
         {{ messages?.contactForm?.subtitle || 'tell us what you need' }}
       </h2>
-      <form @submit.prevent="handleSubmit" class="space-y-8">
+      <form @submit.prevent="handleSubmit" class="space-y-8 bg-white rounded-3xl p-8 lg:p-12">
         <!-- Full Name -->
         <input
           v-model="form.fullName"
@@ -130,10 +130,10 @@
           </div>
           <div class="card-text">
             <h3 class="text-2xl font-bold text-white mb-3">
-              {{ messages?.services?.card3?.title || 'Flawless Performance' }}
+              {{ messages?.services?.card3?.title || 'Data-Driven Performance' }}
             </h3>
             <p class="text-white/90 text-sm leading-relaxed">
-              {{ messages?.services?.card3?.description || 'A website that looks amazing and works perfectly on every device.' }}
+              {{ messages?.services?.card3?.description || 'Maximize conversions, retention, and SEO rankings with Google Tag Manager and Clarity analytics tracking every user interaction.' }}
             </p>
           </div>
         </div>

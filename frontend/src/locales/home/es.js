@@ -50,9 +50,56 @@ export default {
               description: 'Obtén un equipo de diseño dedicado especializado en Figma, Adobe Illustrator, Photoshop y Webflow para dar vida a tu visión.'
             },
             card3: {
-              title: 'Resultados que Importan',
-              description: 'Impulsa conversiones y aumenta el ROI con soluciones basadas en datos.'
+              title: 'Rendimiento Basado en Datos',
+              description: 'Maximiza conversiones, retención y rankings SEO con Google Tag Manager y Clarity rastreando cada interacción del usuario.'
             }
+          },
+          bentoGrid: {
+            title1: 'Diseño y código',
+            title2: 'hecho Simple',
+            subtitle: 'Nuestro equipo de expertos está aquí para convertir tu visión en realidad',
+            portfolio: {
+                title: 'Portafolio',
+                description: 'Nuestro equipo de expertos está aquí para convertir tu visión en realidad',
+                ctaPrimary: 'Contáctanos',
+                ctaSecondary: 'Ver Portafolio',
+                recentWork: 'TRABAJO RECIENTE:'
+            },
+            apps: {
+                title: 'UI/UX, sitios web,',
+                subtitle: 'plataformas y más',
+                cta: 'HABLEMOS',
+                watchVideo: 'Ver Video',
+                tooltip: 'Haz clic para ver nuestra presentación ;)'
+            }
+          },
+          unrepeatable: {
+            title: 'irrepetible.',
+            processTitle1: 'Un Proceso Reflexivo Diseñado para',
+            processTitle2: 'Resultados Sobresalientes',
+            card1Title: 'Arquitectura y Planeación',
+            card1Description: 'Definimos la estructura completa del proyecto: mapa del sitio, flujos de usuario, CTAs estratégicos, formularios necesarios e integraciones requeridas para cumplir tus objetivos.',
+            card2Title: 'Diseño UI/UX',
+            card2Description: 'Creamos el diseño completo en Figma para todas las vistas del proyecto. Trabajamos en iteraciones contigo hasta lograr la aprobación final del diseño.',
+            card3Title: 'Desarrollo e Implementación',
+            card3Description: 'Implementamos el diseño aprobado, configuramos CMS si es necesario, integramos herramientas (CRM, WhatsApp, analytics) y aplicamos SEO técnico básico.',
+            card4Title: 'Despliegue y Validación',
+            card4Description: 'Publicamos el proyecto en el hosting, realizamos pruebas finales de formularios, integraciones, tracking y rendimiento para asegurar que todo funcione perfectamente.'
+          },
+          contract: {
+            title: 'SI Design',
+            price: '$999',
+            oldPrice: '$1499',
+            priceSubtitle: 'Precio único. Todo incluido.',
+            featuresTitle: 'Código Incluido',
+            feature1: 'Diseño UI de Landing',
+            feature2: 'Diseño Responsive Móvil',
+            feature3: 'Consulta Inicial',
+            feature4: 'Hasta 3 rondas de revisiones',
+            feature5: 'Entrega Oportuna (2-3 días)',
+            feature6: 'Costo-Efectivo',
+            cta: 'HABLEMOS',
+            playReel: 'Ver Reel'
           },
           contactForm: {
             title: '¡Hola!',

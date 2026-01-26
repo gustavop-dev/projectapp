@@ -1,7 +1,7 @@
 <template>
-  <section class="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-100">
-    <div class="container mx-auto px-6 lg:px-16 py-20 lg:py-0">
-      <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+  <section class="relative min-h-screen flex items-center justify-center overflow-x-hidden">
+    <div class="w-full flex flex-col lg:flex-row items-center">
+      <div class="container lg:w-1/2 px-6 lg:pl-16 py-20 lg:py-0">
         
         <!-- Left Column - Copy -->
         <div class="space-y-8 lg:space-y-10">
@@ -94,170 +94,25 @@
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Right Column - Success Stories Carousel -->
-        <div class="relative lg:block">
-          <!-- Swiper Container -->
-          <swiper
-            :modules="modules"
-            :slides-per-view="1"
-            :space-between="20"
-            :pagination="{ clickable: true }"
-            :autoplay="{ delay: 5000, disableOnInteraction: false }"
-            class="success-stories-swiper"
-          >
-            <!-- Slide 1: Obsesd -->
-            <swiper-slide>
-              <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100 mx-auto max-w-2xl">
-                <div class="h-full flex flex-col">
-                  <!-- Image -->
-                  <div class="h-96 overflow-hidden">
-                    <picture>
-                      <source media="(min-width: 1024px)" srcset="@/assets/images/hero/Obsesd-Desk.jpg">
-                      <img 
-                        src="@/assets/images/hero/Obsesd-Mob.jpg" 
-                        alt="Obsesd Photography Studio"
-                        class="w-full h-full object-cover"
-                      />
-                    </picture>
-                  </div>
-                  
-                  <!-- Content -->
-                  <div class="p-8 flex flex-col justify-between flex-grow bg-white">
-                    <div class="space-y-5">
-                      <h3 class="text-xl font-light text-esmerald tracking-wide">{{ messages?.hero?.carousel?.obsesd?.title || 'Obsesd' }}</h3>
-                      
-                      <!-- Before -->
-                      <div>
-                        <p class="inline-block text-sm font-medium text-esmerald px-2 py-1 bg-lemon/30 mb-2">
-                          {{ messages?.hero?.carousel?.before || 'Before' }}
-                        </p>
-                        <p class="text-slate-600 text-sm leading-relaxed">{{ messages?.hero?.carousel?.obsesd?.before || 'High ad spend with poor SEO visibility. Difficult for customers to find organically.' }}</p>
-                      </div>
-                      
-                      <!-- After -->
-                      <div>
-                        <p class="inline-block text-sm font-medium text-esmerald px-2 py-1 bg-lemon/30 mb-2">
-                          {{ messages?.hero?.carousel?.after || 'After' }}
-                        </p>
-                        <p class="text-slate-600 text-sm leading-relaxed">{{ messages?.hero?.carousel?.obsesd?.after || 'Top 3 SEO rankings. 70% reduction in ad spend with increased organic traffic.' }}</p>
-                      </div>
-                    </div>
-                    
-                    <!-- Visit Resource Link -->
-                    <a href="https://www.obsesd.dk/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-esmerald text-sm font-light hover:gap-3 transition-all group mt-6">
-                      {{ messages?.hero?.carousel?.visit_resource || 'Visit Resource' }}
-                      <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </swiper-slide>
-
-            <!-- Slide 2: Constance Hotels -->
-            <swiper-slide>
-              <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100 mx-auto max-w-2xl">
-                <div class="h-full flex flex-col">
-                  <!-- Image -->
-                  <div class="h-96 overflow-hidden">
-                    <picture>
-                      <source media="(min-width: 1024px)" srcset="@/assets/images/hero/Constance-Hotels-Desk.jpg">
-                      <img 
-                        src="@/assets/images/hero/Constance-Hotels-Mob.jpg" 
-                        alt="Constance Hotels"
-                        class="w-full h-full object-cover"
-                      />
-                    </picture>
-                  </div>
-                  
-                  <!-- Content -->
-                  <div class="p-8 flex flex-col justify-between flex-grow bg-white">
-                    <div class="space-y-5">
-                      <h3 class="text-xl font-light text-esmerald tracking-wide">{{ messages?.hero?.carousel?.constance?.title || 'Constance Hotels' }}</h3>
-                      
-                      <!-- Before -->
-                      <div>
-                        <p class="inline-block text-sm font-medium text-esmerald px-2 py-1 bg-lemon/30 mb-2">
-                          {{ messages?.hero?.carousel?.before || 'Before' }}
-                        </p>
-                        <p class="text-slate-600 text-sm leading-relaxed">{{ messages?.hero?.carousel?.constance?.before || 'Low conversion rates, poorly targeted audience, and minimal direct bookings.' }}</p>
-                      </div>
-                      
-                      <!-- After -->
-                      <div>
-                        <p class="inline-block text-sm font-medium text-esmerald px-2 py-1 bg-lemon/30 mb-2">
-                          {{ messages?.hero?.carousel?.after || 'After' }}
-                        </p>
-                        <p class="text-slate-600 text-sm leading-relaxed">{{ messages?.hero?.carousel?.constance?.after || '+85% increase in direct bookings with optimized conversion funnel and precise targeting.' }}</p>
-                      </div>
-                    </div>
-                    
-                    <!-- Visit Resource Link -->
-                    <a href="https://www.constancehotels.com/en/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-esmerald text-sm font-light hover:gap-3 transition-all group mt-6">
-                      {{ messages?.hero?.carousel?.visit_resource || 'Visit Resource' }}
-                      <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </swiper-slide>
-
-            <!-- Slide 3: Luminaire Authentik -->
-            <swiper-slide>
-              <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-100 mx-auto max-w-2xl">
-                <div class="h-full flex flex-col">
-                  <!-- Image -->
-                  <div class="h-96 overflow-hidden">
-                    <picture>
-                      <source media="(min-width: 1024px)" srcset="@/assets/images/hero/Luminaire-Authentik-Desk.jpg">
-                      <img 
-                        src="@/assets/images/hero/Luminaire-Authentik-Mob.jpg" 
-                        alt="Luminaire Authentik"
-                        class="w-full h-full object-cover"
-                      />
-                    </picture>
-                  </div>
-                  
-                  <!-- Content -->
-                  <div class="p-8 flex flex-col justify-between flex-grow bg-white">
-                    <div class="space-y-5">
-                      <h3 class="text-xl font-light text-esmerald tracking-wide">{{ messages?.hero?.carousel?.luminaire?.title || 'Luminaire Authentik' }}</h3>
-                      
-                      <!-- Before -->
-                      <div>
-                        <p class="inline-block text-sm font-medium text-esmerald px-2 py-1 bg-lemon/30 mb-2">
-                          {{ messages?.hero?.carousel?.before || 'Before' }}
-                        </p>
-                        <p class="text-slate-600 text-sm leading-relaxed">{{ messages?.hero?.carousel?.luminaire?.before || 'Outdated e-commerce platform with poor user experience and low sales conversion.' }}</p>
-                      </div>
-                      
-                      <!-- After -->
-                      <div>
-                        <p class="inline-block text-sm font-medium text-esmerald px-2 py-1 bg-lemon/30 mb-2">
-                          {{ messages?.hero?.carousel?.after || 'After' }}
-                        </p>
-                        <p class="text-slate-600 text-sm leading-relaxed">{{ messages?.hero?.carousel?.luminaire?.after || 'Modern e-commerce experience with +120% increase in online sales and improved customer retention.' }}</p>
-                      </div>
-                    </div>
-                    
-                    <!-- Visit Resource Link -->
-                    <a href="https://luminaireauthentik.com/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-esmerald text-sm font-light hover:gap-3 transition-all group mt-6">
-                      {{ messages?.hero?.carousel?.visit_resource || 'Visit Resource' }}
-                      <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </swiper-slide>
-          </swiper>
-        </div>
-
+      <!-- Right Column - Animated Gradient Background (Full Width) -->
+      <div class="relative lg:w-1/2 w-full h-screen rounded-l-full overflow-hidden">
+        <BackgroundGradientAnimation
+          gradient-background-start="rgb(240, 255, 61)"
+          gradient-background-end="rgb(230, 245, 50)"
+          first-color="0, 41, 33"
+          second-color="0, 150, 120"
+          third-color="128, 148, 144"
+          fourth-color="0, 200, 160"
+          fifth-color="230, 239, 239"
+          pointer-color="0, 41, 33"
+          size="100%"
+          blending-value="soft-light"
+          :interactive="true"
+          container-class-name="!h-full !w-full !relative"
+        >
+        </BackgroundGradientAnimation>
       </div>
     </div>
 
@@ -270,16 +125,10 @@
 </template>
 
 <script setup>
-import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Pagination, Autoplay } from 'swiper/modules'
-import 'swiper/css'
-import 'swiper/css/pagination'
+import BackgroundGradientAnimation from '@/components/ui/BackgroundGradientAnimation.vue'
 import { useMessages } from '@/composables/useMessages'
 
 const { messages } = useMessages()
-
-// Swiper modules
-const modules = [Pagination, Autoplay]
 </script>
 
 <style scoped>
@@ -297,24 +146,5 @@ section {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* Swiper customization */
-.success-stories-swiper {
-  padding-bottom: 50px;
-}
-
-:deep(.swiper-pagination-bullet) {
-  background: #cbd5e1;
-  opacity: 1;
-  width: 8px;
-  height: 8px;
-  transition: all 0.3s ease;
-}
-
-:deep(.swiper-pagination-bullet-active) {
-  background: #002921;
-  width: 24px;
-  border-radius: 4px;
 }
 </style>

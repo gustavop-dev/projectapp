@@ -1,5 +1,5 @@
 <template>
-  <section class="py-12 bg-white relative overflow-hidden">
+  <section class="py-12 relative overflow-hidden">
     <div class="container mx-auto px-6 flex justify-center">
       <!-- Single Tech Bubble with all icons -->
       <div class="tech-bubble">
