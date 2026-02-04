@@ -1,0 +1,70 @@
+<template>
+  <section class="executive-summary h-full w-full bg-white flex items-center">
+    <div class="w-full px-6 md:px-12 lg:px-24">
+      <div class="max-w-7xl">
+        <div class="flex items-baseline gap-4 mb-10">
+          <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
+            {{ content.index }}
+          </span>
+          <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
+            {{ content.title }}
+          </h2>
+        </div>
+
+        <div class="grid lg:grid-cols-12 gap-10 items-start">
+          <div class="lg:col-span-8 space-y-6">
+            <p
+              v-for="(paragraph, idx) in content.paragraphs"
+              :key="idx"
+              class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl"
+            >
+              {{ paragraph }}
+            </p>
+          </div>
+
+          <aside v-if="content.highlights?.length" class="lg:col-span-4">
+            <div class="rounded-3xl bg-esmerald-light/60 p-6 md:p-8">
+              <h3 class="text-esmerald font-light text-base md:text-lg tracking-wide mb-5">
+                {{ content.highlightsTitle }}
+              </h3>
+              <ul class="space-y-4">
+                <li v-for="(item, idx) in content.highlights" :key="idx" class="flex gap-3">
+                  <span class="mt-3 h-1.5 w-1.5 rounded-full bg-esmerald flex-shrink-0"></span>
+                  <p class="text-esmerald/80 font-light leading-relaxed">
+                    {{ item }}
+                  </p>
+                </li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </section>
+</template>
+
+<script setup>
+const props = defineProps({
+  content: {
+    type: Object,
+    default: () => ({
+      index: '01',
+      title: 'Resumen ejecutivo',
+      paragraphs: [
+        'Crearemos una landing page profesional enfocada en presentar tu perfil y portafolio de servicios, y facilitar que los visitantes te contacten de forma rápida.',
+        'La página incluirá llamados a la acción visibles (por ejemplo: “Escríbeme por WhatsApp” o “Solicitar asesoría”), para que cualquier persona sepa exactamente qué hacer y cómo comunicarse, sin fricción.',
+        'Además, integraremos un módulo de autogestión para que puedas cambiar imágenes y/o videos cuando lo necesites, sin depender de desarrollo.'
+      ],
+      highlightsTitle: 'Incluye',
+      highlights: [
+        'Mensajes y botones de contacto siempre visibles',
+        'Estructura clara orientada a conversión',
+        'Autogestión de contenido (imágenes / videos)'
+      ]
+    })
+  }
+});
+</script>
+
+<style scoped>
+</style>

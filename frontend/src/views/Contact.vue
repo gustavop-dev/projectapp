@@ -94,6 +94,7 @@ import { useRouter } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
 import { useContactsStore } from '@/stores/contacts'
 import gsap from 'gsap'
+import { waveEmoji as waveEmojiAnimation } from '@/animations'
 
 const router = useRouter()
 const languageStore = useLanguageStore()
@@ -186,12 +187,11 @@ onMounted(() => {
       ease: 'power2.out'
     }, '-=0.4')
   
-  gsap.to(waveEmoji.value, {
+  waveEmojiAnimation(waveEmoji.value, {
     rotation: 20,
     transformOrigin: 'bottom center',
     duration: 0.3,
     ease: 'power1.inOut',
-    yoyo: true,
     repeat: 5,
     delay: 0.5
   })

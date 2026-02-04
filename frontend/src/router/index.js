@@ -68,6 +68,11 @@ const router = createRouter({
       name: 'contactSuccess',
       component: () => import("@/views/ContactSuccess.vue"),
     },
+    {
+      path: '/business-proposal/:slug',
+      name: 'businessProposal',
+      component: () => import("@/views/business-proposal/BusinessProposal.vue"),
+    },
     
     // Locale-specific routes for es-co (Spanish Colombia)
     {
@@ -122,6 +127,11 @@ const router = createRouter({
           path: 'contact-success',
           name: 'contactSuccess-es-co',
           component: () => import("@/views/ContactSuccess.vue"),
+        },
+        {
+          path: 'business-proposal/:slug',
+          name: 'businessProposal-es-co',
+          component: () => import("@/views/business-proposal/BusinessProposal.vue"),
         },
       ]
     },
@@ -179,6 +189,11 @@ const router = createRouter({
           path: 'contact-success',
           name: 'contactSuccess-en-us',
           component: () => import("@/views/ContactSuccess.vue"),
+        },
+        {
+          path: 'business-proposal/:slug',
+          name: 'businessProposal-en-us',
+          component: () => import("@/views/business-proposal/BusinessProposal.vue"),
         },
       ]
     },
