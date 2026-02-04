@@ -68,33 +68,43 @@
             {{ messages?.bentoGrid?.portfolio?.recentWork || 'RECENT WORK:' }}
           </h4>
           <div class="grid grid-cols-2 gap-4">
-            <!-- Project 1 -->
-            <div class="project-item">
+            <!-- Project 1: TapTag -->
+            <a 
+              :href="messages?.bentoGrid?.recentWork?.taptag?.url || 'https://taptag.com.co/'"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="project-item project-card cursor-pointer"
+            >
               <div class="project-icon mb-2">
-                <span class="text-2xl">🍺</span>
+                <img :src="taptag_icon" alt="TapTag" class="w-8 h-8 object-contain" />
               </div>
-              <h5 class="font-semibold text-sm mb-1">Beer Fests</h5>
+              <h5 class="font-semibold text-sm mb-1">{{ messages?.bentoGrid?.recentWork?.taptag?.name || 'TapTag' }}</h5>
               <div class="flex flex-wrap gap-2 text-xs">
-                <span class="tag">UX Design</span>
-                <span class="tag">UI Design</span>
-                <span class="tag">Illustrations</span>
-                <span class="tag">Responsive</span>
+                <span class="tag">{{ messages?.bentoGrid?.recentWork?.taptag?.tag1 || 'Design' }}</span>
+                <span class="tag">{{ messages?.bentoGrid?.recentWork?.taptag?.tag2 || 'Vue.js' }}</span>
+                <span class="tag">{{ messages?.bentoGrid?.recentWork?.taptag?.tag3 || 'MySQL' }}</span>
+                <span class="tag">{{ messages?.bentoGrid?.recentWork?.taptag?.tag4 || 'Django' }}</span>
               </div>
-            </div>
+            </a>
             
-            <!-- Project 2 -->
-            <div class="project-item">
+            <!-- Project 2: Andre Architecture -->
+            <a 
+              :href="messages?.bentoGrid?.recentWork?.andre?.url || 'https://www.andrearchitecture.com/'"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="project-item project-card cursor-pointer"
+            >
               <div class="project-icon mb-2">
-                <span class="text-2xl">⚡</span>
+                <img :src="andre_icon" alt="Andre Architecture" class="w-8 h-8 object-contain" />
               </div>
-              <h5 class="font-semibold text-sm mb-1">Availain</h5>
+              <h5 class="font-semibold text-sm mb-1">{{ messages?.bentoGrid?.recentWork?.andre?.name || 'Andre Architecture' }}</h5>
               <div class="flex flex-wrap gap-2 text-xs">
-                <span class="tag">UX Design</span>
-                <span class="tag">UI Design</span>
-                <span class="tag">Illustrations</span>
-                <span class="tag">Design System</span>
+                <span class="tag">{{ messages?.bentoGrid?.recentWork?.andre?.tag1 || 'Design' }}</span>
+                <span class="tag">{{ messages?.bentoGrid?.recentWork?.andre?.tag2 || 'Webflow' }}</span>
+                <span class="tag">{{ messages?.bentoGrid?.recentWork?.andre?.tag3 || 'React' }}</span>
+                <span class="tag">{{ messages?.bentoGrid?.recentWork?.andre?.tag4 || 'Branding' }}</span>
               </div>
-            </div>
+            </a>
           </div>
         </div>
       </div>
@@ -206,6 +216,10 @@ const closeVideoModal = () => {
   isVideoModalOpen.value = false
 }
 
+// Recent Work icons
+const taptag_icon = new URL('@/assets/images/recentWork/taptag_icon.png', import.meta.url).href
+const andre_icon = new URL('@/assets/images/recentWork/andrearchitecture.ico', import.meta.url).href
+
 // Portfolio images
 const portfolioImages = [
   new URL('@/assets/images/home/services/portfolio/694acfaa4f1b2711918596.png', import.meta.url).href,
@@ -259,6 +273,27 @@ onMounted(() => {
   background: #f0f0f0;
   border-radius: 4px;
   color: #666;
+  transition: background 0.2s ease;
+}
+
+.project-card {
+  display: block;
+  padding: 12px;
+  border-radius: 12px;
+  background: #fafafa;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.project-card:hover {
+  background: #f0f0f0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.project-card:hover .tag {
+  background: #e0e0e0;
 }
 
 .portfolio-swiper {

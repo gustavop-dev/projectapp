@@ -65,6 +65,24 @@ export default {
                 ctaSecondary: 'Ver Portafolio',
                 recentWork: 'TRABAJO RECIENTE:'
             },
+            recentWork: {
+                taptag: {
+                    name: 'TapTag',
+                    tag1: 'Diseño',
+                    tag2: 'Vue.js',
+                    tag3: 'MySQL',
+                    tag4: 'Django',
+                    url: 'https://taptag.com.co/'
+                },
+                andre: {
+                    name: 'Andre Architecture',
+                    tag1: 'Diseño',
+                    tag2: 'Webflow',
+                    tag3: 'React',
+                    tag4: 'Branding',
+                    url: 'https://www.andrearchitecture.com/'
+                }
+            },
             apps: {
                 title: 'UI/UX, sitios web,',
                 subtitle: 'plataformas y más',
@@ -315,6 +333,39 @@ export default {
         ]
     },
     
+    // Sección de Casos de Éxito
+    study_cases: {
+        title: "Resultados Que Hablan Más Fuerte Que Las Promesas",
+        subtitle: "Proyectos reales. Métricas reales. Crecimiento real para negocios como el tuyo.",
+        visit_project: "Visitar Proyecto",
+        cases: [
+            {
+                name: "OBSESD Photography Studio",
+                designation: "Fotografía y Servicios Creativos",
+                quote: "Top 3 en rankings SEO alcanzado. 70% de reducción en gasto publicitario con mayor tráfico orgánico. Nuestro estudio fotográfico ahora domina los resultados de búsqueda locales.",
+                url: "https://www.obsesd.dk/"
+            },
+            {
+                name: "G&M Platform",
+                designation: "Legal Tech y Desarrollo Personalizado",
+                quote: "Portal personalizado de clientes redujo el tiempo administrativo en 60%. 3.2 min de tiempo promedio de sesión con UX intuitiva. La plataforma ahora maneja 500+ casos mensuales sin problemas.",
+                url: "https://www.gmconsultoresjuridicos.com/"
+            },
+            {
+                name: "Constance Hotels",
+                designation: "Hospitalidad y Optimización de Conversión",
+                quote: "142% de aumento en reservas directas en 6 meses. Rediseño estratégico del embudo de ventas aumentó la tasa de conversión de 1.8% a 4.9%. Ingresos por visitante aumentaron 89%.",
+                url: "https://www.constancehotels.com/en/"
+            },
+            {
+                name: "Luminaire Authentik",
+                designation: "E-commerce y Retail",
+                quote: "85% más rápido el proceso de checkout redujo el abandono de carrito de 68% a 23%. Diseño optimizado para móvil aumentó las ventas móviles en 210%. Ahora procesando 1,200+ pedidos mensuales.",
+                url: "https://luminaireauthentik.com/"
+            }
+        ]
+    },
+
     // Textos adicionales de UI
     ui: {
         success_stories: {

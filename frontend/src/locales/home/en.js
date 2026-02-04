@@ -65,6 +65,24 @@ export default {
                 ctaSecondary: 'Go to Portfolio',
                 recentWork: 'RECENT WORK:'
             },
+            recentWork: {
+                taptag: {
+                    name: 'TapTag',
+                    tag1: 'Design',
+                    tag2: 'Vue.js',
+                    tag3: 'MySQL',
+                    tag4: 'Django',
+                    url: 'https://taptag.com.co/'
+                },
+                andre: {
+                    name: 'Andre Architecture',
+                    tag1: 'Design',
+                    tag2: 'Webflow',
+                    tag3: 'React',
+                    tag4: 'Branding',
+                    url: 'https://www.andrearchitecture.com/'
+                }
+            },
             apps: {
                 title: 'UI/UX, websites,',
                 subtitle: 'platforms & more',
@@ -184,6 +202,39 @@ export default {
                 website_url: "https://www.constancehotels.com/en/",
                 view_site_text: "View Live Site",
                 technologies: ["Vue.js", "Node.js", "CMS Integration", "Payment Systems"]
+            }
+        ]
+    },
+
+    // Study Cases Section
+    study_cases: {
+        title: "Results That Speak Louder Than Promises",
+        subtitle: "Real projects. Real metrics. Real growth for businesses like yours.",
+        visit_project: "Visit Project",
+        cases: [
+            {
+                name: "OBSESD Photography Studio",
+                designation: "Photography & Creative Services",
+                quote: "Top 3 SEO rankings achieved. 70% reduction in ad spend with increased organic traffic. Our photography studio now dominates local search results.",
+                url: "https://www.obsesd.dk/"
+            },
+            {
+                name: "G&M Platform",
+                designation: "Legal Tech & Custom Development",
+                quote: "Custom client portal reduced administrative time by 60%. 3.2 min average session time with intuitive UX. Platform now handles 500+ monthly cases seamlessly.",
+                url: "https://www.gmconsultoresjuridicos.com/"
+            },
+            {
+                name: "Constance Hotels",
+                designation: "Hospitality & Conversion Optimization",
+                quote: "142% increase in direct bookings within 6 months. Strategic sales funnel redesign boosted conversion rate from 1.8% to 4.9%. Revenue per visitor up 89%.",
+                url: "https://www.constancehotels.com/en/"
+            },
+            {
+                name: "Luminaire Authentik",
+                designation: "E-commerce & Retail",
+                quote: "85% faster checkout process drove cart abandonment down from 68% to 23%. Mobile-optimized design increased mobile sales by 210%. Now processing 1,200+ monthly orders.",
+                url: "https://luminaireauthentik.com/"
             }
         ]
     },

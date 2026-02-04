@@ -1,9 +1,9 @@
 <template>
-  <div :class="['w-full mx-auto', className]">
+  <div :class="['w-full mx-auto', className]" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
     <div class="relative grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
       <!-- Images Section - Larger and Horizontal -->
       <div class="order-2 lg:order-1">
-        <div class="relative h-96 lg:h-[500px] w-full">
+        <div class="relative w-full" style="aspect-ratio: 1905/995;">
           <div
             v-for="(testimonial, index) in testimonials"
             :key="index"
@@ -18,14 +18,14 @@
               :src="testimonial.src"
               :alt="testimonial.name"
               draggable="false"
-              class="h-full w-full rounded-3xl object-cover object-center shadow-xl"
+              class="h-full w-full rounded-3xl object-cover object-center"
             />
           </div>
         </div>
       </div>
 
       <!-- Content Section - White Card with Rounded Borders -->
-      <div class="order-1 lg:order-2 bg-white rounded-3xl p-8 lg:p-12 shadow-lg min-h-[400px] flex flex-col justify-between">
+      <div class="order-1 lg:order-2 bg-white rounded-3xl p-8 lg:p-12 min-h-[350px] lg:min-h-[400px] flex flex-col justify-between">
         <div ref="contentRef">
           <h3 class="text-3xl lg:text-4xl font-bold text-esmerald mb-2">
             {{ testimonials[active].name }}
@@ -43,6 +43,20 @@
               {{ word }}&nbsp;
             </span>
           </p>
+          
+          <!-- Visit Project Button -->
+          <a 
+            v-if="testimonials[active].url"
+            :href="testimonials[active].url" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 mt-6 text-esmerald font-medium text-base hover:gap-3 transition-all duration-300 group"
+          >
+            {{ visitProjectText }}
+            <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+            </svg>
+          </a>
         </div>
 
         <!-- Navigation Buttons -->
@@ -85,6 +99,10 @@ const props = defineProps({
   className: {
     type: String,
     default: ''
+  },
+  visitProjectText: {
+    type: String,
+    default: 'Visit Project'
   }
 })
 
@@ -92,6 +110,7 @@ const active = ref(0)
 const imageRefs = ref([])
 const contentRef = ref(null)
 const wordRefs = ref([])
+const isHovered = ref(false)
 let autoplayInterval = null
 
 const currentQuoteWords = computed(() => {
@@ -112,6 +131,31 @@ const handleNext = () => {
 
 const handlePrev = () => {
   active.value = (active.value - 1 + props.testimonials.length) % props.testimonials.length
+}
+
+const startAutoplay = () => {
+  if (props.autoplay && !autoplayInterval) {
+    autoplayInterval = setInterval(() => {
+      if (!isHovered.value) {
+        handleNext()
+      }
+    }, 6000)
+  }
+}
+
+const stopAutoplay = () => {
+  if (autoplayInterval) {
+    clearInterval(autoplayInterval)
+    autoplayInterval = null
+  }
+}
+
+const handleMouseEnter = () => {
+  isHovered.value = true
+}
+
+const handleMouseLeave = () => {
+  isHovered.value = false
 }
 
 const animateImages = () => {
@@ -198,15 +242,10 @@ watch(active, () => {
 onMounted(() => {
   animateImages()
   animateContent()
-  
-  if (props.autoplay) {
-    autoplayInterval = setInterval(handleNext, 5000)
-  }
+  startAutoplay()
 })
 
 onBeforeUnmount(() => {
-  if (autoplayInterval) {
-    clearInterval(autoplayInterval)
-  }
+  stopAutoplay()
 })
 </script>
