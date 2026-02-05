@@ -2,11 +2,14 @@
   <section class="final-note py-16 md:py-24 bg-gray-50">
     <div class="container mx-auto px-4 max-w-4xl">
       <div class="section-header mb-12">
-        <span class="text-sm font-semibold text-emerald-600 uppercase tracking-wider">10</span>
-        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mt-2 mb-6">
-          Nota Final
-        </h2>
-        <div class="h-1 w-20 bg-emerald-600"></div>
+        <div class="flex items-baseline gap-4 mb-10">
+          <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
+            10
+          </span>
+          <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
+            Nota Final
+          </h2>
+        </div>
       </div>
 
       <div class="note-content bg-white p-8 md:p-12 rounded-2xl shadow-sm mb-8">

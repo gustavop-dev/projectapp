@@ -28,7 +28,8 @@
             >
               <div
                 class="absolute -top-[0.45rem] left-6 h-3.5 w-3.5 rounded-full"
-                :class="stage.current ? 'bg-esmerald' : 'bg-esmerald-light'"
+                :ref="(el) => setStageDotRef(el, idx)"
+                :class="(stage.current || passedStageFlags[idx]) ? 'bg-esmerald' : 'bg-esmerald-light'"
               ></div>
 
               <div class="flex items-start justify-between gap-5">
@@ -75,10 +76,16 @@ const setStageItemRef = (el, idx) => {
   stageItemRefs.value[idx] = el
 }
 
+const stageDotRefs = ref([])
+const setStageDotRef = (el, idx) => {
+  if (!el) return
+  stageDotRefs.value[idx] = el
+}
+
 const horizontalTweenRef = inject('horizontalTweenRef', ref(null))
 
 let stageTimeline = null
-let pinTrigger = null
+let dotTriggers = []
 
 const stages = [
   {
@@ -119,6 +126,8 @@ const stages = [
   }
 ]
 
+const passedStageFlags = ref(stages.map(() => false))
+
 const initAnimations = async (containerTween) => {
   await nextTick()
 
@@ -130,10 +139,9 @@ const initAnimations = async (containerTween) => {
     stageTimeline = null
   }
 
-  if (pinTrigger) {
-    pinTrigger.kill()
-    pinTrigger = null
-  }
+  dotTriggers.forEach((t) => t.kill())
+  dotTriggers = []
+  passedStageFlags.value = stages.map(() => false)
 
   const items = stageItemRefs.value.filter(Boolean)
 
@@ -155,18 +163,27 @@ const initAnimations = async (containerTween) => {
     .to(introRef.value, { opacity: 1, y: 0, duration: 0.6 }, '-=0.35')
     .to(items, { opacity: 1, y: 0, duration: 0.55, stagger: 0.08 }, '-=0.25')
 
-  if (pinRef.value) {
-    pinTrigger = ScrollTrigger.create({
-      trigger: sectionRef.value,
+  items.forEach((item, idx) => {
+    const dot = stageDotRefs.value[idx]
+    if (!dot) return
+
+    const syncState = () => {
+      const rect = dot.getBoundingClientRect()
+      const centerX = rect.left + rect.width / 2
+      passedStageFlags.value[idx] = centerX <= window.innerWidth / 2
+    }
+
+    const t = ScrollTrigger.create({
+      trigger: item,
       containerAnimation: containerTween,
-      start: 'left left',
+      start: 'left right',
       end: 'right left',
-      pin: pinRef.value,
-      pinSpacing: true,
-      anticipatePin: 1,
-      invalidateOnRefresh: true
+      onUpdate: syncState,
+      onRefresh: syncState
     })
-  }
+
+    dotTriggers.push(t)
+  })
 
   ScrollTrigger.refresh()
 }
@@ -186,10 +203,8 @@ onBeforeUnmount(() => {
     stageTimeline = null
   }
 
-  if (pinTrigger) {
-    pinTrigger.kill()
-    pinTrigger = null
-  }
+  dotTriggers.forEach((t) => t.kill())
+  dotTriggers = []
 })
 </script>
 

@@ -2,15 +2,18 @@
   <section class="investment py-16 md:py-24 bg-white">
     <div class="container mx-auto px-4 max-w-5xl">
       <div class="section-header mb-12">
-        <span class="text-sm font-semibold text-emerald-600 uppercase tracking-wider">09</span>
-        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mt-2 mb-6">
-          Inversión y Formas de Pago
-        </h2>
-        <div class="h-1 w-20 bg-emerald-600"></div>
+        <div class="flex items-baseline gap-4 mb-10">
+          <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
+            09
+          </span>
+          <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
+            Inversión y Formas de Pago
+          </h2>
+        </div>
       </div>
 
       <div class="investment-intro mb-12">
-        <p class="text-xl text-gray-600 leading-relaxed">
+        <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl">
           {{ introText }}
         </p>
       </div>
@@ -62,6 +65,49 @@
         </div>
       </div>
 
+      <div class="hosting-plan mt-12 bg-white p-8 md:p-10 rounded-2xl border-2 border-gray-100">
+        <div class="flex items-center mb-4">
+          <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mr-4">
+            <span class="text-2xl">☁️</span>
+          </div>
+          <h3 class="text-2xl font-bold text-gray-900">{{ hostingPlan.title }}</h3>
+        </div>
+        <p class="text-gray-600 leading-relaxed mb-6 pl-16">{{ hostingPlan.description }}</p>
+
+        <div class="grid md:grid-cols-2 gap-4 pl-16">
+          <div
+            v-for="(spec, idx) in hostingPlan.specs"
+            :key="idx"
+            class="bg-gray-50 p-5 rounded-xl border border-gray-100"
+          >
+            <div class="flex items-start">
+              <div class="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center mr-3 flex-shrink-0">
+                <span class="text-lg">{{ spec.icon }}</span>
+              </div>
+              <div>
+                <div class="font-bold text-gray-900">{{ spec.label }}</div>
+                <div class="text-sm text-gray-600">{{ spec.value }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 pl-16">
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
+              <div class="text-sm text-emerald-700 font-medium">Precio especial</div>
+              <div class="text-2xl font-bold text-gray-900">{{ hostingPlan.monthlyPrice }}</div>
+              <div class="text-sm text-gray-600">{{ hostingPlan.monthlyLabel }}</div>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-5">
+              <div class="text-sm text-gray-700 font-medium">Pago anual único</div>
+              <div class="text-2xl font-bold text-gray-900">{{ hostingPlan.annualPrice }}</div>
+              <div class="text-sm text-gray-600">{{ hostingPlan.annualLabel }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="payment-methods bg-gray-50 p-8 md:p-10 rounded-2xl mb-12">
         <h3 class="text-2xl font-bold text-gray-900 mb-6">Métodos de Pago Aceptados</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -100,49 +146,58 @@ import { ref } from 'vue';
 const props = defineProps({
   introText: {
     type: String,
-    default: 'Esta inversión representa mucho más que un sitio web: es una herramienta estratégica que trabajará 24/7 para hacer crecer tu negocio. Ofrecemos opciones flexibles de pago para adaptarnos a tu flujo de caja.'
+    default: 'Costo total del desarrollo: $1.490.000 COP'
   },
   totalInvestment: {
     type: String,
-    default: '$15,000'
+    default: '$1.490.000'
   },
   currency: {
     type: String,
-    default: 'USD + IVA'
+    default: 'COP'
   },
   whatsIncluded: {
     type: Array,
     default: () => [
-      { icon: '🎨', title: 'Diseño Premium', description: 'Diseño personalizado y moderno' },
-      { icon: '⚙️', title: 'Desarrollo Completo', description: 'Código limpio y optimizado' },
-      { icon: '🚀', title: 'Hosting 1 Año', description: 'Incluido en la inversión' }
+      { icon: '🎨', title: 'Diseño', description: 'UX/UI enfocado en conversión' },
+      { icon: '⚙️', title: 'Desarrollo', description: 'Implementación completa del proyecto' },
+      { icon: '☁️', title: 'Hosting', description: 'Plan Cloud 1 disponible' }
     ]
   },
   paymentOptions: {
     type: Array,
     default: () => [
       {
-        title: 'Plan Estándar',
-        icon: '💳',
+        title: 'Formas de pago',
+        icon: '✍️',
         description: 'Pago en 3 cuotas durante el desarrollo del proyecto.',
         breakdown: [
-          { label: 'Al inicio (40%)', amount: '$6,000' },
-          { label: 'A mitad (30%)', amount: '$4,500' },
-          { label: 'Al lanzamiento (30%)', amount: '$4,500' }
+          { label: '40% al firmar el contrato ✍️', amount: '$596.000 COP' },
+          { label: '30% al aprobar el diseño final ✅', amount: '$447.000 COP' },
+          { label: '30% al desplegar el sitio web 🚀', amount: '$447.000 COP' }
         ],
         benefit: null
-      },
-      {
-        title: 'Plan Anticipado',
-        icon: '⚡',
-        description: 'Pago completo por adelantado con descuento especial.',
-        breakdown: [
-          { label: 'Pago único', amount: '$13,500' },
-          { label: 'Ahorro', amount: '-$1,500' }
-        ],
-        benefit: '10% de descuento + prioridad en el cronograma'
       }
     ]
+  },
+  hostingPlan: {
+    type: Object,
+    default: () => ({
+      title: 'Hosting Incluido – Cloud 1',
+      description: 'Infraestructura optimizada para proyectos de alto rendimiento y disponibilidad:',
+      specs: [
+        { icon: '🧠', label: 'vCPU', value: '1 núcleo de vCPU' },
+        { icon: '🧮', label: 'RAM', value: '1 GB de RAM dedicada' },
+        { icon: '💾', label: 'Almacenamiento', value: '2 GB de almacenamiento NVMe' },
+        { icon: '🌐', label: 'Ancho de banda', value: '600 GB mensual' },
+        { icon: '📍', label: 'Centros de datos', value: 'EE.UU., Brasil, Francia, Lituania e India' },
+        { icon: '🧬', label: 'Compatibilidad', value: 'Linux (Ubuntu)' }
+      ],
+      monthlyPrice: '$49.999 COP',
+      monthlyLabel: 'por mes',
+      annualPrice: '$599.988 COP',
+      annualLabel: 'pago anual único'
+    })
   },
   paymentMethods: {
     type: Array,

@@ -1,6 +1,6 @@
 <template>
-  <section class="conversion-strategy h-full w-full bg-white flex items-center">
-    <div class="w-full px-6 md:px-12 lg:px-24">
+  <section class="conversion-strategy min-h-full w-full bg-white">
+    <div class="w-full px-6 md:px-12 lg:px-24 py-10 md:py-14">
       <div class="max-w-7xl">
         <div class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">

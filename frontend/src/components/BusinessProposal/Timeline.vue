@@ -2,15 +2,18 @@
   <section class="timeline py-16 md:py-24 bg-gray-50">
     <div class="container mx-auto px-4 max-w-5xl">
       <div class="section-header mb-12">
-        <span class="text-sm font-semibold text-emerald-600 uppercase tracking-wider">08</span>
-        <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mt-2 mb-6">
-          Cronograma del Proyecto
-        </h2>
-        <div class="h-1 w-20 bg-emerald-600"></div>
+        <div class="flex items-baseline gap-4 mb-10">
+          <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
+            08
+          </span>
+          <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
+            Cronograma del Proyecto
+          </h2>
+        </div>
       </div>
 
       <div class="timeline-intro mb-12">
-        <p class="text-xl text-gray-600 leading-relaxed mb-6">
+        <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl mb-6">
           {{ introText }}
         </p>
         <div class="duration-summary bg-white p-6 rounded-xl shadow-sm inline-block">

@@ -1,0 +1,373 @@
+{
+  "index": "07",
+  "title": "Requerimientos Funcionales del Proyecto",
+  "intro": "Es cada una de las pantallas o secciones que conforman la página web. Cada vista y componente tiene un propósito específico dentro del recorrido del usuario.",
+  "groups": [
+    {
+      "id": "views",
+      "title": "🖥️ Vistas",
+      "description": "Pantallas o secciones principales que conforman el sitio. Cada vista guía al usuario dentro del recorrido.",
+      "items": [
+        {
+          "id": "home",
+          "icon": "🏠",
+          "name": "Inicio (Página de Aterrizaje)",
+          "description": "Primera impresión del sitio. Presenta identidad de marca, mensaje atractivo, llamado a la acción y acceso rápido a secciones principales.",
+          "options": [],
+          "fields": []
+        },
+        {
+          "id": "about",
+          "icon": "ℹ️",
+          "name": "Acerca de Nosotros",
+          "description": "Página dedicada a compartir historia, misión, visión y valores. Ideal para generar confianza.",
+          "options": [],
+          "fields": []
+        },
+        {
+          "id": "contact",
+          "icon": "📞",
+          "name": "Contacto",
+          "description": "Formulario para enviar mensajes + información de contacto (teléfono, correo, dirección) y mapa si se desea.",
+          "options": [
+            {
+              "key": "map",
+              "label": "Incluir mapa",
+              "type": "boolean",
+              "default": true
+            }
+          ],
+          "fields": [
+            {
+              "key": "name",
+              "label": "Nombre",
+              "type": "text",
+              "required": true
+            },
+            {
+              "key": "email",
+              "label": "Correo",
+              "type": "email",
+              "required": true
+            },
+            {
+              "key": "message",
+              "label": "Mensaje",
+              "type": "textarea",
+              "required": true
+            }
+          ]
+        },
+        {
+          "id": "terms",
+          "icon": "📜",
+          "name": "Términos y Condiciones",
+          "description": "Políticas del sitio, manejo de datos personales y términos de uso. Incluye checkbox para aceptación.",
+          "options": [
+            {
+              "key": "requireAcceptance",
+              "label": "Requiere aceptación",
+              "type": "boolean",
+              "default": true
+            }
+          ],
+          "fields": []
+        },
+        {
+          "id": "categories",
+          "icon": "🛒",
+          "name": "Categorías",
+          "description": "Muestra categorías disponibles de productos para explorar por tipo.",
+          "options": [],
+          "fields": []
+        },
+        {
+          "id": "catalogByCategory",
+          "icon": "🗂️",
+          "name": "Catálogo por Categoría",
+          "description": "Explora productos dentro de una categoría específica, facilitando navegación y selección.",
+          "options": [
+            {
+              "key": "pagination",
+              "label": "Paginación",
+              "type": "select",
+              "values": ["classic", "infinite"],
+              "default": "classic"
+            }
+          ],
+          "fields": []
+        },
+        {
+          "id": "productDetail",
+          "icon": "📦",
+          "name": "Vista de Productos",
+          "description": "Detalle del producto: imágenes, precio, características, descripciones y opción de agregar al carrito.",
+          "options": [
+            {
+              "key": "gallery",
+              "label": "Galería de imágenes",
+              "type": "boolean",
+              "default": true
+            }
+          ],
+          "fields": []
+        },
+        {
+          "id": "cart",
+          "icon": "🛒",
+          "name": "Carrito de Compra",
+          "description": "Ver productos agregados, ajustar cantidades, eliminar artículos y proceder al pago.",
+          "options": [
+            {
+              "key": "coupons",
+              "label": "Cupones/descuentos",
+              "type": "boolean",
+              "default": false
+            }
+          ],
+          "fields": []
+        },
+        {
+          "id": "purchaseHistory",
+          "icon": "📜",
+          "name": "Historial de Compras",
+          "description": "Revisar compras realizadas: fecha, monto y productos adquiridos.",
+          "options": [],
+          "fields": []
+        },
+        {
+          "id": "register",
+          "icon": "👤",
+          "name": "Registro de Usuario",
+          "description": "Crear cuenta para acceder a funciones personalizadas (historial, favoritos, etc.).",
+          "options": [
+            {
+              "key": "socialLogin",
+              "label": "Login social",
+              "type": "boolean",
+              "default": false
+            }
+          ],
+          "fields": []
+        },
+        {
+          "id": "login",
+          "icon": "🔑",
+          "name": "Inicio de Sesión",
+          "description": "Acceso a usuarios registrados para gestionar compras y preferencias.",
+          "options": [
+            {
+              "key": "twoFactor",
+              "label": "2FA",
+              "type": "boolean",
+              "default": false
+            }
+          ],
+          "fields": []
+        },
+        {
+          "id": "wishlist",
+          "icon": "❤️",
+          "name": "Lista de deseos / Favoritos",
+          "description": "Guardar productos para referencia rápida en futuras visitas.",
+          "options": [],
+          "fields": []
+        },
+        {
+          "id": "profile",
+          "icon": "📝",
+          "name": "Perfil del Usuario",
+          "description": "Ver y actualizar información personal, historial de compras y configuraciones de cuenta.",
+          "options": [],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "title": "🧩 Componentes",
+      "description": "Elementos visuales o funcionales reutilizables para mantener coherencia, optimizar desarrollo y reutilizar piezas.",
+      "items": [
+        {
+          "id": "header",
+          "icon": "🔝",
+          "name": "Encabezado (Header)",
+          "description": "Incluye logotipo, menú de navegación y accesos rápidos a redes sociales o secciones clave.",
+          "options": [
+            {
+              "key": "sticky",
+              "label": "Header sticky",
+              "type": "boolean",
+              "default": true
+            }
+          ],
+          "fields": []
+        },
+        {
+          "id": "footer",
+          "icon": "🔚",
+          "name": "Pie de página (Footer)",
+          "description": "Información adicional: derechos de autor, políticas, enlaces a redes y recursos útiles.",
+          "options": [],
+          "fields": []
+        },
+        {
+          "id": "featuredProductsCarousel",
+          "icon": "🎯",
+          "name": "Carrusel de Productos destacados",
+          "description": "Destaca productos seleccionados (promos/ofertas/temporada) para mejorar visibilidad e interés.",
+          "options": [
+            {
+              "key": "autoplay",
+              "label": "Autoplay",
+              "type": "boolean",
+              "default": true
+            }
+          ],
+          "fields": []
+        },
+        {
+          "id": "wishlistCarousel",
+          "icon": "🎁",
+          "name": "Carrusel de lista de deseos destacadas",
+          "description": "Destaca listas de deseos seleccionadas como promociones u ofertas.",
+          "options": [],
+          "fields": []
+        },
+        {
+          "id": "faq",
+          "icon": "❓",
+          "name": "Preguntas Frecuentes (FAQ)",
+          "description": "Responde preguntas comunes para resolver dudas rápidamente.",
+          "options": [
+            {
+              "key": "accordion",
+              "label": "Estilo acordeón",
+              "type": "boolean",
+              "default": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    },
+    {
+      "id": "features",
+      "title": "⚙️ Funcionalidades Específicas",
+      "description": "Comportamientos interactivos que le dan vida al sitio para que no solo se vea bien, sino que funcione de forma práctica.",
+      "items": [
+        {
+          "id": "responsive",
+          "icon": "🌐",
+          "name": "Diseño Responsive",
+          "description": "Se adapta automáticamente a celulares, tabletas y computadores.",
+          "options": [],
+          "fields": []
+        },
+        {
+          "id": "socialIntegration",
+          "icon": "🔗",
+          "name": "Integración con redes sociales",
+          "description": "Enlaces visibles y botones flotantes hacia sus plataformas digitales.",
+          "options": [
+            {
+              "key": "floatingButtons",
+              "label": "Botones flotantes",
+              "type": "boolean",
+              "default": true
+            }
+          ],
+          "fields": []
+        },
+        {
+          "id": "whatsapp",
+          "icon": "💬",
+          "name": "WhatsApp directo",
+          "description": "Canal de comunicación inmediata con clientes o consultantes.",
+          "options": [
+            {
+              "key": "cta",
+              "label": "Texto del CTA",
+              "type": "text",
+              "default": "Escríbeme"
+            }
+          ],
+          "fields": []
+        },
+        {
+          "id": "navigation",
+          "icon": "🔎",
+          "name": "Navegación intuitiva",
+          "description": "Búsqueda rápida, filtros por categorías y paginación optimizada.",
+          "options": [
+            {
+              "key": "search",
+              "label": "Búsqueda",
+              "type": "boolean",
+              "default": true
+            }
+          ],
+          "fields": []
+        },
+        {
+          "id": "adminWishlistModeration",
+          "icon": "🛡️",
+          "name": "Moderación de listas",
+          "description": "El administrador puede visualizar listas creadas por usuarios, verificar contenido y editarlas o desactivarlas por seguridad o gestión.",
+          "options": [],
+          "fields": []
+        },
+        {
+          "id": "userManager",
+          "icon": "👥",
+          "name": "Gestor de Usuarios",
+          "description": "Gestionar cuentas de usuarios: registro, edición de perfiles y eliminación.",
+          "options": [
+            {
+              "key": "roles",
+              "label": "Roles y permisos",
+              "type": "boolean",
+              "default": true
+            }
+          ],
+          "fields": []
+        }
+      ]
+    }
+  ],
+  "technicalSpecs": [
+    {
+      "title": "Frontend",
+      "icon": "M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4",
+      "items": [
+        "Vue.js 3",
+        "TailwindCSS",
+        "GSAP Animations"
+      ]
+    },
+    {
+      "title": "Backend",
+      "icon": "M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01",
+      "items": [
+        "API REST",
+        "Autenticación segura",
+        "Base de datos (según requerimientos)"
+      ]
+    },
+    {
+      "title": "Hosting",
+      "icon": "M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z",
+      "items": [
+        "Servidor optimizado",
+        "CDN",
+        "Monitoreo y uptime"
+      ]
+    }
+  ],
+  "integrations": [
+    { "name": "Google Analytics", "icon": "📊" },
+    { "name": "Google Maps", "icon": "🗺️" },
+    { "name": "WhatsApp", "icon": "💬" },
+    { "name": "Stripe", "icon": "💳" }
+  ]
+}
