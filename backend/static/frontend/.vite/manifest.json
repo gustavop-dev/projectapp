@@ -6,34 +6,42 @@
       "assets/Dunes.BwLxgZSh.mp4"
     ]
   },
-  "_ImageLoader.CXxFVqxc.js": {
-    "file": "assets/ImageLoader.CXxFVqxc.js",
+  "_ImageLoader.BTsNrU2_.js": {
+    "file": "assets/ImageLoader.BTsNrU2_.js",
     "name": "ImageLoader",
     "imports": [
-      "index.html"
+      "index.html",
+      "_vue3-lottie.es.CrnpzW5X.js",
+      "src/assets/loading/white.json"
     ]
   },
-  "_howler.Cy7GHJHR.js": {
-    "file": "assets/howler.Cy7GHJHR.js",
+  "_howler.DWDdFb6t.js": {
+    "file": "assets/howler.DWDdFb6t.js",
     "name": "howler",
     "isDynamicEntry": true,
     "imports": [
+      "_vue3-lottie.es.CrnpzW5X.js"
+    ]
+  },
+  "_vue3-lottie.es.CrnpzW5X.js": {
+    "file": "assets/vue3-lottie.es.CrnpzW5X.js",
+    "name": "vue3-lottie.es",
+    "imports": [
       "index.html"
     ]
   },
-  "_vue3-marquee.es.CD1OUwUT.js": {
-    "file": "assets/vue3-marquee.es.CD1OUwUT.js",
+  "_vue3-marquee.es.Bq-7ZMEE.js": {
+    "file": "assets/vue3-marquee.es.Bq-7ZMEE.js",
     "name": "vue3-marquee.es",
     "imports": [
       "index.html"
     ]
   },
   "index.html": {
-    "file": "assets/index.FtUPQGG3.js",
+    "file": "assets/index.Lb7IAr1r.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
-    "isDynamicEntry": true,
     "dynamicImports": [
       "src/locales/global/en.js",
       "src/locales/global/es.js",
@@ -43,6 +51,8 @@
       "src/locales/404View/es.js",
       "src/locales/aboutUs/en.js",
       "src/locales/aboutUs/es.js",
+      "src/locales/businessProposal/en.js",
+      "src/locales/businessProposal/es.js",
       "src/locales/contact/en.js",
       "src/locales/contact/es.js",
       "src/locales/contactSuccess/en.js",
@@ -72,6 +82,7 @@
       "src/views/PortfolioWorks.vue",
       "src/views/Contact.vue",
       "src/views/ContactSuccess.vue",
+      "src/views/business-proposal/BusinessProposal.vue",
       "src/views/webDesigns/List.vue",
       "src/views/3dAnimations/List.vue",
       "src/views/AboutUs.vue",
@@ -81,6 +92,7 @@
       "src/views/PortfolioWorks.vue",
       "src/views/Contact.vue",
       "src/views/ContactSuccess.vue",
+      "src/views/business-proposal/BusinessProposal.vue",
       "src/views/webDesigns/List.vue",
       "src/views/3dAnimations/List.vue",
       "src/views/AboutUs.vue",
@@ -90,17 +102,49 @@
       "src/views/PortfolioWorks.vue",
       "src/views/Contact.vue",
       "src/views/ContactSuccess.vue",
+      "src/views/business-proposal/BusinessProposal.vue",
       "src/views/NotFound.vue"
     ],
     "css": [
-      "assets/index.BkY-L0BK.css"
+      "assets/index.BRLtUDkV.css"
     ],
     "assets": [
-      "assets/cubic.CQNy3BtW.mp4",
-      "assets/cube_illusion.DYL4WbFP.webp",
-      "assets/presentationPrevPc.CNehcl2i.mp4",
-      "assets/presentationComp.ARlWhQQr.mp4",
+      "assets/figma.48dflDqa.svg",
+      "assets/webflow.DryhHgTE.svg",
+      "assets/astro.CLx-apgI.svg",
+      "assets/framer.D3f16vDd.svg",
+      "assets/vuejs_logo_icon_169247.BuVmyM0K.svg",
+      "assets/pngwing.com.DPTUnEr4.png",
+      "assets/design.CC7bbpgh.webp",
+      "assets/cards-info.B-e9fWwM.webp",
+      "assets/phone-ui.1Kru62FZ.webp",
+      "assets/taptag_icon.CpTae6fx.png",
+      "assets/andrearchitecture.BzqTN8NA.ico",
+      "assets/694acfaa4f1b2711918596.KY9yBAjY.png",
+      "assets/695cf890e9ff2789503598.BvhEqyHy.jpg",
+      "assets/6963c75e567f7448307207.BXqO3lI_.png",
+      "assets/6964b60076436116585408.DLXAPT0r.jpg",
+      "assets/6965c223ea848976639794.C_c2Bn76.jpg",
+      "assets/6966bda4d9d83553634207.mPsunrnS.jpg",
+      "assets/69451a2e10349788185764.BA_Gn55l.png",
+      "assets/69666fb5c0f48936307233.BbbNCsQ0.jpg",
+      "assets/be-bold.C7-xzvXI.webp",
+      "assets/card-be-bold-1.D1BlBkem.webp",
+      "assets/card-be-bold-2.UbFkx1iD.webp",
+      "assets/card-be-bold-3.DLhHSMsN.webp",
+      "assets/card-be-bold-4.CYkwDV86.webp",
+      "assets/coffee.DAf420pP.webp",
+      "assets/notebook.DQuWYm_Z.webp",
+      "assets/ping-pong.Ttn6SeFk.webp",
+      "assets/rocket.BfQNbq2l.webp",
+      "assets/card-landing-design.CSksPIe6.webp",
       "assets/presentationMobile.Cpdkya5B.mp4",
+      "assets/seated-man.DKOdu-Ld.webp",
+      "assets/card-book-a-call.WG7-pNgc.webp",
+      "assets/Obsesd-Portfolio.DxX_44nL.png",
+      "assets/G_M-Platform.YkylRZDG.png",
+      "assets/Constance-Hotels.Gzjoolmm.png",
+      "assets/Lights-Ecommerce.EqaGqQ-R.png",
       "assets/Ubuntu-Bold.BGoo8i9Y.ttf",
       "assets/Ubuntu-BoldItalic.DiND6kz9.ttf",
       "assets/Ubuntu-Italic.BxSEJX07.ttf",
@@ -112,7 +156,10 @@
       "assets/Caveat-Regular.UJ9gNz5N.ttf",
       "assets/Caveat-Medium.DOXsaZdg.ttf",
       "assets/Caveat-SemiBold.Cw4oUA2D.ttf",
-      "assets/Caveat-Bold.IavRZg2G.ttf"
+      "assets/Caveat-Bold.IavRZg2G.ttf",
+      "assets/card-technologies-1.YIJxzLRl.webp",
+      "assets/card-technologies-2.Rm2HNloN.webp",
+      "assets/card-technologies-3.CO3_BJRZ.webp"
     ]
   },
   "node_modules/@splinetool/runtime/build/boolean.js": {
@@ -209,9 +256,149 @@
     "file": "assets/mountainFaces.By42TWRN.webp",
     "src": "src/assets/images/3dAnimations/mountainFaces.webp"
   },
-  "src/assets/images/home/cube_illusion.webp": {
-    "file": "assets/cube_illusion.DYL4WbFP.webp",
-    "src": "src/assets/images/home/cube_illusion.webp"
+  "src/assets/images/arrows/loop_arrow_1.png": {
+    "file": "assets/loop_arrow_1.CPCPLBx7.png",
+    "src": "src/assets/images/arrows/loop_arrow_1.png"
+  },
+  "src/assets/images/arrows/loop_arrow_2.png": {
+    "file": "assets/loop_arrow_2.BcT8iZms.png",
+    "src": "src/assets/images/arrows/loop_arrow_2.png"
+  },
+  "src/assets/images/arrows/simply_arrow_1.png": {
+    "file": "assets/simply_arrow_1.dtuG63xn.png",
+    "src": "src/assets/images/arrows/simply_arrow_1.png"
+  },
+  "src/assets/images/arrows/simply_arrow_2.png": {
+    "file": "assets/simply_arrow_2.9khGJ1RL.png",
+    "src": "src/assets/images/arrows/simply_arrow_2.png"
+  },
+  "src/assets/images/call/card-book-a-call.webp": {
+    "file": "assets/card-book-a-call.WG7-pNgc.webp",
+    "src": "src/assets/images/call/card-book-a-call.webp"
+  },
+  "src/assets/images/call/seated-man.webp": {
+    "file": "assets/seated-man.DKOdu-Ld.webp",
+    "src": "src/assets/images/call/seated-man.webp"
+  },
+  "src/assets/images/home/services/bg/card-technologies-1.webp": {
+    "file": "assets/card-technologies-1.YIJxzLRl.webp",
+    "src": "src/assets/images/home/services/bg/card-technologies-1.webp"
+  },
+  "src/assets/images/home/services/bg/card-technologies-2.webp": {
+    "file": "assets/card-technologies-2.Rm2HNloN.webp",
+    "src": "src/assets/images/home/services/bg/card-technologies-2.webp"
+  },
+  "src/assets/images/home/services/bg/card-technologies-3.webp": {
+    "file": "assets/card-technologies-3.CO3_BJRZ.webp",
+    "src": "src/assets/images/home/services/bg/card-technologies-3.webp"
+  },
+  "src/assets/images/home/services/contract/card-landing-design.webp": {
+    "file": "assets/card-landing-design.CSksPIe6.webp",
+    "src": "src/assets/images/home/services/contract/card-landing-design.webp"
+  },
+  "src/assets/images/home/services/mkups/cards-info.webp": {
+    "file": "assets/cards-info.B-e9fWwM.webp",
+    "src": "src/assets/images/home/services/mkups/cards-info.webp"
+  },
+  "src/assets/images/home/services/mkups/design.webp": {
+    "file": "assets/design.CC7bbpgh.webp",
+    "src": "src/assets/images/home/services/mkups/design.webp"
+  },
+  "src/assets/images/home/services/portfolio/69451a2e10349788185764.png": {
+    "file": "assets/69451a2e10349788185764.BA_Gn55l.png",
+    "src": "src/assets/images/home/services/portfolio/69451a2e10349788185764.png"
+  },
+  "src/assets/images/home/services/portfolio/694acfaa4f1b2711918596.png": {
+    "file": "assets/694acfaa4f1b2711918596.KY9yBAjY.png",
+    "src": "src/assets/images/home/services/portfolio/694acfaa4f1b2711918596.png"
+  },
+  "src/assets/images/home/services/portfolio/695cf890e9ff2789503598.jpg": {
+    "file": "assets/695cf890e9ff2789503598.BvhEqyHy.jpg",
+    "src": "src/assets/images/home/services/portfolio/695cf890e9ff2789503598.jpg"
+  },
+  "src/assets/images/home/services/portfolio/6963c75e567f7448307207.png": {
+    "file": "assets/6963c75e567f7448307207.BXqO3lI_.png",
+    "src": "src/assets/images/home/services/portfolio/6963c75e567f7448307207.png"
+  },
+  "src/assets/images/home/services/portfolio/6964b60076436116585408.jpg": {
+    "file": "assets/6964b60076436116585408.DLXAPT0r.jpg",
+    "src": "src/assets/images/home/services/portfolio/6964b60076436116585408.jpg"
+  },
+  "src/assets/images/home/services/portfolio/6965c223ea848976639794.jpg": {
+    "file": "assets/6965c223ea848976639794.C_c2Bn76.jpg",
+    "src": "src/assets/images/home/services/portfolio/6965c223ea848976639794.jpg"
+  },
+  "src/assets/images/home/services/portfolio/69666fb5c0f48936307233.jpg": {
+    "file": "assets/69666fb5c0f48936307233.BbbNCsQ0.jpg",
+    "src": "src/assets/images/home/services/portfolio/69666fb5c0f48936307233.jpg"
+  },
+  "src/assets/images/home/services/portfolio/6966bda4d9d83553634207.jpg": {
+    "file": "assets/6966bda4d9d83553634207.mPsunrnS.jpg",
+    "src": "src/assets/images/home/services/portfolio/6966bda4d9d83553634207.jpg"
+  },
+  "src/assets/images/home/services/portfolio/phone-ui.webp": {
+    "file": "assets/phone-ui.1Kru62FZ.webp",
+    "src": "src/assets/images/home/services/portfolio/phone-ui.webp"
+  },
+  "src/assets/images/home/services/process/be-bold.webp": {
+    "file": "assets/be-bold.C7-xzvXI.webp",
+    "src": "src/assets/images/home/services/process/be-bold.webp"
+  },
+  "src/assets/images/home/services/process/card-be-bold-1.webp": {
+    "file": "assets/card-be-bold-1.D1BlBkem.webp",
+    "src": "src/assets/images/home/services/process/card-be-bold-1.webp"
+  },
+  "src/assets/images/home/services/process/card-be-bold-2.webp": {
+    "file": "assets/card-be-bold-2.UbFkx1iD.webp",
+    "src": "src/assets/images/home/services/process/card-be-bold-2.webp"
+  },
+  "src/assets/images/home/services/process/card-be-bold-3.webp": {
+    "file": "assets/card-be-bold-3.DLhHSMsN.webp",
+    "src": "src/assets/images/home/services/process/card-be-bold-3.webp"
+  },
+  "src/assets/images/home/services/process/card-be-bold-4.webp": {
+    "file": "assets/card-be-bold-4.CYkwDV86.webp",
+    "src": "src/assets/images/home/services/process/card-be-bold-4.webp"
+  },
+  "src/assets/images/home/services/process/coffee.webp": {
+    "file": "assets/coffee.DAf420pP.webp",
+    "src": "src/assets/images/home/services/process/coffee.webp"
+  },
+  "src/assets/images/home/services/process/notebook.webp": {
+    "file": "assets/notebook.DQuWYm_Z.webp",
+    "src": "src/assets/images/home/services/process/notebook.webp"
+  },
+  "src/assets/images/home/services/process/ping-pong.webp": {
+    "file": "assets/ping-pong.Ttn6SeFk.webp",
+    "src": "src/assets/images/home/services/process/ping-pong.webp"
+  },
+  "src/assets/images/home/services/process/rocket.webp": {
+    "file": "assets/rocket.BfQNbq2l.webp",
+    "src": "src/assets/images/home/services/process/rocket.webp"
+  },
+  "src/assets/images/icons/astro.svg": {
+    "file": "assets/astro.CLx-apgI.svg",
+    "src": "src/assets/images/icons/astro.svg"
+  },
+  "src/assets/images/icons/figma.svg": {
+    "file": "assets/figma.48dflDqa.svg",
+    "src": "src/assets/images/icons/figma.svg"
+  },
+  "src/assets/images/icons/framer.svg": {
+    "file": "assets/framer.D3f16vDd.svg",
+    "src": "src/assets/images/icons/framer.svg"
+  },
+  "src/assets/images/icons/pngwing.com.png": {
+    "file": "assets/pngwing.com.DPTUnEr4.png",
+    "src": "src/assets/images/icons/pngwing.com.png"
+  },
+  "src/assets/images/icons/vuejs_logo_icon_169247.svg": {
+    "file": "assets/vuejs_logo_icon_169247.BuVmyM0K.svg",
+    "src": "src/assets/images/icons/vuejs_logo_icon_169247.svg"
+  },
+  "src/assets/images/icons/webflow.svg": {
+    "file": "assets/webflow.DryhHgTE.svg",
+    "src": "src/assets/images/icons/webflow.svg"
   },
   "src/assets/images/left.webp": {
     "file": "assets/left.CCxTpepo.webp",
@@ -221,9 +408,63 @@
     "file": "assets/mobile.UnRW_u7Z.webp",
     "src": "src/assets/images/mobile.webp"
   },
+  "src/assets/images/preloadingAnimation/1.jpg": {
+    "file": "assets/1.CGygp0VP.jpg",
+    "src": "src/assets/images/preloadingAnimation/1.jpg"
+  },
+  "src/assets/images/preloadingAnimation/2.jpg": {
+    "file": "assets/2.C4UqvleU.jpg",
+    "src": "src/assets/images/preloadingAnimation/2.jpg"
+  },
+  "src/assets/images/preloadingAnimation/3.jpg": {
+    "file": "assets/3.B37Y5cUy.jpg",
+    "src": "src/assets/images/preloadingAnimation/3.jpg"
+  },
+  "src/assets/images/preloadingAnimation/4.jpg": {
+    "file": "assets/4.kDvi_ey3.jpg",
+    "src": "src/assets/images/preloadingAnimation/4.jpg"
+  },
+  "src/assets/images/preloadingAnimation/5.jpeg": {
+    "file": "assets/5.CthWCOCG.jpeg",
+    "src": "src/assets/images/preloadingAnimation/5.jpeg"
+  },
+  "src/assets/images/preloadingAnimation/Logo-White-ProjectApp.png": {
+    "file": "assets/Logo-White-ProjectApp.D57YvZF0.png",
+    "src": "src/assets/images/preloadingAnimation/Logo-White-ProjectApp.png"
+  },
+  "src/assets/images/recentWork/andrearchitecture.ico": {
+    "file": "assets/andrearchitecture.BzqTN8NA.ico",
+    "src": "src/assets/images/recentWork/andrearchitecture.ico"
+  },
+  "src/assets/images/recentWork/taptag_icon.png": {
+    "file": "assets/taptag_icon.CpTae6fx.png",
+    "src": "src/assets/images/recentWork/taptag_icon.png"
+  },
+  "src/assets/images/studyCases/Constance-Hotels.png": {
+    "file": "assets/Constance-Hotels.Gzjoolmm.png",
+    "src": "src/assets/images/studyCases/Constance-Hotels.png"
+  },
+  "src/assets/images/studyCases/G&M-Platform.png": {
+    "file": "assets/G_M-Platform.YkylRZDG.png",
+    "src": "src/assets/images/studyCases/G&M-Platform.png"
+  },
+  "src/assets/images/studyCases/Lights-Ecommerce.png": {
+    "file": "assets/Lights-Ecommerce.EqaGqQ-R.png",
+    "src": "src/assets/images/studyCases/Lights-Ecommerce.png"
+  },
+  "src/assets/images/studyCases/Obsesd-Portfolio.png": {
+    "file": "assets/Obsesd-Portfolio.DxX_44nL.png",
+    "src": "src/assets/images/studyCases/Obsesd-Portfolio.png"
+  },
   "src/assets/images/visual_intro.webp": {
     "file": "assets/visual_intro.M8XkudFM.webp",
     "src": "src/assets/images/visual_intro.webp"
+  },
+  "src/assets/loading/white.json": {
+    "file": "assets/white.BNjMiiMs.js",
+    "name": "white",
+    "src": "src/assets/loading/white.json",
+    "isDynamicEntry": true
   },
   "src/assets/videos/aboutUs/particlePlanet.mp4": {
     "file": "assets/particlePlanet.Dypyjc1f.mp4",
@@ -249,14 +490,6 @@
     "file": "assets/trails.Dl_eck6H.mp4",
     "src": "src/assets/videos/customSoftware/trails.mp4"
   },
-  "src/assets/videos/home/cubic.mp4": {
-    "file": "assets/cubic.CQNy3BtW.mp4",
-    "src": "src/assets/videos/home/cubic.mp4"
-  },
-  "src/assets/videos/presentationComp.mp4": {
-    "file": "assets/presentationComp.ARlWhQQr.mp4",
-    "src": "src/assets/videos/presentationComp.mp4"
-  },
   "src/assets/videos/presentationMobile.mp4": {
     "file": "assets/presentationMobile.Cpdkya5B.mp4",
     "src": "src/assets/videos/presentationMobile.mp4"
@@ -274,22 +507,26 @@
     "src": "src/assets/videos/webDevelopments/abstractGradientBackground.mp4"
   },
   "src/components/layouts/FooterDesktop.vue": {
-    "file": "assets/FooterDesktop.BEai_HiN.js",
+    "file": "assets/FooterDesktop.D89FzYcs.js",
     "name": "FooterDesktop",
     "src": "src/components/layouts/FooterDesktop.vue",
     "isDynamicEntry": true,
     "imports": [
-      "index.html"
+      "index.html",
+      "_vue3-lottie.es.CrnpzW5X.js"
     ],
     "dynamicImports": [
-      "index.html"
+      "src/assets/loading/white.json"
     ],
     "css": [
-      "assets/FooterDesktop.CEW6YHCd.css"
+      "assets/FooterDesktop.6OiF5aWZ.css"
+    ],
+    "assets": [
+      "assets/presentationPrevPc.CNehcl2i.mp4"
     ]
   },
   "src/components/layouts/FooterMobile.vue": {
-    "file": "assets/FooterMobile.B6SW9Wry.js",
+    "file": "assets/FooterMobile.Ce45giNx.js",
     "name": "FooterMobile",
     "src": "src/components/layouts/FooterMobile.vue",
     "isDynamicEntry": true,
@@ -297,7 +534,10 @@
       "index.html"
     ],
     "css": [
-      "assets/FooterMobile.DJJKgdM8.css"
+      "assets/FooterMobile.Ci5HiyJg.css"
+    ],
+    "assets": [
+      "assets/presentationMobile.Cpdkya5B.mp4"
     ]
   },
   "src/locales/3dAnimations/en.js": {
@@ -334,6 +574,18 @@
     "file": "assets/es.D2LyfJjM.js",
     "name": "es",
     "src": "src/locales/aboutUs/es.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/businessProposal/en.js": {
+    "file": "assets/en.Bcqfjy6u.js",
+    "name": "en",
+    "src": "src/locales/businessProposal/en.js",
+    "isDynamicEntry": true
+  },
+  "src/locales/businessProposal/es.js": {
+    "file": "assets/es.Cr-Rpclz.js",
+    "name": "es",
+    "src": "src/locales/businessProposal/es.js",
     "isDynamicEntry": true
   },
   "src/locales/contact/en.js": {
@@ -385,25 +637,25 @@
     "isDynamicEntry": true
   },
   "src/locales/global/en.js": {
-    "file": "assets/en.DDBk0o_k.js",
+    "file": "assets/en.9fsMYSND.js",
     "name": "en",
     "src": "src/locales/global/en.js",
     "isDynamicEntry": true
   },
   "src/locales/global/es.js": {
-    "file": "assets/es.CB4hMqrk.js",
+    "file": "assets/es.-NCe6FTV.js",
     "name": "es",
     "src": "src/locales/global/es.js",
     "isDynamicEntry": true
   },
   "src/locales/home/en.js": {
-    "file": "assets/en.D8PkKPe3.js",
+    "file": "assets/en.YTIQnTRX.js",
     "name": "en",
     "src": "src/locales/home/en.js",
     "isDynamicEntry": true
   },
   "src/locales/home/es.js": {
-    "file": "assets/es.CVydk17D.js",
+    "file": "assets/es.DnBlzB8h.js",
     "name": "es",
     "src": "src/locales/home/es.js",
     "isDynamicEntry": true
@@ -445,20 +697,22 @@
     "isDynamicEntry": true
   },
   "src/views/3dAnimations/List.vue": {
-    "file": "assets/List.iLRpWPmJ.js",
+    "file": "assets/List.CpGb04yj.js",
     "name": "List",
     "src": "src/views/3dAnimations/List.vue",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_ImageLoader.CXxFVqxc.js"
+      "_vue3-lottie.es.CrnpzW5X.js",
+      "src/assets/loading/white.json",
+      "_ImageLoader.BTsNrU2_.js"
     ],
     "dynamicImports": [
       "node_modules/@splinetool/runtime/build/navmesh.js",
       "node_modules/@splinetool/runtime/build/physics.js",
       "node_modules/@splinetool/runtime/build/process.js",
       "node_modules/@splinetool/runtime/build/boolean.js",
-      "_howler.Cy7GHJHR.js",
+      "_howler.DWDdFb6t.js",
       "node_modules/@splinetool/runtime/build/opentype.js",
       "node_modules/@splinetool/runtime/build/ui.js",
       "node_modules/@splinetool/runtime/build/gaussian-splat-compression.js"
@@ -471,7 +725,7 @@
     ]
   },
   "src/views/AboutUs.vue": {
-    "file": "assets/AboutUs.BukGHTGx.js",
+    "file": "assets/AboutUs.BBatQA_x.js",
     "name": "AboutUs",
     "src": "src/views/AboutUs.vue",
     "isDynamicEntry": true,
@@ -486,7 +740,7 @@
     ]
   },
   "src/views/Contact.vue": {
-    "file": "assets/Contact.D7vFYqqb.js",
+    "file": "assets/Contact.BK4bQ-mv.js",
     "name": "Contact",
     "src": "src/views/Contact.vue",
     "isDynamicEntry": true,
@@ -495,7 +749,7 @@
     ]
   },
   "src/views/ContactSuccess.vue": {
-    "file": "assets/ContactSuccess.C3ENBFjR.js",
+    "file": "assets/ContactSuccess.BpxRmyjO.js",
     "name": "ContactSuccess",
     "src": "src/views/ContactSuccess.vue",
     "isDynamicEntry": true,
@@ -504,7 +758,7 @@
     ]
   },
   "src/views/CustomSoftware.vue": {
-    "file": "assets/CustomSoftware.CAlcSSmD.js",
+    "file": "assets/CustomSoftware.BfDrgCf5.js",
     "name": "CustomSoftware",
     "src": "src/views/CustomSoftware.vue",
     "isDynamicEntry": true,
@@ -520,17 +774,17 @@
     ]
   },
   "src/views/Hosting.vue": {
-    "file": "assets/Hosting.CUzrld44.js",
+    "file": "assets/Hosting.cXFB5Cz7.js",
     "name": "Hosting",
     "src": "src/views/Hosting.vue",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_vue3-marquee.es.CD1OUwUT.js"
+      "_vue3-marquee.es.Bq-7ZMEE.js"
     ]
   },
   "src/views/NotFound.vue": {
-    "file": "assets/NotFound.By6tCRuU.js",
+    "file": "assets/NotFound.H71AQ5mB.js",
     "name": "NotFound",
     "src": "src/views/NotFound.vue",
     "isDynamicEntry": true,
@@ -540,37 +794,65 @@
     ]
   },
   "src/views/PortfolioWorks.vue": {
-    "file": "assets/PortfolioWorks.C_scQquc.js",
+    "file": "assets/PortfolioWorks.CNFgh0Et.js",
     "name": "PortfolioWorks",
     "src": "src/views/PortfolioWorks.vue",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_ImageLoader.CXxFVqxc.js"
+      "_ImageLoader.BTsNrU2_.js",
+      "_vue3-lottie.es.CrnpzW5X.js",
+      "src/assets/loading/white.json"
     ],
     "assets": [
       "assets/abstractGradientBackground.DWmLXWpy.mp4"
     ]
   },
   "src/views/Prices.vue": {
-    "file": "assets/Prices.DjMmPTfx.js",
+    "file": "assets/Prices.lL0pUTKu.js",
     "name": "Prices",
     "src": "src/views/Prices.vue",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_vue3-marquee.es.CD1OUwUT.js"
+      "_vue3-marquee.es.Bq-7ZMEE.js"
+    ]
+  },
+  "src/views/business-proposal/BusinessProposal.vue": {
+    "file": "assets/BusinessProposal.QZ0P-vke.js",
+    "name": "BusinessProposal",
+    "src": "src/views/business-proposal/BusinessProposal.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html"
+    ],
+    "css": [
+      "assets/BusinessProposal.PCy-rt3X.css"
+    ],
+    "assets": [
+      "assets/Logo-White-ProjectApp.D57YvZF0.png",
+      "assets/1.CGygp0VP.jpg",
+      "assets/2.C4UqvleU.jpg",
+      "assets/3.B37Y5cUy.jpg",
+      "assets/4.kDvi_ey3.jpg",
+      "assets/5.CthWCOCG.jpeg",
+      "assets/simply_arrow_1.dtuG63xn.png",
+      "assets/simply_arrow_2.9khGJ1RL.png",
+      "assets/loop_arrow_1.CPCPLBx7.png",
+      "assets/loop_arrow_2.BcT8iZms.png"
     ]
   },
   "src/views/webDesigns/List.vue": {
-    "file": "assets/List.CPNRuNpw.js",
+    "file": "assets/List.DGP1b6Jn.js",
     "name": "List",
     "src": "src/views/webDesigns/List.vue",
     "isDynamicEntry": true,
     "imports": [
       "_Dunes.CiEAeNYr.js",
       "index.html",
-      "_ImageLoader.CXxFVqxc.js"
+      "_ImageLoader.BTsNrU2_.js",
+      "_vue3-lottie.es.CrnpzW5X.js",
+      "src/assets/loading/white.json"
     ],
     "css": [
       "assets/List.Dn6VphUk.css"
