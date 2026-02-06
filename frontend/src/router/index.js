@@ -240,9 +240,10 @@ router.beforeEach(async (to, from, next) => {
 
   // Check if we're on a locale-prefixed route
   if (supportedLocales.includes(potentialLocale)) {
-    // Update store with the locale from URL
+    // Update store with the locale from URL and load correct global messages
     if (languageStore.currentLocale !== potentialLocale) {
       languageStore.setCurrentLocale(potentialLocale);
+      await languageStore.loadMessages(languageStore.currentLanguage);
     }
   } else {
     // Handle legacy routes - redirect to locale-prefixed version

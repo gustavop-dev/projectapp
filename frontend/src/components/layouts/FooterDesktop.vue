@@ -12,7 +12,7 @@
         aria-label="Play our web design portfolio showcase video"
         >
         <span ref="ballText" class="font-light text-xl">
-          {{ globalMessages.play_reel }}
+          {{ footerMessages.play_reel || 'Play Reel' }}
         </span>
       </button>
       <div class="absolute bottom-0 right-0 w-full h-1/2 rounded-b-xl bg-window-black bg-opacity-40 backdrop-blur-md">
@@ -45,7 +45,7 @@
                   class="block text-lg cursor-pointer social-link text-white font-regular"
                   aria-label="Visit our Instagram profile"
                   >
-                  {{ globalMessages.instagram }} 
+                  {{ footerMessages.instagram || 'Instagram' }} 
                   <ArrowUpRightIcon class="w-5 inline arrow-icon"></ArrowUpRightIcon>
                   <span class="sr-only">Opens in a new window</span>
                 </a>
@@ -56,7 +56,7 @@
                   class="block text-lg cursor-pointer social-link text-white font-regular"
                   aria-label="Visit our Facebook page"
                   >
-                  {{ globalMessages.facebook }} 
+                  {{ footerMessages.facebook || 'Facebook' }} 
                   <ArrowUpRightIcon class="w-5 inline arrow-icon"></ArrowUpRightIcon>
                   <span class="sr-only">Opens in a new window</span>
                 </a>
@@ -66,7 +66,7 @@
                   rel="noopener noreferrer"
                   class="block text-lg cursor-pointer social-link text-white font-regular"
                   aria-label="Contact us on WhatsApp">
-                  {{ globalMessages.whatsapp }} 
+                  {{ footerMessages.whatsapp || 'WhatsApp' }} 
                   <ArrowUpRightIcon class="w-5 inline arrow-icon"></ArrowUpRightIcon>
                   <span class="sr-only">Opens in a new window</span>
                 </a>
@@ -78,7 +78,7 @@
                   @mouseleave="hoverMenu($event, false)"
                   aria-label="Email our web design team"
                   >
-                  {{ globalMessages.email_address }}
+                  {{ footerMessages.email_address || 'team@projectapp.co' }}
                   <div class="absolute left-0 bottom-0 h-0.5 w-0 bg-white transition-all duration-300 group-hover:w-full"></div>
                   <span class="sr-only">Open contact form</span>
                 </a>
@@ -89,10 +89,10 @@
             <h3 
               class="hidden ms-4 mb-4 text-lg font-regular text-white opacity-40 lg:block"
               >
-              {{ globalMessages.based_in }}
+              {{ footerMessages.based_in || 'Website Design Company Based in Colombia, Working Worldwide' }}
             </h3>
             <h3 class="hidden me-4 mb-4 text-lg font-regular text-white opacity-40 lg:block">
-              {{ globalMessages.copyright }}
+              {{ footerMessages.copyright || '©2026 Project App.' }}
             </h3>
         </div>
       </div>
@@ -135,12 +135,11 @@
         <video 
           ref="modalVideo" 
           class="w-full h-full object-cover" 
-          muted
           preload="metadata"
           @loadeddata="onVideoLoad"
           aria-label="Project App web design portfolio showcase video"
         >
-          <source src="@/assets/videos/presentationComp.mp4" type="video/mp4">
+          <source src="/videos/presentationComp.mp4" type="video/mp4">
           <p class="sr-only">Video showcasing our web design and development portfolio</p>
         </video>
       </div>
@@ -161,11 +160,12 @@
 
 <script setup>
 import Email from '@/components/layouts/Email.vue';
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { gsap } from 'gsap';
 import { XMarkIcon } from '@heroicons/vue/24/outline';
 import ArrowUpRightIcon from '@heroicons/vue/20/solid/ArrowUpRightIcon';
 import { useGlobalMessages } from '@/composables/useMessages';
+import { useLanguageStore } from '@/stores/language';
 import { useFreeResources } from '@/composables/useFreeResources';
 
 // Cargar componentes de Lottie de forma convencional
@@ -183,22 +183,28 @@ onMounted(async () => {
 });
 
 const { globalMessages } = useGlobalMessages('footer');
+const languageStore = useLanguageStore();
+
+const footerMessages = computed(() => languageStore.messages?.global?.footer || {});
 
 // Animación de estado de carga
 const isLoading = ref(true);
 
 // Estado reactivo
 const showModalEmail = ref(false);
-const solutions = ref([
-  { name: globalMessages.solutions.home, href: 'home' },
-  { name: globalMessages.solutions.about, href: 'aboutUs' },
-  { name: globalMessages.solutions.web_designs, href: 'webDesigns' },
-  { name: globalMessages.solutions.web_developments, href: 'portfolioWorks' },
-  { name: globalMessages.solutions.custom_software, href: 'customSoftware' },
-  { name: globalMessages.solutions.animations_3d, href: '3dAnimations' },
-  { name: globalMessages.solutions.prices, href: 'eCommercePrices' },
-  { name: globalMessages.solutions.hosting, href: 'hosting' },
-]);
+const solutions = computed(() => {
+  const s = footerMessages.value?.solutions || {};
+  return [
+    { name: s.home || 'Home', href: 'home' },
+    { name: s.about || 'About us', href: 'aboutUs' },
+    { name: s.web_designs || 'Web designs', href: 'webDesigns' },
+    { name: s.web_developments || 'Our work', href: 'portfolioWorks' },
+    { name: s.custom_software || 'Custom software', href: 'customSoftware' },
+    { name: s.animations_3d || '3D Animations', href: '3dAnimations' },
+    { name: s.prices || 'E-commerce pricing', href: 'eCommercePrices' },
+    { name: s.hosting || 'Hosting', href: 'hosting' },
+  ];
+});
 
 const showModal = ref(false);
 const ball = ref(null);

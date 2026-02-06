@@ -18,16 +18,16 @@
             </svg>
           </button>
 
-          <!-- Video player -->
+          <!-- Native HTML5 Video player -->
           <div class="video-wrapper bg-black rounded-lg overflow-hidden">
             <video
               ref="videoPlayer"
-              class="plyr-video w-full"
+              :src="videoSrc"
+              class="w-full rounded-lg"
               playsinline
               controls
-            >
-              <source :src="videoSrc" type="video/mp4" />
-            </video>
+              preload="auto"
+            ></video>
           </div>
         </div>
       </div>
@@ -36,9 +36,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
-import Plyr from 'plyr'
-import 'plyr/dist/plyr.css'
+import { ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
   isOpen: {
@@ -54,11 +52,11 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 
 const videoPlayer = ref(null)
-let player = null
 
 const closeModal = () => {
-  if (player) {
-    player.pause()
+  if (videoPlayer.value) {
+    videoPlayer.value.pause()
+    videoPlayer.value.currentTime = 0
   }
   emit('close')
 }
@@ -70,36 +68,16 @@ const handleEscape = (e) => {
   }
 }
 
-// Initialize Plyr when modal opens
-watch(() => props.isOpen, (newVal) => {
-  if (newVal && videoPlayer.value && !player) {
-    player = new Plyr(videoPlayer.value, {
-      controls: [
-        'play-large',
-        'play',
-        'progress',
-        'current-time',
-        'mute',
-        'volume',
-        'settings',
-        'pip',
-        'fullscreen'
-      ],
-      settings: ['quality', 'speed'],
-      quality: {
-        default: 1080,
-        options: [1080, 720, 480]
-      },
-      speed: {
-        selected: 1,
-        options: [0.5, 0.75, 1, 1.25, 1.5, 2]
-      }
-    })
-    
-    // Auto play when modal opens
-    player.play()
-  } else if (!newVal && player) {
-    player.pause()
+// When modal opens, ensure video is ready to play with audio
+watch(() => props.isOpen, async (newVal) => {
+  if (newVal) {
+    await nextTick()
+    if (!videoPlayer.value) return
+    videoPlayer.value.volume = 1
+    videoPlayer.value.muted = false
+  } else if (videoPlayer.value) {
+    videoPlayer.value.pause()
+    videoPlayer.value.currentTime = 0
   }
 })
 
@@ -109,9 +87,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleEscape)
-  if (player) {
-    player.destroy()
-  }
 })
 </script>
 
@@ -127,25 +102,9 @@ onBeforeUnmount(() => {
   opacity: 0;
 }
 
-/* Plyr custom colors */
-:deep(.plyr) {
-  --plyr-color-main: #F0FF3D;
-}
-
-:deep(.plyr--video) {
-  border-radius: 0.5rem;
-}
-
-:deep(.plyr__control--overlaid) {
-  background: rgba(240, 255, 61, 0.9);
-}
-
-:deep(.plyr__control--overlaid:hover) {
-  background: #F0FF3D;
-}
-
-:deep(.plyr__control:hover) {
-  background: rgba(240, 255, 61, 0.1);
+/* Custom video player styling */
+video::-webkit-media-controls-panel {
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
 }
 
 /* Prevent body scroll when modal is open */

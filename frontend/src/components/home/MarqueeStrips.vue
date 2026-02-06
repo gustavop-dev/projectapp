@@ -10,7 +10,7 @@
               :key="`top-${n}`"
               class="ribbon-item"
             >
-              <span class="asterisk">*</span> Let's build something remarkable together! <span class="asterisk">*</span> Creative tech for all.
+              <span class="asterisk">*</span> {{ messages?.marquee?.line1 || "Let's build something remarkable together!" }} <span class="asterisk">*</span> {{ messages?.marquee?.line2 || 'Creative tech for all.' }}
             </span>
           </div>
         </div>
@@ -25,7 +25,7 @@
               :key="`bottom-${n}`"
               class="ribbon-item"
             >
-              <span class="asterisk">*</span> Let's build something remarkable together! <span class="asterisk">*</span> Creative tech for all.
+              <span class="asterisk">*</span> {{ messages?.marquee?.line1 || "Let's build something remarkable together!" }} <span class="asterisk">*</span> {{ messages?.marquee?.line2 || 'Creative tech for all.' }}
             </span>
           </div>
         </div>
@@ -36,7 +36,10 @@
 
 <script setup>
 import { onMounted } from 'vue'
+import { useMessages } from '@/composables/useMessages'
 import gsap from 'gsap'
+
+const { messages } = useMessages()
 
 onMounted(() => {
   gsap.from('.ribbon-wrapper--top', {

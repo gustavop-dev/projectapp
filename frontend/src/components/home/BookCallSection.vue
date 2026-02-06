@@ -1,5 +1,5 @@
 <template>
-  <section class="w-full mt-12 mb-40 px-6 lg:px-32 lg:mt-16">
+  <section class="w-full mt-12 mb-16 px-6 lg:px-32 lg:mt-16">
     <div class="grid lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
       
       <!-- Left Card - Book a Call -->
@@ -19,12 +19,12 @@
         </div>
         
         <button
-          class="px-8 py-4 bg-esmerald text-bone rounded-full font-semibold text-lg hover:bg-esmerald-dark transition-all hover:scale-105 shadow-md hover:shadow-lg inline-flex items-center gap-2 w-fit"
+          class="px-6 py-3 bg-lemon text-black rounded-full font-semibold text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg inline-flex items-center gap-2 w-fit"
           data-cal-link="projectapp/discovery-call-projectapp"
           data-cal-namespace="discovery-call-projectapp"
           data-cal-config='{"layout":"week_view","theme":"dark"}'
         >
-          {{ messages?.book_call?.cta || "LET'S TALK" }}
+          {{ messages?.book_call?.cta || "Let's Talk" }}
           <span class="text-xl">•</span>
         </button>
       </div>
@@ -39,16 +39,16 @@
         />
 
         <!-- Email Badge -->
-        <a 
-          href="mailto:team@projectapp.com"
-          class="relative z-10 bg-white rounded-full px-6 py-3 flex items-center gap-3 hover:scale-105 transition-transform shadow-lg"
+        <button 
+          @click="goToContact"
+          class="relative z-10 bg-white rounded-full px-6 py-3 flex items-center gap-3 hover:scale-105 transition-transform shadow-lg cursor-pointer"
         >
           <span class="text-3xl">👋</span>
           <div class="text-left">
             <p class="text-xs font-semibold text-esmerald">{{ messages?.book_call?.prefer_email || 'Prefer to email?' }}</p>
             <p class="text-sm font-bold text-esmerald">{{ messages?.book_call?.say_hi || 'Say hi!' }}</p>
           </div>
-        </a>
+        </button>
       </div>
 
     </div>
@@ -58,10 +58,17 @@
 <script setup>
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import { useLanguageStore } from '@/stores/language'
 
+const router = useRouter()
 const languageStore = useLanguageStore()
-const { messages: allMessages } = storeToRefs(languageStore)
+const { messages: allMessages, currentLocale } = storeToRefs(languageStore)
 
 const messages = computed(() => allMessages.value.home || {})
+
+const goToContact = () => {
+  const locale = currentLocale.value || 'es-co'
+  router.push(`/${locale}/contact`)
+}
 </script>

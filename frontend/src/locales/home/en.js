@@ -16,123 +16,148 @@ export default {
         benefit3_text: "Users stay longer with optimized UX and engaging content",
         benefit4_title: "<1s Load Time",
         benefit4_text: "Lightning-fast performance that keeps visitors engaged",
-        carousel: {
-            before: "Before",
-            after: "After",
-            visit_resource: "Visit Resource",
-            obsesd: {
-                title: "Obsesd",
-                before: "High ad spend with poor SEO visibility. Difficult for customers to find organically.",
-                after: "Top 3 SEO rankings. 70% reduction in ad spend with increased organic traffic."
+    },
+    carousel: {
+        before: "Before",
+        after: "After",
+        visit_resource: "Visit Resource",
+        obsesd: {
+            title: "Obsesd",
+            before: "High ad spend with poor SEO visibility. Difficult for customers to find organically.",
+            after: "Top 3 SEO rankings. 70% reduction in ad spend with increased organic traffic."
+        },
+        constance: {
+            title: "Constance Hotels",
+            before: "Low conversion rates, poorly targeted audience, and minimal direct bookings.",
+            after: "+85% increase in direct bookings with optimized conversion funnel and precise targeting."
+        },
+        luminaire: {
+            title: "Luminaire Authentik",
+            before: "Outdated e-commerce platform with poor user experience and low sales conversion.",
+            after: "Modern e-commerce experience with +120% increase in online sales and improved customer retention."
+        }
+    },
+    techstack: {
+        title: "Technologies We Use",
+        subtitle: "We work with cutting-edge tools to deliver exceptional results"
+    },
+    services: {
+        card1: {
+            title: 'Your Brand',
+            description: 'Stand out with a brand that captures attention and leaves a lasting impression.'
+        },
+        card2: {
+            title: 'Awesome UI Design',
+            description: 'Get a dedicated design team specialized in Figma, Adobe Illustrator, Photoshop, and Webflow to bring your vision to life.'
+        },
+        card3: {
+            title: 'Data-Driven Performance',
+            description: 'Maximize conversions, retention, and SEO rankings with Google Tag Manager and Clarity analytics tracking every user interaction.'
+        }
+    },
+    bentoGrid: {
+        title1: 'Design and code',
+        title2: 'made Simple',
+        subtitle: 'Our team of experts is here to turn your vision into reality',
+        portfolio: {
+            title: 'Portfolio',
+            description: 'Our team of experts is here to turn your vision into reality',
+            ctaPrimary: 'Get in Touch',
+            ctaSecondary: 'Go to Portfolio',
+            recentWork: 'Recent work:'
+        },
+        recentWork: {
+            taptag: {
+                name: 'TapTag',
+                tag1: 'Design',
+                tag2: 'Vue.js',
+                tag3: 'MySQL',
+                tag4: 'Django',
+                url: 'https://taptag.com.co/'
             },
-            constance: {
-                title: "Constance Hotels",
-                before: "Low conversion rates, poorly targeted audience, and minimal direct bookings.",
-                after: "+85% increase in direct bookings with optimized conversion funnel and precise targeting."
-            },
-            luminaire: {
-                title: "Luminaire Authentik",
-                before: "Outdated e-commerce platform with poor user experience and low sales conversion.",
-                after: "Modern e-commerce experience with +120% increase in online sales and improved customer retention."
+            andre: {
+                name: 'Andre Architecture',
+                tag1: 'Design',
+                tag2: 'Webflow',
+                tag3: 'React',
+                tag4: 'Branding',
+                url: 'https://www.andrearchitecture.com/'
             }
         },
-        techstack: {
-            title: "Technologies We Use",
-            subtitle: "We work with cutting-edge tools to deliver exceptional results"
-        },
-        services: {
-            card1: {
-                title: 'Your Brand',
-                description: 'Stand out with a brand that captures attention and leaves a lasting impression.'
-            },
-            card2: {
-                title: 'Awesome UI Design',
-                description: 'Get a dedicated design team specialized in Figma, Adobe Illustrator, Photoshop, and Webflow to bring your vision to life.'
-            },
-            card3: {
-                title: 'Data-Driven Performance',
-                description: 'Maximize conversions, retention, and SEO rankings with Google Tag Manager and Clarity analytics tracking every user interaction.'
-            }
-        },
-        bentoGrid: {
-            title1: 'Design and code',
-            title2: 'made Simple',
-            subtitle: 'Our team of experts is here to turn your vision into reality',
-            portfolio: {
-                title: 'Portfolio',
-                description: 'Our team of experts is here to turn your vision into reality',
-                ctaPrimary: 'Get in Touch',
-                ctaSecondary: 'Go to Portfolio',
-                recentWork: 'RECENT WORK:'
-            },
-            recentWork: {
-                taptag: {
-                    name: 'TapTag',
-                    tag1: 'Design',
-                    tag2: 'Vue.js',
-                    tag3: 'MySQL',
-                    tag4: 'Django',
-                    url: 'https://taptag.com.co/'
-                },
-                andre: {
-                    name: 'Andre Architecture',
-                    tag1: 'Design',
-                    tag2: 'Webflow',
-                    tag3: 'React',
-                    tag4: 'Branding',
-                    url: 'https://www.andrearchitecture.com/'
-                }
-            },
-            apps: {
-                title: 'UI/UX, websites,',
-                subtitle: 'platforms & more',
-                cta: "LET'S TALK",
-                watchVideo: 'Watch Video',
-                tooltip: 'Click here to see our presentation ;)'
-            }
-        },
-        unrepeatable: {
-            title: 'unrepeatable.',
-            processTitle1: 'A Thoughtful Process Designed for',
-            processTitle2: 'Outstanding Results',
-            card1Title: 'Architecture & Planning',
-            card1Description: 'We define the complete project structure: site map, user flows, strategic CTAs, required forms, and necessary integrations to achieve your goals.',
-            card2Title: 'UI/UX Design',
-            card2Description: 'We create the complete design in Figma for all project views. We work in iterations with you until achieving final design approval.',
-            card3Title: 'Development & Implementation',
-            card3Description: 'We implement the approved design, configure CMS if needed, integrate tools (CRM, WhatsApp, analytics), and apply basic technical SEO.',
-            card4Title: 'Deployment & Validation',
-            card4Description: 'We publish the project on hosting, perform final tests on forms, integrations, tracking, and performance to ensure everything works perfectly.'
-        },
-        contract: {
-            title: 'SI Design',
-            price: '$999',
-            oldPrice: '$1499',
-            priceSubtitle: 'Single Price. All included.',
-            featuresTitle: 'Code Included',
-            feature1: 'Landing UI Design',
-            feature2: 'Mobile Responsive Design',
-            feature3: 'Initial Consultation',
-            feature4: 'Up to 3 rounds of revisions',
-            feature5: 'Timely Delivery (2-3 days)',
-            feature6: 'Cost-Effective',
-            cta: "LET'S TALK",
-            playReel: 'Play Reel'
-        },
-        contactForm: {
-            title: 'Hi there!',
-            subtitle: 'Tell us what you need',
+        apps: {
+            title: 'UI/UX, websites,',
+            subtitle: 'platforms & more',
+            cta: "Let's Talk",
+            watchVideo: 'Watch Video',
+            tooltip: 'Click here to see our presentation ;)'
+        }
+    },
+    unrepeatable: {
+        title: 'unrepeatable.',
+        processTitle1: 'A Thoughtful Process Designed for',
+        processTitle2: 'Outstanding Results',
+        card1Title: 'Architecture & Planning',
+        card1Description: 'We define the complete project structure: site map, user flows, strategic CTAs, required forms, and necessary integrations to achieve your goals.',
+        card2Title: 'UI/UX Design',
+        card2Description: 'We create the complete design in Figma for all project views. We work in iterations with you until achieving final design approval.',
+        card3Title: 'Development & Implementation',
+        card3Description: 'We implement the approved design, configure CMS if needed, integrate tools (CRM, WhatsApp, analytics), and apply basic technical SEO.',
+        card4Title: 'Deployment & Validation',
+        card4Description: 'We publish the project on hosting, perform final tests on forms, integrations, tracking, and performance to ensure everything works perfectly.'
+    },
+    contract: {
+        title: 'SI Design',
+        price: '$999',
+        oldPrice: '$1499',
+        priceSubtitle: 'Single Price. All included.',
+        featuresTitle: 'Code Included',
+        feature1: 'Landing UI Design',
+        feature2: 'Mobile Responsive Design',
+        feature3: 'Initial Consultation',
+        feature4: 'Up to 3 rounds of revisions',
+        feature5: 'Timely Delivery (2-3 days)',
+        feature6: 'Cost-Effective',
+        cta: "Let's Talk",
+        playReel: 'Play Reel'
+    },
+    contactForm: {
+        title: 'Hi there!',
+        subtitle: 'Tell us what you need',
+        fullName: 'Full name',
+        phone: 'Phone number',
+        email: 'Your email address',
+        message: 'Tell us about your project',
+        budgetLabel: 'Project budget (USD)',
+        privacy: 'By submitting this form, your information will be sent directly to the listed business. It will not be sold, shared, or disclosed by Chilliwack Connect. For more details, please see our',
+        privacyLink: 'Privacy Policy.',
+        submit: 'Submit',
+        sending: 'Sending...',
+        bookCall: 'Book a Call'
+    },
+    contact_section: {
+        title: 'Need a professional website?',
+        subtitle: "We develop custom websites, no templates. Tell us your idea and we'll make it real.",
+        form: {
             fullName: 'Full name',
             phone: 'Phone number',
-            email: 'Your email address',
-            message: 'Tell us about your project',
-            budgetLabel: 'Project budget (USD)',
-            privacy: 'By submitting this form, your information will be sent directly to the listed business. It will not be sold, shared, or disclosed by Chilliwack Connect. For more details, please see our',
-            privacyLink: 'Privacy Policy.',
-            submit: 'Submit',
+            email: 'Your email',
+            project: 'Tell us about your web project',
+            budget: 'Estimated budget (USD)',
+            submit: 'Send message',
             sending: 'Sending...',
-            bookCall: 'Book a Call'
-        }
+            bookCall: "Let's Talk"
+        },
+        budgetOptions: ['500-5K', '5-10K', '10-20K', '20-30K', '>30K']
+    },
+    book_call: {
+        title: 'Book a 15-min intro call',
+        cta: "Let's Talk",
+        prefer_email: 'Prefer to email?',
+        say_hi: 'Say hi!'
+    },
+    marquee: {
+        line1: "Let's build something remarkable together!",
+        line2: 'Creative tech for all.'
     },
     video: {
         text: "Play Reel"

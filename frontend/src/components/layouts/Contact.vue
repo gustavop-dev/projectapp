@@ -13,7 +13,7 @@
                         {{ globalMessages.mail_us_description }}
                       </p>
                       <a 
-                        @click="showModalEmail = true" 
+                        @click="goToContact" 
                         ref="emailLink" 
                         @mouseover="animateLink" 
                         @mouseleave="resetLink" 
@@ -80,13 +80,25 @@
 <script setup>
 import { ref } from 'vue'; // Import ref for reactivity
 import { gsap } from 'gsap'; // Import GSAP for animations
+import { useRouter } from 'vue-router';
+import { useLanguageStore } from '@/stores/language';
+import { storeToRefs } from 'pinia';
 import Email from '@/components/layouts/Email.vue'; // Import the Email component
 import { useGlobalMessages } from '@/composables/useMessages'; // Import the custom composable for global messages
+
+const router = useRouter();
+const languageStore = useLanguageStore();
+const { currentLocale } = storeToRefs(languageStore);
 
 const { globalMessages } = useGlobalMessages('contact_section'); // Get global messages for the contact section
 
 // State to control the visibility of the email modal
 const showModalEmail = ref(false);
+
+const goToContact = () => {
+  const locale = currentLocale.value || 'es-co';
+  router.push(`/${locale}/contact`);
+};
 
 // Refs for the email and chat links, and their underline and arrow elements
 const emailLink = ref(null);

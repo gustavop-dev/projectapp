@@ -76,7 +76,7 @@
             class="w-full lg:w-auto px-12 py-5 text-2xl lg:text-3xl font-medium bg-esmerald text-bone rounded-full hover:bg-esmerald-dark transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span v-if="!isSubmitting">{{ messages?.form?.submit || 'Send message' }}</span>
-            <span v-else>Enviando...</span>
+            <span v-else>{{ messages?.form?.sending || 'Sending...' }}</span>
           </button>
         </div>
         
@@ -97,7 +97,7 @@ const router = useRouter()
 const languageStore = useLanguageStore()
 const { messages: allMessages, currentLocale } = storeToRefs(languageStore)
 
-const messages = computed(() => allMessages.value.contact || {})
+const messages = computed(() => allMessages.value.home?.contact_section || {})
 
 const contactsStore = useContactsStore()
 const { isSubmitting, submitSuccess, submitError } = storeToRefs(contactsStore)

@@ -51,38 +51,41 @@
                   Design
                 </h2>
                 
-                <!-- Price -->
+                <!-- Custom Quote -->
                 <div class="mb-8">
-                  <span class="text-4xl lg:text-5xl font-bold">{{ messages?.contract?.price || '$999' }}</span>
-                  <span class="text-2xl lg:text-3xl line-through opacity-70 ml-2">{{ messages?.contract?.oldPrice || '$1499' }}</span>
-                  <p class="text-xl lg:text-2xl mt-2">{{ messages?.contract?.priceSubtitle || 'Single Price. All included.' }}</p>
+                  <p class="text-xl lg:text-2xl mt-2">{{ messages?.contract?.priceSubtitle || 'Tailored to your project. Get a custom quote.' }}</p>
                 </div>
               </div>
 
               <!-- Features Box -->
               <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 lg:p-8">
-                <h3 class="text-lg font-semibold mb-6 opacity-90">{{ messages?.contract?.featuresTitle || 'Code Included' }}</h3>
+                <h3 class="text-lg font-semibold mb-6 opacity-90">{{ messages?.contract?.featuresTitle || 'What\'s Included' }}</h3>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <!-- Left column features -->
                   <div class="space-y-3">
-                    <p class="text-sm lg:text-base">{{ messages?.contract?.feature1 || 'Landing UI Design' }}</p>
-                    <p class="text-sm lg:text-base">{{ messages?.contract?.feature2 || 'Mobile Responsive Design' }}</p>
-                    <p class="text-sm lg:text-base">{{ messages?.contract?.feature3 || 'Initial Consultation' }}</p>
+                    <p class="text-sm lg:text-base">{{ messages?.contract?.feature1 || 'Custom UI/UX Design' }}</p>
+                    <p class="text-sm lg:text-base">{{ messages?.contract?.feature2 || 'Full-Stack Development' }}</p>
+                    <p class="text-sm lg:text-base">{{ messages?.contract?.feature3 || 'Strategy & Consultation' }}</p>
                   </div>
                   
                   <!-- Right column features -->
                   <div class="space-y-3">
-                    <p class="text-sm lg:text-base">{{ messages?.contract?.feature4 || 'Up to 3 rounds of revisions' }}</p>
-                    <p class="text-sm lg:text-base">{{ messages?.contract?.feature5 || 'Timely Delivery (2-3 days)' }}</p>
-                    <p class="text-sm lg:text-base">{{ messages?.contract?.feature6 || 'Cost-Effective' }}</p>
+                    <p class="text-sm lg:text-base">{{ messages?.contract?.feature4 || 'Responsive & Mobile-First' }}</p>
+                    <p class="text-sm lg:text-base">{{ messages?.contract?.feature5 || 'QA Testing & Optimization' }}</p>
+                    <p class="text-sm lg:text-base">{{ messages?.contract?.feature6 || 'Dedicated Project Support' }}</p>
                   </div>
                 </div>
 
                 <!-- CTA Button -->
                 <div class="mt-8 flex justify-end">
-                  <button class="bg-black text-white px-8 py-3 rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center gap-2">
-                    {{ messages?.contract?.cta || "LET'S TALK" }}
+                  <button 
+                    class="px-6 py-3 bg-lemon text-black rounded-full font-semibold text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg flex items-center gap-2"
+                    data-cal-link="projectapp/discovery-call-projectapp"
+                    data-cal-namespace="discovery-call-projectapp"
+                    data-cal-config='{"layout":"week_view","theme":"dark"}'
+                  >
+                    {{ messages?.contract?.cta || "Let's Talk" }}
                     <span class="text-xl">•</span>
                   </button>
                 </div>
@@ -117,7 +120,7 @@ const { messages } = useMessages()
 
 const cardBgImage = new URL('@/assets/images/home/services/contract/card-landing-design.webp', import.meta.url).href
 const videoMobile = new URL('@/assets/videos/presentationMobile.mp4', import.meta.url).href
-const videoPresentation = new URL('@/assets/videos/presentationComp.mp4', import.meta.url).href
+const videoPresentation = '/videos/presentationComp.mp4'
 
 // Video modal state
 const isVideoModalOpen = ref(false)

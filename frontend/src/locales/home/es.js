@@ -16,123 +16,148 @@ export default {
         benefit3_text: "Los usuarios permanecen más tiempo con UX optimizado y contenido atractivo",
         benefit4_title: "<1s Tiempo de Carga",
         benefit4_text: "Rendimiento ultra-rápido que mantiene a los visitantes comprometidos",
-        carousel: {
-            before: 'Antes',
-            after: 'Después',
-            visit_resource: 'Visitar Recurso',
-            obsesd: {
-              title: 'Obsesd',
-              before: 'Alto gasto en publicidad con poca visibilidad SEO. Difícil para los clientes encontrar orgánicamente.',
-              after: 'Top 3 en rankings SEO. 70% de reducción en gasto publicitario con mayor tráfico orgánico.'
+    },
+    carousel: {
+        before: 'Antes',
+        after: 'Después',
+        visit_resource: 'Visitar Recurso',
+        obsesd: {
+            title: 'Obsesd',
+            before: 'Alto gasto en publicidad con poca visibilidad SEO. Difícil para los clientes encontrar orgánicamente.',
+            after: 'Top 3 en rankings SEO. 70% de reducción en gasto publicitario con mayor tráfico orgánico.'
+        },
+        constance: {
+            title: 'Constance Hotels',
+            before: 'Bajas tasas de conversión, audiencia mal segmentada y reservas directas mínimas.',
+            after: '+85% de aumento en reservas directas con embudo de conversión optimizado y segmentación precisa.'
+        },
+        luminaire: {
+            title: 'Luminaire Authentik',
+            before: 'Plataforma e-commerce obsoleta con mala experiencia de usuario y baja conversión de ventas.',
+            after: 'Experiencia e-commerce moderna con +120% de aumento en ventas online y mejor retención de clientes.'
+        }
+    },
+    techstack: {
+        title: 'Tecnologías que Usamos',
+        subtitle: 'Trabajamos con herramientas de vanguardia para entregar resultados excepcionales'
+    },
+    services: {
+        card1: {
+            title: 'Tu Marca',
+            description: 'Destaca con una marca que captura la atención y deja una impresión duradera.'
+        },
+        card2: {
+            title: 'Diseño UI Increíble',
+            description: 'Obtén un equipo de diseño dedicado especializado en Figma, Adobe Illustrator, Photoshop y Webflow para dar vida a tu visión.'
+        },
+        card3: {
+            title: 'Rendimiento Basado en Datos',
+            description: 'Maximiza conversiones, retención y rankings SEO con Google Tag Manager y Clarity rastreando cada interacción del usuario.'
+        }
+    },
+    bentoGrid: {
+        title1: 'Diseño y código',
+        title2: 'hecho Simple',
+        subtitle: 'Nuestro equipo de expertos está aquí para convertir tu visión en realidad',
+        portfolio: {
+            title: 'Portafolio',
+            description: 'Nuestro equipo de expertos está aquí para convertir tu visión en realidad',
+            ctaPrimary: 'Contáctanos',
+            ctaSecondary: 'Ver Portafolio',
+            recentWork: 'Trabajo reciente:'
+        },
+        recentWork: {
+            taptag: {
+                name: 'TapTag',
+                tag1: 'Diseño',
+                tag2: 'Vue.js',
+                tag3: 'MySQL',
+                tag4: 'Django',
+                url: 'https://taptag.com.co/'
             },
-            constance: {
-              title: 'Constance Hotels',
-              before: 'Bajas tasas de conversión, audiencia mal segmentada y reservas directas mínimas.',
-              after: '+85% de aumento en reservas directas con embudo de conversión optimizado y segmentación precisa.'
-            },
-            luminaire: {
-              title: 'Luminaire Authentik',
-              before: 'Plataforma e-commerce obsoleta con mala experiencia de usuario y baja conversión de ventas.',
-              after: 'Experiencia e-commerce moderna con +120% de aumento en ventas online y mejor retención de clientes.'
+            andre: {
+                name: 'Andre Architecture',
+                tag1: 'Diseño',
+                tag2: 'Webflow',
+                tag3: 'React',
+                tag4: 'Branding',
+                url: 'https://www.andrearchitecture.com/'
             }
-          },
-          techstack: {
-            title: 'Tecnologías que Usamos',
-            subtitle: 'Trabajamos con herramientas de vanguardia para entregar resultados excepcionales'
-          },
-          services: {
-            card1: {
-              title: 'Tu Marca',
-              description: 'Destaca con una marca que captura la atención y deja una impresión duradera.'
-            },
-            card2: {
-              title: 'Diseño UI Increíble',
-              description: 'Obtén un equipo de diseño dedicado especializado en Figma, Adobe Illustrator, Photoshop y Webflow para dar vida a tu visión.'
-            },
-            card3: {
-              title: 'Rendimiento Basado en Datos',
-              description: 'Maximiza conversiones, retención y rankings SEO con Google Tag Manager y Clarity rastreando cada interacción del usuario.'
-            }
-          },
-          bentoGrid: {
-            title1: 'Diseño y código',
-            title2: 'hecho Simple',
-            subtitle: 'Nuestro equipo de expertos está aquí para convertir tu visión en realidad',
-            portfolio: {
-                title: 'Portafolio',
-                description: 'Nuestro equipo de expertos está aquí para convertir tu visión en realidad',
-                ctaPrimary: 'Contáctanos',
-                ctaSecondary: 'Ver Portafolio',
-                recentWork: 'TRABAJO RECIENTE:'
-            },
-            recentWork: {
-                taptag: {
-                    name: 'TapTag',
-                    tag1: 'Diseño',
-                    tag2: 'Vue.js',
-                    tag3: 'MySQL',
-                    tag4: 'Django',
-                    url: 'https://taptag.com.co/'
-                },
-                andre: {
-                    name: 'Andre Architecture',
-                    tag1: 'Diseño',
-                    tag2: 'Webflow',
-                    tag3: 'React',
-                    tag4: 'Branding',
-                    url: 'https://www.andrearchitecture.com/'
-                }
-            },
-            apps: {
-                title: 'UI/UX, sitios web,',
-                subtitle: 'plataformas y más',
-                cta: 'HABLEMOS',
-                watchVideo: 'Ver Video',
-                tooltip: 'Haz clic para ver nuestra presentación ;)'
-            }
-          },
-          unrepeatable: {
-            title: 'irrepetible.',
-            processTitle1: 'Un Proceso Reflexivo Diseñado para',
-            processTitle2: 'Resultados Sobresalientes',
-            card1Title: 'Arquitectura y Planeación',
-            card1Description: 'Definimos la estructura completa del proyecto: mapa del sitio, flujos de usuario, CTAs estratégicos, formularios necesarios e integraciones requeridas para cumplir tus objetivos.',
-            card2Title: 'Diseño UI/UX',
-            card2Description: 'Creamos el diseño completo en Figma para todas las vistas del proyecto. Trabajamos en iteraciones contigo hasta lograr la aprobación final del diseño.',
-            card3Title: 'Desarrollo e Implementación',
-            card3Description: 'Implementamos el diseño aprobado, configuramos CMS si es necesario, integramos herramientas (CRM, WhatsApp, analytics) y aplicamos SEO técnico básico.',
-            card4Title: 'Despliegue y Validación',
-            card4Description: 'Publicamos el proyecto en el hosting, realizamos pruebas finales de formularios, integraciones, tracking y rendimiento para asegurar que todo funcione perfectamente.'
-          },
-          contract: {
-            title: 'SI Design',
-            price: '$999',
-            oldPrice: '$1499',
-            priceSubtitle: 'Precio único. Todo incluido.',
-            featuresTitle: 'Código Incluido',
-            feature1: 'Diseño UI de Landing',
-            feature2: 'Diseño Responsive Móvil',
-            feature3: 'Consulta Inicial',
-            feature4: 'Hasta 3 rondas de revisiones',
-            feature5: 'Entrega Oportuna (2-3 días)',
-            feature6: 'Costo-Efectivo',
-            cta: 'HABLEMOS',
-            playReel: 'Ver Reel'
-          },
-          contactForm: {
-            title: '¡Hola!',
-            subtitle: 'cuéntanos qué necesitas',
+        },
+        apps: {
+            title: 'UI/UX, sitios web,',
+            subtitle: 'plataformas y más',
+            cta: 'Hablemos',
+            watchVideo: 'Ver Video',
+            tooltip: 'Haz clic para ver nuestra presentación ;)'
+        }
+    },
+    unrepeatable: {
+        title: 'único, como tú.',
+        processTitle1: 'Un Proceso Reflexivo Diseñado para',
+        processTitle2: 'Resultados Sobresalientes',
+        card1Title: 'Arquitectura y Planeación',
+        card1Description: 'Definimos la estructura completa del proyecto: mapa del sitio, flujos de usuario, CTAs estratégicos, formularios necesarios e integraciones requeridas para cumplir tus objetivos.',
+        card2Title: 'Diseño UI/UX',
+        card2Description: 'Creamos el diseño completo en Figma para todas las vistas del proyecto. Trabajamos en iteraciones contigo hasta lograr la aprobación final del diseño.',
+        card3Title: 'Desarrollo e Implementación',
+        card3Description: 'Implementamos el diseño aprobado, configuramos CMS si es necesario, integramos herramientas (CRM, WhatsApp, analytics) y aplicamos SEO técnico básico.',
+        card4Title: 'Despliegue y Validación',
+        card4Description: 'Publicamos el proyecto en el hosting, realizamos pruebas finales de formularios, integraciones, tracking y rendimiento para asegurar que todo funcione perfectamente.'
+    },
+    contract: {
+        title: 'SI Design',
+        price: '$999',
+        oldPrice: '$1499',
+        priceSubtitle: 'Precio único. Todo incluido.',
+        featuresTitle: 'Código Incluido',
+        feature1: 'Diseño UI de Landing',
+        feature2: 'Diseño Responsive Móvil',
+        feature3: 'Consulta Inicial',
+        feature4: 'Hasta 3 rondas de revisiones',
+        feature5: 'Entrega Oportuna (2-3 días)',
+        feature6: 'Costo-Efectivo',
+        cta: 'Hablemos',
+        playReel: 'Ver Reel'
+    },
+    contactForm: {
+        title: '¡Hola!',
+        subtitle: 'cuéntanos qué necesitas',
+        fullName: 'Nombre completo',
+        phone: 'Número de teléfono',
+        email: 'Tu dirección de correo',
+        message: 'Cuéntanos sobre tu proyecto',
+        budgetLabel: 'Presupuesto del proyecto (USD)',
+        privacy: 'Al enviar este formulario, tu información será enviada directamente al negocio listado. No será vendida, compartida o divulgada por Chilliwack Connect. Para más detalles, consulta nuestra',
+        privacyLink: 'Política de Privacidad.',
+        submit: 'Enviar',
+        sending: 'Enviando...',
+        bookCall: 'Agendar una Llamada'
+    },
+    contact_section: {
+        title: '¿Necesitas un sitio web profesional?',
+        subtitle: 'Desarrollamos sitios web personalizados, sin plantillas. Cuéntanos tu idea y la haremos realidad.',
+        form: {
             fullName: 'Nombre completo',
             phone: 'Número de teléfono',
-            email: 'Tu dirección de correo',
-            message: 'Cuéntanos sobre tu proyecto',
-            budgetLabel: 'Presupuesto del proyecto (USD)',
-            privacy: 'Al enviar este formulario, tu información será enviada directamente al negocio listado. No será vendida, compartida o divulgada por Chilliwack Connect. Para más detalles, consulta nuestra',
-            privacyLink: 'Política de Privacidad.',
-            submit: 'Enviar',
+            email: 'Tu correo electrónico',
+            project: 'Cuéntanos sobre tu proyecto web',
+            budget: 'Presupuesto estimado (USD)',
+            submit: 'Enviar mensaje',
             sending: 'Enviando...',
-            bookCall: 'Agendar una Llamada'
-          },
+            bookCall: 'Hablemos'
+        },
+        budgetOptions: ['500-5K', '5-10K', '10-20K', '20-30K', '>30K']
+    },
+    book_call: {
+        title: 'Agenda una llamada de 15 min',
+        cta: 'Hablemos',
+        prefer_email: '¿Prefieres email?',
+        say_hi: '¡Saluda!'
+    },
+    marquee: {
+        line1: '¡Construyamos algo extraordinario juntos!',
+        line2: 'Tecnología creativa para todos.'
     },
     video: {
         text: "Reproducir"

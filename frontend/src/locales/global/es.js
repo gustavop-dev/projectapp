@@ -45,7 +45,7 @@ export default {
     },
     footer: {
       based_in: "Empresa de Diseño Web con sede en Colombia, trabajando en todo el mundo",
-      copyright: "©2025 Project App. - Diseño y Desarrollo Web Profesional",
+      copyright: "©2026 Project App. - Diseño y Desarrollo Web Profesional",
       instagram: "Instagram",
       facebook: "Facebook",
       whatsapp: "WhatsApp",

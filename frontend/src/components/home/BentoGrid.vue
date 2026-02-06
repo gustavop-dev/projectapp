@@ -54,17 +54,23 @@
         
         <!-- CTA Buttons -->
         <div class="flex gap-3">
-          <button class="cta-button-primary bg-lemon text-black px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-lemon/90 transition-colors">
+          <button 
+            @click="goToContact"
+            class="cta-button-primary px-6 py-3 bg-lemon text-black rounded-full font-semibold text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg"
+          >
             {{ messages?.bentoGrid?.portfolio?.ctaPrimary || 'Get in Touch' }}
           </button>
-          <button class="cta-button-secondary bg-white text-esmerald border-2 border-esmerald px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-esmerald hover:text-white transition-colors">
+          <button 
+            @click="goToPortfolio"
+            class="cta-button-secondary px-6 py-3 bg-white text-slate-900 rounded-full font-medium text-base hover:bg-slate-50 transition-all shadow-sm"
+          >
             {{ messages?.bentoGrid?.portfolio?.ctaSecondary || 'Go to Portfolio' }}
           </button>
         </div>
 
         <!-- Recent Work Section -->
         <div class="recent-work mt-8">
-          <h4 class="text-sm font-semibold uppercase tracking-wider mb-4">
+          <h4 class="text-sm font-semibold tracking-wider mb-4">
             {{ messages?.bentoGrid?.portfolio?.recentWork || 'RECENT WORK:' }}
           </h4>
           <div class="grid grid-cols-2 gap-4">
@@ -73,7 +79,7 @@
               :href="messages?.bentoGrid?.recentWork?.taptag?.url || 'https://taptag.com.co/'"
               target="_blank"
               rel="noopener noreferrer"
-              class="project-item project-card cursor-pointer"
+              class="project-item project-card bg-esmerald-light cursor-pointer"
             >
               <div class="project-icon mb-2">
                 <img :src="taptag_icon" alt="TapTag" class="w-8 h-8 object-contain" />
@@ -92,7 +98,7 @@
               :href="messages?.bentoGrid?.recentWork?.andre?.url || 'https://www.andrearchitecture.com/'"
               target="_blank"
               rel="noopener noreferrer"
-              class="project-item project-card cursor-pointer"
+              class="project-item project-card bg-esmerald-light cursor-pointer"
             >
               <div class="project-icon mb-2">
                 <img :src="andre_icon" alt="Andre Architecture" class="w-8 h-8 object-contain" />
@@ -117,11 +123,11 @@
           <!-- Tooltip always visible with 45deg rotation from top-right corner of the card -->
           <div
             @click="openVideoModal"
-            class="asterisk-tooltip absolute bg-esmerald text-white px-3 py-1.5 rounded-md whitespace-nowrap cursor-pointer hover:bg-esmerald/90 transition-colors"
+            class="asterisk-tooltip absolute bg-esmerald text-white px-4 py-2 rounded-lg whitespace-nowrap cursor-pointer hover:bg-esmerald/90 transition-colors"
             style="
-              top: 25px;
+              top: 20px;
               right: -40px;
-              font-size: 0.7rem;
+              font-size: 0.9rem;
               transform: rotate(45deg);
               transform-origin: center;
               z-index: 50;
@@ -138,12 +144,17 @@
                 {{ messages?.bentoGrid?.apps?.subtitle || 'platforms & more' }}
               </h3>
               <div class="flex gap-3 mt-4">
-                <button class="cta-button bg-lemon text-black px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-lemon/90 transition-colors">
-                  {{ messages?.bentoGrid?.apps?.cta || "LET'S TALK" }}
+                <button 
+                  class="cta-button px-6 py-3 bg-lemon text-black rounded-full font-semibold text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg"
+                  data-cal-link="projectapp/discovery-call-projectapp"
+                  data-cal-namespace="discovery-call-projectapp"
+                  data-cal-config='{"layout":"week_view","theme":"dark"}'
+                >
+                  {{ messages?.bentoGrid?.apps?.cta || "Let's Talk" }}
                 </button>
                 <button 
                   @click="openVideoModal"
-                  class="cta-button bg-white text-esmerald border-2 border-esmerald px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-esmerald hover:text-white transition-colors"
+                  class="cta-button px-6 py-3 bg-white text-slate-900 rounded-full font-medium text-base hover:bg-slate-50 transition-all shadow-sm"
                 >
                   {{ messages?.bentoGrid?.apps?.watchVideo || 'Watch Video' }}
                 </button>
@@ -188,7 +199,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import { useMessages } from '@/composables/useMessages'
+import { useLanguageStore } from '@/stores/language'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { Autoplay } from 'swiper/modules'
 import gsap from 'gsap'
@@ -196,6 +210,19 @@ import VideoModal from '@/components/VideoModal.vue'
 import 'swiper/css'
 
 const { messages } = useMessages()
+const router = useRouter()
+const languageStore = useLanguageStore()
+const { currentLocale } = storeToRefs(languageStore)
+
+const goToContact = () => {
+  const locale = currentLocale.value || 'es-co'
+  router.push(`/${locale}/contact`)
+}
+
+const goToPortfolio = () => {
+  const locale = currentLocale.value || 'es-co'
+  router.push(`/${locale}/portfolio-works`)
+}
 
 // Swiper modules
 const modules = [Autoplay]
@@ -206,7 +233,7 @@ const asteriskGradient = ref(null)
 
 // Video modal state
 const isVideoModalOpen = ref(false)
-const videoSrc = new URL('@/assets/videos/presentationComp.mp4', import.meta.url).href
+const videoSrc = '/videos/presentationComp.mp4'
 
 const openVideoModal = () => {
   isVideoModalOpen.value = true
@@ -280,20 +307,18 @@ onMounted(() => {
   display: block;
   padding: 12px;
   border-radius: 12px;
-  background: #fafafa;
   transition: all 0.3s ease;
   text-decoration: none;
   color: inherit;
 }
 
 .project-card:hover {
-  background: #f0f0f0;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .project-card:hover .tag {
-  background: #e0e0e0;
+  background: #d4e4e4;
 }
 
 .portfolio-swiper {

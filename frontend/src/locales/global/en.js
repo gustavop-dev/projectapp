@@ -45,7 +45,7 @@ export default {
     },
     footer: {
       based_in: "Website Design Company Based in Colombia, Working Worldwide",
-      copyright: "©2025 Project App. - Professional Web Design & Development",
+      copyright: "©2026 Project App. - Professional Web Design & Development",
       instagram: "Instagram",
       facebook: "Facebook",
       whatsapp: "WhatsApp",
