@@ -6,7 +6,7 @@
         {{ messages?.contactForm?.title || 'Hi there!' }} <span ref="waveEmoji" class="inline-block">👋</span><br>
         {{ messages?.contactForm?.subtitle || 'tell us what you need' }}
       </h2>
-      <form @submit.prevent="handleSubmit" class="space-y-8 bg-white rounded-3xl p-8 lg:p-12">
+      <form @submit.prevent="handleSubmit" class="space-y-6 sm:space-y-8 bg-white rounded-3xl p-6 sm:p-8 lg:p-12">
         <!-- Full Name -->
         <input
           v-model="form.fullName"
@@ -217,10 +217,16 @@ onMounted(() => {
 <style scoped>
 /* Form Title */
 .form-title {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 300;
   color: #002921;
   line-height: 1.4;
+}
+
+@media (min-width: 640px) {
+  .form-title {
+    font-size: 28px;
+  }
 }
 
 /* Minimal Form Styles */
@@ -408,16 +414,25 @@ onMounted(() => {
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .service-card {
-    height: 350px;
+    height: 280px;
   }
   
   .mockup-container {
-    width: 60%;
-    max-width: 200px;
+    width: 50%;
+    max-width: 180px;
   }
   
   .card-content {
-    padding: 24px;
+    padding: 20px;
+  }
+  
+  .card-text h3 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .card-text p {
+    font-size: 0.75rem;
   }
 }
 </style>

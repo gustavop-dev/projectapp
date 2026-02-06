@@ -2,7 +2,7 @@
   <section class="mt-12 px-3 lg:px-32 lg:mt-16">
     <!-- Section Header -->
     <div class="mb-16 text-right">
-      <h2 class="block font-light text-6xl text-esmerald lg:text-8xl mb-8">
+      <h2 class="block font-light text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl text-esmerald mb-8">
         {{ messages?.bentoGrid?.title1 || 'Design and code' }}<br>
         {{ messages?.bentoGrid?.title2 || 'made Simple' }}
       </h2>
@@ -45,7 +45,7 @@
           </swiper>
         </div>
         
-        <h3 class="text-3xl font-light text-gray-700 mb-3">
+        <h3 class="text-xl sm:text-2xl lg:text-3xl font-light text-gray-700 mb-3">
           {{ messages?.bentoGrid?.portfolio?.title || 'Portfolio' }}
         </h3>
         <p class="text-gray-500 mb-6">
@@ -53,16 +53,16 @@
         </p>
         
         <!-- CTA Buttons -->
-        <div class="flex gap-3">
+        <div class="flex flex-col sm:flex-row gap-3">
           <button 
             @click="goToContact"
-            class="cta-button-primary px-6 py-3 bg-lemon text-black rounded-full font-semibold text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg"
+            class="cta-button-primary px-6 py-3 bg-lemon text-black rounded-full font-semibold text-sm sm:text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg"
           >
             {{ messages?.bentoGrid?.portfolio?.ctaPrimary || 'Get in Touch' }}
           </button>
           <button 
             @click="goToPortfolio"
-            class="cta-button-secondary px-6 py-3 bg-white text-slate-900 rounded-full font-medium text-base hover:bg-slate-50 transition-all shadow-sm"
+            class="cta-button-secondary px-6 py-3 bg-white text-slate-900 rounded-full font-medium text-sm sm:text-base hover:bg-slate-50 transition-all shadow-sm"
           >
             {{ messages?.bentoGrid?.portfolio?.ctaSecondary || 'Go to Portfolio' }}
           </button>
@@ -123,7 +123,7 @@
           <!-- Tooltip always visible with 45deg rotation from top-right corner of the card -->
           <div
             @click="openVideoModal"
-            class="asterisk-tooltip absolute bg-esmerald text-white px-4 py-2 rounded-lg whitespace-nowrap cursor-pointer hover:bg-esmerald/90 transition-colors"
+            class="asterisk-tooltip absolute bg-esmerald text-white px-4 py-2 rounded-lg whitespace-nowrap cursor-pointer hover:bg-esmerald/90 transition-colors hidden lg:block"
             style="
               top: 20px;
               right: -40px;
@@ -139,7 +139,7 @@
           <div class="bento-card apps-card bg-white rounded-3xl p-8 shadow-sm hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between">
             <div>
-              <h3 class="text-3xl font-light text-gray-600 mb-2">
+              <h3 class="text-2xl sm:text-3xl font-light text-gray-600 mb-2">
                 {{ messages?.bentoGrid?.apps?.title || 'UI/UX, websites,' }}<br>
                 {{ messages?.bentoGrid?.apps?.subtitle || 'platforms & more' }}
               </h3>
@@ -160,13 +160,13 @@
                 </button>
               </div>
             </div>
-            <div class="icon-placeholder relative cursor-pointer w-48 h-48" @click="openVideoModal">
+            <div class="icon-placeholder relative cursor-pointer w-24 h-24 md:w-36 md:h-36 lg:w-48 lg:h-48" @click="openVideoModal">
               <!-- Two rotating asterisks stacked diagonally -->
               <div class="asterisk-container relative w-full h-full">
                 <!-- Black asterisk (larger, background) -->
-                <span ref="asteriskBlack" class="font-black text-black absolute top-0 left-0" style="font-size: 12rem; line-height: 1;">*</span>
+                <span ref="asteriskBlack" class="font-black text-black absolute top-0 left-0 text-[6rem] md:text-[9rem] lg:text-[12rem]" style="line-height: 1;">*</span>
                 <!-- Gradient asterisk (smaller, foreground, offset diagonally) -->
-                <span ref="asteriskGradient" class="font-black absolute" style="font-size: 10rem; line-height: 1; top: 2rem; left: 2rem; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">*</span>
+                <span ref="asteriskGradient" class="font-black absolute text-[5rem] md:text-[7.5rem] lg:text-[10rem]" style="line-height: 1; top: 1rem; left: 1rem; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">*</span>
               </div>
             </div>
           </div>

@@ -12,11 +12,11 @@
     <TechStack />
 
     <!-- Introduction section with main heading -->
-    <section class="mt-12 mb-40 px-3 lg:px-32 lg:mt-16" aria-labelledby="main-intro-title" itemscope itemtype="https://schema.org/WebPageElement">
+    <section class="mt-12 mb-16 lg:mb-40 px-3 lg:px-32 lg:mt-16" aria-labelledby="main-intro-title" itemscope itemtype="https://schema.org/WebPageElement">
       <h1 
         ref="mainTitleRef"
         id="main-intro-title" 
-        class="block font-light text-4xl text-esmerald lg:pe-60 lg:text-6xl" 
+        class="block font-light text-2xl sm:text-3xl md:text-4xl lg:text-4xl xl:text-5xl 2xl:text-6xl text-esmerald lg:pe-60" 
         itemprop="headline"
       >
         {{ messages?.section_1?.title || '' }}

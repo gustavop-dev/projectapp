@@ -1,9 +1,9 @@
 <template>
-  <section class="w-full mt-12 mb-40 px-3 lg:px-32 lg:mt-16">
+  <section class="w-full mt-12 mb-16 lg:mb-40 px-3 lg:px-32 lg:mt-16">
     <div class="max-w-7xl mx-auto">
       <!-- Section Header -->
       <div class="mb-16">
-        <h2 class="text-5xl lg:text-7xl font-light text-esmerald mb-6 leading-tight">
+        <h2 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-light text-esmerald mb-6 leading-tight">
           {{ messages?.study_cases?.title || 'Design and code made Simple' }}
         </h2>
         <p class="text-xl lg:text-2xl text-green-light max-w-3xl">

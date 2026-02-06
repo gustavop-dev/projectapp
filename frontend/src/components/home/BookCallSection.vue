@@ -1,9 +1,9 @@
 <template>
-  <section class="w-full mt-12 mb-16 px-6 lg:px-32 lg:mt-16">
+  <section class="w-full mt-12 mb-12 lg:mb-16 px-3 lg:px-32 lg:mt-16">
     <div class="grid lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
       
       <!-- Left Card - Book a Call -->
-      <div class="bg-white rounded-3xl p-12 flex flex-col justify-between min-h-[400px]">
+      <div class="bg-white rounded-3xl p-8 lg:p-12 flex flex-col justify-between min-h-[300px] lg:min-h-[400px]">
         <div>
           <div class="w-32 h-32 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mb-8">
             <img 
@@ -13,7 +13,7 @@
             />
           </div>
           
-          <h2 class="text-4xl lg:text-5xl font-bold text-esmerald mb-4">
+          <h2 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-esmerald mb-4">
             {{ messages?.book_call?.title || 'Book a 15-min intro call' }}
           </h2>
         </div>
@@ -30,7 +30,7 @@
       </div>
 
       <!-- Right Card - Image Background with Email CTA -->
-      <div class="relative rounded-3xl overflow-hidden min-h-[400px] flex items-end p-12">
+      <div class="relative rounded-3xl overflow-hidden min-h-[300px] lg:min-h-[400px] flex items-end p-8 lg:p-12">
         <!-- Background Image -->
         <img 
           src="@/assets/images/call/card-book-a-call.webp" 

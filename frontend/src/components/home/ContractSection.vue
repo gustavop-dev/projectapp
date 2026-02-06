@@ -1,5 +1,5 @@
 <template>
-  <section class="contract-section mt-12 mb-40 px-3 lg:px-32 lg:mt-16">
+  <section class="contract-section mt-12 mb-16 lg:mb-40 px-3 lg:px-32 lg:mt-16">
     <div class="max-w-7xl mx-auto">
       
       <!-- Grid: 3 columns, first empty, second and third merged -->
@@ -46,14 +46,14 @@
               
               <!-- Header -->
               <div>
-                <h2 class="text-5xl lg:text-7xl font-bold mb-4">
+                <h2 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold mb-4">
                   <span ref="typewriterText" class="inline-block typewriter-cursor"></span><br>
                   Design
                 </h2>
                 
                 <!-- Custom Quote -->
                 <div class="mb-8">
-                  <p class="text-xl lg:text-2xl mt-2">{{ messages?.contract?.priceSubtitle || 'Tailored to your project. Get a custom quote.' }}</p>
+                  <p class="text-base sm:text-xl lg:text-2xl mt-2">{{ messages?.contract?.priceSubtitle || 'Tailored to your project. Get a custom quote.' }}</p>
                 </div>
               </div>
 

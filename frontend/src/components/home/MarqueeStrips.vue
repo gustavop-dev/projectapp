@@ -63,7 +63,13 @@ onMounted(() => {
 .marquee-section {
   position: relative;
   width: 100vw;
-  padding: 10rem 0;
+  padding: 6rem 0;
+}
+
+@media (min-width: 768px) {
+  .marquee-section {
+    padding: 10rem 0;
+  }
 }
 
 .marquee-inner {

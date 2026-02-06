@@ -1,11 +1,11 @@
 <template>
   <section class="w-full mt-12 px-6 lg:px-32 lg:mt-16">
     <div class="max-w-3xl mx-auto">
-      <h1 ref="titleRef" class="text-5xl lg:text-7xl font-bold text-esmerald mb-6 opacity-0">
+      <h1 ref="titleRef" class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold text-esmerald mb-6 opacity-0">
         <span ref="waveEmoji" class="inline-block">👋</span> {{ messages?.title || 'Need a professional website?' }}
       </h1>
       
-      <p ref="subtitleRef" class="text-xl lg:text-2xl font-light text-green-light mb-16 opacity-0">
+      <p ref="subtitleRef" class="text-base sm:text-xl lg:text-2xl font-light text-green-light mb-8 lg:mb-16 opacity-0">
         {{ messages?.subtitle || 'We develop custom websites, no templates. Tell us your idea and we\'ll make it real.' }}
       </p>
 
@@ -15,7 +15,7 @@
             v-model="form.fullName"
             type="text"
             :placeholder="messages?.form?.fullName || 'Full name'"
-            class="w-full text-2xl lg:text-3xl font-light text-esmerald placeholder-green-light bg-transparent border-b-2 border-esmerald-light focus:border-esmerald outline-none py-4 transition-colors"
+            class="w-full text-lg sm:text-xl lg:text-3xl font-light text-esmerald placeholder-green-light bg-transparent border-b-2 border-esmerald-light focus:border-esmerald outline-none py-3 lg:py-4 transition-colors"
             required
           />
         </div>
@@ -25,7 +25,7 @@
             v-model="form.phone"
             type="tel"
             :placeholder="messages?.form?.phone || 'Phone number'"
-            class="w-full text-2xl lg:text-3xl font-light text-esmerald placeholder-green-light bg-transparent border-b-2 border-esmerald-light focus:border-esmerald outline-none py-4 transition-colors"
+            class="w-full text-lg sm:text-xl lg:text-3xl font-light text-esmerald placeholder-green-light bg-transparent border-b-2 border-esmerald-light focus:border-esmerald outline-none py-3 lg:py-4 transition-colors"
             required
           />
         </div>
@@ -35,7 +35,7 @@
             v-model="form.email"
             type="email"
             :placeholder="messages?.form?.email || 'Your email'"
-            class="w-full text-2xl lg:text-3xl font-light text-esmerald placeholder-green-light bg-transparent border-b-2 border-esmerald-light focus:border-esmerald outline-none py-4 transition-colors"
+            class="w-full text-lg sm:text-xl lg:text-3xl font-light text-esmerald placeholder-green-light bg-transparent border-b-2 border-esmerald-light focus:border-esmerald outline-none py-3 lg:py-4 transition-colors"
             required
           />
         </div>
@@ -45,12 +45,12 @@
             v-model="form.project"
             :placeholder="messages?.form?.project || 'Tell us about your web project'"
             rows="4"
-            class="w-full text-2xl lg:text-3xl font-light text-esmerald placeholder-green-light bg-transparent border-b-2 border-esmerald-light focus:border-esmerald outline-none py-4 transition-colors resize-none"
+            class="w-full text-lg sm:text-xl lg:text-3xl font-light text-esmerald placeholder-green-light bg-transparent border-b-2 border-esmerald-light focus:border-esmerald outline-none py-3 lg:py-4 transition-colors resize-none"
           ></textarea>
         </div>
 
         <div ref="formField5" class="opacity-0">
-          <label class="block text-xl lg:text-2xl font-light text-green-light mb-6">{{ messages?.form?.budget || 'Estimated budget' }}</label>
+          <label class="block text-base sm:text-xl lg:text-2xl font-light text-green-light mb-4 lg:mb-6">{{ messages?.form?.budget || 'Estimated budget' }}</label>
           <div class="flex flex-wrap gap-4">
             <button
               v-for="option in budgetOptions"
@@ -73,7 +73,7 @@
           <button
             type="submit"
             :disabled="isSubmitting"
-            class="w-full lg:w-auto px-12 py-5 text-2xl lg:text-3xl font-medium bg-esmerald text-bone rounded-full hover:bg-esmerald-dark transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="w-full lg:w-auto px-8 lg:px-12 py-4 lg:py-5 text-lg sm:text-xl lg:text-3xl font-medium bg-esmerald text-bone rounded-full hover:bg-esmerald-dark transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span v-if="!isSubmitting">{{ messages?.form?.submit || 'Send message' }}</span>
             <span v-else>{{ messages?.form?.sending || 'Sending...' }}</span>
