@@ -163,7 +163,7 @@
 </template>
 
 <script setup>
-import { ref, shallowRef, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { gsap } from 'gsap';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue';
 import { XMarkIcon } from '@heroicons/vue/24/outline';
@@ -207,17 +207,20 @@ const menuBox = ref(null);
 const showModalEmail = ref(false);
 const showMenu = ref(false);
 
-// Memoización de los elementos de menú para evitar recálculos innecesarios
-const solutions = shallowRef([
-  { name: globalMessages?.solutions?.home || 'Home', href: 'home' },
-  { name: globalMessages?.solutions?.about || 'About', href: 'aboutUs' },
-  { name: globalMessages?.solutions?.web_designs || 'Web designs', href: 'webDesigns' },
-  { name: globalMessages?.solutions?.web_developments || 'Web developments', href: 'portfolioWorks' },
-  { name: globalMessages?.solutions?.custom_software || 'Custom software', href: 'customSoftware' },
-  { name: globalMessages?.solutions?.animations_3d || '3D animations', href: '3dAnimations' },
-  { name: globalMessages?.solutions?.prices || 'Prices', href: 'eCommercePrices' },
-  { name: globalMessages?.solutions?.hosting || 'Hosting', href: 'hosting' },
-]);
+// Menu items as computed for reactive translations
+const solutions = computed(() => {
+  const s = globalMessages.value?.solutions || {};
+  return [
+    { name: s.home || 'Home', href: 'home' },
+    { name: s.about || 'About', href: 'aboutUs' },
+    { name: s.web_designs || 'Web designs', href: 'webDesigns' },
+    { name: s.web_developments || 'Web developments', href: 'portfolioWorks' },
+    { name: s.custom_software || 'Custom software', href: 'customSoftware' },
+    { name: s.animations_3d || '3D animations', href: '3dAnimations' },
+    { name: s.prices || 'Prices', href: 'eCommercePrices' },
+    { name: s.hosting || 'Hosting', href: 'hosting' },
+  ];
+});
 
 /**
  * Optimización de las animaciones de hover para los elementos del menú

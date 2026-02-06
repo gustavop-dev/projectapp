@@ -47,7 +47,19 @@
           </div>
           
           <div class="h-14 border-b border-b-zinc-400 mx-6 flex items-center flex-wrap">
-            <label for="email-input" class="font-regular text-white text-lg w-auto min-w-[3rem]">{{ globalMessages.from_label }}</label>
+            <label for="fullname-input" class="font-regular text-white text-lg w-auto min-w-[5rem]">{{ globalMessages.fullname_label || 'Name' }}</label>
+            <input
+              id="fullname-input"
+              type="text"
+              v-model="form.fullName"
+              class="ms-4 w-full flex-1 bg-transparent border-none outline-none focus:ring-0 text-white placeholder-white placeholder:text-zinc-400"
+              :placeholder="globalMessages.fullname_placeholder || 'Full name'"
+              required
+            />
+          </div>
+
+          <div class="h-14 border-b border-b-zinc-400 mx-6 flex items-center flex-wrap">
+            <label for="email-input" class="font-regular text-white text-lg w-auto min-w-[5rem]">{{ globalMessages.from_label }}</label>
             <input
               id="email-input"
               type="email"
@@ -55,42 +67,49 @@
               class="ms-4 w-full flex-1 bg-transparent border-none outline-none focus:ring-0 text-white placeholder-white placeholder:text-zinc-400"
               :placeholder="globalMessages.email_placeholder"
               required
-              aria-required="true"
-              aria-invalid="false"
-              aria-describedby="email-description"
             />
-            <span id="email-description" class="sr-only">Enter your email address so we can respond to your inquiry</span>
           </div>
           
           <div class="h-14 border-b border-b-zinc-400 mx-6 flex items-center flex-wrap">
-            <label for="subject-input" class="font-regular text-white text-lg w-auto min-w-[4rem]">{{ globalMessages.subject_label }}</label>
+            <label for="phone-input" class="font-regular text-white text-lg w-auto min-w-[5rem]">{{ globalMessages.phone_label || 'Phone' }}</label>
             <input
-              id="subject-input"
-              type="text"
-              v-model="form.subject"
+              id="phone-input"
+              type="tel"
+              v-model="form.phone"
               class="ms-4 w-full flex-1 bg-transparent border-none outline-none focus:ring-0 text-white placeholder-white placeholder:text-zinc-400"
-              :placeholder="globalMessages.subject_placeholder"
-              required
-              aria-required="true"
-              aria-invalid="false"
-              aria-describedby="subject-description"
+              :placeholder="globalMessages.phone_placeholder || 'Phone number'"
             />
-            <span id="subject-description" class="sr-only">Enter the subject of your message related to web design or development</span>
           </div>
-          
-          <div class="mx-6 flex-1 min-h-[200px] my-4">
+
+          <div class="mx-6 flex-1 min-h-[150px] my-4">
             <label for="message-input" class="sr-only">Message</label>
             <textarea
               id="message-input"
-              v-model="form.message"
-              class="w-full h-full min-h-[150px] bg-transparent border-none outline-none focus:ring-0 text-white resize-none placeholder-white"
+              v-model="form.project"
+              class="w-full h-full min-h-[120px] bg-transparent border-none outline-none focus:ring-0 text-white resize-none placeholder-white"
               :placeholder="globalMessages.message_placeholder"
               required
-              aria-required="true"
-              aria-invalid="false"
-              aria-describedby="message-description"
             ></textarea>
-            <span id="message-description" class="sr-only">Describe your website design or development needs in detail</span>
+          </div>
+
+          <div class="mx-6 mb-4">
+            <label class="font-regular text-zinc-400 text-sm mb-3 block">{{ globalMessages.budget_label || 'Budget (USD)' }}</label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="option in budgetOptions"
+                :key="option"
+                type="button"
+                @click="form.budget = option"
+                :class="[
+                  'px-4 py-2 text-sm rounded-xl border border-zinc-600 transition-all duration-200 cursor-pointer',
+                  form.budget === option
+                    ? 'bg-lemon text-esmerald border-lemon'
+                    : 'bg-transparent text-zinc-300 hover:border-zinc-400'
+                ]"
+              >
+                {{ option }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -119,11 +138,19 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from "vue";
+import { storeToRefs } from 'pinia';
+import { useRouter } from 'vue-router';
 import { gsap } from "gsap";
-import { submitHandler } from "@/shared/submit_handler.js";
 import { useGlobalMessages } from '@/composables/useMessages';
+import { useLanguageStore } from '@/stores/language';
+import { useContactsStore } from '@/stores/contacts';
 
 const { globalMessages } = useGlobalMessages('email_contact');
+const router = useRouter();
+const languageStore = useLanguageStore();
+const { currentLocale } = storeToRefs(languageStore);
+const contactsStore = useContactsStore();
+const { isSubmitting } = storeToRefs(contactsStore);
 
 // Props passed to the component
 const props = defineProps({
@@ -138,10 +165,14 @@ const modalContent = ref(null);
 
 // Reactive form data
 const form = ref({
+  fullName: "",
   email: "",
-  subject: "",
-  message: "",
+  phone: "",
+  project: "",
+  budget: ""
 });
+
+const budgetOptions = ['500-5K', '5-10K', '10-20K', '20-30K', '>30K'];
 
 // Computed property to validate the email format using a regular expression
 const isEmailValid = computed(() => {
@@ -152,10 +183,10 @@ const isEmailValid = computed(() => {
 // Computed property to validate the entire form
 const isFormValid = computed(() => {
   return (
+    form.value.fullName &&
     form.value.email &&
     isEmailValid.value &&
-    form.value.subject &&
-    form.value.message
+    form.value.project
   );
 });
 
@@ -189,9 +220,20 @@ const handleSubmit = async () => {
       document.activeElement.blur();
     }
     
-    const response = await submitHandler(form.value);
-    if (response && response.status === 201) {
+    const result = await contactsStore.sendContact(form.value);
+    
+    if (result.success) {
+      if (typeof window !== 'undefined' && window.fbq) {
+        window.fbq('track', 'Contact');
+      }
       hideModal();
+      const successRoute = currentLocale.value 
+        ? `/${currentLocale.value}/contact-success` 
+        : '/contact-success';
+      
+      setTimeout(() => {
+        router.push(successRoute);
+      }, 600);
     }
   }
 };

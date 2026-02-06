@@ -3,7 +3,7 @@
     <div class="grid lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
       
       <!-- Left Card - Book a Call -->
-      <div class="bg-white rounded-3xl p-12 shadow-lg flex flex-col justify-between min-h-[400px]">
+      <div class="bg-white rounded-3xl p-12 flex flex-col justify-between min-h-[400px]">
         <div>
           <div class="w-32 h-32 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mb-8">
             <img 

@@ -240,11 +240,13 @@ router.beforeEach(async (to, from, next) => {
 
   // Check if we're on a locale-prefixed route
   if (supportedLocales.includes(potentialLocale)) {
-    // Update store with the locale from URL and load correct global messages
+    // Always sync the store locale with the URL locale
     if (languageStore.currentLocale !== potentialLocale) {
       languageStore.setCurrentLocale(potentialLocale);
-      await languageStore.loadMessages(languageStore.currentLanguage);
     }
+    // Always ensure global messages match the current language
+    const expectedLang = potentialLocale.split('-')[0];
+    await languageStore.loadMessages(expectedLang);
   } else {
     // Handle legacy routes - redirect to locale-prefixed version
     const targetLocale = languageStore.currentLocale || 'es-co';

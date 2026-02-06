@@ -36,7 +36,7 @@
 
         <!-- Message -->
         <textarea
-          v-model="form.message"
+          v-model="form.project"
           :placeholder="messages?.contactForm?.message || 'Tell us about your project'"
           rows="4"
           class="minimal-textarea"
@@ -143,11 +143,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import { useMessages } from '@/composables/useMessages'
+import { useLanguageStore } from '@/stores/language'
+import { useContactsStore } from '@/stores/contacts'
 import gsap from 'gsap'
 
 const { messages } = useMessages()
+const router = useRouter()
+const languageStore = useLanguageStore()
+const { currentLocale } = storeToRefs(languageStore)
+
+const contactsStore = useContactsStore()
+const { isSubmitting, submitSuccess, submitError } = storeToRefs(contactsStore)
 
 // Ref for wave emoji animation
 const waveEmoji = ref(null)
@@ -157,13 +167,11 @@ const form = ref({
   fullName: '',
   phone: '',
   email: '',
-  message: '',
+  project: '',
   budget: ''
 })
 
 const budgetOptions = ['500-5K', '5-10K', '10-20K', '20-30K', '>30K']
-
-const isSubmitting = ref(false)
 
 const selectBudget = (option) => {
   form.value.budget = option
@@ -171,30 +179,21 @@ const selectBudget = (option) => {
 
 // Handle form submission
 const handleSubmit = async () => {
-  isSubmitting.value = true
+  const result = await contactsStore.sendContact(form.value)
+  console.log('Contact form result:', result)
   
-  try {
-    // TODO: Integrate with your backend API
-    console.log('Form submitted:', form.value)
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Reset form
-    form.value = {
-      fullName: '',
-      phone: '',
-      email: '',
-      message: '',
-      budget: ''
+  if (result.success) {
+    if (typeof window !== 'undefined' && window.fbq) {
+      console.log('Facebook Pixel: Contact event tracked')
+      window.fbq('track', 'Contact')
     }
+    const successRoute = currentLocale.value 
+      ? `/${currentLocale.value}/contact-success` 
+      : '/contact-success'
     
-    alert('Form submitted successfully!')
-  } catch (error) {
-    console.error('Error submitting form:', error)
-    alert('Error submitting form. Please try again.')
-  } finally {
-    isSubmitting.value = false
+    setTimeout(() => {
+      router.push(successRoute)
+    }, 800)
   }
 }
 

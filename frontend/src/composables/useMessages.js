@@ -42,8 +42,10 @@ export function useMessages() {
 export function useGlobalMessages(section) {
   const languageStore = useLanguageStore();
 
-  // Retrieve the global messages for the specific section
-  const globalMessages = languageStore.getGlobalMessages(section);
+  // Retrieve the global messages for the specific section as a reactive computed
+  const globalMessages = computed(() => {
+    return languageStore.messages?.global?.[section] || {};
+  });
 
   return {
     globalMessages,
