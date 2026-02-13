@@ -110,7 +110,7 @@
 </template>
 
 <script setup>
-import functionalRequirements from '~/content/business-proposal/functionalRequirements.json';
+import functionalRequirements from '~/content-data/business-proposal/functionalRequirements.json';
 
 const props = defineProps({
   data: {

@@ -38,6 +38,34 @@ export default defineNuxtConfig({
         changeOrigin: true,
       },
     },
+    prerender: {
+      crawlLinks: true,
+      routes: [
+        '/',
+        '/en-us',
+        '/en-us/about-us',
+        '/en-us/web-designs',
+        '/en-us/3d-animations',
+        '/en-us/custom-software',
+        '/en-us/e-commerce-prices',
+        '/en-us/hosting',
+        '/en-us/portfolio-works',
+        '/en-us/contact',
+        '/en-us/contact-success',
+        '/en-us/business-proposal',
+        '/es-co',
+        '/es-co/about-us',
+        '/es-co/web-designs',
+        '/es-co/3d-animations',
+        '/es-co/custom-software',
+        '/es-co/e-commerce-prices',
+        '/es-co/hosting',
+        '/es-co/portfolio-works',
+        '/es-co/contact',
+        '/es-co/contact-success',
+        '/es-co/business-proposal',
+      ],
+    },
   },
 
   // Alias @ to project root (like src/ was before)
@@ -84,6 +112,8 @@ export default defineNuxtConfig({
 
   // App head (Facebook Pixel, Cal.com, meta)
   app: {
+    // In production, assets are served by Django at /static/frontend/
+    cdnURL: process.env.NUXT_APP_CDN_URL || '',
     head: {
       charset: 'utf-8',
       viewport: 'width=device-width, initial-scale=1',

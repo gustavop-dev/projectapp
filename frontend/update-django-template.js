@@ -1,32 +1,49 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
-// Determinar rutas absolutas basadas en la ubicación de este script (frontend/)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const staticDir = path.resolve(__dirname, '../backend/static/frontend');
-const djangoTemplatesDir = path.resolve(__dirname, '../backend/content/templates');
-const sourceIndexPath = path.join(staticDir, 'index.html');
-const targetIndexPath = path.join(djangoTemplatesDir, 'index.html');
+const sourceDir = path.resolve(__dirname, '.output/public');
+const targetDir = path.resolve(__dirname, '../backend/static/frontend');
 
-if (!fs.existsSync(sourceIndexPath)) {
-  console.error(`No se encontró el archivo generado: ${sourceIndexPath}.`);
-  console.error('Asegúrate de ejecutar "vite build" antes de correr este script.');
+// 1. Run nuxt generate with cdnURL set for Django static serving
+console.log('Running nuxt generate...');
+execSync('NUXT_APP_CDN_URL=/static/frontend/ npx nuxi generate', {
+  cwd: __dirname,
+  stdio: 'inherit',
+});
+
+// 2. Verify output exists
+if (!fs.existsSync(sourceDir)) {
+  console.error(`Nuxt generate output not found at: ${sourceDir}`);
   process.exit(1);
 }
 
-// Crear el directorio de templates de Django si no existe
-if (!fs.existsSync(djangoTemplatesDir)) {
-  fs.mkdirSync(djangoTemplatesDir, { recursive: true });
+// 3. Clean target directory
+if (fs.existsSync(targetDir)) {
+  console.log(`Cleaning ${targetDir}...`);
+  fs.rmSync(targetDir, { recursive: true, force: true });
 }
 
-// Leer el index.html generado por Vite
-const html = fs.readFileSync(sourceIndexPath, 'utf-8');
+// 4. Copy entire output to backend/static/frontend/
+function copyDirSync(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirSync(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
 
-// Copiarlo tal cual a la carpeta de templates de Django.
-// Las referencias a assets ya apuntan a /static/frontend/... gracias a base en vite.config.
-fs.writeFileSync(targetIndexPath, html, 'utf-8');
+console.log(`Copying ${sourceDir} → ${targetDir}...`);
+copyDirSync(sourceDir, targetDir);
 
-console.log(`index.html copiado desde ${sourceIndexPath} a ${targetIndexPath}`);
+console.log('Build complete! Files copied to backend/static/frontend/');

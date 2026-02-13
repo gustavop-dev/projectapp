@@ -1,0 +1,1 @@
+import{_ as t}from"./DlAUqK2U.js";import{c as s,a as o,o as r}from"./BsNs8-ia.js";const n={},c={class:"flex items-center justify-center min-h-screen"};function a(_,e){return r(),s("div",c,[...e[0]||(e[0]=[o("p",{class:"text-xl text-gray-500"},"Page not found",-1)])])}const l=t(n,[["render",a]]);export{l as default};
