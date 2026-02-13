@@ -83,6 +83,9 @@ export default defineNuxtConfig({
       charset: 'utf-8',
       viewport: 'width=device-width, initial-scale=1',
       title: 'Project App.',
+      meta: [
+        { name: 'google-site-verification', content: 'EtrTR8lVbb-7KkP0sPu0WA9_W8gV1wpTp1FCgUvGG6s' },
+      ],
       link: [
         { rel: 'icon', href: '/img/icons/icon-logo-192x192.png' },
       ],
