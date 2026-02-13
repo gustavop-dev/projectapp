@@ -18,7 +18,7 @@
             <div class="relative w-full h-svh overflow-hidden">
               <img
                 loading="lazy"
-                src="~/assets/images/3dAnimations/mountainFaces.webp"
+                :src="imgMountainFaces"
                 alt="3d Animations view"
                 class="absolute inset-0 w-auto h-full object-cover object-center"
               />
@@ -111,6 +111,8 @@ import { useModels3dStore } from '~/stores/models_3d';
 import { useMessages } from '~/composables/useMessages';
 import { useFreeResources } from '~/composables/useFreeResources';
 
+import imgMountainFaces from '~/assets/images/3dAnimations/mountainFaces.webp';
+
 const { messages } = useMessages();
 
 const models3dStore = useModels3dStore();
@@ -136,6 +138,7 @@ const closeModal = () => {
 };
 
 watch(isModalVisible, (newVal) => {
+  if (!import.meta.client) return;
   if (newVal) {
     document.body.style.overflow = 'hidden';
   } else {

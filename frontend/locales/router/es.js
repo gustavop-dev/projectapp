@@ -39,6 +39,11 @@ export default {
       description: "Explore nuestros planes transparentes de precios para desarrollo de sitios web e-commerce, desde páginas de aterrizaje básicas hasta tiendas en línea completas construidas por desarrolladores web profesionales.",
       keywords: "Project App., e-commerce, desarrollo web, empresa de diseño web, tienda en línea, precios de e-commerce, desarrolladores web, empresa de diseño de sitios web"
     },
+    portfolioWorks: {
+      title: "Nuestro Trabajo - Portafolio de Desarrollo Web - Project App.",
+      description: "Explore nuestro portafolio de proyectos de desarrollo web incluyendo sitios web personalizados, plataformas de comercio electrónico y aplicaciones web construidas por nuestro equipo experto de desarrolladores y diseñadores.",
+      keywords: "Project App., portafolio, proyectos de desarrollo web, sitios web personalizados, aplicaciones web, comercio electrónico, casos de estudio, nuestro trabajo"
+    },
     hosting: {
       title: "Servicios de Hosting para Sitios Web - Project App.",
       description: "Soluciones de hosting de sitios web confiables y seguras diseñadas para aplicaciones web y sitios e-commerce de alto rendimiento, optimizados para velocidad y seguridad.",

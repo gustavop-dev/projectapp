@@ -39,6 +39,11 @@ export default {
       description: "Explore our transparent e-commerce website development pricing plans, from basic landing pages to comprehensive online stores built by professional web developers.",
       keywords: "Project App., e-commerce, website development, web design company, online store, e-commerce pricing, website developers, website design company"
     },
+    portfolioWorks: {
+      title: "Our Work - Web Development Portfolio - Project App.",
+      description: "Explore our portfolio of web development projects including custom websites, e-commerce platforms, and web applications built by our expert team of developers and designers.",
+      keywords: "Project App., portfolio, web development projects, custom websites, web applications, e-commerce, case studies, our work"
+    },
     hosting: {
       title: "Website Hosting Services - Project App.",
       description: "Reliable and secure website hosting solutions designed for high-performance web applications and e-commerce sites, optimized for speed and security.",

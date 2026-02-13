@@ -4,4 +4,6 @@
 
 <script setup>
 import CustomSoftware from '~/views-legacy/CustomSoftware.vue'
+
+useSeoHead('customSoftware')
 </script>

@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <!-- Home -->
+  <url>
+    <loc>https://projectapp.co/en-us</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co" />
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://projectapp.co/es-co</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co" />
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- About Us -->
+  <url>
+    <loc>https://projectapp.co/en-us/about-us</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/about-us" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/about-us" />
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://projectapp.co/es-co/about-us</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/about-us" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/about-us" />
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Web Designs -->
+  <url>
+    <loc>https://projectapp.co/en-us/web-designs</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/web-designs" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/web-designs" />
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://projectapp.co/es-co/web-designs</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/web-designs" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/web-designs" />
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Portfolio Works -->
+  <url>
+    <loc>https://projectapp.co/en-us/portfolio-works</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/portfolio-works" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/portfolio-works" />
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://projectapp.co/es-co/portfolio-works</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/portfolio-works" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/portfolio-works" />
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Custom Software -->
+  <url>
+    <loc>https://projectapp.co/en-us/custom-software</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/custom-software" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/custom-software" />
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://projectapp.co/es-co/custom-software</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/custom-software" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/custom-software" />
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- 3D Animations -->
+  <url>
+    <loc>https://projectapp.co/en-us/3d-animations</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/3d-animations" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/3d-animations" />
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://projectapp.co/es-co/3d-animations</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/3d-animations" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/3d-animations" />
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- E-Commerce Prices -->
+  <url>
+    <loc>https://projectapp.co/en-us/e-commerce-prices</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/e-commerce-prices" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/e-commerce-prices" />
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://projectapp.co/es-co/e-commerce-prices</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/e-commerce-prices" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/e-commerce-prices" />
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Hosting -->
+  <url>
+    <loc>https://projectapp.co/en-us/hosting</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/hosting" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/hosting" />
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://projectapp.co/es-co/hosting</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/hosting" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/hosting" />
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Contact -->
+  <url>
+    <loc>https://projectapp.co/en-us/contact</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/contact" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/contact" />
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://projectapp.co/es-co/contact</loc>
+    <xhtml:link rel="alternate" hreflang="en-us" href="https://projectapp.co/en-us/contact" />
+    <xhtml:link rel="alternate" hreflang="es-co" href="https://projectapp.co/es-co/contact" />
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+</urlset>

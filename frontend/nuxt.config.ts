@@ -8,11 +8,21 @@ export default defineNuxtConfig({
     '@nuxtjs/i18n',
   ],
 
-  // Hybrid rendering: Home SSR, rest SPA
+  // Hybrid rendering: key pages SSR, rest SPA
   routeRules: {
     '/': { ssr: true },
-    '/es-co': { ssr: true },
     '/en-us': { ssr: true },
+    '/es-co': { ssr: true },
+    '/en-us/about-us': { ssr: true },
+    '/es-co/about-us': { ssr: true },
+    '/en-us/web-designs': { ssr: true },
+    '/es-co/web-designs': { ssr: true },
+    '/en-us/portfolio-works': { ssr: true },
+    '/es-co/portfolio-works': { ssr: true },
+    '/en-us/custom-software': { ssr: true },
+    '/es-co/custom-software': { ssr: true },
+    '/en-us/3d-animations': { ssr: true },
+    '/es-co/3d-animations': { ssr: true },
     '/es-co/**': { ssr: false },
     '/en-us/**': { ssr: false },
     '/**': { ssr: false },

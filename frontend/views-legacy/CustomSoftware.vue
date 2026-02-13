@@ -23,7 +23,7 @@
                         fetchpriority="high"
                         aria-label="Video de software personalizado"
                     >
-                        <source src="~/assets/videos/customSoftware/chips.mp4" type="video/mp4" />
+                        <source :src="vidChips" type="video/mp4" />
                         <span class="sr-only">Animación de tecnología de software personalizado de Project App.</span>
                     </video>
                 </div>
@@ -33,7 +33,7 @@
             <section class="bg-dark grid md:grid-cols-2 lg:pt-52" aria-labelledby="ecommerce-title" itemscope itemtype="https://schema.org/Service">
                 <div class="flex items-center justify-center order-2 md:order-1 h-80 md:h-auto">
                     <video ref="crmVideo" autoplay muted loop playsinline preload="metadata" loading="lazy" aria-label="Video de soluciones de comercio electrónico">
-                        <source src="~/assets/videos/customSoftware/holo-blobs.mp4" type="video/mp4" />
+                        <source :src="vidHoloBlobs" type="video/mp4" />
                         <span class="sr-only">Representación visual de las soluciones de comercio electrónico de Project App.</span>
                     </video>
                 </div>
@@ -72,7 +72,7 @@
                 </div>
                 <div class="flex items-center justify-center">
                     <video ref="erpVideo" autoplay muted loop playsinline preload="metadata" loading="lazy" aria-label="Video de sistemas ERP">
-                        <source src="~/assets/videos/customSoftware/trails.mp4" type="video/mp4" />
+                        <source :src="vidTrails" type="video/mp4" />
                         <span class="sr-only">Representación visual de los sistemas ERP avanzados de Project App.</span>
                     </video>
                 </div>
@@ -83,7 +83,7 @@
             <section class="bg-dark grid md:grid-cols-2 lg:pt-52" aria-labelledby="crm-title" itemscope itemtype="https://schema.org/Service">
                 <div class="flex items-center justify-center order-2 md:order-1 h-80 md:h-auto">
                     <video ref="crmVideo" autoplay muted loop playsinline preload="metadata" loading="lazy" aria-label="Video de soluciones CRM">
-                        <source src="~/assets/videos/customSoftware/meeet.mp4" type="video/mp4" />
+                        <source :src="vidMeeet" type="video/mp4" />
                         <span class="sr-only">Representación visual de las soluciones CRM personalizadas de Project App.</span>
                     </video>
                 </div>
@@ -122,7 +122,7 @@
                 </div>
                 <div class="flex items-center justify-center h-80 md:h-auto">
                     <video ref="tailoredSolutionsVideo" autoplay muted loop playsinline preload="metadata" loading="lazy" aria-label="Video de soluciones empresariales a medida">
-                        <source src="~/assets/videos/customSoftware/infinityBlubs.mp4" type="video/mp4" />
+                        <source :src="vidInfinityBlubs" type="video/mp4" />
                         <span class="sr-only">Representación visual de las soluciones empresariales a medida desarrolladas por Project App.</span>
                     </video>
                 </div>
@@ -191,6 +191,12 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'; // Import ref for reactiv
 import { gsap } from 'gsap'; // Import GSAP (GreenSock Animation Platform) for animations
 import { useMessages } from '~/composables/useMessages'; // Import the custom composable for localized messages
 import { useFreeResources } from '~/composables/useFreeResources'; // Import the free resources composable
+
+import vidChips from '~/assets/videos/customSoftware/chips.mp4';
+import vidHoloBlobs from '~/assets/videos/customSoftware/holo-blobs.mp4';
+import vidTrails from '~/assets/videos/customSoftware/trails.mp4';
+import vidMeeet from '~/assets/videos/customSoftware/meeet.mp4';
+import vidInfinityBlubs from '~/assets/videos/customSoftware/infinityBlubs.mp4';
 
 const { messages } = useMessages(); // Destructure the localized messages from the custom composable
 

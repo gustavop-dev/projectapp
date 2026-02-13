@@ -77,20 +77,7 @@ import BookCallSection from '~/components/home/BookCallSection.vue'
 import StudyCases from '~/components/home/StudyCases.vue'
 
 // SEO Head
-const { t } = useI18n()
-const i18nHead = useLocaleHead({ addSeoAttributes: true })
-
-useHead({
-  title: () => t('meta.home.title'),
-  meta: [
-    { name: 'description', content: () => t('meta.home.description') },
-    { name: 'keywords', content: () => t('meta.home.keywords') },
-  ],
-  htmlAttrs: {
-    lang: i18nHead.value.htmlAttrs?.lang,
-  },
-  link: [...(i18nHead.value.link || [])],
-})
+useSeoHead('home')
 
 // Animation refs
 const mainTitleRef = ref(null)

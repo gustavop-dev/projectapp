@@ -29,7 +29,7 @@
                 playsinline
                 class="absolute inset-0 w-auto h-full object-cover"
               >
-                <source src="~/assets/videos/webDesigns/Dunes.mp4" type="video/mp4" />
+                <source :src="vidDunes" type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
             </div>
@@ -120,6 +120,8 @@ import { onMounted, ref, watch } from "vue"; // Import Vue's lifecycle hook and 
 import { useMessages } from "~/composables/useMessages"; // Import the custom composable to get localized messages
 import { useFreeResources } from '~/composables/useFreeResources'; // Import for managing media resources
 
+import vidDunes from '~/assets/videos/webDesigns/Dunes.mp4';
+
 const { messages } = useMessages(); // Destructure the localized messages from the custom composable
 
 // Store for managing web designs data
@@ -146,6 +148,7 @@ const openModal = (detailImageUrl) => {
 
 // Watcher for active/disactive the scroll
 watch(isModalVisible, (newVal) => {
+  if (!import.meta.client) return
   if (newVal) {
     document.body.style.overflow = 'hidden' // Desactiva el scroll
   } else {

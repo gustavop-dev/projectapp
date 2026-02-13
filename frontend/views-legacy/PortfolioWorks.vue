@@ -17,7 +17,7 @@
             <div class="order-1" itemscope itemtype="https://schema.org/VideoObject">
               <div class="relative w-full h-svh overflow-hidden">
                 <video ref="backgroundVideo" autoplay muted loop playsinline class="absolute inset-0 w-auto h-full object-cover" itemprop="contentUrl">
-                  <source src="~/assets/videos/webDevelopments/abstractGradientBackground.mp4" type="video/mp4" />
+                  <source :src="vidAbstractGradient" type="video/mp4" />
                   Your browser does not support the video tag.
                   <span class="sr-only">Project App. video presentation</span>
                 </video>
@@ -131,6 +131,8 @@ import { onMounted, ref, nextTick } from "vue"; // Añadido nextTick
 import { useMessages } from "~/composables/useMessages";
 import { useFreeResources } from '~/composables/useFreeResources';
 import { useLanguageStore } from '~/stores/language';
+
+import vidAbstractGradient from '~/assets/videos/webDevelopments/abstractGradientBackground.mp4';
 
 const route = useRoute(); // Obtener la ruta actual
 const categoriesSection = ref(null); // Referencia al div de categorías

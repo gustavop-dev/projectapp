@@ -32,7 +32,7 @@
             <section class="bg-lemon h-auto p-3" aria-label="Animated visual showcase" itemscope itemtype="https://schema.org/MediaObject">
                 <div class="w-full h-auto rounded-xl overflow-hidden lg:h-full">
                     <video ref="particlePlanetVideo" autoplay muted loop playsinline aria-label="Particle planet animation" itemprop="contentUrl">
-                        <source src="~/assets/videos/aboutUs/particlePlanet.mp4" type="video/mp4" />
+                        <source :src="vidParticlePlanet" type="video/mp4" />
                         <p class="sr-only">An animated abstract particle planet representing Project App.'s digital expertise</p>
                     </video>
                 </div>
@@ -72,7 +72,7 @@
                             ref="leftImage" 
                             class="w-full rounded-xl" 
                             loading="lazy"
-                            src="~/assets/images/left.webp" 
+                            :src="imgLeft" 
                             alt="Professional web designer from Project App. working on a project" 
                             @load="initScrollTrigger"
                             itemprop="contentUrl"
@@ -83,7 +83,7 @@
                         <img 
                             ref="mobileImage" 
                             class="w-full rounded-xl" 
-                            src="~/assets/images/mobile.webp" 
+                            :src="imgMobile" 
                             loading="lazy"
                             alt="Responsive mobile web design by Project App. in action"
                             itemprop="contentUrl"
@@ -113,7 +113,7 @@
             <section class="h-svh p-3 relative" aria-labelledby="creatives-title" itemscope itemtype="https://schema.org/ImageObject">
                 <div class="w-full h-full rounded-xl overflow-hidden">
                     <img 
-                        src="~/assets/images/visual_intro.webp" 
+                        :src="imgVisualIntro" 
                         loading="lazy"
                         class="h-full w-full object-cover"
                         alt="Creative web design visualization by Project App."
@@ -168,9 +168,12 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'; // Import the GSAP ScrollTri
 import { useMessages } from '~/composables/useMessages'; // Import the custom composable to get localized messages
 import { useFreeResources } from '~/composables/useFreeResources'; // Import the custom composable for resource cleanup
 
-const { messages } = useMessages(); // Destructure the localized messages from the custom composable
+import imgLeft from '~/assets/images/left.webp';
+import imgMobile from '~/assets/images/mobile.webp';
+import imgVisualIntro from '~/assets/images/visual_intro.webp';
+import vidParticlePlanet from '~/assets/videos/aboutUs/particlePlanet.mp4';
 
-gsap.registerPlugin(ScrollTrigger); // Register ScrollTrigger plugin with GSAP
+const { messages } = useMessages(); // Destructure the localized messages from the custom composable
 
 // Refs for DOM elements used in the scroll-triggered animations
 const leftImage = ref(null);
@@ -206,7 +209,8 @@ const initScrollTrigger = () => {
  * This hook checks if the `mobileImage` is fully loaded. If so, it initializes the ScrollTrigger animation.
  */
 onMounted(() => {
-  if (mobileImage.value.complete) { // Ensure the image is fully loaded before initializing animations
+  gsap.registerPlugin(ScrollTrigger); // Register ScrollTrigger plugin with GSAP (client-only)
+  if (mobileImage.value && mobileImage.value.complete) { // Ensure the image is fully loaded before initializing animations
     initScrollTrigger();
   }
 });
