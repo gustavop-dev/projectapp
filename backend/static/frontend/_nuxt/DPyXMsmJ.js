@@ -1,0 +1,1 @@
+import{i as u,f as t}from"./C7JmMNtJ.js";function h({videos:o=[],images:r=[],modals:f=[]}={}){const a=f.map(()=>u(!1)),c=()=>{o.forEach(e=>{e.value&&(e.value.src="",e.value.load())}),r.forEach(e=>{e.value&&(e.value.src="")})},s=()=>{a.forEach(e=>{e.value=!1})};return t(a,e=>{e.some(l=>l)&&s()}),{modalRefs:a,closeModals:s,freeMediaResources:c}}export{h as u};
