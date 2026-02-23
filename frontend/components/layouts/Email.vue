@@ -143,6 +143,7 @@ import { gsap } from "gsap";
 import { useGlobalMessages } from '~/composables/useMessages';
 import { useLanguageStore } from '~/stores/language';
 import { useContactsStore } from '~/stores/contacts';
+import { useGtagConversions } from '~/composables/useGtagConversions';
 
 const { globalMessages } = useGlobalMessages('email_contact');
 const router = useRouter();
@@ -150,6 +151,7 @@ const languageStore = useLanguageStore();
 const { currentLocale } = storeToRefs(languageStore);
 const contactsStore = useContactsStore();
 const { isSubmitting } = storeToRefs(contactsStore);
+const { trackFormSubmission } = useGtagConversions();
 
 // Props passed to the component
 const props = defineProps({
@@ -222,6 +224,7 @@ const handleSubmit = async () => {
     const result = await contactsStore.sendContact(form.value);
     
     if (result.success) {
+      trackFormSubmission();
       if (typeof window !== 'undefined' && window.fbq) {
         window.fbq('track', 'Contact');
       }

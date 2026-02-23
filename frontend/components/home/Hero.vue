@@ -127,16 +127,19 @@
 <script setup>
 import BackgroundGradientAnimation from '~/components/ui/BackgroundGradientAnimation.vue'
 import { useMessages } from '~/composables/useMessages'
+import { useGtagConversions } from '~/composables/useGtagConversions'
 
 const { messages } = useMessages()
 const router = useRouter()
 const localePath = useLocalePath()
+const { trackWhatsAppClick } = useGtagConversions()
 
 const goToContact = () => {
   router.push(localePath('/contact'))
 }
 
 const goToWhatsApp = () => {
+  trackWhatsAppClick()
   window.open('https://api.whatsapp.com/send/?phone=573238122373&text&type=phone_number&app_absent=0', '_blank')
 }
 </script>

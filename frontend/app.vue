@@ -13,6 +13,7 @@
           shadow-[0_0_15px_4px_rgba(34,197,94,0.6)]
           cursor-pointer transition-transform hover:scale-110"
     aria-label="Contact our web design team via WhatsApp"
+    @click="handleWhatsAppClick"
   >
     <svg 
       class="w-6 h-6 text-white" 
@@ -56,6 +57,13 @@
 
 <script setup>
 import MediaOptimizer from '~/components/layouts/MediaOptimizer.vue'
+import { useGtagConversions } from '~/composables/useGtagConversions'
+
+const { trackWhatsAppClick } = useGtagConversions()
+
+const handleWhatsAppClick = () => {
+  trackWhatsAppClick()
+}
 </script>
 
 <style>

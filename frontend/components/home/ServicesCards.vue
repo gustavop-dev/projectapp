@@ -148,6 +148,7 @@ import { storeToRefs } from 'pinia'
 import { useMessages } from '~/composables/useMessages'
 import { useLanguageStore } from '~/stores/language'
 import { useContactsStore } from '~/stores/contacts'
+import { useGtagConversions } from '~/composables/useGtagConversions'
 import gsap from 'gsap'
 
 const { messages } = useMessages()
@@ -157,6 +158,7 @@ const { currentLocale } = storeToRefs(languageStore)
 
 const contactsStore = useContactsStore()
 const { isSubmitting, submitSuccess, submitError } = storeToRefs(contactsStore)
+const { trackFormSubmission } = useGtagConversions()
 
 // Ref for wave emoji animation
 const waveEmoji = ref(null)
@@ -182,6 +184,7 @@ const handleSubmit = async () => {
   console.log('Contact form result:', result)
   
   if (result.success) {
+    trackFormSubmission()
     if (typeof window !== 'undefined' && window.fbq) {
       console.log('Facebook Pixel: Contact event tracked')
       window.fbq('track', 'Contact')

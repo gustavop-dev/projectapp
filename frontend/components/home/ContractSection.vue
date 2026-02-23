@@ -113,7 +113,6 @@ import { useMessages } from '~/composables/useMessages'
 import VideoModal from '~/components/VideoModal.vue'
 import gsap from 'gsap'
 import { TextPlugin } from 'gsap/TextPlugin'
-
 gsap.registerPlugin(TextPlugin)
 
 import imgCardLanding from '~/assets/images/home/services/contract/card-landing-design.webp'

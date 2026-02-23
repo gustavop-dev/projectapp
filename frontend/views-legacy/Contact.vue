@@ -92,6 +92,7 @@ import { ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useLanguageStore } from '~/stores/language'
 import { useContactsStore } from '~/stores/contacts'
+import { useGtagConversions } from '~/composables/useGtagConversions'
 import gsap from 'gsap'
 import { waveEmoji as waveEmojiAnimation } from '~/animations'
 
@@ -103,6 +104,7 @@ const messages = computed(() => allMessages.value.contact || {})
 
 const contactsStore = useContactsStore()
 const { isSubmitting, submitSuccess, submitError } = storeToRefs(contactsStore)
+const { trackFormSubmission } = useGtagConversions()
 
 const titleRef = ref(null)
 const waveEmoji = ref(null)
@@ -141,6 +143,7 @@ const handleSubmit = async () => {
   console.log('Contact form result:', result)
   
   if (result.success) {
+    trackFormSubmission()
     if (typeof window !== 'undefined' && window.fbq) {
       console.log('Facebook Pixel: Contact event tracked')
       window.fbq('track', 'Contact')
