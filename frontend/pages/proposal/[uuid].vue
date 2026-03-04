@@ -36,7 +36,6 @@
             v-for="(section, idx) in enabledSections"
             :key="section.id"
             class="panel"
-            :class="{ 'panel--wide': section.is_wide_panel }"
           >
             <component
               :is="sectionComponentMap[section.section_type]"
@@ -464,11 +463,6 @@ onBeforeUnmount(() => {
 .panel--vertical-scroll::-webkit-scrollbar {
   width: 0;
   height: 0;
-}
-
-.panel--wide {
-  width: auto;
-  min-width: 100vw;
 }
 
 @keyframes fadeIn {
