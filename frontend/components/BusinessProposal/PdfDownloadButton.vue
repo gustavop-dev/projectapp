@@ -1,6 +1,6 @@
 <template>
   <button
-    class="pdf-download fixed bottom-4 right-4 z-40
+    class="pdf-download fixed bottom-20 right-4 z-40
            flex items-center gap-2 px-4 py-2.5
            bg-white/90 backdrop-blur-sm shadow-lg border border-gray-200
            rounded-xl text-sm font-medium text-gray-700

@@ -11,8 +11,52 @@
       />
     </div>
 
+    <!-- Paste mode toggle -->
+    <div v-if="hasPasteSupport" class="mb-5">
+      <div class="flex items-center gap-3 mb-3">
+        <button
+          type="button"
+          class="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors"
+          :class="!pasteMode
+            ? 'bg-emerald-600 text-white border-emerald-600'
+            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'"
+          @click="pasteMode = false"
+        >Formulario</button>
+        <button
+          type="button"
+          class="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors"
+          :class="pasteMode
+            ? 'bg-emerald-600 text-white border-emerald-600'
+            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'"
+          @click="pasteMode = true"
+        >Pegar contenido</button>
+      </div>
+
+      <div v-if="pasteMode" class="space-y-3">
+        <textarea
+          v-model="pasteText"
+          rows="16"
+          placeholder="Pega aquí todo el contenido de esta sección..."
+          class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm
+                 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y"
+        />
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-medium
+                   hover:bg-blue-700 transition-colors"
+            @click="processPastedContent"
+          >
+            Procesar y llenar campos
+          </button>
+          <span class="text-[10px] text-gray-400">Esto llenará los campos del formulario con el contenido pegado</span>
+        </div>
+        <p v-if="pasteMsg" class="text-xs text-green-600">{{ pasteMsg }}</p>
+      </div>
+    </div>
+
     <!-- Dynamic form fields based on section_type -->
-    <div class="space-y-5">
+    <div v-show="!pasteMode" class="space-y-5">
       <!-- GREETING -->
       <template v-if="sectionType === 'greeting'">
         <FieldInput v-model="form.clientName" label="Nombre del cliente" />
@@ -350,6 +394,83 @@ const sectionTitle = ref(props.section.title);
 const isSaving = ref(false);
 const savedMsg = ref('');
 const showRawJson = ref(false);
+const pasteMode = ref(false);
+const pasteText = ref('');
+const pasteMsg = ref('');
+
+const PASTE_SUPPORTED_TYPES = [
+  'executive_summary', 'context_diagnostic', 'design_ux',
+  'creative_support', 'conversion_strategy', 'final_note', 'next_steps',
+];
+const hasPasteSupport = computed(() => PASTE_SUPPORTED_TYPES.includes(sectionType.value));
+
+function processPastedContent() {
+  const text = pasteText.value.trim();
+  if (!text) return;
+
+  const paragraphs = [];
+  const listItems = [];
+  let closingText = '';
+
+  // Split by double newlines into blocks
+  const blocks = text.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+
+  for (const block of blocks) {
+    const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+    const allBullets = lines.every(l => /^[\*\-•]\s/.test(l));
+    if (allBullets && lines.length > 0) {
+      for (const line of lines) {
+        listItems.push(line.replace(/^[\*\-•]\s*/, ''));
+      }
+    } else {
+      paragraphs.push(lines.join(' '));
+    }
+  }
+
+  const type = sectionType.value;
+
+  if (type === 'executive_summary') {
+    form.paragraphs = paragraphs.join('\n');
+    if (listItems.length) form.highlights = listItems.join('\n');
+  } else if (type === 'context_diagnostic') {
+    if (paragraphs.length > 1) {
+      form.opportunity = paragraphs.pop();
+    }
+    form.paragraphs = paragraphs.join('\n');
+    if (listItems.length) form.issues = listItems.join('\n');
+  } else if (type === 'design_ux') {
+    if (paragraphs.length > 1) {
+      form.objective = paragraphs.pop();
+    }
+    form.paragraphs = paragraphs.join('\n');
+    if (listItems.length) form.focusItems = listItems.join('\n');
+  } else if (type === 'creative_support') {
+    if (paragraphs.length > 1) {
+      form.closing = paragraphs.pop();
+    }
+    form.paragraphs = paragraphs.join('\n');
+    if (listItems.length) form.includes = listItems.join('\n');
+  } else if (type === 'conversion_strategy') {
+    if (paragraphs.length > 1) {
+      form.result = paragraphs.pop();
+    }
+    form.intro = paragraphs.join('\n');
+  } else if (type === 'final_note') {
+    if (paragraphs.length > 1) {
+      form.personalNote = paragraphs.pop();
+    }
+    form.message = paragraphs.join('\n');
+  } else if (type === 'next_steps') {
+    form.introMessage = paragraphs.length ? paragraphs[0] : '';
+    if (paragraphs.length > 1) {
+      form.ctaMessage = paragraphs[paragraphs.length - 1];
+    }
+  }
+
+  pasteMsg.value = '✓ Campos llenados. Revisa el formulario para ajustes.';
+  pasteMode.value = false;
+  setTimeout(() => { pasteMsg.value = ''; }, 4000);
+}
 
 // --- Build form state from content_json ---
 const form = reactive(buildFormFromJson(props.section.content_json || {}, props.section.section_type));

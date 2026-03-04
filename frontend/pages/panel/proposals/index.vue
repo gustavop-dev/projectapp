@@ -60,7 +60,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-50">
-          <tr v-for="p in proposals" :key="p.id" class="hover:bg-gray-50 transition-colors">
+          <tr v-for="(p, rowIdx) in proposals" :key="p.id" class="hover:bg-gray-50 transition-colors">
             <td class="px-6 py-4">
               <NuxtLink
                 :to="`/panel/proposals/${p.id}/edit`"
@@ -101,7 +101,8 @@
                 </button>
                 <div
                   v-if="openDropdownId === p.id"
-                  class="absolute right-0 mt-1 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50"
+                  class="absolute right-0 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50"
+                  :class="rowIdx >= proposals.length - 2 ? 'bottom-full mb-1' : 'mt-1'"
                 >
                   <NuxtLink
                     :to="`/panel/proposals/${p.id}/edit`"
