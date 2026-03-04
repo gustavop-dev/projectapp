@@ -187,7 +187,7 @@
                 @click="group._pasteMode = false">Formulario</button>
               <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
                 :class="group._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
-                @click="group._pasteMode = true">Pegar</button>
+                @click="group._pasteMode = true">Pegar contenido</button>
               <button v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features' && group.id !== 'admin_module'"
                 type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.groups.splice(gIdx, 1)">Eliminar grupo</button>
             </div>
@@ -242,7 +242,7 @@
                   @click="mod._pasteMode = false">Formulario</button>
                 <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
                   :class="mod._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
-                  @click="mod._pasteMode = true">Pegar</button>
+                  @click="mod._pasteMode = true">Pegar contenido</button>
                 <button type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.additionalModules.splice(mIdx, 1)">Eliminar</button>
               </div>
             </div>
@@ -671,7 +671,7 @@ function buildFormFromJson(json, type) {
   const j = json || {};
   switch (type) {
     case 'greeting':
-      return { clientName: j.clientName || '', inspirationalQuote: j.inspirationalQuote || '' };
+      return { clientName: j.clientName || props.proposalData?.client_name || '', inspirationalQuote: j.inspirationalQuote || '' };
     case 'executive_summary':
       return { index: j.index || '', title: j.title || '', paragraphs: arrToText(j.paragraphs), highlightsTitle: j.highlightsTitle || '', highlights: arrToText(j.highlights) };
     case 'context_diagnostic':

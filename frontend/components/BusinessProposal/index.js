@@ -6,6 +6,7 @@ export { default as DesignUX } from './DesignUX.vue';
 export { default as CreativeSupport } from './CreativeSupport.vue';
 export { default as DevelopmentStages } from './DevelopmentStages.vue';
 export { default as FunctionalRequirements } from './FunctionalRequirements.vue';
+export { default as FunctionalRequirementsGroup } from './FunctionalRequirementsGroup.vue';
 export { default as Timeline } from './Timeline.vue';
 export { default as Investment } from './Investment.vue';
 export { default as FinalNote } from './FinalNote.vue';

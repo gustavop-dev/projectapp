@@ -22,7 +22,7 @@
     <div v-else-if="showContent && proposal" class="horizontal-scroll-wrapper">
       <!-- UX overlay elements -->
       <ProposalIndex
-        :sections="enabledSections"
+        :sections="displayPanels"
         :currentIndex="currentIndex"
         @navigate="handleNavigate"
       />
@@ -37,13 +37,13 @@
       <div ref="scrollContainer" class="scroll-container">
         <div class="panels-wrapper">
           <div
-            v-for="(section, idx) in enabledSections"
-            :key="section.id"
+            v-for="(panel, idx) in displayPanels"
+            :key="panel.id"
             class="panel"
           >
             <component
-              :is="sectionComponentMap[section.section_type]"
-              v-bind="getSectionProps(section)"
+              :is="sectionComponentMap[panel.section_type]"
+              v-bind="getSectionProps(panel)"
             />
           </div>
         </div>
@@ -67,6 +67,7 @@ import {
   CreativeSupport,
   DevelopmentStages,
   FunctionalRequirements,
+  FunctionalRequirementsGroup,
   Timeline,
   Investment,
   FinalNote,
@@ -95,6 +96,7 @@ const sectionComponentMap = {
   creative_support: CreativeSupport,
   development_stages: DevelopmentStages,
   functional_requirements: FunctionalRequirements,
+  functional_requirements_group: FunctionalRequirementsGroup,
   timeline: Timeline,
   investment: Investment,
   final_note: FinalNote,
@@ -103,7 +105,49 @@ const sectionComponentMap = {
 
 const proposal = computed(() => proposalStore.currentProposal);
 const enabledSections = computed(() => proposalStore.enabledSections);
-const totalSections = computed(() => proposalStore.totalSections);
+
+// Expand functional_requirements into intro + individual group panels
+const displayPanels = computed(() => {
+  const panels = [];
+  for (const section of enabledSections.value) {
+    if (section.section_type === 'functional_requirements') {
+      // 1) Intro panel (overview)
+      panels.push(section);
+      // 2) One panel per group
+      const content = section.content_json || {};
+      let groups = content.groups || [];
+      if (!groups.length) {
+        const legacyGroups = proposal.value?.requirement_groups || [];
+        groups = legacyGroups.map((g) => ({
+          id: g.group_id,
+          icon: g.title?.trim().split(' ')[0] || '🧩',
+          title: g.title?.trim().split(' ').slice(1).join(' ') || g.title,
+          description: g.description,
+          items: (g.items || []).map((item) => ({
+            icon: item.icon, name: item.name, description: item.description,
+          })),
+        }));
+      }
+      const additional = content.additionalModules || [];
+      const allGroups = [...groups, ...additional].filter(g => g && (g.title || g.items?.length));
+      const parentIndex = content.index || '7';
+      allGroups.forEach((group, gIdx) => {
+        panels.push({
+          id: `${section.id}_group_${gIdx}`,
+          section_type: 'functional_requirements_group',
+          title: `${group.icon || '🧩'} ${group.title}`,
+          _group: group,
+          _subIndex: `${parentIndex}.${gIdx + 1}`,
+        });
+      });
+    } else {
+      panels.push(section);
+    }
+  }
+  return panels;
+});
+
+const totalSections = computed(() => displayPanels.value.length);
 
 const showContent = ref(false);
 const loadError = ref(null);
@@ -149,6 +193,13 @@ function getSectionProps(section) {
     'design_ux', 'creative_support',
   ].includes(section.section_type)) {
     return { content };
+  }
+
+  if (section.section_type === 'functional_requirements_group') {
+    return {
+      group: section._group,
+      subIndex: section._subIndex,
+    };
   }
 
   if (section.section_type === 'functional_requirements') {
