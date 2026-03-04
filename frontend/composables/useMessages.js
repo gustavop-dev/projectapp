@@ -16,7 +16,6 @@ const routeToViewKey = {
   'portfolio-works': 'portfolioWorks',
   'contact': 'contact',
   'contact-success': 'contactSuccess',
-  'business-proposal': 'businessProposal',
   'slug': 'home',
 };
 

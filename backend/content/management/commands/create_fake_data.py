@@ -26,4 +26,8 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Creating fake products...'))
         call_command('create_products', number_of_records)
 
+        # Create fake data for business proposals
+        self.stdout.write(self.style.SUCCESS('Creating fake business proposals...'))
+        call_command('create_fake_proposals')
+
         self.stdout.write(self.style.SUCCESS('All fake data has been created'))

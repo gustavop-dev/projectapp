@@ -1,0 +1,97 @@
+import uuid
+
+from django.conf import settings
+from django.db import models
+from django.utils import timezone
+from django.utils.text import slugify
+
+
+class BusinessProposal(models.Model):
+    """
+    Core model for business proposals sent to prospective clients.
+
+    Each proposal has a UUID for public access, an expiration date,
+    and tracks client interactions (views, reminder emails).
+    """
+
+    class Status(models.TextChoices):
+        DRAFT = 'draft', 'Draft'
+        SENT = 'sent', 'Sent'
+        VIEWED = 'viewed', 'Viewed'
+        ACCEPTED = 'accepted', 'Accepted'
+        REJECTED = 'rejected', 'Rejected'
+        EXPIRED = 'expired', 'Expired'
+
+    class Currency(models.TextChoices):
+        COP = 'COP', 'COP'
+        USD = 'USD', 'USD'
+
+    # Identity
+    uuid = models.UUIDField(
+        default=uuid.uuid4, unique=True, editable=False, db_index=True
+    )
+    title = models.CharField(max_length=255)
+    client_name = models.CharField(max_length=255)
+    client_email = models.EmailField(blank=True)
+    slug = models.SlugField(max_length=255, blank=True)
+
+    # Financial
+    total_investment = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0
+    )
+    currency = models.CharField(
+        max_length=3, choices=Currency.choices, default=Currency.COP
+    )
+
+    # Status & lifecycle
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.DRAFT
+    )
+    expires_at = models.DateTimeField(null=True, blank=True)
+    reminder_days = models.PositiveIntegerField(default=5)
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
+
+    # Tracking
+    view_count = models.PositiveIntegerField(default=0)
+    first_viewed_at = models.DateTimeField(null=True, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Business Proposal'
+        verbose_name_plural = 'Business Proposals'
+
+    def __str__(self):
+        return f'{self.title} — {self.client_name}'
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.client_name)
+        super().save(*args, **kwargs)
+
+    @property
+    def is_expired(self):
+        """Check if the proposal has expired by status or date."""
+        if self.status == self.Status.EXPIRED:
+            return True
+        if self.expires_at and self.expires_at < timezone.now():
+            return True
+        return False
+
+    @property
+    def days_remaining(self):
+        """Return the number of days until expiration, or None if no expiry."""
+        if not self.expires_at:
+            return None
+        delta = (self.expires_at - timezone.now()).days
+        return max(delta, 0)
+
+    @property
+    def public_url(self):
+        """Build the client-facing URL for viewing this proposal."""
+        base = getattr(settings, 'FRONTEND_BASE_URL', 'http://localhost:3000')
+        return f'{base}/proposal/{self.uuid}'

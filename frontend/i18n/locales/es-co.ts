@@ -14,7 +14,6 @@ export default defineI18nLocale(async () => {
     webDesigns,
     animations3d,
     notFound,
-    businessProposal,
   ] = await Promise.all([
     import('~/locales/global/es.js'),
     import('~/locales/home/es.js'),
@@ -30,7 +29,6 @@ export default defineI18nLocale(async () => {
     import('~/locales/webDesigns/es.js'),
     import('~/locales/3dAnimations/es.js'),
     import('~/locales/404View/es.js'),
-    import('~/locales/businessProposal/es.js'),
   ])
 
   return {
@@ -48,6 +46,5 @@ export default defineI18nLocale(async () => {
     webDesigns: webDesigns.default,
     '3dAnimations': animations3d.default,
     '404View': notFound.default,
-    businessProposal: businessProposal.default,
   }
 })

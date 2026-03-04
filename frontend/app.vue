@@ -5,6 +5,7 @@
 
   <!-- Floating WhatsApp button with neon glow -->
   <a
+    v-if="showWhatsApp"
     href="https://wa.me/573238122373"
     target="_blank"
     rel="noopener noreferrer"
@@ -56,10 +57,17 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import MediaOptimizer from '~/components/layouts/MediaOptimizer.vue'
 import { useGtagConversions } from '~/composables/useGtagConversions'
 
+const route = useRoute()
 const { trackWhatsAppClick } = useGtagConversions()
+
+const showWhatsApp = computed(() => {
+  const path = route.path
+  return !path.startsWith('/proposal/') && !path.startsWith('/admin')
+})
 
 const handleWhatsAppClick = () => {
   trackWhatsAppClick()

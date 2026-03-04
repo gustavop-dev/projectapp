@@ -1,48 +1,47 @@
 <template>
   <div class="business-proposal bg-white">
-    <PreloaderAnimation 
-      :active="true" 
+    <!-- Loading state -->
+    <PreloaderAnimation
+      v-if="!showContent && !loadError"
+      :active="true"
       @animationComplete="onAnimationComplete"
     />
-    
-    <div v-if="showContent" class="horizontal-scroll-wrapper">
+
+    <!-- Error state -->
+    <div v-else-if="loadError === 'not_found'" class="min-h-screen flex items-center justify-center">
+      <div class="text-center">
+        <h1 class="text-4xl font-light text-gray-400 mb-4">404</h1>
+        <p class="text-gray-500">Esta propuesta no fue encontrada.</p>
+      </div>
+    </div>
+
+    <!-- Expired state -->
+    <ProposalExpired v-else-if="loadError === 'expired'" :proposal="proposal" />
+
+    <!-- Main proposal view -->
+    <div v-else-if="showContent && proposal" class="horizontal-scroll-wrapper">
+      <!-- UX overlay elements -->
+      <ProposalIndex
+        :sections="enabledSections"
+        :currentIndex="currentIndex"
+        @navigate="handleNavigate"
+      />
+      <SectionCounter :current="currentIndex + 1" :total="totalSections" />
+      <ExpirationBadge v-if="proposal.expires_at" :expiresAt="proposal.expires_at" />
+
+      <!-- Horizontal scroll container -->
       <div ref="scrollContainer" class="scroll-container">
         <div class="panels-wrapper">
-          <div class="panel">
-            <Greeting :clientName="clientName" />
-          </div>
-          <div class="panel">
-            <ExecutiveSummary />
-          </div>
-          <div class="panel">
-            <ContextDiagnostic />
-          </div>
-          <div class="panel">
-            <ConversionStrategy />
-          </div>
-          <div class="panel">
-            <DesignUX />
-          </div>
-          <div class="panel">
-            <CreativeSupport />
-          </div>
-          <div class="panel panel--wide">
-            <DevelopmentStages />
-          </div>
-          <div class="panel">
-            <FunctionalRequirements />
-          </div>
-          <div class="panel">
-            <Timeline />
-          </div>
-          <div class="panel">
-            <Investment />
-          </div>
-          <div class="panel">
-            <FinalNote />
-          </div>
-          <div class="panel">
-            <NextSteps />
+          <div
+            v-for="(section, idx) in enabledSections"
+            :key="section.id"
+            class="panel"
+            :class="{ 'panel--wide': section.is_wide_panel }"
+          >
+            <component
+              :is="sectionComponentMap[section.section_type]"
+              v-bind="getSectionProps(section)"
+            />
           </div>
         </div>
       </div>
@@ -51,7 +50,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onBeforeUnmount, provide } from 'vue';
+import { ref, computed, nextTick, onBeforeUnmount, provide, onMounted } from 'vue';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import PreloaderAnimation from '~/components/animations/PreloaderAnimation.vue';
@@ -67,47 +66,123 @@ import {
   Timeline,
   Investment,
   FinalNote,
-  NextSteps
+  NextSteps,
 } from '~/components/BusinessProposal';
+import ProposalIndex from '~/components/BusinessProposal/ProposalIndex.vue';
+import SectionCounter from '~/components/BusinessProposal/SectionCounter.vue';
+import ExpirationBadge from '~/components/BusinessProposal/ExpirationBadge.vue';
+import ProposalExpired from '~/components/BusinessProposal/ProposalExpired.vue';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const route = useRoute();
-const clientSlug = computed(() => route.params.slug || 'juan-pablo');
+definePageMeta({ layout: false });
 
-const clientName = computed(() => {
-  const slug = clientSlug.value;
-  return slug.split('-').map(word => 
-    word.charAt(0).toUpperCase() + word.slice(1)
-  ).join(' ');
-});
+const route = useRoute();
+const proposalStore = useProposalStore();
+
+const sectionComponentMap = {
+  greeting: Greeting,
+  executive_summary: ExecutiveSummary,
+  context_diagnostic: ContextDiagnostic,
+  conversion_strategy: ConversionStrategy,
+  design_ux: DesignUX,
+  creative_support: CreativeSupport,
+  development_stages: DevelopmentStages,
+  functional_requirements: FunctionalRequirements,
+  timeline: Timeline,
+  investment: Investment,
+  final_note: FinalNote,
+  next_steps: NextSteps,
+};
+
+const proposal = computed(() => proposalStore.currentProposal);
+const enabledSections = computed(() => proposalStore.enabledSections);
+const totalSections = computed(() => proposalStore.totalSections);
 
 const showContent = ref(false);
+const loadError = ref(null);
 const scrollContainer = ref(null);
+const currentIndex = ref(0);
 
 const horizontalTweenRef = ref(null);
-
 provide('horizontalTweenRef', horizontalTweenRef);
 
 let horizontalTween = null;
 let panelVerticalScrollTriggers = [];
 let activeScrollablePanel = null;
-
 let panelsWrapperEl = null;
 let horizontalScrollTrigger = null;
 let isHorizontalLocked = false;
 let lockedHorizontalScrollPos = null;
 let lastIntentDeltaY = 0;
-
 const HORIZONTAL_SCRUB_DURATION = 1;
-
 let touchStartY = 0;
 
+// --- Fetch proposal on mount ---
+onMounted(async () => {
+  const uuid = route.params.uuid;
+  const result = await proposalStore.fetchPublicProposal(uuid);
+  if (!result.success) {
+    loadError.value = result.error;
+  }
+});
+
+// --- Section props transformer ---
+function getSectionProps(section) {
+  const content = section.content_json || {};
+
+  if (section.section_type === 'greeting') {
+    return {
+      clientName: content.clientName || proposal.value?.client_name || '',
+      inspirationalQuote: content.inspirationalQuote,
+    };
+  }
+
+  if ([
+    'executive_summary', 'context_diagnostic', 'conversion_strategy',
+    'design_ux', 'creative_support',
+  ].includes(section.section_type)) {
+    return { content };
+  }
+
+  if (section.section_type === 'functional_requirements') {
+    // Merge content_json metadata with requirement_groups from proposal
+    const groups = proposal.value?.requirement_groups || [];
+    return {
+      data: {
+        ...content,
+        groups: groups.map((g) => ({
+          id: g.group_id,
+          title: g.title,
+          description: g.description,
+          items: (g.items || []).map((item) => ({
+            id: item.item_id,
+            icon: item.icon,
+            name: item.name,
+            description: item.description,
+            options: item.options || [],
+            fields: item.fields || [],
+          })),
+        })),
+      },
+    };
+  }
+
+  // For development_stages, timeline, investment, final_note, next_steps
+  // Spread content_json as individual props
+  return content;
+}
+
+// --- Navigation handler ---
+function handleNavigate(index) {
+  currentIndex.value = index;
+}
+
+// --- Horizontal scroll logic (from legacy BusinessProposal.vue) ---
 const shouldConsumeVerticalScroll = (el, deltaY) => {
   if (!el) return false;
   const maxScrollTop = el.scrollHeight - el.clientHeight;
   if (maxScrollTop <= 0) return false;
-
   if (deltaY > 0) return el.scrollTop < maxScrollTop;
   if (deltaY < 0) return el.scrollTop > 0;
   return false;
@@ -115,12 +190,9 @@ const shouldConsumeVerticalScroll = (el, deltaY) => {
 
 const handleGlobalWheel = (e) => {
   if (!activeScrollablePanel) return;
-
   const deltaY = e.deltaY ?? 0;
   if (!deltaY) return;
-
   lastIntentDeltaY = deltaY;
-
   if (shouldConsumeVerticalScroll(activeScrollablePanel, deltaY)) {
     e.preventDefault();
     activeScrollablePanel.scrollTop += deltaY;
@@ -135,13 +207,10 @@ const handleGlobalTouchMove = (e) => {
   if (!activeScrollablePanel) return;
   const currentY = e.touches?.[0]?.clientY;
   if (typeof currentY !== 'number') return;
-
   const deltaY = touchStartY - currentY;
   touchStartY = currentY;
   if (!deltaY) return;
-
   lastIntentDeltaY = deltaY;
-
   if (shouldConsumeVerticalScroll(activeScrollablePanel, deltaY)) {
     e.preventDefault();
     activeScrollablePanel.scrollTop += deltaY;
@@ -152,12 +221,9 @@ const handleGlobalScroll = () => {
   if (!isHorizontalLocked || !horizontalScrollTrigger || !activeScrollablePanel) return;
   if (lockedHorizontalScrollPos === null) return;
   if (!lastIntentDeltaY) return;
-
   if (!shouldConsumeVerticalScroll(activeScrollablePanel, lastIntentDeltaY)) return;
-
   const current = horizontalScrollTrigger.scroll();
   if (Math.abs(current - lockedHorizontalScrollPos) < 1) return;
-
   horizontalScrollTrigger.scroll(lockedHorizontalScrollPos);
   horizontalScrollTrigger.update();
 };
@@ -178,15 +244,12 @@ const detachGlobalScrollInterceptors = () => {
 
 const lockHorizontalToPanel = (panel) => {
   if (!horizontalScrollTrigger || !panelsWrapperEl || !panel) return;
-
   const totalScroll = Math.max(0, panelsWrapperEl.scrollWidth - window.innerWidth);
   if (totalScroll <= 0) return;
-
   const desiredScrollX = panel.offsetLeft + panel.offsetWidth / 2 - window.innerWidth / 2;
   const scrollX = Math.min(totalScroll, Math.max(0, desiredScrollX));
   const progress = scrollX / totalScroll;
   const targetScroll = horizontalScrollTrigger.start + progress * (horizontalScrollTrigger.end - horizontalScrollTrigger.start);
-
   horizontalScrollTrigger.scroll(targetScroll);
   horizontalScrollTrigger.update();
 };
@@ -203,16 +266,13 @@ const killPanelVerticalScrollTriggers = () => {
   activeScrollablePanel = null;
   lockedHorizontalScrollPos = null;
   lastIntentDeltaY = 0;
-
   setHorizontalScrubDuration(HORIZONTAL_SCRUB_DURATION);
-
   isHorizontalLocked = false;
 };
 
 const initPanelVerticalScroll = (containerTween) => {
   killPanelVerticalScrollTriggers();
   detachGlobalScrollInterceptors();
-
   if (!scrollContainer.value || !containerTween) return;
 
   const wrapper = scrollContainer.value.querySelector('.panels-wrapper');
@@ -262,6 +322,7 @@ const initPanelVerticalScroll = (containerTween) => {
 };
 
 const onAnimationComplete = () => {
+  if (loadError.value) return;
   showContent.value = true;
   nextTick(() => {
     initHorizontalScroll();
@@ -275,7 +336,6 @@ const initHorizontalScroll = () => {
     horizontalTween.scrollTrigger?.kill();
     horizontalTween.kill();
     horizontalTween = null;
-
     horizontalScrollTrigger = null;
     panelsWrapperEl = null;
   }
@@ -302,11 +362,18 @@ const initHorizontalScroll = () => {
       anticipatePin: 1,
       invalidateOnRefresh: true,
       end: () => `+=${getTotalScroll()}`,
-    }
+      onUpdate: (self) => {
+        // Track current section index based on scroll progress
+        const panelCount = panels.length;
+        if (panelCount > 0) {
+          const idx = Math.round(self.progress * (panelCount - 1));
+          currentIndex.value = Math.min(idx, panelCount - 1);
+        }
+      },
+    },
   });
 
   horizontalTweenRef.value = horizontalTween;
-
   panelsWrapperEl = wrapper;
   horizontalScrollTrigger = horizontalTween.scrollTrigger;
 
@@ -328,7 +395,6 @@ onBeforeUnmount(() => {
 
   horizontalScrollTrigger = null;
   panelsWrapperEl = null;
-
   horizontalTweenRef.value = null;
 });
 </script>

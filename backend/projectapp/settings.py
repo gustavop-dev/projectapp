@@ -177,6 +177,12 @@ STORAGES = {
 }
 
 # ==============================================================================
+# FRONTEND BASE URL — used for building public proposal links in emails
+# ==============================================================================
+
+FRONTEND_BASE_URL = config('FRONTEND_BASE_URL', default='http://localhost:3000')
+
+# ==============================================================================
 # EMAIL — override in settings_dev.py / settings_prod.py
 # ==============================================================================
 

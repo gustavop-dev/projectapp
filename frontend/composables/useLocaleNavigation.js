@@ -14,7 +14,6 @@ const legacyRouteNameToPath = {
   'contact': '/contact',
   'contactSuccess': '/contact-success',
   '3dAnimations': '/3d-animations',
-  'businessProposal': '/business-proposal',
 };
 
 /**

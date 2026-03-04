@@ -40,6 +40,15 @@ async function makeRequest(method, url, params = {}) {
       case "POST":
         response = await axios.post(`/api/${url}`, params, { headers });
         break;
+      case "PATCH":
+        response = await axios.patch(`/api/${url}`, params, { headers });
+        break;
+      case "PUT":
+        response = await axios.put(`/api/${url}`, params, { headers });
+        break;
+      case "DELETE":
+        response = await axios.delete(`/api/${url}`, { headers });
+        break;
       default:
         throw new Error(`Unsupported method: ${method}`);
     }
@@ -68,4 +77,33 @@ export async function get_request(url) {
  */
 export async function create_request(url, params) {
   return await makeRequest("POST", url, params);
+}
+
+/**
+ * Patch request.
+ * @param {string} url - Endpoint.
+ * @param {object} params - Params.
+ * @returns {object} - Data and status from endpoint.
+ */
+export async function patch_request(url, params) {
+  return await makeRequest("PATCH", url, params);
+}
+
+/**
+ * Put request.
+ * @param {string} url - Endpoint.
+ * @param {object} params - Params.
+ * @returns {object} - Data and status from endpoint.
+ */
+export async function put_request(url, params) {
+  return await makeRequest("PUT", url, params);
+}
+
+/**
+ * Delete request.
+ * @param {string} url - Endpoint.
+ * @returns {object} - Data and status from endpoint.
+ */
+export async function delete_request(url) {
+  return await makeRequest("DELETE", url);
 }

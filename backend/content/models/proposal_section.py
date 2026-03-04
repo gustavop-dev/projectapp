@@ -1,0 +1,45 @@
+from django.db import models
+
+
+class ProposalSection(models.Model):
+    """
+    Individual section within a business proposal.
+
+    Each section maps to a Vue component on the frontend via section_type.
+    Content is stored as JSON matching the props schema of each component.
+    """
+
+    class SectionType(models.TextChoices):
+        GREETING = 'greeting', 'Greeting'
+        EXECUTIVE_SUMMARY = 'executive_summary', 'Executive Summary'
+        CONTEXT_DIAGNOSTIC = 'context_diagnostic', 'Context & Diagnostic'
+        CONVERSION_STRATEGY = 'conversion_strategy', 'Conversion Strategy'
+        DESIGN_UX = 'design_ux', 'Design & UX'
+        CREATIVE_SUPPORT = 'creative_support', 'Creative Support'
+        DEVELOPMENT_STAGES = 'development_stages', 'Development Stages'
+        FUNCTIONAL_REQUIREMENTS = 'functional_requirements', 'Functional Requirements'
+        TIMELINE = 'timeline', 'Timeline'
+        INVESTMENT = 'investment', 'Investment'
+        FINAL_NOTE = 'final_note', 'Final Note'
+        NEXT_STEPS = 'next_steps', 'Next Steps'
+
+    proposal = models.ForeignKey(
+        'BusinessProposal',
+        on_delete=models.CASCADE,
+        related_name='sections',
+    )
+    section_type = models.CharField(max_length=30, choices=SectionType.choices)
+    title = models.CharField(max_length=255)
+    order = models.PositiveIntegerField(default=0)
+    is_enabled = models.BooleanField(default=True)
+    content_json = models.JSONField(default=dict, blank=True)
+    is_wide_panel = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['order']
+        unique_together = ['proposal', 'section_type']
+        verbose_name = 'Proposal Section'
+        verbose_name_plural = 'Proposal Sections'
+
+    def __str__(self):
+        return f'{self.proposal.client_name} — {self.get_section_type_display()}'

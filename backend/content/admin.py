@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-from .models import Contact, Design, Model3D, Product, Category, Item, Hosting, PortfolioWork
+from .models import (
+    Contact, Design, Model3D, Product, Category, Item, Hosting, PortfolioWork,
+    BusinessProposal, ProposalSection, ProposalRequirementGroup, ProposalRequirementItem,
+)
 
 class PortfolioWorkAdmin(admin.ModelAdmin):
     """
@@ -60,6 +63,70 @@ class HostingAdmin(admin.ModelAdmin):
     """
     list_display = ('title_en', 'title_es', 'semi_annually_price', 'annual_price', 'cpu_cores_en', 'ram_en', 'storage_en', 'bandwidth_en')
 
+class ProposalSectionInline(admin.TabularInline):
+    """
+    Inline admin for proposal sections within BusinessProposalAdmin.
+    Content JSON is edited in the Nuxt admin frontend, not here.
+    """
+    model = ProposalSection
+    extra = 0
+    fields = ('section_type', 'title', 'order', 'is_enabled', 'is_wide_panel')
+    ordering = ('order',)
+
+
+class ProposalRequirementGroupInline(admin.TabularInline):
+    """
+    Inline admin for requirement groups within BusinessProposalAdmin.
+    """
+    model = ProposalRequirementGroup
+    extra = 0
+    fields = ('group_id', 'title', 'description', 'order')
+    ordering = ('order',)
+
+
+class BusinessProposalAdmin(admin.ModelAdmin):
+    """
+    Custom admin configuration for the BusinessProposal model.
+    """
+    list_display = (
+        'title', 'client_name', 'status', 'total_investment',
+        'currency', 'expires_at', 'view_count', 'created_at',
+    )
+    list_filter = ('status', 'currency')
+    search_fields = ('title', 'client_name', 'client_email')
+    readonly_fields = (
+        'uuid', 'view_count', 'first_viewed_at', 'sent_at',
+        'reminder_sent_at', 'created_at', 'updated_at',
+    )
+    inlines = [ProposalSectionInline, ProposalRequirementGroupInline]
+    fieldsets = (
+        ('Identity', {
+            'fields': ('uuid', 'title', 'client_name', 'client_email', 'slug'),
+        }),
+        ('Financial', {
+            'fields': ('total_investment', 'currency'),
+        }),
+        ('Status & Lifecycle', {
+            'fields': ('status', 'expires_at', 'reminder_days', 'reminder_sent_at'),
+        }),
+        ('Tracking', {
+            'fields': ('view_count', 'first_viewed_at', 'sent_at'),
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+        }),
+    )
+
+
+class ProposalRequirementItemAdmin(admin.ModelAdmin):
+    """
+    Custom admin configuration for the ProposalRequirementItem model.
+    """
+    list_display = ('name', 'group', 'icon', 'order')
+    list_filter = ('group__proposal',)
+    search_fields = ('name', 'description')
+
+
 class ProjectAppAdminSite(admin.AdminSite):
     """
     Custom AdminSite configuration to organize models by sections.
@@ -118,7 +185,18 @@ class ProjectAppAdminSite(admin.AdminSite):
                     model for model in app_dict.get('content', {}).get('models', [])
                     if model['object_name'] == 'Hosting'
                 ]
-            }
+            },
+            {
+                'name': _('Business Proposals'),
+                'app_label': 'business_proposals',
+                'models': [
+                    model for model in app_dict.get('content', {}).get('models', [])
+                    if model['object_name'] in [
+                        'BusinessProposal', 'ProposalSection',
+                        'ProposalRequirementGroup', 'ProposalRequirementItem',
+                    ]
+                ]
+            },
         ]
         return custom_app_list
 
@@ -132,3 +210,7 @@ admin_site.register(Category, CategoryAdmin)
 admin_site.register(Item, ItemAdmin)
 admin_site.register(Hosting, HostingAdmin)
 admin_site.register(PortfolioWork, PortfolioWorkAdmin)
+admin_site.register(BusinessProposal, BusinessProposalAdmin)
+admin_site.register(ProposalSection)
+admin_site.register(ProposalRequirementGroup)
+admin_site.register(ProposalRequirementItem, ProposalRequirementItemAdmin)

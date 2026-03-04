@@ -1,4 +1,4 @@
-from content.models import Contact, Design, Model3D, Product, Category, Item
+from content.models import Contact, Design, Model3D, Product, Category, Item, BusinessProposal
 from django.core.management.base import BaseCommand
 
 class Command(BaseCommand):
@@ -39,5 +39,10 @@ class Command(BaseCommand):
         for item in Item.objects.all():
             item.delete()
             self.stdout.write(self.style.SUCCESS(f'Item "{item}" deleted'))
+
+        # Delete all business proposals (CASCADE deletes sections, groups, items)
+        for proposal in BusinessProposal.objects.all():
+            proposal.delete()
+            self.stdout.write(self.style.SUCCESS(f'BusinessProposal "{proposal}" deleted'))
 
         self.stdout.write(self.style.SUCCESS('All fake data has been deleted'))

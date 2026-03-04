@@ -110,12 +110,17 @@
 </template>
 
 <script setup>
-import functionalRequirements from '~/content-data/business-proposal/functionalRequirements.json';
-
 const props = defineProps({
   data: {
     type: Object,
-    default: () => functionalRequirements
+    default: () => ({
+      index: '07',
+      title: 'Requerimientos funcionales',
+      intro: 'A continuación se detallan los requerimientos funcionales del proyecto.',
+      groups: [],
+      technicalSpecs: [],
+      integrations: [],
+    })
   }
 });
 
