@@ -2,13 +2,52 @@
  * Flow tag constants for consistent E2E test tagging.
  *
  * Usage:
- *   import { AUTH_LOGIN } from '../helpers/flow-tags.js';
- *   test('...', { tag: [...AUTH_LOGIN, '@role:shared'] }, async ({ page }) => { ... });
+ *   import { ADMIN_LOGIN } from '../helpers/flow-tags.js';
+ *   test('...', { tag: [...ADMIN_LOGIN, '@role:admin'] }, async ({ page }) => { ... });
  */
 
-// ── Auth ──
-export const AUTH_LOGIN = ['@flow:auth-login', '@module:auth', '@priority:P1'];
+// ── Layout ──
+export const LAYOUT_NAVBAR_NAVIGATION = ['@flow:layout-navbar-navigation', '@module:layout', '@priority:P2'];
+export const LAYOUT_LOCALE_SWITCH = ['@flow:layout-locale-switch', '@module:layout', '@priority:P2'];
+export const LAYOUT_FOOTER_NAVIGATION = ['@flow:layout-footer-navigation', '@module:layout', '@priority:P3'];
 
 // ── Public ──
-export const PUBLIC_HOME = ['@flow:public-home', '@module:public', '@priority:P2'];
+export const PUBLIC_HOME = ['@flow:public-home', '@module:public', '@priority:P1'];
 export const PUBLIC_PORTFOLIO = ['@flow:public-portfolio', '@module:public', '@priority:P2'];
+export const PUBLIC_WEB_DESIGNS = ['@flow:public-web-designs', '@module:public', '@priority:P2'];
+export const PUBLIC_3D_ANIMATIONS = ['@flow:public-3d-animations', '@module:public', '@priority:P3'];
+export const PUBLIC_HOSTING = ['@flow:public-hosting', '@module:public', '@priority:P3'];
+export const PUBLIC_ECOMMERCE_PRICES = ['@flow:public-ecommerce-prices', '@module:public', '@priority:P3'];
+export const PUBLIC_CUSTOM_SOFTWARE = ['@flow:public-custom-software', '@module:public', '@priority:P3'];
+export const PUBLIC_ABOUT_US = ['@flow:public-about-us', '@module:public', '@priority:P3'];
+export const PUBLIC_LANDING_WEB_DESIGN = ['@flow:public-landing-web-design', '@module:public', '@priority:P2'];
+export const PUBLIC_CONTACT_SUBMIT = ['@flow:public-contact-submit', '@module:public', '@priority:P1'];
+
+// ── Blog ──
+export const BLOG_LIST = ['@flow:blog-list', '@module:blog', '@priority:P2'];
+export const BLOG_DETAIL = ['@flow:blog-detail', '@module:blog', '@priority:P2'];
+
+// ── Proposal ──
+export const PROPOSAL_VIEW = ['@flow:proposal-view', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_RESPOND = ['@flow:proposal-respond', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_DOWNLOAD_PDF = ['@flow:proposal-download-pdf', '@module:proposal', '@priority:P2'];
+
+// ── Auth ──
+export const ADMIN_LOGIN = ['@flow:admin-login', '@module:auth', '@priority:P1'];
+
+// ── Admin ──
+export const ADMIN_DASHBOARD = ['@flow:admin-dashboard', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_LIST = ['@flow:admin-proposal-list', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_CREATE = ['@flow:admin-proposal-create', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_EDIT = ['@flow:admin-proposal-edit', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_DELETE = ['@flow:admin-proposal-delete', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_SEND = ['@flow:admin-proposal-send', '@module:admin', '@priority:P1'];
+export const ADMIN_BLOG_LIST = ['@flow:admin-blog-list', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_SECTION_EDIT_FORM = ['@flow:admin-proposal-section-edit-form', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_SECTION_EDIT_PASTE = ['@flow:admin-proposal-section-edit-paste', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_SECTION_REORDER = ['@flow:admin-proposal-section-reorder', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_FORM = ['@flow:admin-proposal-functional-requirements-form', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_PASTE = ['@flow:admin-proposal-functional-requirements-paste', '@module:admin', '@priority:P1'];
+export const ADMIN_BLOG_CREATE = ['@flow:admin-blog-create', '@module:admin', '@priority:P2'];
+export const ADMIN_BLOG_EDIT = ['@flow:admin-blog-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_BLOG_DELETE = ['@flow:admin-blog-delete', '@module:admin', '@priority:P3'];

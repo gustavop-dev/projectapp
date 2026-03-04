@@ -1,27 +1,279 @@
 {
-  "version": "1.0.0",
+  "version": "2.1.0",
   "lastUpdated": "2026-03-04",
   "flows": {
-    "auth-login": {
-      "name": "Admin Login",
-      "module": "auth",
-      "roles": ["admin"],
-      "priority": "P1",
-      "description": "Authenticate as admin to manage proposals and content."
+    "layout-navbar-navigation": {
+      "name": "Navbar Navigation",
+      "module": "layout",
+      "roles": ["shared"],
+      "priority": "P2",
+      "description": "Navigate between pages using the fixed top navbar.",
+      "expectedSpecs": 1
+    },
+    "layout-locale-switch": {
+      "name": "Locale Switch",
+      "module": "layout",
+      "roles": ["shared"],
+      "priority": "P2",
+      "description": "Switch the application language between English and Spanish.",
+      "expectedSpecs": 1
+    },
+    "layout-footer-navigation": {
+      "name": "Footer Navigation",
+      "module": "layout",
+      "roles": ["shared"],
+      "priority": "P3",
+      "description": "Navigate using footer links and social media links.",
+      "expectedSpecs": 1
     },
     "public-home": {
       "name": "Home Page",
       "module": "public",
       "roles": ["guest"],
-      "priority": "P2",
-      "description": "View the public home/landing page with portfolio and services."
+      "priority": "P1",
+      "description": "View the public home/landing page with hero, services, study cases and contact.",
+      "expectedSpecs": 1
     },
     "public-portfolio": {
-      "name": "Portfolio",
+      "name": "Portfolio Works",
       "module": "public",
       "roles": ["guest"],
       "priority": "P2",
-      "description": "Browse portfolio works and project showcases."
+      "description": "Browse portfolio works and project showcases.",
+      "expectedSpecs": 1
+    },
+    "public-web-designs": {
+      "name": "Web Designs",
+      "module": "public",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Browse web design services and examples.",
+      "expectedSpecs": 1
+    },
+    "public-3d-animations": {
+      "name": "3D Animations",
+      "module": "public",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "View 3D animation services and examples.",
+      "expectedSpecs": 1
+    },
+    "public-hosting": {
+      "name": "Hosting Plans",
+      "module": "public",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "View hosting plans and pricing.",
+      "expectedSpecs": 1
+    },
+    "public-ecommerce-prices": {
+      "name": "E-Commerce Prices",
+      "module": "public",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "View e-commerce development pricing.",
+      "expectedSpecs": 1
+    },
+    "public-custom-software": {
+      "name": "Custom Software",
+      "module": "public",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "View custom software development services.",
+      "expectedSpecs": 1
+    },
+    "public-about-us": {
+      "name": "About Us",
+      "module": "public",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "View the about us page with team and company information.",
+      "expectedSpecs": 1
+    },
+    "public-landing-web-design": {
+      "name": "Landing Web Design",
+      "module": "public",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "View the web design landing page (marketing/conversion page).",
+      "expectedSpecs": 1
+    },
+    "public-contact-submit": {
+      "name": "Contact Form Submit",
+      "module": "public",
+      "roles": ["guest"],
+      "priority": "P1",
+      "description": "Submit a contact form to reach the company.",
+      "expectedSpecs": 1
+    },
+    "blog-list": {
+      "name": "Blog Listing",
+      "module": "blog",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Browse the blog post listing with bilingual support.",
+      "expectedSpecs": 1
+    },
+    "blog-detail": {
+      "name": "Blog Post Detail",
+      "module": "blog",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Read a single blog post with bilingual content.",
+      "expectedSpecs": 1
+    },
+    "proposal-view": {
+      "name": "Proposal View",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P1",
+      "description": "View a business proposal shared via unique UUID link with horizontal scroll.",
+      "expectedSpecs": 1
+    },
+    "proposal-respond": {
+      "name": "Proposal Respond",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P1",
+      "description": "Client responds to (accepts/rejects) a business proposal.",
+      "expectedSpecs": 1
+    },
+    "proposal-download-pdf": {
+      "name": "Proposal PDF Download",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Download a proposal as PDF.",
+      "expectedSpecs": 1,
+      "knownGaps": ["PDF generation returns 501 Not Implemented in v1"]
+    },
+    "admin-login": {
+      "name": "Admin Login",
+      "module": "auth",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Admin authenticates to access the management panel.",
+      "expectedSpecs": 1
+    },
+    "admin-dashboard": {
+      "name": "Admin Dashboard",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "View the admin dashboard with overview of proposals and blog posts.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-list": {
+      "name": "Admin Proposal List",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "View the list of all business proposals.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-create": {
+      "name": "Admin Proposal Create",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Create a new business proposal with sections and requirements.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-edit": {
+      "name": "Admin Proposal Edit",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Edit an existing business proposal.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-delete": {
+      "name": "Admin Proposal Delete",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Delete an existing business proposal.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-send": {
+      "name": "Admin Proposal Send",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Send a proposal to a client via email.",
+      "expectedSpecs": 1
+    },
+    "admin-blog-list": {
+      "name": "Admin Blog List",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "View the list of all blog posts (admin view with both languages).",
+      "expectedSpecs": 1
+    },
+    "admin-blog-create": {
+      "name": "Admin Blog Create",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Create a new bilingual blog post.",
+      "expectedSpecs": 1
+    },
+    "admin-blog-edit": {
+      "name": "Admin Blog Edit",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Edit an existing bilingual blog post.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-section-edit-form": {
+      "name": "Admin Proposal Section Edit (Form)",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Edit proposal sections using structured form fields for each of the 12 section types.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-section-edit-paste": {
+      "name": "Admin Proposal Section Edit (Paste Content)",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Bulk-fill proposal section fields by pasting text and processing it into structured form data.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-section-reorder": {
+      "name": "Admin Proposal Section Reorder",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Reorder sections within a proposal via drag or API.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-functional-requirements-form": {
+      "name": "Admin Functional Requirements (Form)",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Manage requirement groups and items using the structured form interface.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-functional-requirements-paste": {
+      "name": "Admin Functional Requirements (Paste Content)",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Bulk-fill requirement group items by pasting formatted text.",
+      "expectedSpecs": 1
+    },
+    "admin-blog-delete": {
+      "name": "Admin Blog Delete",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P3",
+      "description": "Delete an existing blog post.",
+      "expectedSpecs": 1
     }
   }
 }

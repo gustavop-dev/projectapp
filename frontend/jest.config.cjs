@@ -8,7 +8,7 @@ module.exports = {
     },
     testEnvironment: 'jest-environment-jsdom',
     coverageProvider: 'v8',
-    coverageReporters: ['text', 'json-summary'],
+    coverageReporters: ['text', 'text-summary', 'json-summary'],
     resetModules: true,
     testEnvironmentOptions: {
         customExportConditions: ["node", "node-addons"],
@@ -22,12 +22,16 @@ module.exports = {
         '/e2e/',
     ],
     moduleNameMapper: {
-        '^@/(.*)$': '<rootDir>/src/$1',
+        '^@/(.*)$': '<rootDir>/$1',
+        '^~/(.*)$': '<rootDir>/$1',
+        '#imports': '<rootDir>/test/shared/nuxt-imports-mock.js',
         '\\.(css|less|scss|sass|png|jpg|webp|ttf|woff|woff2)$': 'jest-transform-stub',
     },
+    transformIgnorePatterns: ['/node_modules/'],
     collectCoverageFrom: [
-        'src/**/*.{js,vue}',
-        '!src/**/main.js',
+        'stores/**/*.js',
+        'composables/**/*.js',
+        '!**/node_modules/**',
     ],
     coveragePathIgnorePatterns: [
         '/node_modules/',

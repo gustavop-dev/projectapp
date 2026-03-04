@@ -56,7 +56,7 @@ const files = Object.entries(raw)
     const covered = data.statements.covered;
     const missing = stmts - covered;
     const pct     = stmts > 0 ? (covered / stmts) * 100 : 100;
-    const rel     = filePath.replace(/.*\/src\//, 'src/');
+    const rel     = filePath.replace(/.*\/frontend\//, '');
     return {
       path:   rel,
       stmts,
