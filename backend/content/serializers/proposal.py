@@ -90,7 +90,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'uuid', 'title', 'client_name', 'client_email', 'slug',
             'total_investment', 'currency', 'status', 'expires_at',
-            'reminder_days', 'reminder_sent_at', 'view_count',
+            'reminder_days', 'discount_percent', 'reminder_sent_at', 'view_count',
             'first_viewed_at', 'sent_at', 'created_at', 'updated_at',
             'sections', 'requirement_groups',
             'days_remaining', 'is_expired', 'public_url',

@@ -137,7 +137,7 @@ class ProposalEmailService:
 
             subject = (
                 f'🔥 {proposal.client_name}, tu propuesta expira pronto — '
-                f'20% de descuento si accedes hoy'
+                f'{proposal.discount_percent}% de descuento si accedes hoy'
             )
 
             email = EmailMultiAlternatives(

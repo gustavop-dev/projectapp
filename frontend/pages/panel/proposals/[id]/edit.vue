@@ -127,7 +127,7 @@
             >
               Enviar al Cliente
             </button>
-            <a :href="proposal.public_url" target="_blank"
+            <a :href="'/proposal/' + proposal.uuid" target="_blank"
               class="text-sm text-gray-500 hover:text-emerald-600 transition-colors">
               Preview →
             </a>
