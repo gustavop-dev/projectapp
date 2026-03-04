@@ -59,6 +59,37 @@ def send_proposal_reminder(proposal_id):
     ProposalEmailService.send_reminder(proposal)
 
 
+@periodic_task(crontab(hour='8', minute='0'))
+def send_urgency_emails():
+    """
+    Daily task: send urgency email with 20% discount offer
+    to proposals expiring within 2 days.
+
+    Only affects proposals with status SENT or VIEWED,
+    that have not already received the urgency email.
+    """
+    from content.models import BusinessProposal
+    from content.services.proposal_email_service import ProposalEmailService
+
+    now = timezone.now()
+    two_days_later = now + timezone.timedelta(days=2)
+
+    proposals = BusinessProposal.objects.filter(
+        status__in=['sent', 'viewed'],
+        expires_at__lte=two_days_later,
+        expires_at__gt=now,
+        urgency_email_sent_at__isnull=True,
+    ).exclude(client_email='')
+
+    count = 0
+    for proposal in proposals:
+        if ProposalEmailService.send_urgency_email(proposal):
+            count += 1
+
+    if count > 0:
+        logger.info('Sent %d urgency emails.', count)
+
+
 @periodic_task(crontab(hour='0', minute='30'))
 def expire_stale_proposals():
     """

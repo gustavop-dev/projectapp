@@ -1,0 +1,16 @@
+{{ client_name }}, tu propuesta expira pronto.
+
+{{ title }}
+
+Oferta especial: 20% de descuento si accedes hoy.
+
+Precio original: ${{ total_investment }} {{ currency }}
+Precio con descuento: ${{ discounted_investment }} {{ currency }}
+
+{% if days_remaining is not None %}Solo quedan {{ days_remaining }} día{{ days_remaining|pluralize:"s" }}.{% endif %}
+
+Ver propuesta: {{ proposal_url }}
+
+¿Dudas? Escríbenos a team@projectapp.co o WhatsApp +57 323 812 2373
+
+— El equipo de ProjectApp.co

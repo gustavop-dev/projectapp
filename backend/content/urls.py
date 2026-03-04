@@ -10,7 +10,7 @@ from content.views.proposal import (
     list_proposals, retrieve_proposal, create_proposal,
     update_proposal, delete_proposal, send_proposal,
     update_proposal_section, bulk_reorder_sections,
-    check_admin_auth,
+    respond_to_proposal, check_admin_auth,
 )
 
 urlpatterns = [
@@ -25,6 +25,7 @@ urlpatterns = [
     # Proposals — public
     path('proposals/<uuid:proposal_uuid>/', retrieve_public_proposal, name='retrieve-public-proposal'),
     path('proposals/<uuid:proposal_uuid>/pdf/', download_proposal_pdf, name='download-proposal-pdf'),
+    path('proposals/<uuid:proposal_uuid>/respond/', respond_to_proposal, name='respond-to-proposal'),
 
     # Proposals — admin auth check
     path('auth/check/', check_admin_auth, name='check-admin-auth'),

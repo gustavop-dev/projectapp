@@ -91,3 +91,132 @@ class ProposalEmailService:
                 proposal.uuid,
             )
             return False
+
+    @classmethod
+    def send_urgency_email(cls, proposal):
+        """
+        Send an urgency email with 20% discount offer 2 days before expiry.
+
+        Args:
+            proposal: BusinessProposal instance with client_email set.
+
+        Returns:
+            bool: True if the email was sent successfully.
+        """
+        if not proposal.client_email:
+            return False
+
+        from decimal import Decimal
+        discounted = proposal.total_investment * Decimal('0.80')
+
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_url': proposal.public_url,
+            'days_remaining': proposal.days_remaining,
+            'expires_at': proposal.expires_at,
+            'total_investment': proposal.total_investment,
+            'discounted_investment': discounted,
+            'currency': proposal.currency,
+            'title': proposal.title,
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_urgency.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_urgency.txt', context
+            )
+
+            subject = (
+                f'🔥 {proposal.client_name}, tu propuesta expira pronto — '
+                f'20% de descuento si accedes hoy'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[proposal.client_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            proposal.urgency_email_sent_at = timezone.now()
+            proposal.save(update_fields=['urgency_email_sent_at'])
+
+            logger.info(
+                'Sent urgency email for proposal %s to %s',
+                proposal.uuid, proposal.client_email,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send urgency email for proposal %s',
+                proposal.uuid,
+            )
+            return False
+
+    @classmethod
+    def send_response_notification(cls, proposal, action):
+        """
+        Send notification email to team@projectapp.co when a client
+        accepts or rejects a proposal.
+
+        Args:
+            proposal: BusinessProposal instance.
+            action: 'accepted' or 'rejected'.
+
+        Returns:
+            bool: True if the email was sent successfully.
+        """
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_title': proposal.title,
+            'total_investment': proposal.total_investment,
+            'currency': proposal.currency,
+            'action': action,
+            'action_label': 'ACEPTADA' if action == 'accepted' else 'RECHAZADA',
+            'proposal_uuid': str(proposal.uuid),
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_response_notification.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_response_notification.txt', context
+            )
+
+            action_tag = 'ACCEPTED' if action == 'accepted' else 'REJECTED'
+            subject = (
+                f'[{action_tag}] Propuesta: {proposal.title} — '
+                f'{proposal.client_name}'
+            )
+
+            notification_email = getattr(
+                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[notification_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info(
+                'Sent %s notification for proposal %s',
+                action, proposal.uuid,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send %s notification for proposal %s',
+                action, proposal.uuid,
+            )
+            return False

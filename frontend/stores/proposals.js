@@ -273,6 +273,24 @@ export const useProposalStore = defineStore('proposals', {
     // -----------------------------------------------------------------
 
     /**
+     * respondToProposal: Client accepts or rejects a proposal.
+     * @param {string} uuid - Proposal UUID.
+     * @param {string} action - 'accepted' or 'rejected'.
+     */
+    async respondToProposal(uuid, action) {
+      try {
+        const response = await create_request(`proposals/${uuid}/respond/`, { action });
+        if (this.currentProposal && this.currentProposal.uuid === uuid) {
+          this.currentProposal.status = action;
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error responding to proposal:', error);
+        return { success: false };
+      }
+    },
+
+    /**
      * checkAdminAuth: Verify if the current session is an authenticated staff user.
      */
     async checkAdminAuth() {

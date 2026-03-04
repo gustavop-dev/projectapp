@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Propuesta {{ action_label }} — Project App</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;max-width:600px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color:{% if action == 'accepted' %}#059669{% else %}#dc2626{% endif %};padding:32px 40px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;">
+                {% if action == 'accepted' %}✅ Propuesta Aceptada{% else %}❌ Propuesta Rechazada{% endif %}
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px;">
+              <h2 style="margin:0 0 16px;color:#1f2937;font-size:20px;font-weight:600;">
+                {{ proposal_title }}
+              </h2>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;">
+                <tr>
+                  <td style="padding:8px 0;color:#6b7280;font-size:14px;width:120px;">Cliente:</td>
+                  <td style="padding:8px 0;color:#1f2937;font-size:14px;font-weight:600;">{{ client_name }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#6b7280;font-size:14px;">Inversión:</td>
+                  <td style="padding:8px 0;color:#1f2937;font-size:14px;font-weight:600;">${{ total_investment }} {{ currency }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:8px 0;color:#6b7280;font-size:14px;">Estado:</td>
+                  <td style="padding:8px 0;font-size:14px;font-weight:600;color:{% if action == 'accepted' %}#059669{% else %}#dc2626{% endif %};">
+                    {{ action_label }}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:0 40px 32px;text-align:center;">
+              <p style="margin:0;color:#9ca3af;font-size:12px;">
+                Notificación automática — ProjectApp.co
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

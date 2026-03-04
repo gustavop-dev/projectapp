@@ -50,6 +50,7 @@ class BusinessProposal(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
     reminder_days = models.PositiveIntegerField(default=5)
     reminder_sent_at = models.DateTimeField(null=True, blank=True)
+    urgency_email_sent_at = models.DateTimeField(null=True, blank=True)
 
     # Tracking
     view_count = models.PositiveIntegerField(default=0)

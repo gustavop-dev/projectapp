@@ -254,6 +254,42 @@ def bulk_reorder_sections(request, proposal_id):
 # Auth check endpoint (for Nuxt admin middleware)
 # ---------------------------------------------------------------------------
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def respond_to_proposal(request, proposal_uuid):
+    """
+    Client accepts or rejects a proposal.
+    Body: { "action": "accepted" | "rejected" }
+
+    Updates proposal status and sends notification email to team@projectapp.co.
+    """
+    proposal = get_object_or_404(BusinessProposal, uuid=proposal_uuid)
+
+    if proposal.status not in ('sent', 'viewed'):
+        return Response(
+            {'error': 'This proposal cannot be responded to in its current state.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    action = request.data.get('action')
+    if action not in ('accepted', 'rejected'):
+        return Response(
+            {'error': 'Invalid action. Must be "accepted" or "rejected".'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    proposal.status = action
+    proposal.save(update_fields=['status'])
+
+    from content.services.proposal_email_service import ProposalEmailService
+    ProposalEmailService.send_response_notification(proposal, action)
+
+    return Response(
+        {'status': action, 'message': f'Proposal {action} successfully.'},
+        status=status.HTTP_200_OK,
+    )
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def check_admin_auth(request):

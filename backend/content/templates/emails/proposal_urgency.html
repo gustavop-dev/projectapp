@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tu propuesta expira pronto — Project App</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;max-width:600px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#dc2626;padding:32px 40px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;">
+                🔥 Oferta Especial
+              </h1>
+              <p style="margin:8px 0 0;color:#fecaca;font-size:14px;">
+                Tu propuesta expira pronto
+              </p>
+            </td>
+          </tr>
+
+          <!-- Greeting -->
+          <tr>
+            <td style="padding:40px 40px 24px;">
+              <h2 style="margin:0;color:#1f2937;font-size:22px;font-weight:600;">
+                {{ client_name }}, no dejes pasar esta oportunidad
+              </h2>
+              <p style="margin:16px 0 0;color:#4b5563;font-size:16px;line-height:1.6;">
+                Tu propuesta <strong>{{ title }}</strong> está por expirar.
+                Para que no pierdas esta oportunidad, te ofrecemos un
+                <strong style="color:#dc2626;">20% de descuento</strong> si accedes hoy.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Discount card -->
+          <tr>
+            <td style="padding:0 40px 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fef2f2;border-radius:12px;border:1px solid #fecaca;">
+                <tr>
+                  <td style="padding:24px;text-align:center;">
+                    <p style="margin:0 0 4px;color:#991b1b;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">
+                      Precio especial por tiempo limitado
+                    </p>
+                    <p style="margin:0 0 4px;color:#9ca3af;font-size:16px;text-decoration:line-through;">
+                      ${{ total_investment }} {{ currency }}
+                    </p>
+                    <p style="margin:0;color:#dc2626;font-size:28px;font-weight:700;">
+                      ${{ discounted_investment }} {{ currency }}
+                    </p>
+                    <p style="margin:8px 0 0;color:#991b1b;font-size:13px;font-weight:600;">
+                      ¡Ahorras un 20%!
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Urgency badge -->
+          {% if days_remaining is not None %}
+          <tr>
+            <td style="padding:0 40px 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fef3c7;border-radius:8px;border:1px solid #fcd34d;">
+                <tr>
+                  <td style="padding:12px 16px;text-align:center;">
+                    <p style="margin:0;color:#92400e;font-size:14px;font-weight:600;">
+                      ⏰ Solo quedan {{ days_remaining }} día{{ days_remaining|pluralize:"s" }}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+
+          <!-- CTA -->
+          <tr>
+            <td style="padding:0 40px 32px;text-align:center;">
+              <a href="{{ proposal_url }}"
+                 style="display:inline-block;background-color:#dc2626;color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:600;">
+                🔥 Acceder a mi propuesta con descuento
+              </a>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 40px;">
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:0;">
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 40px 32px;text-align:center;">
+              <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.5;">
+                ¿Dudas? Respondé este correo o escríbenos por
+                <a href="https://wa.me/573238122373" style="color:#059669;text-decoration:none;font-weight:600;">WhatsApp</a>
+              </p>
+              <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;">
+                © 2026 ProjectApp.co | Bogotá, Colombia
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

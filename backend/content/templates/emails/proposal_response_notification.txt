@@ -1,0 +1,8 @@
+Propuesta {{ action_label }}
+
+Título: {{ proposal_title }}
+Cliente: {{ client_name }}
+Inversión: ${{ total_investment }} {{ currency }}
+Estado: {{ action_label }}
+
+— Notificación automática — ProjectApp.co
