@@ -12,14 +12,21 @@ class BlogPost(models.Model):
     of sources consulted (each with name and url).
     """
 
-    title = models.CharField(max_length=255)
+    title_es = models.CharField(max_length=255)
+    title_en = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     cover_image = models.ImageField(upload_to='blog/covers/', blank=True)
-    excerpt = models.TextField(
-        help_text='Short summary shown on listing cards (1-2 sentences).'
+    excerpt_es = models.TextField(
+        help_text='Resumen corto en español (1-2 oraciones).'
     )
-    content = models.TextField(
-        help_text='Full article content in HTML.'
+    excerpt_en = models.TextField(
+        help_text='Short summary in English (1-2 sentences).'
+    )
+    content_es = models.TextField(
+        help_text='Contenido completo del artículo en HTML (español).'
+    )
+    content_en = models.TextField(
+        help_text='Full article content in HTML (English).'
     )
     sources = models.JSONField(
         default=list, blank=True,
@@ -37,11 +44,11 @@ class BlogPost(models.Model):
         verbose_name_plural = 'Blog Posts'
 
     def __str__(self):
-        return self.title
+        return self.title_es
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            base_slug = slugify(self.title)
+            base_slug = slugify(self.title_es)
             slug = base_slug
             counter = 1
             while BlogPost.objects.filter(slug=slug).exclude(pk=self.pk).exists():

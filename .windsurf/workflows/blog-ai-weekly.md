@@ -40,20 +40,22 @@ De los resultados del paso 1:
 3. Usar la herramienta `ask_user_question` para que el usuario elija el tema.
 4. El usuario puede también proponer un tema diferente.
 
-## Paso 3 — Redactar el artículo
+## Paso 3 — Redactar el artículo (bilingüe ES + EN)
 
-Una vez seleccionado el tema, redactar el artículo en **español** con la siguiente estructura:
+Una vez seleccionado el tema, redactar el artículo en **ambos idiomas** (español e inglés).
 
-### Título
-- Atractivo, SEO-friendly, máximo 80 caracteres.
-- Ejemplo: "GPT-5 y el futuro de la IA generativa: lo que sabemos"
+### Títulos
+- Atractivo, SEO-friendly, máximo 80 caracteres **por idioma**.
+- Ejemplo ES: "GPT-5 y el futuro de la IA generativa: lo que sabemos"
+- Ejemplo EN: "GPT-5 and the Future of Generative AI: What We Know"
 
-### Excerpt (resumen)
+### Excerpts (resúmenes)
 - 1-2 oraciones que resuman el artículo para las tarjetas del listado.
-- Máximo 200 caracteres.
+- Máximo 200 caracteres **por idioma**.
+- No es una traducción literal — adaptar el tono a cada audiencia.
 
-### Contenido (HTML)
-Estructura del contenido con etiquetas HTML:
+### Contenido (HTML) — generar en ambos idiomas
+Estructura del contenido con etiquetas HTML (misma estructura para ES y EN):
 ```html
 <h2>Título principal del tema</h2>
 <p>Introducción y contexto de la noticia...</p>
@@ -71,12 +73,13 @@ Estructura del contenido con etiquetas HTML:
 ### Reglas de redacción
 - Tono profesional pero accesible, dirigido a audiencia tech-savvy.
 - No copiar/pegar texto de las fuentes — siempre resumir y aportar análisis.
-- Extensión: 400-800 palabras.
+- Extensión: 400-800 palabras **por idioma**.
 - Usar `<ul>`, `<ol>`, `<strong>`, `<blockquote>` cuando sea apropiado.
 - No incluir imágenes embebidas dentro del HTML del contenido.
+- El contenido en inglés NO es una traducción literal del español — debe sonar natural en cada idioma.
 
 ### Sources (fuentes)
-Preparar un array JSON con las fuentes consultadas:
+Preparar un array JSON con las fuentes consultadas (compartidas entre ambos idiomas):
 ```json
 [
   {"name": "OpenAI Blog", "url": "https://openai.com/blog/..."},
@@ -96,9 +99,9 @@ Preguntar al usuario con `ask_user_question`:
 ## Paso 5 — Crear el blog post
 
 Presentar al usuario un resumen del artículo antes de crearlo:
-- Título
-- Excerpt
-- Número de palabras del contenido
+- Título ES / Título EN
+- Excerpt ES / Excerpt EN
+- Número de palabras del contenido (ES + EN)
 - Fuentes listadas
 - Imagen (si la hay)
 
@@ -110,15 +113,18 @@ from content.models import BlogPost
 from django.utils import timezone
 
 post = BlogPost.objects.create(
-    title='TITULO_AQUI',
-    excerpt='EXCERPT_AQUI',
-    content='''CONTENIDO_HTML_AQUI''',
+    title_es='TITULO_ES_AQUI',
+    title_en='TITLE_EN_HERE',
+    excerpt_es='EXCERPT_ES_AQUI',
+    excerpt_en='EXCERPT_EN_HERE',
+    content_es='''CONTENIDO_HTML_ES_AQUI''',
+    content_en='''CONTENT_HTML_EN_HERE''',
     sources=SOURCES_JSON_AQUI,
     cover_image='URL_IMAGEN_O_VACIO',
     is_published=True,
     published_at=timezone.now(),
 )
-print(f'Blog post created: {post.title} (slug: {post.slug}, id: {post.id})')
+print(f'Blog post created: {post.title_es} / {post.title_en} (slug: {post.slug}, id: {post.id})')
 "
 ```
 
@@ -128,7 +134,7 @@ curl -X POST http://127.0.0.1:8000/api/blog/admin/create/ \
   -H "Content-Type: application/json" \
   -H "Cookie: sessionid=...; csrftoken=..." \
   -H "X-CSRFToken: ..." \
-  -d '{"title": "...", "excerpt": "...", "content": "...", "sources": [...], "is_published": true}'
+  -d '{"title_es": "...", "title_en": "...", "excerpt_es": "...", "excerpt_en": "...", "content_es": "...", "content_en": "...", "sources": [...], "is_published": true}'
 ```
 
 El método con `manage.py shell` es más confiable y no requiere sesión de admin activa.
@@ -142,7 +148,8 @@ Verificar que el post se creó correctamente:
 source /home/ryzepeck/webapps/projectapp/backend/venv/bin/activate && python /home/ryzepeck/webapps/projectapp/backend/manage.py shell -c "
 from content.models import BlogPost
 post = BlogPost.objects.filter(is_published=True).first()
-print(f'Latest post: {post.title}')
+print(f'Latest post (ES): {post.title_es}')
+print(f'Latest post (EN): {post.title_en}')
 print(f'Slug: {post.slug}')
 print(f'Published: {post.published_at}')
 print(f'Sources: {len(post.sources)} fuentes')

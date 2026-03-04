@@ -10,47 +10,93 @@
     </div>
 
     <form class="space-y-6 max-w-3xl" @submit.prevent="handleSubmit">
-      <!-- Title -->
-      <div>
-        <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Título</label>
-        <input
-          id="title"
-          v-model="form.title"
-          type="text"
-          required
-          class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm
-                 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-          placeholder="Título del artículo"
-        />
-      </div>
+      <!-- Español Section -->
+      <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
+        <legend class="text-sm font-medium text-gray-700 px-2">Español</legend>
 
-      <!-- Excerpt -->
-      <div>
-        <label for="excerpt" class="block text-sm font-medium text-gray-700 mb-1">Resumen</label>
-        <textarea
-          id="excerpt"
-          v-model="form.excerpt"
-          rows="2"
-          required
-          class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm
-                 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y"
-          placeholder="Resumen corto para las tarjetas del listado (1-2 oraciones)"
-        />
-      </div>
+        <div>
+          <label for="title_es" class="block text-sm font-medium text-gray-700 mb-1">Título (ES)</label>
+          <input
+            id="title_es"
+            v-model="form.title_es"
+            type="text"
+            required
+            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm
+                   focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+            placeholder="Título del artículo en español"
+          />
+        </div>
 
-      <!-- Content -->
-      <div>
-        <label for="content" class="block text-sm font-medium text-gray-700 mb-1">Contenido (HTML)</label>
-        <textarea
-          id="content"
-          v-model="form.content"
-          rows="14"
-          required
-          class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-mono
-                 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y"
-          placeholder="<h2>Subtítulo</h2><p>Contenido del artículo...</p>"
-        />
-      </div>
+        <div>
+          <label for="excerpt_es" class="block text-sm font-medium text-gray-700 mb-1">Resumen (ES)</label>
+          <textarea
+            id="excerpt_es"
+            v-model="form.excerpt_es"
+            rows="2"
+            required
+            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm
+                   focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y"
+            placeholder="Resumen corto en español (1-2 oraciones)"
+          />
+        </div>
+
+        <div>
+          <label for="content_es" class="block text-sm font-medium text-gray-700 mb-1">Contenido HTML (ES)</label>
+          <textarea
+            id="content_es"
+            v-model="form.content_es"
+            rows="10"
+            required
+            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-mono
+                   focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y"
+            placeholder="<h2>Subtítulo</h2><p>Contenido en español...</p>"
+          />
+        </div>
+      </fieldset>
+
+      <!-- English Section -->
+      <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
+        <legend class="text-sm font-medium text-gray-700 px-2">English</legend>
+
+        <div>
+          <label for="title_en" class="block text-sm font-medium text-gray-700 mb-1">Title (EN)</label>
+          <input
+            id="title_en"
+            v-model="form.title_en"
+            type="text"
+            required
+            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm
+                   focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+            placeholder="Article title in English"
+          />
+        </div>
+
+        <div>
+          <label for="excerpt_en" class="block text-sm font-medium text-gray-700 mb-1">Excerpt (EN)</label>
+          <textarea
+            id="excerpt_en"
+            v-model="form.excerpt_en"
+            rows="2"
+            required
+            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm
+                   focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y"
+            placeholder="Short summary in English (1-2 sentences)"
+          />
+        </div>
+
+        <div>
+          <label for="content_en" class="block text-sm font-medium text-gray-700 mb-1">Content HTML (EN)</label>
+          <textarea
+            id="content_en"
+            v-model="form.content_en"
+            rows="10"
+            required
+            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-mono
+                   focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y"
+            placeholder="<h2>Subtitle</h2><p>Content in English...</p>"
+          />
+        </div>
+      </fieldset>
 
       <!-- Cover image URL -->
       <div>
@@ -158,9 +204,12 @@ const blogStore = useBlogStore();
 const errorMsg = ref('');
 
 const form = reactive({
-  title: '',
-  excerpt: '',
-  content: '',
+  title_es: '',
+  title_en: '',
+  excerpt_es: '',
+  excerpt_en: '',
+  content_es: '',
+  content_en: '',
   cover_image: '',
   sources: [],
   is_published: false,
@@ -178,9 +227,12 @@ async function handleSubmit() {
   errorMsg.value = '';
 
   const payload = {
-    title: form.title,
-    excerpt: form.excerpt,
-    content: form.content,
+    title_es: form.title_es,
+    title_en: form.title_en,
+    excerpt_es: form.excerpt_es,
+    excerpt_en: form.excerpt_en,
+    content_es: form.content_es,
+    content_en: form.content_en,
     sources: form.sources.filter(s => s.name && s.url),
     is_published: form.is_published,
   };

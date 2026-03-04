@@ -45,12 +45,13 @@ export const useBlogStore = defineStore('blog', {
 
     /**
      * fetchPosts: List all published blog posts.
+     * @param {string} lang - Language code ('es' or 'en').
      */
-    async fetchPosts() {
+    async fetchPosts(lang = 'es') {
       this.isLoading = true;
       this.error = null;
       try {
-        const response = await get_request('blog/');
+        const response = await get_request(`blog/?lang=${lang}`);
         this.posts = response.data;
         return { success: true };
       } catch (error) {
@@ -65,12 +66,13 @@ export const useBlogStore = defineStore('blog', {
     /**
      * fetchPost: Retrieve a single published blog post by slug.
      * @param {string} slug - Post slug.
+     * @param {string} lang - Language code ('es' or 'en').
      */
-    async fetchPost(slug) {
+    async fetchPost(slug, lang = 'es') {
       this.isLoading = true;
       this.error = null;
       try {
-        const response = await get_request(`blog/${slug}/`);
+        const response = await get_request(`blog/${slug}/?lang=${lang}`);
         this.currentPost = response.data;
         return { success: true, data: response.data };
       } catch (error) {

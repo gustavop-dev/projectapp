@@ -40,9 +40,9 @@
                 :to="`/panel/blog/${post.id}/edit`"
                 class="text-sm font-medium text-gray-900 hover:text-emerald-600 transition-colors"
               >
-                {{ post.title }}
+                {{ post.title_es }}
               </NuxtLink>
-              <p class="text-xs text-gray-400 mt-0.5">{{ post.slug }}</p>
+              <p class="text-xs text-gray-400 mt-0.5">{{ post.title_en }} · {{ post.slug }}</p>
             </td>
             <td class="px-6 py-4">
               <span

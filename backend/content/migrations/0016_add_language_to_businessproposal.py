@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('content', '0015_blogpost'),
+        ('content', '0014_businessproposal_discount_percent'),
     ]
 
     operations = [

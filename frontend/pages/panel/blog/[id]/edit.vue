@@ -15,19 +15,6 @@
     </div>
 
     <form v-else-if="loaded" class="space-y-6 max-w-3xl" @submit.prevent="handleSubmit">
-      <!-- Title -->
-      <div>
-        <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Título</label>
-        <input
-          id="title"
-          v-model="form.title"
-          type="text"
-          required
-          class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm
-                 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-        />
-      </div>
-
       <!-- Slug -->
       <div>
         <label for="slug" class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
@@ -41,31 +28,87 @@
         <p class="text-xs text-gray-400 mt-1">URL: /blog/{{ form.slug || '...' }}</p>
       </div>
 
-      <!-- Excerpt -->
-      <div>
-        <label for="excerpt" class="block text-sm font-medium text-gray-700 mb-1">Resumen</label>
-        <textarea
-          id="excerpt"
-          v-model="form.excerpt"
-          rows="2"
-          required
-          class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm
-                 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y"
-        />
-      </div>
+      <!-- Español Section -->
+      <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
+        <legend class="text-sm font-medium text-gray-700 px-2">Español</legend>
 
-      <!-- Content -->
-      <div>
-        <label for="content" class="block text-sm font-medium text-gray-700 mb-1">Contenido (HTML)</label>
-        <textarea
-          id="content"
-          v-model="form.content"
-          rows="14"
-          required
-          class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-mono
-                 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y"
-        />
-      </div>
+        <div>
+          <label for="title_es" class="block text-sm font-medium text-gray-700 mb-1">Título (ES)</label>
+          <input
+            id="title_es"
+            v-model="form.title_es"
+            type="text"
+            required
+            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm
+                   focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+          />
+        </div>
+
+        <div>
+          <label for="excerpt_es" class="block text-sm font-medium text-gray-700 mb-1">Resumen (ES)</label>
+          <textarea
+            id="excerpt_es"
+            v-model="form.excerpt_es"
+            rows="2"
+            required
+            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm
+                   focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y"
+          />
+        </div>
+
+        <div>
+          <label for="content_es" class="block text-sm font-medium text-gray-700 mb-1">Contenido HTML (ES)</label>
+          <textarea
+            id="content_es"
+            v-model="form.content_es"
+            rows="10"
+            required
+            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-mono
+                   focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y"
+          />
+        </div>
+      </fieldset>
+
+      <!-- English Section -->
+      <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
+        <legend class="text-sm font-medium text-gray-700 px-2">English</legend>
+
+        <div>
+          <label for="title_en" class="block text-sm font-medium text-gray-700 mb-1">Title (EN)</label>
+          <input
+            id="title_en"
+            v-model="form.title_en"
+            type="text"
+            required
+            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm
+                   focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+          />
+        </div>
+
+        <div>
+          <label for="excerpt_en" class="block text-sm font-medium text-gray-700 mb-1">Excerpt (EN)</label>
+          <textarea
+            id="excerpt_en"
+            v-model="form.excerpt_en"
+            rows="2"
+            required
+            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm
+                   focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y"
+          />
+        </div>
+
+        <div>
+          <label for="content_en" class="block text-sm font-medium text-gray-700 mb-1">Content HTML (EN)</label>
+          <textarea
+            id="content_en"
+            v-model="form.content_en"
+            rows="10"
+            required
+            class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-mono
+                   focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y"
+          />
+        </div>
+      </fieldset>
 
       <!-- Cover image URL -->
       <div>
@@ -190,10 +233,13 @@ const successMsg = ref('');
 const imgError = ref(false);
 
 const form = reactive({
-  title: '',
+  title_es: '',
+  title_en: '',
   slug: '',
-  excerpt: '',
-  content: '',
+  excerpt_es: '',
+  excerpt_en: '',
+  content_es: '',
+  content_en: '',
   cover_image: '',
   sources: [],
   is_published: false,
@@ -208,10 +254,13 @@ onMounted(async () => {
 });
 
 function populateForm(data) {
-  form.title = data.title || '';
+  form.title_es = data.title_es || '';
+  form.title_en = data.title_en || '';
   form.slug = data.slug || '';
-  form.excerpt = data.excerpt || '';
-  form.content = data.content || '';
+  form.excerpt_es = data.excerpt_es || '';
+  form.excerpt_en = data.excerpt_en || '';
+  form.content_es = data.content_es || '';
+  form.content_en = data.content_en || '';
   form.cover_image = data.cover_image || '';
   form.sources = Array.isArray(data.sources)
     ? data.sources.map(s => ({ ...s }))
@@ -236,10 +285,13 @@ async function handleSubmit() {
   successMsg.value = '';
 
   const payload = {
-    title: form.title,
+    title_es: form.title_es,
+    title_en: form.title_en,
     slug: form.slug,
-    excerpt: form.excerpt,
-    content: form.content,
+    excerpt_es: form.excerpt_es,
+    excerpt_en: form.excerpt_en,
+    content_es: form.content_es,
+    content_en: form.content_en,
     sources: form.sources.filter(s => s.name && s.url),
     is_published: form.is_published,
   };

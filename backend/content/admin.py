@@ -68,14 +68,20 @@ class BlogPostAdmin(admin.ModelAdmin):
     """
     Custom admin configuration for the BlogPost model.
     """
-    list_display = ('title', 'slug', 'is_published', 'published_at', 'created_at')
+    list_display = ('title_es', 'title_en', 'slug', 'is_published', 'published_at', 'created_at')
     list_filter = ('is_published',)
-    search_fields = ('title', 'excerpt', 'content')
-    prepopulated_fields = {'slug': ('title',)}
+    search_fields = ('title_es', 'title_en', 'excerpt_es', 'excerpt_en', 'content_es', 'content_en')
+    prepopulated_fields = {'slug': ('title_es',)}
     readonly_fields = ('created_at', 'updated_at')
     fieldsets = (
+        ('Español', {
+            'fields': ('title_es', 'excerpt_es', 'content_es'),
+        }),
+        ('English', {
+            'fields': ('title_en', 'excerpt_en', 'content_en'),
+        }),
         (None, {
-            'fields': ('title', 'slug', 'cover_image', 'excerpt', 'content'),
+            'fields': ('slug', 'cover_image'),
         }),
         ('Sources', {
             'fields': ('sources',),

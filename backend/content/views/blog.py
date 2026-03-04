@@ -8,6 +8,8 @@ from rest_framework.response import Response
 
 from content.models import BlogPost
 from content.serializers.blog import (
+    BlogPostAdminDetailSerializer,
+    BlogPostAdminListSerializer,
     BlogPostCreateUpdateSerializer,
     BlogPostDetailSerializer,
     BlogPostListSerializer,
@@ -25,9 +27,12 @@ logger = logging.getLogger(__name__)
 def list_blog_posts(request):
     """
     List all published blog posts, ordered by published_at descending.
+    Accepts ?lang=es|en query param (default 'es').
     """
     qs = BlogPost.objects.filter(is_published=True)
-    serializer = BlogPostListSerializer(qs, many=True)
+    serializer = BlogPostListSerializer(
+        qs, many=True, context={'request': request}
+    )
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -36,10 +41,13 @@ def list_blog_posts(request):
 def retrieve_blog_post(request, slug):
     """
     Retrieve a single published blog post by slug.
+    Accepts ?lang=es|en query param (default 'es').
     Returns 404 if not found or not published.
     """
     post = get_object_or_404(BlogPost, slug=slug, is_published=True)
-    serializer = BlogPostDetailSerializer(post)
+    serializer = BlogPostDetailSerializer(
+        post, context={'request': request}
+    )
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -52,9 +60,10 @@ def retrieve_blog_post(request, slug):
 def list_admin_blog_posts(request):
     """
     List all blog posts (including drafts) for admin management.
+    Returns all bilingual fields.
     """
     qs = BlogPost.objects.all()
-    serializer = BlogPostListSerializer(qs, many=True)
+    serializer = BlogPostAdminListSerializer(qs, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -69,7 +78,7 @@ def create_blog_post(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     post = serializer.save()
-    detail = BlogPostDetailSerializer(post)
+    detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_201_CREATED)
 
 
@@ -78,9 +87,10 @@ def create_blog_post(request):
 def retrieve_admin_blog_post(request, post_id):
     """
     Retrieve full blog post detail for admin editing.
+    Returns all bilingual fields.
     """
     post = get_object_or_404(BlogPost, pk=post_id)
-    serializer = BlogPostDetailSerializer(post)
+    serializer = BlogPostAdminDetailSerializer(post)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -98,7 +108,7 @@ def update_blog_post(request, post_id):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     serializer.save()
-    detail = BlogPostDetailSerializer(post)
+    detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_200_OK)
 
 
