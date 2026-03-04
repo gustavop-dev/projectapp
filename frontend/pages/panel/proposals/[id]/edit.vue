@@ -44,8 +44,8 @@
           <div>
             <span class="text-gray-400 text-xs">URL pública</span>
             <p class="mt-0.5">
-              <a :href="proposal.public_url" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
-                {{ proposal.public_url }}
+              <a :href="'/proposal/' + proposal.uuid" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
+                /proposal/{{ proposal.uuid }}
               </a>
             </p>
           </div>

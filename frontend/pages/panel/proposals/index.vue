@@ -90,26 +90,46 @@
             </td>
             <td class="px-6 py-4 text-sm text-gray-600 tabular-nums">{{ p.view_count }}</td>
             <td class="px-6 py-4">
-              <div class="flex items-center gap-2">
-                <NuxtLink
-                  :to="`/panel/proposals/${p.id}/edit`"
-                  class="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-                >
-                  Editar
-                </NuxtLink>
+              <div class="relative">
                 <button
-                  v-if="p.status === 'draft'"
-                  class="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                  @click="handleSend(p.id)"
+                  class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+                  @click.stop="toggleDropdown(p.id)"
                 >
-                  Enviar
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                  </svg>
                 </button>
-                <button
-                  class="text-xs text-red-500 hover:text-red-700 font-medium"
-                  @click="handleDelete(p.id)"
+                <div
+                  v-if="openDropdownId === p.id"
+                  class="absolute right-0 mt-1 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50"
                 >
-                  Eliminar
-                </button>
+                  <NuxtLink
+                    :to="`/panel/proposals/${p.id}/edit`"
+                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Editar
+                  </NuxtLink>
+                  <button
+                    v-if="p.status === 'draft'"
+                    class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
+                    @click="handleSend(p.id)"
+                  >
+                    Enviar
+                  </button>
+                  <a
+                    :href="'/proposal/' + p.uuid"
+                    target="_blank"
+                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Preview
+                  </a>
+                  <button
+                    class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    @click="handleDelete(p.id)"
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </div>
             </td>
           </tr>
@@ -120,13 +140,28 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const proposalStore = useProposalStore();
 const proposals = computed(() => proposalStore.proposals);
 const activeFilter = ref('');
+const openDropdownId = ref(null);
+
+function toggleDropdown(id) {
+  openDropdownId.value = openDropdownId.value === id ? null : id;
+}
+
+function closeDropdown(e) {
+  if (openDropdownId.value !== null) {
+    openDropdownId.value = null;
+  }
+}
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeDropdown);
+});
 
 const statusOptions = [
   { value: '', label: 'Todas' },
@@ -139,6 +174,7 @@ const statusOptions = [
 
 onMounted(() => {
   proposalStore.fetchProposals();
+  document.addEventListener('click', closeDropdown);
 });
 
 function filterByStatus(status) {

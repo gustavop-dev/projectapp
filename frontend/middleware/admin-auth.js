@@ -17,13 +17,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     if (!result.success) {
       if (import.meta.client) {
-        window.location.href = '/admin/';
+        window.location.href = `/admin/login/?next=${to.fullPath}`;
       }
       return abortNavigation();
     }
   } catch {
     if (import.meta.client) {
-      window.location.href = '/admin/';
+      window.location.href = `/admin/login/?next=${to.fullPath}`;
     }
     return abortNavigation();
   }
