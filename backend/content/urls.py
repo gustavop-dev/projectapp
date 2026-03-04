@@ -47,14 +47,14 @@ urlpatterns = [
     # Proposals — section editing
     path('proposals/sections/<int:section_id>/update/', update_proposal_section, name='update-proposal-section'),
 
-    # Blog — public
-    path('blog/', list_blog_posts, name='list-blog-posts'),
-    path('blog/<slug:slug>/', retrieve_blog_post, name='retrieve-blog-post'),
-
-    # Blog — admin CRUD
+    # Blog — admin CRUD (must come before slug catch-all)
     path('blog/admin/', list_admin_blog_posts, name='list-admin-blog-posts'),
     path('blog/admin/create/', create_blog_post, name='create-blog-post'),
     path('blog/admin/<int:post_id>/detail/', retrieve_admin_blog_post, name='retrieve-admin-blog-post'),
     path('blog/admin/<int:post_id>/update/', update_blog_post, name='update-blog-post'),
     path('blog/admin/<int:post_id>/delete/', delete_blog_post, name='delete-blog-post'),
+
+    # Blog — public
+    path('blog/', list_blog_posts, name='list-blog-posts'),
+    path('blog/<slug:slug>/', retrieve_blog_post, name='retrieve-blog-post'),
 ]

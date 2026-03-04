@@ -9,15 +9,19 @@
         <span class="text-gray-300">|</span>
         <NuxtLink
           to="/panel/proposals"
-          class="text-gray-600 hover:text-emerald-600 transition-colors text-sm font-medium"
-          active-class="text-emerald-600"
+          class="text-sm font-medium transition-colors border-b-2 pb-0.5"
+          :class="isModule('proposals')
+            ? 'text-emerald-600 border-emerald-600'
+            : 'text-gray-500 border-transparent hover:text-emerald-600'"
         >
           Propuestas
         </NuxtLink>
         <NuxtLink
           to="/panel/blog"
-          class="text-gray-600 hover:text-emerald-600 transition-colors text-sm font-medium"
-          active-class="text-emerald-600"
+          class="text-sm font-medium transition-colors border-b-2 pb-0.5"
+          :class="isModule('blog')
+            ? 'text-emerald-600 border-emerald-600'
+            : 'text-gray-500 border-transparent hover:text-emerald-600'"
         >
           Blog
         </NuxtLink>
@@ -37,4 +41,9 @@
 </template>
 
 <script setup>
+const route = useRoute();
+
+function isModule(module) {
+  return route.path.includes(`/panel/${module}`);
+}
 </script>

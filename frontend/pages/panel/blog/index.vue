@@ -104,7 +104,7 @@ function formatDate(dateStr) {
 }
 
 async function handleDelete(post) {
-  if (!confirm(`¿Eliminar "${post.title}"?`)) return;
+  if (!confirm(`¿Eliminar "${post.title_es}"?`)) return;
   await blogStore.deletePost(post.id);
 }
 </script>

@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-lemon" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="bg-white" itemscope itemtype="https://schema.org/BlogPosting">
     <!-- Navbar -->
     <header class="fixed top-0 left-0 w-full z-50">
       <Navbar />
