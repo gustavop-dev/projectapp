@@ -10,7 +10,14 @@
     "build:django": "node update-django-template.js",
     "preview": "nuxi preview",
     "postinstall": "nuxi prepare",
-    "optimize-images": "node scripts/optimize-images.js"
+    "optimize-images": "node scripts/optimize-images.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage && node scripts/coverage-summary.cjs",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:coverage": "playwright test",
+    "e2e:clean": "rm -rf e2e-results"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.22",
