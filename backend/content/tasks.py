@@ -79,6 +79,7 @@ def send_urgency_emails():
         expires_at__lte=two_days_later,
         expires_at__gt=now,
         urgency_email_sent_at__isnull=True,
+        discount_percent__gt=0,
     ).exclude(client_email='')
 
     count = 0

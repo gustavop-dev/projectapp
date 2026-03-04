@@ -2,7 +2,7 @@
 
 {{ title }}
 
-Oferta especial: 20% de descuento si accedes hoy.
+Oferta especial: {{ discount_percent }}% de descuento si accedes hoy.
 
 Precio original: ${{ total_investment }} {{ currency }}
 Precio con descuento: ${{ discounted_investment }} {{ currency }}

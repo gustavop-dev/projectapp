@@ -107,7 +107,7 @@ class BusinessProposalAdmin(admin.ModelAdmin):
             'fields': ('total_investment', 'currency'),
         }),
         ('Status & Lifecycle', {
-            'fields': ('status', 'expires_at', 'reminder_days', 'reminder_sent_at'),
+            'fields': ('status', 'expires_at', 'reminder_days', 'discount_percent', 'reminder_sent_at'),
         }),
         ('Tracking', {
             'fields': ('view_count', 'first_viewed_at', 'sent_at'),

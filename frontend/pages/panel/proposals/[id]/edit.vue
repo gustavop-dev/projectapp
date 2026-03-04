@@ -103,6 +103,12 @@
             <input v-model.number="form.reminder_days" type="number" min="1" max="30"
               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
           </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Descuento (%)</label>
+            <input v-model.number="form.discount_percent" type="number" min="0" max="100"
+              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+            <p class="text-xs text-gray-400 mt-1">0 = sin descuento en email de urgencia.</p>
+          </div>
 
           <div v-if="updateMsg" class="text-sm px-4 py-3 rounded-xl" :class="updateMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'">
             {{ updateMsg.text }}
@@ -212,6 +218,7 @@ const form = reactive({
   currency: 'COP',
   expires_at: '',
   reminder_days: 5,
+  discount_percent: 20,
 });
 
 onMounted(async () => {
@@ -228,6 +235,7 @@ onMounted(async () => {
         ? proposal.value.expires_at.slice(0, 16)
         : '',
       reminder_days: proposal.value.reminder_days,
+      discount_percent: proposal.value.discount_percent ?? 20,
     });
   }
 });

@@ -99,6 +99,20 @@
           <p class="text-xs text-gray-400 mt-1">Después de enviar la propuesta, se enviará un email recordatorio al cliente.</p>
         </div>
 
+        <!-- Discount -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Descuento (%)</label>
+          <input
+            v-model.number="form.discount_percent"
+            type="number"
+            min="0"
+            max="100"
+            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+          />
+          <p class="text-xs text-gray-400 mt-1">Si es mayor a 0, se enviará un email de urgencia con descuento 2 días antes de expirar. 0 = sin descuento.</p>
+        </div>
+
         <!-- Errors -->
         <div v-if="errorMsg" class="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl">
           {{ errorMsg }}
@@ -145,6 +159,7 @@ const form = reactive({
   currency: 'COP',
   expires_at: defaultExpiryStr,
   reminder_days: 5,
+  discount_percent: 20,
 });
 
 async function handleSubmit() {

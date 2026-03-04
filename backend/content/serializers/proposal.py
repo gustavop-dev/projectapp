@@ -128,7 +128,7 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
         fields = (
             'title', 'client_name', 'client_email', 'slug',
             'total_investment', 'currency', 'status',
-            'expires_at', 'reminder_days',
+            'expires_at', 'reminder_days', 'discount_percent',
         )
 
     def validate_expires_at(self, value):

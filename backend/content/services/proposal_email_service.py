@@ -95,7 +95,9 @@ class ProposalEmailService:
     @classmethod
     def send_urgency_email(cls, proposal):
         """
-        Send an urgency email with 20% discount offer 2 days before expiry.
+        Send an urgency email with discount offer 2 days before expiry.
+
+        Only sends if proposal.discount_percent > 0.
 
         Args:
             proposal: BusinessProposal instance with client_email set.
@@ -106,8 +108,12 @@ class ProposalEmailService:
         if not proposal.client_email:
             return False
 
+        if not proposal.discount_percent or proposal.discount_percent <= 0:
+            return False
+
         from decimal import Decimal
-        discounted = proposal.total_investment * Decimal('0.80')
+        discount_factor = Decimal(100 - proposal.discount_percent) / Decimal(100)
+        discounted = proposal.total_investment * discount_factor
 
         context = {
             'client_name': proposal.client_name,
@@ -116,6 +122,7 @@ class ProposalEmailService:
             'expires_at': proposal.expires_at,
             'total_investment': proposal.total_investment,
             'discounted_investment': discounted,
+            'discount_percent': proposal.discount_percent,
             'currency': proposal.currency,
             'title': proposal.title,
         }
