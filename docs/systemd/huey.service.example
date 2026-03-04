@@ -1,0 +1,16 @@
+[Unit]
+Description=Huey Task Queue for projectapp
+After=network.target redis.service
+
+[Service]
+Type=simple
+User=ryzepeck
+Group=www-data
+WorkingDirectory=/home/ryzepeck/webapps/projectapp/backend
+ExecStart=/home/ryzepeck/webapps/projectapp/backend/venv/bin/python manage.py run_huey
+Environment="DJANGO_SETTINGS_MODULE=projectapp.settings_prod"
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,23 @@
+[Unit]
+Description=Gunicorn daemon for projectapp
+Requires=projectapp.socket
+After=network.target
+
+[Service]
+Type=notify
+User=ryzepeck
+Group=www-data
+WorkingDirectory=/home/ryzepeck/webapps/projectapp/backend
+ExecStart=/home/ryzepeck/webapps/projectapp/backend/venv/bin/gunicorn \
+    --workers 2 \
+    --max-requests 800 \
+    --max-requests-jitter 80 \
+    --timeout 120 \
+    --bind unix:/run/projectapp.sock \
+    projectapp.wsgi:application
+Environment="DJANGO_SETTINGS_MODULE=projectapp.settings_prod"
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
