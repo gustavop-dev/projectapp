@@ -1,0 +1,1 @@
+import{r as u,D as t}from"./Dj5DaplH.js";function h({videos:r=[],images:o=[],modals:c=[]}={}){const a=c.map(()=>u(!1)),f=()=>{r.forEach(e=>{e.value&&(e.value.src="",e.value.load())}),o.forEach(e=>{e.value&&(e.value.src="")})},s=()=>{a.forEach(e=>{e.value=!1})};return t(a,e=>{e.some(l=>l)&&s()}),{modalRefs:a,closeModals:s,freeMediaResources:f}}export{h as u};
