@@ -47,6 +47,20 @@
           />
         </div>
 
+        <!-- Language -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Idioma de la propuesta</label>
+          <select
+            v-model="form.language"
+            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
+          >
+            <option value="es">Español</option>
+            <option value="en">English</option>
+          </select>
+          <p class="text-xs text-gray-400 mt-1">Define los títulos e índices por defecto de las secciones.</p>
+        </div>
+
         <!-- Investment + Currency -->
         <div class="grid grid-cols-2 gap-4">
           <div>
@@ -155,6 +169,7 @@ const form = reactive({
   title: '',
   client_name: '',
   client_email: '',
+  language: 'es',
   total_investment: 0,
   currency: 'COP',
   expires_at: defaultExpiryStr,

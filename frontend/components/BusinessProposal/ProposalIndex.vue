@@ -1,8 +1,8 @@
 <template>
   <div class="proposal-index fixed left-0 top-0 z-40 h-full flex items-center">
-    <!-- Toggle button (mobile) -->
+    <!-- Toggle button (always visible) -->
     <button
-      class="index-toggle absolute left-4 top-4 z-50 lg:hidden
+      class="index-toggle absolute left-4 top-4 z-50
              w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg
              flex items-center justify-center text-emerald-600
              hover:bg-emerald-50 transition-colors"
@@ -21,7 +21,7 @@
       class="index-panel ml-4 py-6 px-4 rounded-2xl
              bg-white/90 backdrop-blur-md shadow-xl border border-gray-100
              transition-all duration-300 max-h-[80vh] overflow-y-auto"
-      :class="{ 'translate-x-[-120%] lg:translate-x-0': !isOpen }"
+      :class="{ 'translate-x-[-120%]': !isOpen }"
     >
       <p class="text-[10px] uppercase tracking-[0.2em] text-emerald-600 font-medium mb-4 px-2">
         Índice

@@ -11,7 +11,7 @@
         <div class="relative h-full rounded-b-xl bg-window-black bg-opacity-40 backdrop-blur-md flex flex-col justify-between py-4">
             <nav aria-label="Mobile website sections" class="grid grid-cols-2 auto-rows-min text-white">
               <NuxtLink
-                :to="localePath(item.href)" 
+                :to="item.absolute ? item.href : localePath(item.href)" 
                 v-for="item in solutions" 
                 :key="item.name" 
                 class="flex p-1 ps-4 font-regular text-white text-sm relative group"
@@ -97,6 +97,7 @@ const solutions = computed(() => [
   { name: globalMessages.value?.solutions?.animations_3d, href: '/3d-animations' },
   { name: globalMessages.value?.solutions?.prices, href: '/e-commerce-prices' },
   { name: globalMessages.value?.solutions?.hosting, href: '/hosting' },
+  { name: globalMessages.value?.solutions?.blog || 'Blog', href: '/blog', absolute: true },
 ]);
 
 const mainVideo = ref(null);

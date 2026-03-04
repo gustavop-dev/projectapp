@@ -28,6 +28,10 @@ class Command(BaseCommand):
 
         # Create fake data for business proposals
         self.stdout.write(self.style.SUCCESS('Creating fake business proposals...'))
-        call_command('create_fake_proposals', '--count', str(number_of_records))
+        call_command('create_fake_proposals')
+
+        # Create fake data for blog posts
+        self.stdout.write(self.style.SUCCESS('Creating fake blog posts...'))
+        call_command('create_fake_blog_posts', '--count', str(number_of_records))
 
         self.stdout.write(self.style.SUCCESS('All fake data has been created'))

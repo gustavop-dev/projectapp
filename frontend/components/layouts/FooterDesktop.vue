@@ -19,7 +19,7 @@
           <div class="flex justify-end w-full">
             <nav aria-label="Website sections" class="md:w-max grid grid-cols-2 text-white mt-4">
               <NuxtLink
-                :to="localePath(item.href)" 
+                :to="item.absolute ? item.href : localePath(item.href)" 
                 v-for="item in solutions" 
                 :key="item.name" 
                 class="flex p-2 ps-4 font-regular text-white text-xl relative group"
@@ -199,6 +199,7 @@ const solutions = computed(() => {
     { name: s.animations_3d || '3D Animations', href: '/3d-animations' },
     { name: s.prices || 'E-commerce pricing', href: '/e-commerce-prices' },
     { name: s.hosting || 'Hosting', href: '/hosting' },
+    { name: s.blog || 'Blog', href: '/blog', absolute: true },
   ];
 });
 

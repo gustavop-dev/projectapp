@@ -11,6 +11,7 @@ export default {
         animations_3d: "3D Animations",
         prices: "E-commerce pricing",
         hosting: "Hosting",
+        blog: "Blog",
       },
       contact_us: "Contact Us"
     },
@@ -63,6 +64,7 @@ export default {
         animations_3d: "3D Animations",
         prices: "E-commerce pricing",
         hosting: "Hosting",
+        blog: "Blog",
       },
     },
   };

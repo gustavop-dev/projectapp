@@ -54,7 +54,7 @@ const props = defineProps({
   content: {
     type: Object,
     default: () => ({
-      index: '01',
+      index: '1',
       title: 'Resumen ejecutivo',
       paragraphs: [
         'Crearemos una landing page profesional enfocada en presentar tu perfil y portafolio de servicios, y facilitar que los visitantes te contacten de forma rápida.',

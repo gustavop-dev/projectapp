@@ -152,24 +152,27 @@ function getSectionProps(section) {
   }
 
   if (section.section_type === 'functional_requirements') {
-    // Merge content_json metadata with requirement_groups from proposal
-    const groups = proposal.value?.requirement_groups || [];
+    // Use groups from content_json; fall back to legacy requirement_groups from proposal
+    let groups = content.groups || [];
+    if (!groups.length) {
+      const legacyGroups = proposal.value?.requirement_groups || [];
+      groups = legacyGroups.map((g) => ({
+        id: g.group_id,
+        icon: g.title?.trim().split(' ')[0] || '🧩',
+        title: g.title?.trim().split(' ').slice(1).join(' ') || g.title,
+        description: g.description,
+        items: (g.items || []).map((item) => ({
+          icon: item.icon,
+          name: item.name,
+          description: item.description,
+        })),
+      }));
+    }
     return {
       data: {
         ...content,
-        groups: groups.map((g) => ({
-          id: g.group_id,
-          title: g.title,
-          description: g.description,
-          items: (g.items || []).map((item) => ({
-            id: item.item_id,
-            icon: item.icon,
-            name: item.name,
-            description: item.description,
-            options: item.options || [],
-            fields: item.fields || [],
-          })),
-        })),
+        groups,
+        additionalModules: content.additionalModules || [],
       },
     };
   }

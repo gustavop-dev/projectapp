@@ -12,6 +12,11 @@ from content.views.proposal import (
     update_proposal_section, bulk_reorder_sections,
     respond_to_proposal, check_admin_auth,
 )
+from content.views.blog import (
+    list_blog_posts, retrieve_blog_post,
+    list_admin_blog_posts, create_blog_post,
+    retrieve_admin_blog_post, update_blog_post, delete_blog_post,
+)
 
 urlpatterns = [
     path('contacts/', contact_list, name='contact-list'),
@@ -41,4 +46,15 @@ urlpatterns = [
 
     # Proposals — section editing
     path('proposals/sections/<int:section_id>/update/', update_proposal_section, name='update-proposal-section'),
+
+    # Blog — public
+    path('blog/', list_blog_posts, name='list-blog-posts'),
+    path('blog/<slug:slug>/', retrieve_blog_post, name='retrieve-blog-post'),
+
+    # Blog — admin CRUD
+    path('blog/admin/', list_admin_blog_posts, name='list-admin-blog-posts'),
+    path('blog/admin/create/', create_blog_post, name='create-blog-post'),
+    path('blog/admin/<int:post_id>/detail/', retrieve_admin_blog_post, name='retrieve-admin-blog-post'),
+    path('blog/admin/<int:post_id>/update/', update_blog_post, name='update-blog-post'),
+    path('blog/admin/<int:post_id>/delete/', delete_blog_post, name='delete-blog-post'),
 ]

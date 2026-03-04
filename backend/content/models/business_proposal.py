@@ -26,6 +26,10 @@ class BusinessProposal(models.Model):
         COP = 'COP', 'COP'
         USD = 'USD', 'USD'
 
+    class Language(models.TextChoices):
+        ES = 'es', 'Español'
+        EN = 'en', 'English'
+
     # Identity
     uuid = models.UUIDField(
         default=uuid.uuid4, unique=True, editable=False, db_index=True
@@ -34,6 +38,11 @@ class BusinessProposal(models.Model):
     client_name = models.CharField(max_length=255)
     client_email = models.EmailField(blank=True)
     slug = models.SlugField(max_length=255, blank=True)
+
+    # Language
+    language = models.CharField(
+        max_length=2, choices=Language.choices, default=Language.ES
+    )
 
     # Financial
     total_investment = models.DecimalField(

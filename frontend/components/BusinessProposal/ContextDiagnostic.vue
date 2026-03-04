@@ -11,8 +11,8 @@
           </h2>
         </div>
 
-        <div class="grid lg:grid-cols-12 gap-10 items-start">
-          <div class="lg:col-span-8 space-y-6">
+        <div class="grid lg:grid-cols-5 gap-10 items-start">
+          <div class="lg:col-span-3 space-y-6">
             <p
               v-for="(paragraph, idx) in content.paragraphs"
               :key="idx"
@@ -31,7 +31,7 @@
             </div>
           </div>
 
-          <aside v-if="content.issues?.length" class="lg:col-span-4">
+          <aside v-if="content.issues?.length" class="lg:col-span-2">
             <div class="rounded-3xl bg-esmerald-light/60 p-6 md:p-8">
               <h3 class="text-esmerald font-light text-base md:text-lg tracking-wide mb-5">
                 {{ content.issuesTitle }}
@@ -63,7 +63,7 @@ const props = defineProps({
   content: {
     type: Object,
     default: () => ({
-      index: '02',
+      index: '2',
       title: 'Contexto y diagnóstico',
       paragraphs: [
         'Actualmente, el proyecto está en una etapa donde es clave fortalecer la presencia digital y mostrar el perfil de forma profesional para generar confianza desde el primer contacto 🌐✅.',

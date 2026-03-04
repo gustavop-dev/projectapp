@@ -71,7 +71,7 @@ const props = defineProps({
   content: {
     type: Object,
     default: () => ({
-      index: '03',
+      index: '3',
       title: 'Enfoque propuesto y estrategia de conversión',
       intro: 'La landing se construirá como una herramienta para generar confianza y convertir visitas en conversaciones (personas que preguntan y agendan) ✅📲. Para lograrlo, la página seguirá un flujo sencillo y natural:',
       steps: [

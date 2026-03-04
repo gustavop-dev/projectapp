@@ -89,7 +89,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         model = BusinessProposal
         fields = (
             'id', 'uuid', 'title', 'client_name', 'client_email', 'slug',
-            'total_investment', 'currency', 'status', 'expires_at',
+            'language', 'total_investment', 'currency', 'status', 'expires_at',
             'reminder_days', 'discount_percent', 'reminder_sent_at', 'view_count',
             'first_viewed_at', 'sent_at', 'created_at', 'updated_at',
             'sections', 'requirement_groups',
@@ -127,7 +127,7 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
         model = BusinessProposal
         fields = (
             'title', 'client_name', 'client_email', 'slug',
-            'total_investment', 'currency', 'status',
+            'language', 'total_investment', 'currency', 'status',
             'expires_at', 'reminder_days', 'discount_percent',
         )
 

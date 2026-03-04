@@ -10,3 +10,7 @@ from .proposal import (
     ProposalSectionListSerializer, ProposalSectionUpdateSerializer,
     ProposalRequirementGroupSerializer, ProposalRequirementItemSerializer,
 )
+from .blog import (
+    BlogPostListSerializer, BlogPostDetailSerializer,
+    BlogPostCreateUpdateSerializer,
+)

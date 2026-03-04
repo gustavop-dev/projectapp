@@ -63,7 +63,7 @@ const props = defineProps({
   content: {
     type: Object,
     default: () => ({
-      index: '04',
+      index: '4',
       title: 'Diseño visual y experiencia de usuario',
       paragraphs: [
         'El desarrollo web será concebido como una experiencia digital de bienestar, calma y conexión interior. La página reflejará la esencia del método, transmitiendo serenidad, autenticidad y transformación personal a través de un diseño visual armónico y elegante 🌿✨.',

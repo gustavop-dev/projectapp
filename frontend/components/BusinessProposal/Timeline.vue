@@ -4,10 +4,10 @@
       <div class="section-header mb-12">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
-            08
+            {{ index }}
           </span>
           <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
-            Cronograma del Proyecto
+            {{ title }}
           </h2>
         </div>
       </div>
@@ -54,10 +54,10 @@
                       <span>{{ phase.duration }}</span>
                     </div>
                   </div>
-                  <div class="mt-4 md:mt-0">
+                  <div v-if="phase.weeks" class="mt-4 md:mt-0">
                     <span class="inline-block px-4 py-2 rounded-full text-sm font-medium"
-                          :class="phase.statusColor">
-                      {{ phase.weeks }}
+                          :class="phase.statusColor || 'bg-gray-100 text-gray-700'">
+                      {{ typeof phase.weeks === 'string' ? phase.weeks : 'Semanas: ' + (Array.isArray(phase.weeks) ? phase.weeks.join(', ') : phase.weeks) }}
                     </span>
                   </div>
                 </div>
@@ -88,18 +88,6 @@
         </div>
       </div>
 
-      <div class="project-calendar mt-12 bg-white p-8 md:p-10 rounded-2xl shadow-sm">
-        <h3 class="text-2xl font-bold text-gray-900 mb-6">Vista de Calendario</h3>
-        <div class="calendar-grid grid grid-cols-7 gap-2">
-          <div v-for="(week, index) in calendarWeeks" :key="index"
-               class="calendar-week text-center p-4 rounded-lg"
-               :class="week.class">
-            <div class="text-xs text-gray-600 mb-1">Semana</div>
-            <div class="text-lg font-bold" :class="week.textColor">{{ week.number }}</div>
-            <div class="text-xs mt-1" :class="week.textColor">{{ week.phase }}</div>
-          </div>
-        </div>
-      </div>
     </div>
   </section>
 </template>
@@ -112,6 +100,14 @@ const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
 
 const props = defineProps({
+  index: {
+    type: String,
+    default: '8'
+  },
+  title: {
+    type: String,
+    default: 'Cronograma del Proyecto'
+  },
   introText: {
     type: String,
     default: 'Este cronograma detalla cada fase del proyecto con tiempos realistas. Mantenemos flexibilidad para ajustes según tus necesidades, pero nos comprometemos a cumplir los plazos acordados.'
@@ -205,23 +201,6 @@ const props = defineProps({
       }
     ]
   },
-  calendarWeeks: {
-    type: Array,
-    default: () => [
-      { number: 1, phase: 'Discovery', class: 'bg-blue-50', textColor: 'text-blue-700' },
-      { number: 2, phase: 'Discovery', class: 'bg-blue-50', textColor: 'text-blue-700' },
-      { number: 3, phase: 'Design', class: 'bg-purple-50', textColor: 'text-purple-700' },
-      { number: 4, phase: 'Design', class: 'bg-purple-50', textColor: 'text-purple-700' },
-      { number: 5, phase: 'Design', class: 'bg-purple-50', textColor: 'text-purple-700' },
-      { number: 6, phase: 'Dev', class: 'bg-green-50', textColor: 'text-green-700' },
-      { number: 7, phase: 'Dev', class: 'bg-green-50', textColor: 'text-green-700' },
-      { number: 8, phase: 'Dev', class: 'bg-green-50', textColor: 'text-green-700' },
-      { number: 9, phase: 'Dev', class: 'bg-green-50', textColor: 'text-green-700' },
-      { number: 10, phase: 'Testing', class: 'bg-orange-50', textColor: 'text-orange-700' },
-      { number: 11, phase: 'Testing', class: 'bg-orange-50', textColor: 'text-orange-700' },
-      { number: 12, phase: 'Launch', class: 'bg-pink-50', textColor: 'text-pink-700' }
-    ]
-  }
 });
 </script>
 

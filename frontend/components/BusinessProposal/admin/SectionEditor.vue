@@ -60,13 +60,16 @@
       <!-- GREETING -->
       <template v-if="sectionType === 'greeting'">
         <FieldInput v-model="form.clientName" label="Nombre del cliente" />
+        <p v-if="!form.clientName && proposalData?.client_name" class="text-xs text-amber-600 -mt-3">
+          ⚠ Vacío — se usará "{{ proposalData.client_name }}" de los datos generales.
+        </p>
         <FieldTextarea v-model="form.inspirationalQuote" label="Frase inspiracional" :rows="2" />
       </template>
 
       <!-- EXECUTIVE SUMMARY -->
       <template v-else-if="sectionType === 'executive_summary'">
         <div class="grid grid-cols-2 gap-4">
-          <FieldInput v-model="form.index" label="Índice" placeholder="01" />
+          <FieldInput v-model="form.index" label="Índice" placeholder="1" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
         <FieldTextarea v-model="form.paragraphs" label="Párrafos" help="Un párrafo por línea" :rows="6" />
@@ -77,7 +80,7 @@
       <!-- CONTEXT DIAGNOSTIC -->
       <template v-else-if="sectionType === 'context_diagnostic'">
         <div class="grid grid-cols-2 gap-4">
-          <FieldInput v-model="form.index" label="Índice" placeholder="02" />
+          <FieldInput v-model="form.index" label="Índice" placeholder="2" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
         <FieldTextarea v-model="form.paragraphs" label="Párrafos" help="Un párrafo por línea" :rows="6" />
@@ -90,7 +93,7 @@
       <!-- CONVERSION STRATEGY -->
       <template v-else-if="sectionType === 'conversion_strategy'">
         <div class="grid grid-cols-2 gap-4">
-          <FieldInput v-model="form.index" label="Índice" placeholder="03" />
+          <FieldInput v-model="form.index" label="Índice" placeholder="3" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
         <FieldTextarea v-model="form.intro" label="Introducción" :rows="4" :isSingle="true" />
@@ -116,7 +119,7 @@
       <!-- DESIGN UX -->
       <template v-else-if="sectionType === 'design_ux'">
         <div class="grid grid-cols-2 gap-4">
-          <FieldInput v-model="form.index" label="Índice" placeholder="04" />
+          <FieldInput v-model="form.index" label="Índice" placeholder="4" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
         <FieldTextarea v-model="form.paragraphs" label="Párrafos" help="Un párrafo por línea" :rows="6" />
@@ -129,7 +132,7 @@
       <!-- CREATIVE SUPPORT -->
       <template v-else-if="sectionType === 'creative_support'">
         <div class="grid grid-cols-2 gap-4">
-          <FieldInput v-model="form.index" label="Índice" placeholder="05" />
+          <FieldInput v-model="form.index" label="Índice" placeholder="5" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
         <FieldTextarea v-model="form.paragraphs" label="Párrafos" help="Un párrafo por línea" :rows="6" />
@@ -166,17 +169,126 @@
       <!-- FUNCTIONAL REQUIREMENTS -->
       <template v-else-if="sectionType === 'functional_requirements'">
         <div class="grid grid-cols-2 gap-4">
-          <FieldInput v-model="form.index" label="Índice" placeholder="07" />
+          <FieldInput v-model="form.index" label="Índice" placeholder="7" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
         <FieldTextarea v-model="form.intro" label="Introducción" :rows="3" :isSingle="true" />
-        <p class="text-xs text-gray-400 bg-gray-50 p-3 rounded-lg">
-          Los grupos de requerimientos (Vistas, Componentes, Funcionalidades) y módulos se gestionan desde los modelos de RequirementGroup/Item en el backend.
-        </p>
+
+        <!-- Groups: views, components, features, admin_module -->
+        <div v-for="(group, gIdx) in form.groups" :key="group.id || gIdx" class="mt-6 border border-gray-200 rounded-xl p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <span>{{ group.icon }}</span> {{ group.title }}
+            </h4>
+            <!-- Paste toggle per group -->
+            <div class="flex items-center gap-2">
+              <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
+                :class="!group._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
+                @click="group._pasteMode = false">Formulario</button>
+              <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
+                :class="group._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
+                @click="group._pasteMode = true">Pegar</button>
+              <button v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features' && group.id !== 'admin_module'"
+                type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.groups.splice(gIdx, 1)">Eliminar grupo</button>
+            </div>
+          </div>
+
+          <!-- Paste mode for this group -->
+          <div v-if="group._pasteMode" class="space-y-3">
+            <textarea v-model="group._pasteText" rows="10" placeholder="Pega aquí el contenido de este grupo..."
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 outline-none resize-y" />
+            <button type="button" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700"
+              @click="processGroupPaste(group)">Procesar y llenar</button>
+          </div>
+
+          <!-- Form mode for this group -->
+          <div v-else class="space-y-3">
+            <div class="grid grid-cols-[60px_1fr] gap-3">
+              <FieldInput v-model="group.icon" label="Icono" placeholder="🖥️" />
+              <FieldInput v-model="group.title" label="Título del grupo" />
+            </div>
+            <FieldTextarea v-model="group.description" label="Descripción" :rows="2" :isSingle="true" />
+
+            <!-- Items -->
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
+              <div v-for="(item, iIdx) in group.items" :key="iIdx" class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-[10px] text-gray-400">{{ iIdx + 1 }}</span>
+                  <button type="button" class="text-[10px] text-red-500" @click="group.items.splice(iIdx, 1)">Eliminar</button>
+                </div>
+                <div class="grid grid-cols-[50px_1fr] gap-2 mb-1">
+                  <FieldInput v-model="item.icon" label="Icono" placeholder="🏠" />
+                  <FieldInput v-model="item.name" label="Nombre" />
+                </div>
+                <FieldInput v-model="item.description" label="Descripción" />
+              </div>
+              <button type="button" class="text-xs text-emerald-600 font-medium" @click="group.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Modules -->
+        <div class="mt-6">
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Módulos Adicionales</label>
+          <div v-for="(mod, mIdx) in form.additionalModules" :key="mIdx" class="mb-4 border border-gray-200 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <span>{{ mod.icon || '🧩' }}</span> {{ mod.title || 'Módulo adicional' }}
+              </h4>
+              <div class="flex items-center gap-2">
+                <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
+                  :class="!mod._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
+                  @click="mod._pasteMode = false">Formulario</button>
+                <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
+                  :class="mod._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
+                  @click="mod._pasteMode = true">Pegar</button>
+                <button type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.additionalModules.splice(mIdx, 1)">Eliminar</button>
+              </div>
+            </div>
+
+            <div v-if="mod._pasteMode" class="space-y-3">
+              <textarea v-model="mod._pasteText" rows="8" placeholder="Pega aquí el contenido de este módulo..."
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 outline-none resize-y" />
+              <button type="button" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700"
+                @click="processGroupPaste(mod)">Procesar y llenar</button>
+            </div>
+            <div v-else class="space-y-3">
+              <div class="grid grid-cols-[60px_1fr] gap-3">
+                <FieldInput v-model="mod.icon" label="Icono" placeholder="🧩" />
+                <FieldInput v-model="mod.title" label="Título del módulo" />
+              </div>
+              <FieldTextarea v-model="mod.description" label="Descripción" :rows="2" :isSingle="true" />
+              <div>
+                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
+                <div v-for="(item, iIdx) in mod.items" :key="iIdx" class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-[10px] text-gray-400">{{ iIdx + 1 }}</span>
+                    <button type="button" class="text-[10px] text-red-500" @click="mod.items.splice(iIdx, 1)">Eliminar</button>
+                  </div>
+                  <div class="grid grid-cols-[50px_1fr] gap-2 mb-1">
+                    <FieldInput v-model="item.icon" label="Icono" />
+                    <FieldInput v-model="item.name" label="Nombre" />
+                  </div>
+                  <FieldInput v-model="item.description" label="Descripción" />
+                </div>
+                <button type="button" class="text-xs text-emerald-600 font-medium" @click="mod.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+            @click="form.additionalModules.push({ icon: '🧩', title: '', description: '', items: [], _pasteMode: false, _pasteText: '' })">
+            + Agregar módulo adicional
+          </button>
+        </div>
       </template>
 
       <!-- TIMELINE -->
       <template v-else-if="sectionType === 'timeline'">
+        <div class="grid grid-cols-2 gap-4">
+          <FieldInput v-model="form.index" label="Índice" placeholder="8" />
+          <FieldInput v-model="form.title" label="Título" />
+        </div>
         <FieldTextarea v-model="form.introText" label="Texto introductorio" :rows="3" :isSingle="true" />
         <FieldInput v-model="form.totalDuration" label="Duración total" placeholder="Aproximadamente 1 mes" />
         <div>
@@ -202,11 +314,21 @@
 
       <!-- INVESTMENT -->
       <template v-else-if="sectionType === 'investment'">
+        <div class="grid grid-cols-2 gap-4">
+          <FieldInput v-model="form.index" label="Índice" placeholder="9" />
+          <FieldInput v-model="form.title" label="Título" />
+        </div>
         <FieldTextarea v-model="form.introText" label="Texto introductorio" :rows="2" :isSingle="true" />
         <div class="grid grid-cols-2 gap-4">
           <FieldInput v-model="form.totalInvestment" label="Inversión total" placeholder="$3.500.000" />
           <FieldInput v-model="form.currency" label="Moneda" placeholder="COP" />
         </div>
+        <p v-if="proposalData?.total_investment && !form.totalInvestment" class="text-xs text-amber-600 -mt-3">
+          ⚠ Vacío — se puede usar ${{ Number(proposalData.total_investment).toLocaleString() }} {{ proposalData.currency || 'COP' }} de los datos generales.
+          <button type="button" class="ml-1 text-emerald-600 underline" @click="fillInvestmentFromProposal">
+            Llenar automáticamente
+          </button>
+        </p>
         <div>
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Qué incluye</label>
           <div v-for="(item, idx) in form.whatsIncluded" :key="idx" class="mb-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
@@ -242,6 +364,10 @@
 
       <!-- FINAL NOTE -->
       <template v-else-if="sectionType === 'final_note'">
+        <div class="grid grid-cols-2 gap-4">
+          <FieldInput v-model="form.index" label="Índice" placeholder="10" />
+          <FieldInput v-model="form.title" label="Título" />
+        </div>
         <FieldTextarea v-model="form.message" label="Mensaje" :rows="5" :isSingle="true" />
         <FieldTextarea v-model="form.personalNote" label="Nota personal" :rows="3" :isSingle="true" />
         <div class="grid grid-cols-3 gap-4">
@@ -268,6 +394,10 @@
 
       <!-- NEXT STEPS -->
       <template v-else-if="sectionType === 'next_steps'">
+        <div class="grid grid-cols-2 gap-4">
+          <FieldInput v-model="form.index" label="Índice" placeholder="11" />
+          <FieldInput v-model="form.title" label="Título" />
+        </div>
         <FieldTextarea v-model="form.introMessage" label="Mensaje de introducción" :rows="3" :isSingle="true" />
         <div>
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Pasos</label>
@@ -385,6 +515,7 @@ const FieldTextarea = {
 
 const props = defineProps({
   section: { type: Object, required: true },
+  proposalData: { type: Object, default: () => ({}) },
 });
 
 const emit = defineEmits(['save']);
@@ -472,6 +603,51 @@ function processPastedContent() {
   setTimeout(() => { pasteMsg.value = ''; }, 4000);
 }
 
+function processGroupPaste(group) {
+  const text = (group._pasteText || '').trim();
+  if (!text) return;
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const items = [];
+  let descLines = [];
+  for (const line of lines) {
+    const bulletMatch = line.match(/^[\*\-•]\s*(.*)/);
+    const emojiItemMatch = line.match(/^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F?)\s*\*\*(.+?)\*\*\s*[—–\-:]\s*(.*)/u);
+    const boldMatch = line.match(/^\*\*(.+?)\*\*\s*[—–\-:]?\s*(.*)/);
+    if (emojiItemMatch) {
+      items.push({ icon: emojiItemMatch[1], name: emojiItemMatch[2].trim(), description: emojiItemMatch[3].trim() });
+    } else if (boldMatch) {
+      items.push({ icon: '', name: boldMatch[1].trim(), description: (boldMatch[2] || '').trim() });
+    } else if (bulletMatch) {
+      items.push({ icon: '', name: bulletMatch[1].trim(), description: '' });
+    } else {
+      descLines.push(line);
+    }
+  }
+  if (descLines.length && !group.description) {
+    group.description = descLines.join(' ');
+  }
+  if (items.length) {
+    group.items = items;
+  }
+  group._pasteMode = false;
+  group._pasteText = '';
+}
+
+function fillInvestmentFromProposal() {
+  if (!props.proposalData?.total_investment) return;
+  const total = Number(props.proposalData.total_investment);
+  const currency = props.proposalData.currency || 'COP';
+  const fmt = (n) => '$' + Math.round(n).toLocaleString();
+  form.totalInvestment = fmt(total);
+  form.currency = currency;
+  // Auto-fill 40/30/30 payment split
+  form.paymentOptions = [
+    { label: '40% al firmar el contrato ✍️', description: fmt(total * 0.4) + ' ' + currency },
+    { label: '30% al aprobar el diseño final ✅', description: fmt(total * 0.3) + ' ' + currency },
+    { label: '30% al desplegar el sitio web 🚀', description: fmt(total * 0.3) + ' ' + currency },
+  ];
+}
+
 // --- Build form state from content_json ---
 const form = reactive(buildFormFromJson(props.section.content_json || {}, props.section.section_type));
 
@@ -509,15 +685,28 @@ function buildFormFromJson(json, type) {
     case 'development_stages':
       return { stages: (j.stages || []).map(s => ({ icon: s.icon || '', title: s.title || '', description: s.description || '', current: !!s.current })) };
     case 'functional_requirements':
-      return { index: j.index || '', title: j.title || '', intro: j.intro || '', technicalSpecs: j.technicalSpecs || [], integrations: j.integrations || [] };
+      return {
+        index: j.index || '', title: j.title || '', intro: j.intro || '',
+        groups: (j.groups || []).map(g => ({
+          id: g.id || '', icon: g.icon || '', title: g.title || '',
+          description: g.description || '',
+          items: (g.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '' })),
+          _pasteMode: false, _pasteText: '',
+        })),
+        additionalModules: (j.additionalModules || []).map(m => ({
+          icon: m.icon || '', title: m.title || '', description: m.description || '',
+          items: (m.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '' })),
+          _pasteMode: false, _pasteText: '',
+        })),
+      };
     case 'timeline':
-      return { introText: j.introText || '', totalDuration: j.totalDuration || '', phases: (j.phases || []).map(p => ({ title: p.title || '', duration: p.duration || '', description: p.description || '', tasks: arrToText(p.tasks), milestone: p.milestone || '' })), calendarWeeks: j.calendarWeeks || [] };
+      return { index: j.index || '', title: j.title || '', introText: j.introText || '', totalDuration: j.totalDuration || '', phases: (j.phases || []).map(p => ({ title: p.title || '', duration: p.duration || '', description: p.description || '', tasks: arrToText(p.tasks), milestone: p.milestone || '' })) };
     case 'investment':
-      return { introText: j.introText || '', totalInvestment: j.totalInvestment || '', currency: j.currency || 'COP', whatsIncluded: (j.whatsIncluded || []).map(i => ({ ...i })), paymentOptions: (j.paymentOptions || []).map(o => ({ ...o })), hostingPlan: j.hostingPlan || {}, paymentMethods: arrToText(j.paymentMethods), valueReasons: arrToText(j.valueReasons) };
+      return { index: j.index || '', title: j.title || '', introText: j.introText || '', totalInvestment: j.totalInvestment || '', currency: j.currency || 'COP', whatsIncluded: (j.whatsIncluded || []).map(i => ({ ...i })), paymentOptions: (j.paymentOptions || []).map(o => ({ ...o })), hostingPlan: j.hostingPlan || {}, paymentMethods: arrToText(j.paymentMethods), valueReasons: arrToText(j.valueReasons) };
     case 'final_note':
-      return { message: j.message || '', personalNote: j.personalNote || '', teamName: j.teamName || '', teamRole: j.teamRole || '', contactEmail: j.contactEmail || '', commitmentBadges: (j.commitmentBadges || []).map(b => ({ ...b })) };
+      return { index: j.index || '', title: j.title || '', message: j.message || '', personalNote: j.personalNote || '', teamName: j.teamName || '', teamRole: j.teamRole || '', contactEmail: j.contactEmail || '', commitmentBadges: (j.commitmentBadges || []).map(b => ({ ...b })) };
     case 'next_steps':
-      return { introMessage: j.introMessage || '', steps: (j.steps || []).map(s => ({ ...s })), ctaMessage: j.ctaMessage || '', primaryCTA: { text: j.primaryCTA?.text || '', link: j.primaryCTA?.link || '' }, secondaryCTA: { text: j.secondaryCTA?.text || '', link: j.secondaryCTA?.link || '' }, contactMethods: (j.contactMethods || []).map(m => ({ ...m })), validityMessage: j.validityMessage || '', thankYouMessage: j.thankYouMessage || '' };
+      return { index: j.index || '', title: j.title || '', introMessage: j.introMessage || '', steps: (j.steps || []).map(s => ({ ...s })), ctaMessage: j.ctaMessage || '', primaryCTA: { text: j.primaryCTA?.text || '', link: j.primaryCTA?.link || '' }, secondaryCTA: { text: j.secondaryCTA?.text || '', link: j.secondaryCTA?.link || '' }, contactMethods: (j.contactMethods || []).map(m => ({ ...m })), validityMessage: j.validityMessage || '', thankYouMessage: j.thankYouMessage || '' };
     default:
       return {};
   }
@@ -540,16 +729,25 @@ function formToJson(formData, type) {
       return { index: f.index, title: f.title, paragraphs: textToArr(f.paragraphs), includesTitle: f.includesTitle, includes: textToArr(f.includes), closing: f.closing };
     case 'development_stages':
       return { stages: f.stages.map(s => ({ icon: s.icon, title: s.title, description: s.description, ...(s.current ? { current: true } : {}) })) };
-    case 'functional_requirements':
-      return { index: f.index, title: f.title, intro: f.intro, technicalSpecs: f.technicalSpecs, integrations: f.integrations };
+    case 'functional_requirements': {
+      const cleanGroup = (g) => ({
+        id: g.id, icon: g.icon, title: g.title, description: g.description,
+        items: (g.items || []).map(i => ({ icon: i.icon, name: i.name, description: i.description })),
+      });
+      return {
+        index: f.index, title: f.title, intro: f.intro,
+        groups: (f.groups || []).map(cleanGroup),
+        additionalModules: (f.additionalModules || []).map(cleanGroup),
+      };
+    }
     case 'timeline':
-      return { introText: f.introText, totalDuration: f.totalDuration, phases: f.phases.map(p => ({ title: p.title, duration: p.duration, description: p.description, tasks: textToArr(p.tasks), milestone: p.milestone })), calendarWeeks: f.calendarWeeks || [] };
+      return { index: f.index, title: f.title, introText: f.introText, totalDuration: f.totalDuration, phases: f.phases.map(p => ({ title: p.title, duration: p.duration, description: p.description, tasks: textToArr(p.tasks), milestone: p.milestone })) };
     case 'investment':
-      return { introText: f.introText, totalInvestment: f.totalInvestment, currency: f.currency, whatsIncluded: f.whatsIncluded, paymentOptions: f.paymentOptions, hostingPlan: f.hostingPlan || {}, paymentMethods: textToArr(f.paymentMethods), valueReasons: textToArr(f.valueReasons) };
+      return { index: f.index, title: f.title, introText: f.introText, totalInvestment: f.totalInvestment, currency: f.currency, whatsIncluded: f.whatsIncluded, paymentOptions: f.paymentOptions, hostingPlan: f.hostingPlan || {}, paymentMethods: textToArr(f.paymentMethods), valueReasons: textToArr(f.valueReasons) };
     case 'final_note':
-      return { message: f.message, personalNote: f.personalNote, teamName: f.teamName, teamRole: f.teamRole, contactEmail: f.contactEmail, commitmentBadges: f.commitmentBadges };
+      return { index: f.index, title: f.title, message: f.message, personalNote: f.personalNote, teamName: f.teamName, teamRole: f.teamRole, contactEmail: f.contactEmail, commitmentBadges: f.commitmentBadges };
     case 'next_steps':
-      return { introMessage: f.introMessage, steps: f.steps, ctaMessage: f.ctaMessage, primaryCTA: f.primaryCTA, secondaryCTA: f.secondaryCTA, contactMethods: f.contactMethods, validityMessage: f.validityMessage, thankYouMessage: f.thankYouMessage };
+      return { index: f.index, title: f.title, introMessage: f.introMessage, steps: f.steps, ctaMessage: f.ctaMessage, primaryCTA: f.primaryCTA, secondaryCTA: f.secondaryCTA, contactMethods: f.contactMethods, validityMessage: f.validityMessage, thankYouMessage: f.thankYouMessage };
     default:
       return {};
   }

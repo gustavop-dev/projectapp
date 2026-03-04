@@ -135,7 +135,7 @@ def create_proposal(request):
 
     # Auto-create default sections
     from content.services.proposal_service import ProposalService
-    default_sections = ProposalService.get_default_sections()
+    default_sections = ProposalService.get_default_sections(proposal.language)
     for section_cfg in default_sections:
         ProposalSection.objects.create(proposal=proposal, **section_cfg)
 

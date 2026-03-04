@@ -27,6 +27,8 @@ export default defineNuxtConfig({
     '/es-co/3d-animations': { ssr: true },
     '/es-co/**': { ssr: false },
     '/en-us/**': { ssr: false },
+    '/blog': { ssr: true },
+    '/blog/**': { ssr: true },
     '/proposal/**': { ssr: false },
     '/panel/**': { ssr: false },
     '/**': { ssr: false },

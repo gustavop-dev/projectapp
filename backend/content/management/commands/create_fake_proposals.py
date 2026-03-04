@@ -7,8 +7,6 @@ from django.utils import timezone
 
 from content.models import (
     BusinessProposal,
-    ProposalRequirementGroup,
-    ProposalRequirementItem,
     ProposalSection,
 )
 from content.services.proposal_service import ProposalService
@@ -97,41 +95,24 @@ class Command(BaseCommand):
                 )
             )
 
-            # Create default sections
-            default_sections = ProposalService.get_default_sections()
+            # Create default sections (groups now stored in content_json)
+            lang = random.choice(['es', 'en']) if i % 3 == 0 else 'es'
+            default_sections = ProposalService.get_default_sections(language=lang)
             for section_cfg in default_sections:
                 if section_cfg['section_type'] == 'greeting':
                     section_cfg['content_json']['clientName'] = proposal.client_name
+                if section_cfg['section_type'] == 'investment':
+                    total = float(investment)
+                    cur = currency
+                    fmt = lambda n: f'${n:,.0f}'
+                    section_cfg['content_json']['totalInvestment'] = fmt(total)
+                    section_cfg['content_json']['currency'] = cur
+                    section_cfg['content_json']['paymentOptions'] = [
+                        {'label': f'40% al firmar el contrato ✍️', 'description': f'{fmt(total * 0.4)} {cur}'},
+                        {'label': f'30% al aprobar el diseño final ✅', 'description': f'{fmt(total * 0.3)} {cur}'},
+                        {'label': f'30% al desplegar el sitio web �', 'description': f'{fmt(total * 0.3)} {cur}'},
+                    ]
                 ProposalSection.objects.create(proposal=proposal, **section_cfg)
-
-            # Create sample requirement groups + items
-            views_group = ProposalRequirementGroup.objects.create(
-                proposal=proposal, group_id='views',
-                title='🖥️ Vistas',
-                description='Páginas principales del sitio web.', order=0,
-            )
-            ProposalRequirementItem.objects.create(
-                group=views_group, item_id='home', icon='🏠',
-                name='Página Principal', description='Landing principal del sitio.', order=0,
-            )
-            ProposalRequirementItem.objects.create(
-                group=views_group, item_id='contact', icon='📧',
-                name='Página de Contacto', description='Formulario de contacto.', order=1,
-            )
-
-            components_group = ProposalRequirementGroup.objects.create(
-                proposal=proposal, group_id='components',
-                title='🧩 Componentes',
-                description='Componentes reutilizables.', order=1,
-            )
-            ProposalRequirementItem.objects.create(
-                group=components_group, item_id='navbar', icon='📌',
-                name='Navbar', description='Barra de navegación responsiva.', order=0,
-            )
-            ProposalRequirementItem.objects.create(
-                group=components_group, item_id='footer', icon='📎',
-                name='Footer', description='Pie de página con enlaces y redes sociales.', order=1,
-            )
 
             created += 1
 

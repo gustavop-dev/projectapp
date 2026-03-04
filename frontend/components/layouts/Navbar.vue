@@ -45,7 +45,7 @@
           <PopoverPanel class="absolute right-0 z-10 mt-5 flex max-w-min px-2" role="menu" aria-orientation="vertical">
             <div class="w-max grid grid-cols-2 rounded-xl bg-window-black bg-opacity-40 text-white backdrop-blur-md" role="menubar">
               <NuxtLink
-                :to="localePath(item.href)" 
+                :to="item.absolute ? item.href : localePath(item.href)" 
                 v-for="(item, index) in solutions" 
                 :key="index" 
                 class="flex p-2 ps-4 font-regular text-white text-xl relative group"
@@ -139,7 +139,7 @@
         </div>
         <div class="flex flex-col flex-grow py-4">
           <NuxtLink
-            :to="localePath(item.href)" 
+            :to="item.absolute ? item.href : localePath(item.href)" 
             v-for="(item, index) in solutions" 
             :key="index" 
             class="flex p-2 ps-4 font-regular text-esmerald text-4xl relative group"
@@ -221,6 +221,7 @@ const solutions = computed(() => {
     { name: s.animations_3d || '3D animations', href: '/3d-animations' },
     { name: s.prices || 'Prices', href: '/e-commerce-prices' },
     { name: s.hosting || 'Hosting', href: '/hosting' },
+    { name: s.blog || 'Blog', href: '/blog', absolute: true },
   ];
 });
 

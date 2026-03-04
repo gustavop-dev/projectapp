@@ -3,6 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from .models import (
     Contact, Design, Model3D, Product, Category, Item, Hosting, PortfolioWork,
     BusinessProposal, ProposalSection, ProposalRequirementGroup, ProposalRequirementItem,
+    BlogPost,
 )
 
 class PortfolioWorkAdmin(admin.ModelAdmin):
@@ -62,6 +63,31 @@ class HostingAdmin(admin.ModelAdmin):
     Display specific fields of the Hosting model.
     """
     list_display = ('title_en', 'title_es', 'semi_annually_price', 'annual_price', 'cpu_cores_en', 'ram_en', 'storage_en', 'bandwidth_en')
+
+class BlogPostAdmin(admin.ModelAdmin):
+    """
+    Custom admin configuration for the BlogPost model.
+    """
+    list_display = ('title', 'slug', 'is_published', 'published_at', 'created_at')
+    list_filter = ('is_published',)
+    search_fields = ('title', 'excerpt', 'content')
+    prepopulated_fields = {'slug': ('title',)}
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        (None, {
+            'fields': ('title', 'slug', 'cover_image', 'excerpt', 'content'),
+        }),
+        ('Sources', {
+            'fields': ('sources',),
+        }),
+        ('Publishing', {
+            'fields': ('is_published', 'published_at'),
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+        }),
+    )
+
 
 class ProposalSectionInline(admin.TabularInline):
     """
@@ -197,6 +223,14 @@ class ProjectAppAdminSite(admin.AdminSite):
                     ]
                 ]
             },
+            {
+                'name': _('Blog'),
+                'app_label': 'blog',
+                'models': [
+                    model for model in app_dict.get('content', {}).get('models', [])
+                    if model['object_name'] == 'BlogPost'
+                ]
+            },
         ]
         return custom_app_list
 
@@ -214,3 +248,4 @@ admin_site.register(BusinessProposal, BusinessProposalAdmin)
 admin_site.register(ProposalSection)
 admin_site.register(ProposalRequirementGroup)
 admin_site.register(ProposalRequirementItem, ProposalRequirementItemAdmin)
+admin_site.register(BlogPost, BlogPostAdmin)

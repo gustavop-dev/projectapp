@@ -24,3 +24,4 @@ from .business_proposal import BusinessProposal
 from .proposal_section import ProposalSection
 from .proposal_requirement_group import ProposalRequirementGroup
 from .proposal_requirement_item import ProposalRequirementItem
+from .blog_post import BlogPost

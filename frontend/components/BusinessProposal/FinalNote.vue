@@ -4,10 +4,10 @@
       <div class="section-header mb-12">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
-            10
+            {{ index }}
           </span>
           <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
-            Nota Final
+            {{ title }}
           </h2>
         </div>
       </div>
@@ -61,6 +61,14 @@ const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
 
 const props = defineProps({
+  index: {
+    type: String,
+    default: '10'
+  },
+  title: {
+    type: String,
+    default: 'Nota Final'
+  },
   message: {
     type: String,
     default: 'Creemos firmemente que esta propuesta representa una oportunidad excepcional para transformar tu presencia digital y alcanzar tus objetivos de negocio. Cada elemento ha sido cuidadosamente diseñado pensando en tus necesidades específicas y en los resultados que buscas lograr. Estamos comprometidos no solo con entregar un proyecto excepcional, sino con construir una relación de largo plazo donde tu éxito sea nuestro éxito.'

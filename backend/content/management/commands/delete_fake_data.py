@@ -1,4 +1,4 @@
-from content.models import Contact, Design, Model3D, Product, Category, Item, BusinessProposal
+from content.models import Contact, Design, Model3D, Product, Category, Item, BusinessProposal, BlogPost
 from django.core.management.base import BaseCommand
 
 class Command(BaseCommand):
@@ -44,5 +44,10 @@ class Command(BaseCommand):
         for proposal in BusinessProposal.objects.all():
             proposal.delete()
             self.stdout.write(self.style.SUCCESS(f'BusinessProposal "{proposal}" deleted'))
+
+        # Delete all blog posts
+        for post in BlogPost.objects.all():
+            post.delete()
+            self.stdout.write(self.style.SUCCESS(f'BlogPost "{post}" deleted'))
 
         self.stdout.write(self.style.SUCCESS('All fake data has been deleted'))

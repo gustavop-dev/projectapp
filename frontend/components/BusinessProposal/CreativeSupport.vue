@@ -60,7 +60,7 @@ const props = defineProps({
   content: {
     type: Object,
     default: () => ({
-      index: '05',
+      index: '5',
       title: 'Acompañamiento creativo personalizado',
       paragraphs: [
         'Durante todo el proceso, el cliente contará con el acompañamiento cercano de nuestro equipo creativo y técnico �. Crearemos juntos un proyecto digital que capture la esencia de su propósito.',

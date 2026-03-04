@@ -78,6 +78,15 @@
             <input v-model="form.client_email" type="email"
               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
           </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Idioma</label>
+            <select v-model="form.language"
+              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+              <option value="es">Español</option>
+              <option value="en">English</option>
+            </select>
+            <p class="text-xs text-gray-400 mt-1">Solo afecta los títulos por defecto al crear. Cambiar aquí no regenera las secciones existentes.</p>
+          </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Inversión total</label>
@@ -149,7 +158,7 @@
               @click="toggleSection(section.id)"
             >
               <div class="flex items-center gap-4">
-                <span class="text-xs text-gray-400 font-mono w-6">{{ String(section.order + 1).padStart(2, '0') }}</span>
+                <span class="text-xs text-gray-400 font-mono w-6">{{ section.order + 1 }}</span>
                 <span class="text-sm font-medium text-gray-900">{{ section.title }}</span>
                 <span class="text-xs text-gray-400">({{ section.section_type }})</span>
               </div>
@@ -177,6 +186,7 @@
             <div v-if="expandedSections.has(section.id)" class="border-t border-gray-100 px-6 py-6">
               <SectionEditor
                 :section="section"
+                :proposalData="proposal"
                 @save="handleSaveSection"
               />
             </div>
@@ -214,6 +224,7 @@ const form = reactive({
   title: '',
   client_name: '',
   client_email: '',
+  language: 'es',
   total_investment: 0,
   currency: 'COP',
   expires_at: '',
@@ -229,6 +240,7 @@ onMounted(async () => {
       title: proposal.value.title,
       client_name: proposal.value.client_name,
       client_email: proposal.value.client_email || '',
+      language: proposal.value.language || 'es',
       total_investment: Number(proposal.value.total_investment),
       currency: proposal.value.currency,
       expires_at: proposal.value.expires_at

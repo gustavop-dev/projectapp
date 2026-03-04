@@ -4,10 +4,10 @@
       <div class="section-header mb-12">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
-            09
+            {{ index }}
           </span>
           <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
-            Inversión y Formas de Pago
+            {{ title }}
           </h2>
         </div>
       </div>
@@ -148,6 +148,14 @@ const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
 
 const props = defineProps({
+  index: {
+    type: String,
+    default: '9'
+  },
+  title: {
+    type: String,
+    default: 'Inversión y Formas de Pago'
+  },
   introText: {
     type: String,
     default: 'Costo total del desarrollo: $1.490.000 COP'

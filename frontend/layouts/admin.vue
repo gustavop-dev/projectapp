@@ -14,6 +14,13 @@
         >
           Propuestas
         </NuxtLink>
+        <NuxtLink
+          to="/panel/blog"
+          class="text-gray-600 hover:text-emerald-600 transition-colors text-sm font-medium"
+          active-class="text-emerald-600"
+        >
+          Blog
+        </NuxtLink>
       </div>
       <div class="flex items-center gap-4">
         <a href="/admin/" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">

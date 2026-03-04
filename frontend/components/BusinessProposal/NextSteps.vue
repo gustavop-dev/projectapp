@@ -4,10 +4,10 @@
       <div class="section-header mb-12">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
-            11
+            {{ index }}
           </span>
           <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
-            Cierre y Próximos Pasos
+            {{ title }}
           </h2>
         </div>
       </div>
@@ -97,6 +97,14 @@ const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
 
 const props = defineProps({
+  index: {
+    type: String,
+    default: '11'
+  },
+  title: {
+    type: String,
+    default: 'Cierre y Próximos Pasos'
+  },
   introMessage: {
     type: String,
     default: 'Estamos listos para comenzar este viaje juntos. Aquí te explicamos cómo dar el siguiente paso:'
