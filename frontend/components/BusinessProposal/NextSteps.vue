@@ -1,8 +1,8 @@
 <template>
-  <section class="next-steps py-16 md:py-24 bg-white">
+  <section ref="sectionRef" class="next-steps py-16 md:py-24 bg-white">
     <div class="container mx-auto px-4 max-w-5xl">
       <div class="section-header mb-12">
-        <div class="flex items-baseline gap-4 mb-10">
+        <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
             11
           </span>
@@ -91,6 +91,10 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useSectionAnimations } from '~/composables/useSectionAnimations';
+
+const sectionRef = ref(null);
+useSectionAnimations(sectionRef);
 
 const props = defineProps({
   introMessage: {

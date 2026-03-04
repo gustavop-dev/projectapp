@@ -1,8 +1,8 @@
 <template>
-  <section class="functional-requirements py-16 md:py-24 bg-white">
+  <section ref="sectionRef" class="functional-requirements py-16 md:py-24 bg-white">
     <div class="container mx-auto px-4 max-w-5xl">
       <div class="section-header mb-12">
-        <div class="flex items-baseline gap-4 mb-10">
+        <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
             {{ data.index }}
           </span>
@@ -18,7 +18,7 @@
         </p>
       </div>
 
-      <div class="requirements-categories space-y-8">
+      <div data-animate="fade-up-stagger" class="requirements-categories space-y-8">
         <div v-for="(group, index) in data.groups" :key="group.id || index"
              class="category-section">
           <div class="category-header mb-6">
@@ -110,6 +110,12 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
+import { useSectionAnimations } from '~/composables/useSectionAnimations';
+
+const sectionRef = ref(null);
+useSectionAnimations(sectionRef);
+
 const props = defineProps({
   data: {
     type: Object,

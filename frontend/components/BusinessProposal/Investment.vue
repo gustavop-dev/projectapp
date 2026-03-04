@@ -1,8 +1,8 @@
 <template>
-  <section class="investment py-16 md:py-24 bg-white">
+  <section ref="sectionRef" class="investment py-16 md:py-24 bg-white">
     <div class="container mx-auto px-4 max-w-5xl">
       <div class="section-header mb-12">
-        <div class="flex items-baseline gap-4 mb-10">
+        <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
             09
           </span>
@@ -18,7 +18,7 @@
         </p>
       </div>
 
-      <div class="pricing-card bg-gradient-to-br from-emerald-600 to-emerald-700 p-8 md:p-12 rounded-3xl text-white mb-12 shadow-2xl">
+      <div data-animate="scale-in" class="pricing-card bg-gradient-to-br from-emerald-600 to-emerald-700 p-8 md:p-12 rounded-3xl text-white mb-12 shadow-2xl">
         <div class="text-center mb-8">
           <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-emerald-200">Inversión Total</div>
           <div class="text-6xl md:text-7xl font-bold mb-2">{{ totalInvestment }}</div>
@@ -142,6 +142,10 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useSectionAnimations } from '~/composables/useSectionAnimations';
+
+const sectionRef = ref(null);
+useSectionAnimations(sectionRef);
 
 const props = defineProps({
   introText: {

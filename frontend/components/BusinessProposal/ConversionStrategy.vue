@@ -1,8 +1,8 @@
 <template>
-  <section class="conversion-strategy min-h-full w-full bg-white">
+  <section ref="sectionRef" class="conversion-strategy min-h-full w-full bg-white">
     <div class="w-full px-6 md:px-12 lg:px-24 py-10 md:py-14">
       <div class="max-w-7xl">
-        <div class="flex items-baseline gap-4 mb-10">
+        <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
             {{ content.index }}
           </span>
@@ -61,6 +61,12 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
+import { useSectionAnimations } from '~/composables/useSectionAnimations';
+
+const sectionRef = ref(null);
+useSectionAnimations(sectionRef);
+
 const props = defineProps({
   content: {
     type: Object,

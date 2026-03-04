@@ -1,7 +1,7 @@
 <template>
-  <section class="development-stages py-16 md:py-24 bg-white">
+  <section ref="sectionRef" class="development-stages py-16 md:py-24 bg-white">
     <div class="container mx-auto px-6 md:px-12 lg:px-24 max-w-5xl">
-      <div class="flex items-baseline gap-4 mb-10">
+      <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
         <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
           06
         </span>
@@ -19,7 +19,7 @@
         <!-- Timeline line -->
         <div class="absolute left-6 top-0 bottom-0 w-px bg-emerald-200 hidden md:block"></div>
 
-        <div class="space-y-4">
+        <div data-animate="fade-up-stagger" class="space-y-4">
           <div
             v-for="(stage, idx) in stages"
             :key="stage.title"
@@ -59,6 +59,12 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
+import { useSectionAnimations } from '~/composables/useSectionAnimations';
+
+const sectionRef = ref(null);
+useSectionAnimations(sectionRef);
+
 const props = defineProps({
   stages: {
     type: Array,
