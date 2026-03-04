@@ -62,7 +62,7 @@
                 </button>
                 <br />
                 <!-- Figma Design Information with Tooltip (checkbox checked & disabled) -->
-                <p class="text-md font-regular text-white flex gap-2 items-center">
+                <div class="text-md font-regular text-white flex gap-2 items-center">
                   <div class="flex h-6 shrink-0 items-center text-esmerald">
                     <div class="group grid size-6 grid-cols-1">
                       <input id="comments" aria-describedby="comments-description" name="comments" type="checkbox" checked disabled class="cursor-not-allowed col-start-1 row-start-1 appearance-none rounded border border-lemon bg-esmerald checked:border-lemon checked:bg-lemon focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:checked:bg-lemon" />
@@ -78,9 +78,9 @@
                       <p>{{ messages.product_details.figma_design.description }}</p>
                     </div>
                   </Tooltip>
-                </p>
+                </div>
                 <!-- Responsive Design Information with Tooltip (checkbox checked & disabled) -->
-                <p class="text-md font-regular text-white flex gap-2 items-center">
+                <div class="text-md font-regular text-white flex gap-2 items-center">
                   <div class="flex h-6 shrink-0 items-center text-esmerald">
                     <div class="group grid size-6 grid-cols-1">
                       <input id="comments" aria-describedby="comments-description" name="comments" type="checkbox" checked disabled class="cursor-not-allowed col-start-1 row-start-1 appearance-none rounded border border-lemon bg-esmerald checked:border-lemon checked:bg-lemon focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:checked:bg-lemon" />
@@ -96,9 +96,9 @@
                       <p>{{ messages.product_details.responsive_design.description }}</p>
                     </div>
                   </Tooltip>
-                </p>
+                </div>
                 <!-- Animations Information with Tooltip and Router Link (interactive checkbox) -->
-                <p class="text-md font-regular text-white flex gap-2 items-center">
+                <div class="text-md font-regular text-white flex gap-2 items-center">
                   <div class="flex h-6 shrink-0 items-center text-esmerald">
                     <div class="group grid size-6 grid-cols-1">
                       <input v-model="productStates[index].animationChecked" id="comments" aria-describedby="comments-description" name="comments" type="checkbox" class="cursor-pointer col-start-1 row-start-1 appearance-none rounded border border-lemon bg-esmerald checked:border-lemon checked:bg-lemon focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:checked:bg-lemon" />
@@ -117,9 +117,9 @@
                       </div>
                     </Tooltip>
                   </router-link>
-                </p>
+                </div>
                 <!-- Mobile App Information with Tooltip (interactive checkbox) -->
-                <p class="text-md font-regular text-white flex gap-2 items-center">
+                <div class="text-md font-regular text-white flex gap-2 items-center">
                   <div class="flex h-6 shrink-0 items-center text-esmerald">
                     <div class="group grid size-6 grid-cols-1">
                       <input v-model="productStates[index].mobileAppChecked" id="comments" aria-describedby="comments-description" name="comments" type="checkbox" class="cursor-pointer col-start-1 row-start-1 appearance-none rounded border border-lemon bg-esmerald checked:border-lemon checked:bg-lemon focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:checked:bg-lemon" />
@@ -135,7 +135,7 @@
                       <p>{{ messages.product_details.mobile_app.description }}</p>
                     </div>
                   </Tooltip>
-                </p>
+                </div>
                 <!-- Product Price -->
                 <p class="text-md font-regular text-white flex gap-2">
                   <BanknotesIcon class="w-6 h-6 text-lemon"></BanknotesIcon> 
@@ -204,7 +204,7 @@
                 </button>
                 <br />
                 <!-- Figma Design Information with Tooltip (checkbox checked & disabled) -->
-                <p class="text-md font-regular text-white flex gap-2 justify-end items-center">
+                <div class="text-md font-regular text-white flex gap-2 justify-end items-center">
                   <Tooltip width="w-60" backgroundColor="bg-lemon" textColor="text-esmerald">
                     <div>
                       <p>{{ messages.product_details.figma_design.description }}</p>
@@ -220,9 +220,9 @@
                       </svg>
                     </div>
                   </div>
-                </p>
+                </div>
                 <!-- Responsive Design Information with Tooltip (checkbox checked & disabled) -->
-                <p class="text-md font-regular text-white flex gap-2 justify-end items-center">
+                <div class="text-md font-regular text-white flex gap-2 justify-end items-center">
                   <Tooltip width="w-60" backgroundColor="bg-lemon" textColor="text-esmerald">
                     <div>
                       <p>{{ messages.product_details.responsive_design.description }}</p>
@@ -238,9 +238,9 @@
                       </svg>
                     </div>
                   </div>
-                </p>
+                </div>
                 <!-- Animations Information with Tooltip and Router Link (interactive checkbox) -->
-                <p class="text-md font-regular text-white flex gap-2 justify-end items-center">
+                <div class="text-md font-regular text-white flex gap-2 justify-end items-center">
                   <router-link :to="{name: 'portfolioWorks', params: { example: 'see-dynamic-webs' }}">
                     <Tooltip width="w-60" backgroundColor="bg-lemon" textColor="text-esmerald">
                       <div>
@@ -259,9 +259,9 @@
                       </svg>
                     </div>
                   </div>
-                </p>
+                </div>
                 <!-- Mobile App Information with Tooltip (interactive checkbox) -->
-                <p class="text-md font-regular text-white flex gap-2 justify-end items-center">
+                <div class="text-md font-regular text-white flex gap-2 justify-end items-center">
                   <Tooltip width="w-60" backgroundColor="bg-lemon" textColor="text-esmerald">
                     <div>
                       <p>{{ messages.product_details.mobile_app.description }}</p>
@@ -277,7 +277,7 @@
                       </svg>
                     </div>
                   </div>
-                </p>
+                </div>
                 <!-- Product Price -->
                 <p class="text-md font-regular text-white flex gap-2 justify-end">
                   {{ messages.product_details?.price_label || '$' }} {{ formatPrice(calculateTotalPrice(product, productStates[index], index)) }} {{ languageStore.currentLanguage === 'en' ? 'USD' : 'COP' }}

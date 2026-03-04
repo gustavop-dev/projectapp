@@ -13,16 +13,16 @@
 
     <!-- Introduction section with main heading -->
     <section class="mt-12 mb-16 lg:mb-40 px-3 lg:px-32 lg:mt-16" aria-labelledby="main-intro-title" itemscope itemtype="https://schema.org/WebPageElement">
-      <h1 
+      <h1
         ref="mainTitleRef"
-        id="main-intro-title" 
-        class="block font-light text-2xl sm:text-3xl md:text-4xl lg:text-4xl xl:text-5xl 2xl:text-6xl text-esmerald lg:pe-60" 
+        id="main-intro-title"
+        class="block font-light text-2xl sm:text-3xl md:text-4xl lg:text-4xl xl:text-5xl 2xl:text-6xl text-esmerald lg:pe-60"
         itemprop="headline"
       >
         {{ messages?.section_1?.title }}
-        <span class="sr-only">Project App. - MVP, platform, and software development</span>
+        <span class="sr-only">Project App. - Professional Web Development</span>
       </h1>
-      
+
       <!-- Services Cards -->
       <ServicesCards />
     </section>
@@ -49,10 +49,10 @@
     <BookCallSection />
 
     <!-- Contact and Footer sections -->
-    <section aria-label="Contact Project App. for software development services" itemscope itemtype="https://schema.org/ContactPoint">
+    <section aria-label="Contact Project App. for web design services" itemscope itemtype="https://schema.org/ContactPoint">
       <ContactSection />
     </section>
-    
+
     <footer itemscope itemtype="https://schema.org/WPFooter">
       <FooterSection />
     </footer>
@@ -78,7 +78,7 @@ import StudyCases from '~/components/home/StudyCases.vue'
 import { useMessages } from '~/composables/useMessages'
 
 // SEO Head
-useSeoHead('home')
+useSeoHead('landingWebDesign')
 
 const { messages } = useMessages()
 
@@ -112,7 +112,7 @@ function handleResize() {
 // Setup animations (client-only)
 const setupAnimations = async () => {
   if (!import.meta.client) return
-  
+
   const { useTextAnimations, textAnimationPresets } = await import('~/composables/useTextAnimations')
   const { fadeInFromBottom } = useTextAnimations()
 
@@ -123,8 +123,8 @@ const setupAnimations = async () => {
       duration: 0.8,
       delay: 0,
       distance: 40,
-      ease: "power2.out",
-      triggerStart: "top 95%"
+      ease: 'power2.out',
+      triggerStart: 'top 95%'
     })
   }
 }
@@ -135,7 +135,7 @@ onMounted(async () => {
     isDesktop.value = window.innerWidth >= 1024
     window.addEventListener('resize', handleResize, { passive: true })
   }
-  
+
   // Setup animations after next tick
   await nextTick()
   setupAnimations()

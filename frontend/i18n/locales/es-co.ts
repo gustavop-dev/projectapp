@@ -2,6 +2,7 @@ export default defineI18nLocale(async () => {
   const [
     global,
     home,
+    softwareHome,
     router,
     aboutUs,
     contact,
@@ -17,6 +18,7 @@ export default defineI18nLocale(async () => {
   ] = await Promise.all([
     import('~/locales/global/es.js'),
     import('~/locales/home/es.js'),
+    import('~/locales/softwareHome/es.js'),
     import('~/locales/router/es.js'),
     import('~/locales/aboutUs/es.js'),
     import('~/locales/contact/es.js'),
@@ -34,6 +36,7 @@ export default defineI18nLocale(async () => {
   return {
     global: global.default,
     home: home.default,
+    softwareHome: softwareHome.default,
     meta: router.default,
     aboutUs: aboutUs.default,
     contact: contact.default,

@@ -1,5 +1,10 @@
 export default {
     home: {
+      title: "Project App. - Desarrollo de MVPs, Plataformas Web y Apps Móviles",
+      description: "Project App. ayuda a empresas y emprendedores a construir MVPs, plataformas web, apps móviles y software a medida con un equipo integral de estrategia, UX/UI, desarrollo, despliegue y soporte.",
+      keywords: "Project App., desarrollo de MVP, desarrollo de plataformas web, desarrollo de apps móviles, software a medida, empresa de desarrollo de software, frontend backend, desarrollo de productos digitales"
+    },
+    landingWebDesign: {
       title: "Project App. - Empresa Profesional de Diseño y Desarrollo Web",
       description: "Project App. es una empresa profesional de diseño y desarrollo web especializada en soluciones de software a medida. Nuestro equipo de desarrolladores web expertos crea sitios web personalizados sin WordPress ni plantillas.",
       keywords: "Project App., diseño web, desarrollo web, empresa de diseño web, desarrolladores web, empresa de desarrollo web, desarrollo de software personalizado, programadores profesionales"

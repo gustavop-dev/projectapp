@@ -13,6 +13,8 @@ export default defineNuxtConfig({
     '/': { ssr: true },
     '/en-us': { ssr: true },
     '/es-co': { ssr: true },
+    '/en-us/landing-web-design': { ssr: true },
+    '/es-co/landing-web-design': { ssr: true },
     '/en-us/about-us': { ssr: true },
     '/es-co/about-us': { ssr: true },
     '/en-us/web-designs': { ssr: true },
@@ -73,6 +75,9 @@ export default defineNuxtConfig({
     lazy: true,
     strategy: 'prefix',
     detectBrowserLanguage: false,
+    bundle: {
+      optimizeTranslationDirective: false,
+    },
     // SEO
     baseUrl: 'https://projectapp.co',
   },

@@ -1,5 +1,10 @@
 export default {
     home: {
+      title: "Project App. - MVP, Web Platform & Mobile App Development",
+      description: "Project App. helps companies and founders build MVPs, web platforms, mobile apps, and custom software with one dedicated team covering strategy, UX/UI, development, deployment, and support.",
+      keywords: "Project App., MVP development, web platform development, mobile app development, custom software, software development company, frontend backend development, product development"
+    },
+    landingWebDesign: {
       title: "Project App. - Professional Web Design & Development Company",
       description: "Project App. is a professional web design and development company specializing in custom software solutions. Our team of expert website developers creates bespoke websites without WordPress or templates.",
       keywords: "Project App., web design, website design, website design company, web development, website developers, web design company, custom software development, professional programmers"
