@@ -29,7 +29,8 @@
       <SectionCounter :current="currentIndex + 1" :total="totalSections" />
       <ExpirationBadge v-if="proposal.expires_at" :expiresAt="proposal.expires_at" />
 
-      <!-- Accept/Reject buttons -->
+      <!-- PDF download + Accept/Reject buttons -->
+      <PdfDownloadButton :clientName="proposal.client_name" :scrollContainer="scrollContainer" />
       <ProposalResponseButtons :proposal="proposal" />
 
       <!-- Horizontal scroll container -->
@@ -76,6 +77,7 @@ import SectionCounter from '~/components/BusinessProposal/SectionCounter.vue';
 import ExpirationBadge from '~/components/BusinessProposal/ExpirationBadge.vue';
 import ProposalExpired from '~/components/BusinessProposal/ProposalExpired.vue';
 import ProposalResponseButtons from '~/components/BusinessProposal/ProposalResponseButtons.vue';
+import PdfDownloadButton from '~/components/BusinessProposal/PdfDownloadButton.vue';
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 

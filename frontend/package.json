@@ -26,6 +26,8 @@
     "axios": "^1.7.2",
     "dompurify": "^3.1.5",
     "gsap": "^3.13.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.0",
     "lottie-web": "^5.12.2",
     "pinia": "^2.1.7",
     "plyr": "^3.8.4",
