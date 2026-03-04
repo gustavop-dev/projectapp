@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between mb-8">
       <h1 class="text-2xl font-light text-gray-900">Propuestas</h1>
       <NuxtLink
-        to="/admin/proposals/create"
+        to="/panel/proposals/create"
         class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
                font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
       >
@@ -63,7 +63,7 @@
           <tr v-for="p in proposals" :key="p.id" class="hover:bg-gray-50 transition-colors">
             <td class="px-6 py-4">
               <NuxtLink
-                :to="`/admin/proposals/${p.id}/edit`"
+                :to="`/panel/proposals/${p.id}/edit`"
                 class="text-sm font-medium text-gray-900 hover:text-emerald-600"
               >
                 {{ p.title }}
@@ -92,7 +92,7 @@
             <td class="px-6 py-4">
               <div class="flex items-center gap-2">
                 <NuxtLink
-                  :to="`/admin/proposals/${p.id}/edit`"
+                  :to="`/panel/proposals/${p.id}/edit`"
                   class="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
                 >
                   Editar

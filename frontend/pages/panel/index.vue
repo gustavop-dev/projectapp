@@ -25,7 +25,7 @@
     <!-- Quick action -->
     <div class="mb-10">
       <NuxtLink
-        to="/admin/proposals/create"
+        to="/panel/proposals/create"
         class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
                font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
       >
@@ -52,7 +52,7 @@
         >
           <div>
             <NuxtLink
-              :to="`/admin/proposals/${p.id}/edit`"
+              :to="`/panel/proposals/${p.id}/edit`"
               class="text-sm font-medium text-gray-900 hover:text-emerald-600 transition-colors"
             >
               {{ p.title }}

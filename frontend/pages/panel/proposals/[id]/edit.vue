@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="mb-8">
-      <NuxtLink to="/admin/proposals" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+      <NuxtLink to="/panel/proposals" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
         ← Volver a propuestas
       </NuxtLink>
       <div v-if="proposal" class="flex items-center gap-4 mt-2">

@@ -53,6 +53,7 @@
 import { ref, computed, nextTick, onBeforeUnmount, provide, onMounted } from 'vue';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
 import PreloaderAnimation from '~/components/animations/PreloaderAnimation.vue';
 import {
   Greeting,
@@ -73,7 +74,7 @@ import SectionCounter from '~/components/BusinessProposal/SectionCounter.vue';
 import ExpirationBadge from '~/components/BusinessProposal/ExpirationBadge.vue';
 import ProposalExpired from '~/components/BusinessProposal/ProposalExpired.vue';
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
 definePageMeta({ layout: false });
 
@@ -175,7 +176,28 @@ function getSectionProps(section) {
 
 // --- Navigation handler ---
 function handleNavigate(index) {
-  currentIndex.value = index;
+  if (!horizontalScrollTrigger || !panelsWrapperEl) {
+    currentIndex.value = index;
+    return;
+  }
+
+  const panels = Array.from(panelsWrapperEl.querySelectorAll('.panel'));
+  if (!panels[index]) return;
+
+  const totalScroll = Math.max(0, panelsWrapperEl.scrollWidth - window.innerWidth);
+  if (totalScroll <= 0) return;
+
+  // Calculate target scroll position based on panel offset
+  const panelLeft = panels[index].offsetLeft;
+  const progress = Math.min(panelLeft / totalScroll, 1);
+  const targetWindowScroll = horizontalScrollTrigger.start
+    + progress * (horizontalScrollTrigger.end - horizontalScrollTrigger.start);
+
+  gsap.to(window, {
+    scrollTo: { y: targetWindowScroll },
+    duration: 0.8,
+    ease: 'power2.inOut',
+  });
 }
 
 // --- Horizontal scroll logic (from legacy BusinessProposal.vue) ---

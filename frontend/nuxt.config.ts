@@ -28,7 +28,7 @@ export default defineNuxtConfig({
     '/es-co/**': { ssr: false },
     '/en-us/**': { ssr: false },
     '/proposal/**': { ssr: false },
-    '/admin/**': { ssr: false },
+    '/panel/**': { ssr: false },
     '/**': { ssr: false },
   },
 

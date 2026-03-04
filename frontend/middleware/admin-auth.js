@@ -5,10 +5,10 @@
  * Redirects to Django admin login if not authenticated.
  */
 export default defineNuxtRouteMiddleware(async (to) => {
-  if (!to.path.startsWith('/admin')) return;
+  if (!to.path.startsWith('/panel')) return;
 
   // Skip for the login page itself
-  if (to.path === '/admin/login') return;
+  if (to.path === '/panel/login') return;
 
   try {
     const { useProposalStore } = await import('~/stores/proposals');

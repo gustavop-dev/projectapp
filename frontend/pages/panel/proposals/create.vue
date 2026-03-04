@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="mb-8">
-      <NuxtLink to="/admin/proposals" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+      <NuxtLink to="/panel/proposals" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
         ← Volver a propuestas
       </NuxtLink>
       <h1 class="text-2xl font-light text-gray-900 mt-2">Nueva Propuesta</h1>
@@ -114,7 +114,7 @@
           >
             {{ proposalStore.isUpdating ? 'Creando...' : 'Crear Propuesta' }}
           </button>
-          <NuxtLink to="/admin/proposals" class="text-sm text-gray-500 hover:text-gray-700">
+          <NuxtLink to="/panel/proposals" class="text-sm text-gray-500 hover:text-gray-700">
             Cancelar
           </NuxtLink>
         </div>
@@ -157,7 +157,7 @@ async function handleSubmit() {
 
   const result = await proposalStore.createProposal(payload);
   if (result.success) {
-    router.push(`/admin/proposals/${result.data.id}/edit`);
+    router.push(`/panel/proposals/${result.data.id}/edit`);
   } else {
     const errors = result.errors;
     if (errors && typeof errors === 'object') {
