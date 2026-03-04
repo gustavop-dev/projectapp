@@ -347,40 +347,40 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, watch } from 'vue';
+import { reactive, ref, computed, watch, h } from 'vue';
 
-// --- Inline sub-components ---
+// --- Inline sub-components (render functions for prod compatibility) ---
 const FieldInput = {
   props: { modelValue: String, label: String, placeholder: String },
   emits: ['update:modelValue'],
-  template: `
-    <div>
-      <label v-if="label" class="block text-xs text-gray-500 mb-0.5">{{ label }}</label>
-      <input
-        :value="modelValue"
-        @input="$emit('update:modelValue', $event.target.value)"
-        :placeholder="placeholder"
-        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-      />
-    </div>
-  `,
+  setup(props, { emit }) {
+    return () => h('div', [
+      props.label ? h('label', { class: 'block text-xs text-gray-500 mb-0.5' }, props.label) : null,
+      h('input', {
+        value: props.modelValue,
+        placeholder: props.placeholder,
+        class: 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none',
+        onInput: (e) => emit('update:modelValue', e.target.value),
+      }),
+    ]);
+  },
 };
 
 const FieldTextarea = {
   props: { modelValue: String, label: String, help: String, rows: { type: Number, default: 4 }, isSingle: Boolean },
   emits: ['update:modelValue'],
-  template: `
-    <div>
-      <label v-if="label" class="block text-xs text-gray-500 mb-0.5">{{ label }}</label>
-      <textarea
-        :value="modelValue"
-        @input="$emit('update:modelValue', $event.target.value)"
-        :rows="rows"
-        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y"
-      />
-      <p v-if="help" class="text-[10px] text-gray-400 mt-0.5">{{ help }}</p>
-    </div>
-  `,
+  setup(props, { emit }) {
+    return () => h('div', [
+      props.label ? h('label', { class: 'block text-xs text-gray-500 mb-0.5' }, props.label) : null,
+      h('textarea', {
+        value: props.modelValue,
+        rows: props.rows,
+        class: 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y',
+        onInput: (e) => emit('update:modelValue', e.target.value),
+      }),
+      props.help ? h('p', { class: 'text-[10px] text-gray-400 mt-0.5' }, props.help) : null,
+    ]);
+  },
 };
 
 const props = defineProps({
