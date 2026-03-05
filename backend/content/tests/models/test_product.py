@@ -63,9 +63,9 @@ class TestProduct:
         )
         assert prod.mobile_app_price is None
 
-    def test_delete_removes_image_file(self, db, tmp_path, settings):
+    def test_delete_removes_image_file(self, db, tmp_path, monkeypatch):
         """Verify product image file is removed from disk when the product is deleted."""
-        settings.MEDIA_ROOT = str(tmp_path)
+        monkeypatch.setattr('django.conf.settings.MEDIA_ROOT', str(tmp_path))
         img = SimpleUploadedFile('test.png', b'\x89PNG\r\n', content_type='image/png')
         prod = Product.objects.create(
             title_en='Deletable',

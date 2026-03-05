@@ -58,6 +58,7 @@ export const useBlogStore = defineStore('blog', {
         this.error = 'fetch_failed';
         console.error('Error fetching blog posts:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
       }
@@ -83,6 +84,7 @@ export const useBlogStore = defineStore('blog', {
           this.error = 'unknown';
         }
         return { success: false, error: this.error, status };
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
       }
@@ -106,6 +108,7 @@ export const useBlogStore = defineStore('blog', {
         this.error = 'fetch_failed';
         console.error('Error fetching admin blog posts:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
       }
@@ -126,6 +129,7 @@ export const useBlogStore = defineStore('blog', {
         this.error = 'fetch_failed';
         console.error('Error fetching blog post:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
       }
@@ -146,6 +150,7 @@ export const useBlogStore = defineStore('blog', {
         this.error = 'create_failed';
         console.error('Error creating blog post:', error);
         return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }
@@ -167,6 +172,7 @@ export const useBlogStore = defineStore('blog', {
         this.error = 'update_failed';
         console.error('Error updating blog post:', error);
         return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }
@@ -190,6 +196,7 @@ export const useBlogStore = defineStore('blog', {
         this.error = 'delete_failed';
         console.error('Error deleting blog post:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }

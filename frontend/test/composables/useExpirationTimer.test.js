@@ -176,6 +176,20 @@ describe('useExpirationTimer', () => {
 
       expect(formattedCountdown.value).toBe('1 día, 6 horas');
     });
+
+    it('formats singular día and singular hora when 1 day 1 hour left', () => {
+      const expiresAt = ref('2026-03-02T13:00:00Z');
+      const { formattedCountdown } = useExpirationTimer(expiresAt);
+
+      expect(formattedCountdown.value).toBe('1 día, 1 hora');
+    });
+
+    it('formats singular día with no hours when exactly 1 day left', () => {
+      const expiresAt = ref('2026-03-02T12:00:00Z');
+      const { formattedCountdown } = useExpirationTimer(expiresAt);
+
+      expect(formattedCountdown.value).toBe('1 día');
+    });
   });
 
   describe('lifecycle hooks', () => {

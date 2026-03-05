@@ -127,6 +127,16 @@ describe('useBlogStore', () => {
 
       expect(store.error).toBe('unknown');
     });
+
+    it('sets unknown error when error has no response property', async () => {
+      get_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.fetchPost('slug');
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('unknown');
+      expect(result.status).toBeUndefined();
+    });
   });
 
   describe('admin actions', () => {
@@ -191,6 +201,15 @@ describe('useBlogStore', () => {
       expect(store.error).toBe('create_failed');
     });
 
+    it('createPost handles error without response property', async () => {
+      create_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.createPost({});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toBeUndefined();
+    });
+
     it('updatePost patches and updates currentPost', async () => {
       patch_request.mockResolvedValue({ data: { id: 1, title_en: 'Updated' } });
 
@@ -212,6 +231,15 @@ describe('useBlogStore', () => {
       expect(store.isUpdating).toBe(false);
     });
 
+    it('updatePost handles error without response property', async () => {
+      patch_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.updatePost(1, {});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toBeUndefined();
+    });
+
     it('deletePost removes post from list', async () => {
       store.posts = [{ id: 1 }, { id: 2 }];
       delete_request.mockResolvedValue({});
@@ -231,6 +259,17 @@ describe('useBlogStore', () => {
       await store.deletePost(1);
 
       expect(store.currentPost).toBeNull();
+    });
+
+    it('deletePost keeps null currentPost unchanged', async () => {
+      store.currentPost = null;
+      store.posts = [{ id: 1 }];
+      delete_request.mockResolvedValue({});
+
+      await store.deletePost(1);
+
+      expect(store.currentPost).toBeNull();
+      expect(store.posts).toEqual([]);
     });
 
     it('deletePost handles error', async () => {

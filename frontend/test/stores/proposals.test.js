@@ -82,6 +82,33 @@ describe('useProposalStore', () => {
       expect(store.enabledSections).toEqual([]);
     });
 
+    it('enabledSections returns empty array when sections is null', () => {
+      store.currentProposal = { sections: null };
+      expect(store.enabledSections).toEqual([]);
+    });
+
+    it('enabledSections returns empty array when sections is undefined', () => {
+      store.currentProposal = {};
+      expect(store.enabledSections).toEqual([]);
+    });
+
+    it('totalSections returns 0 when sections is null', () => {
+      store.currentProposal = { sections: null };
+      expect(store.totalSections).toBe(0);
+    });
+
+    it('totalSections returns 0 when sections is undefined', () => {
+      store.currentProposal = {};
+      expect(store.totalSections).toBe(0);
+    });
+
+    it('totalSections returns 0 when no sections are enabled', () => {
+      store.currentProposal = {
+        sections: [{ id: 1, is_enabled: false }],
+      };
+      expect(store.totalSections).toBe(0);
+    });
+
     it('totalSections counts only enabled sections', () => {
       store.currentProposal = {
         sections: [
@@ -129,6 +156,16 @@ describe('useProposalStore', () => {
       const _result = await store.fetchPublicProposal('error-uuid');
 
       expect(store.error).toBe('unknown');
+    });
+
+    it('sets unknown error when error has no response property', async () => {
+      get_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.fetchPublicProposal('uuid');
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('unknown');
+      expect(result.status).toBeUndefined();
     });
 
     it('resets isLoading after request', async () => {
@@ -213,6 +250,15 @@ describe('useProposalStore', () => {
       expect(result.success).toBe(false);
       expect(store.error).toBe('create_failed');
     });
+
+    it('handles error without response property', async () => {
+      create_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.createProposal({});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toBeUndefined();
+    });
   });
 
   describe('updateProposal', () => {
@@ -233,6 +279,17 @@ describe('useProposalStore', () => {
       const _result = await store.updateProposal(1, {});
 
       expect(store.error).toBe('update_failed');
+    });
+
+    it('handles error with response data', async () => {
+      patch_request.mockRejectedValue({
+        response: { data: { title: ['Required'] } },
+      });
+
+      const result = await store.updateProposal(1, {});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual({ title: ['Required'] });
     });
   });
 
@@ -256,6 +313,17 @@ describe('useProposalStore', () => {
       await store.deleteProposal(1);
 
       expect(store.currentProposal).toBeNull();
+    });
+
+    it('keeps null currentProposal unchanged on delete', async () => {
+      store.currentProposal = null;
+      store.proposals = [{ id: 1 }];
+      delete_request.mockResolvedValue({});
+
+      await store.deleteProposal(1);
+
+      expect(store.currentProposal).toBeNull();
+      expect(store.proposals).toEqual([]);
     });
 
     it('handles error', async () => {
@@ -288,6 +356,15 @@ describe('useProposalStore', () => {
 
       expect(result.success).toBe(false);
       expect(store.error).toBe('send_failed');
+    });
+
+    it('handles send error without response property', async () => {
+      create_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.sendProposal(1);
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toBeUndefined();
     });
   });
 
@@ -378,6 +455,38 @@ describe('useProposalStore', () => {
 
       expect(store.error).toBe('update_section_failed');
     });
+
+    it('handles section update error with response data', async () => {
+      patch_request.mockRejectedValue({
+        response: { data: { content_json: ['Invalid'] } },
+      });
+
+      const result = await store.updateSection(10, {});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual({ content_json: ['Invalid'] });
+    });
+
+    it('skips local sync when currentProposal is null', async () => {
+      store.currentProposal = null;
+      patch_request.mockResolvedValue({ data: { id: 10 } });
+
+      const result = await store.updateSection(10, { title: 'New' });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('skips local sync when section id not found', async () => {
+      store.currentProposal = {
+        sections: [{ id: 99, section_type: 'other' }],
+      };
+      patch_request.mockResolvedValue({ data: { id: 10 } });
+
+      const result = await store.updateSection(10, { title: 'New' });
+
+      expect(result.success).toBe(true);
+      expect(store.currentProposal.sections[0].id).toBe(99);
+    });
   });
 
   describe('reorderSections', () => {
@@ -409,6 +518,15 @@ describe('useProposalStore', () => {
 
       expect(result.success).toBe(false);
     });
+
+    it('skips local order update when currentProposal is null', async () => {
+      store.currentProposal = null;
+      create_request.mockResolvedValue({});
+
+      const result = await store.reorderSections(1, [{ id: 1, order: 0 }]);
+
+      expect(result.success).toBe(true);
+    });
   });
 
   describe('respondToProposal', () => {
@@ -438,6 +556,26 @@ describe('useProposalStore', () => {
       const result = await store.respondToProposal('abc', 'accepted');
 
       expect(result.success).toBe(false);
+    });
+
+    it('does not update status when currentProposal is null', async () => {
+      store.currentProposal = null;
+      create_request.mockResolvedValue({ data: { status: 'accepted' } });
+
+      const result = await store.respondToProposal('abc', 'accepted');
+
+      expect(result.success).toBe(true);
+      expect(store.currentProposal).toBeNull();
+    });
+
+    it('does not update status when uuid does not match', async () => {
+      store.currentProposal = { uuid: 'xyz', status: 'sent' };
+      create_request.mockResolvedValue({ data: { status: 'accepted' } });
+
+      const result = await store.respondToProposal('abc', 'accepted');
+
+      expect(result.success).toBe(true);
+      expect(store.currentProposal.status).toBe('sent');
     });
   });
 

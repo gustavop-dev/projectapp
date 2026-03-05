@@ -181,4 +181,23 @@ describe('getCookie (via CSRF header)', () => {
 
     expect(mockAxios.get).toHaveBeenCalled();
   });
+
+  it('returns null when typeof document is undefined (SSR context)', async () => {
+    const origDescriptor = Object.getOwnPropertyDescriptor(global, 'document');
+    Object.defineProperty(global, 'document', { value: undefined, writable: true, configurable: true });
+
+    jest.resetModules();
+    jest.doMock('axios', () => ({ __esModule: true, default: mockAxios }));
+    const mod = require('../../../stores/services/request_http');
+
+    await mod.get_request('test/');
+
+    expect(mockAxios.get).toHaveBeenCalledWith('/api/test/', expect.objectContaining({
+      headers: expect.objectContaining({ 'X-CSRFToken': null }),
+    }));
+
+    if (origDescriptor) {
+      Object.defineProperty(global, 'document', origDescriptor);
+    }
+  });
 });

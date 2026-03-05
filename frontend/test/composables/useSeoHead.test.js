@@ -129,4 +129,60 @@ describe('useSeoHead', () => {
     const arg = mockUseHead.mock.calls[0][0];
     expect(arg.link).toEqual([{ rel: 'alternate' }]);
   });
+
+  it('invokes og:title content callback', () => {
+    useSeoHead('aboutUs');
+
+    const arg = mockUseHead.mock.calls[0][0];
+    const ogTitle = arg.meta.find((m) => m.property === 'og:title');
+    ogTitle.content();
+    expect(mockT).toHaveBeenCalledWith('meta.aboutUs.title');
+  });
+
+  it('invokes og:description content callback', () => {
+    useSeoHead('aboutUs');
+
+    const arg = mockUseHead.mock.calls[0][0];
+    const ogDesc = arg.meta.find((m) => m.property === 'og:description');
+    ogDesc.content();
+    expect(mockT).toHaveBeenCalledWith('meta.aboutUs.description');
+  });
+
+  it('invokes twitter:title content callback', () => {
+    useSeoHead('aboutUs');
+
+    const arg = mockUseHead.mock.calls[0][0];
+    const twitterTitle = arg.meta.find((m) => m.name === 'twitter:title');
+    twitterTitle.content();
+    expect(mockT).toHaveBeenCalledWith('meta.aboutUs.title');
+  });
+
+  it('invokes twitter:description content callback', () => {
+    useSeoHead('aboutUs');
+
+    const arg = mockUseHead.mock.calls[0][0];
+    const twitterDesc = arg.meta.find((m) => m.name === 'twitter:description');
+    twitterDesc.content();
+    expect(mockT).toHaveBeenCalledWith('meta.aboutUs.description');
+  });
+
+  it('falls back to empty link array when i18nHead link is undefined', () => {
+    global.useLocaleHead = () => ref({ htmlAttrs: { lang: 'en' }, link: undefined });
+    jest.resetModules();
+    const mod = require('../../composables/useSeoHead');
+    mod.useSeoHead('aboutUs');
+
+    const arg = mockUseHead.mock.calls[0][0];
+    expect(arg.link).toEqual([]);
+  });
+
+  it('returns undefined lang when htmlAttrs is undefined', () => {
+    global.useLocaleHead = () => ref({ link: [{ rel: 'alternate' }] });
+    jest.resetModules();
+    const mod = require('../../composables/useSeoHead');
+    mod.useSeoHead('aboutUs');
+
+    const arg = mockUseHead.mock.calls[0][0];
+    expect(arg.htmlAttrs.lang).toBeUndefined();
+  });
 });

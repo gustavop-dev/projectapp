@@ -99,6 +99,15 @@ describe('useHostingStore', () => {
       expect(store.hostings).toEqual([]);
       expect(store.areHostingsUpdated).toBe(true);
     });
+
+    it('falls back to empty array when response data is null', async () => {
+      get_request.mockResolvedValue({ data: null });
+
+      await store.fetchHostingData();
+
+      expect(store.hostings).toEqual([]);
+      expect(store.areHostingsUpdated).toBe(true);
+    });
   });
 
   describe('init', () => {

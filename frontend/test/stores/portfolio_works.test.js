@@ -87,6 +87,15 @@ describe('usePortfolioWorksStore', () => {
       expect(store.portfolioWorks).toEqual([]);
       expect(store.areUpdatePortfolioWorks).toBe(true);
     });
+
+    it('falls back to empty array when response data is null', async () => {
+      get_request.mockResolvedValue({ data: null });
+
+      await store.fetchPortfolioWorksData();
+
+      expect(store.portfolioWorks).toEqual([]);
+      expect(store.areUpdatePortfolioWorks).toBe(true);
+    });
   });
 
   describe('init', () => {

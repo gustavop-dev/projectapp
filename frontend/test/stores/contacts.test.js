@@ -92,6 +92,15 @@ describe('useContactsStore', () => {
       expect(store.contacts).toEqual([]);
       expect(store.areUpdateContacts).toBe(true);
     });
+
+    it('falls back to empty array when response data is null', async () => {
+      get_request.mockResolvedValue({ data: null });
+
+      await store.fetchContactsData();
+
+      expect(store.contacts).toEqual([]);
+      expect(store.areUpdateContacts).toBe(true);
+    });
   });
 
   describe('init', () => {

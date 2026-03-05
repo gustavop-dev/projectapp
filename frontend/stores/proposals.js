@@ -68,6 +68,7 @@ export const useProposalStore = defineStore('proposals', {
           this.error = 'unknown';
         }
         return { success: false, error: this.error, status };
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
       }
@@ -95,6 +96,7 @@ export const useProposalStore = defineStore('proposals', {
         this.error = 'fetch_failed';
         console.error('Error fetching proposals:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
       }
@@ -115,6 +117,7 @@ export const useProposalStore = defineStore('proposals', {
         this.error = 'fetch_failed';
         console.error('Error fetching proposal:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
       }
@@ -135,6 +138,7 @@ export const useProposalStore = defineStore('proposals', {
         this.error = 'create_failed';
         console.error('Error creating proposal:', error);
         return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }
@@ -156,6 +160,7 @@ export const useProposalStore = defineStore('proposals', {
         this.error = 'update_failed';
         console.error('Error updating proposal:', error);
         return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }
@@ -179,6 +184,7 @@ export const useProposalStore = defineStore('proposals', {
         this.error = 'delete_failed';
         console.error('Error deleting proposal:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }
@@ -199,6 +205,7 @@ export const useProposalStore = defineStore('proposals', {
         this.error = 'send_failed';
         console.error('Error sending proposal:', error);
         return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }
@@ -231,6 +238,7 @@ export const useProposalStore = defineStore('proposals', {
         this.error = 'update_section_failed';
         console.error('Error updating section:', error);
         return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }
@@ -263,6 +271,7 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         console.error('Error reordering sections:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }

@@ -78,6 +78,15 @@ describe('useWebDesignsStore', () => {
       expect(store.designs).toEqual([]);
       expect(store.areUpdateDesigns).toBe(true);
     });
+
+    it('falls back to empty array when response data is null', async () => {
+      get_request.mockResolvedValue({ data: null });
+
+      await store.fetchDesignsData();
+
+      expect(store.designs).toEqual([]);
+      expect(store.areUpdateDesigns).toBe(true);
+    });
   });
 
   describe('init', () => {

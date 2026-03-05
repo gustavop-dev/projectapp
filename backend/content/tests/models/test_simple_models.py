@@ -23,9 +23,9 @@ class TestDesign:
         assert design.category_title_en == 'Web Design'
         assert design.category_title_es == 'Diseño Web'
 
-    def test_delete_removes_image_files(self, db, tmp_path, settings):
+    def test_delete_removes_image_files(self, db, tmp_path, monkeypatch):
         """Verify both cover and detail image files are removed on delete."""
-        settings.MEDIA_ROOT = str(tmp_path)
+        monkeypatch.setattr('django.conf.settings.MEDIA_ROOT', str(tmp_path))
         cover = SimpleUploadedFile('cover.png', b'\x89PNG\r\n', content_type='image/png')
         detail = SimpleUploadedFile('detail.png', b'\x89PNG\r\n', content_type='image/png')
         d = Design.objects.create(
@@ -53,9 +53,9 @@ class TestModel3D:
         assert model_3d.category_title_en == '3D Animation'
         assert model_3d.category_title_es == 'Animación 3D'
 
-    def test_delete_removes_image_and_file(self, db, tmp_path, settings):
+    def test_delete_removes_image_and_file(self, db, tmp_path, monkeypatch):
         """Verify both image and 3D model file are removed on delete."""
-        settings.MEDIA_ROOT = str(tmp_path)
+        monkeypatch.setattr('django.conf.settings.MEDIA_ROOT', str(tmp_path))
         img = SimpleUploadedFile('img.png', b'\x89PNG\r\n', content_type='image/png')
         model_file = SimpleUploadedFile('model.glb', b'glTF', content_type='application/octet-stream')
         m = Model3D.objects.create(
@@ -85,9 +85,9 @@ class TestPortfolioWork:
         assert portfolio_work.title_en == 'Client Portal'
         assert portfolio_work.title_es == 'Portal de Cliente'
 
-    def test_delete_removes_cover_image(self, db, tmp_path, settings):
+    def test_delete_removes_cover_image(self, db, tmp_path, monkeypatch):
         """Verify cover image file is removed from disk on delete."""
-        settings.MEDIA_ROOT = str(tmp_path)
+        monkeypatch.setattr('django.conf.settings.MEDIA_ROOT', str(tmp_path))
         cover = SimpleUploadedFile('cover.png', b'\x89PNG\r\n', content_type='image/png')
         pw = PortfolioWork.objects.create(
             title_en='Del', title_es='Del',

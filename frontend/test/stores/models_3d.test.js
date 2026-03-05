@@ -87,6 +87,15 @@ describe('useModels3dStore', () => {
       expect(store.models3d).toEqual([]);
       expect(store.areUpdateModels3d).toBe(true);
     });
+
+    it('falls back to empty array when response data is null', async () => {
+      get_request.mockResolvedValue({ data: null });
+
+      await store.fetchModels3dData();
+
+      expect(store.models3d).toEqual([]);
+      expect(store.areUpdateModels3d).toBe(true);
+    });
   });
 
   describe('init', () => {

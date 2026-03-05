@@ -92,6 +92,15 @@ describe('useProductStore', () => {
       expect(store.products).toEqual([]);
       expect(store.areProductsUpdated).toBe(true);
     });
+
+    it('falls back to empty array when response data is null', async () => {
+      get_request.mockResolvedValue({ data: null });
+
+      await store.fetchProductData();
+
+      expect(store.products).toEqual([]);
+      expect(store.areProductsUpdated).toBe(true);
+    });
   });
 
   describe('init', () => {

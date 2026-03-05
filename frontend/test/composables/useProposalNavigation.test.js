@@ -146,6 +146,56 @@ describe('useProposalNavigation', () => {
 
       expect(currentIndex.value).toBe(0);
     });
+
+    it('uses plain arrays when panels and scrollContainer are not refs', async () => {
+      const mockGsapTo = jest.fn();
+      jest.doMock('gsap', () => ({
+        gsap: { to: mockGsapTo },
+      }));
+
+      const panels = [
+        { offsetLeft: 0 },
+        { offsetLeft: 500 },
+      ];
+      const scrollContainer = {
+        scrollWidth: 1500,
+        offsetWidth: 500,
+      };
+      const tween = {
+        scrollTrigger: { start: 0, end: 1000 },
+      };
+
+      const { currentIndex, goToSection } = useProposalNavigation(makeSections(3));
+
+      await goToSection(1, { tween, panels, scrollContainer });
+
+      expect(currentIndex.value).toBe(1);
+    });
+
+    it('handles zero totalScroll gracefully', async () => {
+      const mockGsapTo = jest.fn();
+      jest.doMock('gsap', () => ({
+        gsap: { to: mockGsapTo },
+      }));
+
+      const panels = ref([
+        { offsetLeft: 0 },
+        { offsetLeft: 0 },
+      ]);
+      const scrollContainer = ref({
+        scrollWidth: 500,
+        offsetWidth: 500,
+      });
+      const tween = {
+        scrollTrigger: { start: 0, end: 1000 },
+      };
+
+      const { currentIndex, goToSection } = useProposalNavigation(makeSections(3));
+
+      await goToSection(1, { tween, panels, scrollContainer });
+
+      expect(currentIndex.value).toBe(1);
+    });
   });
 
   describe('goNext', () => {

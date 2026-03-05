@@ -97,6 +97,14 @@ describe('useMessages', () => {
       messages.value;
       expect(mockTm).toHaveBeenCalledWith('home');
     });
+
+    it('falls back to empty object when tm returns falsy for route-based key', () => {
+      mockRouteName = 'index___en-us';
+      mockTm.mockReturnValue(null);
+      const { messages } = useMessages();
+
+      expect(messages.value).toEqual({});
+    });
   });
 });
 
