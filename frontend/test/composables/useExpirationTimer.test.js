@@ -14,6 +14,14 @@ afterAll(() => {
   jest.useRealTimers();
 });
 
+beforeEach(() => {
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 describe('useExpirationTimer', () => {
   describe('with undefined expiresAt', () => {
     it('returns null for daysRemaining', () => {

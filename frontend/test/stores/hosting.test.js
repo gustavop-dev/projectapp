@@ -41,6 +41,7 @@ describe('useHostingStore', () => {
     setActivePinia(createPinia());
     store = useHostingStore();
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('initial state', () => {
@@ -73,6 +74,7 @@ describe('useHostingStore', () => {
     });
 
     it('handles API error gracefully', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
       get_request.mockRejectedValue(new Error('Network error'));
 
       await store.fetchHostingData();
