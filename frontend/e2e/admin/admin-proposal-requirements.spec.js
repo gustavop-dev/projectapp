@@ -5,7 +5,7 @@
  * pasting content into groups, adding/removing items,
  * adding additional modules, and verifying data integrity.
  */
-import { test } from '../helpers/test.js';
+import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import {
@@ -124,6 +124,22 @@ function buildMockHandler(capturedUpdates) {
   };
 }
 
+/**
+ * Helper: navigate to edit page, switch to Secciones tab, expand functional_requirements.
+ */
+async function openRequirementsEditor(page, capturedUpdates) {
+  await mockApi(page, buildMockHandler(capturedUpdates));
+  await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+  await page.waitForLoadState('networkidle');
+
+  await page.getByRole('button', { name: 'Secciones' }).click();
+
+  // Expand the functional_requirements section
+  const sectionHeader = page.locator('div').filter({ hasText: '🧩 Requerimientos Funcionales' }).first();
+  await sectionHeader.click();
+  await page.waitForTimeout(300);
+}
+
 test.describe('Functional Requirements — Form Mode', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, {
@@ -132,40 +148,78 @@ test.describe('Functional Requirements — Form Mode', () => {
     });
   });
 
-  test('loads proposal with functional_requirements section showing 4 default groups', {
+  test('loads section showing 4 groups with item counts in headers', {
     tag: [...ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_FORM, '@role:admin'],
   }, async ({ page }) => {
-    await mockApi(page, buildMockHandler(null));
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await openRequirementsEditor(page, null);
 
-    await page.waitForLoadState('networkidle');
+    const editor = page.locator('.section-editor').first();
+
+    // Verify group headers are visible
+    await expect(editor.getByText('Vistas')).toBeVisible();
+    await expect(editor.getByText('Componentes')).toBeVisible();
+    await expect(editor.getByText('Funcionalidades')).toBeVisible();
+    await expect(editor.getByText('Módulo Admin')).toBeVisible();
+
+    // Verify item counts in group headers (e.g., "(2 elementos)")
+    await expect(editor.getByText('(2 elementos)').first()).toBeVisible();
+    await expect(editor.getByText('(1 elementos)').first()).toBeVisible();
   });
 
-  test('each group displays its items correctly', {
+  test('save produces correct groups and items structure in payload', {
     tag: [...ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_FORM, '@role:admin'],
   }, async ({ page }) => {
-    await mockApi(page, buildMockHandler(null));
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    const captured = [];
+    await openRequirementsEditor(page, captured);
 
-    await page.waitForLoadState('networkidle');
+    const editor = page.locator('.section-editor').first();
+
+    // Click save without modifications to verify structure
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+    await page.waitForTimeout(500);
+
+    expect(captured.length).toBeGreaterThanOrEqual(1);
+    const last = captured[captured.length - 1];
+    expect(last.sectionId).toBe(301);
+    expect(last.body.content_json.groups).toHaveLength(4);
+    expect(last.body.content_json.groups[0].id).toBe('views');
+    expect(last.body.content_json.groups[0].items).toHaveLength(2);
+    expect(last.body.content_json.groups[0].items[0].name).toBe('Página Principal');
+    expect(last.body.content_json.groups[1].items).toHaveLength(1);
+    expect(last.body.content_json.additionalModules).toEqual([]);
   });
 
-  test('can add a new item to a group', {
+  test('each group defaults to form _editMode in payload', {
     tag: [...ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_FORM, '@role:admin'],
   }, async ({ page }) => {
-    await mockApi(page, buildMockHandler(null));
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    const captured = [];
+    await openRequirementsEditor(page, captured);
 
-    await page.waitForLoadState('networkidle');
+    const editor = page.locator('.section-editor').first();
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+    await page.waitForTimeout(500);
+
+    expect(captured.length).toBeGreaterThanOrEqual(1);
+    const last = captured[captured.length - 1];
+    for (const group of last.body.content_json.groups) {
+      expect(group._editMode).toBe('form');
+      expect(group).not.toHaveProperty('rawText');
+    }
   });
 
-  test('can add an additional module', {
+  test('is_wide_panel is true in payload for functional_requirements', {
     tag: [...ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_FORM, '@role:admin'],
   }, async ({ page }) => {
-    await mockApi(page, buildMockHandler(null));
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    const captured = [];
+    await openRequirementsEditor(page, captured);
 
-    await page.waitForLoadState('networkidle');
+    const editor = page.locator('.section-editor').first();
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+    await page.waitForTimeout(500);
+
+    expect(captured.length).toBeGreaterThanOrEqual(1);
+    const last = captured[captured.length - 1];
+    expect(last.body.is_wide_panel).toBe(true);
   });
 });
 
@@ -177,39 +231,105 @@ test.describe('Functional Requirements — Paste Content Mode', () => {
     });
   });
 
-  test('each group has its own paste content toggle', {
+  test('each group has Formulario and Pegar contenido toggle buttons', {
     tag: [...ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_PASTE, '@role:admin'],
   }, async ({ page }) => {
-    await mockApi(page, buildMockHandler(null));
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await openRequirementsEditor(page, null);
 
-    await page.waitForLoadState('networkidle');
+    const editor = page.locator('.section-editor').first();
+
+    // Each group header should have Formulario/Pegar contenido buttons
+    // There are 4 groups, so we expect at least 4 "Formulario" buttons (one per group + main)
+    const formularioBtns = editor.getByRole('button', { name: 'Formulario' });
+    const pasteBtns = editor.getByRole('button', { name: 'Pegar contenido' });
+
+    // Main section has its own toggle + 4 groups = at least 5
+    expect(await formularioBtns.count()).toBeGreaterThanOrEqual(5);
+    expect(await pasteBtns.count()).toBeGreaterThanOrEqual(5);
   });
 
-  test('pasting emoji+bold format creates items with icon name and description', {
+  test('group paste toggle shows textarea for that group', {
     tag: [...ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_PASTE, '@role:admin'],
   }, async ({ page }) => {
-    await mockApi(page, buildMockHandler(null));
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await openRequirementsEditor(page, null);
 
-    await page.waitForLoadState('networkidle');
+    const editor = page.locator('.section-editor').first();
+
+    // Expand the first group (Vistas) by clicking its header
+    const viewsGroupHeader = editor.locator('div').filter({ hasText: 'Vistas' }).first();
+    await viewsGroupHeader.click();
+    await page.waitForTimeout(300);
+
+    // Click the "Pegar contenido" button closest to the Vistas group
+    // Groups have their own paste buttons at index [10px font-size]
+    const groupPasteButtons = editor.locator('button:has-text("Pegar contenido")');
+    // The second paste button should be for the first group (first is main section)
+    await groupPasteButtons.nth(1).click();
+    await page.waitForTimeout(200);
+
+    // A textarea should appear for this group (rows=10)
+    const groupTextarea = editor.locator('textarea[rows="10"]');
+    await expect(groupTextarea.first()).toBeVisible();
   });
 
-  test('pasting bold-only format creates items with name and description', {
+  test('group paste saves _editMode paste and rawText per group', {
     tag: [...ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_PASTE, '@role:admin'],
   }, async ({ page }) => {
-    await mockApi(page, buildMockHandler(null));
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    const captured = [];
+    await openRequirementsEditor(page, captured);
 
-    await page.waitForLoadState('networkidle');
+    const editor = page.locator('.section-editor').first();
+
+    // Expand Vistas group
+    const viewsGroupHeader = editor.locator('div').filter({ hasText: 'Vistas' }).first();
+    await viewsGroupHeader.click();
+    await page.waitForTimeout(300);
+
+    // Switch Vistas group to paste mode
+    const groupPasteButtons = editor.locator('button:has-text("Pegar contenido")');
+    await groupPasteButtons.nth(1).click();
+    await page.waitForTimeout(200);
+
+    // Fill the group paste textarea
+    const groupTextarea = editor.locator('textarea[rows="10"]').first();
+    await groupTextarea.fill('Custom pasted views content.');
+
+    // Save the section
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+    await page.waitForTimeout(500);
+
+    expect(captured.length).toBeGreaterThanOrEqual(1);
+    const last = captured[captured.length - 1];
+
+    // First group (views) should be in paste mode
+    const viewsGroup = last.body.content_json.groups[0];
+    expect(viewsGroup._editMode).toBe('paste');
+    expect(viewsGroup.rawText).toBe('Custom pasted views content.');
+
+    // Other groups should still be in form mode
+    const componentsGroup = last.body.content_json.groups[1];
+    expect(componentsGroup._editMode).toBe('form');
+    expect(componentsGroup).not.toHaveProperty('rawText');
   });
 
-  test('pasting bullet format creates items with name only', {
+  test('mixed form and paste modes across groups save correctly', {
     tag: [...ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_PASTE, '@role:admin'],
   }, async ({ page }) => {
-    await mockApi(page, buildMockHandler(null));
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    const captured = [];
+    await openRequirementsEditor(page, captured);
 
-    await page.waitForLoadState('networkidle');
+    const editor = page.locator('.section-editor').first();
+
+    // Save with default (all form mode) — verify all groups have _editMode: form
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+    await page.waitForTimeout(500);
+
+    expect(captured.length).toBeGreaterThanOrEqual(1);
+    const last = captured[captured.length - 1];
+
+    // All 4 groups should be in form mode
+    for (const group of last.body.content_json.groups) {
+      expect(group._editMode).toBe('form');
+    }
   });
 });

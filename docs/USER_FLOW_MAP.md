@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 1.0.0
-> **Last updated:** 2026-03-04
+> **Version:** 1.1.0
+> **Last updated:** 2026-03-05
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -431,7 +431,7 @@
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/proposals/:id/edit` (Sections tab)
-- **Description:** Admin edits a proposal section using the structured form fields. Each of the 12 section types has its own form layout (greeting, executive_summary, context_diagnostic, conversion_strategy, design_ux, creative_support, development_stages, functional_requirements, timeline, investment, final_note, next_steps).
+- **Description:** Admin edits a proposal section using the structured form fields. Each of the 12 section types has its own form layout (greeting, executive_summary, context_diagnostic, conversion_strategy, design_ux, creative_support, development_stages, functional_requirements, timeline, investment, final_note, next_steps). When saved in form mode, `_editMode: 'form'` is stored in content_json and the client sees the structured presentation.
 - **Steps:**
   1. Admin opens a proposal in edit mode and navigates to the "Secciones" tab.
   2. Admin selects a section to edit.
@@ -439,13 +439,19 @@
   4. Admin fills/modifies the form fields (text inputs, textareas, repeatable items).
   5. Admin clicks "Guardar Sección".
   6. Component emits save event with `{ sectionId, payload: { title, is_wide_panel, content_json } }`.
-  7. API call to `PATCH /api/proposals/sections/:id/update/` with the content_json.
-  8. Backend stores the content_json as-is in the ProposalSection model.
-  9. Success feedback "✓ Guardado" displays.
+  7. content_json includes `_editMode: 'form'` (no `rawText`).
+  8. API call to `PATCH /api/proposals/sections/:id/update/` with the content_json.
+  9. Backend stores the content_json as-is in the ProposalSection model.
+  10. Success feedback "✓ Guardado" displays.
+  11. Next time admin expands the section, it opens in "Formulario" mode.
 - **Branches:**
   - [Branch A — Each section type] Form layout differs: greeting has clientName + inspirationalQuote; executive_summary has paragraphs + highlights; conversion_strategy has steps with bullets; functional_requirements has nested groups with items; timeline has phases with tasks; investment has whatsIncluded + paymentOptions; etc.
   - [Branch B — Repeatable items] Admin adds/removes steps, stages, phases, groups, items, badges, payment options, contact methods via + / Eliminar buttons.
-- **Coverage:** ❌ Missing
+  - [Branch C — Client view] When `_editMode: 'form'`, the client-facing proposal renders the section using its structured component (e.g., ExecutiveSummary, ConversionStrategy).
+- **Coverage:** ⚠️ Partial
+- **E2E Spec:** `e2e/admin/admin-proposal-section-form.spec.js`
+- **Unit Tests:** `test/components/SectionEditor.test.js`
+- **Backend Tests:** `content/tests/views/test_section_update_views.py`
 
 ### FLOW: `admin-proposal-section-edit-paste`
 
@@ -453,22 +459,27 @@
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/proposals/:id/edit` (Sections tab)
-- **Description:** Admin uses the "Pegar contenido" mode to bulk-fill section fields from pasted text. Supported for: executive_summary, context_diagnostic, design_ux, creative_support, conversion_strategy, final_note, next_steps.
+- **Description:** Admin uses the "Pegar contenido" mode to save raw text content for a section. The paste textarea auto-syncs from form fields via `formToReadableText()`. When saved in paste mode, `_editMode: 'paste'` and `rawText` are stored in content_json. The client-facing proposal renders paste sections using `RawContentSection.vue` — a rounded card with markdown rendering — instead of the structured component.
 - **Steps:**
   1. Admin opens a section in the SectionEditor.
   2. Admin clicks the "Pegar contenido" toggle button (switches from "Formulario" mode).
-  3. A textarea appears for pasting raw text.
-  4. Admin pastes multi-paragraph text with bullet lists.
-  5. Admin clicks "Procesar y llenar campos".
-  6. `processPastedContent()` parses the text: paragraphs go to paragraph fields, bullet items (lines starting with *, -, •) go to list fields.
-  7. Form switches back to "Formulario" mode with fields pre-filled.
-  8. Admin reviews and adjusts the auto-filled fields.
-  9. Admin clicks "Guardar Sección" to persist via API.
+  3. A large textarea (rows=18) appears, pre-filled with `formToReadableText()` output from the current form fields.
+  4. Admin types or pastes content (supports Markdown formatting).
+  5. Admin clicks "Guardar Sección".
+  6. content_json includes `_editMode: 'paste'` and `rawText` with the textarea content.
+  7. API call to `PATCH /api/proposals/sections/:id/update/`.
+  8. Backend stores `_editMode` and `rawText` in content_json.
+  9. Success feedback "✓ Guardado" displays.
+  10. Next time admin expands the section, it opens in "Pegar contenido" mode (remembers last saved mode).
 - **Branches:**
-  - [Branch A — Text with only paragraphs] All text goes to paragraph fields.
-  - [Branch B — Text with paragraphs and bullets] Paragraphs and lists are separated correctly.
-  - [Branch C — Empty paste] No processing occurs.
-- **Coverage:** ❌ Missing
+  - [Branch A — Form auto-sync] As admin fills form fields, the paste textarea dynamically updates when toggling to paste mode.
+  - [Branch B — Toggle back to form] Admin switches back to "Formulario" → saves with `_editMode: 'form'`, no `rawText`.
+  - [Branch C — Empty paste] Saves `rawText` as empty string.
+  - [Branch D — Client view] When `_editMode: 'paste'`, the client-facing proposal renders `RawContentSection` with the section title and the pasted content in a rounded card (`bg-gray-50/80 backdrop-blur-sm border rounded-2xl`) with Markdown rendered via `marked` + `DOMPurify`.
+- **Coverage:** ⚠️ Partial
+- **E2E Spec:** `e2e/admin/admin-proposal-section-paste.spec.js`
+- **Unit Tests:** `test/components/SectionEditor.test.js`
+- **Backend Tests:** `content/tests/views/test_section_update_views.py`
 
 ### FLOW: `admin-proposal-section-reorder`
 
@@ -498,8 +509,11 @@
   4. Admin adds items to a group: icon, name, description.
   5. Admin removes items from a group.
   6. Admin adds additional modules via "+ Agregar módulo adicional".
-  7. Admin saves the section → content_json includes groups[] and additionalModules[].
-- **Coverage:** ❌ Missing
+  7. Admin saves the section → content_json includes groups[] and additionalModules[] with per-group `_editMode`.
+- **Coverage:** ⚠️ Partial
+- **E2E Spec:** `e2e/admin/admin-proposal-requirements.spec.js`
+- **Unit Tests:** `test/components/SectionEditor.test.js`
+- **Backend Tests:** `content/tests/views/test_section_update_views.py`
 
 ### FLOW: `admin-proposal-functional-requirements-paste`
 
@@ -507,22 +521,21 @@
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/proposals/:id/edit` (Sections tab → functional_requirements section)
-- **Description:** Admin uses the per-group "Pegar contenido" mode to bulk-fill requirement items from pasted text. Each group and additional module has its own paste toggle.
+- **Description:** Admin uses the per-group "Pegar contenido" mode to save raw text for individual requirement groups. Each group and additional module has its own paste toggle. When a group is in paste mode, the client-facing proposal renders that group as a `RawContentSection` with Markdown.
 - **Steps:**
   1. Admin opens the functional_requirements section editor.
   2. Admin clicks "Pegar contenido" on a specific group (e.g., Views).
-  3. A textarea appears within that group.
-  4. Admin pastes text with items formatted as: `emoji **Name** — Description` or `* item` or `**Name**: description`.
-  5. Admin clicks "Procesar y llenar".
-  6. `processGroupPaste()` parses: emoji+bold→{icon, name, description}, bold→{name, description}, bullets→{name}.
-  7. Group items are replaced with the parsed items.
-  8. Group switches back to form mode with items pre-filled.
-  9. Admin saves the section.
+  3. A textarea (rows=10) appears within that group, pre-filled via `groupToReadableText()`.
+  4. Admin types or pastes content.
+  5. Admin saves the section → group's `_editMode: 'paste'` and `rawText` are stored in content_json.
+  6. On next open, the group remembers paste mode.
 - **Branches:**
-  - [Branch A — Emoji + bold format] `🏠 **Home Page** — Main landing page` → {icon: '🏠', name: 'Home Page', description: 'Main landing page'}
-  - [Branch B — Bold only format] `**Header** — Navigation bar` → {icon: '', name: 'Header', description: 'Navigation bar'}
-  - [Branch C — Bullet format] `* Responsive Design` → {icon: '', name: 'Responsive Design', description: ''}
-- **Coverage:** ❌ Missing
+  - [Branch A — Mixed modes] Some groups in form mode, others in paste mode → each saved independently.
+  - [Branch B — Client view] Groups with `_editMode: 'paste'` render as `RawContentSection` in the client proposal.
+- **Coverage:** ⚠️ Partial
+- **E2E Spec:** `e2e/admin/admin-proposal-requirements.spec.js`
+- **Unit Tests:** `test/components/SectionEditor.test.js`
+- **Backend Tests:** `content/tests/views/test_section_update_views.py`
 
 ### FLOW: `admin-proposal-delete`
 
@@ -649,11 +662,11 @@
 | `admin-proposal-list` | admin | admin | P1 | ❌ Missing | — |
 | `admin-proposal-create` | admin | admin | P1 | ❌ Missing | — |
 | `admin-proposal-edit` | admin | admin | P1 | ❌ Missing | — |
-| `admin-proposal-section-edit-form` | admin | admin | P1 | ❌ Missing | — |
-| `admin-proposal-section-edit-paste` | admin | admin | P1 | ❌ Missing | — |
+| `admin-proposal-section-edit-form` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-section-form.spec.js` |
+| `admin-proposal-section-edit-paste` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-section-paste.spec.js` |
 | `admin-proposal-section-reorder` | admin | admin | P2 | ❌ Missing | — |
-| `admin-proposal-functional-requirements-form` | admin | admin | P1 | ❌ Missing | — |
-| `admin-proposal-functional-requirements-paste` | admin | admin | P1 | ❌ Missing | — |
+| `admin-proposal-functional-requirements-form` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-requirements.spec.js` |
+| `admin-proposal-functional-requirements-paste` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-requirements.spec.js` |
 | `admin-proposal-delete` | admin | admin | P2 | ❌ Missing | — |
 | `admin-proposal-send` | admin | admin | P1 | ❌ Missing | — |
 | `admin-blog-list` | admin | admin | P2 | ❌ Missing | — |
@@ -667,5 +680,14 @@
 - **P1 (Critical):** 13
 - **P2 (High):** 15
 - **P3 (Medium):** 7
-- **Covered:** 0 (0%)
-- **Missing:** 35 (100%)
+- **Covered (full):** 0 (0%)
+- **Partial:** 4 (11%) — section-edit-form, section-edit-paste, requirements-form, requirements-paste
+- **Missing:** 31 (89%)
+
+### Unit Test Coverage
+
+| Test File | Layer | Tests | Scope |
+|-----------|-------|-------|-------|
+| `test/components/SectionEditor.test.js` | Frontend unit | 97 | All 12 section types: formToJson, buildFormFromJson, round-trips, formToReadableText, buildSavePayload, edge cases |
+| `content/tests/views/test_section_update_views.py` | Backend view | 22 | PATCH per section type + paste mode + group paste |
+| `content/tests/models/test_section_content_json.py` | Backend model | ~40 | DB round-trip for all 12 types |
