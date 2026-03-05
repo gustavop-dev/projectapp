@@ -84,7 +84,6 @@ import ProposalIndex from '~/components/BusinessProposal/ProposalIndex.vue';
 import SectionCounter from '~/components/BusinessProposal/SectionCounter.vue';
 import ExpirationBadge from '~/components/BusinessProposal/ExpirationBadge.vue';
 import ProposalExpired from '~/components/BusinessProposal/ProposalExpired.vue';
-import ProposalResponseButtons from '~/components/BusinessProposal/ProposalResponseButtons.vue';
 import PdfDownloadButton from '~/components/BusinessProposal/PdfDownloadButton.vue';
 import RawContentSection from '~/components/BusinessProposal/RawContentSection.vue';
 import ProposalClosing from '~/components/BusinessProposal/ProposalClosing.vue';
