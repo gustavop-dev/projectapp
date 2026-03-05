@@ -29,9 +29,8 @@
       <SectionCounter :current="currentIndex + 1" :total="totalSections" />
       <ExpirationBadge v-if="proposal.expires_at" :expiresAt="proposal.expires_at" />
 
-      <!-- PDF download + Accept/Reject buttons -->
+      <!-- PDF download -->
       <PdfDownloadButton :clientName="proposal.client_name" :scrollContainer="scrollContainer" />
-      <ProposalResponseButtons :proposal="proposal" />
 
       <!-- Horizontal scroll container -->
       <div ref="scrollContainer" class="scroll-container">
@@ -43,10 +42,10 @@
             :data-section-type="panel.section_type"
           >
             <RawContentSection
-              v-if="panel.content_json?._editMode === 'paste' && panel.content_json?.rawText"
-              :title="panel.content_json?.title || panel.title"
-              :index="panel.content_json?.index || ''"
-              :rawText="panel.content_json.rawText"
+              v-if="isPastePanel(panel)"
+              :title="getPastePanelTitle(panel)"
+              :index="getPastePanelIndex(panel)"
+              :rawText="getPastePanelRawText(panel)"
             />
             <component
               v-else
@@ -88,6 +87,7 @@ import ProposalExpired from '~/components/BusinessProposal/ProposalExpired.vue';
 import ProposalResponseButtons from '~/components/BusinessProposal/ProposalResponseButtons.vue';
 import PdfDownloadButton from '~/components/BusinessProposal/PdfDownloadButton.vue';
 import RawContentSection from '~/components/BusinessProposal/RawContentSection.vue';
+import ProposalClosing from '~/components/BusinessProposal/ProposalClosing.vue';
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
@@ -110,6 +110,7 @@ const sectionComponentMap = {
   investment: Investment,
   final_note: FinalNote,
   next_steps: NextSteps,
+  proposal_closing: ProposalClosing,
 };
 
 const proposal = computed(() => proposalStore.currentProposal);
@@ -153,6 +154,18 @@ const displayPanels = computed(() => {
       panels.push(section);
     }
   }
+
+  // Add closing panel (validity, thank-you, accept/reject) after all sections
+  const finalNote = enabledSections.value.find(s => s.section_type === 'final_note');
+  const fnContent = finalNote?.content_json || {};
+  panels.push({
+    id: 'proposal_closing',
+    section_type: 'proposal_closing',
+    title: '🤝 Cierre',
+    _validityMessage: fnContent.validityMessage || '',
+    _thankYouMessage: fnContent.thankYouMessage || '',
+  });
+
   return panels;
 });
 
@@ -189,6 +202,14 @@ onMounted(async () => {
 // --- Section props transformer ---
 function getSectionProps(section) {
   const content = section.content_json || {};
+
+  if (section.section_type === 'proposal_closing') {
+    return {
+      proposal: proposal.value,
+      validityMessage: section._validityMessage || '',
+      thankYouMessage: section._thankYouMessage || '',
+    };
+  }
 
   if (section.section_type === 'greeting') {
     return {
@@ -240,6 +261,34 @@ function getSectionProps(section) {
   // For development_stages, timeline, investment, final_note, next_steps
   // Spread content_json as individual props
   return content;
+}
+
+function isPastePanel(panel) {
+  if (panel.section_type === 'functional_requirements_group') {
+    return panel._group?._editMode === 'paste' && panel._group?.rawText;
+  }
+  return panel.content_json?._editMode === 'paste' && panel.content_json?.rawText;
+}
+
+function getPastePanelTitle(panel) {
+  if (panel.section_type === 'functional_requirements_group') {
+    return panel._group?.title || panel.title;
+  }
+  return panel.content_json?.title || panel.title;
+}
+
+function getPastePanelIndex(panel) {
+  if (panel.section_type === 'functional_requirements_group') {
+    return panel._subIndex || '';
+  }
+  return panel.content_json?.index || '';
+}
+
+function getPastePanelRawText(panel) {
+  if (panel.section_type === 'functional_requirements_group') {
+    return panel._group?.rawText || '';
+  }
+  return panel.content_json?.rawText || '';
 }
 
 // --- Navigation handler ---

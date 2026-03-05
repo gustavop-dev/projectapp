@@ -173,101 +173,49 @@
         </div>
         <FieldTextarea v-model="form.intro" label="Introducción" :rows="3" :isSingle="true" />
 
-        <!-- Groups: views, components, features, admin_module -->
-        <div v-for="(group, gIdx) in form.groups" :key="group.id || gIdx" class="mt-6 border border-gray-200 rounded-xl p-4">
-          <div class="flex items-center justify-between mb-3">
+        <!-- Groups: collapsible -->
+        <div v-for="(group, gIdx) in form.groups" :key="group.id || gIdx" class="mt-4 border border-gray-200 rounded-xl overflow-hidden">
+          <!-- Collapse header -->
+          <div class="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+               @click="group._collapsed = !group._collapsed">
             <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': !group._collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
               <span>{{ group.icon }}</span> {{ group.title }}
+              <span class="text-[10px] text-gray-400 font-normal">({{ (group.items || []).length }} elementos)</span>
             </h4>
-            <!-- Paste toggle per group -->
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2" @click.stop>
               <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
                 :class="!group._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
-                @click="group._pasteMode = false">Formulario</button>
+                @click="onToggleGroupPaste(group, false)">Formulario</button>
               <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
                 :class="group._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
-                @click="group._pasteMode = true">Pegar contenido</button>
+                @click="onToggleGroupPaste(group, true)">Pegar contenido</button>
               <button v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features' && group.id !== 'integrations_api' && group.id !== 'admin_module'"
-                type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.groups.splice(gIdx, 1)">Eliminar grupo</button>
+                type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.groups.splice(gIdx, 1)">Eliminar</button>
             </div>
           </div>
 
-          <!-- Paste mode for this group -->
-          <div v-if="group._pasteMode" class="space-y-3">
-            <textarea v-model="group._pasteText" rows="10" placeholder="Pega aquí el contenido de este grupo..."
-              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 outline-none resize-y" />
-            <button type="button" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700"
-              @click="processGroupPaste(group)">Procesar y llenar</button>
-          </div>
-
-          <!-- Form mode for this group -->
-          <div v-else class="space-y-3">
-            <div class="grid grid-cols-[100px_1fr] gap-3">
-              <EmojiIconField v-model="group.icon" label="Icono" placeholder="🖥️" />
-              <FieldInput v-model="group.title" label="Título del grupo" />
-            </div>
-            <FieldTextarea v-model="group.description" label="Descripción" :rows="2" :isSingle="true" />
-
-            <!-- Items -->
-            <div>
-              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
-              <draggable v-model="group.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
-                <template #item="{ element: item, index: iIdx }">
-                  <div class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
-                    <div class="flex items-center justify-between mb-1">
-                      <div class="flex items-center gap-2">
-                        <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
-                        <span class="text-[10px] text-gray-400">{{ iIdx + 1 }}</span>
-                      </div>
-                      <button type="button" class="text-[10px] text-red-500" @click="group.items.splice(iIdx, 1)">Eliminar</button>
-                    </div>
-                    <div class="grid grid-cols-[90px_1fr] gap-2 mb-1">
-                      <EmojiIconField v-model="item.icon" label="Icono" placeholder="🏠" />
-                      <FieldInput v-model="item.name" label="Nombre" />
-                    </div>
-                    <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
-                  </div>
-                </template>
-              </draggable>
-              <button type="button" class="text-xs text-emerald-600 font-medium" @click="group.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Additional Modules -->
-        <div class="mt-6">
-          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Módulos Adicionales</label>
-          <div v-for="(mod, mIdx) in form.additionalModules" :key="mIdx" class="mb-4 border border-gray-200 rounded-xl p-4">
-            <div class="flex items-center justify-between mb-3">
-              <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <span>{{ mod.icon || '🧩' }}</span> {{ mod.title || 'Módulo adicional' }}
-              </h4>
-              <div class="flex items-center gap-2">
-                <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-                  :class="!mod._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
-                  @click="mod._pasteMode = false">Formulario</button>
-                <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-                  :class="mod._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
-                  @click="mod._pasteMode = true">Pegar contenido</button>
-                <button type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.additionalModules.splice(mIdx, 1)">Eliminar</button>
-              </div>
+          <!-- Collapse content -->
+          <div v-show="!group._collapsed" class="p-4">
+            <!-- Paste mode for this group -->
+            <div v-if="group._pasteMode" class="space-y-3">
+              <p class="text-[11px] text-gray-500">Contenido Markdown para esta sub-sección.</p>
+              <textarea v-model="group._pasteText" rows="10" placeholder="Escribe o pega aquí el contenido de este grupo..."
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-1 focus:ring-emerald-500 outline-none resize-y" />
             </div>
 
-            <div v-if="mod._pasteMode" class="space-y-3">
-              <textarea v-model="mod._pasteText" rows="8" placeholder="Pega aquí el contenido de este módulo..."
-                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 outline-none resize-y" />
-              <button type="button" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700"
-                @click="processGroupPaste(mod)">Procesar y llenar</button>
-            </div>
+            <!-- Form mode for this group -->
             <div v-else class="space-y-3">
               <div class="grid grid-cols-[100px_1fr] gap-3">
-                <EmojiIconField v-model="mod.icon" label="Icono" placeholder="🧩" />
-                <FieldInput v-model="mod.title" label="Título del módulo" />
+                <EmojiIconField v-model="group.icon" label="Icono" placeholder="🖥️" />
+                <FieldInput v-model="group.title" label="Título del grupo" />
               </div>
-              <FieldTextarea v-model="mod.description" label="Descripción" :rows="2" :isSingle="true" />
+              <FieldTextarea v-model="group.description" label="Descripción" :rows="2" :isSingle="true" />
               <div>
                 <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
-                <draggable v-model="mod.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+                <draggable v-model="group.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
                   <template #item="{ element: item, index: iIdx }">
                     <div class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
                       <div class="flex items-center justify-between mb-1">
@@ -275,22 +223,83 @@
                           <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
                           <span class="text-[10px] text-gray-400">{{ iIdx + 1 }}</span>
                         </div>
-                        <button type="button" class="text-[10px] text-red-500" @click="mod.items.splice(iIdx, 1)">Eliminar</button>
+                        <button type="button" class="text-[10px] text-red-500" @click="group.items.splice(iIdx, 1)">Eliminar</button>
                       </div>
                       <div class="grid grid-cols-[90px_1fr] gap-2 mb-1">
-                        <EmojiIconField v-model="item.icon" label="Icono" />
+                        <EmojiIconField v-model="item.icon" label="Icono" placeholder="🏠" />
                         <FieldInput v-model="item.name" label="Nombre" />
                       </div>
                       <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
                     </div>
                   </template>
                 </draggable>
-                <button type="button" class="text-xs text-emerald-600 font-medium" @click="mod.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
+                <button type="button" class="text-xs text-emerald-600 font-medium" @click="group.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Modules: collapsible -->
+        <div class="mt-6">
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Módulos Adicionales</label>
+          <div v-for="(mod, mIdx) in form.additionalModules" :key="mIdx" class="mb-4 border border-gray-200 rounded-xl overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                 @click="mod._collapsed = !mod._collapsed">
+              <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': !mod._collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+                <span>{{ mod.icon || '🧩' }}</span> {{ mod.title || 'Módulo adicional' }}
+              </h4>
+              <div class="flex items-center gap-2" @click.stop>
+                <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
+                  :class="!mod._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
+                  @click="onToggleGroupPaste(mod, false)">Formulario</button>
+                <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
+                  :class="mod._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
+                  @click="onToggleGroupPaste(mod, true)">Pegar contenido</button>
+                <button type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.additionalModules.splice(mIdx, 1)">Eliminar</button>
+              </div>
+            </div>
+            <div v-show="!mod._collapsed" class="p-4">
+              <div v-if="mod._pasteMode" class="space-y-3">
+                <p class="text-[11px] text-gray-500">Contenido Markdown para este módulo.</p>
+                <textarea v-model="mod._pasteText" rows="8" placeholder="Escribe o pega aquí el contenido de este módulo..."
+                  class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-1 focus:ring-emerald-500 outline-none resize-y" />
+              </div>
+              <div v-else class="space-y-3">
+                <div class="grid grid-cols-[100px_1fr] gap-3">
+                  <EmojiIconField v-model="mod.icon" label="Icono" placeholder="🧩" />
+                  <FieldInput v-model="mod.title" label="Título del módulo" />
+                </div>
+                <FieldTextarea v-model="mod.description" label="Descripción" :rows="2" :isSingle="true" />
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
+                  <draggable v-model="mod.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+                    <template #item="{ element: item, index: iIdx }">
+                      <div class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        <div class="flex items-center justify-between mb-1">
+                          <div class="flex items-center gap-2">
+                            <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
+                            <span class="text-[10px] text-gray-400">{{ iIdx + 1 }}</span>
+                          </div>
+                          <button type="button" class="text-[10px] text-red-500" @click="mod.items.splice(iIdx, 1)">Eliminar</button>
+                        </div>
+                        <div class="grid grid-cols-[90px_1fr] gap-2 mb-1">
+                          <EmojiIconField v-model="item.icon" label="Icono" />
+                          <FieldInput v-model="item.name" label="Nombre" />
+                        </div>
+                        <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
+                      </div>
+                    </template>
+                  </draggable>
+                  <button type="button" class="text-xs text-emerald-600 font-medium" @click="mod.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
+                </div>
               </div>
             </div>
           </div>
           <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-            @click="form.additionalModules.push({ icon: '🧩', title: '', description: '', items: [], _pasteMode: false, _pasteText: '' })">
+            @click="form.additionalModules.push({ icon: '🧩', title: '', description: '', items: [], _pasteMode: false, _pasteText: '', _collapsed: false })">
             + Agregar módulo adicional
           </button>
         </div>
@@ -637,20 +646,6 @@ function formToReadableText() {
     if (form.closing) parts.push(`\n${form.closing}`);
   } else if (type === 'functional_requirements') {
     if (form.intro) parts.push(form.intro);
-    for (const g of (form.groups || [])) {
-      parts.push(`\n## ${g.icon || ''} ${g.title}`);
-      if (g.description) parts.push(g.description);
-      for (const item of (g.items || [])) {
-        parts.push(`- ${item.icon || ''} **${item.name}**: ${item.description || ''}`);
-      }
-    }
-    for (const m of (form.additionalModules || [])) {
-      parts.push(`\n## ${m.icon || ''} ${m.title}`);
-      if (m.description) parts.push(m.description);
-      for (const item of (m.items || [])) {
-        parts.push(`- ${item.icon || ''} **${item.name}**: ${item.description || ''}`);
-      }
-    }
   } else if (type === 'development_stages') {
     for (const s of (form.stages || [])) {
       parts.push(`${s.icon || ''} ${s.title}${s.current ? ' (actual)' : ''}`);
@@ -712,34 +707,20 @@ function onTogglePasteMode(on) {
   }
 }
 
-function processGroupPaste(group) {
-  const text = (group._pasteText || '').trim();
-  if (!text) return;
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-  const items = [];
-  let descLines = [];
-  for (const line of lines) {
-    const bulletMatch = line.match(/^[\*\-•]\s*(.*)/);
-    const emojiItemMatch = line.match(/^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F?)\s*\*\*(.+?)\*\*\s*[—–\-:]\s*(.*)/u);
-    const boldMatch = line.match(/^\*\*(.+?)\*\*\s*[—–\-:]?\s*(.*)/);
-    if (emojiItemMatch) {
-      items.push({ icon: emojiItemMatch[1], name: emojiItemMatch[2].trim(), description: emojiItemMatch[3].trim() });
-    } else if (boldMatch) {
-      items.push({ icon: '', name: boldMatch[1].trim(), description: (boldMatch[2] || '').trim() });
-    } else if (bulletMatch) {
-      items.push({ icon: '', name: bulletMatch[1].trim(), description: '' });
-    } else {
-      descLines.push(line);
-    }
+function groupToReadableText(group) {
+  const parts = [];
+  if (group.description) parts.push(group.description);
+  for (const item of (group.items || [])) {
+    parts.push(`- ${item.icon || ''} **${item.name}**: ${item.description || ''}`);
   }
-  if (descLines.length && !group.description) {
-    group.description = descLines.join(' ');
+  return parts.join('\n').trim();
+}
+
+function onToggleGroupPaste(group, on) {
+  group._pasteMode = on;
+  if (on) {
+    group._pasteText = group._pasteText || groupToReadableText(group);
   }
-  if (items.length) {
-    group.items = items;
-  }
-  group._pasteMode = false;
-  group._pasteText = '';
 }
 
 function fillInvestmentFromProposal() {
@@ -831,12 +812,12 @@ function buildFormFromJson(json, type) {
           id: g.id || '', icon: g.icon || '', title: g.title || '',
           description: g.description || '',
           items: (g.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '' })),
-          _pasteMode: false, _pasteText: '',
+          _pasteMode: g._editMode === 'paste', _pasteText: g.rawText || '', _collapsed: true,
         })),
         additionalModules: (j.additionalModules || []).map(m => ({
           icon: m.icon || '', title: m.title || '', description: m.description || '',
           items: (m.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '' })),
-          _pasteMode: false, _pasteText: '',
+          _pasteMode: m._editMode === 'paste', _pasteText: m.rawText || '', _collapsed: true,
         })),
       };
     case 'timeline':
@@ -870,10 +851,19 @@ function formToJson(formData, type) {
     case 'development_stages':
       return { stages: f.stages.map(s => ({ icon: s.icon, title: s.title, description: s.description, ...(s.current ? { current: true } : {}) })) };
     case 'functional_requirements': {
-      const cleanGroup = (g) => ({
-        id: g.id, icon: g.icon, title: g.title, description: g.description,
-        items: (g.items || []).map(i => ({ icon: i.icon, name: i.name, description: i.description })),
-      });
+      const cleanGroup = (g) => {
+        const out = {
+          id: g.id, icon: g.icon, title: g.title, description: g.description,
+          items: (g.items || []).map(i => ({ icon: i.icon, name: i.name, description: i.description })),
+        };
+        if (g._pasteMode) {
+          out._editMode = 'paste';
+          out.rawText = g._pasteText || '';
+        } else {
+          out._editMode = 'form';
+        }
+        return out;
+      };
       return {
         index: f.index, title: f.title, intro: f.intro,
         groups: (f.groups || []).map(cleanGroup),

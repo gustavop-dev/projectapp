@@ -64,8 +64,47 @@ async function generatePdf() {
       return;
     }
 
+    const wrapper = container.querySelector('.panels-wrapper');
     const panels = Array.from(container.querySelectorAll('.panel'));
     if (panels.length === 0) return;
+
+    const savedWrapperStyle = wrapper ? {
+      display: wrapper.style.display,
+      flexWrap: wrapper.style.flexWrap,
+      width: wrapper.style.width,
+      height: wrapper.style.height,
+      transform: wrapper.style.transform,
+    } : null;
+    const savedContainerStyle = {
+      overflow: container.style.overflow,
+      height: container.style.height,
+    };
+    const savedPanelStyles = panels.map(p => ({
+      width: p.style.width,
+      height: p.style.height,
+      flexShrink: p.style.flexShrink,
+      overflow: p.style.overflow,
+      overflowY: p.style.overflowY,
+    }));
+
+    if (wrapper) {
+      wrapper.style.display = 'block';
+      wrapper.style.flexWrap = 'unset';
+      wrapper.style.width = '100vw';
+      wrapper.style.height = 'auto';
+      wrapper.style.transform = 'none';
+    }
+    container.style.overflow = 'visible';
+    container.style.height = 'auto';
+    panels.forEach(p => {
+      p.style.width = '100vw';
+      p.style.height = 'auto';
+      p.style.flexShrink = 'unset';
+      p.style.overflow = 'visible';
+      p.style.overflowY = 'visible';
+    });
+
+    await new Promise(r => setTimeout(r, 100));
 
     const firstOrientation = getPageOrientation(panels[0]);
     const pdf = new jsPDF({ orientation: firstOrientation, unit: 'mm', format: 'a4' });
@@ -73,7 +112,6 @@ async function generatePdf() {
     for (let i = 0; i < panels.length; i++) {
       const panel = panels[i];
       const orientation = getPageOrientation(panel);
-      const isPortrait = orientation === 'portrait';
 
       if (i > 0) {
         pdf.addPage('a4', orientation);
@@ -82,20 +120,8 @@ async function generatePdf() {
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
 
-      const origStyles = {
-        overflow: panel.style.overflow,
-        overflowY: panel.style.overflowY,
-        height: panel.style.height,
-        maxHeight: panel.style.maxHeight,
-        position: panel.style.position,
-      };
-      panel.style.overflow = 'visible';
-      panel.style.overflowY = 'visible';
-      panel.style.height = 'auto';
-      panel.style.maxHeight = 'none';
-
       const captureW = Math.max(panel.scrollWidth, panel.offsetWidth, 1280);
-      const captureH = Math.max(panel.scrollHeight, panel.offsetHeight, 720);
+      const captureH = Math.max(panel.scrollHeight, panel.offsetHeight, 400);
 
       const canvas = await html2canvas(panel, {
         scale: 2,
@@ -106,46 +132,39 @@ async function generatePdf() {
         height: captureH,
         windowWidth: captureW,
         windowHeight: captureH,
+        scrollX: 0,
+        scrollY: -window.scrollY,
       });
 
-      Object.assign(panel.style, origStyles);
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.85);
+      const imgData = canvas.toDataURL('image/jpeg', 0.9);
       const imgRatio = canvas.width / canvas.height;
       const margin = 5;
       const usableW = pageW - margin * 2;
       const usableH = pageH - margin * 2;
 
-      if (isPortrait) {
-        const contentImgW = usableW;
-        const contentImgH = contentImgW / imgRatio;
+      const contentImgW = usableW;
+      const contentImgH = contentImgW / imgRatio;
 
-        if (contentImgH <= usableH) {
-          const y = margin + (usableH - contentImgH) / 2;
-          pdf.addImage(imgData, 'JPEG', margin, y, contentImgW, contentImgH);
-        } else {
-          const totalPages = Math.ceil(contentImgH / usableH);
-          for (let p = 0; p < totalPages; p++) {
-            if (p > 0) pdf.addPage('a4', 'portrait');
-            const yOffset = margin - (p * usableH);
-            pdf.addImage(imgData, 'JPEG', margin, yOffset, contentImgW, contentImgH);
-          }
-        }
+      if (contentImgH <= usableH) {
+        const y = margin + (usableH - contentImgH) / 2;
+        pdf.addImage(imgData, 'JPEG', margin, y, contentImgW, contentImgH);
       } else {
-        let imgW, imgH;
-        const usableRatio = usableW / usableH;
-        if (imgRatio > usableRatio) {
-          imgW = usableW;
-          imgH = usableW / imgRatio;
-        } else {
-          imgH = usableH;
-          imgW = usableH * imgRatio;
+        const totalPages = Math.ceil(contentImgH / usableH);
+        for (let p = 0; p < totalPages; p++) {
+          if (p > 0) pdf.addPage('a4', orientation);
+          const yOffset = margin - (p * usableH);
+          pdf.addImage(imgData, 'JPEG', margin, yOffset, contentImgW, contentImgH);
         }
-        const x = margin + (usableW - imgW) / 2;
-        const y = margin + (usableH - imgH) / 2;
-        pdf.addImage(imgData, 'JPEG', x, y, imgW, imgH);
       }
     }
+
+    if (wrapper && savedWrapperStyle) {
+      Object.assign(wrapper.style, savedWrapperStyle);
+    }
+    Object.assign(container.style, savedContainerStyle);
+    panels.forEach((p, i) => {
+      Object.assign(p.style, savedPanelStyles[i]);
+    });
 
     const safeName = props.clientName.replace(/[^a-zA-Z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
     pdf.save(`Propuesta-${safeName || 'ProjectApp'}.pdf`);
