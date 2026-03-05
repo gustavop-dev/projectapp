@@ -1,0 +1,15 @@
+¡Excelente, {{ client_name }}! 🎉
+
+Hemos recibido tu confirmación para la propuesta "{{ title }}".
+Estamos emocionados de comenzar este proyecto contigo.
+
+Próximos pasos:
+1. Te enviaremos el borrador de contrato en las próximas 24 horas
+2. Agendaremos una reunión de kickoff para alinear detalles
+3. ¡Comenzamos a trabajar en tu proyecto!
+
+{% if total_investment %}Inversión acordada: ${{ total_investment }} {{ currency }}{% endif %}
+
+Ver propuesta: {{ proposal_url }}
+
+¿Dudas? Escríbenos a team@projectapp.co o WhatsApp +57 323 812 2373

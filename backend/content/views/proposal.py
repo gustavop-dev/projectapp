@@ -281,9 +281,11 @@ def bulk_reorder_sections(request, proposal_id):
 def respond_to_proposal(request, proposal_uuid):
     """
     Client accepts or rejects a proposal.
-    Body: { "action": "accepted" | "rejected" }
+    Body: { "action": "accepted" | "rejected", "reason": "...", "comment": "..." }
 
-    Updates proposal status and sends notification email to team@projectapp.co.
+    Updates proposal status, stores rejection feedback, and sends emails:
+    - Acceptance: confirmation to client + notification to team
+    - Rejection: thank-you to client + notification with reason to team
     """
     proposal = get_object_or_404(BusinessProposal, uuid=proposal_uuid)
 
@@ -301,10 +303,22 @@ def respond_to_proposal(request, proposal_uuid):
         )
 
     proposal.status = action
-    proposal.save(update_fields=['status'])
+    update_fields = ['status']
+
+    if action == 'rejected':
+        proposal.rejection_reason = request.data.get('reason', '')
+        proposal.rejection_comment = request.data.get('comment', '')
+        update_fields.extend(['rejection_reason', 'rejection_comment'])
+
+    proposal.save(update_fields=update_fields)
 
     from content.services.proposal_email_service import ProposalEmailService
     ProposalEmailService.send_response_notification(proposal, action)
+
+    if action == 'accepted':
+        ProposalEmailService.send_acceptance_confirmation(proposal)
+    elif action == 'rejected':
+        ProposalEmailService.send_rejection_thank_you(proposal)
 
     return Response(
         {'status': action, 'message': f'Proposal {action} successfully.'},

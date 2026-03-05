@@ -33,25 +33,17 @@
       </div>
 
       <div v-if="pasteMode" class="space-y-3">
+        <p class="text-[11px] text-gray-500">
+          El contenido de este campo se mostrará directamente en la propuesta del cliente.
+          Puedes usar formato Markdown (negritas, listas, etc.).
+        </p>
         <textarea
           v-model="pasteText"
-          rows="16"
-          placeholder="Pega aquí todo el contenido de esta sección..."
-          class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm
+          rows="18"
+          placeholder="Escribe o pega aquí el contenido de esta sección..."
+          class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm font-mono
                  focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y"
         />
-        <div class="flex items-center gap-3">
-          <button
-            type="button"
-            class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-medium
-                   hover:bg-blue-700 transition-colors"
-            @click="processPastedContent"
-          >
-            Procesar y llenar campos
-          </button>
-          <span class="text-[10px] text-gray-400">Esto llenará los campos del formulario con el contenido pegado</span>
-        </div>
-        <p v-if="pasteMsg" class="text-xs text-green-600">{{ pasteMsg }}</p>
       </div>
     </div>
 
@@ -601,8 +593,9 @@ const sectionTitle = ref(props.section.title);
 const isSaving = ref(false);
 const savedMsg = ref('');
 const showRawJson = ref(false);
-const pasteMode = ref(false);
-const pasteText = ref('');
+const initialContent = props.section.content_json || {};
+const pasteMode = ref(initialContent._editMode === 'paste');
+const pasteText = ref(initialContent.rawText || '');
 const pasteMsg = ref('');
 
 const hasPasteSupport = computed(() => true);
@@ -699,7 +692,7 @@ function formToReadableText() {
 
 function onTogglePasteMode(on) {
   pasteMode.value = on;
-  if (on && !pasteText.value) {
+  if (on) {
     pasteText.value = formToReadableText();
   }
 }
@@ -980,6 +973,13 @@ function handleSave() {
   savedMsg.value = '';
   try {
     const contentJson = formToJson(form, sectionType.value);
+    if (pasteMode.value) {
+      contentJson._editMode = 'paste';
+      contentJson.rawText = pasteText.value;
+    } else {
+      contentJson._editMode = 'form';
+      delete contentJson.rawText;
+    }
     emit('save', {
       sectionId: props.section.id,
       payload: {

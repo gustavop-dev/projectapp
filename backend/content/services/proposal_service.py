@@ -435,7 +435,7 @@ DEFAULT_SECTIONS = [
             ),
             'teamName': 'El equipo de Project App',
             'teamRole': 'Tu socio en transformación digital',
-            'contactEmail': 'hello@projectapp.co',
+            'contactEmail': 'team@projectapp.co',
             'commitmentBadges': [
                 {
                     'icon': '🤝',
@@ -505,8 +505,8 @@ DEFAULT_SECTIONS = [
                 {
                     'icon': '📧',
                     'title': 'Email',
-                    'value': 'hello@projectapp.co',
-                    'link': 'mailto:hello@projectapp.co',
+                    'value': 'team@projectapp.co',
+                    'link': 'mailto:team@projectapp.co',
                 },
                 {
                     'icon': '📱',
@@ -942,7 +942,7 @@ DEFAULT_SECTIONS_EN = [
             ),
             'teamName': 'The Project App Team',
             'teamRole': 'Your partner in digital transformation',
-            'contactEmail': 'hello@projectapp.com',
+            'contactEmail': 'team@projectapp.co',
             'commitmentBadges': [
                 {
                     'icon': '🤝',
@@ -1012,8 +1012,8 @@ DEFAULT_SECTIONS_EN = [
                 {
                     'icon': '📧',
                     'title': 'Email',
-                    'value': 'hello@projectapp.com',
-                    'link': 'mailto:hello@projectapp.com',
+                    'value': 'team@projectapp.co',
+                    'link': 'mailto:team@projectapp.co',
                 },
                 {
                     'icon': '📱',

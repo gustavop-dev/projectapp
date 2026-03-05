@@ -42,7 +42,14 @@
             class="panel"
             :data-section-type="panel.section_type"
           >
+            <RawContentSection
+              v-if="panel.content_json?._editMode === 'paste' && panel.content_json?.rawText"
+              :title="panel.content_json?.title || panel.title"
+              :index="panel.content_json?.index || ''"
+              :rawText="panel.content_json.rawText"
+            />
             <component
+              v-else
               :is="sectionComponentMap[panel.section_type]"
               v-bind="getSectionProps(panel)"
             />
@@ -80,6 +87,7 @@ import ExpirationBadge from '~/components/BusinessProposal/ExpirationBadge.vue';
 import ProposalExpired from '~/components/BusinessProposal/ProposalExpired.vue';
 import ProposalResponseButtons from '~/components/BusinessProposal/ProposalResponseButtons.vue';
 import PdfDownloadButton from '~/components/BusinessProposal/PdfDownloadButton.vue';
+import RawContentSection from '~/components/BusinessProposal/RawContentSection.vue';
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 

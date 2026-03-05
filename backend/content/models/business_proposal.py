@@ -62,6 +62,10 @@ class BusinessProposal(models.Model):
     reminder_sent_at = models.DateTimeField(null=True, blank=True)
     urgency_email_sent_at = models.DateTimeField(null=True, blank=True)
 
+    # Rejection feedback
+    rejection_reason = models.CharField(max_length=100, blank=True, default='')
+    rejection_comment = models.TextField(blank=True, default='')
+
     # Tracking
     view_count = models.PositiveIntegerField(default=0)
     first_viewed_at = models.DateTimeField(null=True, blank=True)

@@ -170,13 +170,6 @@ class ProposalEmailService:
         """
         Send notification email to team@projectapp.co when a client
         accepts or rejects a proposal.
-
-        Args:
-            proposal: BusinessProposal instance.
-            action: 'accepted' or 'rejected'.
-
-        Returns:
-            bool: True if the email was sent successfully.
         """
         context = {
             'client_name': proposal.client_name,
@@ -186,6 +179,8 @@ class ProposalEmailService:
             'action': action,
             'action_label': 'ACEPTADA' if action == 'accepted' else 'RECHAZADA',
             'proposal_uuid': str(proposal.uuid),
+            'rejection_reason': getattr(proposal, 'rejection_reason', ''),
+            'rejection_comment': getattr(proposal, 'rejection_comment', ''),
         }
 
         try:
@@ -225,5 +220,106 @@ class ProposalEmailService:
             logger.exception(
                 'Failed to send %s notification for proposal %s',
                 action, proposal.uuid,
+            )
+            return False
+
+    @classmethod
+    def send_acceptance_confirmation(cls, proposal):
+        """
+        Send acceptance confirmation email to the client with a link
+        to view/download their proposal.
+        """
+        if not proposal.client_email:
+            return False
+
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_url': proposal.public_url,
+            'title': proposal.title,
+            'total_investment': proposal.total_investment,
+            'currency': proposal.currency,
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_accepted_client.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_accepted_client.txt', context
+            )
+
+            subject = (
+                f'✅ {proposal.client_name}, tu propuesta ha sido aceptada — '
+                f'Project App'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[proposal.client_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info(
+                'Sent acceptance confirmation for proposal %s to %s',
+                proposal.uuid, proposal.client_email,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send acceptance confirmation for proposal %s',
+                proposal.uuid,
+            )
+            return False
+
+    @classmethod
+    def send_rejection_thank_you(cls, proposal):
+        """
+        Send a thank-you email to the client when they reject a proposal.
+        Includes an inspirational message inviting future collaboration.
+        """
+        if not proposal.client_email:
+            return False
+
+        context = {
+            'client_name': proposal.client_name,
+            'title': proposal.title,
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_rejected_client.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_rejected_client.txt', context
+            )
+
+            subject = (
+                f'Gracias por tu tiempo, {proposal.client_name} — '
+                f'Project App'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[proposal.client_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info(
+                'Sent rejection thank-you for proposal %s to %s',
+                proposal.uuid, proposal.client_email,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send rejection thank-you for proposal %s',
+                proposal.uuid,
             )
             return False

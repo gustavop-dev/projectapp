@@ -54,9 +54,14 @@ watch(showPicker, async (val) => {
   if (val && buttonRef.value) {
     await nextTick();
     const rect = buttonRef.value.getBoundingClientRect();
+    const pickerW = 352;
+    const vw = window.innerWidth;
+    let left = rect.left;
+    if (left + pickerW > vw - 8) left = vw - pickerW - 8;
+    if (left < 8) left = 8;
     pickerPos.value = {
       top: rect.bottom + 4,
-      left: Math.max(8, rect.right - 352),
+      left,
     };
   }
 });

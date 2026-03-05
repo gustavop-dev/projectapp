@@ -1,0 +1,14 @@
+Gracias por tu tiempo, {{ client_name }} 🙏
+
+Lamentamos que la propuesta "{{ title }}" no se ajuste a lo que buscas en este momento.
+Tu opinión es muy valiosa para nosotros y nos ayuda a seguir mejorando.
+
+En Project App creemos que cada proyecto tiene su momento perfecto.
+Cuando estés listo para dar el siguiente paso en tu transformación digital,
+estaremos aquí como tu aliado estratégico.
+
+"Las grandes oportunidades vienen a quienes se preparan para recibirlas."
+
+¿Tienes un nuevo proyecto en mente? Escríbenos:
+- WhatsApp: +57 323 812 2373
+- Email: team@projectapp.co
