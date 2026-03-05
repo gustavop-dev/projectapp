@@ -22,6 +22,8 @@ describe('useContactsStore', () => {
     setActivePinia(createPinia());
     store = useContactsStore();
     jest.clearAllMocks();
+    jest.restoreAllMocks();
+    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   describe('initial state', () => {

@@ -88,6 +88,7 @@ describe('useAssetCache', () => {
     });
 
     it('handles fetch errors gracefully', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
       global.fetch.mockRejectedValue(new Error('Network error'));
       const { preloadAssets, failedAssets, preloadStatus } = useAssetCache();
       simulateMount();
@@ -184,6 +185,7 @@ describe('useAssetCache', () => {
     });
 
     it('falls back to fetch on cache error', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
       MockCacheService.mockImplementation(() => ({
         cacheResource: jest.fn(),
         getResource: jest.fn().mockRejectedValue(new Error('cache error')),

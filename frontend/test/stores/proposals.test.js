@@ -27,6 +27,8 @@ describe('useProposalStore', () => {
     setActivePinia(createPinia());
     store = useProposalStore();
     jest.clearAllMocks();
+    jest.restoreAllMocks();
+    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   describe('initial state', () => {

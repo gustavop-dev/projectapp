@@ -103,6 +103,7 @@ describe('delete_request', () => {
 
 describe('error handling', () => {
   it('propagates axios errors', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
     const error = new Error('Network error');
     mockAxios.get.mockRejectedValue(error);
 
@@ -110,6 +111,7 @@ describe('error handling', () => {
   });
 
   it('propagates POST errors', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
     mockAxios.post.mockRejectedValue(new Error('Validation failed'));
 
     await expect(create_request('fail/', {})).rejects.toThrow('Validation failed');

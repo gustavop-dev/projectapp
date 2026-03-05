@@ -34,6 +34,7 @@ describe('useProductStore', () => {
     setActivePinia(createPinia());
     store = useProductStore();
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('initial state', () => {
@@ -66,6 +67,7 @@ describe('useProductStore', () => {
     });
 
     it('handles API error gracefully', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
       get_request.mockRejectedValue(new Error('Network error'));
 
       await store.fetchProductData();
@@ -82,6 +84,7 @@ describe('useProductStore', () => {
     });
 
     it('handles invalid JSON string by falling back to empty array', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
       get_request.mockResolvedValue({ data: '{bad json' });
 
       await store.fetchProductData();

@@ -29,6 +29,7 @@ describe('useWebDesignsStore', () => {
     setActivePinia(createPinia());
     store = useWebDesignsStore();
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('initial state', () => {
@@ -69,6 +70,7 @@ describe('useWebDesignsStore', () => {
     });
 
     it('handles invalid JSON string by falling back to empty array', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
       get_request.mockResolvedValue({ data: '{bad json' });
 
       await store.fetchDesignsData();

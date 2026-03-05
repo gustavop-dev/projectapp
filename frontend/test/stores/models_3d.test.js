@@ -29,6 +29,7 @@ describe('useModels3dStore', () => {
     setActivePinia(createPinia());
     store = useModels3dStore();
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('initial state', () => {
@@ -61,6 +62,7 @@ describe('useModels3dStore', () => {
     });
 
     it('handles API error gracefully', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
       get_request.mockRejectedValue(new Error('Network error'));
 
       await store.fetchModels3dData();
@@ -77,6 +79,7 @@ describe('useModels3dStore', () => {
     });
 
     it('handles invalid JSON string by falling back to empty array', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
       get_request.mockResolvedValue({ data: '{bad json' });
 
       await store.fetchModels3dData();
