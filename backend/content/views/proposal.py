@@ -137,6 +137,28 @@ def create_proposal(request):
     from content.services.proposal_service import ProposalService
     default_sections = ProposalService.get_default_sections(proposal.language)
     for section_cfg in default_sections:
+        if section_cfg['section_type'] == 'greeting':
+            section_cfg['content_json']['clientName'] = proposal.client_name
+        if section_cfg['section_type'] == 'investment' and proposal.total_investment:
+            total = float(proposal.total_investment)
+            cur = proposal.currency or 'COP'
+            fmt = '${:,.0f}'.format
+            section_cfg['content_json']['totalInvestment'] = fmt(total)
+            section_cfg['content_json']['currency'] = cur
+            section_cfg['content_json']['paymentOptions'] = [
+                {
+                    'label': '40% al firmar el contrato ✍️',
+                    'description': f'{fmt(total * 0.4)} {cur}',
+                },
+                {
+                    'label': '30% al aprobar el diseño final ✅',
+                    'description': f'{fmt(total * 0.3)} {cur}',
+                },
+                {
+                    'label': '30% al desplegar el sitio web 🚀',
+                    'description': f'{fmt(total * 0.3)} {cur}',
+                },
+            ]
         ProposalSection.objects.create(proposal=proposal, **section_cfg)
 
     # Return the full detail

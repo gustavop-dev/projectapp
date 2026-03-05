@@ -18,7 +18,7 @@
 
     <!-- Index panel -->
     <nav
-      class="index-panel ml-4 py-6 px-4 rounded-2xl
+      class="index-panel ml-3 py-4 px-3 rounded-2xl
              bg-white/90 backdrop-blur-md shadow-xl border border-gray-100
              transition-all duration-300 max-h-[80vh] overflow-y-auto"
       :class="{ 'translate-x-[-120%]': !isOpen }"
@@ -33,7 +33,7 @@
           class="group"
         >
           <button
-            class="w-full text-left px-3 py-2 rounded-xl text-sm transition-all duration-200 flex items-center gap-3"
+            class="w-full text-left px-2.5 py-1.5 rounded-xl text-sm transition-all duration-200 flex items-center gap-2"
             :class="idx === currentIndex
               ? 'bg-emerald-50 text-emerald-700 font-medium'
               : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'"
@@ -71,7 +71,7 @@ defineProps({
 
 defineEmits(['navigate']);
 
-const isOpen = ref(false);
+const isOpen = ref(true);
 </script>
 
 <style scoped>

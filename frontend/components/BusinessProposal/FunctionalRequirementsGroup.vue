@@ -75,6 +75,7 @@ const groupBgColor = computed(() => {
   if (id === 'views') return 'bg-blue-100';
   if (id === 'components') return 'bg-purple-100';
   if (id === 'features') return 'bg-green-100';
+  if (id === 'integrations_api') return 'bg-indigo-100';
   if (id === 'admin_module') return 'bg-amber-100';
   return 'bg-emerald-100';
 });

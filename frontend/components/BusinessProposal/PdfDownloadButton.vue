@@ -37,6 +37,15 @@ const props = defineProps({
 
 const isGenerating = ref(false);
 
+const PORTRAIT_SECTION_TYPES = new Set([
+  'development_stages', 'timeline', 'investment',
+]);
+
+function getPageOrientation(panel) {
+  const sectionType = panel.getAttribute('data-section-type') || '';
+  return PORTRAIT_SECTION_TYPES.has(sectionType) ? 'portrait' : 'landscape';
+}
+
 async function generatePdf() {
   if (isGenerating.value) return;
   isGenerating.value = true;
@@ -56,15 +65,21 @@ async function generatePdf() {
     const panels = Array.from(container.querySelectorAll('.panel'));
     if (panels.length === 0) return;
 
-    // Landscape PDF, A4 proportions
-    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const firstOrientation = getPageOrientation(panels[0]);
+    const pdf = new jsPDF({ orientation: firstOrientation, unit: 'mm', format: 'a4' });
 
     for (let i = 0; i < panels.length; i++) {
       const panel = panels[i];
+      const orientation = getPageOrientation(panel);
+      const isPortrait = orientation === 'portrait';
 
-      // Capture panel as canvas
+      if (i > 0) {
+        pdf.addPage('a4', orientation);
+      }
+
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+
       const canvas = await html2canvas(panel, {
         scale: 2,
         useCORS: true,
@@ -77,28 +92,34 @@ async function generatePdf() {
       });
 
       const imgData = canvas.toDataURL('image/jpeg', 0.85);
-
-      // Calculate dimensions to fit in PDF page
       const imgRatio = canvas.width / canvas.height;
-      const pageRatio = pdfWidth / pdfHeight;
 
-      let imgW, imgH;
-      if (imgRatio > pageRatio) {
-        imgW = pdfWidth;
-        imgH = pdfWidth / imgRatio;
+      if (isPortrait && canvas.height > canvas.width) {
+        const contentImgW = pageW;
+        const contentImgH = contentImgW / imgRatio;
+        const totalPages = Math.ceil(contentImgH / pageH);
+
+        for (let p = 0; p < totalPages; p++) {
+          if (p > 0) pdf.addPage('a4', 'portrait');
+          const yOffset = -(p * pageH);
+          pdf.addImage(imgData, 'JPEG', 0, yOffset, contentImgW, contentImgH);
+        }
       } else {
-        imgH = pdfHeight;
-        imgW = pdfHeight * imgRatio;
+        const pageRatio = pageW / pageH;
+        let imgW, imgH;
+        if (imgRatio > pageRatio) {
+          imgW = pageW;
+          imgH = pageW / imgRatio;
+        } else {
+          imgH = pageH;
+          imgW = pageH * imgRatio;
+        }
+        const x = (pageW - imgW) / 2;
+        const y = (pageH - imgH) / 2;
+        pdf.addImage(imgData, 'JPEG', x, y, imgW, imgH);
       }
-
-      const x = (pdfWidth - imgW) / 2;
-      const y = (pdfHeight - imgH) / 2;
-
-      if (i > 0) pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', x, y, imgW, imgH);
     }
 
-    // Download
     const safeName = props.clientName.replace(/[^a-zA-Z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
     pdf.save(`Propuesta-${safeName || 'ProjectApp'}.pdf`);
 

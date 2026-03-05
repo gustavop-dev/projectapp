@@ -64,9 +64,49 @@ class TestGetDefaultSections:
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
-        assert len(groups) >= 4
+        assert len(groups) == 5
         group_ids = {g['id'] for g in groups}
-        assert {'views', 'components', 'features', 'admin_module'}.issubset(group_ids)
+        assert group_ids == {'views', 'components', 'features', 'integrations_api', 'admin_module'}
+
+    def test_views_group_has_13_default_items(self):
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        views = next(g for g in fr['content_json']['groups'] if g['id'] == 'views')
+        assert len(views['items']) == 13
+
+    def test_components_group_has_5_default_items(self):
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        components = next(g for g in fr['content_json']['groups'] if g['id'] == 'components')
+        assert len(components['items']) == 5
+
+    def test_features_group_has_6_default_items(self):
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        features = next(g for g in fr['content_json']['groups'] if g['id'] == 'features')
+        assert len(features['items']) == 6
+
+    def test_integrations_api_group_has_2_default_items(self):
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        integrations = next(g for g in fr['content_json']['groups'] if g['id'] == 'integrations_api')
+        assert len(integrations['items']) == 2
+        names = {item['name'] for item in integrations['items']}
+        assert 'Internacionales' in names
+        assert 'Regionales (Colombia)' in names
+
+    def test_greeting_title_has_emoji(self):
+        sections = ProposalService.get_default_sections('es')
+        greeting = next(s for s in sections if s['section_type'] == 'greeting')
+        assert greeting['title'].startswith('\U0001f44b')
+
+    def test_en_functional_requirements_has_5_groups(self):
+        sections = ProposalService.get_default_sections('en')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        groups = fr['content_json']['groups']
+        assert len(groups) == 5
+        group_ids = {g['id'] for g in groups}
+        assert 'integrations_api' in group_ids
 
     def test_development_stages_has_current_stage(self):
         sections = ProposalService.get_default_sections('es')

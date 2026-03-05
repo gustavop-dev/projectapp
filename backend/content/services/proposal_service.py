@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_SECTIONS = [
     {
         'section_type': 'greeting',
-        'title': 'Greeting',
+        'title': '👋 Greeting',
         'order': 0,
         'is_wide_panel': False,
         'content_json': {
@@ -233,9 +233,19 @@ DEFAULT_SECTIONS = [
                         'para conocer la propuesta de valor y facilitar el contacto o la acción deseada.'
                     ),
                     'items': [
-                        {'icon': '🏠', 'name': 'Página Principal', 'description': 'Landing principal del sitio con mensaje claro y CTAs visibles.'},
-                        {'icon': '📧', 'name': 'Contacto', 'description': 'Formulario de contacto y datos de comunicación directa.'},
-                        {'icon': '📜', 'name': 'Legales', 'description': 'Términos, privacidad y condiciones de uso.'},
+                        {'icon': '🏠', 'name': 'Inicio (Página de Aterrizaje)', 'description': 'Es la primera impresión del sitio. Aquí se presenta de forma clara la identidad de la marca, con un mensaje atractivo, llamado a la acción, y acceso rápido a las secciones principales.'},
+                        {'icon': 'ℹ️', 'name': 'Acerca de Nosotros', 'description': 'Página dedicada a compartir la historia, misión, visión y valores de la empresa o proyecto. Ideal para generar confianza con el visitante.'},
+                        {'icon': '📞', 'name': 'Contacto', 'description': 'Sección con un formulario para que los usuarios puedan enviar mensajes, junto con información de contacto (teléfono, correo, dirección) y un mapa si se desea incluir.'},
+                        {'icon': '📜', 'name': 'Términos y Condiciones', 'description': 'Página para informar a los usuarios sobre las políticas del sitio, manejo de datos personales y términos de uso. Incluye un checkbox para aceptación, garantizando el cumplimiento de las normativas vigentes.'},
+                        {'icon': '🛒', 'name': 'Categorías', 'description': 'Sección para mostrar las categorías disponibles de productos, permitiendo a los usuarios explorar los diferentes tipos de productos que ofrece el sitio.'},
+                        {'icon': '�️', 'name': 'Catálogo por Categoría', 'description': 'Permite a los usuarios explorar los productos dentro de una categoría específica, facilitando la navegación y selección de productos relacionados.'},
+                        {'icon': '📦', 'name': 'Vista de Productos', 'description': 'Muestra los detalles de un producto seleccionado, incluyendo imágenes, precio, características, descripciones y opciones para agregar al carrito.'},
+                        {'icon': '🛒', 'name': 'Carrito de Compra', 'description': 'Permite a los usuarios ver los productos que han agregado, ajustar cantidades, eliminar artículos y proceder al pago.'},
+                        {'icon': '📜', 'name': 'Historial de Compras', 'description': 'Permite a los usuarios revisar las compras realizadas, incluyendo detalles como fecha, monto y productos adquiridos.'},
+                        {'icon': '👤', 'name': 'Registro de Usuario', 'description': 'Permite a los usuarios crear una cuenta para acceder a funciones personalizadas, como historial de compras y productos favoritos.'},
+                        {'icon': '�', 'name': 'Inicio de Sesión', 'description': 'Proporciona acceso a usuarios registrados para gestionar sus compras y preferencias.'},
+                        {'icon': '❤️', 'name': 'Lista de deseos Favoritos', 'description': 'Permite a los usuarios guardar productos para una rápida referencia en futuras visitas.'},
+                        {'icon': '📝', 'name': 'Perfil del Usuario', 'description': 'Sección donde los usuarios pueden ver y actualizar su información personal, historial de compras y configuraciones de cuenta.'},
                     ],
                 },
                 {
@@ -247,9 +257,11 @@ DEFAULT_SECTIONS = [
                         'secciones del sitio. Esto mantiene una experiencia coherente y optimiza el desarrollo.'
                     ),
                     'items': [
-                        {'icon': '🔝', 'name': 'Encabezado (Header)', 'description': 'Logo, menú de navegación y accesos rápidos.'},
-                        {'icon': '🔚', 'name': 'Pie de página (Footer)', 'description': 'Derechos de autor, enlaces y contacto.'},
-                        {'icon': '❓', 'name': 'Preguntas Frecuentes (FAQ)', 'description': 'Sección para resolver dudas comunes.'},
+                        {'icon': '🔝', 'name': 'Encabezado (Header)', 'description': 'Incluye el logotipo, menú de navegación y acceso rápido a redes sociales o secciones clave del sitio.'},
+                        {'icon': '🔚', 'name': 'Pie de página (Footer)', 'description': 'Contiene información adicional como derechos de autor, políticas, enlaces a redes sociales y otros recursos útiles.'},
+                        {'icon': '🎯', 'name': 'Carrusel de Productos destacados', 'description': 'Destaca productos seleccionados como promociones, ofertas especiales o productos estacionales para mejorar la visibilidad y el interés de los clientes.'},
+                        {'icon': '🎁', 'name': 'Carrusel de lista de deseos destacadas', 'description': 'Destaca listas de deseos seleccionados como promociones, ofertas especiales o productos estacionales para mejorar la visibilidad y el interés de los clientes.'},
+                        {'icon': '❓', 'name': 'Preguntas Frecuentes (FAQ)', 'description': 'Sección para responder las preguntas más comunes de los clientes y resolver dudas de manera rápida y eficiente.'},
                     ],
                 },
                 {
@@ -261,11 +273,26 @@ DEFAULT_SECTIONS = [
                         'Le dan vida y dinamismo a la página, permitiendo que funcione de forma práctica y útil.'
                     ),
                     'items': [
-                        {'icon': '🌐', 'name': 'Diseño Responsive', 'description': 'Se adapta automáticamente a celulares, tabletas y computadores.'},
-                        {'icon': '🔗', 'name': 'Integración con redes sociales', 'description': 'Enlaces visibles y botones hacia plataformas digitales.'},
-                        {'icon': '💬', 'name': 'WhatsApp directo', 'description': 'Canal de comunicación inmediata con un solo clic.'},
-                        {'icon': '🔎', 'name': 'Navegación intuitiva', 'description': 'Búsqueda rápida, filtros y paginación optimizada.'},
-                        {'icon': '📩', 'name': 'Notificaciones automáticas', 'description': 'Confirmaciones y recordatorios enviados por correo electrónico.'},
+                        {'icon': '🌐', 'name': 'Diseño Responsive', 'description': 'El sitio se adapta perfectamente a celulares, tablets y computadores. Esto es vital en el sector inmobiliario, donde la mayoría de las búsquedas iniciales ocurren desde dispositivos móviles. 📱💻'},
+                        {'icon': '�', 'name': 'Registro e Inicio de Sesión con Google', 'description': 'Implementaremos un acceso simplificado que permite a los usuarios registrarse con un solo clic. Esta función es clave para capturar datos reales de los clientes interesados y conocer mejor sus preferencias. 🔐📧'},
+                        {'icon': '🔎', 'name': 'Buscador Avanzado con Filtros Dinámicos', 'description': 'Los usuarios podrán filtrar inmuebles por zonas, rango de precios, metros cuadrados y características específicas. Esta navegación intuitiva ahorra tiempo al cliente y califica mejor el interés. 🔍📍'},
+                        {'icon': '💬', 'name': 'WhatsApp Directo por Propiedad', 'description': 'En cada ficha de inmueble habrá un botón de contacto inmediato. Al hacer clic, se recibirá un mensaje predeterminado indicando exactamente por qué propiedad está preguntando el cliente. 📲⚡'},
+                        {'icon': '🖼️', 'name': 'Visualización Enriquecida y Galerías', 'description': 'Sistema de visualización de alta calidad con zoom interactivo y carga optimizada para que las imágenes de los inmuebles luzcan impecables sin afectar la velocidad del sitio. 📸✨'},
+                        {'icon': '�', 'name': 'Notificaciones Automáticas', 'description': 'El sistema enviará correos de confirmación automáticos cuando un usuario se registre o envíe una solicitud de información, manteniendo el contacto activo desde el primer segundo. 📩✅'},
+                    ],
+                },
+                {
+                    'id': 'integrations_api',
+                    'icon': '🔌',
+                    'title': 'Integraciones (API)',
+                    'description': (
+                        '💳 Integración con una Pasarela de Pago para facilitar las transacciones de los usuarios. '
+                        'Se proponen las siguientes opciones por su facilidad de integración, presencia en el mercado colombiano '
+                        'y/o reconocimiento internacional.'
+                    ),
+                    'items': [
+                        {'icon': '🌎', 'name': 'Internacionales', 'description': 'Stripe: Ideal para recibir pagos con tarjeta de crédito/débito, muy usada a nivel mundial. PayPal: Plataforma reconocida globalmente, permite pagos con saldo PayPal, tarjeta y cuentas internacionales.'},
+                        {'icon': '🇨🇴', 'name': 'Regionales (Colombia)', 'description': 'PayU: Una de las más usadas en Colombia, permite pagos con tarjeta, PSE, Efecty, Baloto, Nequi, Daviplata. Wompi (Bancolombia): Excelente opción local con soporte para PSE, tarjetas, Nequi y botón Bancolombia. ePayco: Alternativa colombiana fácil de integrar, soporta múltiples métodos de pago como PSE, tarjetas y recaudos físicos.'},
                     ],
                 },
                 {
@@ -501,7 +528,7 @@ DEFAULT_SECTIONS = [
 DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'greeting',
-        'title': 'Greeting',
+        'title': '👋 Greeting',
         'order': 0,
         'is_wide_panel': False,
         'content_json': {
@@ -705,9 +732,19 @@ DEFAULT_SECTIONS_EN = [
                         'to understand the value proposition and facilitate contact or the desired action.'
                     ),
                     'items': [
-                        {'icon': '🏠', 'name': 'Home Page', 'description': 'Main landing page with clear messaging and visible CTAs.'},
-                        {'icon': '📧', 'name': 'Contact', 'description': 'Contact form and direct communication details.'},
-                        {'icon': '📜', 'name': 'Legal', 'description': 'Terms, privacy, and conditions of use.'},
+                        {'icon': '🏠', 'name': 'Home (Landing Page)', 'description': 'The first impression of the site. Clearly presents the brand identity with an attractive message, call to action, and quick access to main sections.'},
+                        {'icon': 'ℹ️', 'name': 'About Us', 'description': 'Page dedicated to sharing the history, mission, vision, and values of the company or project. Ideal for building trust with visitors.'},
+                        {'icon': '📞', 'name': 'Contact', 'description': 'Section with a form for users to send messages, along with contact information (phone, email, address) and an optional map.'},
+                        {'icon': '📜', 'name': 'Terms & Conditions', 'description': 'Page informing users about site policies, personal data handling, and terms of use. Includes an acceptance checkbox ensuring compliance with regulations.'},
+                        {'icon': '🛒', 'name': 'Categories', 'description': 'Section to display available product categories, allowing users to explore the different types of products offered on the site.'},
+                        {'icon': '�️', 'name': 'Catalog by Category', 'description': 'Allows users to explore products within a specific category, facilitating navigation and selection of related products.'},
+                        {'icon': '📦', 'name': 'Product View', 'description': 'Shows details of a selected product, including images, price, features, descriptions, and options to add to cart.'},
+                        {'icon': '🛒', 'name': 'Shopping Cart', 'description': 'Allows users to view added products, adjust quantities, remove items, and proceed to checkout.'},
+                        {'icon': '📜', 'name': 'Purchase History', 'description': 'Allows users to review past purchases, including details such as date, amount, and products acquired.'},
+                        {'icon': '👤', 'name': 'User Registration', 'description': 'Allows users to create an account to access personalized features like purchase history and favorite products.'},
+                        {'icon': '�', 'name': 'Login', 'description': 'Provides access for registered users to manage their purchases and preferences.'},
+                        {'icon': '❤️', 'name': 'Wishlist / Favorites', 'description': 'Allows users to save products for quick reference in future visits.'},
+                        {'icon': '📝', 'name': 'User Profile', 'description': 'Section where users can view and update their personal information, purchase history, and account settings.'},
                     ],
                 },
                 {
@@ -719,9 +756,11 @@ DEFAULT_SECTIONS_EN = [
                         'of the site. This ensures a coherent experience and optimizes development.'
                     ),
                     'items': [
-                        {'icon': '🔝', 'name': 'Header', 'description': 'Logo, navigation menu, and quick access links.'},
-                        {'icon': '🔚', 'name': 'Footer', 'description': 'Copyright, links, and contact information.'},
-                        {'icon': '❓', 'name': 'FAQ', 'description': 'Section to address common questions.'},
+                        {'icon': '🔝', 'name': 'Header', 'description': 'Includes logo, navigation menu, and quick access to social media or key site sections.'},
+                        {'icon': '🔚', 'name': 'Footer', 'description': 'Contains additional information such as copyright, policies, social media links, and other useful resources.'},
+                        {'icon': '🎯', 'name': 'Featured Products Carousel', 'description': 'Highlights selected products such as promotions, special offers, or seasonal products to improve visibility and customer interest.'},
+                        {'icon': '🎁', 'name': 'Featured Wishlists Carousel', 'description': 'Highlights selected wishlists such as promotions, special offers, or seasonal products to improve visibility and customer interest.'},
+                        {'icon': '❓', 'name': 'FAQ (Frequently Asked Questions)', 'description': 'Section to answer the most common customer questions and resolve doubts quickly and efficiently.'},
                     ],
                 },
                 {
@@ -733,11 +772,26 @@ DEFAULT_SECTIONS_EN = [
                         'They bring life and dynamism, making the page practical and useful.'
                     ),
                     'items': [
-                        {'icon': '🌐', 'name': 'Responsive Design', 'description': 'Automatically adapts to phones, tablets, and computers.'},
-                        {'icon': '🔗', 'name': 'Social Media Integration', 'description': 'Visible links and buttons to digital platforms.'},
-                        {'icon': '💬', 'name': 'Direct WhatsApp', 'description': 'Instant communication channel with one click.'},
-                        {'icon': '🔎', 'name': 'Intuitive Navigation', 'description': 'Quick search, filters, and optimized pagination.'},
-                        {'icon': '📩', 'name': 'Automatic Notifications', 'description': 'Confirmations and reminders sent via email.'},
+                        {'icon': '🌐', 'name': 'Responsive Design', 'description': 'The site adapts perfectly to phones, tablets, and computers. This is vital as most initial searches occur from mobile devices. 📱💻'},
+                        {'icon': '�', 'name': 'Google Sign-In & Registration', 'description': 'Simplified access allowing users to register with a single click. Key for capturing real customer data and understanding their preferences. 🔐📧'},
+                        {'icon': '🔎', 'name': 'Advanced Search with Dynamic Filters', 'description': 'Users can filter properties by zones, price range, square meters, and specific features. Intuitive navigation saves time and better qualifies interest. 🔍📍'},
+                        {'icon': '💬', 'name': 'Direct WhatsApp per Property', 'description': 'Each property listing includes an instant contact button. One click sends a predefined message indicating exactly which property the client is inquiring about. 📲⚡'},
+                        {'icon': '�️', 'name': 'Rich Visualization & Galleries', 'description': 'High-quality visualization system with interactive zoom and optimized loading so property images look impeccable without affecting site speed. 📸✨'},
+                        {'icon': '📩', 'name': 'Automatic Notifications', 'description': 'The system sends automatic confirmation emails when a user registers or submits an information request, keeping contact active from the first second. 📩✅'},
+                    ],
+                },
+                {
+                    'id': 'integrations_api',
+                    'icon': '🔌',
+                    'title': 'Integrations (API)',
+                    'description': (
+                        '💳 Payment Gateway Integration to facilitate user transactions. '
+                        'The following options are proposed for their ease of integration, market presence, '
+                        'and/or international recognition.'
+                    ),
+                    'items': [
+                        {'icon': '🌎', 'name': 'International', 'description': 'Stripe: Ideal for credit/debit card payments, widely used worldwide. PayPal: Globally recognized platform, allows payments with PayPal balance, cards, and international accounts.'},
+                        {'icon': '🇨🇴', 'name': 'Regional (Colombia)', 'description': 'PayU: One of the most used in Colombia, supports card, PSE, Efecty, Baloto, Nequi, Daviplata. Wompi (Bancolombia): Excellent local option with PSE, cards, Nequi, and Bancolombia button support. ePayco: Easy-to-integrate Colombian alternative supporting PSE, cards, and physical collections.'},
                     ],
                 },
                 {

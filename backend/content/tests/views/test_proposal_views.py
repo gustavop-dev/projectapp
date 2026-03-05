@@ -191,6 +191,47 @@ class TestAdminCreateProposal:
         assert response.status_code == 201
         assert len(response.data['sections']) == 12
 
+    def test_auto_fills_investment_section_from_proposal_data(self, admin_client):
+        payload = {
+            'title': 'Investment Test',
+            'client_name': 'Client',
+            'client_email': 'c@test.com',
+            'language': 'es',
+            'total_investment': '3500000.00',
+            'currency': 'COP',
+        }
+        response = admin_client.post(
+            reverse('create-proposal'), payload, format='json'
+        )
+        assert response.status_code == 201
+        investment_section = next(
+            s for s in response.data['sections']
+            if s['section_type'] == 'investment'
+        )
+        content = investment_section['content_json']
+        assert content['totalInvestment'] == '$3,500,000'
+        assert content['currency'] == 'COP'
+        assert len(content['paymentOptions']) == 3
+
+    def test_auto_fills_greeting_client_name(self, admin_client):
+        payload = {
+            'title': 'Greeting Test',
+            'client_name': 'María García',
+            'client_email': 'maria@test.com',
+            'language': 'es',
+            'total_investment': '1000.00',
+            'currency': 'COP',
+        }
+        response = admin_client.post(
+            reverse('create-proposal'), payload, format='json'
+        )
+        assert response.status_code == 201
+        greeting_section = next(
+            s for s in response.data['sections']
+            if s['section_type'] == 'greeting'
+        )
+        assert greeting_section['content_json']['clientName'] == 'María García'
+
     def test_returns_400_with_missing_fields(self, admin_client):
         response = admin_client.post(
             reverse('create-proposal'), {}, format='json'

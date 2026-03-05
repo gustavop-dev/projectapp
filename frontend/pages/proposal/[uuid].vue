@@ -40,6 +40,7 @@
             v-for="(panel, idx) in displayPanels"
             :key="panel.id"
             class="panel"
+            :data-section-type="panel.section_type"
           >
             <component
               :is="sectionComponentMap[panel.section_type]"

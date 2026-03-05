@@ -151,7 +151,7 @@
               <button type="button" class="text-xs text-red-500 hover:text-red-700" @click="form.stages.splice(idx, 1)">Eliminar</button>
             </div>
             <div class="grid grid-cols-[60px_1fr] gap-3 mb-2">
-              <FieldInput v-model="stage.icon" label="Icono" placeholder="✉️" />
+              <EmojiIconField v-model="stage.icon" label="Icono" placeholder="✉️" />
               <FieldInput v-model="stage.title" label="Título" />
             </div>
             <FieldTextarea v-model="stage.description" label="Descripción" :rows="2" :isSingle="true" />
@@ -188,7 +188,7 @@
               <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
                 :class="group._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
                 @click="group._pasteMode = true">Pegar contenido</button>
-              <button v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features' && group.id !== 'admin_module'"
+              <button v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features' && group.id !== 'integrations_api' && group.id !== 'admin_module'"
                 type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.groups.splice(gIdx, 1)">Eliminar grupo</button>
             </div>
           </div>
@@ -204,7 +204,7 @@
           <!-- Form mode for this group -->
           <div v-else class="space-y-3">
             <div class="grid grid-cols-[60px_1fr] gap-3">
-              <FieldInput v-model="group.icon" label="Icono" placeholder="🖥️" />
+              <EmojiIconField v-model="group.icon" label="Icono" placeholder="🖥️" />
               <FieldInput v-model="group.title" label="Título del grupo" />
             </div>
             <FieldTextarea v-model="group.description" label="Descripción" :rows="2" :isSingle="true" />
@@ -218,7 +218,7 @@
                   <button type="button" class="text-[10px] text-red-500" @click="group.items.splice(iIdx, 1)">Eliminar</button>
                 </div>
                 <div class="grid grid-cols-[50px_1fr] gap-2 mb-1">
-                  <FieldInput v-model="item.icon" label="Icono" placeholder="🏠" />
+                  <EmojiIconField v-model="item.icon" label="Icono" placeholder="🏠" />
                   <FieldInput v-model="item.name" label="Nombre" />
                 </div>
                 <FieldInput v-model="item.description" label="Descripción" />
@@ -255,7 +255,7 @@
             </div>
             <div v-else class="space-y-3">
               <div class="grid grid-cols-[60px_1fr] gap-3">
-                <FieldInput v-model="mod.icon" label="Icono" placeholder="🧩" />
+                <EmojiIconField v-model="mod.icon" label="Icono" placeholder="🧩" />
                 <FieldInput v-model="mod.title" label="Título del módulo" />
               </div>
               <FieldTextarea v-model="mod.description" label="Descripción" :rows="2" :isSingle="true" />
@@ -267,7 +267,7 @@
                     <button type="button" class="text-[10px] text-red-500" @click="mod.items.splice(iIdx, 1)">Eliminar</button>
                   </div>
                   <div class="grid grid-cols-[50px_1fr] gap-2 mb-1">
-                    <FieldInput v-model="item.icon" label="Icono" />
+                    <EmojiIconField v-model="item.icon" label="Icono" />
                     <FieldInput v-model="item.name" label="Nombre" />
                   </div>
                   <FieldInput v-model="item.description" label="Descripción" />
@@ -321,7 +321,16 @@
         <FieldTextarea v-model="form.introText" label="Texto introductorio" :rows="2" :isSingle="true" />
         <div class="grid grid-cols-2 gap-4">
           <FieldInput v-model="form.totalInvestment" label="Inversión total" placeholder="$3.500.000" />
-          <FieldInput v-model="form.currency" label="Moneda" placeholder="COP" />
+          <div>
+            <label class="block text-xs text-gray-500 mb-0.5">Moneda</label>
+            <select
+              v-model="form.currency"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
+            >
+              <option value="COP">COP</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
         </div>
         <p v-if="proposalData?.total_investment && !form.totalInvestment" class="text-xs text-amber-600 -mt-3">
           ⚠ Vacío — se puede usar ${{ Number(proposalData.total_investment).toLocaleString() }} {{ proposalData.currency || 'COP' }} de los datos generales.
@@ -337,7 +346,7 @@
               <button type="button" class="text-xs text-red-500" @click="form.whatsIncluded.splice(idx, 1)">Eliminar</button>
             </div>
             <div class="grid grid-cols-[60px_1fr] gap-2 mb-1">
-              <FieldInput v-model="item.icon" label="Icono" placeholder="🎨" />
+              <EmojiIconField v-model="item.icon" label="Icono" placeholder="🎨" />
               <FieldInput v-model="item.title" label="Título" />
             </div>
             <FieldInput v-model="item.description" label="Descripción" />
@@ -383,7 +392,7 @@
               <button type="button" class="text-xs text-red-500" @click="form.commitmentBadges.splice(idx, 1)">Eliminar</button>
             </div>
             <div class="grid grid-cols-[60px_1fr] gap-2 mb-1">
-              <FieldInput v-model="badge.icon" label="Icono" placeholder="🤝" />
+              <EmojiIconField v-model="badge.icon" label="Icono" placeholder="🤝" />
               <FieldInput v-model="badge.title" label="Título" />
             </div>
             <FieldInput v-model="badge.description" label="Descripción" />
@@ -432,7 +441,7 @@
               <button type="button" class="text-xs text-red-500" @click="form.contactMethods.splice(idx, 1)">Eliminar</button>
             </div>
             <div class="grid grid-cols-4 gap-2">
-              <FieldInput v-model="method.icon" label="Icono" placeholder="📧" />
+              <EmojiIconField v-model="method.icon" label="Icono" placeholder="📧" />
               <FieldInput v-model="method.title" label="Título" />
               <FieldInput v-model="method.value" label="Valor" />
               <FieldInput v-model="method.link" label="Link" />
@@ -477,9 +486,58 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, watch, h } from 'vue';
+import { reactive, ref, computed, watch, h, defineAsyncComponent } from 'vue';
+import EmojiPicker from 'vue3-emoji-picker';
+import 'vue3-emoji-picker/css';
 
 // --- Inline sub-components (render functions for prod compatibility) ---
+const EmojiIconField = {
+  props: { modelValue: String, label: String, placeholder: String },
+  emits: ['update:modelValue'],
+  components: { EmojiPicker },
+  setup(props, { emit }) {
+    const showPicker = ref(false);
+    const onSelectEmoji = (emoji) => {
+      emit('update:modelValue', emoji.i);
+      showPicker.value = false;
+    };
+    return () => h('div', { class: 'relative' }, [
+      props.label ? h('label', { class: 'block text-xs text-gray-500 mb-0.5' }, props.label) : null,
+      h('div', { class: 'flex items-center gap-1' }, [
+        h('input', {
+          value: props.modelValue,
+          placeholder: props.placeholder || '😀',
+          class: 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none',
+          onInput: (e) => emit('update:modelValue', e.target.value),
+        }),
+        h('button', {
+          type: 'button',
+          class: 'flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-sm cursor-pointer',
+          onClick: (e) => { e.stopPropagation(); showPicker.value = !showPicker.value; },
+        }, '😀'),
+      ]),
+      showPicker.value
+        ? h('div', {
+            class: 'absolute z-50 top-full mt-1 right-0',
+            onClick: (e) => e.stopPropagation(),
+          }, [
+            h('div', {
+              class: 'fixed inset-0 z-40',
+              onClick: () => { showPicker.value = false; },
+            }),
+            h('div', { class: 'relative z-50' }, [
+              h(EmojiPicker, {
+                native: true,
+                'disable-skin-tones': true,
+                onSelect: onSelectEmoji,
+              }),
+            ]),
+          ])
+        : null,
+    ]);
+  },
+};
+
 const FieldInput = {
   props: { modelValue: String, label: String, placeholder: String },
   emits: ['update:modelValue'],
@@ -648,13 +706,44 @@ function fillInvestmentFromProposal() {
   ];
 }
 
+function parseInvestmentNumber(str) {
+  if (!str) return 0;
+  return Number(String(str).replace(/[^0-9.]/g, '')) || 0;
+}
+
+function recalcPaymentDescriptions() {
+  const total = parseInvestmentNumber(form.totalInvestment);
+  if (!total) return;
+  const cur = form.currency || 'COP';
+  const fmt = (n) => '$' + Math.round(n).toLocaleString();
+  for (const opt of form.paymentOptions) {
+    const pctMatch = opt.label?.match(/(\d+)%/);
+    if (pctMatch) {
+      const pct = Number(pctMatch[1]) / 100;
+      opt.description = fmt(total * pct) + ' ' + cur;
+    }
+  }
+}
+
 // --- Build form state from content_json ---
 const form = reactive(buildFormFromJson(props.section.content_json || {}, props.section.section_type));
+
+// Auto-fill investment from proposal data if section is empty
+if (sectionType.value === 'investment' && !form.totalInvestment && props.proposalData?.total_investment) {
+  fillInvestmentFromProposal();
+}
 
 watch(() => props.section, (s) => {
   sectionTitle.value = s.title;
   Object.assign(form, buildFormFromJson(s.content_json || {}, s.section_type));
 }, { deep: true });
+
+// Auto-recalculate payment option descriptions when investment or currency changes
+if (sectionType.value === 'investment') {
+  watch([() => form.totalInvestment, () => form.currency], () => {
+    recalcPaymentDescriptions();
+  });
+}
 
 // --- Helpers: JSON ↔ form conversion ---
 
