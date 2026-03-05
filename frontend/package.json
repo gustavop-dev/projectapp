@@ -9,7 +9,7 @@
     "generate": "nuxi generate",
     "build:django": "node update-django-template.js",
     "preview": "nuxi preview",
-    "postinstall": "nuxi prepare",
+    "postinstall": "nuxi prepare && npx playwright install chromium",
     "optimize-images": "node scripts/optimize-images.js",
     "test": "NODE_OPTIONS='--no-deprecation' jest --config jest.config.cjs",
     "test:watch": "NODE_OPTIONS='--no-deprecation' jest --config jest.config.cjs --watch",
