@@ -19,6 +19,70 @@ def base_proposal(db):
     )
 
 
+@pytest.fixture
+def investment_content():
+    """Realistic investment section content_json payload."""
+    return {
+        'index': '9',
+        'title': 'Inversión',
+        'introText': 'La inversión total es:',
+        'totalInvestment': '$3.500.000',
+        'currency': 'COP',
+        'whatsIncluded': [
+            {'icon': '🎨', 'title': 'Diseño', 'description': 'UX/UI enfocado en conversión'},
+            {'icon': '⚙️', 'title': 'Desarrollo', 'description': 'Implementación completa'},
+        ],
+        'paymentOptions': [
+            {'label': '40% al firmar ✍️', 'description': '$1.400.000 COP'},
+            {'label': '30% al aprobar diseño ✅', 'description': '$1.050.000 COP'},
+            {'label': '30% al desplegar 🚀', 'description': '$1.050.000 COP'},
+        ],
+        'paymentMethods': ['Transferencia bancaria', 'Nequi'],
+        'valueReasons': ['Diseño a medida', 'Código optimizado'],
+    }
+
+
+@pytest.fixture
+def final_note_content():
+    """Realistic final note section content_json payload."""
+    return {
+        'index': '10',
+        'title': 'Nota Final',
+        'message': 'Creemos firmemente en esta propuesta.',
+        'personalNote': 'Estamos emocionados.',
+        'teamName': 'Project App',
+        'teamRole': 'Socio digital',
+        'contactEmail': 'hello@projectapp.co',
+        'commitmentBadges': [
+            {'icon': '🤝', 'title': 'Compromiso', 'description': 'Dedicación completa.'},
+            {'icon': '💯', 'title': 'Calidad', 'description': 'Revisiones ilimitadas.'},
+        ],
+    }
+
+
+@pytest.fixture
+def next_steps_content():
+    """Realistic next steps section content_json payload."""
+    return {
+        'index': '11',
+        'title': 'Próximos pasos',
+        'introMessage': 'Estamos listos para comenzar.',
+        'steps': [
+            {'title': 'Revisión', 'description': 'Revisa la propuesta.'},
+            {'title': 'Confirmación', 'description': 'Agendamos reunión.'},
+        ],
+        'ctaMessage': 'Contáctanos hoy mismo.',
+        'primaryCTA': {'text': 'WhatsApp', 'link': 'https://wa.me/123'},
+        'secondaryCTA': {'text': 'Agendar', 'link': 'https://calendly.com/test'},
+        'contactMethods': [
+            {'icon': '📧', 'title': 'Email', 'value': 'hello@test.co', 'link': 'mailto:hello@test.co'},
+            {'icon': '📱', 'title': 'WhatsApp', 'value': '+57 123', 'link': 'https://wa.me/123'},
+        ],
+        'validityMessage': 'Válida por 30 días.',
+        'thankYouMessage': 'Gracias por la oportunidad.',
+    }
+
+
 class TestGreetingContentJson:
     def test_stores_and_retrieves_greeting_data(self, base_proposal):
         section = ProposalSection.objects.create(
@@ -47,6 +111,7 @@ class TestGreetingContentJson:
 
 class TestExecutiveSummaryContentJson:
     def test_stores_paragraphs_and_highlights(self, base_proposal):
+        """Verify executive summary stores paragraphs and highlights arrays."""
         content = {
             'index': '1',
             'title': 'Resumen ejecutivo',
@@ -86,6 +151,7 @@ class TestExecutiveSummaryContentJson:
 
 class TestContextDiagnosticContentJson:
     def test_stores_full_context_diagnostic(self, base_proposal):
+        """Verify context diagnostic stores issues list and opportunity text."""
         content = {
             'index': '2',
             'title': 'Contexto',
@@ -108,6 +174,7 @@ class TestContextDiagnosticContentJson:
 
 class TestConversionStrategyContentJson:
     def test_stores_steps_with_bullets(self, base_proposal):
+        """Verify conversion strategy stores nested steps with bullet arrays."""
         content = {
             'index': '3',
             'title': 'Estrategia',
@@ -139,6 +206,7 @@ class TestConversionStrategyContentJson:
 
 class TestDesignUxContentJson:
     def test_stores_design_ux_data(self, base_proposal):
+        """Verify design UX section stores focus items and objective."""
         content = {
             'index': '4',
             'title': 'Diseño UX',
@@ -160,6 +228,7 @@ class TestDesignUxContentJson:
 
 class TestCreativeSupportContentJson:
     def test_stores_creative_support_data(self, base_proposal):
+        """Verify creative support section stores includes list and closing."""
         content = {
             'index': '5',
             'title': 'Acompañamiento',
@@ -180,6 +249,7 @@ class TestCreativeSupportContentJson:
 
 class TestDevelopmentStagesContentJson:
     def test_stores_stages_with_current_flag(self, base_proposal):
+        """Verify development stages stores current flag on active stage."""
         content = {
             'stages': [
                 {'icon': '✉️', 'title': 'Propuesta', 'description': 'Etapa actual.', 'current': True},
@@ -201,6 +271,7 @@ class TestDevelopmentStagesContentJson:
 
 class TestFunctionalRequirementsContentJson:
     def test_stores_groups_with_items(self, base_proposal):
+        """Verify functional requirements stores nested groups, items, and modules."""
         content = {
             'index': '7',
             'title': 'Requerimientos',
@@ -250,6 +321,7 @@ class TestFunctionalRequirementsContentJson:
         assert section.content_json['additionalModules'][0]['title'] == 'Analytics'
 
     def test_stores_empty_groups_and_modules(self, base_proposal):
+        """Verify empty groups and additionalModules arrays persist correctly."""
         content = {
             'index': '7',
             'title': 'Reqs',
@@ -270,6 +342,7 @@ class TestFunctionalRequirementsContentJson:
 
 class TestTimelineContentJson:
     def test_stores_phases_with_tasks(self, base_proposal):
+        """Verify timeline section stores phases with nested task arrays."""
         content = {
             'index': '8',
             'title': 'Cronograma',
@@ -305,30 +378,13 @@ class TestTimelineContentJson:
 
 
 class TestInvestmentContentJson:
-    def test_stores_investment_with_payment_options(self, base_proposal):
-        content = {
-            'index': '9',
-            'title': 'Inversión',
-            'introText': 'La inversión total es:',
-            'totalInvestment': '$3.500.000',
-            'currency': 'COP',
-            'whatsIncluded': [
-                {'icon': '🎨', 'title': 'Diseño', 'description': 'UX/UI enfocado en conversión'},
-                {'icon': '⚙️', 'title': 'Desarrollo', 'description': 'Implementación completa'},
-            ],
-            'paymentOptions': [
-                {'label': '40% al firmar ✍️', 'description': '$1.400.000 COP'},
-                {'label': '30% al aprobar diseño ✅', 'description': '$1.050.000 COP'},
-                {'label': '30% al desplegar 🚀', 'description': '$1.050.000 COP'},
-            ],
-            'paymentMethods': ['Transferencia bancaria', 'Nequi'],
-            'valueReasons': ['Diseño a medida', 'Código optimizado'],
-        }
+    def test_stores_investment_with_payment_options(self, base_proposal, investment_content):
+        """Verify investment section stores payment options, methods, and value reasons."""
         section = ProposalSection.objects.create(
             proposal=base_proposal,
             section_type='investment',
             title='Investment',
-            content_json=content,
+            content_json=investment_content,
         )
         section.refresh_from_db()
         assert len(section.content_json['whatsIncluded']) == 2
@@ -337,25 +393,13 @@ class TestInvestmentContentJson:
 
 
 class TestFinalNoteContentJson:
-    def test_stores_final_note_with_badges(self, base_proposal):
-        content = {
-            'index': '10',
-            'title': 'Nota Final',
-            'message': 'Creemos firmemente en esta propuesta.',
-            'personalNote': 'Estamos emocionados.',
-            'teamName': 'Project App',
-            'teamRole': 'Socio digital',
-            'contactEmail': 'hello@projectapp.co',
-            'commitmentBadges': [
-                {'icon': '🤝', 'title': 'Compromiso', 'description': 'Dedicación completa.'},
-                {'icon': '💯', 'title': 'Calidad', 'description': 'Revisiones ilimitadas.'},
-            ],
-        }
+    def test_stores_final_note_with_badges(self, base_proposal, final_note_content):
+        """Verify final note section stores commitment badges and contact info."""
         section = ProposalSection.objects.create(
             proposal=base_proposal,
             section_type='final_note',
             title='Final Note',
-            content_json=content,
+            content_json=final_note_content,
         )
         section.refresh_from_db()
         assert len(section.content_json['commitmentBadges']) == 2
@@ -363,30 +407,13 @@ class TestFinalNoteContentJson:
 
 
 class TestNextStepsContentJson:
-    def test_stores_next_steps_with_ctas_and_contacts(self, base_proposal):
-        content = {
-            'index': '11',
-            'title': 'Próximos pasos',
-            'introMessage': 'Estamos listos para comenzar.',
-            'steps': [
-                {'title': 'Revisión', 'description': 'Revisa la propuesta.'},
-                {'title': 'Confirmación', 'description': 'Agendamos reunión.'},
-            ],
-            'ctaMessage': 'Contáctanos hoy mismo.',
-            'primaryCTA': {'text': 'WhatsApp', 'link': 'https://wa.me/123'},
-            'secondaryCTA': {'text': 'Agendar', 'link': 'https://calendly.com/test'},
-            'contactMethods': [
-                {'icon': '📧', 'title': 'Email', 'value': 'hello@test.co', 'link': 'mailto:hello@test.co'},
-                {'icon': '📱', 'title': 'WhatsApp', 'value': '+57 123', 'link': 'https://wa.me/123'},
-            ],
-            'validityMessage': 'Válida por 30 días.',
-            'thankYouMessage': 'Gracias por la oportunidad.',
-        }
+    def test_stores_next_steps_with_ctas_and_contacts(self, base_proposal, next_steps_content):
+        """Verify next steps section stores CTAs, contacts, and validity message."""
         section = ProposalSection.objects.create(
             proposal=base_proposal,
             section_type='next_steps',
             title='Next Steps',
-            content_json=content,
+            content_json=next_steps_content,
         )
         section.refresh_from_db()
         assert len(section.content_json['steps']) == 2
@@ -397,6 +424,7 @@ class TestNextStepsContentJson:
 
 class TestContentJsonUpdateInPlace:
     def test_update_content_json_preserves_other_fields(self, base_proposal):
+        """Verify updating content_json does not alter title or order fields."""
         section = ProposalSection.objects.create(
             proposal=base_proposal,
             section_type='greeting',
@@ -412,6 +440,7 @@ class TestContentJsonUpdateInPlace:
         assert section.order == 0
 
     def test_replace_content_json_entirely(self, base_proposal):
+        """Verify full content_json replacement round-trips through the database."""
         section = ProposalSection.objects.create(
             proposal=base_proposal,
             section_type='executive_summary',

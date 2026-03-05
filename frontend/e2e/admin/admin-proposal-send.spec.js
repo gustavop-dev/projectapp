@@ -1,7 +1,7 @@
 /**
  * E2E tests for admin sending a proposal to a client.
  */
-import { test, expect } from '../helpers/test.js';
+import { test } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import { ADMIN_PROPOSAL_SEND } from '../helpers/flow-tags.js';

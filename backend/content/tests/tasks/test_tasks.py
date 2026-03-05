@@ -126,6 +126,7 @@ class TestSendUrgencyEmailsTask:
     @freeze_time('2026-03-04 10:00:00')
     @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email')
     def test_skips_proposals_already_sent_urgency(self, mock_send):
+        """Verify proposals with urgency_email_sent_at set are not re-sent."""
         BusinessProposal.objects.create(
             title='Already Urgent',
             client_name='Client',

@@ -89,6 +89,16 @@ describe('useHostingStore', () => {
 
       expect(store.hostings).toHaveLength(1);
     });
+
+    it('handles invalid JSON string by falling back to empty array', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      get_request.mockResolvedValue({ data: '{bad json' });
+
+      await store.fetchHostingData();
+
+      expect(store.hostings).toEqual([]);
+      expect(store.areHostingsUpdated).toBe(true);
+    });
   });
 
   describe('init', () => {

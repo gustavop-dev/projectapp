@@ -6,7 +6,7 @@
  * Supported types: executive_summary, context_diagnostic, design_ux,
  * creative_support, conversion_strategy, final_note, next_steps.
  */
-import { test, expect } from '../helpers/test.js';
+import { test } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import {

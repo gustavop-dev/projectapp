@@ -46,6 +46,19 @@ describe('useFreeResources', () => {
     });
   });
 
+  describe('watch behavior', () => {
+    it('closes modals when a modal ref becomes true', async () => {
+      const { nextTick } = require('vue');
+      const { modalRefs } = useFreeResources({ modals: ['a', 'b'] });
+
+      modalRefs[0].value = true;
+      await nextTick();
+
+      expect(modalRefs[0].value).toBe(false);
+      expect(modalRefs[1].value).toBe(false);
+    });
+  });
+
   describe('freeMediaResources', () => {
     it('clears video src and calls load', () => {
       const mockVideo = ref({ src: 'video.mp4', load: jest.fn() });

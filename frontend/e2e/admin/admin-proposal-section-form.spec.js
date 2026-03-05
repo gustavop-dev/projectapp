@@ -5,7 +5,7 @@
  * verifying the save payload contains correct content_json structure,
  * and that data persists correctly via the API.
  */
-import { test, expect } from '../helpers/test.js';
+import { test } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import {

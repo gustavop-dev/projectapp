@@ -21,6 +21,46 @@ def prop(db):
     )
 
 
+def _investment_content_json():
+    return {
+        'index': '9',
+        'title': 'Inversión',
+        'introText': 'La inversión total es:',
+        'totalInvestment': '$3.500.000',
+        'currency': 'COP',
+        'whatsIncluded': [
+            {'icon': '🎨', 'title': 'Diseño', 'description': 'UX/UI'},
+        ],
+        'paymentOptions': [
+            {'label': '40% al firmar', 'description': '$1.400.000'},
+            {'label': '30% al aprobar', 'description': '$1.050.000'},
+            {'label': '30% al desplegar', 'description': '$1.050.000'},
+        ],
+        'paymentMethods': ['Transferencia', 'Nequi'],
+        'valueReasons': ['Diseño a medida'],
+    }
+
+
+def _next_steps_content_json():
+    return {
+        'index': '11',
+        'title': 'Próximos pasos',
+        'introMessage': 'Estamos listos.',
+        'steps': [
+            {'title': 'Revisión', 'description': 'Revisa la propuesta.'},
+            {'title': '¡Comenzamos!', 'description': 'Kickoff meeting.'},
+        ],
+        'ctaMessage': 'Contáctanos hoy.',
+        'primaryCTA': {'text': 'WhatsApp', 'link': 'https://wa.me/123'},
+        'secondaryCTA': {'text': 'Agendar', 'link': 'https://calendly.com/x'},
+        'contactMethods': [
+            {'icon': '📧', 'title': 'Email', 'value': 'hi@test.co', 'link': 'mailto:hi@test.co'},
+        ],
+        'validityMessage': 'Válida 30 días.',
+        'thankYouMessage': 'Gracias.',
+    }
+
+
 def _create_section(prop, section_type, order=0):
     return ProposalSection.objects.create(
         proposal=prop,
@@ -33,6 +73,7 @@ def _create_section(prop, section_type, order=0):
 
 class TestUpdateGreetingSection:
     def test_saves_greeting_content_json(self, admin_client, prop):
+        """PATCH greeting section and verify content_json is persisted."""
         section = _create_section(prop, 'greeting')
         url = reverse('update-proposal-section', kwargs={'section_id': section.id})
         payload = {
@@ -51,6 +92,7 @@ class TestUpdateGreetingSection:
 
 class TestUpdateExecutiveSummarySection:
     def test_saves_paragraphs_and_highlights(self, admin_client, prop):
+        """PATCH executive summary with paragraphs and highlights arrays."""
         section = _create_section(prop, 'executive_summary')
         url = reverse('update-proposal-section', kwargs={'section_id': section.id})
         payload = {
@@ -99,6 +141,7 @@ class TestUpdateExecutiveSummarySection:
 
 class TestUpdateConversionStrategySection:
     def test_saves_steps_with_nested_bullets(self, admin_client, prop):
+        """PATCH conversion strategy with nested steps containing bullet arrays."""
         section = _create_section(prop, 'conversion_strategy')
         url = reverse('update-proposal-section', kwargs={'section_id': section.id})
         payload = {
@@ -129,6 +172,7 @@ class TestUpdateConversionStrategySection:
 
 class TestUpdateFunctionalRequirementsSection:
     def test_saves_groups_with_items_via_form(self, admin_client, prop):
+        """PATCH functional requirements with groups and items via form submission."""
         section = _create_section(prop, 'functional_requirements')
         url = reverse('update-proposal-section', kwargs={'section_id': section.id})
         payload = {
@@ -213,6 +257,7 @@ class TestUpdateFunctionalRequirementsSection:
         assert len(section.content_json['additionalModules'][0]['items']) == 2
 
     def test_saves_with_empty_items_array(self, admin_client, prop):
+        """PATCH functional requirements with empty items to verify edge case."""
         section = _create_section(prop, 'functional_requirements')
         url = reverse('update-proposal-section', kwargs={'section_id': section.id})
         payload = {
@@ -234,6 +279,7 @@ class TestUpdateFunctionalRequirementsSection:
 
 class TestUpdateTimelineSection:
     def test_saves_phases_with_tasks_array(self, admin_client, prop):
+        """PATCH timeline section with phases containing task arrays."""
         section = _create_section(prop, 'timeline')
         url = reverse('update-proposal-section', kwargs={'section_id': section.id})
         payload = {
@@ -261,27 +307,10 @@ class TestUpdateTimelineSection:
 
 class TestUpdateInvestmentSection:
     def test_saves_investment_with_payment_options(self, admin_client, prop):
+        """PATCH investment section with payment options, methods, and value reasons."""
         section = _create_section(prop, 'investment')
         url = reverse('update-proposal-section', kwargs={'section_id': section.id})
-        payload = {
-            'content_json': {
-                'index': '9',
-                'title': 'Inversión',
-                'introText': 'La inversión total es:',
-                'totalInvestment': '$3.500.000',
-                'currency': 'COP',
-                'whatsIncluded': [
-                    {'icon': '🎨', 'title': 'Diseño', 'description': 'UX/UI'},
-                ],
-                'paymentOptions': [
-                    {'label': '40% al firmar', 'description': '$1.400.000'},
-                    {'label': '30% al aprobar', 'description': '$1.050.000'},
-                    {'label': '30% al desplegar', 'description': '$1.050.000'},
-                ],
-                'paymentMethods': ['Transferencia', 'Nequi'],
-                'valueReasons': ['Diseño a medida'],
-            },
-        }
+        payload = {'content_json': _investment_content_json()}
         response = admin_client.patch(url, payload, format='json')
         assert response.status_code == 200
         section.refresh_from_db()
@@ -291,27 +320,10 @@ class TestUpdateInvestmentSection:
 
 class TestUpdateNextStepsSection:
     def test_saves_next_steps_with_ctas_and_contacts(self, admin_client, prop):
+        """PATCH next steps section with CTAs, contact methods, and validity."""
         section = _create_section(prop, 'next_steps')
         url = reverse('update-proposal-section', kwargs={'section_id': section.id})
-        payload = {
-            'content_json': {
-                'index': '11',
-                'title': 'Próximos pasos',
-                'introMessage': 'Estamos listos.',
-                'steps': [
-                    {'title': 'Revisión', 'description': 'Revisa la propuesta.'},
-                    {'title': '¡Comenzamos!', 'description': 'Kickoff meeting.'},
-                ],
-                'ctaMessage': 'Contáctanos hoy.',
-                'primaryCTA': {'text': 'WhatsApp', 'link': 'https://wa.me/123'},
-                'secondaryCTA': {'text': 'Agendar', 'link': 'https://calendly.com/x'},
-                'contactMethods': [
-                    {'icon': '📧', 'title': 'Email', 'value': 'hi@test.co', 'link': 'mailto:hi@test.co'},
-                ],
-                'validityMessage': 'Válida 30 días.',
-                'thankYouMessage': 'Gracias.',
-            },
-        }
+        payload = {'content_json': _next_steps_content_json()}
         response = admin_client.patch(url, payload, format='json')
         assert response.status_code == 200
         section.refresh_from_db()
@@ -344,6 +356,7 @@ class TestUpdateSectionEdgeCases:
         assert section.content_json['clientName'] == 'Updated Client'
 
     def test_preserves_existing_content_when_only_title_updated(self, admin_client, prop):
+        """PATCH only title and verify existing content_json is preserved."""
         section = _create_section(prop, 'greeting')
         section.content_json = {'clientName': 'Keep Me'}
         section.save()

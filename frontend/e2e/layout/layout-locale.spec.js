@@ -1,7 +1,7 @@
 /**
  * E2E tests for locale switching.
  */
-import { test, expect } from '../helpers/test.js';
+import { test } from '../helpers/test.js';
 import { LAYOUT_LOCALE_SWITCH } from '../helpers/flow-tags.js';
 
 test.describe('Locale Switch', () => {

@@ -117,6 +117,15 @@ describe('error handling', () => {
     await expect(create_request('fail/', {})).rejects.toThrow('Validation failed');
   });
 
+  it('throws on unsupported HTTP method', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.resetModules();
+
+    jest.doMock('axios', () => ({ __esModule: true, default: mockAxios }));
+    const { __test_makeRequest } = require('../../../stores/services/request_http');
+
+    await expect(__test_makeRequest('TRACE', 'test/')).rejects.toThrow('Unsupported method: TRACE');
+  });
 });
 
 describe('getCookie (via CSRF header)', () => {

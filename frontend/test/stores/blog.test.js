@@ -123,7 +123,7 @@ describe('useBlogStore', () => {
     it('sets unknown error on other status', async () => {
       get_request.mockRejectedValue({ response: { status: 500 } });
 
-      const result = await store.fetchPost('error-slug');
+      const _result = await store.fetchPost('error-slug');
 
       expect(store.error).toBe('unknown');
     });
@@ -153,7 +153,7 @@ describe('useBlogStore', () => {
     it('fetchAdminPost fetches single post by id', async () => {
       get_request.mockResolvedValue({ data: { id: 5 } });
 
-      const result = await store.fetchAdminPost(5);
+      const _result = await store.fetchAdminPost(5);
 
       expect(get_request).toHaveBeenCalledWith('blog/admin/5/detail/');
       expect(store.currentPost).toEqual({ id: 5 });

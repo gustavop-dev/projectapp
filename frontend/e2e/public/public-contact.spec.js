@@ -3,7 +3,7 @@
  *
  * Covers: form render, successful submission, validation errors.
  */
-import { test, expect } from '../helpers/test.js';
+import { test } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PUBLIC_CONTACT_SUBMIT } from '../helpers/flow-tags.js';
 
@@ -19,7 +19,7 @@ test.describe('Contact Form Submit', () => {
   test('submits contact form successfully', {
     tag: [...PUBLIC_CONTACT_SUBMIT, '@role:guest'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ route, apiPath }) => {
+    await mockApi(page, async ({ _route, apiPath }) => {
       if (apiPath === 'new-contact/') {
         return {
           status: 201,

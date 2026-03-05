@@ -107,3 +107,5 @@ export async function put_request(url, params) {
 export async function delete_request(url) {
   return await makeRequest("DELETE", url);
 }
+
+export const __test_makeRequest = makeRequest;

@@ -1,7 +1,7 @@
 /**
  * E2E tests for client responding to a proposal (accept/reject).
  */
-import { test, expect } from '../helpers/test.js';
+import { test } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_RESPOND } from '../helpers/flow-tags.js';
 
@@ -11,7 +11,7 @@ test.describe('Proposal Respond', () => {
   test('client can accept a proposal', {
     tag: [...PROPOSAL_RESPOND, '@role:guest'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ route, apiPath }) => {
+    await mockApi(page, async ({ _route, apiPath }) => {
       if (apiPath === `proposals/${MOCK_UUID}/`) {
         return { status: 200, contentType: 'application/json', body: JSON.stringify({ id: 1, uuid: MOCK_UUID, title: 'Test', client_name: 'Client', status: 'sent', sections: [], requirement_groups: [] }) };
       }
@@ -27,7 +27,7 @@ test.describe('Proposal Respond', () => {
   test('client can reject a proposal', {
     tag: [...PROPOSAL_RESPOND, '@role:guest'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ route, apiPath }) => {
+    await mockApi(page, async ({ _route, apiPath }) => {
       if (apiPath === `proposals/${MOCK_UUID}/`) {
         return { status: 200, contentType: 'application/json', body: JSON.stringify({ id: 1, uuid: MOCK_UUID, title: 'Test', client_name: 'Client', status: 'viewed', sections: [], requirement_groups: [] }) };
       }

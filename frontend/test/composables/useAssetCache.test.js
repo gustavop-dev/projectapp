@@ -179,7 +179,7 @@ describe('useAssetCache', () => {
       global.fetch.mockResolvedValue(networkResponse);
       const { getAsset } = useAssetCache();
 
-      const result = await getAsset('https://cdn.example.com/fallback.png');
+      const _result = await getAsset('https://cdn.example.com/fallback.png');
 
       expect(global.fetch).toHaveBeenCalledWith('https://cdn.example.com/fallback.png');
     });
@@ -205,9 +205,39 @@ describe('useAssetCache', () => {
       const { getAsset } = freshUseAssetCache();
       simulateMount();
 
-      const result = await getAsset('https://cdn.example.com/error.png');
+      const _result = await getAsset('https://cdn.example.com/error.png');
 
       expect(global.fetch).toHaveBeenCalled();
+    });
+  });
+
+  describe('onMounted auto-preload', () => {
+    it('preloads assets specified in options on mount', async () => {
+      global.fetch.mockResolvedValue({ ok: true });
+      const { preloadStatus: _preloadStatus } = useAssetCache({
+        preloadAssets: ['https://cdn.example.com/auto.png'],
+      });
+      simulateMount();
+
+      await new Promise(process.nextTick);
+
+      expect(global.fetch).toHaveBeenCalledWith('https://cdn.example.com/auto.png', { cache: 'reload' });
+    });
+  });
+
+  describe('preloadAssets outer catch', () => {
+    it('sets status to error when Promise.allSettled itself throws', async () => {
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      const originalAllSettled = Promise.allSettled;
+      Promise.allSettled = jest.fn().mockRejectedValue(new Error('allSettled failed'));
+
+      const { preloadAssets, preloadStatus } = useAssetCache();
+      simulateMount();
+
+      await preloadAssets(['https://cdn.example.com/x.png']);
+
+      expect(preloadStatus.value).toBe('error');
+      Promise.allSettled = originalAllSettled;
     });
   });
 

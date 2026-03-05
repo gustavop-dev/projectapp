@@ -118,7 +118,7 @@ describe('useProposalStore', () => {
     it('sets not_found error on 404', async () => {
       get_request.mockRejectedValue({ response: { status: 404 } });
 
-      const result = await store.fetchPublicProposal('missing-uuid');
+      const _result = await store.fetchPublicProposal('missing-uuid');
 
       expect(store.error).toBe('not_found');
     });
@@ -126,7 +126,7 @@ describe('useProposalStore', () => {
     it('sets unknown error on other status', async () => {
       get_request.mockRejectedValue({ response: { status: 500 } });
 
-      const result = await store.fetchPublicProposal('error-uuid');
+      const _result = await store.fetchPublicProposal('error-uuid');
 
       expect(store.error).toBe('unknown');
     });
@@ -184,7 +184,7 @@ describe('useProposalStore', () => {
     it('handles error', async () => {
       get_request.mockRejectedValue(new Error('fail'));
 
-      const result = await store.fetchProposal(99);
+      const _result = await store.fetchProposal(99);
 
       expect(store.error).toBe('fetch_failed');
     });
@@ -230,7 +230,7 @@ describe('useProposalStore', () => {
     it('handles error', async () => {
       patch_request.mockRejectedValue(new Error('fail'));
 
-      const result = await store.updateProposal(1, {});
+      const _result = await store.updateProposal(1, {});
 
       expect(store.error).toBe('update_failed');
     });
@@ -261,7 +261,7 @@ describe('useProposalStore', () => {
     it('handles error', async () => {
       delete_request.mockRejectedValue(new Error('fail'));
 
-      const result = await store.deleteProposal(1);
+      const _result = await store.deleteProposal(1);
 
       expect(store.error).toBe('delete_failed');
     });
@@ -374,7 +374,7 @@ describe('useProposalStore', () => {
     it('handles section update error', async () => {
       patch_request.mockRejectedValue(new Error('fail'));
 
-      const result = await store.updateSection(10, {});
+      const _result = await store.updateSection(10, {});
 
       expect(store.error).toBe('update_section_failed');
     });
@@ -427,7 +427,7 @@ describe('useProposalStore', () => {
       store.currentProposal = { uuid: 'abc', status: 'sent' };
       create_request.mockResolvedValue({ data: { status: 'rejected' } });
 
-      const result = await store.respondToProposal('abc', 'rejected');
+      const _result = await store.respondToProposal('abc', 'rejected');
 
       expect(store.currentProposal.status).toBe('rejected');
     });

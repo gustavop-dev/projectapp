@@ -3,7 +3,7 @@
  *
  * Covers: blog index render, bilingual support, empty state.
  */
-import { test, expect } from '../helpers/test.js';
+import { test } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { BLOG_LIST } from '../helpers/flow-tags.js';
 
@@ -22,7 +22,7 @@ test.describe('Blog Listing', () => {
   test('renders blog post grid with published posts', {
     tag: [...BLOG_LIST, '@role:guest'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ route, apiPath }) => {
+    await mockApi(page, async ({ _route, apiPath }) => {
       if (apiPath.startsWith('blog/')) {
         return {
           status: 200,
@@ -41,7 +41,7 @@ test.describe('Blog Listing', () => {
   test('renders with English locale', {
     tag: [...BLOG_LIST, '@role:guest'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ route, apiPath }) => {
+    await mockApi(page, async ({ _route, apiPath }) => {
       if (apiPath.startsWith('blog/')) {
         return {
           status: 200,

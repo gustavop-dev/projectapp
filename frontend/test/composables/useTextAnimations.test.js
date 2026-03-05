@@ -110,7 +110,7 @@ describe('useTextAnimations', () => {
       const { fadeInFromBottom, scrollTriggers, animatedElements } = useTextAnimations();
       const el = document.createElement('div');
 
-      const anim = fadeInFromBottom(el);
+      const _anim = fadeInFromBottom(el);
 
       expect(mockGsap.set).toHaveBeenCalledWith(el, expect.objectContaining({ opacity: 0.8 }));
       expect(mockGsap.to).toHaveBeenCalledWith(el, expect.objectContaining({
@@ -273,6 +273,22 @@ describe('useTextAnimations', () => {
         })
       );
     });
+
+    it('updates element textContent on each animation frame', () => {
+      const { counterAnimation } = useTextAnimations();
+      const el = document.createElement('div');
+
+      counterAnimation(el, { targetValue: 100, suffix: '%', prefix: '+' });
+
+      const gsapToArgs = mockGsap.to.mock.calls[0];
+      const counterObj = gsapToArgs[0];
+      const animConfig = gsapToArgs[1];
+
+      counterObj.value = 42;
+      animConfig.onUpdate();
+
+      expect(el.textContent).toBe('+42%');
+    });
   });
 
   describe('createTimeline', () => {
@@ -280,7 +296,7 @@ describe('useTextAnimations', () => {
       const { createTimeline, scrollTriggers } = useTextAnimations();
       const trigger = document.createElement('div');
 
-      const tl = createTimeline({ triggerElement: trigger });
+      const _tl = createTimeline({ triggerElement: trigger });
 
       expect(mockGsap.timeline).toHaveBeenCalled();
       expect(scrollTriggers.value).toHaveLength(1);

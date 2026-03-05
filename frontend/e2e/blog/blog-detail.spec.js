@@ -3,7 +3,7 @@
  *
  * Covers: post render by slug, bilingual content, 404 handling.
  */
-import { test, expect } from '../helpers/test.js';
+import { test } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { BLOG_DETAIL } from '../helpers/flow-tags.js';
 
@@ -22,7 +22,7 @@ test.describe('Blog Post Detail', () => {
   test('renders blog post content by slug', {
     tag: [...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ route, apiPath }) => {
+    await mockApi(page, async ({ _route, apiPath }) => {
       if (apiPath === 'blog/ai-trends-2026/') {
         return {
           status: 200,
@@ -48,7 +48,7 @@ test.describe('Blog Post Detail', () => {
   test('shows 404 for nonexistent slug', {
     tag: [...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ route, apiPath }) => {
+    await mockApi(page, async ({ _route, apiPath }) => {
       if (apiPath.startsWith('blog/')) {
         return {
           status: 404,

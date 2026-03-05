@@ -12,6 +12,7 @@ pytestmark = pytest.mark.django_db
 class TestContactCreation:
     def test_str_returns_subject(self, contact):
         assert str(contact) == 'Project inquiry'
+        assert contact.subject in str(contact)
 
     def test_create_contact_with_all_fields(self, contact):
         assert contact.email == 'client@example.com'

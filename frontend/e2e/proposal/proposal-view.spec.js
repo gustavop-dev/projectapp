@@ -3,7 +3,7 @@
  *
  * Covers: proposal render, expired proposal handling, 404 handling.
  */
-import { test, expect } from '../helpers/test.js';
+import { test } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_VIEW } from '../helpers/flow-tags.js';
 
@@ -35,7 +35,7 @@ test.describe('Proposal View', () => {
   test('renders proposal content for valid UUID', {
     tag: [...PROPOSAL_VIEW, '@role:guest'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ route, apiPath }) => {
+    await mockApi(page, async ({ _route, apiPath }) => {
       if (apiPath === `proposals/${MOCK_UUID}/`) {
         return {
           status: 200,
@@ -54,7 +54,7 @@ test.describe('Proposal View', () => {
   test('shows expired message for expired proposal', {
     tag: [...PROPOSAL_VIEW, '@role:guest'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ route, apiPath }) => {
+    await mockApi(page, async ({ _route, apiPath }) => {
       if (apiPath === `proposals/${MOCK_UUID}/`) {
         return {
           status: 410,

@@ -177,4 +177,49 @@ describe('useExpirationTimer', () => {
       expect(formattedCountdown.value).toBe('1 día, 6 horas');
     });
   });
+
+  describe('lifecycle hooks', () => {
+    let useExpirationTimerWithHooks;
+    let mountedCbs, unmountedCbs;
+
+    beforeEach(() => {
+      jest.resetModules();
+      mountedCbs = [];
+      unmountedCbs = [];
+
+      jest.doMock('vue', () => {
+        const actualVue = jest.requireActual('vue');
+        return {
+          ...actualVue,
+          onMounted: (cb) => { mountedCbs.push(cb); },
+          onUnmounted: (cb) => { unmountedCbs.push(cb); },
+        };
+      });
+
+      useExpirationTimerWithHooks = require('../../composables/useExpirationTimer').useExpirationTimer;
+    });
+
+    it('starts interval on mount that updates now', () => {
+      useExpirationTimerWithHooks(ref('2026-03-10T12:00:00Z'));
+      expect(mountedCbs).toHaveLength(1);
+
+      mountedCbs[0]();
+      jest.advanceTimersByTime(60000);
+    });
+
+    it('clears interval on unmount', () => {
+      useExpirationTimerWithHooks(ref('2026-03-10T12:00:00Z'));
+      mountedCbs[0]();
+
+      expect(unmountedCbs).toHaveLength(1);
+      unmountedCbs[0]();
+    });
+
+    it('handles unmount when no interval was set', () => {
+      useExpirationTimerWithHooks(ref('2026-03-10T12:00:00Z'));
+
+      expect(unmountedCbs).toHaveLength(1);
+      expect(() => unmountedCbs[0]()).not.toThrow();
+    });
+  });
 });

@@ -4,7 +4,7 @@
  * Covers: portfolio, web designs, 3D animations, hosting, e-commerce,
  * custom software, about us, landing web design.
  */
-import { test, expect } from '../helpers/test.js';
+import { test } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import {
   PUBLIC_PORTFOLIO,
@@ -21,7 +21,7 @@ test.describe('Portfolio Works', () => {
   test('renders portfolio page', {
     tag: [...PUBLIC_PORTFOLIO, '@role:guest'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ route, apiPath }) => {
+    await mockApi(page, async ({ _route, apiPath }) => {
       if (apiPath === 'portfolio_works/') {
         return { status: 200, contentType: 'application/json', body: '[]' };
       }
@@ -37,7 +37,7 @@ test.describe('Web Designs', () => {
   test('renders web designs page', {
     tag: [...PUBLIC_WEB_DESIGNS, '@role:guest'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ route, apiPath }) => {
+    await mockApi(page, async ({ _route, apiPath }) => {
       if (apiPath === 'designs/') {
         return { status: 200, contentType: 'application/json', body: '[]' };
       }
@@ -53,7 +53,7 @@ test.describe('3D Animations', () => {
   test('renders 3D animations page', {
     tag: [...PUBLIC_3D_ANIMATIONS, '@role:guest'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ route, apiPath }) => {
+    await mockApi(page, async ({ _route, apiPath }) => {
       if (apiPath === 'models3d/') {
         return { status: 200, contentType: 'application/json', body: '[]' };
       }
@@ -69,7 +69,7 @@ test.describe('Hosting Plans', () => {
   test('renders hosting page', {
     tag: [...PUBLIC_HOSTING, '@role:guest'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ route, apiPath }) => {
+    await mockApi(page, async ({ _route, apiPath }) => {
       if (apiPath === 'hostings/') {
         return { status: 200, contentType: 'application/json', body: '[]' };
       }
@@ -85,7 +85,7 @@ test.describe('E-Commerce Prices', () => {
   test('renders e-commerce pricing page', {
     tag: [...PUBLIC_ECOMMERCE_PRICES, '@role:guest'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ route, apiPath }) => {
+    await mockApi(page, async ({ _route, apiPath }) => {
       if (apiPath === 'products/') {
         return { status: 200, contentType: 'application/json', body: '[]' };
       }

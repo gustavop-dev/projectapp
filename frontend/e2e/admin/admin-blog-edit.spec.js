@@ -1,7 +1,7 @@
 /**
  * E2E tests for admin blog post editing.
  */
-import { test, expect } from '../helpers/test.js';
+import { test } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import { ADMIN_BLOG_EDIT } from '../helpers/flow-tags.js';

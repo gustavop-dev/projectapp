@@ -4,7 +4,7 @@
  * Covers: page render, hero section, services cards, contact form section,
  * footer, and basic navigation elements.
  */
-import { test, expect } from '../helpers/test.js';
+import { test } from '../helpers/test.js';
 import { PUBLIC_HOME } from '../helpers/flow-tags.js';
 
 test.describe('Home Page', () => {

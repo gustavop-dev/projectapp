@@ -15,6 +15,7 @@ pytestmark = pytest.mark.django_db
 class TestBlogPostCreation:
     def test_str_returns_spanish_title(self, blog_post):
         assert str(blog_post) == blog_post.title_es
+        assert blog_post.title_es != ''
 
     def test_slug_auto_generated_from_title_es(self):
         post = BlogPost.objects.create(
@@ -28,6 +29,7 @@ class TestBlogPostCreation:
         assert post.slug == 'mi-primer-articulo'
 
     def test_slug_uniqueness_appends_counter(self):
+        """Create two posts with identical title_es and verify slug collision resolution."""
         BlogPost.objects.create(
             title_es='Artículo Duplicado',
             title_en='Duplicate Article',
@@ -70,6 +72,7 @@ class TestBlogPostPublishing:
 
     def test_published_at_not_set_for_drafts(self, draft_blog_post):
         assert draft_blog_post.published_at is None
+        assert draft_blog_post.is_published is False
 
     def test_published_at_not_overwritten_on_save(self, blog_post):
         original_published_at = blog_post.published_at
@@ -110,6 +113,7 @@ class TestBlogPostSources:
 class TestBlogPostOrdering:
     @freeze_time('2026-03-01 12:00:00')
     def test_ordered_by_published_at_descending(self):
+        """Create older and newer posts and verify default ordering is newest-first."""
         older = BlogPost.objects.create(
             title_es='Viejo',
             title_en='Old',

@@ -1,7 +1,7 @@
 /**
  * E2E tests for proposal PDF download.
  */
-import { test, expect } from '../helpers/test.js';
+import { test } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PROPOSAL_DOWNLOAD_PDF } from '../helpers/flow-tags.js';
 

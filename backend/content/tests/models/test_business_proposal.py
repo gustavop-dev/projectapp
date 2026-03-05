@@ -16,15 +16,19 @@ pytestmark = pytest.mark.django_db
 class TestBusinessProposalCreation:
     def test_str_returns_title_and_client_name(self, proposal):
         assert str(proposal) == 'Web Application Development — Acme Corp'
+        assert proposal.title in str(proposal)
 
     def test_uuid_auto_generated(self, proposal):
         assert proposal.uuid is not None
+        assert len(str(proposal.uuid)) == 36
 
     def test_uuid_is_unique(self, proposal, sent_proposal):
         assert proposal.uuid != sent_proposal.uuid
+        assert proposal.uuid is not None
 
     def test_slug_auto_generated_from_client_name(self, proposal):
         assert proposal.slug == 'acme-corp'
+        assert proposal.slug != ''
 
     def test_slug_preserved_on_update(self, proposal):
         original_slug = proposal.slug
@@ -57,6 +61,7 @@ class TestBusinessProposalCreation:
 class TestBusinessProposalExpiration:
     def test_is_expired_returns_true_for_expired_status(self, expired_proposal):
         assert expired_proposal.is_expired is True
+        assert expired_proposal.status == 'expired'
 
     @freeze_time('2026-03-15 12:00:00')
     def test_is_expired_returns_true_when_past_expiry_date(self):
@@ -114,9 +119,11 @@ class TestBusinessProposalDaysRemaining:
 class TestBusinessProposalPublicUrl:
     def test_public_url_contains_uuid(self, proposal):
         assert str(proposal.uuid) in proposal.public_url
+        assert 'proposal' in proposal.public_url
 
     def test_public_url_starts_with_base(self, proposal):
         assert '/proposal/' in proposal.public_url
+        assert str(proposal.uuid) in proposal.public_url
 
 
 class TestBusinessProposalStatusChoices:

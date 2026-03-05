@@ -83,6 +83,7 @@ class TestSendEmailNotification:
     @patch('content.utils.send_mail')
     @patch('content.utils.settings')
     def test_sends_email_with_configured_recipient(self, mock_settings, mock_send_mail):
+        """Verify send_email_notification uses NOTIFICATION_EMAIL from settings."""
         mock_settings.NOTIFICATION_EMAIL = 'team@test.com'
         mock_settings.DEFAULT_FROM_EMAIL = 'no-reply@test.com'
         mock_send_mail.return_value = 1

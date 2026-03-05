@@ -20,12 +20,15 @@ class TestProposalSection:
 
     def test_section_belongs_to_proposal(self, proposal_section, proposal):
         assert proposal_section.proposal == proposal
+        assert proposal_section.proposal_id == proposal.id
 
     def test_default_order_is_zero(self, proposal_section):
         assert proposal_section.order == 0
+        assert isinstance(proposal_section.order, int)
 
     def test_default_is_enabled_true(self, proposal_section):
         assert proposal_section.is_enabled is True
+        assert proposal_section.is_enabled is not None
 
     def test_default_content_json_empty_dict(self, proposal):
         section = ProposalSection.objects.create(
@@ -37,6 +40,7 @@ class TestProposalSection:
 
     def test_default_is_wide_panel_false(self, proposal_section):
         assert proposal_section.is_wide_panel is False
+        assert proposal_section.is_wide_panel is not None
 
     def test_unique_together_proposal_and_section_type(self, proposal, proposal_section):
         from django.db import IntegrityError, transaction
@@ -52,6 +56,7 @@ class TestProposalSection:
         ).count() == 1
 
     def test_sections_ordered_by_order_field(self, proposal):
+        """Create two sections with explicit order values and verify queryset ordering."""
         ProposalSection.objects.create(
             proposal=proposal,
             section_type='timeline',
@@ -82,6 +87,7 @@ class TestProposalRequirementGroup:
 
     def test_group_belongs_to_proposal(self, requirement_group, proposal):
         assert requirement_group.proposal == proposal
+        assert requirement_group.proposal_id == proposal.id
 
     def test_groups_ordered_by_order_field(self, proposal):
         ProposalRequirementGroup.objects.create(
@@ -103,9 +109,11 @@ class TestProposalRequirementGroup:
 class TestProposalRequirementItem:
     def test_str_returns_name(self, requirement_item):
         assert str(requirement_item) == 'Dashboard View'
+        assert requirement_item.name in str(requirement_item)
 
     def test_item_belongs_to_group(self, requirement_item, requirement_group):
         assert requirement_item.group == requirement_group
+        assert requirement_item.group_id == requirement_group.id
 
     def test_default_icon_is_checkmark(self, requirement_group):
         item = ProposalRequirementItem.objects.create(
@@ -117,9 +125,11 @@ class TestProposalRequirementItem:
 
     def test_default_options_empty_list(self, requirement_item):
         assert requirement_item.options == []
+        assert isinstance(requirement_item.options, list)
 
     def test_default_fields_empty_list(self, requirement_item):
         assert requirement_item.fields == []
+        assert isinstance(requirement_item.fields, list)
 
     def test_cascade_delete_with_group(self, requirement_group, requirement_item):
         requirement_group.delete()

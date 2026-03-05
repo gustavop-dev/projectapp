@@ -13,7 +13,7 @@ let unmountedCallbacks;
 let useIntersectionObserver;
 
 class MockIntersectionObserver {
-  constructor(callback, options) {
+  constructor(callback, _options) {
     intersectCallback = callback;
     this.observe = mockObserve;
     this.unobserve = mockUnobserve;

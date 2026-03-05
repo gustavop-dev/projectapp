@@ -5,7 +5,7 @@
  * pasting content into groups, adding/removing items,
  * adding additional modules, and verifying data integrity.
  */
-import { test, expect } from '../helpers/test.js';
+import { test } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import {

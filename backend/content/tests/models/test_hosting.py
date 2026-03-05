@@ -12,6 +12,7 @@ pytestmark = pytest.mark.django_db
 class TestHosting:
     def test_str_returns_english_title(self, hosting):
         assert str(hosting) == 'Professional Plan'
+        assert hosting.title_en in str(hosting)
 
     def test_pricing_fields_stored_correctly(self, hosting):
         assert hosting.semi_annually_price == Decimal('149.99')

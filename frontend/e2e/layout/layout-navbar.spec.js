@@ -1,7 +1,7 @@
 /**
  * E2E tests for navbar navigation.
  */
-import { test, expect } from '../helpers/test.js';
+import { test } from '../helpers/test.js';
 import { LAYOUT_NAVBAR_NAVIGATION } from '../helpers/flow-tags.js';
 
 test.describe('Navbar Navigation', () => {

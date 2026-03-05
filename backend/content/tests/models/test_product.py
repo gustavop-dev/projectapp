@@ -16,6 +16,7 @@ pytestmark = pytest.mark.django_db
 class TestItem:
     def test_str_returns_english_name(self, item):
         assert str(item) == 'Responsive Design'
+        assert item.name_en in str(item)
 
     def test_create_item_with_bilingual_names(self, db):
         i = Item.objects.create(name_en='SEO', name_es='SEO')
@@ -26,23 +27,29 @@ class TestItem:
 class TestCategory:
     def test_str_returns_english_name(self, category):
         assert str(category) == 'Web Development'
+        assert category.name_en in str(category)
 
     def test_category_has_items(self, category, item):
         assert item in category.items.all()
+        assert category.items.count() >= 1
 
     def test_item_reverse_relation(self, category, item):
         assert category in item.categories.all()
+        assert item.categories.count() >= 1
 
 
 class TestProduct:
     def test_str_returns_english_title(self, product):
         assert str(product) == 'E-Commerce Platform'
+        assert product.title_en in str(product)
 
     def test_product_has_categories(self, product, category):
         assert category in product.categories.all()
+        assert product.categories.count() >= 1
 
     def test_product_price_stored_correctly(self, product):
         assert product.price == Decimal('4999.99')
+        assert product.price > 0
 
     def test_mobile_app_price_nullable(self, db):
         prod = Product.objects.create(
@@ -57,6 +64,7 @@ class TestProduct:
         assert prod.mobile_app_price is None
 
     def test_delete_removes_image_file(self, db, tmp_path, settings):
+        """Verify product image file is removed from disk when the product is deleted."""
         settings.MEDIA_ROOT = str(tmp_path)
         img = SimpleUploadedFile('test.png', b'\x89PNG\r\n', content_type='image/png')
         prod = Product.objects.create(
