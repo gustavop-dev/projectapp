@@ -47,7 +47,7 @@
             >
               {{ idx + 1 }}
             </span>
-            <span class="truncate">{{ section.title }}</span>
+            <span class="leading-tight">{{ section.title }}</span>
           </button>
         </li>
       </ul>

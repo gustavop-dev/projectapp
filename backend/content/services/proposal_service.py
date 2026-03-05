@@ -453,6 +453,14 @@ DEFAULT_SECTIONS = [
                     'description': 'Medimos nuestro éxito por el impacto en tu negocio',
                 },
             ],
+            'validityMessage': (
+                'Esta propuesta es válida por 30 días a partir de la fecha de emisión. '
+                'Los precios y condiciones pueden estar sujetos a cambios después de este período.'
+            ),
+            'thankYouMessage': (
+                'Apreciamos sinceramente la oportunidad de presentarte esta propuesta. '
+                'Esperamos con entusiasmo la posibilidad de trabajar contigo.'
+            ),
         },
     },
     {
@@ -952,6 +960,14 @@ DEFAULT_SECTIONS_EN = [
                     'description': 'We measure our success by the impact on your business',
                 },
             ],
+            'validityMessage': (
+                'This proposal is valid for 30 days from the date of issue. '
+                'Prices and conditions may be subject to changes after this period.'
+            ),
+            'thankYouMessage': (
+                'We sincerely appreciate the opportunity to present this proposal. '
+                'We look forward to the possibility of working with you.'
+            ),
         },
     },
     {

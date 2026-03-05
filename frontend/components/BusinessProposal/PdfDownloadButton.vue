@@ -95,29 +95,37 @@ async function generatePdf() {
 
       const imgData = canvas.toDataURL('image/jpeg', 0.85);
       const imgRatio = canvas.width / canvas.height;
+      const margin = 5;
+      const usableW = pageW - margin * 2;
+      const usableH = pageH - margin * 2;
 
-      if (isPortrait && canvas.height > canvas.width) {
-        const contentImgW = pageW;
+      if (isPortrait) {
+        const contentImgW = usableW;
         const contentImgH = contentImgW / imgRatio;
-        const totalPages = Math.ceil(contentImgH / pageH);
 
-        for (let p = 0; p < totalPages; p++) {
-          if (p > 0) pdf.addPage('a4', 'portrait');
-          const yOffset = -(p * pageH);
-          pdf.addImage(imgData, 'JPEG', 0, yOffset, contentImgW, contentImgH);
+        if (contentImgH <= usableH) {
+          const y = margin + (usableH - contentImgH) / 2;
+          pdf.addImage(imgData, 'JPEG', margin, y, contentImgW, contentImgH);
+        } else {
+          const totalPages = Math.ceil(contentImgH / usableH);
+          for (let p = 0; p < totalPages; p++) {
+            if (p > 0) pdf.addPage('a4', 'portrait');
+            const yOffset = margin - (p * usableH);
+            pdf.addImage(imgData, 'JPEG', margin, yOffset, contentImgW, contentImgH);
+          }
         }
       } else {
-        const pageRatio = pageW / pageH;
         let imgW, imgH;
-        if (imgRatio > pageRatio) {
-          imgW = pageW;
-          imgH = pageW / imgRatio;
+        const usableRatio = usableW / usableH;
+        if (imgRatio > usableRatio) {
+          imgW = usableW;
+          imgH = usableW / imgRatio;
         } else {
-          imgH = pageH;
-          imgW = pageH * imgRatio;
+          imgH = usableH;
+          imgW = usableH * imgRatio;
         }
-        const x = (pageW - imgW) / 2;
-        const y = (pageH - imgH) / 2;
+        const x = margin + (usableW - imgW) / 2;
+        const y = margin + (usableH - imgH) / 2;
         pdf.addImage(imgData, 'JPEG', x, y, imgW, imgH);
       }
     }

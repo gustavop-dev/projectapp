@@ -20,7 +20,7 @@
           :class="!pasteMode
             ? 'bg-emerald-600 text-white border-emerald-600'
             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'"
-          @click="pasteMode = false"
+          @click="onTogglePasteMode(false)"
         >Formulario</button>
         <button
           type="button"
@@ -28,7 +28,7 @@
           :class="pasteMode
             ? 'bg-emerald-600 text-white border-emerald-600'
             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'"
-          @click="pasteMode = true"
+          @click="onTogglePasteMode(true)"
         >Pegar contenido</button>
       </div>
 
@@ -155,7 +155,7 @@
                   </div>
                   <button type="button" class="text-xs text-red-500 hover:text-red-700" @click="form.stages.splice(idx, 1)">Eliminar</button>
                 </div>
-                <div class="grid grid-cols-[60px_1fr] gap-3 mb-2">
+                <div class="grid grid-cols-[100px_1fr] gap-3 mb-2">
                   <EmojiIconField v-model="stage.icon" label="Icono" placeholder="✉️" />
                   <FieldInput v-model="stage.title" label="Título" />
                 </div>
@@ -210,7 +210,7 @@
 
           <!-- Form mode for this group -->
           <div v-else class="space-y-3">
-            <div class="grid grid-cols-[60px_1fr] gap-3">
+            <div class="grid grid-cols-[100px_1fr] gap-3">
               <EmojiIconField v-model="group.icon" label="Icono" placeholder="🖥️" />
               <FieldInput v-model="group.title" label="Título del grupo" />
             </div>
@@ -229,7 +229,7 @@
                       </div>
                       <button type="button" class="text-[10px] text-red-500" @click="group.items.splice(iIdx, 1)">Eliminar</button>
                     </div>
-                    <div class="grid grid-cols-[50px_1fr] gap-2 mb-1">
+                    <div class="grid grid-cols-[90px_1fr] gap-2 mb-1">
                       <EmojiIconField v-model="item.icon" label="Icono" placeholder="🏠" />
                       <FieldInput v-model="item.name" label="Nombre" />
                     </div>
@@ -268,7 +268,7 @@
                 @click="processGroupPaste(mod)">Procesar y llenar</button>
             </div>
             <div v-else class="space-y-3">
-              <div class="grid grid-cols-[60px_1fr] gap-3">
+              <div class="grid grid-cols-[100px_1fr] gap-3">
                 <EmojiIconField v-model="mod.icon" label="Icono" placeholder="🧩" />
                 <FieldInput v-model="mod.title" label="Título del módulo" />
               </div>
@@ -285,7 +285,7 @@
                         </div>
                         <button type="button" class="text-[10px] text-red-500" @click="mod.items.splice(iIdx, 1)">Eliminar</button>
                       </div>
-                      <div class="grid grid-cols-[50px_1fr] gap-2 mb-1">
+                      <div class="grid grid-cols-[90px_1fr] gap-2 mb-1">
                         <EmojiIconField v-model="item.icon" label="Icono" />
                         <FieldInput v-model="item.name" label="Nombre" />
                       </div>
@@ -378,7 +378,7 @@
                   </div>
                   <button type="button" class="text-xs text-red-500" @click="form.whatsIncluded.splice(idx, 1)">Eliminar</button>
                 </div>
-                <div class="grid grid-cols-[60px_1fr] gap-2 mb-1">
+                <div class="grid grid-cols-[100px_1fr] gap-2 mb-1">
                   <EmojiIconField v-model="item.icon" label="Icono" placeholder="🎨" />
                   <FieldInput v-model="item.title" label="Título" />
                 </div>
@@ -438,7 +438,7 @@
                   </div>
                   <button type="button" class="text-xs text-red-500" @click="form.commitmentBadges.splice(idx, 1)">Eliminar</button>
                 </div>
-                <div class="grid grid-cols-[60px_1fr] gap-2 mb-1">
+                <div class="grid grid-cols-[100px_1fr] gap-2 mb-1">
                   <EmojiIconField v-model="badge.icon" label="Icono" placeholder="🤝" />
                   <FieldInput v-model="badge.title" label="Título" />
                 </div>
@@ -448,6 +448,8 @@
           </draggable>
           <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.commitmentBadges.push({ icon: '', title: '', description: '' })">+ Agregar badge</button>
         </div>
+        <FieldTextarea v-model="form.validityMessage" label="Mensaje de vigencia" :rows="2" :isSingle="true" />
+        <FieldTextarea v-model="form.thankYouMessage" label="Mensaje de agradecimiento" :rows="2" :isSingle="true" />
       </template>
 
       <!-- NEXT STEPS -->
@@ -603,11 +605,104 @@ const pasteMode = ref(false);
 const pasteText = ref('');
 const pasteMsg = ref('');
 
-const PASTE_SUPPORTED_TYPES = [
-  'executive_summary', 'context_diagnostic', 'design_ux',
-  'creative_support', 'conversion_strategy', 'final_note', 'next_steps',
-];
-const hasPasteSupport = computed(() => PASTE_SUPPORTED_TYPES.includes(sectionType.value));
+const hasPasteSupport = computed(() => true);
+
+function formToReadableText() {
+  const type = sectionType.value;
+  const parts = [];
+  const bullet = (items) => items.split('\n').filter(Boolean).map(l => `- ${l}`).join('\n');
+  if (type === 'greeting') {
+    if (form.clientName) parts.push(`Nombre del cliente: ${form.clientName}`);
+    if (form.inspirationalQuote) parts.push(`\n"${form.inspirationalQuote}"`);
+  } else if (type === 'executive_summary') {
+    if (form.paragraphs) parts.push(form.paragraphs);
+    if (form.highlightsTitle) parts.push(`\n${form.highlightsTitle}`);
+    if (form.highlights) parts.push(bullet(form.highlights));
+  } else if (type === 'context_diagnostic') {
+    if (form.paragraphs) parts.push(form.paragraphs);
+    if (form.issuesTitle) parts.push(`\n${form.issuesTitle}`);
+    if (form.issues) parts.push(bullet(form.issues));
+    if (form.opportunityTitle) parts.push(`\n${form.opportunityTitle}`);
+    if (form.opportunity) parts.push(form.opportunity);
+  } else if (type === 'conversion_strategy') {
+    if (form.intro) parts.push(form.intro);
+    for (const step of (form.steps || [])) {
+      if (step.title) parts.push(`\n${step.title}`);
+      if (step.bullets) parts.push(bullet(step.bullets));
+    }
+    if (form.resultTitle) parts.push(`\n${form.resultTitle}`);
+    if (form.result) parts.push(form.result);
+  } else if (type === 'design_ux') {
+    if (form.paragraphs) parts.push(form.paragraphs);
+    if (form.focusTitle) parts.push(`\n${form.focusTitle}`);
+    if (form.focusItems) parts.push(bullet(form.focusItems));
+    if (form.objectiveTitle) parts.push(`\n${form.objectiveTitle}`);
+    if (form.objective) parts.push(form.objective);
+  } else if (type === 'creative_support') {
+    if (form.paragraphs) parts.push(form.paragraphs);
+    if (form.includesTitle) parts.push(`\n${form.includesTitle}`);
+    if (form.includes) parts.push(bullet(form.includes));
+    if (form.closing) parts.push(`\n${form.closing}`);
+  } else if (type === 'development_stages') {
+    for (const s of (form.stages || [])) {
+      parts.push(`${s.icon || ''} ${s.title}${s.current ? ' (actual)' : ''}`);
+      if (s.description) parts.push(`  ${s.description}`);
+    }
+  } else if (type === 'timeline') {
+    if (form.introText) parts.push(form.introText);
+    if (form.totalDuration) parts.push(`Duración total: ${form.totalDuration}`);
+    for (const p of (form.phases || [])) {
+      parts.push(`\n${p.title} — ${p.duration || ''}`);
+      if (p.description) parts.push(p.description);
+      if (p.tasks) parts.push(bullet(p.tasks));
+      if (p.milestone) parts.push(`Hito: ${p.milestone}`);
+    }
+  } else if (type === 'investment') {
+    if (form.introText) parts.push(form.introText);
+    if (form.totalInvestment) parts.push(`Inversión total: ${form.totalInvestment} ${form.currency || 'COP'}`);
+    if (form.whatsIncluded?.length) {
+      parts.push('\nQué incluye:');
+      for (const i of form.whatsIncluded) parts.push(`${i.icon || ''} ${i.title}: ${i.description || ''}`);
+    }
+    if (form.paymentOptions?.length) {
+      parts.push('\nOpciones de pago:');
+      for (const o of form.paymentOptions) parts.push(`- ${o.label}: ${o.description || ''}`);
+    }
+    if (form.valueReasons) parts.push(`\nRazones de valor:\n${bullet(form.valueReasons)}`);
+  } else if (type === 'final_note') {
+    if (form.message) parts.push(form.message);
+    if (form.personalNote) parts.push(`\n${form.personalNote}`);
+    if (form.teamName) parts.push(`\n${form.teamName} — ${form.teamRole || ''}`);
+    if (form.contactEmail) parts.push(form.contactEmail);
+    if (form.validityMessage) parts.push(`\nValidez: ${form.validityMessage}`);
+    if (form.thankYouMessage) parts.push(`\n${form.thankYouMessage}`);
+    if (form.commitmentBadges?.length) {
+      parts.push('\nBadges:');
+      for (const b of form.commitmentBadges) parts.push(`${b.icon || ''} ${b.title}: ${b.description || ''}`);
+    }
+  } else if (type === 'next_steps') {
+    if (form.introMessage) parts.push(form.introMessage);
+    if (form.steps?.length) {
+      parts.push('\nPasos:');
+      for (const s of form.steps) parts.push(`- ${s.title}: ${s.description || ''}`);
+    }
+    if (form.ctaMessage) parts.push(`\n${form.ctaMessage}`);
+    if (form.contactMethods?.length) {
+      parts.push('\nContacto:');
+      for (const m of form.contactMethods) parts.push(`${m.icon || ''} ${m.title}: ${m.value || ''}`);
+    }
+    if (form.validityMessage) parts.push(`\nValidez: ${form.validityMessage}`);
+    if (form.thankYouMessage) parts.push(`\n${form.thankYouMessage}`);
+  }
+  return parts.join('\n').trim();
+}
+
+function onTogglePasteMode(on) {
+  pasteMode.value = on;
+  if (on && !pasteText.value) {
+    pasteText.value = formToReadableText();
+  }
+}
 
 function processPastedContent() {
   const text = pasteText.value.trim();
@@ -615,9 +710,7 @@ function processPastedContent() {
 
   const paragraphs = [];
   const listItems = [];
-  let closingText = '';
 
-  // Split by double newlines into blocks
   const blocks = text.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
 
   for (const block of blocks) {
@@ -634,7 +727,12 @@ function processPastedContent() {
 
   const type = sectionType.value;
 
-  if (type === 'executive_summary') {
+  if (type === 'greeting') {
+    const nameMatch = text.match(/(?:Nombre[^:]*:\s*)(.+)/i);
+    if (nameMatch) form.clientName = nameMatch[1].trim();
+    const quoteMatch = text.match(/"([^"]+)"/);
+    if (quoteMatch) form.inspirationalQuote = quoteMatch[1].trim();
+  } else if (type === 'executive_summary') {
     form.paragraphs = paragraphs.join('\n');
     if (listItems.length) form.highlights = listItems.join('\n');
   } else if (type === 'context_diagnostic') {
@@ -660,6 +758,19 @@ function processPastedContent() {
       form.result = paragraphs.pop();
     }
     form.intro = paragraphs.join('\n');
+  } else if (type === 'development_stages') {
+    const stages = [];
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    for (const line of lines) {
+      const m = line.match(/^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F?)\s+(.+?)(?:\s*\(actual\))?$/u);
+      if (m) stages.push({ icon: m[1], title: m[2].trim(), description: '', current: line.includes('(actual)') });
+      else if (stages.length && line.startsWith('  ')) stages[stages.length - 1].description = line.trim();
+    }
+    if (stages.length) form.stages = stages;
+  } else if (type === 'timeline') {
+    form.introText = paragraphs.length ? paragraphs[0] : '';
+  } else if (type === 'investment') {
+    form.introText = paragraphs.length ? paragraphs[0] : '';
   } else if (type === 'final_note') {
     if (paragraphs.length > 1) {
       form.personalNote = paragraphs.pop();
@@ -809,7 +920,7 @@ function buildFormFromJson(json, type) {
     case 'investment':
       return { index: j.index || '', title: j.title || '', introText: j.introText || '', totalInvestment: j.totalInvestment || '', currency: j.currency || 'COP', whatsIncluded: (j.whatsIncluded || []).map(i => ({ ...i })), paymentOptions: (j.paymentOptions || []).map(o => ({ ...o })), hostingPlan: j.hostingPlan || {}, paymentMethods: arrToText(j.paymentMethods), valueReasons: arrToText(j.valueReasons) };
     case 'final_note':
-      return { index: j.index || '', title: j.title || '', message: j.message || '', personalNote: j.personalNote || '', teamName: j.teamName || '', teamRole: j.teamRole || '', contactEmail: j.contactEmail || '', commitmentBadges: (j.commitmentBadges || []).map(b => ({ ...b })) };
+      return { index: j.index || '', title: j.title || '', message: j.message || '', personalNote: j.personalNote || '', teamName: j.teamName || '', teamRole: j.teamRole || '', contactEmail: j.contactEmail || '', commitmentBadges: (j.commitmentBadges || []).map(b => ({ ...b })), validityMessage: j.validityMessage || '', thankYouMessage: j.thankYouMessage || '' };
     case 'next_steps':
       return { index: j.index || '', title: j.title || '', introMessage: j.introMessage || '', steps: (j.steps || []).map(s => ({ ...s })), ctaMessage: j.ctaMessage || '', primaryCTA: { text: j.primaryCTA?.text || '', link: j.primaryCTA?.link || '' }, secondaryCTA: { text: j.secondaryCTA?.text || '', link: j.secondaryCTA?.link || '' }, contactMethods: (j.contactMethods || []).map(m => ({ ...m })), validityMessage: j.validityMessage || '', thankYouMessage: j.thankYouMessage || '' };
     default:
@@ -850,7 +961,7 @@ function formToJson(formData, type) {
     case 'investment':
       return { index: f.index, title: f.title, introText: f.introText, totalInvestment: f.totalInvestment, currency: f.currency, whatsIncluded: f.whatsIncluded, paymentOptions: f.paymentOptions, hostingPlan: f.hostingPlan || {}, paymentMethods: textToArr(f.paymentMethods), valueReasons: textToArr(f.valueReasons) };
     case 'final_note':
-      return { index: f.index, title: f.title, message: f.message, personalNote: f.personalNote, teamName: f.teamName, teamRole: f.teamRole, contactEmail: f.contactEmail, commitmentBadges: f.commitmentBadges };
+      return { index: f.index, title: f.title, message: f.message, personalNote: f.personalNote, teamName: f.teamName, teamRole: f.teamRole, contactEmail: f.contactEmail, commitmentBadges: f.commitmentBadges, validityMessage: f.validityMessage, thankYouMessage: f.thankYouMessage };
     case 'next_steps':
       return { index: f.index, title: f.title, introMessage: f.introMessage, steps: f.steps, ctaMessage: f.ctaMessage, primaryCTA: f.primaryCTA, secondaryCTA: f.secondaryCTA, contactMethods: f.contactMethods, validityMessage: f.validityMessage, thankYouMessage: f.thankYouMessage };
     default:

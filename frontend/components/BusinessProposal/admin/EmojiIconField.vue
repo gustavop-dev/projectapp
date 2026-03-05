@@ -9,26 +9,27 @@
         @input="$emit('update:modelValue', $event.target.value)"
       />
       <button
+        ref="buttonRef"
         type="button"
         class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-sm cursor-pointer"
         @click.stop="showPicker = !showPicker"
       >😀</button>
     </div>
-    <div v-if="showPicker" class="absolute z-50 top-full mt-1 right-0" @click.stop>
-      <div class="fixed inset-0 z-40" @click="showPicker = false" />
-      <div class="relative z-50">
+    <teleport to="body">
+      <div v-if="showPicker" class="fixed inset-0 z-[9998]" @click="showPicker = false" />
+      <div v-if="showPicker" ref="pickerRef" class="fixed z-[9999]" :style="pickerStyle" @click.stop>
         <EmojiPicker
           :native="true"
           :disable-skin-tones="true"
           @select="onSelectEmoji"
         />
       </div>
-    </div>
+    </teleport>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, nextTick, watch } from 'vue';
 import EmojiPicker from 'vue3-emoji-picker';
 import 'vue3-emoji-picker/css';
 
@@ -41,6 +42,24 @@ defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const showPicker = ref(false);
+const buttonRef = ref(null);
+const pickerPos = ref({ top: 0, left: 0 });
+
+const pickerStyle = computed(() => ({
+  top: `${pickerPos.value.top}px`,
+  left: `${pickerPos.value.left}px`,
+}));
+
+watch(showPicker, async (val) => {
+  if (val && buttonRef.value) {
+    await nextTick();
+    const rect = buttonRef.value.getBoundingClientRect();
+    pickerPos.value = {
+      top: rect.bottom + 4,
+      left: Math.max(8, rect.right - 352),
+    };
+  }
+});
 
 function onSelectEmoji(emoji) {
   emit('update:modelValue', emoji.i);
