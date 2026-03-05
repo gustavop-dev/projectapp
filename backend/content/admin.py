@@ -121,10 +121,10 @@ class BusinessProposalAdmin(admin.ModelAdmin):
     Custom admin configuration for the BusinessProposal model.
     """
     list_display = (
-        'title', 'client_name', 'status', 'total_investment',
+        'title', 'client_name', 'status', 'is_active', 'total_investment',
         'currency', 'expires_at', 'view_count', 'created_at',
     )
-    list_filter = ('status', 'currency')
+    list_filter = ('status', 'currency', 'is_active')
     search_fields = ('title', 'client_name', 'client_email')
     readonly_fields = (
         'uuid', 'view_count', 'first_viewed_at', 'sent_at',
@@ -139,7 +139,11 @@ class BusinessProposalAdmin(admin.ModelAdmin):
             'fields': ('total_investment', 'currency'),
         }),
         ('Status & Lifecycle', {
-            'fields': ('status', 'expires_at', 'reminder_days', 'discount_percent', 'reminder_sent_at'),
+            'fields': (
+                'status', 'is_active', 'expires_at',
+                'reminder_days', 'urgency_reminder_days',
+                'discount_percent', 'reminder_sent_at', 'urgency_email_sent_at',
+            ),
         }),
         ('Tracking', {
             'fields': ('view_count', 'first_viewed_at', 'sent_at'),

@@ -546,14 +546,39 @@
       >
         {{ isSaving ? 'Guardando...' : 'Guardar Sección' }}
       </button>
+      <button
+        type="button"
+        class="px-5 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium
+               hover:bg-gray-50 transition-colors"
+        @click="showPreview = true"
+      >
+        <span class="flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+          Previsualizar
+        </span>
+      </button>
       <span v-if="savedMsg" class="text-xs text-green-600">{{ savedMsg }}</span>
     </div>
+
+    <!-- Section preview modal -->
+    <SectionPreviewModal
+      :visible="showPreview"
+      :section="previewSection"
+      :proposalData="proposalData"
+      @close="showPreview = false"
+    />
   </div>
 </template>
 
 <script setup>
 import { reactive, ref, computed, watch, h } from 'vue';
 import EmojiIconField from '~/components/BusinessProposal/admin/EmojiIconField.vue';
+import SectionPreviewModal from '~/components/BusinessProposal/admin/SectionPreviewModal.vue';
 import draggable from 'vuedraggable';
 import {
   arrToText, textToArr,
@@ -607,6 +632,21 @@ const emit = defineEmits(['save']);
 const sectionType = computed(() => props.section.section_type);
 const sectionTitle = ref(props.section.title);
 const isSaving = ref(false);
+const showPreview = ref(false);
+
+const previewSection = computed(() => {
+  const contentJson = formToJson(form, sectionType.value);
+  if (pasteMode.value) {
+    contentJson._editMode = 'paste';
+    contentJson.rawText = pasteText.value;
+  }
+  return {
+    id: props.section.id,
+    section_type: sectionType.value,
+    title: sectionTitle.value,
+    content_json: contentJson,
+  };
+});
 const savedMsg = ref('');
 const showRawJson = ref(false);
 const initialContent = props.section.content_json || {};

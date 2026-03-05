@@ -23,7 +23,8 @@ coverage==7.6.1
 freezegun==1.4.0
 
 # PDF generation
-playwright>=1.40.0
+reportlab>=4.0,<5.0
+pypdf>=4.0,<5.0
 
 # Production server
 gunicorn>=23.0,<24.0

@@ -34,6 +34,12 @@ def retrieve_public_proposal(request, proposal_uuid):
     """
     proposal = get_object_or_404(BusinessProposal, uuid=proposal_uuid)
 
+    if not proposal.is_active:
+        return Response(
+            {'error': 'This proposal is not available.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
     if proposal.is_expired:
         if proposal.status != BusinessProposal.Status.EXPIRED:
             proposal.status = BusinessProposal.Status.EXPIRED
@@ -67,7 +73,7 @@ def retrieve_public_proposal(request, proposal_uuid):
 @permission_classes([AllowAny])
 def download_proposal_pdf(request, proposal_uuid):
     """
-    Generate and download a PDF of the proposal using Playwright headless.
+    Generate and download a PDF of the proposal using ReportLab.
     """
     proposal = get_object_or_404(BusinessProposal, uuid=proposal_uuid)
 
@@ -219,6 +225,43 @@ def send_proposal(request, proposal_id):
     from content.services.proposal_service import ProposalService
     try:
         ProposalService.send_proposal(proposal)
+    except ValueError as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    detail = ProposalDetailSerializer(
+        proposal, context={'request': request, 'is_admin': True}
+    )
+    return Response(detail.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def toggle_proposal_active(request, proposal_id):
+    """
+    Toggle a proposal's is_active flag.
+    """
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+    proposal.is_active = not proposal.is_active
+    proposal.save(update_fields=['is_active'])
+
+    detail = ProposalDetailSerializer(
+        proposal, context={'request': request, 'is_admin': True}
+    )
+    return Response(detail.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def resend_proposal(request, proposal_id):
+    """
+    Re-send a proposal: reset lifecycle timers, keep existing expires_at,
+    and re-schedule reminder emails.
+    """
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+
+    from content.services.proposal_service import ProposalService
+    try:
+        ProposalService.resend_proposal(proposal)
     except ValueError as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

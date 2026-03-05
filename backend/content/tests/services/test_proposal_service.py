@@ -132,9 +132,11 @@ class TestSendProposal:
         proposal.refresh_from_db()
         assert proposal.status == 'draft'
 
+    @patch('content.tasks.send_urgency_reminder')
     @patch('content.tasks.send_proposal_reminder')
-    def test_sets_status_to_sent(self, mock_task):
-        mock_task.schedule = MagicMock(return_value=None)
+    def test_sets_status_to_sent(self, mock_reminder, mock_urgency):
+        mock_reminder.schedule = MagicMock(return_value=None)
+        mock_urgency.schedule = MagicMock(return_value=None)
         proposal = BusinessProposal.objects.create(
             title='Send Test',
             client_name='Client',
@@ -143,11 +145,13 @@ class TestSendProposal:
         ProposalService.send_proposal(proposal)
         proposal.refresh_from_db()
         assert proposal.status == 'sent'
-        mock_task.schedule.assert_called_once()
+        mock_reminder.schedule.assert_called_once()
 
+    @patch('content.tasks.send_urgency_reminder')
     @patch('content.tasks.send_proposal_reminder')
-    def test_sets_sent_at_timestamp(self, mock_task):
-        mock_task.schedule = MagicMock(return_value=None)
+    def test_sets_sent_at_timestamp(self, mock_reminder, mock_urgency):
+        mock_reminder.schedule = MagicMock(return_value=None)
+        mock_urgency.schedule = MagicMock(return_value=None)
         proposal = BusinessProposal.objects.create(
             title='Timestamp Test',
             client_name='Client',
@@ -156,25 +160,51 @@ class TestSendProposal:
         ProposalService.send_proposal(proposal)
         proposal.refresh_from_db()
         assert proposal.sent_at is not None
-        mock_task.schedule.assert_called_once()
 
+    @patch('content.tasks.send_urgency_reminder')
     @patch('content.tasks.send_proposal_reminder')
-    def test_schedules_reminder_task_with_correct_delay(self, mock_task):
-        mock_task.schedule = MagicMock(return_value=None)
+    def test_schedules_both_reminder_and_urgency_tasks(self, mock_reminder, mock_urgency):
+        """Both reminder (day 10) and urgency (day 15) tasks are scheduled."""
+        mock_reminder.schedule = MagicMock(return_value=None)
+        mock_urgency.schedule = MagicMock(return_value=None)
         proposal = BusinessProposal.objects.create(
             title='Reminder Test',
             client_name='Client',
             client_email='client@test.com',
-            reminder_days=5,
+            reminder_days=10,
+            urgency_reminder_days=15,
         )
         ProposalService.send_proposal(proposal)
-        mock_task.schedule.assert_called_once()
-        call_kwargs = mock_task.schedule.call_args
-        assert call_kwargs[1]['delay'] == 5 * 86400
+        mock_reminder.schedule.assert_called_once()
+        mock_urgency.schedule.assert_called_once()
+        reminder_delay = mock_reminder.schedule.call_args[1]['delay']
+        assert 9 * 86400 < reminder_delay <= 10 * 86400
+        urgency_delay = mock_urgency.schedule.call_args[1]['delay']
+        assert 14 * 86400 < urgency_delay <= 15 * 86400
 
+    @patch('content.tasks.send_urgency_reminder')
     @patch('content.tasks.send_proposal_reminder')
-    def test_logs_exception_when_schedule_fails(self, mock_task):
-        mock_task.schedule = MagicMock(side_effect=RuntimeError('Huey unavailable'))
+    def test_auto_sets_expires_at_to_20_days(self, mock_reminder, mock_urgency):
+        """When expires_at is not set, send_proposal auto-sets it to 20 days."""
+        mock_reminder.schedule = MagicMock(return_value=None)
+        mock_urgency.schedule = MagicMock(return_value=None)
+        proposal = BusinessProposal.objects.create(
+            title='Auto Expiry Test',
+            client_name='Client',
+            client_email='client@test.com',
+        )
+        assert proposal.expires_at is None
+        ProposalService.send_proposal(proposal)
+        proposal.refresh_from_db()
+        assert proposal.expires_at is not None
+        from django.utils import timezone
+        delta = proposal.expires_at - timezone.now()
+        assert 19 < delta.total_seconds() / 86400 <= 20
+
+    @patch('content.tasks.send_urgency_reminder')
+    @patch('content.tasks.send_proposal_reminder')
+    def test_logs_exception_when_schedule_fails(self, mock_reminder, mock_urgency):
+        mock_reminder.schedule = MagicMock(side_effect=RuntimeError('Huey unavailable'))
         proposal = BusinessProposal.objects.create(
             title='Exception Test',
             client_name='Client',
@@ -183,7 +213,64 @@ class TestSendProposal:
         ProposalService.send_proposal(proposal)
         proposal.refresh_from_db()
         assert proposal.status == 'sent'
-        mock_task.schedule.assert_called_once()
+
+
+class TestResendProposal:
+    def test_raises_error_without_client_email(self):
+        """Resend should fail if no client_email is set."""
+        proposal = BusinessProposal.objects.create(
+            title='No Email Resend',
+            client_name='Client',
+            client_email='',
+            status='sent',
+        )
+        with pytest.raises(ValueError, match='email'):
+            ProposalService.resend_proposal(proposal)
+
+    @patch('content.tasks.send_urgency_reminder')
+    @patch('content.tasks.send_proposal_reminder')
+    def test_keeps_existing_expires_at(self, mock_reminder, mock_urgency):
+        """Resend should not change the existing expires_at."""
+        mock_reminder.schedule = MagicMock(return_value=None)
+        mock_urgency.schedule = MagicMock(return_value=None)
+        from django.utils import timezone
+        original_expiry = timezone.now() + timezone.timedelta(days=5)
+        proposal = BusinessProposal.objects.create(
+            title='Resend Test',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            expires_at=original_expiry,
+        )
+        ProposalService.resend_proposal(proposal)
+        proposal.refresh_from_db()
+        assert proposal.status == 'sent'
+        assert proposal.expires_at == original_expiry
+        assert proposal.reminder_sent_at is None
+        assert proposal.urgency_email_sent_at is None
+
+    @patch('content.tasks.send_urgency_reminder')
+    @patch('content.tasks.send_proposal_reminder')
+    def test_resets_email_tracking_fields(self, mock_reminder, mock_urgency):
+        """Resend should reset reminder_sent_at and urgency_email_sent_at."""
+        mock_reminder.schedule = MagicMock(return_value=None)
+        mock_urgency.schedule = MagicMock(return_value=None)
+        from django.utils import timezone
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Reset Fields Test',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            expires_at=now + timezone.timedelta(days=10),
+            reminder_sent_at=now - timezone.timedelta(days=2),
+            urgency_email_sent_at=now - timezone.timedelta(days=1),
+        )
+        ProposalService.resend_proposal(proposal)
+        proposal.refresh_from_db()
+        assert proposal.reminder_sent_at is None
+        assert proposal.urgency_email_sent_at is None
+        assert proposal.sent_at is not None
 
 
 class TestRecordView:

@@ -59,6 +59,25 @@
               {{ proposal.sent_at ? new Date(proposal.sent_at).toLocaleString() : '—' }}
             </p>
           </div>
+          <div>
+            <span class="text-gray-400 text-xs">Estado activo</span>
+            <div class="flex items-center gap-2 mt-1">
+              <button
+                type="button"
+                class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                :class="proposal.is_active ? 'bg-emerald-600' : 'bg-gray-200'"
+                @click="handleToggleActive"
+              >
+                <span
+                  class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                  :class="proposal.is_active ? 'translate-x-4' : 'translate-x-0'"
+                />
+              </button>
+              <span class="text-xs" :class="proposal.is_active ? 'text-emerald-600' : 'text-gray-400'">
+                {{ proposal.is_active ? 'Activa' : 'Inactiva' }}
+              </span>
+            </div>
+          </div>
         </div>
 
         <!-- Editable form -->
@@ -107,10 +126,19 @@
             <input v-model="form.expires_at" type="datetime-local"
               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Días para recordatorio</label>
-            <input v-model.number="form.reminder_days" type="number" min="1" max="30"
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Recordatorio (día)</label>
+              <input v-model.number="form.reminder_days" type="number" min="1" max="30"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              <p class="text-xs text-gray-400 mt-1">Email recordatorio al cliente.</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Urgencia (día)</label>
+              <input v-model.number="form.urgency_reminder_days" type="number" min="1" max="30"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              <p class="text-xs text-gray-400 mt-1">Email de urgencia (con descuento si aplica).</p>
+            </div>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Descuento (%)</label>
@@ -135,6 +163,14 @@
               @click="handleSend"
             >
               Enviar al Cliente
+            </button>
+            <button
+              v-else-if="['sent', 'viewed'].includes(proposal.status) && proposal.client_email"
+              type="button"
+              class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
+              @click="handleResend"
+            >
+              Re-enviar al Cliente
             </button>
             <a :href="'/proposal/' + proposal.uuid" target="_blank"
               class="text-sm text-gray-500 hover:text-emerald-600 transition-colors">
@@ -228,7 +264,8 @@ const form = reactive({
   total_investment: 0,
   currency: 'COP',
   expires_at: '',
-  reminder_days: 5,
+  reminder_days: 10,
+  urgency_reminder_days: 15,
   discount_percent: 20,
 });
 
@@ -247,6 +284,7 @@ onMounted(async () => {
         ? proposal.value.expires_at.slice(0, 16)
         : '',
       reminder_days: proposal.value.reminder_days,
+      urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
       discount_percent: proposal.value.discount_percent ?? 20,
     });
   }
@@ -275,12 +313,32 @@ async function handleUpdate() {
 }
 
 async function handleSend() {
-  if (!confirm('¿Enviar esta propuesta al cliente? Se programará un recordatorio automático.')) return;
+  if (!confirm('¿Enviar esta propuesta al cliente? Se programarán recordatorios automáticos.')) return;
   const result = await proposalStore.sendProposal(proposal.value.id);
   if (result.success) {
     updateMsg.value = { type: 'success', text: 'Propuesta enviada al cliente.' };
   } else {
     updateMsg.value = { type: 'error', text: result.errors?.error || 'Error al enviar.' };
+  }
+}
+
+async function handleResend() {
+  if (!confirm('¿Re-enviar esta propuesta? Se mantendrá la misma fecha de expiración.')) return;
+  const result = await proposalStore.resendProposal(proposal.value.id);
+  if (result.success) {
+    updateMsg.value = { type: 'success', text: 'Propuesta re-enviada al cliente.' };
+  } else {
+    updateMsg.value = { type: 'error', text: result.errors?.error || 'Error al re-enviar.' };
+  }
+}
+
+async function handleToggleActive() {
+  const result = await proposalStore.toggleProposalActive(proposal.value.id);
+  if (result.success) {
+    const label = result.data.is_active ? 'activada' : 'desactivada';
+    updateMsg.value = { type: 'success', text: `Propuesta ${label}.` };
+  } else {
+    updateMsg.value = { type: 'error', text: 'Error al cambiar el estado.' };
   }
 }
 

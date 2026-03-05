@@ -100,17 +100,31 @@
         </div>
 
         <!-- Reminder days -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Días para recordatorio</label>
-          <input
-            v-model.number="form.reminder_days"
-            type="number"
-            min="1"
-            max="30"
-            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-          />
-          <p class="text-xs text-gray-400 mt-1">Después de enviar la propuesta, se enviará un email recordatorio al cliente.</p>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Recordatorio (día)</label>
+            <input
+              v-model.number="form.reminder_days"
+              type="number"
+              min="1"
+              max="30"
+              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            />
+            <p class="text-xs text-gray-400 mt-1">Email recordatorio al cliente.</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Urgencia (día)</label>
+            <input
+              v-model.number="form.urgency_reminder_days"
+              type="number"
+              min="1"
+              max="30"
+              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            />
+            <p class="text-xs text-gray-400 mt-1">Email de urgencia (con descuento si aplica).</p>
+          </div>
         </div>
 
         <!-- Discount -->
@@ -160,8 +174,8 @@ const router = useRouter();
 const proposalStore = useProposalStore();
 const errorMsg = ref('');
 
-// Default expires_at: 7 days from now
-const defaultExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+// Default expires_at: 20 days from now
+const defaultExpiry = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000);
 const pad = (n) => String(n).padStart(2, '0');
 const defaultExpiryStr = `${defaultExpiry.getFullYear()}-${pad(defaultExpiry.getMonth() + 1)}-${pad(defaultExpiry.getDate())}T${pad(defaultExpiry.getHours())}:${pad(defaultExpiry.getMinutes())}`;
 
@@ -173,7 +187,8 @@ const form = reactive({
   total_investment: 0,
   currency: 'COP',
   expires_at: defaultExpiryStr,
-  reminder_days: 5,
+  reminder_days: 10,
+  urgency_reminder_days: 15,
   discount_percent: 20,
 });
 

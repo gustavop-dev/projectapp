@@ -9,6 +9,7 @@ from content.views.proposal import (
     retrieve_public_proposal, download_proposal_pdf,
     list_proposals, retrieve_proposal, create_proposal,
     update_proposal, delete_proposal, send_proposal,
+    resend_proposal, toggle_proposal_active,
     update_proposal_section, bulk_reorder_sections,
     respond_to_proposal, check_admin_auth,
 )
@@ -42,6 +43,8 @@ urlpatterns = [
     path('proposals/<int:proposal_id>/update/', update_proposal, name='update-proposal'),
     path('proposals/<int:proposal_id>/delete/', delete_proposal, name='delete-proposal'),
     path('proposals/<int:proposal_id>/send/', send_proposal, name='send-proposal'),
+    path('proposals/<int:proposal_id>/resend/', resend_proposal, name='resend-proposal'),
+    path('proposals/<int:proposal_id>/toggle-active/', toggle_proposal_active, name='toggle-proposal-active'),
     path('proposals/<int:proposal_id>/reorder-sections/', bulk_reorder_sections, name='reorder-sections'),
 
     # Proposals — section editing

@@ -95,9 +95,10 @@ class ProposalEmailService:
     @classmethod
     def send_urgency_email(cls, proposal):
         """
-        Send an urgency email with discount offer 2 days before expiry.
+        Send an urgency/reminder email at day 15.
 
-        Only sends if proposal.discount_percent > 0.
+        If proposal.discount_percent > 0, sends the discount-focused template.
+        Otherwise, sends a simpler reminder without discount info.
 
         Args:
             proposal: BusinessProposal instance with client_email set.
@@ -108,12 +109,9 @@ class ProposalEmailService:
         if not proposal.client_email:
             return False
 
-        if not proposal.discount_percent or proposal.discount_percent <= 0:
-            return False
-
-        from decimal import Decimal
-        discount_factor = Decimal(100 - proposal.discount_percent) / Decimal(100)
-        discounted = proposal.total_investment * discount_factor
+        has_discount = (
+            proposal.discount_percent and proposal.discount_percent > 0
+        )
 
         context = {
             'client_name': proposal.client_name,
@@ -121,24 +119,37 @@ class ProposalEmailService:
             'days_remaining': proposal.days_remaining,
             'expires_at': proposal.expires_at,
             'total_investment': proposal.total_investment,
-            'discounted_investment': discounted,
-            'discount_percent': proposal.discount_percent,
             'currency': proposal.currency,
             'title': proposal.title,
         }
 
-        try:
-            html_content = render_to_string(
-                'emails/proposal_urgency.html', context
+        if has_discount:
+            from decimal import Decimal
+            discount_factor = (
+                Decimal(100 - proposal.discount_percent) / Decimal(100)
             )
-            text_content = render_to_string(
-                'emails/proposal_urgency.txt', context
-            )
-
+            discounted = proposal.total_investment * discount_factor
+            context.update({
+                'discounted_investment': discounted,
+                'discount_percent': proposal.discount_percent,
+            })
+            html_template = 'emails/proposal_urgency.html'
+            txt_template = 'emails/proposal_urgency.txt'
             subject = (
                 f'🔥 {proposal.client_name}, tu propuesta expira pronto — '
                 f'{proposal.discount_percent}% de descuento si accedes hoy'
             )
+        else:
+            html_template = 'emails/proposal_urgency_no_discount.html'
+            txt_template = 'emails/proposal_urgency_no_discount.txt'
+            subject = (
+                f'⏰ {proposal.client_name}, tu propuesta expira pronto — '
+                f'Project App'
+            )
+
+        try:
+            html_content = render_to_string(html_template, context)
+            text_content = render_to_string(txt_template, context)
 
             email = EmailMultiAlternatives(
                 subject=subject,
@@ -153,8 +164,8 @@ class ProposalEmailService:
             proposal.save(update_fields=['urgency_email_sent_at'])
 
             logger.info(
-                'Sent urgency email for proposal %s to %s',
-                proposal.uuid, proposal.client_email,
+                'Sent urgency email for proposal %s to %s (discount=%s)',
+                proposal.uuid, proposal.client_email, has_discount,
             )
             return True
 

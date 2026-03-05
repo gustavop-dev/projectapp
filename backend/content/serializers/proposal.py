@@ -63,6 +63,7 @@ class ProposalListSerializer(serializers.ModelSerializer):
             'id', 'uuid', 'title', 'client_name', 'status',
             'total_investment', 'currency', 'expires_at',
             'view_count', 'created_at', 'days_remaining', 'is_expired',
+            'is_active',
         )
 
     def get_days_remaining(self, obj):
@@ -90,8 +91,9 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'uuid', 'title', 'client_name', 'client_email', 'slug',
             'language', 'total_investment', 'currency', 'status', 'expires_at',
-            'reminder_days', 'discount_percent', 'reminder_sent_at', 'view_count',
-            'first_viewed_at', 'sent_at', 'created_at', 'updated_at',
+            'reminder_days', 'urgency_reminder_days', 'discount_percent',
+            'is_active', 'reminder_sent_at', 'urgency_email_sent_at',
+            'view_count', 'first_viewed_at', 'sent_at', 'created_at', 'updated_at',
             'sections', 'requirement_groups',
             'days_remaining', 'is_expired', 'public_url',
         )
@@ -128,7 +130,8 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
         fields = (
             'title', 'client_name', 'client_email', 'slug',
             'language', 'total_investment', 'currency', 'status',
-            'expires_at', 'reminder_days', 'discount_percent',
+            'expires_at', 'reminder_days', 'urgency_reminder_days',
+            'discount_percent', 'is_active',
         )
 
     def validate_expires_at(self, value):

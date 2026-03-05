@@ -107,13 +107,30 @@ class TestSendUrgencyEmail:
 
         assert result is False
 
-    def test_returns_false_when_no_discount(self, email_proposal):
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_no_discount_template_when_discount_is_zero(
+        self, mock_render, mock_email_cls, email_proposal,
+    ):
+        """When discount_percent is 0, urgency email still sends but uses no-discount template."""
         email_proposal.discount_percent = 0
         email_proposal.save()
+        mock_render.return_value = '<html>No discount urgency</html>'
+        mock_email_instance = MagicMock()
+        mock_email_cls.return_value = mock_email_instance
 
         result = ProposalEmailService.send_urgency_email(email_proposal)
 
-        assert result is False
+        assert result is True
+        mock_email_instance.send.assert_called_once_with(fail_silently=False)
+        # Verify it uses the no-discount template
+        template_calls = [c[0][0] for c in mock_render.call_args_list]
+        assert 'emails/proposal_urgency_no_discount.html' in template_calls
+        assert 'emails/proposal_urgency_no_discount.txt' in template_calls
+        # Subject should NOT contain discount percentage
+        call_kwargs = mock_email_cls.call_args[1]
+        assert '20%' not in call_kwargs['subject']
+        assert 'expira pronto' in call_kwargs['subject']
 
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
     @patch('content.services.proposal_email_service.render_to_string')

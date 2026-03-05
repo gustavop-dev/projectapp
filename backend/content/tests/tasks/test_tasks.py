@@ -1,4 +1,4 @@
-"""Tests for Huey tasks: send_proposal_reminder, send_urgency_emails, expire_stale_proposals.
+"""Tests for Huey tasks: send_proposal_reminder, send_urgency_reminder, expire_stale_proposals.
 
 Covers: happy paths, skip conditions, edge cases.
 """
@@ -104,75 +104,102 @@ class TestSendProposalReminderTask:
         assert mock_send.call_count == 0
 
 
-class TestSendUrgencyEmailsTask:
-    @freeze_time('2026-03-04 10:00:00')
+class TestSendUrgencyReminderTask:
     @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email',
            return_value=True)
-    def test_sends_urgency_for_proposals_expiring_in_2_days(self, mock_send):
-        BusinessProposal.objects.create(
-            title='Expiring Soon',
+    def test_sends_urgency_for_sent_proposal(self, mock_send):
+        """One-shot urgency task sends email for a sent proposal."""
+        proposal = BusinessProposal.objects.create(
+            title='Urgency Test',
             client_name='Client',
             client_email='client@test.com',
             status='sent',
-            expires_at=timezone.now() + timezone.timedelta(days=1),
-            discount_percent=20,
         )
 
         import content.tasks as tasks_module
-        tasks_module.send_urgency_emails.call_local()
+        tasks_module.send_urgency_reminder.call_local(proposal.id)
 
         assert mock_send.call_count == 1
 
-    @freeze_time('2026-03-04 10:00:00')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email',
+           return_value=True)
+    def test_sends_urgency_for_viewed_proposal(self, mock_send):
+        """One-shot urgency task sends email for a viewed proposal."""
+        proposal = BusinessProposal.objects.create(
+            title='Viewed Urgency',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_urgency_reminder.call_local(proposal.id)
+
+        assert mock_send.call_count == 1
+
+    def test_skips_when_proposal_not_found(self):
+        """Task should not raise when proposal ID does not exist."""
+        import content.tasks as tasks_module
+        result = tasks_module.send_urgency_reminder.call_local(99999)
+        assert result is None
+
+    def test_skips_when_status_is_draft(self):
+        """Urgency task should skip draft proposals."""
+        proposal = BusinessProposal.objects.create(
+            title='Draft Urgency',
+            client_name='Client',
+            client_email='client@test.com',
+            status='draft',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_urgency_reminder.call_local(proposal.id)
+        proposal.refresh_from_db()
+        assert proposal.urgency_email_sent_at is None
+
+    def test_skips_when_no_client_email(self):
+        """Urgency task should skip proposals without client_email."""
+        proposal = BusinessProposal.objects.create(
+            title='No Email Urgency',
+            client_name='Client',
+            client_email='',
+            status='sent',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_urgency_reminder.call_local(proposal.id)
+        proposal.refresh_from_db()
+        assert proposal.urgency_email_sent_at is None
+
+    @freeze_time('2026-03-01 12:00:00')
     @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email')
-    def test_skips_proposals_already_sent_urgency(self, mock_send):
-        """Verify proposals with urgency_email_sent_at set are not re-sent."""
-        BusinessProposal.objects.create(
-            title='Already Urgent',
+    def test_skips_when_urgency_already_sent(self, mock_send):
+        """Urgency task should skip if urgency_email_sent_at is already set."""
+        proposal = BusinessProposal.objects.create(
+            title='Already Sent Urgency',
             client_name='Client',
             client_email='client@test.com',
             status='sent',
-            expires_at=timezone.now() + timezone.timedelta(days=1),
-            discount_percent=20,
             urgency_email_sent_at=timezone.now(),
         )
 
         import content.tasks as tasks_module
-        tasks_module.send_urgency_emails.call_local()
+        tasks_module.send_urgency_reminder.call_local(proposal.id)
 
         assert mock_send.call_count == 0
 
-    @freeze_time('2026-03-04 10:00:00')
     @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email')
-    def test_skips_proposals_expiring_far_in_future(self, mock_send):
-        BusinessProposal.objects.create(
-            title='Far Future',
+    def test_skips_when_status_is_accepted(self, mock_send):
+        """Urgency task should skip accepted proposals."""
+        proposal = BusinessProposal.objects.create(
+            title='Accepted Urgency',
             client_name='Client',
             client_email='client@test.com',
-            status='sent',
-            expires_at=timezone.now() + timezone.timedelta(days=30),
-            discount_percent=20,
+            status='accepted',
         )
 
         import content.tasks as tasks_module
-        tasks_module.send_urgency_emails.call_local()
-
-        assert mock_send.call_count == 0
-
-    @freeze_time('2026-03-04 10:00:00')
-    @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email')
-    def test_skips_expired_proposals(self, mock_send):
-        BusinessProposal.objects.create(
-            title='Already Expired',
-            client_name='Client',
-            client_email='client@test.com',
-            status='sent',
-            expires_at=timezone.now() - timezone.timedelta(days=1),
-            discount_percent=20,
-        )
-
-        import content.tasks as tasks_module
-        tasks_module.send_urgency_emails.call_local()
+        tasks_module.send_urgency_reminder.call_local(proposal.id)
 
         assert mock_send.call_count == 0
 
@@ -237,3 +264,20 @@ class TestExpireStaleProposalsTask:
         tasks_module.expire_stale_proposals.call_local()
 
         assert BusinessProposal.objects.filter(status='expired').count() == 3
+
+    @freeze_time('2026-03-10 10:00:00')
+    def test_does_not_expire_inactive_proposals(self):
+        """Inactive proposals should not be auto-expired."""
+        proposal = BusinessProposal.objects.create(
+            title='Inactive Expired',
+            client_name='Client',
+            status='sent',
+            is_active=False,
+            expires_at=timezone.now() - timezone.timedelta(days=1),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.expire_stale_proposals.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.status == 'sent'

@@ -212,6 +212,54 @@ export const useProposalStore = defineStore('proposals', {
     },
 
     /**
+     * resendProposal: Re-send a proposal keeping existing expires_at.
+     * @param {number} id - Proposal ID.
+     */
+    async resendProposal(id) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(`proposals/${id}/resend/`, {});
+        this.currentProposal = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'resend_failed';
+        console.error('Error resending proposal:', error);
+        return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * toggleProposalActive: Toggle a proposal's is_active flag.
+     * @param {number} id - Proposal ID.
+     */
+    async toggleProposalActive(id) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(`proposals/${id}/toggle-active/`, {});
+        if (this.currentProposal?.id === id) {
+          this.currentProposal = response.data;
+        }
+        const idx = this.proposals.findIndex((p) => p.id === id);
+        if (idx !== -1) {
+          this.proposals[idx].is_active = response.data.is_active;
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'toggle_active_failed';
+        console.error('Error toggling proposal active:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
      * updateSection: Update a proposal section's content.
      * @param {number} sectionId - Section ID.
      * @param {object} payload - Fields to update (content_json, title, etc.).

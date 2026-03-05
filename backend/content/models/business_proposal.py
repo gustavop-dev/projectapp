@@ -57,8 +57,10 @@ class BusinessProposal(models.Model):
         max_length=10, choices=Status.choices, default=Status.DRAFT
     )
     expires_at = models.DateTimeField(null=True, blank=True)
-    reminder_days = models.PositiveIntegerField(default=5)
+    reminder_days = models.PositiveIntegerField(default=10)
+    urgency_reminder_days = models.PositiveIntegerField(default=15)
     discount_percent = models.PositiveIntegerField(default=20)
+    is_active = models.BooleanField(default=True)
     reminder_sent_at = models.DateTimeField(null=True, blank=True)
     urgency_email_sent_at = models.DateTimeField(null=True, blank=True)
 

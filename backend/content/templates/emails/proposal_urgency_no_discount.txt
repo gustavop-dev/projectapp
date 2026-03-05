@@ -1,0 +1,15 @@
+{{ client_name }}, tu propuesta expira pronto.
+
+{{ title }}
+
+No queremos que pierdas esta oportunidad de transformar tu presencia digital.
+
+{% if total_investment %}Inversión: ${{ total_investment }} {{ currency }}{% endif %}
+
+{% if days_remaining is not None %}Tu propuesta expira en {{ days_remaining }} día{{ days_remaining|pluralize:"s" }}.{% endif %}
+
+Ver propuesta: {{ proposal_url }}
+
+¿Dudas? Escríbenos a team@projectapp.co o WhatsApp +57 323 812 2373
+
+— El equipo de ProjectApp.co

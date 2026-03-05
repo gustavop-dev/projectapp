@@ -1049,10 +1049,11 @@ class ProposalService:
     @staticmethod
     def send_proposal(proposal):
         """
-        Mark proposal as sent and schedule the Huey reminder task.
+        Mark proposal as sent and schedule the Huey reminder tasks.
 
-        Sets status=SENT, sent_at=now(), and schedules the reminder email
-        for reminder_days days later.
+        Sets status=SENT, sent_at=now(), auto-sets expires_at to 20 days
+        if not already set, and schedules reminder (day 10) and urgency
+        (day 15) emails.
 
         Args:
             proposal: BusinessProposal instance.
@@ -1063,26 +1064,89 @@ class ProposalService:
         if not proposal.client_email:
             raise ValueError('Client email is required to send a proposal.')
 
+        now = timezone.now()
         proposal.status = 'sent'
-        proposal.sent_at = timezone.now()
-        proposal.save(update_fields=['status', 'sent_at'])
+        proposal.sent_at = now
+        update_fields = ['status', 'sent_at']
 
-        # Schedule the reminder email via Huey
+        if not proposal.expires_at:
+            proposal.expires_at = now + timedelta(days=20)
+            update_fields.append('expires_at')
+
+        proposal.save(update_fields=update_fields)
+
+        ProposalService._schedule_email_tasks(proposal)
+
+    @staticmethod
+    def resend_proposal(proposal):
+        """
+        Re-send a proposal keeping the existing expires_at.
+
+        Resets sent_at, status, reminder_sent_at, urgency_email_sent_at
+        and re-schedules email tasks based on remaining time.
+
+        Args:
+            proposal: BusinessProposal instance.
+
+        Raises:
+            ValueError: If client_email is not set.
+        """
+        if not proposal.client_email:
+            raise ValueError('Client email is required to send a proposal.')
+
+        now = timezone.now()
+        proposal.status = 'sent'
+        proposal.sent_at = now
+        proposal.reminder_sent_at = None
+        proposal.urgency_email_sent_at = None
+        proposal.save(update_fields=[
+            'status', 'sent_at', 'reminder_sent_at', 'urgency_email_sent_at',
+        ])
+
+        ProposalService._schedule_email_tasks(proposal)
+
+    @staticmethod
+    def _schedule_email_tasks(proposal):
+        """
+        Schedule reminder (day N) and urgency (day M) Huey tasks.
+
+        Skips scheduling if the target day has already passed or if
+        it would fire after the proposal's expiration date.
+        """
         try:
-            from content.tasks import send_proposal_reminder
-            delay_seconds = int(
-                timedelta(days=proposal.reminder_days).total_seconds()
+            from content.tasks import send_proposal_reminder, send_urgency_reminder
+
+            now = timezone.now()
+            expires = proposal.expires_at
+
+            # Schedule reminder at reminder_days (default 10)
+            reminder_target = proposal.sent_at + timedelta(days=proposal.reminder_days)
+            if reminder_target > now and (not expires or reminder_target < expires):
+                delay_seconds = int((reminder_target - now).total_seconds())
+                send_proposal_reminder.schedule(
+                    args=(proposal.id,), delay=delay_seconds
+                )
+                logger.info(
+                    'Scheduled reminder for proposal %s in %d days',
+                    proposal.uuid, proposal.reminder_days,
+                )
+
+            # Schedule urgency at urgency_reminder_days (default 15)
+            urgency_target = proposal.sent_at + timedelta(
+                days=proposal.urgency_reminder_days
             )
-            send_proposal_reminder.schedule(
-                args=(proposal.id,), delay=delay_seconds
-            )
-            logger.info(
-                'Scheduled reminder for proposal %s in %d days',
-                proposal.uuid, proposal.reminder_days,
-            )
+            if urgency_target > now and (not expires or urgency_target < expires):
+                delay_seconds = int((urgency_target - now).total_seconds())
+                send_urgency_reminder.schedule(
+                    args=(proposal.id,), delay=delay_seconds
+                )
+                logger.info(
+                    'Scheduled urgency reminder for proposal %s in %d days',
+                    proposal.uuid, proposal.urgency_reminder_days,
+                )
         except Exception:
             logger.exception(
-                'Failed to schedule reminder for proposal %s', proposal.uuid
+                'Failed to schedule email tasks for proposal %s', proposal.uuid
             )
 
     @staticmethod

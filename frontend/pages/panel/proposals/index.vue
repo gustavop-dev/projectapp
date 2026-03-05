@@ -60,7 +60,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-50">
-          <tr v-for="(p, rowIdx) in proposals" :key="p.id" class="hover:bg-gray-50 transition-colors">
+          <tr v-for="(p, rowIdx) in proposals" :key="p.id" class="transition-colors" :class="p.is_active ? 'hover:bg-gray-50' : 'bg-gray-50 opacity-60'">
             <td class="px-6 py-4">
               <NuxtLink
                 :to="`/panel/proposals/${p.id}/edit`"
@@ -117,6 +117,20 @@
                   >
                     Enviar
                   </button>
+                  <button
+                    v-if="['sent', 'viewed'].includes(p.status)"
+                    class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
+                    @click="handleResend(p.id)"
+                  >
+                    Re-enviar
+                  </button>
+                  <button
+                    class="block w-full text-left px-4 py-2 text-sm transition-colors"
+                    :class="p.is_active ? 'text-yellow-600 hover:bg-yellow-50' : 'text-emerald-600 hover:bg-emerald-50'"
+                    @click="handleToggleActive(p.id, p.is_active)"
+                  >
+                    {{ p.is_active ? 'Desactivar' : 'Activar' }}
+                  </button>
                   <a
                     :href="'/proposal/' + p.uuid"
                     target="_blank"
@@ -170,6 +184,7 @@ const statusOptions = [
   { value: 'sent', label: 'Enviadas' },
   { value: 'viewed', label: 'Vistas' },
   { value: 'accepted', label: 'Aceptadas' },
+  { value: 'rejected', label: 'Rechazadas' },
   { value: 'expired', label: 'Expiradas' },
 ];
 
@@ -187,6 +202,18 @@ async function handleSend(id) {
   if (!confirm('¿Enviar esta propuesta al cliente?')) return;
   await proposalStore.sendProposal(id);
   proposalStore.fetchProposals(activeFilter.value || undefined);
+}
+
+async function handleResend(id) {
+  if (!confirm('¿Re-enviar esta propuesta? Se mantendrá la misma fecha de expiración.')) return;
+  await proposalStore.resendProposal(id);
+  proposalStore.fetchProposals(activeFilter.value || undefined);
+}
+
+async function handleToggleActive(id, currentlyActive) {
+  const label = currentlyActive ? 'desactivar' : 'activar';
+  if (!confirm(`¿${label.charAt(0).toUpperCase() + label.slice(1)} esta propuesta?`)) return;
+  await proposalStore.toggleProposalActive(id);
 }
 
 async function handleDelete(id) {
