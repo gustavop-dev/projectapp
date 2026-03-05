@@ -12,7 +12,7 @@
         </div>
 
         <div class="grid lg:grid-cols-12 gap-10 items-start">
-          <div class="lg:col-span-8 space-y-6">
+          <div data-animate="fade-up" class="lg:col-span-8 space-y-6">
             <p
               v-for="(paragraph, idx) in content.paragraphs"
               :key="idx"
@@ -28,7 +28,7 @@
             </div>
           </div>
 
-          <aside v-if="content.includes?.length" class="lg:col-span-4">
+          <aside v-if="content.includes?.length" data-animate="scale-in" class="lg:col-span-4">
             <div class="rounded-3xl bg-esmerald-light/60 p-6 md:p-8">
               <h3 class="text-esmerald font-light text-base md:text-lg tracking-wide mb-5">
                 {{ content.includesTitle }}

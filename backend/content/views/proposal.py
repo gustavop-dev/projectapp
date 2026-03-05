@@ -67,9 +67,7 @@ def retrieve_public_proposal(request, proposal_uuid):
 @permission_classes([AllowAny])
 def download_proposal_pdf(request, proposal_uuid):
     """
-    Download a pre-generated PDF of the proposal.
-
-    v1: Returns 501 Not Implemented. PDF generation planned for a future phase.
+    Generate and download a PDF of the proposal using Playwright headless.
     """
     proposal = get_object_or_404(BusinessProposal, uuid=proposal_uuid)
 
@@ -79,10 +77,20 @@ def download_proposal_pdf(request, proposal_uuid):
             status=status.HTTP_410_GONE,
         )
 
-    return Response(
-        {'error': 'PDF generation is not yet available.'},
-        status=status.HTTP_501_NOT_IMPLEMENTED,
-    )
+    from content.services.proposal_pdf_service import ProposalPdfService
+    pdf_bytes = ProposalPdfService.generate(proposal)
+
+    if not pdf_bytes:
+        return Response(
+            {'error': 'PDF generation failed. Please try again later.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    from django.http import HttpResponse
+    filename = f'Propuesta_{proposal.client_name}.pdf'
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
 
 # ---------------------------------------------------------------------------

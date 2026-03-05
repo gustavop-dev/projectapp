@@ -13,11 +13,11 @@
 
         <div class="grid lg:grid-cols-12 gap-10 items-start">
           <div class="lg:col-span-8 space-y-8">
-            <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl">
+            <p data-animate="fade-up" class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl">
               {{ content.intro }}
             </p>
 
-            <div class="grid md:grid-cols-2 gap-6">
+            <div data-animate="fade-up-stagger" class="grid md:grid-cols-2 gap-6">
               <div
                 v-for="(step, idx) in content.steps"
                 :key="idx"
@@ -44,7 +44,7 @@
             </div>
           </div>
 
-          <aside v-if="content.result" class="lg:col-span-4">
+          <aside v-if="content.result" data-animate="scale-in" class="lg:col-span-4">
             <div class="rounded-3xl bg-esmerald-light/60 p-6 md:p-8">
               <h3 class="text-esmerald font-light text-base md:text-lg tracking-wide mb-4">
                 {{ content.resultTitle }}

@@ -30,7 +30,7 @@
       <ExpirationBadge v-if="proposal.expires_at" :expiresAt="proposal.expires_at" />
 
       <!-- PDF download -->
-      <PdfDownloadButton :clientName="proposal.client_name" :scrollContainer="scrollContainer" />
+      <PdfDownloadButton />
 
       <!-- Horizontal scroll container -->
       <div ref="scrollContainer" class="scroll-container">
@@ -187,6 +187,8 @@ let isHorizontalLocked = false;
 let lockedHorizontalScrollPos = null;
 let lastIntentDeltaY = 0;
 const HORIZONTAL_SCRUB_DURATION = 1;
+const LOCK_DWELL_MS = 250;
+let lockDelayTimer = null;
 let touchStartY = 0;
 
 // --- Fetch proposal on mount ---
@@ -399,6 +401,7 @@ const setHorizontalScrubDuration = (duration) => {
 };
 
 const killPanelVerticalScrollTriggers = () => {
+  if (lockDelayTimer) { clearTimeout(lockDelayTimer); lockDelayTimer = null; }
   panelVerticalScrollTriggers.forEach((t) => t.kill());
   panelVerticalScrollTriggers = [];
   activeScrollablePanel = null;
@@ -427,13 +430,24 @@ const initPanelVerticalScroll = (containerTween) => {
       panel.classList.toggle('panel--vertical-scroll', Boolean(isActive && isScrollable));
 
       if (isActive && isScrollable) {
-        activeScrollablePanel = panel;
-        lockHorizontalToPanel(panel);
-        setHorizontalScrubDuration(0);
-        lockedHorizontalScrollPos = horizontalScrollTrigger?.scroll?.() ?? null;
-        isHorizontalLocked = true;
+        if (lockDelayTimer) clearTimeout(lockDelayTimer);
+        lockDelayTimer = setTimeout(() => {
+          lockDelayTimer = null;
+          activeScrollablePanel = panel;
+          lockHorizontalToPanel(panel);
+          setHorizontalScrubDuration(0);
+          lockedHorizontalScrollPos = horizontalScrollTrigger?.scroll?.() ?? null;
+          isHorizontalLocked = true;
+        }, LOCK_DWELL_MS);
         return;
       }
+
+      if (lockDelayTimer) {
+        clearTimeout(lockDelayTimer);
+        lockDelayTimer = null;
+      }
+
+      panel.classList.remove('panel--vertical-scroll');
 
       if (activeScrollablePanel === panel) {
         activeScrollablePanel = null;

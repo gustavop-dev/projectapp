@@ -227,7 +227,8 @@ class ProposalEmailService:
     def send_acceptance_confirmation(cls, proposal):
         """
         Send acceptance confirmation email to the client with a link
-        to view/download their proposal.
+        to view/download their proposal. Attaches a PDF of the proposal
+        when generation succeeds.
         """
         if not proposal.client_email:
             return False
@@ -260,6 +261,28 @@ class ProposalEmailService:
                 to=[proposal.client_email],
             )
             email.attach_alternative(html_content, 'text/html')
+
+            # Attach proposal PDF if generation succeeds
+            try:
+                from content.services.proposal_pdf_service import (
+                    ProposalPdfService,
+                )
+                pdf_bytes = ProposalPdfService.generate(proposal)
+                if pdf_bytes:
+                    filename = f'Propuesta_{proposal.client_name}.pdf'
+                    email.attach(filename, pdf_bytes, 'application/pdf')
+                    logger.info(
+                        'Attached PDF (%d bytes) to acceptance email for %s',
+                        len(pdf_bytes), proposal.uuid,
+                    )
+            except Exception:
+                logger.warning(
+                    'PDF generation failed for proposal %s, '
+                    'sending email without attachment',
+                    proposal.uuid,
+                    exc_info=True,
+                )
+
             email.send(fail_silently=False)
 
             logger.info(

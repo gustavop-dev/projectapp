@@ -87,12 +87,32 @@ class TestRetrievePublicProposal:
 
 
 class TestDownloadProposalPdf:
-    def test_returns_501_not_implemented(self, api_client, sent_proposal):
+    """Tests for the download_proposal_pdf endpoint."""
+
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate')
+    def test_returns_pdf_when_generation_succeeds(
+        self, mock_generate, api_client, sent_proposal,
+    ):
+        """Verify a successful PDF generation returns 200 with PDF content."""
+        mock_generate.return_value = b'%PDF-fake-content'
         url = reverse('download-proposal-pdf', kwargs={'proposal_uuid': sent_proposal.uuid})
         response = api_client.get(url)
-        assert response.status_code == 501
+        assert response.status_code == 200
+        assert response['Content-Type'] == 'application/pdf'
+        assert b'%PDF-fake-content' in response.content
+
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate')
+    def test_returns_500_when_generation_fails(
+        self, mock_generate, api_client, sent_proposal,
+    ):
+        """Verify a failed PDF generation returns 500."""
+        mock_generate.return_value = None
+        url = reverse('download-proposal-pdf', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.get(url)
+        assert response.status_code == 500
 
     def test_returns_410_for_expired_proposal(self, api_client, expired_proposal):
+        """Verify expired proposals return 410 Gone."""
         url = reverse('download-proposal-pdf', kwargs={'proposal_uuid': expired_proposal.uuid})
         response = api_client.get(url)
         assert response.status_code == 410

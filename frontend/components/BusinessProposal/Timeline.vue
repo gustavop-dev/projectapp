@@ -13,10 +13,10 @@
       </div>
 
       <div class="timeline-intro mb-12">
-        <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl mb-6">
+        <p data-animate="fade-up" class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl mb-6">
           {{ introText }}
         </p>
-        <div class="duration-summary bg-white p-6 rounded-xl shadow-sm inline-block">
+        <div data-animate="scale-in" class="duration-summary bg-white p-6 rounded-xl shadow-sm inline-block">
           <div class="flex items-center">
             <svg class="w-8 h-8 text-emerald-600 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
@@ -32,7 +32,7 @@
       <div class="timeline-container relative">
         <div class="absolute left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-600 via-emerald-400 to-emerald-200 hidden md:block"></div>
         
-        <div class="space-y-8">
+        <div data-animate="fade-up-stagger" class="space-y-8">
           <div v-for="(phase, index) in phases" :key="index"
                class="timeline-item relative">
             <div class="flex items-start">

@@ -10,7 +10,7 @@
         </h2>
       </div>
 
-      <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl mb-12">
+      <p data-animate="fade-up" class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl mb-12">
         Nuestro proceso está diseñado para ofrecer claridad, confianza y acompañamiento en cada fase 🧭:
       </p>
 

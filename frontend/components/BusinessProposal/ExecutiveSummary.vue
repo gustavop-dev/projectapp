@@ -12,7 +12,7 @@
         </div>
 
         <div class="grid lg:grid-cols-12 gap-10 items-start">
-          <div class="lg:col-span-8 space-y-6">
+          <div data-animate="fade-up" class="lg:col-span-8 space-y-6">
             <p
               v-for="(paragraph, idx) in content.paragraphs"
               :key="idx"

@@ -12,14 +12,14 @@
         </div>
       </div>
 
-      <div class="intro-message mb-12 text-center">
+      <div data-animate="fade-up" class="intro-message mb-12 text-center">
         <p class="text-2xl text-gray-700 leading-relaxed font-light">
           {{ introMessage }}
         </p>
       </div>
 
       <div class="steps-container mb-12">
-        <div class="grid md:grid-cols-3 gap-8">
+        <div data-animate="fade-up-stagger" class="grid md:grid-cols-3 gap-8">
           <div v-for="(step, index) in steps" :key="index"
                class="step-card bg-gradient-to-br from-emerald-50 to-white p-8 rounded-2xl border-2 border-emerald-100 hover:border-emerald-500 transition-all text-center">
             <div class="step-number w-16 h-16 bg-emerald-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-lg">
@@ -31,7 +31,7 @@
         </div>
       </div>
 
-      <div class="cta-section bg-gradient-to-br from-emerald-600 to-emerald-700 p-8 md:p-12 rounded-3xl text-white text-center mb-12 shadow-2xl">
+      <div data-animate="scale-in" class="cta-section bg-gradient-to-br from-emerald-600 to-emerald-700 p-8 md:p-12 rounded-3xl text-white text-center mb-12 shadow-2xl">
         <h3 class="text-3xl md:text-4xl font-bold mb-4">¿Listo para Comenzar?</h3>
         <p class="text-xl text-emerald-100 mb-8 max-w-2xl mx-auto">
           {{ ctaMessage }}
@@ -56,7 +56,7 @@
         </div>
       </div>
 
-      <div class="contact-info grid md:grid-cols-3 gap-6 mb-12">
+      <div data-animate="fade-up-stagger" class="contact-info grid md:grid-cols-3 gap-6 mb-12">
         <div v-for="(contact, index) in contactMethods" :key="index"
              class="contact-card bg-gray-50 p-6 rounded-xl text-center hover:bg-emerald-50 transition-colors">
           <div class="text-4xl mb-3">{{ contact.icon }}</div>
@@ -67,24 +67,6 @@
         </div>
       </div>
 
-      <div class="validity-notice bg-yellow-50 border-2 border-yellow-200 p-6 rounded-xl">
-        <div class="flex items-start">
-          <svg class="w-6 h-6 text-yellow-600 mr-3 flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-          </svg>
-          <div>
-            <h4 class="font-bold text-gray-900 mb-1">Validez de la Propuesta</h4>
-            <p class="text-sm text-gray-600">{{ validityMessage }}</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="thank-you-message mt-12 text-center">
-        <h3 class="text-3xl font-bold text-gray-900 mb-4">¡Gracias por tu Tiempo!</h3>
-        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
-          {{ thankYouMessage }}
-        </p>
-      </div>
     </div>
   </section>
 </template>
@@ -167,14 +149,6 @@ const props = defineProps({
       }
     ]
   },
-  validityMessage: {
-    type: String,
-    default: 'Esta propuesta es válida por 30 días a partir de la fecha de emisión. Los precios y condiciones pueden estar sujetos a cambios después de este período.'
-  },
-  thankYouMessage: {
-    type: String,
-    default: 'Apreciamos sinceramente la oportunidad de presentarte esta propuesta. Esperamos con entusiasmo la posibilidad de trabajar contigo y ayudarte a alcanzar tus objetivos.'
-  }
 });
 </script>
 
