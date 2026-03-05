@@ -636,6 +636,22 @@ function formToReadableText() {
     if (form.includesTitle) parts.push(`\n${form.includesTitle}`);
     if (form.includes) parts.push(bullet(form.includes));
     if (form.closing) parts.push(`\n${form.closing}`);
+  } else if (type === 'functional_requirements') {
+    if (form.intro) parts.push(form.intro);
+    for (const g of (form.groups || [])) {
+      parts.push(`\n## ${g.icon || ''} ${g.title}`);
+      if (g.description) parts.push(g.description);
+      for (const item of (g.items || [])) {
+        parts.push(`- ${item.icon || ''} **${item.name}**: ${item.description || ''}`);
+      }
+    }
+    for (const m of (form.additionalModules || [])) {
+      parts.push(`\n## ${m.icon || ''} ${m.title}`);
+      if (m.description) parts.push(m.description);
+      for (const item of (m.items || [])) {
+        parts.push(`- ${item.icon || ''} **${item.name}**: ${item.description || ''}`);
+      }
+    }
   } else if (type === 'development_stages') {
     for (const s of (form.stages || [])) {
       parts.push(`${s.icon || ''} ${s.title}${s.current ? ' (actual)' : ''}`);

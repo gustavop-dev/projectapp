@@ -82,16 +82,33 @@ async function generatePdf() {
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
 
+      const origStyles = {
+        overflow: panel.style.overflow,
+        overflowY: panel.style.overflowY,
+        height: panel.style.height,
+        maxHeight: panel.style.maxHeight,
+        position: panel.style.position,
+      };
+      panel.style.overflow = 'visible';
+      panel.style.overflowY = 'visible';
+      panel.style.height = 'auto';
+      panel.style.maxHeight = 'none';
+
+      const captureW = Math.max(panel.scrollWidth, panel.offsetWidth, 1280);
+      const captureH = Math.max(panel.scrollHeight, panel.offsetHeight, 720);
+
       const canvas = await html2canvas(panel, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        width: panel.scrollWidth,
-        height: panel.scrollHeight,
-        windowWidth: panel.scrollWidth,
-        windowHeight: panel.scrollHeight,
+        width: captureW,
+        height: captureH,
+        windowWidth: captureW,
+        windowHeight: captureH,
       });
+
+      Object.assign(panel.style, origStyles);
 
       const imgData = canvas.toDataURL('image/jpeg', 0.85);
       const imgRatio = canvas.width / canvas.height;

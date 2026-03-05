@@ -285,10 +285,11 @@ export const useProposalStore = defineStore('proposals', {
      * respondToProposal: Client accepts or rejects a proposal.
      * @param {string} uuid - Proposal UUID.
      * @param {string} action - 'accepted' or 'rejected'.
+     * @param {object} extra - Optional { reason, comment } for rejections.
      */
-    async respondToProposal(uuid, action) {
+    async respondToProposal(uuid, action, extra = {}) {
       try {
-        const response = await create_request(`proposals/${uuid}/respond/`, { action });
+        const response = await create_request(`proposals/${uuid}/respond/`, { action, ...extra });
         if (this.currentProposal && this.currentProposal.uuid === uuid) {
           this.currentProposal.status = action;
         }
