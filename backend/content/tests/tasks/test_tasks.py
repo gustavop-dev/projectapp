@@ -30,7 +30,7 @@ class TestSendProposalReminderTask:
         import content.tasks as tasks_module
         tasks_module.send_proposal_reminder.call_local(proposal.id)
 
-        mock_send_reminder.assert_called_once()
+        assert mock_send_reminder.call_count == 1
 
     @patch('content.services.proposal_email_service.ProposalEmailService.send_reminder',
            return_value=True)
@@ -45,11 +45,12 @@ class TestSendProposalReminderTask:
         import content.tasks as tasks_module
         tasks_module.send_proposal_reminder.call_local(proposal.id)
 
-        mock_send_reminder.assert_called_once()
+        assert mock_send_reminder.call_count == 1
 
     def test_skips_when_proposal_not_found(self):
         import content.tasks as tasks_module
-        tasks_module.send_proposal_reminder.call_local(99999)
+        result = tasks_module.send_proposal_reminder.call_local(99999)
+        assert result is None
 
     def test_skips_when_status_is_draft(self):
         proposal = BusinessProposal.objects.create(
@@ -75,7 +76,9 @@ class TestSendProposalReminderTask:
         tasks_module.send_proposal_reminder.call_local(proposal.id)
         assert proposal.reminder_sent_at is None
 
-    def test_skips_when_reminder_already_sent(self):
+    @freeze_time('2026-03-01 12:00:00')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_reminder')
+    def test_skips_when_reminder_already_sent(self, mock_send):
         proposal = BusinessProposal.objects.create(
             title='Already Sent',
             client_name='Client',
@@ -87,7 +90,10 @@ class TestSendProposalReminderTask:
         import content.tasks as tasks_module
         tasks_module.send_proposal_reminder.call_local(proposal.id)
 
-    def test_skips_when_status_is_accepted(self):
+        assert mock_send.call_count == 0
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_reminder')
+    def test_skips_when_status_is_accepted(self, mock_send):
         proposal = BusinessProposal.objects.create(
             title='Accepted',
             client_name='Client',
@@ -97,6 +103,8 @@ class TestSendProposalReminderTask:
 
         import content.tasks as tasks_module
         tasks_module.send_proposal_reminder.call_local(proposal.id)
+
+        assert mock_send.call_count == 0
 
 
 class TestSendUrgencyEmailsTask:
@@ -116,7 +124,7 @@ class TestSendUrgencyEmailsTask:
         import content.tasks as tasks_module
         tasks_module.send_urgency_emails.call_local()
 
-        mock_send.assert_called_once()
+        assert mock_send.call_count == 1
 
     @freeze_time('2026-03-04 10:00:00')
     @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email')
@@ -134,7 +142,7 @@ class TestSendUrgencyEmailsTask:
         import content.tasks as tasks_module
         tasks_module.send_urgency_emails.call_local()
 
-        mock_send.assert_not_called()
+        assert mock_send.call_count == 0
 
     @freeze_time('2026-03-04 10:00:00')
     @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email')
@@ -151,7 +159,7 @@ class TestSendUrgencyEmailsTask:
         import content.tasks as tasks_module
         tasks_module.send_urgency_emails.call_local()
 
-        mock_send.assert_not_called()
+        assert mock_send.call_count == 0
 
     @freeze_time('2026-03-04 10:00:00')
     @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email')
@@ -168,7 +176,7 @@ class TestSendUrgencyEmailsTask:
         import content.tasks as tasks_module
         tasks_module.send_urgency_emails.call_local()
 
-        mock_send.assert_not_called()
+        assert mock_send.call_count == 0
 
 
 class TestExpireStaleProposalsTask:

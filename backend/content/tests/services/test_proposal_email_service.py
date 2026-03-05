@@ -83,6 +83,8 @@ class TestSendReminder:
 
         ProposalEmailService.send_reminder(email_proposal)
 
+        mock_email_cls.assert_called_once()
+        mock_email_instance.send.assert_called_once()
         call_kwargs = mock_email_cls.call_args[1]
         assert 'Email Client' in call_kwargs['subject']
 
@@ -124,6 +126,8 @@ class TestSendUrgencyEmail:
 
         ProposalEmailService.send_urgency_email(email_proposal)
 
+        mock_email_cls.assert_called_once()
+        mock_email_instance.send.assert_called_once()
         call_kwargs = mock_email_cls.call_args[1]
         assert '20%' in call_kwargs['subject']
 
@@ -159,6 +163,8 @@ class TestSendResponseNotification:
         result = ProposalEmailService.send_response_notification(email_proposal, 'rejected')
 
         assert result is True
+        mock_email_cls.assert_called_once()
+        mock_email_instance.send.assert_called_once()
         call_kwargs = mock_email_cls.call_args[1]
         assert 'REJECTED' in call_kwargs['subject']
 
@@ -171,6 +177,8 @@ class TestSendResponseNotification:
 
         ProposalEmailService.send_response_notification(email_proposal, 'accepted')
 
+        mock_email_cls.assert_called_once()
+        mock_email_instance.send.assert_called_once()
         call_kwargs = mock_email_cls.call_args[1]
         assert '[ACCEPTED]' in call_kwargs['subject']
         assert email_proposal.title in call_kwargs['subject']

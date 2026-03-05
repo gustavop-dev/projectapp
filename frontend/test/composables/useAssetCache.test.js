@@ -214,7 +214,7 @@ describe('useAssetCache', () => {
       const { cleanExpiredResources } = useAssetCache();
       simulateMount();
 
-      await cleanExpiredResources();
+      await expect(cleanExpiredResources()).resolves.toBeUndefined();
     });
 
     it('does nothing when cacheService is null', async () => {

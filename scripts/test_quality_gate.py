@@ -74,6 +74,7 @@ def build_config(args: argparse.Namespace) -> Config:
     """Build configuration from CLI arguments."""
     return Config(
         backend_app_name=args.backend_app,
+        frontend_unit_dir=args.frontend_unit_dir,
         max_test_lines=args.max_test_lines,
         max_assertions_per_test=args.max_assertions,
         max_patches_per_test=args.max_patches,
@@ -987,6 +988,8 @@ def parse_args() -> argparse.Namespace:
                         help="Django app name (default: core_app)")
     parser.add_argument("--suite", choices=["backend", "frontend-unit", "frontend-e2e"],
                         help="Analyze specific suite only")
+    parser.add_argument("--frontend-unit-dir", default="app/__tests__",
+                        help="Frontend unit test directory relative to frontend/ (default: app/__tests__)")
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="Verbose output")
     parser.add_argument("--strict", action="store_true",

@@ -9,6 +9,6 @@ test.describe('Footer Navigation', () => {
     tag: [...LAYOUT_FOOTER_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('footer').first()).toBeAttached();
+    await expect(page.getByLabel('Website footer section')).toBeAttached();
   });
 });

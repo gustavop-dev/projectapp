@@ -110,6 +110,7 @@ class TestBlogPostSources:
 
 
 class TestBlogPostOrdering:
+    @freeze_time('2026-03-01 12:00:00')
     def test_ordered_by_published_at_descending(self):
         older = BlogPost.objects.create(
             title_es='Viejo',

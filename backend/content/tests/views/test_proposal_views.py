@@ -49,8 +49,9 @@ class TestRetrievePublicProposal:
         assert response.status_code == 410
 
     def test_returns_404_for_nonexistent_uuid(self, api_client):
-        import uuid
-        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': uuid.uuid4()})
+        from uuid import UUID
+        fixed_uuid = UUID('00000000-0000-0000-0000-000000000099')
+        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': fixed_uuid})
         response = api_client.get(url)
         assert response.status_code == 404
 

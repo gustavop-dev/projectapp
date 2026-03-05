@@ -64,7 +64,7 @@ afterEach(() => {
 
 describe('useTextAnimations', () => {
   describe('initialization', () => {
-    it('returns all animation functions', () => {
+    it('returns core animation functions', () => {
       const result = useTextAnimations();
 
       expect(typeof result.fadeInFromBottom).toBe('function');
@@ -72,6 +72,11 @@ describe('useTextAnimations', () => {
       expect(typeof result.fadeInFromRight).toBe('function');
       expect(typeof result.scaleIn).toBe('function');
       expect(typeof result.typewriter).toBe('function');
+    });
+
+    it('returns advanced animation functions', () => {
+      const result = useTextAnimations();
+
       expect(typeof result.staggerFadeIn).toBe('function');
       expect(typeof result.wordReveal).toBe('function');
       expect(typeof result.counterAnimation).toBe('function');

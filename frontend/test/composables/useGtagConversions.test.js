@@ -134,7 +134,9 @@ describe('useGtagConversions', () => {
       trackWhatsAppClick();
 
       const callArgs = mockGtag.mock.calls[0][2];
+      const locationBefore = window.location.href;
       callArgs.event_callback();
+      expect(window.location.href).toBe(locationBefore);
     });
 
     it('trackBookACall callback redirects when URL provided', () => {
@@ -157,7 +159,9 @@ describe('useGtagConversions', () => {
       trackBookACall();
 
       const callArgs = mockGtag.mock.calls[0][2];
+      const locationBefore = window.location.href;
       callArgs.event_callback();
+      expect(window.location.href).toBe(locationBefore);
     });
   });
 });

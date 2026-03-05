@@ -33,6 +33,7 @@ class TestSendWhatsappNotification:
         result = send_whatsapp_notification('Hello', phone='+1234567890')
 
         assert result is True
+        mock_get.assert_called_once()
         assert '+1234567890' in mock_get.call_args[0][0]
 
     @patch('content.utils.settings')
@@ -66,6 +67,7 @@ class TestSendWhatsappNotification:
         result = send_whatsapp_notification('Hello')
 
         assert result is False
+        mock_get.assert_called_once()
 
     @patch('content.utils.requests.get')
     @patch('content.utils.settings')
