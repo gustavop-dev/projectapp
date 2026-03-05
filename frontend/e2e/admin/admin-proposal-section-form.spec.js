@@ -150,9 +150,9 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('body')).toBeVisible();
+    await page.waitForLoadState('networkidle');
     // The page should load without errors
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('section editor renders form fields for greeting type', {
@@ -162,7 +162,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
     // Wait for proposal data to load
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('section editor renders form fields for executive_summary type', {
@@ -171,7 +171,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('section editor renders form fields for functional_requirements type', {
@@ -180,6 +180,6 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });

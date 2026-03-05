@@ -75,6 +75,51 @@ describe('useLanguageStore', () => {
     });
   });
 
+  describe('detectBrowserLanguageAndRegion', () => {
+    it('sets locale to en-us and loads English messages', async () => {
+      jest.spyOn(store, 'loadMessages').mockResolvedValue();
+
+      await store.detectBrowserLanguageAndRegion();
+
+      expect(store.currentLocale).toBe('en-us');
+      expect(store.currentLanguage).toBe('en');
+      expect(store.currentRegion).toBe('us');
+      expect(store.loadMessages).toHaveBeenCalledWith('en');
+
+      store.loadMessages.mockRestore();
+    });
+  });
+
+  describe('detectBrowserLanguage', () => {
+    it('delegates to detectBrowserLanguageAndRegion', async () => {
+      jest.spyOn(store, 'detectBrowserLanguageAndRegion').mockResolvedValue();
+
+      await store.detectBrowserLanguage();
+
+      expect(store.detectBrowserLanguageAndRegion).toHaveBeenCalled();
+
+      store.detectBrowserLanguageAndRegion.mockRestore();
+    });
+  });
+
+  describe('loadMessages', () => {
+    it('loads global messages for the given language', async () => {
+      await store.loadMessages('en');
+
+      expect(store.messages.global).toBeDefined();
+    });
+  });
+
+  describe('loadMessagesForView', () => {
+    it('loads view-specific messages using currentLanguage', async () => {
+      store.currentLanguage = 'en';
+
+      await store.loadMessagesForView('home');
+
+      expect(store.messages.home).toBeDefined();
+    });
+  });
+
   describe('getters', () => {
     it('getMessagesForView returns messages for loaded view', () => {
       store.messages = { home: { title: 'Welcome' } };

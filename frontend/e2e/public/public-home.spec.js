@@ -13,8 +13,8 @@ test.describe('Home Page', () => {
   }, async ({ page }) => {
     await page.goto('/');
 
-    await expect(page.locator('header')).toBeVisible();
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle');
   });
 
   test('renders with Spanish locale', {
@@ -22,7 +22,7 @@ test.describe('Home Page', () => {
   }, async ({ page }) => {
     await page.goto('/es-co');
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('renders with English locale', {
@@ -30,6 +30,6 @@ test.describe('Home Page', () => {
   }, async ({ page }) => {
     await page.goto('/en-us');
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });

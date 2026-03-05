@@ -67,6 +67,23 @@ describe('useModels3dStore', () => {
 
       expect(store.models3d).toEqual([]);
     });
+
+    it('handles string JSON response', async () => {
+      get_request.mockResolvedValue({ data: JSON.stringify([mockModel]) });
+
+      await store.fetchModels3dData();
+
+      expect(store.models3d).toHaveLength(1);
+    });
+
+    it('handles invalid JSON string by falling back to empty array', async () => {
+      get_request.mockResolvedValue({ data: '{bad json' });
+
+      await store.fetchModels3dData();
+
+      expect(store.models3d).toEqual([]);
+      expect(store.areUpdateModels3d).toBe(true);
+    });
   });
 
   describe('init', () => {
@@ -118,6 +135,28 @@ describe('useModels3dStore', () => {
 
       expect(result.categories).toHaveLength(1);
       expect(result.categories[0]).toBe('3D Animation');
+    });
+  });
+
+  describe('getFilteredByCategory getter', () => {
+    it('returns all models when category is All', () => {
+      const models = [{ category_title: 'A' }, { category_title: 'B' }];
+
+      const result = store.getFilteredByCategory(models, 'All');
+
+      expect(result).toHaveLength(2);
+    });
+
+    it('filters models by selected category', () => {
+      const models = [
+        { category_title: '3D Animation' },
+        { category_title: 'Product' },
+      ];
+
+      const result = store.getFilteredByCategory(models, '3D Animation');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].category_title).toBe('3D Animation');
     });
   });
 });

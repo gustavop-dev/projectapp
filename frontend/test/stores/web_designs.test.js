@@ -60,6 +60,22 @@ describe('useWebDesignsStore', () => {
       expect(get_request).not.toHaveBeenCalled();
     });
 
+    it('handles string JSON response', async () => {
+      get_request.mockResolvedValue({ data: JSON.stringify([mockDesign]) });
+
+      await store.fetchDesignsData();
+
+      expect(store.designs).toHaveLength(1);
+    });
+
+    it('handles invalid JSON string by falling back to empty array', async () => {
+      get_request.mockResolvedValue({ data: '{bad json' });
+
+      await store.fetchDesignsData();
+
+      expect(store.designs).toEqual([]);
+      expect(store.areUpdateDesigns).toBe(true);
+    });
   });
 
   describe('init', () => {
@@ -110,6 +126,28 @@ describe('useWebDesignsStore', () => {
       const result = store.getFilteredDesignsAndCategories;
 
       expect(result.categories).toHaveLength(1);
+    });
+  });
+
+  describe('getFilteredByCategory getter', () => {
+    it('returns all designs when category is All', () => {
+      const designs = [{ category_title: 'A' }, { category_title: 'B' }];
+
+      const result = store.getFilteredByCategory(designs, 'All');
+
+      expect(result).toHaveLength(2);
+    });
+
+    it('filters designs by selected category', () => {
+      const designs = [
+        { category_title: 'Web Design' },
+        { category_title: 'Mobile' },
+      ];
+
+      const result = store.getFilteredByCategory(designs, 'Web Design');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].category_title).toBe('Web Design');
     });
   });
 });

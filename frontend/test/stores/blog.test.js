@@ -138,6 +138,16 @@ describe('useBlogStore', () => {
       expect(result.success).toBe(true);
     });
 
+    it('fetchAdminPosts handles error', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.fetchAdminPosts();
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('fetch_failed');
+      expect(store.isLoading).toBe(false);
+    });
+
     it('fetchAdminPost fetches single post by id', async () => {
       get_request.mockResolvedValue({ data: { id: 5 } });
 
@@ -145,6 +155,16 @@ describe('useBlogStore', () => {
 
       expect(get_request).toHaveBeenCalledWith('blog/admin/5/detail/');
       expect(store.currentPost).toEqual({ id: 5 });
+    });
+
+    it('fetchAdminPost handles error', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.fetchAdminPost(99);
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('fetch_failed');
+      expect(store.isLoading).toBe(false);
     });
 
     it('createPost sends payload and sets currentPost', async () => {
@@ -178,6 +198,18 @@ describe('useBlogStore', () => {
       expect(result.success).toBe(true);
     });
 
+    it('updatePost handles error', async () => {
+      patch_request.mockRejectedValue({
+        response: { data: { title_es: ['Required'] } },
+      });
+
+      const result = await store.updatePost(1, {});
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('update_failed');
+      expect(store.isUpdating).toBe(false);
+    });
+
     it('deletePost removes post from list', async () => {
       store.posts = [{ id: 1 }, { id: 2 }];
       delete_request.mockResolvedValue({});
@@ -197,6 +229,16 @@ describe('useBlogStore', () => {
       await store.deletePost(1);
 
       expect(store.currentPost).toBeNull();
+    });
+
+    it('deletePost handles error', async () => {
+      delete_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.deletePost(1);
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('delete_failed');
+      expect(store.isUpdating).toBe(false);
     });
   });
 });

@@ -67,6 +67,23 @@ describe('usePortfolioWorksStore', () => {
 
       expect(store.portfolioWorks).toEqual([]);
     });
+
+    it('handles string JSON response', async () => {
+      get_request.mockResolvedValue({ data: JSON.stringify([mockWork]) });
+
+      await store.fetchPortfolioWorksData();
+
+      expect(store.portfolioWorks).toHaveLength(1);
+    });
+
+    it('handles invalid JSON string by falling back to empty array', async () => {
+      get_request.mockResolvedValue({ data: '{bad json' });
+
+      await store.fetchPortfolioWorksData();
+
+      expect(store.portfolioWorks).toEqual([]);
+      expect(store.areUpdatePortfolioWorks).toBe(true);
+    });
   });
 
   describe('init', () => {
@@ -125,6 +142,28 @@ describe('usePortfolioWorksStore', () => {
 
       expect(result.portfolioWorks).toEqual([]);
       expect(result.categories).toEqual([]);
+    });
+  });
+
+  describe('getFilteredByCategory getter', () => {
+    it('returns all works when category is All', () => {
+      const works = [{ category_title: 'A' }, { category_title: 'B' }];
+
+      const result = store.getFilteredByCategory(works, 'All');
+
+      expect(result).toHaveLength(2);
+    });
+
+    it('filters works by selected category', () => {
+      const works = [
+        { category_title: 'Web App' },
+        { category_title: 'Mobile' },
+      ];
+
+      const result = store.getFilteredByCategory(works, 'Web App');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].category_title).toBe('Web App');
     });
   });
 });

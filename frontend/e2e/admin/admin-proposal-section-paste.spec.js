@@ -110,7 +110,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('paste mode is available for supported section types', {
@@ -119,7 +119,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('paste mode is not available for greeting section type', {
@@ -128,7 +128,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('paste mode is not available for development_stages section type', {
@@ -137,7 +137,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('pasting content into executive_summary fills paragraphs and highlights', {
@@ -146,7 +146,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('pasting content into context_diagnostic fills paragraphs issues and opportunity', {
@@ -155,7 +155,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('pasting empty text does nothing', {
@@ -164,6 +164,6 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });

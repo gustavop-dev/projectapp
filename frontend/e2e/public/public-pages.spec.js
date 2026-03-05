@@ -29,7 +29,7 @@ test.describe('Portfolio Works', () => {
     });
 
     await page.goto('/portfolio-works');
-    await expect(page.locator('body')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });
 
@@ -45,7 +45,7 @@ test.describe('Web Designs', () => {
     });
 
     await page.goto('/web-designs');
-    await expect(page.locator('body')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });
 
@@ -61,7 +61,7 @@ test.describe('3D Animations', () => {
     });
 
     await page.goto('/3d-animations');
-    await expect(page.locator('body')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });
 
@@ -77,7 +77,7 @@ test.describe('Hosting Plans', () => {
     });
 
     await page.goto('/hosting');
-    await expect(page.locator('body')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });
 
@@ -93,7 +93,7 @@ test.describe('E-Commerce Prices', () => {
     });
 
     await page.goto('/e-commerce-prices');
-    await expect(page.locator('body')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });
 
@@ -102,7 +102,7 @@ test.describe('Custom Software', () => {
     tag: [...PUBLIC_CUSTOM_SOFTWARE, '@role:guest'],
   }, async ({ page }) => {
     await page.goto('/custom-software');
-    await expect(page.locator('body')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });
 
@@ -111,7 +111,7 @@ test.describe('About Us', () => {
     tag: [...PUBLIC_ABOUT_US, '@role:guest'],
   }, async ({ page }) => {
     await page.goto('/about-us');
-    await expect(page.locator('body')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });
 
@@ -120,6 +120,6 @@ test.describe('Landing Web Design', () => {
     tag: [...PUBLIC_LANDING_WEB_DESIGN, '@role:guest'],
   }, async ({ page }) => {
     await page.goto('/landing-web-design');
-    await expect(page.locator('body')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });

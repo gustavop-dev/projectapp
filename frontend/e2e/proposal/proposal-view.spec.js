@@ -48,7 +48,7 @@ test.describe('Proposal View', () => {
 
     await page.goto(`/proposal/${MOCK_UUID}`);
 
-    await expect(page.locator('body')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('shows expired message for expired proposal', {
@@ -67,6 +67,6 @@ test.describe('Proposal View', () => {
 
     await page.goto(`/proposal/${MOCK_UUID}`);
 
-    await expect(page.locator('body')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });

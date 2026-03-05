@@ -81,6 +81,15 @@ describe('useContactsStore', () => {
 
       expect(store.contacts).toEqual([{ email: 'a@b.com' }]);
     });
+
+    it('handles invalid JSON string by falling back to empty array', async () => {
+      get_request.mockResolvedValue({ data: '{invalid json' });
+
+      await store.fetchContactsData();
+
+      expect(store.contacts).toEqual([]);
+      expect(store.areUpdateContacts).toBe(true);
+    });
   });
 
   describe('init', () => {

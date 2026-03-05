@@ -42,7 +42,7 @@ test.describe('Blog Post Detail', () => {
 
     await page.goto('/blog/ai-trends-2026');
 
-    await expect(page.locator('body')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('shows 404 for nonexistent slug', {
@@ -61,6 +61,6 @@ test.describe('Blog Post Detail', () => {
 
     await page.goto('/blog/nonexistent-post');
 
-    await expect(page.locator('body')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });

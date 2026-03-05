@@ -72,6 +72,23 @@ describe('useProductStore', () => {
 
       expect(store.products).toEqual([]);
     });
+
+    it('handles string JSON response', async () => {
+      get_request.mockResolvedValue({ data: JSON.stringify([mockProduct]) });
+
+      await store.fetchProductData();
+
+      expect(store.products).toHaveLength(1);
+    });
+
+    it('handles invalid JSON string by falling back to empty array', async () => {
+      get_request.mockResolvedValue({ data: '{bad json' });
+
+      await store.fetchProductData();
+
+      expect(store.products).toEqual([]);
+      expect(store.areProductsUpdated).toBe(true);
+    });
   });
 
   describe('init', () => {
@@ -118,6 +135,39 @@ describe('useProductStore', () => {
 
     it('returns empty array when no products', () => {
       expect(store.getProducts).toEqual([]);
+    });
+
+    it('handles null mobile_app_price', () => {
+      const langStore = useLanguageStore();
+      langStore.currentLanguage = 'en';
+      store.products = [{ ...mockProduct, mobile_app_price: null }];
+
+      const result = store.getProducts;
+
+      expect(result[0].mobile_app_price).toBeNull();
+    });
+
+    it('filters nested category and item objects by language', () => {
+      const langStore = useLanguageStore();
+      langStore.currentLanguage = 'en';
+      const productWithCategories = {
+        ...mockProduct,
+        categories: [
+          {
+            title_en: 'Features',
+            title_es: 'Características',
+            items: [
+              { name_en: 'SEO', name_es: 'SEO' },
+            ],
+          },
+        ],
+      };
+      store.products = [productWithCategories];
+
+      const result = store.getProducts;
+
+      expect(result[0].categories[0].title).toBe('Features');
+      expect(result[0].categories[0].items[0].name).toBe('SEO');
     });
   });
 });

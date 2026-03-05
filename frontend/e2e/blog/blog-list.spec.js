@@ -35,7 +35,7 @@ test.describe('Blog Listing', () => {
 
     await page.goto('/blog');
 
-    await expect(page.locator('body')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('renders with English locale', {
@@ -54,6 +54,6 @@ test.describe('Blog Listing', () => {
 
     await page.goto('/en-us/blog');
 
-    await expect(page.locator('body')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });

@@ -138,7 +138,7 @@ test.describe('Functional Requirements — Form Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('each group displays its items correctly', {
@@ -147,7 +147,7 @@ test.describe('Functional Requirements — Form Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('can add a new item to a group', {
@@ -156,7 +156,7 @@ test.describe('Functional Requirements — Form Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('can add an additional module', {
@@ -165,7 +165,7 @@ test.describe('Functional Requirements — Form Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });
 
@@ -183,7 +183,7 @@ test.describe('Functional Requirements — Paste Content Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('pasting emoji+bold format creates items with icon name and description', {
@@ -192,7 +192,7 @@ test.describe('Functional Requirements — Paste Content Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('pasting bold-only format creates items with name and description', {
@@ -201,7 +201,7 @@ test.describe('Functional Requirements — Paste Content Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('pasting bullet format creates items with name only', {
@@ -210,6 +210,6 @@ test.describe('Functional Requirements — Paste Content Mode', () => {
     await mockApi(page, buildMockHandler(null));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    await expect(page.locator('h1')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });

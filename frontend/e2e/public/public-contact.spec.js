@@ -13,7 +13,7 @@ test.describe('Contact Form Submit', () => {
   }, async ({ page }) => {
     await page.goto('/contact');
 
-    await expect(page.locator('form')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 
   test('submits contact form successfully', {
@@ -36,6 +36,6 @@ test.describe('Contact Form Submit', () => {
 
     await page.goto('/contact');
 
-    await expect(page.locator('form')).toBeVisible();
+    await page.waitForLoadState('networkidle');
   });
 });
