@@ -18,6 +18,8 @@ coverage
 
 /cypress/videos/
 /cypress/screenshots/
+/e2e-results/
+/playwright-report/
 
 # Editor directories and files
 .vscode/*
