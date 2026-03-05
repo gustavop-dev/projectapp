@@ -43,7 +43,9 @@ const PORTRAIT_SECTION_TYPES = new Set([
 
 function getPageOrientation(panel) {
   const sectionType = panel.getAttribute('data-section-type') || '';
-  return PORTRAIT_SECTION_TYPES.has(sectionType) ? 'portrait' : 'landscape';
+  if (PORTRAIT_SECTION_TYPES.has(sectionType)) return 'portrait';
+  if (panel.scrollHeight > panel.clientHeight + 10) return 'portrait';
+  return 'landscape';
 }
 
 async function generatePdf() {

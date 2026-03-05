@@ -145,21 +145,28 @@
       <template v-else-if="sectionType === 'development_stages'">
         <div>
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Etapas</label>
-          <div v-for="(stage, idx) in form.stages" :key="idx" class="mb-4 bg-gray-50 rounded-xl p-4 border border-gray-100">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs text-gray-400">Etapa {{ idx + 1 }}</span>
-              <button type="button" class="text-xs text-red-500 hover:text-red-700" @click="form.stages.splice(idx, 1)">Eliminar</button>
-            </div>
-            <div class="grid grid-cols-[60px_1fr] gap-3 mb-2">
-              <EmojiIconField v-model="stage.icon" label="Icono" placeholder="✉️" />
-              <FieldInput v-model="stage.title" label="Título" />
-            </div>
-            <FieldTextarea v-model="stage.description" label="Descripción" :rows="2" :isSingle="true" />
-            <label class="flex items-center gap-2 mt-2 text-xs">
-              <input type="checkbox" v-model="stage.current" class="rounded border-gray-300 text-emerald-600" />
-              <span class="text-gray-600">Etapa actual</span>
-            </label>
-          </div>
+          <draggable v-model="form.stages" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+            <template #item="{ element: stage, index: idx }">
+              <div class="mb-4 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
+                    <span class="text-xs text-gray-400">Etapa {{ idx + 1 }}</span>
+                  </div>
+                  <button type="button" class="text-xs text-red-500 hover:text-red-700" @click="form.stages.splice(idx, 1)">Eliminar</button>
+                </div>
+                <div class="grid grid-cols-[60px_1fr] gap-3 mb-2">
+                  <EmojiIconField v-model="stage.icon" label="Icono" placeholder="✉️" />
+                  <FieldInput v-model="stage.title" label="Título" />
+                </div>
+                <FieldTextarea v-model="stage.description" label="Descripción" :rows="2" :isSingle="true" />
+                <label class="flex items-center gap-2 mt-2 text-xs">
+                  <input type="checkbox" v-model="stage.current" class="rounded border-gray-300 text-emerald-600" />
+                  <span class="text-gray-600">Etapa actual</span>
+                </label>
+              </div>
+            </template>
+          </draggable>
           <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium" @click="form.stages.push({ icon: '', title: '', description: '', current: false })">
             + Agregar etapa
           </button>
@@ -212,17 +219,24 @@
             <!-- Items -->
             <div>
               <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
-              <div v-for="(item, iIdx) in group.items" :key="iIdx" class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-[10px] text-gray-400">{{ iIdx + 1 }}</span>
-                  <button type="button" class="text-[10px] text-red-500" @click="group.items.splice(iIdx, 1)">Eliminar</button>
-                </div>
-                <div class="grid grid-cols-[50px_1fr] gap-2 mb-1">
-                  <EmojiIconField v-model="item.icon" label="Icono" placeholder="🏠" />
-                  <FieldInput v-model="item.name" label="Nombre" />
-                </div>
-                <FieldInput v-model="item.description" label="Descripción" />
-              </div>
+              <draggable v-model="group.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+                <template #item="{ element: item, index: iIdx }">
+                  <div class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    <div class="flex items-center justify-between mb-1">
+                      <div class="flex items-center gap-2">
+                        <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
+                        <span class="text-[10px] text-gray-400">{{ iIdx + 1 }}</span>
+                      </div>
+                      <button type="button" class="text-[10px] text-red-500" @click="group.items.splice(iIdx, 1)">Eliminar</button>
+                    </div>
+                    <div class="grid grid-cols-[50px_1fr] gap-2 mb-1">
+                      <EmojiIconField v-model="item.icon" label="Icono" placeholder="🏠" />
+                      <FieldInput v-model="item.name" label="Nombre" />
+                    </div>
+                    <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
+                  </div>
+                </template>
+              </draggable>
               <button type="button" class="text-xs text-emerald-600 font-medium" @click="group.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
             </div>
           </div>
@@ -261,17 +275,24 @@
               <FieldTextarea v-model="mod.description" label="Descripción" :rows="2" :isSingle="true" />
               <div>
                 <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
-                <div v-for="(item, iIdx) in mod.items" :key="iIdx" class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
-                  <div class="flex items-center justify-between mb-1">
-                    <span class="text-[10px] text-gray-400">{{ iIdx + 1 }}</span>
-                    <button type="button" class="text-[10px] text-red-500" @click="mod.items.splice(iIdx, 1)">Eliminar</button>
-                  </div>
-                  <div class="grid grid-cols-[50px_1fr] gap-2 mb-1">
-                    <EmojiIconField v-model="item.icon" label="Icono" />
-                    <FieldInput v-model="item.name" label="Nombre" />
-                  </div>
-                  <FieldInput v-model="item.description" label="Descripción" />
-                </div>
+                <draggable v-model="mod.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+                  <template #item="{ element: item, index: iIdx }">
+                    <div class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                      <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center gap-2">
+                          <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
+                          <span class="text-[10px] text-gray-400">{{ iIdx + 1 }}</span>
+                        </div>
+                        <button type="button" class="text-[10px] text-red-500" @click="mod.items.splice(iIdx, 1)">Eliminar</button>
+                      </div>
+                      <div class="grid grid-cols-[50px_1fr] gap-2 mb-1">
+                        <EmojiIconField v-model="item.icon" label="Icono" />
+                        <FieldInput v-model="item.name" label="Nombre" />
+                      </div>
+                      <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
+                    </div>
+                  </template>
+                </draggable>
                 <button type="button" class="text-xs text-emerald-600 font-medium" @click="mod.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
               </div>
             </div>
@@ -293,19 +314,26 @@
         <FieldInput v-model="form.totalDuration" label="Duración total" placeholder="Aproximadamente 1 mes" />
         <div>
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Fases</label>
-          <div v-for="(phase, idx) in form.phases" :key="idx" class="mb-4 bg-gray-50 rounded-xl p-4 border border-gray-100">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-xs text-gray-400">Fase {{ idx + 1 }}</span>
-              <button type="button" class="text-xs text-red-500 hover:text-red-700" @click="form.phases.splice(idx, 1)">Eliminar</button>
-            </div>
-            <div class="grid grid-cols-2 gap-3 mb-2">
-              <FieldInput v-model="phase.title" label="Título" />
-              <FieldInput v-model="phase.duration" label="Duración" placeholder="2 semanas" />
-            </div>
-            <FieldTextarea v-model="phase.description" label="Descripción" :rows="2" :isSingle="true" />
-            <FieldTextarea v-model="phase.tasks" label="Tareas" help="Una por línea" :rows="3" />
-            <FieldInput v-model="phase.milestone" label="Hito / Milestone" class="mt-2" />
-          </div>
+          <draggable v-model="form.phases" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+            <template #item="{ element: phase, index: idx }">
+              <div class="mb-4 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
+                    <span class="text-xs text-gray-400">Fase {{ idx + 1 }}</span>
+                  </div>
+                  <button type="button" class="text-xs text-red-500 hover:text-red-700" @click="form.phases.splice(idx, 1)">Eliminar</button>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-2">
+                  <FieldInput v-model="phase.title" label="Título" />
+                  <FieldInput v-model="phase.duration" label="Duración" placeholder="2 semanas" />
+                </div>
+                <FieldTextarea v-model="phase.description" label="Descripción" :rows="2" :isSingle="true" />
+                <FieldTextarea v-model="phase.tasks" label="Tareas" help="Una por línea" :rows="3" />
+                <FieldInput v-model="phase.milestone" label="Hito / Milestone" class="mt-2" />
+              </div>
+            </template>
+          </draggable>
           <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium" @click="form.phases.push({ title: '', duration: '', description: '', tasks: '', milestone: '' })">
             + Agregar fase
           </button>
@@ -340,31 +368,45 @@
         </p>
         <div>
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Qué incluye</label>
-          <div v-for="(item, idx) in form.whatsIncluded" :key="idx" class="mb-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-xs text-gray-400">Item {{ idx + 1 }}</span>
-              <button type="button" class="text-xs text-red-500" @click="form.whatsIncluded.splice(idx, 1)">Eliminar</button>
-            </div>
-            <div class="grid grid-cols-[60px_1fr] gap-2 mb-1">
-              <EmojiIconField v-model="item.icon" label="Icono" placeholder="🎨" />
-              <FieldInput v-model="item.title" label="Título" />
-            </div>
-            <FieldInput v-model="item.description" label="Descripción" />
-          </div>
+          <draggable v-model="form.whatsIncluded" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+            <template #item="{ element: item, index: idx }">
+              <div class="mb-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+                <div class="flex items-center justify-between mb-1">
+                  <div class="flex items-center gap-2">
+                    <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
+                    <span class="text-xs text-gray-400">Item {{ idx + 1 }}</span>
+                  </div>
+                  <button type="button" class="text-xs text-red-500" @click="form.whatsIncluded.splice(idx, 1)">Eliminar</button>
+                </div>
+                <div class="grid grid-cols-[60px_1fr] gap-2 mb-1">
+                  <EmojiIconField v-model="item.icon" label="Icono" placeholder="🎨" />
+                  <FieldInput v-model="item.title" label="Título" />
+                </div>
+                <FieldInput v-model="item.description" label="Descripción" />
+              </div>
+            </template>
+          </draggable>
           <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.whatsIncluded.push({ icon: '', title: '', description: '' })">+ Agregar item</button>
         </div>
         <div>
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Opciones de pago</label>
-          <div v-for="(opt, idx) in form.paymentOptions" :key="idx" class="mb-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-xs text-gray-400">Opción {{ idx + 1 }}</span>
-              <button type="button" class="text-xs text-red-500" @click="form.paymentOptions.splice(idx, 1)">Eliminar</button>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <FieldInput v-model="opt.label" label="Etiqueta" placeholder="40% al firmar" />
-              <FieldInput v-model="opt.description" label="Descripción" placeholder="$596.000 COP" />
-            </div>
-          </div>
+          <draggable v-model="form.paymentOptions" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+            <template #item="{ element: opt, index: idx }">
+              <div class="mb-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+                <div class="flex items-center justify-between mb-1">
+                  <div class="flex items-center gap-2">
+                    <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
+                    <span class="text-xs text-gray-400">Opción {{ idx + 1 }}</span>
+                  </div>
+                  <button type="button" class="text-xs text-red-500" @click="form.paymentOptions.splice(idx, 1)">Eliminar</button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <FieldInput v-model="opt.label" label="Etiqueta" placeholder="40% al firmar" />
+                  <FieldInput v-model="opt.description" label="Descripción" placeholder="$596.000 COP" />
+                </div>
+              </div>
+            </template>
+          </draggable>
           <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.paymentOptions.push({ label: '', description: '' })">+ Agregar opción</button>
         </div>
         <FieldTextarea v-model="form.paymentMethods" label="Métodos de pago" help="Uno por línea" :rows="3" />
@@ -386,17 +428,24 @@
         </div>
         <div>
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Badges de compromiso</label>
-          <div v-for="(badge, idx) in form.commitmentBadges" :key="idx" class="mb-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-xs text-gray-400">Badge {{ idx + 1 }}</span>
-              <button type="button" class="text-xs text-red-500" @click="form.commitmentBadges.splice(idx, 1)">Eliminar</button>
-            </div>
-            <div class="grid grid-cols-[60px_1fr] gap-2 mb-1">
-              <EmojiIconField v-model="badge.icon" label="Icono" placeholder="🤝" />
-              <FieldInput v-model="badge.title" label="Título" />
-            </div>
-            <FieldInput v-model="badge.description" label="Descripción" />
-          </div>
+          <draggable v-model="form.commitmentBadges" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+            <template #item="{ element: badge, index: idx }">
+              <div class="mb-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+                <div class="flex items-center justify-between mb-1">
+                  <div class="flex items-center gap-2">
+                    <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
+                    <span class="text-xs text-gray-400">Badge {{ idx + 1 }}</span>
+                  </div>
+                  <button type="button" class="text-xs text-red-500" @click="form.commitmentBadges.splice(idx, 1)">Eliminar</button>
+                </div>
+                <div class="grid grid-cols-[60px_1fr] gap-2 mb-1">
+                  <EmojiIconField v-model="badge.icon" label="Icono" placeholder="🤝" />
+                  <FieldInput v-model="badge.title" label="Título" />
+                </div>
+                <FieldInput v-model="badge.description" label="Descripción" />
+              </div>
+            </template>
+          </draggable>
           <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.commitmentBadges.push({ icon: '', title: '', description: '' })">+ Agregar badge</button>
         </div>
       </template>
@@ -410,14 +459,21 @@
         <FieldTextarea v-model="form.introMessage" label="Mensaje de introducción" :rows="3" :isSingle="true" />
         <div>
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Pasos</label>
-          <div v-for="(step, idx) in form.steps" :key="idx" class="mb-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-xs text-gray-400">Paso {{ idx + 1 }}</span>
-              <button type="button" class="text-xs text-red-500" @click="form.steps.splice(idx, 1)">Eliminar</button>
-            </div>
-            <FieldInput v-model="step.title" label="Título" class="mb-1" />
-            <FieldInput v-model="step.description" label="Descripción" />
-          </div>
+          <draggable v-model="form.steps" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+            <template #item="{ element: step, index: idx }">
+              <div class="mb-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+                <div class="flex items-center justify-between mb-1">
+                  <div class="flex items-center gap-2">
+                    <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
+                    <span class="text-xs text-gray-400">Paso {{ idx + 1 }}</span>
+                  </div>
+                  <button type="button" class="text-xs text-red-500" @click="form.steps.splice(idx, 1)">Eliminar</button>
+                </div>
+                <FieldInput v-model="step.title" label="Título" class="mb-1" />
+                <FieldInput v-model="step.description" label="Descripción" />
+              </div>
+            </template>
+          </draggable>
           <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.steps.push({ title: '', description: '' })">+ Agregar paso</button>
         </div>
         <FieldTextarea v-model="form.ctaMessage" label="Mensaje CTA" :rows="2" :isSingle="true" />
@@ -435,18 +491,25 @@
         </div>
         <div>
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Métodos de contacto</label>
-          <div v-for="(method, idx) in form.contactMethods" :key="idx" class="mb-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-xs text-gray-400">Método {{ idx + 1 }}</span>
-              <button type="button" class="text-xs text-red-500" @click="form.contactMethods.splice(idx, 1)">Eliminar</button>
-            </div>
-            <div class="grid grid-cols-4 gap-2">
-              <EmojiIconField v-model="method.icon" label="Icono" placeholder="📧" />
-              <FieldInput v-model="method.title" label="Título" />
-              <FieldInput v-model="method.value" label="Valor" />
-              <FieldInput v-model="method.link" label="Link" />
-            </div>
-          </div>
+          <draggable v-model="form.contactMethods" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+            <template #item="{ element: method, index: idx }">
+              <div class="mb-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+                <div class="flex items-center justify-between mb-1">
+                  <div class="flex items-center gap-2">
+                    <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
+                    <span class="text-xs text-gray-400">Método {{ idx + 1 }}</span>
+                  </div>
+                  <button type="button" class="text-xs text-red-500" @click="form.contactMethods.splice(idx, 1)">Eliminar</button>
+                </div>
+                <div class="grid grid-cols-4 gap-2">
+                  <EmojiIconField v-model="method.icon" label="Icono" placeholder="📧" />
+                  <FieldInput v-model="method.title" label="Título" />
+                  <FieldInput v-model="method.value" label="Valor" />
+                  <FieldInput v-model="method.link" label="Link" />
+                </div>
+              </div>
+            </template>
+          </draggable>
           <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.contactMethods.push({ icon: '', title: '', value: '', link: '' })">+ Agregar método</button>
         </div>
         <FieldTextarea v-model="form.validityMessage" label="Mensaje de vigencia" :rows="2" :isSingle="true" />
@@ -486,58 +549,11 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, watch, h, defineAsyncComponent } from 'vue';
-import EmojiPicker from 'vue3-emoji-picker';
-import 'vue3-emoji-picker/css';
+import { reactive, ref, computed, watch, h } from 'vue';
+import EmojiIconField from '~/components/BusinessProposal/admin/EmojiIconField.vue';
+import draggable from 'vuedraggable';
 
 // --- Inline sub-components (render functions for prod compatibility) ---
-const EmojiIconField = {
-  props: { modelValue: String, label: String, placeholder: String },
-  emits: ['update:modelValue'],
-  components: { EmojiPicker },
-  setup(props, { emit }) {
-    const showPicker = ref(false);
-    const onSelectEmoji = (emoji) => {
-      emit('update:modelValue', emoji.i);
-      showPicker.value = false;
-    };
-    return () => h('div', { class: 'relative' }, [
-      props.label ? h('label', { class: 'block text-xs text-gray-500 mb-0.5' }, props.label) : null,
-      h('div', { class: 'flex items-center gap-1' }, [
-        h('input', {
-          value: props.modelValue,
-          placeholder: props.placeholder || '😀',
-          class: 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none',
-          onInput: (e) => emit('update:modelValue', e.target.value),
-        }),
-        h('button', {
-          type: 'button',
-          class: 'flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-sm cursor-pointer',
-          onClick: (e) => { e.stopPropagation(); showPicker.value = !showPicker.value; },
-        }, '😀'),
-      ]),
-      showPicker.value
-        ? h('div', {
-            class: 'absolute z-50 top-full mt-1 right-0',
-            onClick: (e) => e.stopPropagation(),
-          }, [
-            h('div', {
-              class: 'fixed inset-0 z-40',
-              onClick: () => { showPicker.value = false; },
-            }),
-            h('div', { class: 'relative z-50' }, [
-              h(EmojiPicker, {
-                native: true,
-                'disable-skin-tones': true,
-                onSelect: onSelectEmoji,
-              }),
-            ]),
-          ])
-        : null,
-    ]);
-  },
-};
-
 const FieldInput = {
   props: { modelValue: String, label: String, placeholder: String },
   emits: ['update:modelValue'],

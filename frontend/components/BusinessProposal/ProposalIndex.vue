@@ -23,10 +23,10 @@
              transition-all duration-300 max-h-[80vh] overflow-y-auto"
       :class="{ 'translate-x-[-120%]': !isOpen }"
     >
-      <p class="text-[10px] uppercase tracking-[0.2em] text-emerald-600 font-medium mb-4 px-2">
+      <p class="text-[10px] uppercase tracking-[0.2em] text-emerald-600 font-medium mb-2 px-2">
         Índice
       </p>
-      <ul class="space-y-1">
+      <ul class="space-y-0.5">
         <li
           v-for="(section, idx) in sections"
           :key="section.id"
@@ -76,8 +76,8 @@ const isOpen = ref(true);
 
 <style scoped>
 .index-panel {
-  min-width: 200px;
-  max-width: 260px;
+  min-width: 220px;
+  max-width: 320px;
   scrollbar-width: none;
 }
 
