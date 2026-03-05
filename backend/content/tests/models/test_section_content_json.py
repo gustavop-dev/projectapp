@@ -52,7 +52,7 @@ def final_note_content():
         'personalNote': 'Estamos emocionados.',
         'teamName': 'Project App',
         'teamRole': 'Socio digital',
-        'contactEmail': 'hello@projectapp.co',
+        'contactEmail': 'team@projectapp.co',
         'commitmentBadges': [
             {'icon': '🤝', 'title': 'Compromiso', 'description': 'Dedicación completa.'},
             {'icon': '💯', 'title': 'Calidad', 'description': 'Revisiones ilimitadas.'},
@@ -403,7 +403,7 @@ class TestFinalNoteContentJson:
         )
         section.refresh_from_db()
         assert len(section.content_json['commitmentBadges']) == 2
-        assert section.content_json['contactEmail'] == 'hello@projectapp.co'
+        assert section.content_json['contactEmail'] == 'team@projectapp.co'
 
 
 class TestNextStepsContentJson:
