@@ -22,7 +22,7 @@ useHead({
         ],
         contactPoint: {
           '@type': 'ContactPoint',
-          email: 'hello@projectapp.co',
+          email: 'team@projectapp.co',
           contactType: 'customer service',
           availableLanguage: ['English', 'Spanish'],
         },

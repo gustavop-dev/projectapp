@@ -41,6 +41,18 @@
                     {{ action_label }}
                   </td>
                 </tr>
+                {% if rejection_reason %}
+                <tr>
+                  <td style="padding:8px 0;color:#6b7280;font-size:14px;">Motivo:</td>
+                  <td style="padding:8px 0;color:#1f2937;font-size:14px;font-weight:600;">{{ rejection_reason }}</td>
+                </tr>
+                {% endif %}
+                {% if rejection_comment %}
+                <tr>
+                  <td style="padding:8px 0;color:#6b7280;font-size:14px;">Comentario:</td>
+                  <td style="padding:8px 0;color:#1f2937;font-size:14px;">{{ rejection_comment }}</td>
+                </tr>
+                {% endif %}
               </table>
             </td>
           </tr>

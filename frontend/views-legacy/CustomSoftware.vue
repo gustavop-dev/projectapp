@@ -149,7 +149,7 @@
                                 <span class="sr-only">con Project App.</span>
                             </p>
                             <a @click="showModalEmail = true" ref="emailLink" @mouseover="animateLink" @mouseleave="resetLink" class="inline-block text-xl absolute bottom-0 text-white cursor-pointer" itemprop="email">
-                            hello@projectapp.co
+                            team@projectapp.co
                             <span ref="underline" class="absolute left-0 bottom-0 h-0.5 w-0 bg-white transition-all duration-300"></span>
                             <span ref="arrow" class="absolute right-0 top-1/2 transform -translate-y-1/2 opacity-0 transition-opacity duration-300">➜</span>
                             <span class="sr-only">Contactar a Project App. por correo electrónico para soluciones de software personalizadas</span>

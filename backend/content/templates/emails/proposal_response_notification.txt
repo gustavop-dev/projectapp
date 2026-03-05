@@ -4,5 +4,7 @@ Título: {{ proposal_title }}
 Cliente: {{ client_name }}
 Inversión: ${{ total_investment }} {{ currency }}
 Estado: {{ action_label }}
+{% if rejection_reason %}Motivo: {{ rejection_reason }}{% endif %}
+{% if rejection_comment %}Comentario: {{ rejection_comment }}{% endif %}
 
 — Notificación automática — ProjectApp.co

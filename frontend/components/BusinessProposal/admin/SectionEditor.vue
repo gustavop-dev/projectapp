@@ -596,7 +596,6 @@ const showRawJson = ref(false);
 const initialContent = props.section.content_json || {};
 const pasteMode = ref(initialContent._editMode === 'paste');
 const pasteText = ref(initialContent.rawText || '');
-const pasteMsg = ref('');
 
 const hasPasteSupport = computed(() => true);
 
@@ -711,90 +710,6 @@ function onTogglePasteMode(on) {
   if (on) {
     pasteText.value = formToReadableText();
   }
-}
-
-function processPastedContent() {
-  const text = pasteText.value.trim();
-  if (!text) return;
-
-  const paragraphs = [];
-  const listItems = [];
-
-  const blocks = text.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
-
-  for (const block of blocks) {
-    const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
-    const allBullets = lines.every(l => /^[\*\-•]\s/.test(l));
-    if (allBullets && lines.length > 0) {
-      for (const line of lines) {
-        listItems.push(line.replace(/^[\*\-•]\s*/, ''));
-      }
-    } else {
-      paragraphs.push(lines.join(' '));
-    }
-  }
-
-  const type = sectionType.value;
-
-  if (type === 'greeting') {
-    const nameMatch = text.match(/(?:Nombre[^:]*:\s*)(.+)/i);
-    if (nameMatch) form.clientName = nameMatch[1].trim();
-    const quoteMatch = text.match(/"([^"]+)"/);
-    if (quoteMatch) form.inspirationalQuote = quoteMatch[1].trim();
-  } else if (type === 'executive_summary') {
-    form.paragraphs = paragraphs.join('\n');
-    if (listItems.length) form.highlights = listItems.join('\n');
-  } else if (type === 'context_diagnostic') {
-    if (paragraphs.length > 1) {
-      form.opportunity = paragraphs.pop();
-    }
-    form.paragraphs = paragraphs.join('\n');
-    if (listItems.length) form.issues = listItems.join('\n');
-  } else if (type === 'design_ux') {
-    if (paragraphs.length > 1) {
-      form.objective = paragraphs.pop();
-    }
-    form.paragraphs = paragraphs.join('\n');
-    if (listItems.length) form.focusItems = listItems.join('\n');
-  } else if (type === 'creative_support') {
-    if (paragraphs.length > 1) {
-      form.closing = paragraphs.pop();
-    }
-    form.paragraphs = paragraphs.join('\n');
-    if (listItems.length) form.includes = listItems.join('\n');
-  } else if (type === 'conversion_strategy') {
-    if (paragraphs.length > 1) {
-      form.result = paragraphs.pop();
-    }
-    form.intro = paragraphs.join('\n');
-  } else if (type === 'development_stages') {
-    const stages = [];
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    for (const line of lines) {
-      const m = line.match(/^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F?)\s+(.+?)(?:\s*\(actual\))?$/u);
-      if (m) stages.push({ icon: m[1], title: m[2].trim(), description: '', current: line.includes('(actual)') });
-      else if (stages.length && line.startsWith('  ')) stages[stages.length - 1].description = line.trim();
-    }
-    if (stages.length) form.stages = stages;
-  } else if (type === 'timeline') {
-    form.introText = paragraphs.length ? paragraphs[0] : '';
-  } else if (type === 'investment') {
-    form.introText = paragraphs.length ? paragraphs[0] : '';
-  } else if (type === 'final_note') {
-    if (paragraphs.length > 1) {
-      form.personalNote = paragraphs.pop();
-    }
-    form.message = paragraphs.join('\n');
-  } else if (type === 'next_steps') {
-    form.introMessage = paragraphs.length ? paragraphs[0] : '';
-    if (paragraphs.length > 1) {
-      form.ctaMessage = paragraphs[paragraphs.length - 1];
-    }
-  }
-
-  pasteMsg.value = '✓ Campos llenados. Revisa el formulario para ajustes.';
-  pasteMode.value = false;
-  setTimeout(() => { pasteMsg.value = ''; }, 4000);
 }
 
 function processGroupPaste(group) {
