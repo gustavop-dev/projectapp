@@ -1,19 +1,29 @@
-"""
-Shared pytest fixtures for the content app test suite.
+"""Shared pytest fixtures for the content app test suite.
 
 Provides reusable fixtures for API clients, model instances,
 and authenticated users following the project testing standards.
 """
-import pytest
 from decimal import Decimal
+
+import pytest
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.test import APIClient
 
 from content.models import (
-    Contact, Design, Model3D, Item, Category, Product,
-    Hosting, PortfolioWork, BusinessProposal, ProposalSection,
-    ProposalRequirementGroup, ProposalRequirementItem, BlogPost,
+    BlogPost,
+    BusinessProposal,
+    Category,
+    Contact,
+    Design,
+    Hosting,
+    Item,
+    Model3D,
+    PortfolioWork,
+    Product,
+    ProposalRequirementGroup,
+    ProposalRequirementItem,
+    ProposalSection,
 )
 
 User = get_user_model()

@@ -1,5 +1,4 @@
-"""
-Tests for the BusinessProposal model.
+"""Tests for the BusinessProposal model.
 
 Covers: UUID generation, slug, status choices, is_expired property,
 days_remaining property, public_url property, and __str__.
@@ -7,11 +6,9 @@ days_remaining property, public_url property, and __str__.
 import datetime
 
 import pytest
-from django.utils import timezone
 from freezegun import freeze_time
 
 from content.models import BusinessProposal
-
 
 pytestmark = pytest.mark.django_db
 

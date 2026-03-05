@@ -1,13 +1,10 @@
-"""
-Tests for the Hosting model.
+"""Tests for the Hosting model.
 
 Covers: __str__, bilingual fields, pricing fields.
 """
-import pytest
 from decimal import Decimal
 
-from content.models import Hosting
-
+import pytest
 
 pytestmark = pytest.mark.django_db
 

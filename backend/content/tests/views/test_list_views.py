@@ -1,11 +1,9 @@
-"""
-Tests for simple list API views: designs, hostings, products, models3d, portfolio_works.
+"""Tests for simple list API views: designs, hostings, products, models3d, portfolio_works.
 
 Covers: GET endpoints returning 200 with serialized data.
 """
 import pytest
 from django.urls import reverse
-
 
 pytestmark = pytest.mark.django_db
 

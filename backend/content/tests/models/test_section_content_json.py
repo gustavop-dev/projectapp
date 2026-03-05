@@ -1,12 +1,11 @@
-"""
-Tests for ProposalSection content_json storage and retrieval per section type.
+"""Tests for ProposalSection content_json storage and retrieval per section type.
 
 Covers: all 12 section types with realistic content_json payloads,
 verifying data integrity after save/reload from the database.
 """
 import pytest
-from content.models import BusinessProposal, ProposalSection
 
+from content.models import BusinessProposal, ProposalSection
 
 pytestmark = pytest.mark.django_db
 

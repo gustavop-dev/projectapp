@@ -1,13 +1,11 @@
-"""
-Tests for content/utils.py.
+"""Tests for content/utils.py.
 
 Covers: send_whatsapp_notification, send_email_notification —
 happy paths, missing config, API errors, email errors.
 """
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from content.utils import send_whatsapp_notification, send_email_notification
+from content.utils import send_email_notification, send_whatsapp_notification
 
 
 class TestSendWhatsappNotification:

@@ -1,5 +1,4 @@
-"""
-Tests for proposal section update API with realistic content_json payloads.
+"""Tests for proposal section update API with realistic content_json payloads.
 
 Covers: PATCH /api/proposals/sections/:id/update/ with form-equivalent
 and paste-processed data for each section type. Verifies content_json
@@ -9,7 +8,6 @@ import pytest
 from django.urls import reverse
 
 from content.models import BusinessProposal, ProposalSection
-
 
 pytestmark = pytest.mark.django_db
 

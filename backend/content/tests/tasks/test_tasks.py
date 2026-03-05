@@ -1,17 +1,14 @@
-"""
-Tests for Huey tasks: send_proposal_reminder, send_urgency_emails, expire_stale_proposals.
+"""Tests for Huey tasks: send_proposal_reminder, send_urgency_emails, expire_stale_proposals.
 
 Covers: happy paths, skip conditions, edge cases.
 """
-import pytest
-from decimal import Decimal
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
+import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
 from content.models import BusinessProposal
-
 
 pytestmark = pytest.mark.django_db
 

@@ -1,5 +1,4 @@
-"""
-Tests for blog API views.
+"""Tests for blog API views.
 
 Covers: public GET list/detail with ?lang=, admin CRUD (auth required),
 happy path, 404s, validation errors, permission checks.
@@ -8,7 +7,6 @@ import pytest
 from django.urls import reverse
 
 from content.models import BlogPost
-
 
 pytestmark = pytest.mark.django_db
 
@@ -99,6 +97,19 @@ class TestAdminCreateBlogPost:
         )
         assert response.status_code == 400
 
+    def test_returns_400_with_invalid_sources(self, admin_client):
+        payload = {
+            'title_es': 'T', 'title_en': 'T',
+            'excerpt_es': 'E', 'excerpt_en': 'E',
+            'content_es': 'C', 'content_en': 'C',
+            'sources': 'not-a-list',
+        }
+        response = admin_client.post(
+            reverse('create-blog-post'), payload, format='json'
+        )
+        assert response.status_code == 400
+        assert 'sources' in response.data
+
 
 class TestAdminRetrieveBlogPost:
     def test_returns_200_for_admin(self, admin_client, blog_post):
@@ -126,6 +137,14 @@ class TestAdminUpdateBlogPost:
         assert response.status_code == 200
         blog_post.refresh_from_db()
         assert blog_post.title_en == 'Updated Title'
+
+    def test_returns_400_for_invalid_sources_on_update(self, admin_client, blog_post):
+        url = reverse('update-blog-post', kwargs={'post_id': blog_post.id})
+        response = admin_client.patch(
+            url, {'sources': 'not-a-list'}, format='json'
+        )
+        assert response.status_code == 400
+        assert 'sources' in response.data
 
     def test_returns_404_for_nonexistent_id(self, admin_client):
         url = reverse('update-blog-post', kwargs={'post_id': 99999})

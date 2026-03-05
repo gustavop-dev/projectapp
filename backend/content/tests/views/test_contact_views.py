@@ -1,14 +1,13 @@
-"""
-Tests for contact API views.
+"""Tests for contact API views.
 
 Covers: GET /api/contacts/, POST /api/new-contact/ (happy path, validation errors).
 """
-import pytest
 from unittest.mock import patch
+
+import pytest
 from django.urls import reverse
 
 from content.models import Contact
-
 
 pytestmark = pytest.mark.django_db
 

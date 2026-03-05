@@ -1,13 +1,14 @@
-"""
-Tests for ProposalSection, ProposalRequirementGroup, and ProposalRequirementItem models.
+"""Tests for ProposalSection, ProposalRequirementGroup, and ProposalRequirementItem models.
 
 Covers: foreign key relationships, ordering, unique_together, __str__, defaults.
 """
 import pytest
-from content.models import (
-    ProposalSection, ProposalRequirementGroup, ProposalRequirementItem,
-)
 
+from content.models import (
+    ProposalRequirementGroup,
+    ProposalRequirementItem,
+    ProposalSection,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -51,13 +52,13 @@ class TestProposalSection:
         ).count() == 1
 
     def test_sections_ordered_by_order_field(self, proposal):
-        s2 = ProposalSection.objects.create(
+        ProposalSection.objects.create(
             proposal=proposal,
             section_type='timeline',
             title='Timeline',
             order=2,
         )
-        s1 = ProposalSection.objects.create(
+        ProposalSection.objects.create(
             proposal=proposal,
             section_type='investment',
             title='Investment',
@@ -83,10 +84,10 @@ class TestProposalRequirementGroup:
         assert requirement_group.proposal == proposal
 
     def test_groups_ordered_by_order_field(self, proposal):
-        g1 = ProposalRequirementGroup.objects.create(
+        ProposalRequirementGroup.objects.create(
             proposal=proposal, group_id='g1', title='G1', order=1,
         )
-        g0 = ProposalRequirementGroup.objects.create(
+        ProposalRequirementGroup.objects.create(
             proposal=proposal, group_id='g0', title='G0', order=0,
         )
         groups = list(proposal.requirement_groups.all())

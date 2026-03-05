@@ -1,11 +1,10 @@
-"""
-Tests for the Contact model.
+"""Tests for the Contact model.
 
 Covers: field validation, budget choices, __str__.
 """
 import pytest
-from content.models import Contact
 
+from content.models import Contact
 
 pytestmark = pytest.mark.django_db
 

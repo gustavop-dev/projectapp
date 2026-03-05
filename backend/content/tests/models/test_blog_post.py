@@ -1,5 +1,4 @@
-"""
-Tests for the BlogPost model.
+"""Tests for the BlogPost model.
 
 Covers: slug auto-generation, is_published/published_at behavior,
 bilingual fields, ordering, and __str__.
@@ -9,7 +8,6 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from content.models import BlogPost
-
 
 pytestmark = pytest.mark.django_db
 

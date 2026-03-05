@@ -1,18 +1,16 @@
-"""
-Tests for ProposalEmailService.
+"""Tests for ProposalEmailService.
 
 Covers: send_reminder, send_urgency_email, send_response_notification —
 happy paths, missing email, template rendering, error handling.
 """
-import pytest
 from decimal import Decimal
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
+import pytest
 from django.utils import timezone
 
 from content.models import BusinessProposal
 from content.services.proposal_email_service import ProposalEmailService
-
 
 pytestmark = pytest.mark.django_db
 

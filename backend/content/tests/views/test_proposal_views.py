@@ -1,15 +1,17 @@
-"""
-Tests for proposal API views.
+"""Tests for proposal API views.
 
 Covers: public retrieve/respond/pdf, admin CRUD, section update,
 bulk reorder, auth check, permission checks, edge cases.
 """
-import pytest
+from datetime import datetime
+from datetime import timezone as dt_tz
 from unittest.mock import patch
+
+import pytest
 from django.urls import reverse
+from freezegun import freeze_time
 
 from content.models import BusinessProposal, ProposalSection
-
 
 pytestmark = pytest.mark.django_db
 
@@ -54,6 +56,34 @@ class TestRetrievePublicProposal:
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': fixed_uuid})
         response = api_client.get(url)
         assert response.status_code == 404
+
+    def test_expired_proposal_already_expired_status_returns_410(self, api_client, expired_proposal):
+        expired_proposal.status = 'expired'
+        expired_proposal.save(update_fields=['status'])
+        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})
+        response = api_client.get(url)
+        assert response.status_code == 410
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_expired_proposal_with_sent_status_updates_to_expired(self, api_client, db):
+        proposal = BusinessProposal.objects.create(
+            title='Stale Sent',
+            client_name='Client',
+            client_email='c@test.com',
+            status='sent',
+            expires_at=datetime(2026, 2, 28, 12, 0, 0, tzinfo=dt_tz.utc),
+        )
+        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': proposal.uuid})
+        response = api_client.get(url)
+        assert response.status_code == 410
+        proposal.refresh_from_db()
+        assert proposal.status == 'expired'
+
+    def test_does_not_change_status_from_draft_to_viewed(self, api_client, proposal):
+        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': proposal.uuid})
+        api_client.get(url)
+        proposal.refresh_from_db()
+        assert proposal.status == 'draft'
 
 
 class TestDownloadProposalPdf:
@@ -146,6 +176,21 @@ class TestAdminCreateProposal:
         assert response.status_code == 201
         assert BusinessProposal.objects.count() == 1
 
+    def test_creates_proposal_with_default_sections(self, admin_client):
+        payload = {
+            'title': 'Full Proposal',
+            'client_name': 'Client',
+            'client_email': 'c@test.com',
+            'language': 'es',
+            'total_investment': '5000.00',
+            'currency': 'COP',
+        }
+        response = admin_client.post(
+            reverse('create-proposal'), payload, format='json'
+        )
+        assert response.status_code == 201
+        assert len(response.data['sections']) == 12
+
     def test_returns_400_with_missing_fields(self, admin_client):
         response = admin_client.post(
             reverse('create-proposal'), {}, format='json'
@@ -166,6 +211,13 @@ class TestAdminUpdateProposal:
         assert response.status_code == 200
         proposal.refresh_from_db()
         assert proposal.title == 'Updated Title'
+
+    def test_returns_400_for_invalid_data(self, admin_client, proposal):
+        url = reverse('update-proposal', kwargs={'proposal_id': proposal.id})
+        response = admin_client.patch(
+            url, {'expires_at': '2020-01-01T00:00:00Z'}, format='json'
+        )
+        assert response.status_code == 400
 
     def test_returns_404_for_nonexistent_id(self, admin_client):
         url = reverse('update-proposal', kwargs={'proposal_id': 99999})
@@ -211,6 +263,13 @@ class TestAdminUpdateProposalSection:
         assert response.status_code == 200
         proposal_section.refresh_from_db()
         assert proposal_section.title == 'Updated Section'
+
+    def test_returns_400_for_invalid_content_json(self, admin_client, proposal_section):
+        url = reverse('update-proposal-section', kwargs={'section_id': proposal_section.id})
+        response = admin_client.patch(
+            url, {'content_json': 'not-a-dict'}, format='json'
+        )
+        assert response.status_code == 400
 
     def test_returns_404_for_nonexistent_section(self, admin_client):
         url = reverse('update-proposal-section', kwargs={'section_id': 99999})

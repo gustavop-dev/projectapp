@@ -1,16 +1,17 @@
-"""
-Tests for ProposalService.
+"""Tests for ProposalService.
 
 Covers: get_default_sections() for ES and EN languages,
 send_proposal() happy path and error cases.
 """
+from datetime import datetime
+from datetime import timezone as dt_tz
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from django.utils import timezone
+from freezegun import freeze_time
 
 from content.models import BusinessProposal
 from content.services.proposal_service import ProposalService
-
 
 pytestmark = pytest.mark.django_db
 
@@ -130,3 +131,103 @@ class TestSendProposal:
         mock_task.schedule.assert_called_once()
         call_kwargs = mock_task.schedule.call_args
         assert call_kwargs[1]['delay'] == 5 * 86400
+
+    @patch('content.tasks.send_proposal_reminder')
+    def test_logs_exception_when_schedule_fails(self, mock_task):
+        mock_task.schedule = MagicMock(side_effect=RuntimeError('Huey unavailable'))
+        proposal = BusinessProposal.objects.create(
+            title='Exception Test',
+            client_name='Client',
+            client_email='client@test.com',
+        )
+        ProposalService.send_proposal(proposal)
+        proposal.refresh_from_db()
+        assert proposal.status == 'sent'
+        mock_task.schedule.assert_called_once()
+
+
+class TestRecordView:
+    def test_increments_view_count(self):
+        proposal = BusinessProposal.objects.create(
+            title='View Test',
+            client_name='Client',
+            client_email='client@test.com',
+            status='sent',
+        )
+        assert proposal.view_count == 0
+        ProposalService.record_view(proposal)
+        proposal.refresh_from_db()
+        assert proposal.view_count == 1
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_sets_first_viewed_at_on_first_visit(self):
+        proposal = BusinessProposal.objects.create(
+            title='First View',
+            client_name='Client',
+            client_email='client@test.com',
+            status='sent',
+        )
+        assert proposal.first_viewed_at is None
+        ProposalService.record_view(proposal)
+        proposal.refresh_from_db()
+        assert proposal.first_viewed_at is not None
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_does_not_overwrite_first_viewed_at_on_second_visit(self):
+        proposal = BusinessProposal.objects.create(
+            title='Second View',
+            client_name='Client',
+            client_email='client@test.com',
+            status='sent',
+        )
+        ProposalService.record_view(proposal)
+        proposal.refresh_from_db()
+        first_ts = proposal.first_viewed_at
+        ProposalService.record_view(proposal)
+        proposal.refresh_from_db()
+        assert proposal.first_viewed_at == first_ts
+        assert proposal.view_count == 2
+
+    def test_updates_status_from_sent_to_viewed(self):
+        proposal = BusinessProposal.objects.create(
+            title='Status View',
+            client_name='Client',
+            client_email='client@test.com',
+            status='sent',
+        )
+        ProposalService.record_view(proposal)
+        proposal.refresh_from_db()
+        assert proposal.status == 'viewed'
+
+    def test_does_not_update_status_when_not_sent(self):
+        proposal = BusinessProposal.objects.create(
+            title='Draft View',
+            client_name='Client',
+            client_email='client@test.com',
+            status='draft',
+        )
+        ProposalService.record_view(proposal)
+        proposal.refresh_from_db()
+        assert proposal.status == 'draft'
+
+
+class TestCheckExpiration:
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_true_for_expired_proposal(self):
+        proposal = BusinessProposal.objects.create(
+            title='Expired',
+            client_name='Client',
+            client_email='c@test.com',
+            expires_at=datetime(2026, 2, 28, 12, 0, 0, tzinfo=dt_tz.utc),
+        )
+        assert ProposalService.check_expiration(proposal) is True
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_false_for_active_proposal(self):
+        proposal = BusinessProposal.objects.create(
+            title='Active',
+            client_name='Client',
+            client_email='c@test.com',
+            expires_at=datetime(2026, 4, 1, 12, 0, 0, tzinfo=dt_tz.utc),
+        )
+        assert ProposalService.check_expiration(proposal) is False

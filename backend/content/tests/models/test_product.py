@@ -1,13 +1,14 @@
-"""
-Tests for Item, Category, and Product models.
+"""Tests for Item, Category, and Product models.
 
 Covers: relationships, __str__, bilingual fields, M2M associations.
 """
-import pytest
+import os
 from decimal import Decimal
 
-from content.models import Item, Category, Product
+import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 
+from content.models import Item, Product
 
 pytestmark = pytest.mark.django_db
 
@@ -54,3 +55,21 @@ class TestProduct:
             development_time_es='2 semanas',
         )
         assert prod.mobile_app_price is None
+
+    def test_delete_removes_image_file(self, db, tmp_path, settings):
+        settings.MEDIA_ROOT = str(tmp_path)
+        img = SimpleUploadedFile('test.png', b'\x89PNG\r\n', content_type='image/png')
+        prod = Product.objects.create(
+            title_en='Deletable',
+            title_es='Eliminable',
+            description_en='Desc.',
+            description_es='Desc.',
+            price=Decimal('100.00'),
+            development_time_en='1 week',
+            development_time_es='1 semana',
+            image=img,
+        )
+        image_path = prod.image.path
+        assert os.path.isfile(image_path)
+        prod.delete()
+        assert not os.path.isfile(image_path)
