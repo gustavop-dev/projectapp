@@ -8,7 +8,7 @@ test.describe('Footer Navigation', () => {
   test('footer is visible on home page', {
     tag: [...LAYOUT_FOOTER_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('footer').first()).toBeAttached();
   });
 });
