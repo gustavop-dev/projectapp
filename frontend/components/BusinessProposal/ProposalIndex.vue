@@ -20,7 +20,7 @@
     <nav
       class="index-panel ml-3 py-4 px-3 rounded-2xl
              bg-white/90 backdrop-blur-md shadow-xl border border-gray-100
-             transition-all duration-300 max-h-[80vh] overflow-y-auto"
+             transition-all duration-300 max-h-[70vh] sm:max-h-[80vh] overflow-y-auto"
       :class="{ 'translate-x-[-120%]': !isOpen }"
     >
       <p class="text-[10px] uppercase tracking-[0.2em] text-emerald-600 font-medium mb-2 px-2">
@@ -71,13 +71,13 @@ defineProps({
 
 defineEmits(['navigate']);
 
-const isOpen = ref(true);
+const isOpen = ref(typeof window !== 'undefined' && window.innerWidth >= 640);
 </script>
 
 <style scoped>
 .index-panel {
-  min-width: 220px;
-  max-width: 320px;
+  min-width: 180px;
+  max-width: 280px;
   scrollbar-width: none;
 }
 

@@ -14,7 +14,7 @@
         <div
           data-animate="fade-up"
           class="raw-content-card bg-gray-50/80 backdrop-blur-sm border border-gray-200/60
-                 rounded-2xl p-8 md:p-12 shadow-sm prose prose-emerald max-w-none"
+                 rounded-2xl p-5 sm:p-8 md:p-12 shadow-sm prose prose-emerald max-w-none"
           v-html="renderedHtml"
         />
       </div>

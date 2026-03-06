@@ -34,9 +34,9 @@
 
             <div class="flex items-start justify-between gap-4">
               <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-3 mb-2">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                   <span class="text-xl md:text-2xl">{{ stage.icon }}</span>
-                  <h3 class="text-esmerald font-medium text-lg md:text-xl leading-snug">
+                  <h3 class="text-esmerald font-medium text-base sm:text-lg md:text-xl leading-snug">
                     {{ stage.title }}
                   </h3>
                   <span v-if="stage.current" class="text-[10px] uppercase tracking-wider text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full font-medium">

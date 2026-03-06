@@ -23,7 +23,7 @@
       <!-- Accept / Reject buttons -->
       <div v-if="canRespond && !submitted" data-animate="scale-in" class="flex flex-col sm:flex-row gap-4 justify-center items-center pt-2">
         <button
-          class="px-8 py-4 bg-emerald-600 text-white rounded-xl font-medium text-base
+          class="px-6 sm:px-8 py-3 sm:py-4 bg-emerald-600 text-white rounded-xl font-medium text-sm sm:text-base
                  hover:bg-emerald-700 transition-colors shadow-lg flex items-center gap-2"
           :disabled="isSubmitting"
           @click="showAcceptConfirm = true"
@@ -31,7 +31,7 @@
           <span>✅</span> Acepto la propuesta
         </button>
         <button
-          class="px-8 py-4 bg-white text-gray-600 rounded-xl font-medium text-base
+          class="px-6 sm:px-8 py-3 sm:py-4 bg-white text-gray-600 rounded-xl font-medium text-sm sm:text-base
                  border-2 border-gray-200 hover:bg-gray-50 hover:text-red-600 hover:border-red-200
                  transition-colors flex items-center gap-2"
           :disabled="isSubmitting"
@@ -56,7 +56,7 @@
   <!-- Accept confirmation modal -->
   <teleport to="body">
     <div v-if="showAcceptConfirm" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showAcceptConfirm = false">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-8 text-center">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-5 sm:p-8 text-center">
         <div class="text-5xl mb-4">🎉</div>
         <h3 class="text-xl font-bold text-gray-900 mb-2">¿Confirmar aceptación?</h3>
         <p class="text-gray-600 text-sm mb-6">Al aceptar, recibirás un email de confirmación con los próximos pasos.</p>
@@ -73,7 +73,7 @@
   <!-- Reject modal -->
   <teleport to="body">
     <div v-if="showRejectModal" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showRejectModal = false">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-8">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-5 sm:p-8">
         <h3 class="text-xl font-bold text-gray-900 mb-2">Lamentamos que no sea el momento</h3>
         <p class="text-gray-600 text-sm mb-6">Tu opinión es muy importante para nosotros. ¿Podrías indicarnos el motivo?</p>
         <div class="space-y-4">

@@ -60,7 +60,7 @@
 
       <!-- EXECUTIVE SUMMARY -->
       <template v-else-if="sectionType === 'executive_summary'">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FieldInput v-model="form.index" label="Índice" placeholder="1" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
@@ -71,7 +71,7 @@
 
       <!-- CONTEXT DIAGNOSTIC -->
       <template v-else-if="sectionType === 'context_diagnostic'">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FieldInput v-model="form.index" label="Índice" placeholder="2" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
@@ -84,7 +84,7 @@
 
       <!-- CONVERSION STRATEGY -->
       <template v-else-if="sectionType === 'conversion_strategy'">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FieldInput v-model="form.index" label="Índice" placeholder="3" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
@@ -110,7 +110,7 @@
 
       <!-- DESIGN UX -->
       <template v-else-if="sectionType === 'design_ux'">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FieldInput v-model="form.index" label="Índice" placeholder="4" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
@@ -123,7 +123,7 @@
 
       <!-- CREATIVE SUPPORT -->
       <template v-else-if="sectionType === 'creative_support'">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FieldInput v-model="form.index" label="Índice" placeholder="5" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
@@ -167,7 +167,7 @@
 
       <!-- FUNCTIONAL REQUIREMENTS -->
       <template v-else-if="sectionType === 'functional_requirements'">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FieldInput v-model="form.index" label="Índice" placeholder="7" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
@@ -176,7 +176,7 @@
         <!-- Groups: collapsible -->
         <div v-for="(group, gIdx) in form.groups" :key="group.id || gIdx" class="mt-4 border border-gray-200 rounded-xl overflow-hidden">
           <!-- Collapse header -->
-          <div class="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+          <div class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
                @click="group._collapsed = !group._collapsed">
             <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
               <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': !group._collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,7 +185,7 @@
               <span>{{ group.icon }}</span> {{ group.title }}
               <span class="text-[10px] text-gray-400 font-normal">({{ (group.items || []).length }} elementos)</span>
             </h4>
-            <div class="flex items-center gap-2" @click.stop>
+            <div class="flex flex-wrap items-center gap-2" @click.stop>
               <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
                 :class="!group._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
                 @click="onToggleGroupPaste(group, false)">Formulario</button>
@@ -243,7 +243,7 @@
         <div class="mt-6">
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Módulos Adicionales</label>
           <div v-for="(mod, mIdx) in form.additionalModules" :key="mIdx" class="mb-4 border border-gray-200 rounded-xl overflow-hidden">
-            <div class="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+            <div class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
                  @click="mod._collapsed = !mod._collapsed">
               <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
                 <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': !mod._collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,7 +251,7 @@
                 </svg>
                 <span>{{ mod.icon || '🧩' }}</span> {{ mod.title || 'Módulo adicional' }}
               </h4>
-              <div class="flex items-center gap-2" @click.stop>
+              <div class="flex flex-wrap items-center gap-2" @click.stop>
                 <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
                   :class="!mod._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
                   @click="onToggleGroupPaste(mod, false)">Formulario</button>
@@ -307,7 +307,7 @@
 
       <!-- TIMELINE -->
       <template v-else-if="sectionType === 'timeline'">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FieldInput v-model="form.index" label="Índice" placeholder="8" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
@@ -325,7 +325,7 @@
                   </div>
                   <button type="button" class="text-xs text-red-500 hover:text-red-700" @click="form.phases.splice(idx, 1)">Eliminar</button>
                 </div>
-                <div class="grid grid-cols-2 gap-3 mb-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
                   <FieldInput v-model="phase.title" label="Título" />
                   <FieldInput v-model="phase.duration" label="Duración" placeholder="2 semanas" />
                 </div>
@@ -343,12 +343,12 @@
 
       <!-- INVESTMENT -->
       <template v-else-if="sectionType === 'investment'">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FieldInput v-model="form.index" label="Índice" placeholder="9" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
         <FieldTextarea v-model="form.introText" label="Texto introductorio" :rows="2" :isSingle="true" />
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FieldInput v-model="form.totalInvestment" label="Inversión total" placeholder="$3.500.000" />
           <div>
             <label class="block text-xs text-gray-500 mb-0.5">Moneda</label>
@@ -401,7 +401,7 @@
                   </div>
                   <button type="button" class="text-xs text-red-500" @click="form.paymentOptions.splice(idx, 1)">Eliminar</button>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <FieldInput v-model="opt.label" label="Etiqueta" placeholder="40% al firmar" />
                   <FieldInput v-model="opt.description" label="Descripción" placeholder="$596.000 COP" />
                 </div>
@@ -416,13 +416,13 @@
 
       <!-- FINAL NOTE -->
       <template v-else-if="sectionType === 'final_note'">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FieldInput v-model="form.index" label="Índice" placeholder="10" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
         <FieldTextarea v-model="form.message" label="Mensaje" :rows="5" :isSingle="true" />
         <FieldTextarea v-model="form.personalNote" label="Nota personal" :rows="3" :isSingle="true" />
-        <div class="grid grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <FieldInput v-model="form.teamName" label="Nombre del equipo" />
           <FieldInput v-model="form.teamRole" label="Rol" />
           <FieldInput v-model="form.contactEmail" label="Email de contacto" />
@@ -455,7 +455,7 @@
 
       <!-- NEXT STEPS -->
       <template v-else-if="sectionType === 'next_steps'">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FieldInput v-model="form.index" label="Índice" placeholder="11" />
           <FieldInput v-model="form.title" label="Título" />
         </div>
@@ -480,7 +480,7 @@
           <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.steps.push({ title: '', description: '' })">+ Agregar paso</button>
         </div>
         <FieldTextarea v-model="form.ctaMessage" label="Mensaje CTA" :rows="2" :isSingle="true" />
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="bg-gray-50 rounded-xl p-3 border border-gray-100">
             <p class="text-xs text-gray-400 mb-2">CTA Primario</p>
             <FieldInput v-model="form.primaryCTA.text" label="Texto" class="mb-1" />
@@ -504,7 +504,7 @@
                   </div>
                   <button type="button" class="text-xs text-red-500" @click="form.contactMethods.splice(idx, 1)">Eliminar</button>
                 </div>
-                <div class="grid grid-cols-4 gap-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
                   <EmojiIconField v-model="method.icon" label="Icono" placeholder="📧" />
                   <FieldInput v-model="method.title" label="Título" />
                   <FieldInput v-model="method.value" label="Valor" />
@@ -536,7 +536,7 @@
     </div>
 
     <!-- Save button -->
-    <div class="flex items-center gap-3 mt-5">
+    <div class="flex flex-wrap items-center gap-3 mt-5">
       <button
         type="button"
         :disabled="isSaving"
@@ -729,6 +729,31 @@ if (sectionType.value === 'investment') {
   watch([() => form.totalInvestment, () => form.currency], () => {
     recalcPaymentDescriptions();
   });
+}
+
+// Auto-sync paste text from form data (keeps paste area current while editing in form mode)
+watch(
+  () => _formToReadableText(form, sectionType.value),
+  (newText) => {
+    if (!pasteMode.value) pasteText.value = newText;
+  },
+);
+
+// Auto-sync group/module paste text for functional_requirements subsections
+if (sectionType.value === 'functional_requirements') {
+  watch(
+    () => [...form.groups, ...form.additionalModules].map(g =>
+      JSON.stringify({ d: g.description, items: g.items }),
+    ).join('|'),
+    () => {
+      for (const g of form.groups) {
+        if (!g._pasteMode) g._pasteText = _groupToReadableText(g);
+      }
+      for (const m of form.additionalModules) {
+        if (!m._pasteMode) m._pasteText = _groupToReadableText(m);
+      }
+    },
+  );
 }
 
 // --- Helpers: JSON ↔ form conversion (delegated to sectionEditorUtils.js) ---

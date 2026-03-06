@@ -156,7 +156,7 @@ def _safe(data, key, default=''):
 
 def _new_page(c, ps):
     """Emit current page and start a new one with header bar + footer."""
-    _draw_footer(c, ps['num'], ps['total'], ps['client'])
+    _draw_footer(c, ps['num'], ps.get('total'), ps['client'])
     c.showPage()
     ps['num'] += 1
     _draw_header_bar(c)
@@ -188,7 +188,7 @@ def _draw_green_bar(c):
     _draw_header_bar(c)
 
 
-def _draw_footer(c, page_num, total_pages, client_name=''):
+def _draw_footer(c, page_num, total_pages=None, client_name=''):
     """Draw a discrete footer with page number and branding."""
     footer_y = MARGIN_B - 14
     c.setStrokeColor(GRAY_300)
@@ -197,12 +197,14 @@ def _draw_footer(c, page_num, total_pages, client_name=''):
     c.setFont(_font('regular'), 7)
     c.setFillColor(GRAY_500)
     c.drawString(MARGIN_L, footer_y - 11, 'Project App  |  projectapp.co')
-    c.setFont(_font('regular'), 7)
+    if client_name:
+        c.drawCentredString(PAGE_W / 2, footer_y - 11, client_name)
     c.setFillColor(GREEN_LIGHT)
-    c.drawRightString(
-        PAGE_W - MARGIN_R, footer_y - 11,
-        f'{page_num} / {total_pages}',
+    page_label = (
+        f'{page_num} / {total_pages}' if total_pages
+        else f'P\u00e1gina {page_num}'
     )
+    c.drawRightString(PAGE_W - MARGIN_R, footer_y - 11, page_label)
 
 
 def _draw_section_header(c, y, index_str, title, ps=None):
@@ -211,7 +213,7 @@ def _draw_section_header(c, y, index_str, title, ps=None):
         c.setFont(_font('light'), 11)
         c.setFillColor(GREEN_LIGHT)
         c.drawString(MARGIN_L, y, str(index_str).zfill(2))
-        y -= 8
+        y -= 22
     c.setFont(_font('light'), 24)
     c.setFillColor(ESMERALD)
     max_chars = 38
@@ -401,51 +403,85 @@ def _render_greeting(c, data, proposal, ps=None):
                         'Project App  |  projectapp.co')
 
 
-def _render_executive_summary(c, data, _proposal, ps=None):
+def _render_executive_summary(c, data, _proposal, ps=None, y=None):
     """Render executive summary with paragraphs + sidebar highlights."""
-    y = PAGE_H - MARGIN_T
+    if y is None:
+        y = PAGE_H - MARGIN_T
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
     y -= 8
 
     paragraphs = _safe(data, 'paragraphs', [])
     highlights = _safe(data, 'highlights', [])
     hl_title = _safe(data, 'highlightsTitle', 'Aspectos Clave')
+    content_top = y
 
     if highlights:
-        y = _draw_paragraphs(c, y, paragraphs, max_width=TEXT_AREA_W, ps=ps)
-        _draw_sidebar_box(c, PAGE_H - MARGIN_T - 50, hl_title, highlights)
+        has_room = (content_top - MARGIN_B) > 200
+        if has_room:
+            y = _draw_paragraphs(c, y, paragraphs, max_width=TEXT_AREA_W, ps=ps)
+            sb = _draw_sidebar_box(c, content_top, hl_title, highlights)
+            y = min(y, sb - 8)
+        else:
+            y = _draw_paragraphs(c, y, paragraphs, ps=ps)
+            y -= 6
+            y = _draw_subtitle(c, y, hl_title, ps=ps)
+            y = _draw_bullet_list(c, y, highlights, ps=ps)
     else:
         y = _draw_paragraphs(c, y, paragraphs, ps=ps)
+    return y
 
 
-def _render_context_diagnostic(c, data, _proposal, ps=None):
+def _render_context_diagnostic(c, data, _proposal, ps=None, y=None):
     """Render context & diagnostic section."""
-    y = PAGE_H - MARGIN_T
+    if y is None:
+        y = PAGE_H - MARGIN_T
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
     y -= 8
 
     issues = _safe(data, 'issues', [])
     issues_title = _safe(data, 'issuesTitle', 'Problemas Identificados')
-
-    text_w = TEXT_AREA_W if issues else None
-    y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []),
-                         max_width=text_w, ps=ps)
-
-    # Opportunity block
-    opp_title = _safe(data, 'opportunityTitle')
-    opp = _safe(data, 'opportunity')
-    if opp:
-        y -= 6
-        y = _draw_subtitle(c, y, opp_title or 'La oportunidad', ps=ps)
-        y = _draw_paragraphs(c, y, [opp], max_width=text_w, ps=ps)
+    content_top = y
 
     if issues:
-        _draw_sidebar_box(c, PAGE_H - MARGIN_T - 50, issues_title, issues)
+        has_room = (content_top - MARGIN_B) > 200
+        if has_room:
+            text_w = TEXT_AREA_W
+            y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []),
+                                 max_width=text_w, ps=ps)
+            opp_title = _safe(data, 'opportunityTitle')
+            opp = _safe(data, 'opportunity')
+            if opp:
+                y -= 6
+                y = _draw_subtitle(c, y, opp_title or 'La oportunidad', ps=ps)
+                y = _draw_paragraphs(c, y, [opp], max_width=text_w, ps=ps)
+            sb = _draw_sidebar_box(c, content_top, issues_title, issues)
+            y = min(y, sb - 8)
+        else:
+            y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []), ps=ps)
+            opp_title = _safe(data, 'opportunityTitle')
+            opp = _safe(data, 'opportunity')
+            if opp:
+                y -= 6
+                y = _draw_subtitle(c, y, opp_title or 'La oportunidad', ps=ps)
+                y = _draw_paragraphs(c, y, [opp], ps=ps)
+            y -= 6
+            y = _draw_subtitle(c, y, issues_title, ps=ps)
+            y = _draw_bullet_list(c, y, issues, ps=ps)
+    else:
+        y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []), ps=ps)
+        opp_title = _safe(data, 'opportunityTitle')
+        opp = _safe(data, 'opportunity')
+        if opp:
+            y -= 6
+            y = _draw_subtitle(c, y, opp_title or 'La oportunidad', ps=ps)
+            y = _draw_paragraphs(c, y, [opp], ps=ps)
+    return y
 
 
-def _render_conversion_strategy(c, data, _proposal, ps=None):
+def _render_conversion_strategy(c, data, _proposal, ps=None, y=None):
     """Render conversion strategy section."""
-    y = PAGE_H - MARGIN_T
+    if y is None:
+        y = PAGE_H - MARGIN_T
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
     y -= 8
 
@@ -476,57 +512,100 @@ def _render_conversion_strategy(c, data, _proposal, ps=None):
         if result_title:
             y = _draw_subtitle(c, y, result_title, ps=ps)
         y = _draw_paragraphs(c, y, [result], ps=ps)
+    return y
 
 
-def _render_design_ux(c, data, _proposal, ps=None):
+def _render_design_ux(c, data, _proposal, ps=None, y=None):
     """Render design & UX section."""
-    y = PAGE_H - MARGIN_T
+    if y is None:
+        y = PAGE_H - MARGIN_T
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
     y -= 8
 
     focus_items = _safe(data, 'focusItems', [])
     focus_title = _safe(data, 'focusTitle', 'Enfoque')
-    text_w = TEXT_AREA_W if focus_items else None
-
-    y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []),
-                         max_width=text_w, ps=ps)
-
-    obj_title = _safe(data, 'objectiveTitle')
-    obj = _safe(data, 'objective')
-    if obj:
-        y -= 6
-        y = _draw_subtitle(c, y, obj_title or 'Objetivo', ps=ps)
-        y = _draw_paragraphs(c, y, [obj], max_width=text_w, ps=ps)
+    content_top = y
 
     if focus_items:
-        _draw_sidebar_box(c, PAGE_H - MARGIN_T - 50, focus_title, focus_items)
+        has_room = (content_top - MARGIN_B) > 200
+        if has_room:
+            y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []),
+                                 max_width=TEXT_AREA_W, ps=ps)
+            obj_title = _safe(data, 'objectiveTitle')
+            obj = _safe(data, 'objective')
+            if obj:
+                y -= 6
+                y = _draw_subtitle(c, y, obj_title or 'Objetivo', ps=ps)
+                y = _draw_paragraphs(c, y, [obj], max_width=TEXT_AREA_W, ps=ps)
+            sb = _draw_sidebar_box(c, content_top, focus_title, focus_items)
+            y = min(y, sb - 8)
+        else:
+            y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []), ps=ps)
+            obj_title = _safe(data, 'objectiveTitle')
+            obj = _safe(data, 'objective')
+            if obj:
+                y -= 6
+                y = _draw_subtitle(c, y, obj_title or 'Objetivo', ps=ps)
+                y = _draw_paragraphs(c, y, [obj], ps=ps)
+            y -= 6
+            y = _draw_subtitle(c, y, focus_title, ps=ps)
+            y = _draw_bullet_list(c, y, focus_items, ps=ps)
+    else:
+        y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []), ps=ps)
+        obj_title = _safe(data, 'objectiveTitle')
+        obj = _safe(data, 'objective')
+        if obj:
+            y -= 6
+            y = _draw_subtitle(c, y, obj_title or 'Objetivo', ps=ps)
+            y = _draw_paragraphs(c, y, [obj], ps=ps)
+    return y
 
 
-def _render_creative_support(c, data, _proposal, ps=None):
+def _render_creative_support(c, data, _proposal, ps=None, y=None):
     """Render creative support section."""
-    y = PAGE_H - MARGIN_T
+    if y is None:
+        y = PAGE_H - MARGIN_T
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
     y -= 8
 
     includes = _safe(data, 'includes', [])
     inc_title = _safe(data, 'includesTitle', 'Incluye')
-    text_w = TEXT_AREA_W if includes else None
-
-    y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []),
-                         max_width=text_w, ps=ps)
-
-    closing = _safe(data, 'closing')
-    if closing:
-        y -= 6
-        y = _draw_paragraphs(c, y, [closing], max_width=text_w, ps=ps)
+    content_top = y
 
     if includes:
-        _draw_sidebar_box(c, PAGE_H - MARGIN_T - 50, inc_title, includes)
+        has_room = (content_top - MARGIN_B) > 200
+        if has_room:
+            y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []),
+                                 max_width=TEXT_AREA_W, ps=ps)
+            closing = _safe(data, 'closing')
+            if closing:
+                y -= 6
+                y = _draw_paragraphs(c, y, [closing], max_width=TEXT_AREA_W,
+                                     ps=ps)
+            sb = _draw_sidebar_box(c, content_top, inc_title, includes)
+            y = min(y, sb - 8)
+        else:
+            y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []), ps=ps)
+            closing = _safe(data, 'closing')
+            if closing:
+                y -= 6
+                y = _draw_paragraphs(c, y, [closing], ps=ps)
+            y -= 6
+            y = _draw_subtitle(c, y, inc_title, ps=ps)
+            y = _draw_bullet_list(c, y, includes, ps=ps)
+    else:
+        y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []), ps=ps)
+        closing = _safe(data, 'closing')
+        if closing:
+            y -= 6
+            y = _draw_paragraphs(c, y, [closing], ps=ps)
+    return y
 
 
-def _render_development_stages(c, data, _proposal, ps=None):
+def _render_development_stages(c, data, _proposal, ps=None, y=None):
     """Render development stages as a vertical timeline."""
-    y = PAGE_H - MARGIN_T
+    if y is None:
+        y = PAGE_H - MARGIN_T
     index_str = _safe(data, 'index')
     title = _safe(data, 'title', 'Etapas de Desarrollo')
     y = _draw_section_header(c, y, index_str, title)
@@ -572,11 +651,13 @@ def _render_development_stages(c, data, _proposal, ps=None):
                 c.drawString(tx, y, dl)
                 y -= 13
         y -= 12
+    return y
 
 
-def _render_functional_requirements(c, data, proposal, ps=None):
+def _render_functional_requirements(c, data, proposal, ps=None, y=None):
     """Render functional requirements overview page."""
-    y = PAGE_H - MARGIN_T
+    if y is None:
+        y = PAGE_H - MARGIN_T
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
     y -= 8
 
@@ -604,6 +685,7 @@ def _render_functional_requirements(c, data, proposal, ps=None):
     # Overview cards (2-column grid)
     col_w = (CONTENT_W - 16) / 2
     chars = int(col_w / 5.0)
+    last_card_bottom = y
     for idx, grp in enumerate(all_groups):
         col = idx % 2
         row = idx // 2
@@ -630,13 +712,19 @@ def _render_functional_requirements(c, data, proposal, ps=None):
             for dl in d_lines[:2]:
                 c.drawString(card_x + 8, dy, dl)
                 dy -= 11
+        last_card_bottom = min(last_card_bottom, card_y - 44)
 
-    return all_groups
+    # Store groups for generate() to render detail sub-sections
+    if ps is not None:
+        ps['_func_req_groups'] = all_groups
+
+    return last_card_bottom - 8
 
 
-def _render_requirement_group_page(c, grp, ps=None):
-    """Render a single requirement group on its own page."""
-    y = PAGE_H - MARGIN_T
+def _render_requirement_group_page(c, grp, ps=None, y=None):
+    """Render a single requirement group detail."""
+    if y is None:
+        y = PAGE_H - MARGIN_T
 
     c.setFont(_font('light'), 20)
     c.setFillColor(ESMERALD)
@@ -674,11 +762,13 @@ def _render_requirement_group_page(c, grp, ps=None):
                 c.drawString(MARGIN_L + 20, y, il)
                 y -= 13
         y -= 5
+    return y
 
 
-def _render_timeline(c, data, _proposal, ps=None):
+def _render_timeline(c, data, _proposal, ps=None, y=None):
     """Render timeline section with phases."""
-    y = PAGE_H - MARGIN_T
+    if y is None:
+        y = PAGE_H - MARGIN_T
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
     y -= 8
 
@@ -753,23 +843,49 @@ def _render_timeline(c, data, _proposal, ps=None):
             y -= 12
 
         y -= 6
+    return y
 
 
-def _render_investment(c, data, _proposal, ps=None):
+def _render_investment(c, data, _proposal, ps=None, y=None):
     """Render investment section."""
-    y = PAGE_H - MARGIN_T
+    if y is None:
+        y = PAGE_H - MARGIN_T
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
     y -= 8
 
     intro = _safe(data, 'introText')
+    included = _safe(data, 'whatsIncluded', [])
+    content_top = y
+
+    # Intro text — use narrower column if sidebar fits
     if intro:
-        y = _draw_paragraphs(c, y, [intro], ps=ps)
+        if included and (content_top - MARGIN_B) > 200:
+            y = _draw_paragraphs(c, y, [intro], max_width=TEXT_AREA_W, ps=ps)
+        else:
+            y = _draw_paragraphs(c, y, [intro], ps=ps)
         y -= 6
+
+    # What's included sidebar (only if room)
+    if included:
+        items_text = [
+            f'{_strip_emoji(_safe(it, "title"))} \u2014 '
+            f'{_strip_emoji(_safe(it, "description"))}'
+            for it in included
+        ]
+        if (content_top - MARGIN_B) > 200:
+            sb = _draw_sidebar_box(c, content_top, 'Incluye', items_text)
+            y = min(y, sb - 8)
+        else:
+            y -= 6
+            y = _draw_subtitle(c, y, 'Incluye', ps=ps)
+            y = _draw_bullet_list(c, y, items_text, ps=ps)
 
     # Total investment highlight box
     total = _safe(data, 'totalInvestment')
     currency = _safe(data, 'currency')
     if total:
+        if ps:
+            y = _check_y(c, y, ps, need=70)
         box_h = 54
         box_w = CONTENT_W
         box_y = y - box_h
@@ -815,16 +931,6 @@ def _render_investment(c, data, _proposal, ps=None):
             y = _draw_paragraphs(c, y, [h_desc], font_size=9,
                                  leading=13, ps=ps)
 
-    # What's included sidebar
-    included = _safe(data, 'whatsIncluded', [])
-    if included:
-        items_text = [
-            f'{_strip_emoji(_safe(it, "title"))} \u2014 '
-            f'{_strip_emoji(_safe(it, "description"))}'
-            for it in included
-        ]
-        _draw_sidebar_box(c, PAGE_H - MARGIN_T - 50, 'Incluye', items_text)
-
     # Value reasons
     reasons = _safe(data, 'valueReasons', [])
     if reasons:
@@ -837,24 +943,31 @@ def _render_investment(c, data, _proposal, ps=None):
             for r in reasons
         ]
         y = _draw_bullet_list(c, y, normalized, font_size=9, ps=ps)
+    return y
 
 
-def _render_final_note(c, data, _proposal, ps=None):
+def _render_final_note(c, data, proposal, ps=None, y=None):
     """Render final note section."""
-    y = PAGE_H - MARGIN_T
+    if y is None:
+        y = PAGE_H - MARGIN_T
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
     y -= 8
 
+    badges = _safe(data, 'commitmentBadges', [])
+    content_top = y
+    text_w = TEXT_AREA_W if badges and (content_top - MARGIN_B) > 200 else None
+
     message = _safe(data, 'message')
     if message:
-        y = _draw_paragraphs(c, y, [message], ps=ps)
+        y = _draw_paragraphs(c, y, [message], max_width=text_w, ps=ps)
 
     personal = _safe(data, 'personalNote')
     if personal:
         y -= 6
+        chars = int((text_w or CONTENT_W) / (10 * 0.48))
         c.setFont(_font('italic'), 10)
         c.setFillColor(GREEN_LIGHT)
-        p_lines = textwrap.wrap(_strip_emoji(str(personal)), width=70)
+        p_lines = textwrap.wrap(_strip_emoji(str(personal)), width=chars)
         for pl in p_lines:
             if ps:
                 y = _check_y(c, y, ps)
@@ -863,7 +976,36 @@ def _render_final_note(c, data, _proposal, ps=None):
             c.drawString(MARGIN_L, y, pl)
             y -= 14
 
+    # Validity period
+    validity = _safe(data, 'validityPeriod',
+                     'Esta propuesta tiene una vigencia de 30 d\u00edas '
+                     'calendario a partir de su fecha de env\u00edo.')
+    if validity:
+        y -= 10
+        if ps:
+            y = _check_y(c, y, ps, need=30)
+        c.setFont(_font('regular'), 8)
+        c.setFillColor(GRAY_500)
+        v_lines = textwrap.wrap(_strip_emoji(str(validity)), width=90)
+        for vl in v_lines:
+            c.drawString(MARGIN_L, y, vl)
+            y -= 11
+
+    # Client name
+    client_name = getattr(proposal, 'client_name', '')
+    if client_name:
+        y -= 6
+        if ps:
+            y = _check_y(c, y, ps, need=20)
+        c.setFont(_font('regular'), 8)
+        c.setFillColor(GRAY_500)
+        c.drawString(MARGIN_L, y,
+                     f'Propuesta elaborada para: {client_name}')
+        y -= 14
+
     # Signature
+    if ps:
+        y = _check_y(c, y, ps, need=60)
     y -= 16
     c.setStrokeColor(GRAY_300)
     c.setLineWidth(0.4)
@@ -888,26 +1030,39 @@ def _render_final_note(c, data, _proposal, ps=None):
         c.drawString(MARGIN_L, y, email)
         y -= 13
 
-    # Commitment badges in sidebar
-    badges = _safe(data, 'commitmentBadges', [])
+    # Commitment badges
     if badges:
         items = [
             f'{_strip_emoji(_safe(b, "title"))} \u2014 '
             f'{_strip_emoji(_safe(b, "description"))}'
             for b in badges
         ]
-        _draw_sidebar_box(c, PAGE_H - MARGIN_T - 50, 'Compromisos', items)
+        if (content_top - MARGIN_B) > 200:
+            sb = _draw_sidebar_box(c, content_top, 'Compromisos', items)
+            y = min(y, sb - 8)
+        else:
+            y -= 6
+            y = _draw_subtitle(c, y, 'Compromisos', ps=ps)
+            y = _draw_bullet_list(c, y, items, ps=ps)
+    return y
 
 
-def _render_next_steps(c, data, _proposal, ps=None):
+def _render_next_steps(c, data, _proposal, ps=None, y=None):
     """Render next steps section."""
-    y = PAGE_H - MARGIN_T
+    if y is None:
+        y = PAGE_H - MARGIN_T
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
     y -= 8
 
+    contacts = _safe(data, 'contactMethods', [])
+    content_top = y
+
     intro = _safe(data, 'introMessage')
     if intro:
-        y = _draw_paragraphs(c, y, [intro], ps=ps)
+        if contacts and (content_top - MARGIN_B) > 200:
+            y = _draw_paragraphs(c, y, [intro], max_width=TEXT_AREA_W, ps=ps)
+        else:
+            y = _draw_paragraphs(c, y, [intro], ps=ps)
         y -= 6
 
     steps = _safe(data, 'steps', [])
@@ -952,15 +1107,21 @@ def _render_next_steps(c, data, _proposal, ps=None):
             c.drawString(MARGIN_L, y, cl)
             y -= 16
 
-    # Contact methods sidebar
-    contacts = _safe(data, 'contactMethods', [])
+    # Contact methods
     if contacts:
         items = [
             f'{_strip_emoji(_safe(ct, "title"))}: '
             f'{_strip_emoji(_safe(ct, "value"))}'
             for ct in contacts
         ]
-        _draw_sidebar_box(c, PAGE_H - MARGIN_T - 50, 'Contacto', items)
+        if (content_top - MARGIN_B) > 200:
+            sb = _draw_sidebar_box(c, content_top, 'Contacto', items)
+            y = min(y, sb - 8)
+        else:
+            y -= 6
+            y = _draw_subtitle(c, y, 'Contacto', ps=ps)
+            y = _draw_bullet_list(c, y, items, ps=ps)
+    return y
 
 
 def _parse_markdown_lines(raw):
@@ -1007,9 +1168,10 @@ def _clean_inline_bold(text):
     return re.sub(r'\*\*(.+?)\*\*', r'\1', text)
 
 
-def _render_raw_text(c, data, _proposal, ps=None):
+def _render_raw_text(c, data, _proposal, ps=None, y=None):
     """Render a paste-mode section with parsed markdown content."""
-    y = PAGE_H - MARGIN_T
+    if y is None:
+        y = PAGE_H - MARGIN_T
     index_str = _safe(data, 'index')
     title = _safe(data, 'title', 'Sección')
     y = _draw_section_header(c, y, index_str, title)
@@ -1017,7 +1179,7 @@ def _render_raw_text(c, data, _proposal, ps=None):
 
     raw = _safe(data, 'rawText')
     if not raw:
-        return
+        return y
 
     tokens = _parse_markdown_lines(raw)
     for kind, text in tokens:
@@ -1064,6 +1226,7 @@ def _render_raw_text(c, data, _proposal, ps=None):
             y = _draw_bullet_list(c, y, [text], ps=ps)
         else:  # paragraph
             y = _draw_paragraphs(c, y, [text], ps=ps)
+    return y
 
 
 # Map section_type → renderer
@@ -1101,6 +1264,10 @@ class ProposalPdfService:
         Build a multi-page portrait-A4 PDF from the proposal's
         enabled sections and return the raw bytes.
 
+        Sections flow continuously — each section starts where the
+        previous one ended.  The greeting/cover page is the only
+        section that always gets its own page.
+
         Args:
             proposal: BusinessProposal instance with related sections.
 
@@ -1116,28 +1283,21 @@ class ProposalPdfService:
                 .order_by('order')
             )
 
-            # Estimate total pages (auto-pagination may add more)
-            extra_pages = 0
-            for sec in sections:
-                if sec.section_type == 'functional_requirements':
-                    data = sec.content_json or {}
-                    groups = list(data.get('groups', []))
-                    groups += list(data.get('additionalModules', []))
-                    db_groups = proposal.requirement_groups.count()
-                    extra_pages += len(groups) + db_groups
-
-            total_pages = len(sections) + extra_pages
-
             buf = io.BytesIO()
             c = canvas.Canvas(buf, pagesize=A4)
             c.setTitle(f'Propuesta \u2014 {proposal.client_name}')
             c.setAuthor('Project App')
 
             ps = {
-                'num': 0,
-                'total': total_pages,
+                'num': 1,
                 'client': proposal.client_name,
             }
+
+            # Start first page
+            _draw_header_bar(c)
+            y = PAGE_H - MARGIN_T
+            page_started = True
+            first_content = True  # track whether we need greeting's own page
 
             for sec in sections:
                 stype = sec.section_type
@@ -1153,29 +1313,46 @@ class ProposalPdfService:
                 )
                 renderer = SECTION_RENDERERS.get(stype)
 
-                if is_paste:
-                    # Paste-mode: render raw markdown regardless of type
+                # ── Greeting gets its own full page ──────────────
+                if stype == 'greeting':
+                    if not first_content:
+                        # finish current page and start fresh
+                        _draw_footer(c, ps['num'], client_name=ps['client'])
+                        c.showPage()
+                        ps['num'] += 1
+                        _draw_header_bar(c)
+                    first_content = False
+                    if is_paste:
+                        _render_raw_text(c, data, proposal, ps=ps)
+                    elif renderer:
+                        renderer(c, data, proposal, ps=ps)
+                    _draw_footer(c, ps['num'], client_name=ps['client'])
+                    c.showPage()
                     ps['num'] += 1
                     _draw_header_bar(c)
-                    _render_raw_text(c, data, proposal, ps=ps)
-                    _draw_footer(
-                        c, ps['num'], ps['total'], proposal.client_name,
-                    )
-                    c.showPage()
-                elif renderer:
-                    ps['num'] += 1
-                    _draw_header_bar(c)
-                    result = renderer(c, data, proposal, ps=ps)
-                    _draw_footer(
-                        c, ps['num'], ps['total'], proposal.client_name,
-                    )
-                    c.showPage()
+                    y = PAGE_H - MARGIN_T
+                    page_started = True
+                    continue
 
-                    # Functional requirements: per-group detail pages
-                    if stype == 'functional_requirements' and isinstance(
-                        result, list
-                    ):
-                        for grp in result:
+                # ── All other sections flow continuously ─────────
+                if first_content:
+                    first_content = False
+                else:
+                    # Section separator space
+                    y -= 28
+                    # Need room for header (~80pt); if not, new page
+                    y = _check_y(c, y, ps, need=80)
+
+                if is_paste:
+                    y = _render_raw_text(c, data, proposal, ps=ps,
+                                         y=y) or y
+                elif renderer:
+                    y = renderer(c, data, proposal, ps=ps, y=y) or y
+
+                    # Functional requirements: per-group details
+                    func_groups = ps.pop('_func_req_groups', None)
+                    if stype == 'functional_requirements' and func_groups:
+                        for grp in func_groups:
                             grp_paste = (
                                 _safe(grp, '_editMode') == 'paste'
                                 and _safe(grp, 'rawText')
@@ -1183,33 +1360,26 @@ class ProposalPdfService:
                             items = _safe(grp, 'items', [])
                             if not items and not grp_paste:
                                 continue
-                            ps['num'] += 1
-                            _draw_header_bar(c)
+                            y -= 28
+                            y = _check_y(c, y, ps, need=80)
                             if grp_paste:
-                                _render_raw_text(
+                                y = _render_raw_text(
                                     c,
                                     {'title': _safe(grp, 'title'),
                                      'rawText': _safe(grp, 'rawText')},
-                                    proposal, ps=ps,
-                                )
+                                    proposal, ps=ps, y=y,
+                                ) or y
                             else:
-                                _render_requirement_group_page(
-                                    c, grp, ps=ps,
-                                )
-                            _draw_footer(
-                                c, ps['num'], ps['total'],
-                                proposal.client_name,
-                            )
-                            c.showPage()
+                                y = _render_requirement_group_page(
+                                    c, grp, ps=ps, y=y,
+                                ) or y
                 elif data.get('rawText'):
-                    # Unknown section type with rawText fallback
-                    ps['num'] += 1
-                    _draw_header_bar(c)
-                    _render_raw_text(c, data, proposal, ps=ps)
-                    _draw_footer(
-                        c, ps['num'], ps['total'], proposal.client_name,
-                    )
-                    c.showPage()
+                    y = _render_raw_text(c, data, proposal, ps=ps,
+                                         y=y) or y
+
+            # Finalize last page
+            if page_started:
+                _draw_footer(c, ps['num'], client_name=ps['client'])
 
             c.save()
             content_bytes = buf.getvalue()

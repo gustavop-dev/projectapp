@@ -1,6 +1,6 @@
 <template>
   <section ref="sectionRef" class="final-note py-16 md:py-24 bg-gray-50">
-    <div class="container mx-auto px-4 max-w-4xl">
+    <div class="container mx-auto px-6 sm:px-4 max-w-4xl">
       <div class="section-header mb-12">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
@@ -12,7 +12,7 @@
         </div>
       </div>
 
-      <div data-animate="fade-up" class="note-content bg-white p-8 md:p-12 rounded-2xl shadow-sm mb-8">
+      <div data-animate="fade-up" class="note-content bg-white p-5 sm:p-8 md:p-12 rounded-2xl shadow-sm mb-8">
         <div class="quote-icon mb-6">
           <svg class="w-12 h-12 text-emerald-600 opacity-50" fill="currentColor" viewBox="0 0 24 24">
             <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>

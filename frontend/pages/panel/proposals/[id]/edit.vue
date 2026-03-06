@@ -4,7 +4,7 @@
       <NuxtLink to="/panel/proposals" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
         ← Volver a propuestas
       </NuxtLink>
-      <div v-if="proposal" class="flex items-center gap-4 mt-2">
+      <div v-if="proposal" class="flex flex-wrap items-center gap-3 sm:gap-4 mt-2">
         <h1 class="text-2xl font-light text-gray-900">{{ proposal.title }}</h1>
         <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(proposal.status)">
           {{ proposal.status }}
@@ -19,7 +19,7 @@
 
     <template v-else-if="proposal">
       <!-- Tabs -->
-      <div class="flex gap-1 mb-6 border-b border-gray-200">
+      <div class="flex gap-1 mb-6 border-b border-gray-200 overflow-x-auto">
         <button
           v-for="tab in tabs"
           :key="tab.id"
@@ -36,7 +36,7 @@
       <!-- Tab: General -->
       <div v-show="activeTab === 'general'" class="max-w-2xl">
         <!-- Read-only info -->
-        <div class="bg-gray-50 rounded-xl p-5 mb-6 grid grid-cols-2 gap-4 text-sm">
+        <div class="bg-gray-50 rounded-xl p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
             <span class="text-gray-400 text-xs">UUID</span>
             <p class="text-gray-700 font-mono text-xs mt-0.5">{{ proposal.uuid }}</p>
@@ -81,7 +81,7 @@
         </div>
 
         <!-- Editable form -->
-        <form class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 space-y-6" @submit.prevent="handleUpdate">
+        <form class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-8 space-y-6" @submit.prevent="handleUpdate">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Título</label>
             <input v-model="form.title" type="text" required
@@ -106,7 +106,7 @@
             </select>
             <p class="text-xs text-gray-400 mt-1">Solo afecta los títulos por defecto al crear. Cambiar aquí no regenera las secciones existentes.</p>
           </div>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Inversión total</label>
               <input v-model.number="form.total_investment" type="number" min="0" step="0.01"
@@ -126,7 +126,7 @@
             <input v-model="form.expires_at" type="datetime-local"
               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
           </div>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Recordatorio (día)</label>
               <input v-model.number="form.reminder_days" type="number" min="1" max="30"
@@ -151,15 +151,15 @@
             {{ updateMsg.text }}
           </div>
 
-          <div class="flex items-center gap-4 pt-2">
+          <div class="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
             <button type="submit" :disabled="proposalStore.isUpdating"
-              class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
+              class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
               {{ proposalStore.isUpdating ? 'Guardando...' : 'Guardar Cambios' }}
             </button>
             <button
               v-if="proposal.status === 'draft' && proposal.client_email"
               type="button"
-              class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
+              class="px-5 sm:px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
               @click="handleSend"
             >
               Enviar al Cliente
@@ -167,7 +167,7 @@
             <button
               v-else-if="['sent', 'viewed'].includes(proposal.status) && proposal.client_email"
               type="button"
-              class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
+              class="px-5 sm:px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
               @click="handleResend"
             >
               Re-enviar al Cliente
@@ -190,7 +190,7 @@
           >
             <!-- Section header -->
             <div
-              class="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
+              class="px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-gray-50 transition-colors"
               @click="toggleSection(section.id)"
             >
               <div class="flex items-center gap-4">
@@ -219,7 +219,7 @@
             </div>
 
             <!-- Section content editor (expanded) -->
-            <div v-if="expandedSections.has(section.id)" class="border-t border-gray-100 px-6 py-6">
+            <div v-if="expandedSections.has(section.id)" class="border-t border-gray-100 px-3 sm:px-6 py-4 sm:py-6">
               <SectionEditor
                 :section="section"
                 :proposalData="proposal"

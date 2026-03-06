@@ -1,6 +1,6 @@
 <template>
   <section ref="sectionRef" class="timeline py-16 md:py-24 bg-gray-50">
-    <div class="container mx-auto px-4 max-w-5xl">
+    <div class="container mx-auto px-6 sm:px-4 max-w-5xl">
       <div class="section-header mb-12">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
@@ -35,15 +35,15 @@
         <div data-animate="fade-up-stagger" class="space-y-8">
           <div v-for="(phase, index) in phases" :key="index"
                class="timeline-item relative">
-            <div class="flex items-start">
-              <div class="flex-shrink-0 mr-8 relative z-10">
-                <div class="w-16 h-16 rounded-full flex items-center justify-center shadow-lg"
+            <div class="flex flex-col sm:flex-row items-start gap-4 sm:gap-0">
+              <div class="flex-shrink-0 sm:mr-8 relative z-10">
+                <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center shadow-lg"
                      :class="phase.circleColor">
-                  <span class="text-2xl font-bold text-white">{{ index + 1 }}</span>
+                  <span class="text-xl sm:text-2xl font-bold text-white">{{ index + 1 }}</span>
                 </div>
               </div>
               
-              <div class="flex-1 bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+              <div class="flex-1 bg-white p-5 sm:p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                   <div>
                     <h3 class="text-2xl font-bold text-gray-900 mb-2">{{ phase.title }}</h3>

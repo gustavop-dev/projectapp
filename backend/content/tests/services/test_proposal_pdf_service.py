@@ -395,7 +395,8 @@ class TestSectionRenderers:
         }
         SECTION_RENDERERS['development_stages'](pdf_canvas, data, proposal)
 
-    def test_functional_requirements_returns_groups(self, pdf_canvas, proposal):
+    def test_functional_requirements_returns_y_and_stores_groups(self, pdf_canvas, proposal):
+        ps = {'num': 1, 'client': 'Test'}
         data = {
             'index': '7', 'title': 'Requirements',
             'intro': 'Details.',
@@ -403,10 +404,12 @@ class TestSectionRenderers:
             'additionalModules': [],
         }
         result = SECTION_RENDERERS['functional_requirements'](
-            pdf_canvas, data, proposal,
+            pdf_canvas, data, proposal, ps=ps,
         )
-        assert isinstance(result, list)
-        assert len(result) >= 1
+        assert isinstance(result, (int, float))
+        assert result < PAGE_H - 50
+        assert '_func_req_groups' in ps
+        assert len(ps['_func_req_groups']) >= 1
 
     def test_timeline_renders(self, pdf_canvas, proposal):
         data = {
@@ -582,13 +585,13 @@ class TestGenerate:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_generates_correct_page_count(self, _mock_back, _mock_cover, proposal_with_sections):
+    def test_generates_multiple_pages(self, _mock_back, _mock_cover, proposal_with_sections):
         from pypdf import PdfReader
 
         pdf_bytes = ProposalPdfService.generate(proposal_with_sections)
         reader = PdfReader(io.BytesIO(pdf_bytes))
-        # 12 sections + 1 functional requirements group detail page = 13
-        assert len(reader.pages) == 13
+        # Greeting gets own page; remaining sections flow continuously
+        assert len(reader.pages) >= 2
 
     @patch('content.services.proposal_pdf_service.canvas.Canvas')
     def test_returns_none_on_exception(self, mock_canvas_cls, proposal):

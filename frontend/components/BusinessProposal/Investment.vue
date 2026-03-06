@@ -1,6 +1,6 @@
 <template>
   <section ref="sectionRef" class="investment py-16 md:py-24 bg-white">
-    <div class="container mx-auto px-4 max-w-5xl">
+    <div class="container mx-auto px-6 sm:px-4 max-w-5xl">
       <div class="section-header mb-12">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
@@ -18,10 +18,10 @@
         </p>
       </div>
 
-      <div data-animate="scale-in" class="pricing-card bg-gradient-to-br from-emerald-600 to-emerald-700 p-8 md:p-12 rounded-3xl text-white mb-12 shadow-2xl">
+      <div data-animate="scale-in" class="pricing-card bg-gradient-to-br from-emerald-600 to-emerald-700 p-5 sm:p-8 md:p-12 rounded-3xl text-white mb-12 shadow-2xl">
         <div class="text-center mb-8">
           <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-emerald-200">Inversión Total</div>
-          <div class="text-6xl md:text-7xl font-bold mb-2">{{ totalInvestment }}</div>
+          <div class="text-4xl sm:text-6xl md:text-7xl font-bold mb-2">{{ totalInvestment }}</div>
           <div class="text-emerald-200">{{ currency }}</div>
         </div>
         
@@ -39,23 +39,23 @@
         <h3 class="text-2xl font-bold text-gray-900 mb-6">Formas de Pago</h3>
         <div class="space-y-4">
           <div v-for="(option, index) in paymentOptions" :key="index"
-               class="payment-option-card flex items-center justify-between p-5 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-emerald-500 transition-all">
-            <span class="text-gray-700 font-medium">{{ option.label }}</span>
-            <span class="font-bold text-gray-900 text-lg">{{ option.description }}</span>
+               class="payment-option-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4 p-4 sm:p-5 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-emerald-500 transition-all">
+            <span class="text-gray-700 font-medium text-sm sm:text-base">{{ option.label }}</span>
+            <span class="font-bold text-gray-900 text-base sm:text-lg">{{ option.description }}</span>
           </div>
         </div>
       </div>
 
-      <div data-animate="fade-up" class="hosting-plan mt-12 bg-white p-8 md:p-10 rounded-2xl border-2 border-gray-100">
+      <div data-animate="fade-up" class="hosting-plan mt-12 bg-white p-5 sm:p-8 md:p-10 rounded-2xl border-2 border-gray-100">
         <div class="flex items-center mb-4">
           <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mr-4">
             <span class="text-2xl">☁️</span>
           </div>
           <h3 class="text-2xl font-bold text-gray-900">{{ hostingPlan.title }}</h3>
         </div>
-        <p class="text-gray-600 leading-relaxed mb-6 pl-16">{{ hostingPlan.description }}</p>
+        <p class="text-gray-600 leading-relaxed mb-6 pl-0 sm:pl-16">{{ hostingPlan.description }}</p>
 
-        <div class="grid md:grid-cols-2 gap-4 pl-16">
+        <div class="grid md:grid-cols-2 gap-4 pl-0 sm:pl-16">
           <div
             v-for="(spec, idx) in hostingPlan.specs"
             :key="idx"
@@ -73,7 +73,7 @@
           </div>
         </div>
 
-        <div class="mt-6 pl-16">
+        <div class="mt-6 pl-0 sm:pl-16">
           <div class="grid md:grid-cols-2 gap-4">
             <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
               <div class="text-sm text-emerald-700 font-medium">Precio especial</div>
@@ -89,7 +89,7 @@
         </div>
       </div>
 
-      <div v-if="valueReasons && valueReasons.length" data-animate="fade-up" class="value-proposition bg-gradient-to-br from-gray-900 to-gray-800 p-8 md:p-12 rounded-2xl text-white">
+      <div v-if="valueReasons && valueReasons.length" data-animate="fade-up" class="value-proposition bg-gradient-to-br from-gray-900 to-gray-800 p-5 sm:p-8 md:p-12 rounded-2xl text-white">
         <h3 class="text-2xl font-bold mb-6">¿Por Qué Esta Inversión Vale la Pena?</h3>
         <div class="grid md:grid-cols-2 gap-6">
           <div v-for="(reason, index) in normalizedReasons" :key="index"

@@ -1,10 +1,10 @@
 <template>
   <div>
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
       <h1 class="text-2xl font-light text-gray-900">Propuestas</h1>
       <NuxtLink
         to="/panel/proposals/create"
-        class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
+        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
                font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -46,8 +46,8 @@
     </div>
 
     <!-- Table -->
-    <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <table class="w-full">
+    <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+      <table class="w-full min-w-[700px]">
         <thead>
           <tr class="border-b border-gray-100 text-left">
             <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>

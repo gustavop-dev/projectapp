@@ -7,7 +7,7 @@
       <h1 class="text-2xl font-light text-gray-900 mt-2">Nueva Propuesta</h1>
     </div>
 
-    <form class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 max-w-2xl" @submit.prevent="handleSubmit">
+    <form class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-8 max-w-2xl" @submit.prevent="handleSubmit">
       <div class="space-y-6">
         <!-- Title -->
         <div>
@@ -62,7 +62,7 @@
         </div>
 
         <!-- Investment + Currency -->
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Inversión total</label>
             <input
@@ -100,7 +100,7 @@
         </div>
 
         <!-- Reminder days -->
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Recordatorio (día)</label>
             <input
@@ -147,11 +147,11 @@
         </div>
 
         <!-- Submit -->
-        <div class="flex items-center gap-4 pt-2">
+        <div class="flex flex-wrap items-center gap-4 pt-2">
           <button
             type="submit"
             :disabled="proposalStore.isUpdating"
-            class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
+            class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
                    hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
           >
             {{ proposalStore.isUpdating ? 'Creando...' : 'Crear Propuesta' }}
