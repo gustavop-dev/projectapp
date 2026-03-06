@@ -87,6 +87,17 @@
             </div>
           </div>
         </div>
+
+        <div v-if="hostingPlan.renewalNote" class="mt-6 pl-0 sm:pl-16">
+          <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-5">
+            <div class="flex items-start gap-3">
+              <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+              </svg>
+              <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{{ hostingPlan.renewalNote }}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div v-if="valueReasons && valueReasons.length" data-animate="fade-up" class="value-proposition bg-gradient-to-br from-gray-900 to-gray-800 p-5 sm:p-8 md:p-12 rounded-2xl text-white">
@@ -156,7 +167,7 @@ const props = defineProps({
   hostingPlan: {
     type: Object,
     default: () => ({
-      title: 'Hosting Incluido – Cloud 1',
+      title: 'Hosting, Mantenimiento y Soporte',
       description: 'Infraestructura optimizada para proyectos de alto rendimiento y disponibilidad:',
       specs: [
         { icon: '🧠', label: 'vCPU', value: '1 núcleo de vCPU' },
@@ -168,8 +179,10 @@ const props = defineProps({
       ],
       monthlyPrice: '$49.999 COP',
       monthlyLabel: 'por mes',
-      annualPrice: '$599.988 COP',
-      annualLabel: 'pago anual único'
+      annualPrice: '$680.000 COP',
+      annualLabel: 'Hosting anual — Año 1',
+      renewalNote: '',
+      coverageNote: ''
     })
   },
   paymentMethods: {

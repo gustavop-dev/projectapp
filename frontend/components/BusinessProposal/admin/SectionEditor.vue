@@ -427,6 +427,55 @@
         </div>
         <FieldTextarea v-model="form.paymentMethods" label="Métodos de pago" help="Uno por línea" :rows="3" />
         <FieldTextarea v-model="form.valueReasons" label="Razones de valor" help="Una por línea" :rows="3" />
+
+        <!-- Hosting Plan -->
+        <div class="mt-4 border border-gray-200 rounded-xl overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+               @click="hostingCollapsed = !hostingCollapsed">
+            <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': !hostingCollapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+              ☁️ Plan de Hosting
+            </h4>
+          </div>
+          <div v-show="!hostingCollapsed" class="p-4 space-y-4">
+            <FieldInput v-model="form.hostingPlan.title" label="Título" placeholder="Hosting, Mantenimiento y Soporte" />
+            <FieldTextarea v-model="form.hostingPlan.description" label="Descripción" :rows="2" :isSingle="true" />
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Especificaciones</label>
+              <draggable v-model="form.hostingPlan.specs" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+                <template #item="{ element: spec, index: idx }">
+                  <div class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    <div class="flex items-center justify-between mb-1">
+                      <div class="flex items-center gap-2">
+                        <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
+                        <span class="text-[10px] text-gray-400">{{ idx + 1 }}</span>
+                      </div>
+                      <button type="button" class="text-[10px] text-red-500" @click="form.hostingPlan.specs.splice(idx, 1)">Eliminar</button>
+                    </div>
+                    <div class="grid grid-cols-[80px_1fr_1fr] gap-2">
+                      <EmojiIconField v-model="spec.icon" label="Icono" placeholder="🧠" />
+                      <FieldInput v-model="spec.label" label="Etiqueta" placeholder="vCPU" />
+                      <FieldInput v-model="spec.value" label="Valor" placeholder="1 núcleo de vCPU" />
+                    </div>
+                  </div>
+                </template>
+              </draggable>
+              <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.hostingPlan.specs.push({ icon: '', label: '', value: '' })">+ Agregar especificación</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FieldInput v-model="form.hostingPlan.monthlyPrice" label="Precio mensual" placeholder="$49.999 COP" />
+              <FieldInput v-model="form.hostingPlan.monthlyLabel" label="Etiqueta mensual" placeholder="por mes" />
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FieldInput v-model="form.hostingPlan.annualPrice" label="Precio anual" placeholder="$680.000 COP" />
+              <FieldInput v-model="form.hostingPlan.annualLabel" label="Etiqueta anual" placeholder="Hosting anual — Año 1" />
+            </div>
+            <FieldTextarea v-model="form.hostingPlan.renewalNote" label="Nota de renovación (visible al cliente)" help="Fórmula de incremento anual, SMLMV, etc." :rows="4" :isSingle="true" />
+            <FieldTextarea v-model="form.hostingPlan.coverageNote" label="Nota de cobertura (solo PDF)" help="Descripción de los 3 componentes del hosting (mantenimiento, soporte, recursos)" :rows="3" :isSingle="true" />
+          </div>
+        </div>
       </template>
 
       <!-- FINAL NOTE -->
@@ -675,6 +724,7 @@ const previewSection = computed(() => {
 });
 const savedMsg = ref('');
 const showRawJson = ref(false);
+const hostingCollapsed = ref(true);
 const initialContent = props.section.content_json || {};
 const pasteMode = ref(initialContent._editMode === 'paste');
 const pasteText = ref(initialContent.rawText || '');

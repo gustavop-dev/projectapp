@@ -144,6 +144,20 @@ const investmentJson = {
   paymentOptions: [
     { label: '40% al firmar', description: '$1.400.000' },
   ],
+  hostingPlan: {
+    title: 'Hosting, Mantenimiento y Soporte',
+    description: 'Infraestructura optimizada.',
+    specs: [
+      { icon: '🧠', label: 'vCPU', value: '1 núcleo' },
+      { icon: '🧮', label: 'RAM', value: '1 GB' },
+    ],
+    monthlyPrice: '$49.999 COP',
+    monthlyLabel: 'por mes',
+    annualPrice: '$680.000 COP',
+    annualLabel: 'Hosting anual — Año 1',
+    renewalNote: 'Renovación con SMLMV.',
+    coverageNote: 'Cubre mantenimiento, soporte y recursos.',
+  },
   paymentMethods: ['Transferencia', 'Nequi'],
   valueReasons: ['Diseño a medida', 'Código optimizado'],
 };
@@ -585,7 +599,6 @@ describe('buildFormFromJson → formToJson round-trip', () => {
     const result = formToJson(form, type);
     // Compare key fields — the round-trip should preserve data
     for (const key of Object.keys(json)) {
-      if (key === 'hostingPlan') continue;
       expect(result).toHaveProperty(key);
     }
   });

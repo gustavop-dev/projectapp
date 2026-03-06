@@ -38,6 +38,19 @@ def _investment_content_json():
             {'label': '30% al aprobar', 'description': '$1.050.000'},
             {'label': '30% al desplegar', 'description': '$1.050.000'},
         ],
+        'hostingPlan': {
+            'title': 'Hosting, Mantenimiento y Soporte',
+            'description': 'Infraestructura optimizada.',
+            'specs': [
+                {'icon': '🧠', 'label': 'vCPU', 'value': '1 núcleo'},
+            ],
+            'monthlyPrice': '$49.999 COP',
+            'monthlyLabel': 'por mes',
+            'annualPrice': '$680.000 COP',
+            'annualLabel': 'Hosting anual — Año 1',
+            'renewalNote': 'Renovación con SMLMV.',
+            'coverageNote': 'Cubre mantenimiento y soporte.',
+        },
         'paymentMethods': ['Transferencia', 'Nequi'],
         'valueReasons': ['Diseño a medida'],
     }

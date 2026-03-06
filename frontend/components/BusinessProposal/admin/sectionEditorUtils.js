@@ -65,8 +65,23 @@ export function buildFormFromJson(json, type, proposalData) {
       };
     case 'timeline':
       return { index: j.index || '', title: j.title || '', introText: j.introText || '', totalDuration: j.totalDuration || '', phases: (j.phases || []).map(p => ({ title: p.title || '', duration: p.duration || '', description: p.description || '', tasks: arrToText(p.tasks), milestone: p.milestone || '' })) };
-    case 'investment':
-      return { index: j.index || '', title: j.title || '', introText: j.introText || '', totalInvestment: j.totalInvestment || '', currency: j.currency || 'COP', whatsIncluded: (j.whatsIncluded || []).map(i => ({ ...i })), paymentOptions: (j.paymentOptions || []).map(o => ({ ...o })), hostingPlan: j.hostingPlan || {}, paymentMethods: arrToText(j.paymentMethods), valueReasons: arrToText(j.valueReasons) };
+    case 'investment': {
+      const hp = j.hostingPlan || {};
+      return {
+        index: j.index || '', title: j.title || '', introText: j.introText || '',
+        totalInvestment: j.totalInvestment || '', currency: j.currency || 'COP',
+        whatsIncluded: (j.whatsIncluded || []).map(i => ({ ...i })),
+        paymentOptions: (j.paymentOptions || []).map(o => ({ ...o })),
+        hostingPlan: {
+          title: hp.title || '', description: hp.description || '',
+          specs: (hp.specs || []).map(s => ({ icon: s.icon || '', label: s.label || '', value: s.value || '' })),
+          monthlyPrice: hp.monthlyPrice || '', monthlyLabel: hp.monthlyLabel || '',
+          annualPrice: hp.annualPrice || '', annualLabel: hp.annualLabel || '',
+          renewalNote: hp.renewalNote || '', coverageNote: hp.coverageNote || '',
+        },
+        paymentMethods: arrToText(j.paymentMethods), valueReasons: arrToText(j.valueReasons),
+      };
+    }
     case 'final_note':
       return { index: j.index || '', title: j.title || '', message: j.message || '', personalNote: j.personalNote || '', teamName: j.teamName || '', teamRole: j.teamRole || '', contactEmail: j.contactEmail || '', commitmentBadges: (j.commitmentBadges || []).map(b => ({ ...b })), validityMessage: j.validityMessage || '', thankYouMessage: j.thankYouMessage || '' };
     case 'next_steps':
@@ -121,8 +136,22 @@ export function formToJson(formData, type) {
     }
     case 'timeline':
       return { index: f.index, title: f.title, introText: f.introText, totalDuration: f.totalDuration, phases: f.phases.map(p => ({ title: p.title, duration: p.duration, description: p.description, tasks: textToArr(p.tasks), milestone: p.milestone })) };
-    case 'investment':
-      return { index: f.index, title: f.title, introText: f.introText, totalInvestment: f.totalInvestment, currency: f.currency, whatsIncluded: f.whatsIncluded, paymentOptions: f.paymentOptions, hostingPlan: f.hostingPlan || {}, paymentMethods: textToArr(f.paymentMethods), valueReasons: textToArr(f.valueReasons) };
+    case 'investment': {
+      const hp = f.hostingPlan || {};
+      return {
+        index: f.index, title: f.title, introText: f.introText,
+        totalInvestment: f.totalInvestment, currency: f.currency,
+        whatsIncluded: f.whatsIncluded, paymentOptions: f.paymentOptions,
+        hostingPlan: {
+          title: hp.title, description: hp.description,
+          specs: (hp.specs || []).map(s => ({ icon: s.icon, label: s.label, value: s.value })),
+          monthlyPrice: hp.monthlyPrice, monthlyLabel: hp.monthlyLabel,
+          annualPrice: hp.annualPrice, annualLabel: hp.annualLabel,
+          renewalNote: hp.renewalNote || '', coverageNote: hp.coverageNote || '',
+        },
+        paymentMethods: textToArr(f.paymentMethods), valueReasons: textToArr(f.valueReasons),
+      };
+    }
     case 'final_note':
       return { index: f.index, title: f.title, message: f.message, personalNote: f.personalNote, teamName: f.teamName, teamRole: f.teamRole, contactEmail: f.contactEmail, commitmentBadges: f.commitmentBadges, validityMessage: f.validityMessage, thankYouMessage: f.thankYouMessage };
     case 'next_steps':
@@ -215,6 +244,17 @@ export function formToReadableText(form, type) {
       for (const o of form.paymentOptions) parts.push(`- ${o.label}: ${o.description || ''}`);
     }
     if (form.valueReasons) parts.push(`\nRazones de valor:\n${bullet(form.valueReasons)}`);
+    const hp = form.hostingPlan;
+    if (hp?.title) {
+      parts.push(`\n${hp.title}`);
+      if (hp.description) parts.push(hp.description);
+      if (hp.specs?.length) {
+        for (const s of hp.specs) parts.push(`- ${s.icon || ''} ${s.label}: ${s.value}`);
+      }
+      if (hp.monthlyPrice) parts.push(`Precio mensual: ${hp.monthlyPrice} (${hp.monthlyLabel || ''})`);
+      if (hp.annualPrice) parts.push(`Precio anual: ${hp.annualPrice} (${hp.annualLabel || ''})`);
+      if (hp.renewalNote) parts.push(`\n${hp.renewalNote}`);
+    }
   } else if (type === 'final_note') {
     if (form.message) parts.push(form.message);
     if (form.personalNote) parts.push(`\n${form.personalNote}`);

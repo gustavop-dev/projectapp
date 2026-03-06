@@ -1160,6 +1160,42 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                              _strip_emoji(str(a_price)))
             y = price_y - 6
 
+        # Coverage note — pill-style block describing the 3 hosting components
+        coverage = _safe(hosting, 'coverageNote')
+        if coverage:
+            y -= 8
+            if ps:
+                y = _check_y(c, y, ps, need=50)
+            # Draw a light background box
+            cov_lines = textwrap.wrap(
+                _strip_emoji(str(coverage)), width=int(CONTENT_W / (8 * 0.48))
+            )
+            box_h = len(cov_lines) * 12 + 16
+            box_y = y - box_h + 6
+            c.setFillColor(ESMERALD_LIGHT)
+            c.roundRect(MARGIN_L, box_y, CONTENT_W, box_h, 5,
+                        fill=1, stroke=0)
+            c.setFont(_font('medium'), 7.5)
+            c.setFillColor(ESMERALD)
+            ty = y
+            for cl in cov_lines:
+                c.drawString(MARGIN_L + 10, ty, cl)
+                ty -= 12
+            y = box_y - 6
+
+        # Renewal note — SMLMV formula text
+        renewal = _safe(hosting, 'renewalNote')
+        if renewal:
+            y -= 6
+            if ps:
+                y = _check_y(c, y, ps, need=60)
+            c.setFont(_font('bold'), 8)
+            c.setFillColor(ESMERALD)
+            c.drawString(MARGIN_L, y, 'Renovaciones')
+            y -= 14
+            y = _draw_paragraphs(c, y, [renewal], font_size=8,
+                                 leading=11, ps=ps)
+
     # Value reasons
     reasons = _safe(data, 'valueReasons', [])
     if reasons:

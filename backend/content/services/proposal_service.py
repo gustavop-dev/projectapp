@@ -391,7 +391,7 @@ DEFAULT_SECTIONS = [
                 {'label': '30% al desplegar el sitio web 🚀', 'description': ''},
             ],
             'hostingPlan': {
-                'title': 'Hosting Incluido – Cloud 1',
+                'title': 'Hosting, Mantenimiento y Soporte',
                 'description': 'Infraestructura optimizada para proyectos de alto rendimiento y disponibilidad:',
                 'specs': [
                     {'icon': '🧠', 'label': 'vCPU', 'value': '1 núcleo de vCPU'},
@@ -403,8 +403,25 @@ DEFAULT_SECTIONS = [
                 ],
                 'monthlyPrice': '$49.999 COP',
                 'monthlyLabel': 'por mes',
-                'annualPrice': '$599.988 COP',
-                'annualLabel': 'pago anual único',
+                'annualPrice': '$680.000 COP',
+                'annualLabel': 'Hosting anual — Año 1',
+                'renewalNote': (
+                    'Renovaciones a partir del segundo año: el costo se ajusta anualmente '
+                    'con base en el SMLMV (Salario Mínimo Legal Mensual Vigente) del año '
+                    'de renovación, aplicando la siguiente fórmula:\n\n'
+                    'Costo de renovación = Costo del año anterior + '
+                    '(5% × SMLMV del año de renovación)\n\n'
+                    'Por ejemplo, si el SMLMV del año de renovación fuera $1,300,000 COP, '
+                    'el incremento sería de $65,000 COP, llevando el costo a $745,000 COP '
+                    'para ese año.'
+                ),
+                'coverageNote': (
+                    'El costo de hosting cubre tres componentes: el mantenimiento técnico '
+                    'de la plataforma (actualizaciones de seguridad, parches y optimización '
+                    'de base de datos), el soporte ante incidencias o bugs, y los recursos '
+                    'computacionales necesarios para que todo funcione (servidor, '
+                    'almacenamiento, ancho de banda y certificados SSL).'
+                ),
             },
             'paymentMethods': [
                 'Transferencia bancaria',
