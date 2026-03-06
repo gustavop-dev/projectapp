@@ -963,8 +963,52 @@ def _render_next_steps(c, data, _proposal, ps=None):
         _draw_sidebar_box(c, PAGE_H - MARGIN_T - 50, 'Contacto', items)
 
 
+def _parse_markdown_lines(raw):
+    """Parse raw markdown text into a list of (type, text) tuples.
+
+    Supported types: 'h1', 'h2', 'h3', 'h4', 'bullet', 'numbered',
+    'bold_line', 'paragraph', 'blank'.
+    Inline **bold** markers are stripped into clean text.
+    """
+    if not raw:
+        return []
+    result = []
+    for line in raw.split('\n'):
+        stripped = line.strip()
+        if not stripped:
+            result.append(('blank', ''))
+            continue
+        # Headings
+        if stripped.startswith('#### '):
+            result.append(('h4', stripped[5:].strip()))
+        elif stripped.startswith('### '):
+            result.append(('h3', stripped[4:].strip()))
+        elif stripped.startswith('## '):
+            result.append(('h2', stripped[3:].strip()))
+        elif stripped.startswith('# '):
+            result.append(('h1', stripped[2:].strip()))
+        # Bullet list
+        elif stripped.startswith('- ') or stripped.startswith('* '):
+            result.append(('bullet', stripped[2:].strip()))
+        # Numbered list (e.g. "1. ", "2. ")
+        elif len(stripped) > 2 and stripped[0].isdigit() and '. ' in stripped[:5]:
+            idx = stripped.index('. ')
+            result.append(('numbered', stripped[idx + 2:].strip()))
+        # Line that is entirely bold  **text**
+        elif stripped.startswith('**') and stripped.endswith('**') and len(stripped) > 4:
+            result.append(('bold_line', stripped[2:-2].strip()))
+        else:
+            result.append(('paragraph', stripped))
+    return result
+
+
+def _clean_inline_bold(text):
+    """Strip **bold** markers from inline text for PDF rendering."""
+    return re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+
+
 def _render_raw_text(c, data, _proposal, ps=None):
-    """Render a paste-mode section with raw text."""
+    """Render a paste-mode section with parsed markdown content."""
     y = PAGE_H - MARGIN_T
     index_str = _safe(data, 'index')
     title = _safe(data, 'title', 'Sección')
@@ -972,8 +1016,54 @@ def _render_raw_text(c, data, _proposal, ps=None):
     y -= 8
 
     raw = _safe(data, 'rawText')
-    if raw:
-        y = _draw_paragraphs(c, y, [raw], ps=ps)
+    if not raw:
+        return
+
+    tokens = _parse_markdown_lines(raw)
+    for kind, text in tokens:
+        text = _strip_emoji(_clean_inline_bold(text))
+
+        if kind == 'blank':
+            y -= 6
+            continue
+
+        if kind == 'h1':
+            if ps:
+                y = _check_y(c, y, ps, need=30)
+            y -= 4
+            c.setFont(_font('bold'), 16)
+            c.setFillColor(ESMERALD)
+            c.drawString(MARGIN_L, y, text)
+            y -= 22
+        elif kind == 'h2':
+            if ps:
+                y = _check_y(c, y, ps, need=26)
+            y -= 4
+            c.setFont(_font('bold'), 13)
+            c.setFillColor(ESMERALD)
+            c.drawString(MARGIN_L, y, text)
+            y -= 19
+        elif kind in ('h3', 'h4'):
+            if ps:
+                y = _check_y(c, y, ps, need=22)
+            y -= 2
+            c.setFont(_font('bold'), 11)
+            c.setFillColor(ESMERALD)
+            c.drawString(MARGIN_L, y, text)
+            y -= 16
+        elif kind == 'bold_line':
+            if ps:
+                y = _check_y(c, y, ps, need=18)
+            c.setFont(_font('bold'), 10)
+            c.setFillColor(ESMERALD)
+            c.drawString(MARGIN_L, y, text)
+            y -= 15
+        elif kind == 'bullet':
+            y = _draw_bullet_list(c, y, [text], ps=ps)
+        elif kind == 'numbered':
+            y = _draw_bullet_list(c, y, [text], ps=ps)
+        else:  # paragraph
+            y = _draw_paragraphs(c, y, [text], ps=ps)
 
 
 # Map section_type → renderer
@@ -1056,9 +1146,23 @@ class ProposalPdfService:
                 if 'title' not in data or not data['title']:
                     data['title'] = sec.title
 
+                # Decide rendering mode: paste-mode wins over form
+                is_paste = (
+                    data.get('_editMode') == 'paste'
+                    and data.get('rawText')
+                )
                 renderer = SECTION_RENDERERS.get(stype)
 
-                if renderer:
+                if is_paste:
+                    # Paste-mode: render raw markdown regardless of type
+                    ps['num'] += 1
+                    _draw_header_bar(c)
+                    _render_raw_text(c, data, proposal, ps=ps)
+                    _draw_footer(
+                        c, ps['num'], ps['total'], proposal.client_name,
+                    )
+                    c.showPage()
+                elif renderer:
                     ps['num'] += 1
                     _draw_header_bar(c)
                     result = renderer(c, data, proposal, ps=ps)
@@ -1072,18 +1176,33 @@ class ProposalPdfService:
                         result, list
                     ):
                         for grp in result:
+                            grp_paste = (
+                                _safe(grp, '_editMode') == 'paste'
+                                and _safe(grp, 'rawText')
+                            )
                             items = _safe(grp, 'items', [])
-                            if not items:
+                            if not items and not grp_paste:
                                 continue
                             ps['num'] += 1
                             _draw_header_bar(c)
-                            _render_requirement_group_page(c, grp, ps=ps)
+                            if grp_paste:
+                                _render_raw_text(
+                                    c,
+                                    {'title': _safe(grp, 'title'),
+                                     'rawText': _safe(grp, 'rawText')},
+                                    proposal, ps=ps,
+                                )
+                            else:
+                                _render_requirement_group_page(
+                                    c, grp, ps=ps,
+                                )
                             _draw_footer(
                                 c, ps['num'], ps['total'],
                                 proposal.client_name,
                             )
                             c.showPage()
                 elif data.get('rawText'):
+                    # Unknown section type with rawText fallback
                     ps['num'] += 1
                     _draw_header_bar(c)
                     _render_raw_text(c, data, proposal, ps=ps)

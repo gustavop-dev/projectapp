@@ -31,6 +31,7 @@ from content.services.proposal_pdf_service import (
     SIDEBAR_X,
     TEXT_AREA_W,
     ProposalPdfService,
+    _clean_inline_bold,
     _draw_bullet_list,
     _draw_footer,
     _draw_green_bar,
@@ -39,6 +40,7 @@ from content.services.proposal_pdf_service import (
     _draw_section_header,
     _draw_sidebar_box,
     _draw_subtitle,
+    _parse_markdown_lines,
     _register_fonts,
     _render_raw_text,
     _safe,
@@ -462,6 +464,86 @@ class TestRenderRawText:
         }
         _render_raw_text(pdf_canvas, data, proposal)
 
+    def test_renders_markdown_headings(self, pdf_canvas, proposal):
+        data = {
+            'index': '1', 'title': 'Markdown Test',
+            'rawText': '# Heading 1\n## Heading 2\n### Heading 3\nParagraph.',
+        }
+        _render_raw_text(pdf_canvas, data, proposal)
+
+    def test_renders_markdown_bullets(self, pdf_canvas, proposal):
+        data = {
+            'index': '1', 'title': 'Bullets',
+            'rawText': '- Item one\n- Item two\n* Item three',
+        }
+        _render_raw_text(pdf_canvas, data, proposal)
+
+    def test_renders_numbered_list(self, pdf_canvas, proposal):
+        data = {
+            'index': '1', 'title': 'Numbered',
+            'rawText': '1. First\n2. Second\n3. Third',
+        }
+        _render_raw_text(pdf_canvas, data, proposal)
+
+    def test_renders_bold_lines(self, pdf_canvas, proposal):
+        data = {
+            'index': '1', 'title': 'Bold',
+            'rawText': '**Bold line**\nNormal text with **inline bold** here.',
+        }
+        _render_raw_text(pdf_canvas, data, proposal)
+
+    def test_handles_empty_raw_text(self, pdf_canvas, proposal):
+        data = {'index': '1', 'title': 'Empty', 'rawText': ''}
+        _render_raw_text(pdf_canvas, data, proposal)
+
+
+class TestParseMarkdownLines:
+    def test_parses_headings(self):
+        tokens = _parse_markdown_lines('# H1\n## H2\n### H3\n#### H4')
+        assert tokens == [
+            ('h1', 'H1'), ('h2', 'H2'), ('h3', 'H3'), ('h4', 'H4'),
+        ]
+
+    def test_parses_bullets(self):
+        tokens = _parse_markdown_lines('- Apple\n* Banana')
+        assert tokens == [('bullet', 'Apple'), ('bullet', 'Banana')]
+
+    def test_parses_numbered_list(self):
+        tokens = _parse_markdown_lines('1. First\n2. Second')
+        assert tokens == [('numbered', 'First'), ('numbered', 'Second')]
+
+    def test_parses_bold_line(self):
+        tokens = _parse_markdown_lines('**Bold Title**')
+        assert tokens == [('bold_line', 'Bold Title')]
+
+    def test_parses_paragraph(self):
+        tokens = _parse_markdown_lines('Just a normal line.')
+        assert tokens == [('paragraph', 'Just a normal line.')]
+
+    def test_parses_blank_lines(self):
+        tokens = _parse_markdown_lines('Line 1\n\nLine 2')
+        assert tokens == [
+            ('paragraph', 'Line 1'), ('blank', ''), ('paragraph', 'Line 2'),
+        ]
+
+    def test_returns_empty_for_none(self):
+        assert _parse_markdown_lines(None) == []
+
+    def test_returns_empty_for_empty_string(self):
+        assert _parse_markdown_lines('') == []
+
+
+class TestCleanInlineBold:
+    def test_removes_bold_markers(self):
+        assert _clean_inline_bold('Use **bold** text') == 'Use bold text'
+
+    def test_handles_multiple_bold(self):
+        result = _clean_inline_bold('**A** and **B**')
+        assert result == 'A and B'
+
+    def test_preserves_non_bold_text(self):
+        assert _clean_inline_bold('No bold here') == 'No bold here'
+
 
 class TestSectionRenderersMap:
     def test_contains_all_12_section_types(self):
@@ -586,6 +668,104 @@ class TestGenerate:
         result = ProposalPdfService.generate(proposal)
 
         assert result is not None
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_paste_mode_overrides_form_renderer(self, _mock_back, _mock_cover, proposal):
+        """Known section type with _editMode='paste' should use rawText, not form renderer."""
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='executive_summary',
+            title='Resumen ejecutivo',
+            order=0,
+            is_enabled=True,
+            content_json={
+                '_editMode': 'paste',
+                'rawText': '# Resumen\n\nEsta es la propuesta.\n\n- Punto 1\n- Punto 2',
+                'index': '1',
+                'title': 'Resumen ejecutivo',
+                'paragraphs': [],
+                'highlights': [],
+            },
+        )
+
+        result = ProposalPdfService.generate(proposal)
+
+        assert result is not None
+        assert isinstance(result, bytes)
+        assert result[:5] == b'%PDF-'
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_form_mode_uses_form_renderer(self, _mock_back, _mock_cover, proposal):
+        """Known section type with _editMode='form' should use the form renderer."""
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='executive_summary',
+            title='Resumen ejecutivo',
+            order=0,
+            is_enabled=True,
+            content_json={
+                '_editMode': 'form',
+                'index': '1',
+                'title': 'Resumen ejecutivo',
+                'paragraphs': ['Primer párrafo.'],
+                'highlights': ['Diseño'],
+            },
+        )
+
+        result = ProposalPdfService.generate(proposal)
+
+        assert result is not None
+        assert result[:5] == b'%PDF-'
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_paste_mode_requirement_group(self, _mock_back, _mock_cover, proposal):
+        """Functional requirement group in paste mode should render rawText."""
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='Requerimientos',
+            order=0,
+            is_enabled=True,
+            content_json={
+                'index': '7',
+                'title': 'Requerimientos Funcionales',
+                'intro': 'Detalle.',
+                'groups': [{
+                    'title': 'Vistas',
+                    'description': 'Pantallas.',
+                    '_editMode': 'paste',
+                    'rawText': '## Vistas\n- Home\n- About\n- Contact',
+                    'items': [],
+                }],
+                'additionalModules': [],
+            },
+        )
+
+        result = ProposalPdfService.generate(proposal)
+
+        assert result is not None
+        assert result[:5] == b'%PDF-'
 
 
 # ── _merge_with_covers tests ─────────────────────────────────
