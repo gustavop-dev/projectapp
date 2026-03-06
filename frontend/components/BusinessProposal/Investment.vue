@@ -46,14 +46,14 @@
         </div>
       </div>
 
-      <div data-animate="fade-up" class="hosting-plan mt-12 bg-white p-5 sm:p-8 md:p-10 rounded-2xl border-2 border-gray-100">
+      <div v-if="hostingPlan.title" data-animate="fade-up" class="hosting-plan mt-12 bg-white p-5 sm:p-8 md:p-10 rounded-2xl border-2 border-gray-100">
         <div class="flex items-center mb-4">
           <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mr-4">
             <span class="text-2xl">☁️</span>
           </div>
           <h3 class="text-2xl font-bold text-gray-900">{{ hostingPlan.title }}</h3>
         </div>
-        <p class="text-gray-600 leading-relaxed mb-6 pl-0 sm:pl-16">{{ hostingPlan.description }}</p>
+        <p v-if="hostingPlan.description" class="text-gray-600 leading-relaxed mb-6 pl-0 sm:pl-16">{{ hostingPlan.description }}</p>
 
         <div v-if="hostingPlan.coverageNote" class="mb-6 pl-0 sm:pl-16">
           <div class="bg-gray-50 border border-gray-200 rounded-xl p-5">
@@ -61,9 +61,9 @@
           </div>
         </div>
 
-        <div class="grid md:grid-cols-2 gap-4 pl-0 sm:pl-16">
+        <div v-if="filteredSpecs.length" class="grid md:grid-cols-2 gap-4 pl-0 sm:pl-16">
           <div
-            v-for="(spec, idx) in hostingPlan.specs"
+            v-for="(spec, idx) in filteredSpecs"
             :key="idx"
             class="bg-gray-50 p-5 rounded-xl border border-gray-100"
           >
@@ -79,17 +79,17 @@
           </div>
         </div>
 
-        <div class="mt-6 pl-0 sm:pl-16">
+        <div v-if="hostingPlan.monthlyPrice || hostingPlan.annualPrice" class="mt-6 pl-0 sm:pl-16">
           <div class="grid md:grid-cols-2 gap-4">
-            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
+            <div v-if="hostingPlan.monthlyPrice" class="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
               <div class="text-sm text-emerald-700 font-medium">Precio especial</div>
               <div class="text-2xl font-bold text-gray-900">{{ hostingPlan.monthlyPrice }}</div>
-              <div class="text-sm text-gray-600">{{ hostingPlan.monthlyLabel }}</div>
+              <div v-if="hostingPlan.monthlyLabel" class="text-sm text-gray-600">{{ hostingPlan.monthlyLabel }}</div>
             </div>
-            <div class="bg-gray-50 border border-gray-200 rounded-xl p-5">
+            <div v-if="hostingPlan.annualPrice" class="bg-gray-50 border border-gray-200 rounded-xl p-5">
               <div class="text-sm text-gray-700 font-medium">Pago anual único</div>
               <div class="text-2xl font-bold text-gray-900">{{ hostingPlan.annualPrice }}</div>
-              <div class="text-sm text-gray-600">{{ hostingPlan.annualLabel }}</div>
+              <div v-if="hostingPlan.annualLabel" class="text-sm text-gray-600">{{ hostingPlan.annualLabel }}</div>
             </div>
           </div>
         </div>
@@ -203,6 +203,10 @@ const props = defineProps({
       'Soporte post-lanzamiento',
     ]
   }
+});
+
+const filteredSpecs = computed(() => {
+  return (props.hostingPlan?.specs || []).filter(s => s.label || s.value);
 });
 
 const normalizedReasons = computed(() => {

@@ -61,6 +61,7 @@ export function useExpirationTimer(expiresAt) {
     if (daysRemaining.value === null) return 'calm';
     if (daysRemaining.value < 1) return 'urgent';
     if (daysRemaining.value <= 3) return 'warning';
+    if (daysRemaining.value <= 7) return 'notice';
     return 'calm';
   });
 

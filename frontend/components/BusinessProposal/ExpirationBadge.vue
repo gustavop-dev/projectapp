@@ -33,6 +33,8 @@ const badgeClasses = computed(() => {
     case 'urgent':
       return 'bg-red-50/90 border-red-200 text-red-700 animate-pulse';
     case 'warning':
+      return 'bg-orange-50/90 border-orange-200 text-orange-700';
+    case 'notice':
       return 'bg-yellow-50/90 border-yellow-200 text-yellow-700';
     default:
       return 'bg-emerald-50/90 border-emerald-200 text-emerald-700';
@@ -44,6 +46,8 @@ const dotClass = computed(() => {
     case 'urgent':
       return 'bg-red-500';
     case 'warning':
+      return 'bg-orange-500';
+    case 'notice':
       return 'bg-yellow-500';
     default:
       return 'bg-emerald-500';

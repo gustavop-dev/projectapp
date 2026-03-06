@@ -78,6 +78,15 @@ describe('useExpirationTimer', () => {
     });
   });
 
+  describe('with future date 4-7 days away', () => {
+    it('returns notice urgencyLevel', () => {
+      const expiresAt = ref('2026-03-06T12:00:00Z');
+      const { urgencyLevel } = useExpirationTimer(expiresAt);
+
+      expect(urgencyLevel.value).toBe('notice');
+    });
+  });
+
   describe('with future date 1-3 days away', () => {
     it('returns warning urgencyLevel', () => {
       const expiresAt = ref('2026-03-03T12:00:00Z');

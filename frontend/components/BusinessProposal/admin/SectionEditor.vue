@@ -30,6 +30,17 @@
             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'"
           @click="onTogglePasteMode(true)"
         >Pegar contenido</button>
+        <button
+          type="button"
+          class="text-xs font-medium px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-emerald-600 transition-colors"
+          title="Previsualizar"
+          @click="showPreview = true"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+        </button>
       </div>
 
       <div v-if="pasteMode" class="space-y-3">

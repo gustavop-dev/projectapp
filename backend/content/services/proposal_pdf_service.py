@@ -1092,7 +1092,8 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             y -= 6
 
         # Specs grid — 2 columns of pill-style badges
-        specs = _safe(hosting, 'specs', [])
+        specs = [s for s in _safe(hosting, 'specs', [])
+                 if _safe(s, 'label') or _safe(s, 'value')]
         if specs:
             spec_col_w = (CONTENT_W - 14) / 2
             spec_row_h = 28
@@ -1105,16 +1106,19 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 c.setFillColor(ESMERALD_LIGHT)
                 c.roundRect(sx, y - 18, spec_col_w, spec_row_h, 5,
                             fill=1, stroke=0)
+                # Vertical centre of badge
+                badge_mid_y = y - 18 + spec_row_h / 2
+                text_y = badge_mid_y - 3  # baseline offset
                 # Label (bold)
                 spec_label = _strip_emoji(_safe(spec, 'label'))
                 c.setFont(_font('bold'), 8)
                 c.setFillColor(ESMERALD)
-                c.drawString(sx + 8, y, spec_label)
+                c.drawString(sx + 8, text_y, spec_label)
                 # Value (regular, right-aligned in badge)
                 spec_value = _strip_emoji(_safe(spec, 'value'))
                 c.setFont(_font('regular'), 7.5)
                 c.setFillColor(ESMERALD_80)
-                c.drawRightString(sx + spec_col_w - 8, y, spec_value)
+                c.drawRightString(sx + spec_col_w - 8, text_y, spec_value)
                 # Move down after every 2nd column
                 if col == 1 or si == len(specs) - 1:
                     y -= spec_row_h + 4
@@ -1129,6 +1133,9 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             price_col_w = (CONTENT_W - 14) / 2
             price_h = 34
             price_y = y - price_h + 6
+            # Vertically centred text positions for price boxes
+            p_label_y = price_y + price_h - 11   # top line
+            p_price_y = price_y + 5               # bottom line
             if m_price:
                 # Monthly — emerald bg, white text
                 c.setFillColor(ESMERALD)
@@ -1138,10 +1145,10 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 c.setFillColor(colors.HexColor('#A7F3D0'))
                 m_label = _strip_emoji(
                     _safe(hosting, 'monthlyLabel', 'por mes'))
-                c.drawString(MARGIN_L + 10, y - 2, m_label)
+                c.drawString(MARGIN_L + 10, p_label_y, m_label)
                 c.setFont(_font('bold'), 11)
                 c.setFillColor(WHITE)
-                c.drawString(MARGIN_L + 10, y - 16,
+                c.drawString(MARGIN_L + 10, p_price_y,
                              _strip_emoji(str(m_price)))
             if a_price:
                 # Annual — bone bg, esmerald text
@@ -1153,10 +1160,10 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 c.setFillColor(GRAY_500)
                 a_label = _strip_emoji(
                     _safe(hosting, 'annualLabel', 'pago anual'))
-                c.drawString(ax + 10, y - 2, a_label)
+                c.drawString(ax + 10, p_label_y, a_label)
                 c.setFont(_font('bold'), 11)
                 c.setFillColor(ESMERALD)
-                c.drawString(ax + 10, y - 16,
+                c.drawString(ax + 10, p_price_y,
                              _strip_emoji(str(a_price)))
             y = price_y - 6
 

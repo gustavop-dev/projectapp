@@ -46,6 +46,8 @@
         :isFirst="currentIndex === 0"
         :isLast="currentIndex === totalSections - 1"
         :hideLeft="indexOpen"
+        :blinkNext="navBlinkNext"
+        :blinkPrev="navBlinkPrev"
         @prev="goPrev"
         @next="goNext"
       />
@@ -170,6 +172,7 @@ const displayPanels = computed(() => {
     title: '🤝 Cierre',
     _validityMessage: fnContent.validityMessage || '',
     _thankYouMessage: fnContent.thankYouMessage || '',
+    _expiresAt: proposal.value?.expires_at || '',
   });
 
   return panels;
@@ -183,6 +186,9 @@ const proposalContainer = ref(null);
 const currentIndex = ref(0);
 const transitionName = ref('slide-left');
 const indexOpen = ref(false);
+const navBlinkNext = ref(false);
+const navBlinkPrev = ref(false);
+let blinkTimer = null;
 
 // Current panel and neighbors
 const currentPanel = computed(() => displayPanels.value[currentIndex.value] || displayPanels.value[0]);
@@ -213,6 +219,7 @@ function getSectionProps(section) {
       proposal: proposal.value,
       validityMessage: section._validityMessage || '',
       thankYouMessage: section._thankYouMessage || '',
+      expiresAt: section._expiresAt || '',
     };
   }
 
@@ -297,11 +304,31 @@ function getPastePanelRawText(panel) {
 }
 
 // --- Navigation ---
+function triggerNavBlink() {
+  if (blinkTimer) clearTimeout(blinkTimer);
+  navBlinkNext.value = false;
+  navBlinkPrev.value = false;
+  // Use nextTick to re-trigger animation even if same prop value
+  setTimeout(() => {
+    const isLast = currentIndex.value === totalSections.value - 1;
+    if (isLast) {
+      navBlinkPrev.value = true;
+    } else {
+      navBlinkNext.value = true;
+    }
+    blinkTimer = setTimeout(() => {
+      navBlinkNext.value = false;
+      navBlinkPrev.value = false;
+    }, 1300);
+  }, 100);
+}
+
 function navigateTo(index) {
   if (index < 0 || index >= totalSections.value) return;
   transitionName.value = index > currentIndex.value ? 'slide-left' : 'slide-right';
   currentIndex.value = index;
   window.scrollTo({ top: 0, behavior: 'auto' });
+  triggerNavBlink();
 }
 
 function handleNavigate(index) {

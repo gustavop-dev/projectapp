@@ -3,6 +3,7 @@
   <button
     v-if="!isFirst && !hideLeft"
     class="nav-side nav-side--left group"
+    :class="{ 'nav-blink': blinkPrev }"
     :title="prevTitle"
     @click="$emit('prev')"
   >
@@ -16,6 +17,7 @@
   <button
     v-if="!isLast"
     class="nav-side nav-side--right group"
+    :class="{ 'nav-blink': blinkNext }"
     :title="nextTitle"
     @click="$emit('next')"
   >
@@ -33,6 +35,8 @@ defineProps({
   isFirst: { type: Boolean, default: false },
   isLast: { type: Boolean, default: false },
   hideLeft: { type: Boolean, default: false },
+  blinkNext: { type: Boolean, default: false },
+  blinkPrev: { type: Boolean, default: false },
 });
 
 defineEmits(['prev', 'next']);
@@ -76,6 +80,19 @@ defineEmits(['prev', 'next']);
 
 .nav-side--right {
   right: 0.375rem;
+}
+
+.nav-blink {
+  animation: navDoublePulse 1.2s ease-in-out;
+}
+
+@keyframes navDoublePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+  15%  { box-shadow: 0 0 12px 4px rgba(16, 185, 129, 0.4); }
+  30%  { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  50%  { box-shadow: 0 0 12px 4px rgba(16, 185, 129, 0.4); }
+  70%  { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  100% { box-shadow: none; }
 }
 
 @media (min-width: 768px) {

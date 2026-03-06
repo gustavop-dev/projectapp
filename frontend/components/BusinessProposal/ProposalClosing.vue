@@ -2,14 +2,14 @@
   <section ref="sectionRef" class="proposal-closing min-h-screen w-full bg-white flex flex-col items-center justify-center py-8 px-6 md:px-12 lg:px-24">
     <div class="max-w-4xl w-full mx-auto text-center flex flex-col items-center gap-6">
       <!-- Validity notice -->
-      <div v-if="validityMessage" data-animate="fade-up" class="validity-notice w-full bg-yellow-50 border-2 border-yellow-200 p-4 md:p-6 rounded-xl text-left">
+      <div v-if="displayedValidity" ref="validityRef" data-animate="fade-up" class="validity-notice w-full bg-yellow-50 border-2 border-yellow-200 p-4 md:p-6 rounded-xl text-left">
         <div class="flex items-start">
           <svg class="w-5 h-5 text-yellow-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
           </svg>
           <div>
             <h4 class="font-bold text-gray-900 mb-1 text-sm md:text-base">Validez de la Propuesta</h4>
-            <p class="text-xs md:text-sm text-gray-600">{{ validityMessage }}</p>
+            <p class="text-xs md:text-sm text-gray-600">{{ displayedValidity }}</p>
           </div>
         </div>
       </div>
@@ -106,16 +106,38 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, toRef } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import { useExpirationTimer } from '~/composables/useExpirationTimer';
 
 const sectionRef = ref(null);
+const validityRef = ref(null);
 useSectionAnimations(sectionRef);
 
 const props = defineProps({
   proposal: { type: Object, default: null },
   validityMessage: { type: String, default: '' },
   thankYouMessage: { type: String, default: '' },
+  expiresAt: { type: String, default: '' },
+});
+
+const { daysRemaining } = useExpirationTimer(toRef(props, 'expiresAt'));
+
+const displayedValidity = computed(() => {
+  if (!props.validityMessage) return '';
+  if (daysRemaining.value === null) return props.validityMessage;
+  return props.validityMessage.replace(/\d+\s*días/, `${daysRemaining.value} días`);
+});
+
+onMounted(() => {
+  setTimeout(() => {
+    if (validityRef.value) {
+      validityRef.value.classList.add('validity-blink');
+      setTimeout(() => {
+        validityRef.value?.classList.remove('validity-blink');
+      }, 1400);
+    }
+  }, 600);
 });
 
 const proposalStore = useProposalStore();
@@ -163,3 +185,18 @@ async function confirmReject() {
   }
 }
 </script>
+
+<style scoped>
+.validity-blink {
+  animation: validityDoublePulse 1.4s ease-in-out;
+}
+
+@keyframes validityDoublePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4); }
+  15%  { box-shadow: 0 0 14px 4px rgba(234, 179, 8, 0.35); }
+  30%  { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+  50%  { box-shadow: 0 0 14px 4px rgba(234, 179, 8, 0.35); }
+  70%  { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+  100% { box-shadow: none; }
+}
+</style>
