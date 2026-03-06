@@ -47,7 +47,7 @@ export function useSectionAnimations(sectionRef) {
     if (!animTargets.length) return;
 
     // Set initial state: all hidden + slight slide up
-    gsap.set(animTargets, { opacity: 0, y: 24 });
+    gsap.set(animTargets, { opacity: 0, y: 20 });
 
     // Create timeline (with or without ScrollTrigger)
     const timelineOpts = { defaults: { ease: 'power3.out' } };
@@ -60,8 +60,8 @@ export function useSectionAnimations(sectionRef) {
     timeline.to(animTargets, {
       opacity: 1,
       y: 0,
-      duration: 1.0,
-      stagger: 0.18,
+      duration: 1.4,
+      stagger: 0.25,
     }, 0);
   }
 

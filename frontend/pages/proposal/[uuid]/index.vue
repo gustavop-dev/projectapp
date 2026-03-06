@@ -319,7 +319,7 @@ function triggerNavBlink() {
     blinkTimer = setTimeout(() => {
       navBlinkNext.value = false;
       navBlinkPrev.value = false;
-    }, 1300);
+    }, 2700);
   }, 100);
 }
 
@@ -406,29 +406,29 @@ onBeforeUnmount(() => {
 /* Slide left (navigating forward) */
 .slide-left-enter-active,
 .slide-left-leave-active {
-  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .slide-left-enter-from {
   opacity: 0;
-  transform: translateX(40px);
+  transform: translateX(30px);
 }
 .slide-left-leave-to {
   opacity: 0;
-  transform: translateX(-40px);
+  transform: translateX(-30px);
 }
 
 /* Slide right (navigating backward) */
 .slide-right-enter-active,
 .slide-right-leave-active {
-  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .slide-right-enter-from {
   opacity: 0;
-  transform: translateX(-40px);
+  transform: translateX(-30px);
 }
 .slide-right-leave-to {
   opacity: 0;
-  transform: translateX(40px);
+  transform: translateX(30px);
 }
 
 @keyframes fadeIn {

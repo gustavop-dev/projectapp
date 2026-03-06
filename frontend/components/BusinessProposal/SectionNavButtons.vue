@@ -83,15 +83,15 @@ defineEmits(['prev', 'next']);
 }
 
 .nav-blink {
-  animation: navDoublePulse 1.2s ease-in-out;
+  animation: navDoublePulse 2.4s ease-in-out;
 }
 
 @keyframes navDoublePulse {
-  0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
-  15%  { box-shadow: 0 0 12px 4px rgba(16, 185, 129, 0.4); }
-  30%  { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-  50%  { box-shadow: 0 0 12px 4px rgba(16, 185, 129, 0.4); }
-  70%  { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.35); }
+  12%  { box-shadow: 0 0 14px 5px rgba(16, 185, 129, 0.3); }
+  28%  { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  42%  { box-shadow: 0 0 14px 5px rgba(16, 185, 129, 0.3); }
+  60%  { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
   100% { box-shadow: none; }
 }
 

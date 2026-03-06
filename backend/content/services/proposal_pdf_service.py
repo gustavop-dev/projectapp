@@ -1053,7 +1053,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                           sidebar_x=right_x, sidebar_w=right_w)
 
     # Advance y past whichever column is taller
-    y = min(left_y, columns_top) - 22
+    y = min(left_y, columns_top) - 36
 
     # ── Compact Inversión Total ──────────────────────────────────
     if total:
@@ -1185,8 +1185,9 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             c.setFont(_font('medium'), 7.5)
             c.setFillColor(ESMERALD)
             ty = y
+            center_x = MARGIN_L + CONTENT_W / 2
             for cl in cov_lines:
-                c.drawString(MARGIN_L + 10, ty, cl)
+                c.drawCentredString(center_x, ty, cl)
                 ty -= 12
             y = box_y - 6
 
