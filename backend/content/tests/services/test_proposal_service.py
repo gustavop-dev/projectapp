@@ -3,7 +3,7 @@
 Covers: get_default_sections() for ES and EN languages,
 send_proposal() happy path and error cases.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from datetime import timezone as dt_tz
 from unittest.mock import MagicMock, patch
 
@@ -147,6 +147,7 @@ class TestSendProposal:
         assert proposal.status == 'sent'
         mock_reminder.schedule.assert_called_once()
 
+    @freeze_time('2025-06-01 12:00:00')
     @patch('content.tasks.send_urgency_reminder')
     @patch('content.tasks.send_proposal_reminder')
     def test_sets_sent_at_timestamp(self, mock_reminder, mock_urgency):
@@ -159,8 +160,11 @@ class TestSendProposal:
         )
         ProposalService.send_proposal(proposal)
         proposal.refresh_from_db()
-        assert proposal.sent_at is not None
+        assert proposal.sent_at == datetime(2025, 6, 1, 12, 0, 0, tzinfo=dt_tz.utc)
+        mock_reminder.schedule.assert_called_once()
+        mock_urgency.schedule.assert_called_once()
 
+    @freeze_time('2025-06-01 12:00:00')
     @patch('content.tasks.send_urgency_reminder')
     @patch('content.tasks.send_proposal_reminder')
     def test_schedules_both_reminder_and_urgency_tasks(self, mock_reminder, mock_urgency):
@@ -178,10 +182,11 @@ class TestSendProposal:
         mock_reminder.schedule.assert_called_once()
         mock_urgency.schedule.assert_called_once()
         reminder_delay = mock_reminder.schedule.call_args[1]['delay']
-        assert 9 * 86400 < reminder_delay <= 10 * 86400
+        assert reminder_delay == 10 * 86400
         urgency_delay = mock_urgency.schedule.call_args[1]['delay']
-        assert 14 * 86400 < urgency_delay <= 15 * 86400
+        assert urgency_delay == 15 * 86400
 
+    @freeze_time('2025-06-01 12:00:00')
     @patch('content.tasks.send_urgency_reminder')
     @patch('content.tasks.send_proposal_reminder')
     def test_auto_sets_expires_at_to_20_days(self, mock_reminder, mock_urgency):
@@ -196,15 +201,16 @@ class TestSendProposal:
         assert proposal.expires_at is None
         ProposalService.send_proposal(proposal)
         proposal.refresh_from_db()
-        assert proposal.expires_at is not None
-        from django.utils import timezone
-        delta = proposal.expires_at - timezone.now()
-        assert 19 < delta.total_seconds() / 86400 <= 20
+        assert proposal.expires_at == datetime(2025, 6, 21, 12, 0, 0, tzinfo=dt_tz.utc)
+        mock_reminder.schedule.assert_called_once()
+        mock_urgency.schedule.assert_called_once()
 
     @patch('content.tasks.send_urgency_reminder')
     @patch('content.tasks.send_proposal_reminder')
     def test_logs_exception_when_schedule_fails(self, mock_reminder, mock_urgency):
+        """send_proposal still marks as sent even if task scheduling fails."""
         mock_reminder.schedule = MagicMock(side_effect=RuntimeError('Huey unavailable'))
+        mock_urgency.schedule = MagicMock(return_value=None)
         proposal = BusinessProposal.objects.create(
             title='Exception Test',
             client_name='Client',
@@ -213,6 +219,7 @@ class TestSendProposal:
         ProposalService.send_proposal(proposal)
         proposal.refresh_from_db()
         assert proposal.status == 'sent'
+        mock_reminder.schedule.assert_called_once()
 
 
 class TestResendProposal:
@@ -226,15 +233,17 @@ class TestResendProposal:
         )
         with pytest.raises(ValueError, match='email'):
             ProposalService.resend_proposal(proposal)
+        proposal.refresh_from_db()
+        assert proposal.status == 'sent'
 
+    @freeze_time('2025-06-01 12:00:00')
     @patch('content.tasks.send_urgency_reminder')
     @patch('content.tasks.send_proposal_reminder')
     def test_keeps_existing_expires_at(self, mock_reminder, mock_urgency):
         """Resend should not change the existing expires_at."""
         mock_reminder.schedule = MagicMock(return_value=None)
         mock_urgency.schedule = MagicMock(return_value=None)
-        from django.utils import timezone
-        original_expiry = timezone.now() + timezone.timedelta(days=5)
+        original_expiry = datetime(2025, 7, 1, 12, 0, 0, tzinfo=dt_tz.utc)
         proposal = BusinessProposal.objects.create(
             title='Resend Test',
             client_name='Client',
@@ -248,29 +257,33 @@ class TestResendProposal:
         assert proposal.expires_at == original_expiry
         assert proposal.reminder_sent_at is None
         assert proposal.urgency_email_sent_at is None
+        mock_reminder.schedule.assert_called_once()
+        mock_urgency.schedule.assert_called_once()
 
+    @freeze_time('2025-06-01 12:00:00')
     @patch('content.tasks.send_urgency_reminder')
     @patch('content.tasks.send_proposal_reminder')
     def test_resets_email_tracking_fields(self, mock_reminder, mock_urgency):
         """Resend should reset reminder_sent_at and urgency_email_sent_at."""
         mock_reminder.schedule = MagicMock(return_value=None)
         mock_urgency.schedule = MagicMock(return_value=None)
-        from django.utils import timezone
-        now = timezone.now()
+        now = datetime(2025, 6, 1, 12, 0, 0, tzinfo=dt_tz.utc)
         proposal = BusinessProposal.objects.create(
             title='Reset Fields Test',
             client_name='Client',
             client_email='client@test.com',
             status='viewed',
-            expires_at=now + timezone.timedelta(days=10),
-            reminder_sent_at=now - timezone.timedelta(days=2),
-            urgency_email_sent_at=now - timezone.timedelta(days=1),
+            expires_at=now + timedelta(days=30),
+            reminder_sent_at=now - timedelta(days=2),
+            urgency_email_sent_at=now - timedelta(days=1),
         )
         ProposalService.resend_proposal(proposal)
         proposal.refresh_from_db()
         assert proposal.reminder_sent_at is None
         assert proposal.urgency_email_sent_at is None
-        assert proposal.sent_at is not None
+        assert proposal.sent_at == now
+        mock_reminder.schedule.assert_called_once()
+        mock_urgency.schedule.assert_called_once()
 
 
 class TestRecordView:

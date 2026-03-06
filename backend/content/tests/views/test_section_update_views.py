@@ -4,6 +4,8 @@ Covers: PATCH /api/proposals/sections/:id/update/ with form-equivalent
 and paste-processed data for each section type. Verifies content_json
 is stored and returned correctly.
 """
+import copy
+
 import pytest
 from django.urls import reverse
 
@@ -504,6 +506,25 @@ class TestUpdateFinalNoteSection:
         assert section.content_json['thankYouMessage'] == 'Gracias por la oportunidad.'
 
 
+_FORM_MODE_PAYLOAD = {
+    'content_json': {
+        'index': '2', 'title': 'Contexto',
+        'paragraphs': ['P1'], 'issuesTitle': 'Desafíos',
+        'issues': [], 'opportunityTitle': '', 'opportunity': '',
+        '_editMode': 'form',
+    },
+}
+
+_PASTE_MODE_PAYLOAD = {
+    'content_json': {
+        'index': '4', 'title': 'Diseño',
+        'paragraphs': [], 'focusTitle': '', 'focusItems': [],
+        'objectiveTitle': '', 'objective': '',
+        '_editMode': 'paste', 'rawText': 'First paste version.',
+    },
+}
+
+
 class TestUpdateSectionPasteMode:
     """Tests for _editMode and rawText metadata persisted via PATCH."""
 
@@ -533,19 +554,7 @@ class TestUpdateSectionPasteMode:
         """Verify _editMode='form' is stored and rawText is absent."""
         section = _create_section(prop, 'context_diagnostic')
         url = reverse('update-proposal-section', kwargs={'section_id': section.id})
-        payload = {
-            'content_json': {
-                'index': '2',
-                'title': 'Contexto',
-                'paragraphs': ['P1'],
-                'issuesTitle': 'Desafíos',
-                'issues': [],
-                'opportunityTitle': '',
-                'opportunity': '',
-                '_editMode': 'form',
-            },
-        }
-        response = admin_client.patch(url, payload, format='json')
+        response = admin_client.patch(url, _FORM_MODE_PAYLOAD, format='json')
         assert response.status_code == 200
         section.refresh_from_db()
         assert section.content_json['_editMode'] == 'form'
@@ -555,19 +564,7 @@ class TestUpdateSectionPasteMode:
         """Save paste data, then update again and verify persistence."""
         section = _create_section(prop, 'design_ux')
         url = reverse('update-proposal-section', kwargs={'section_id': section.id})
-        paste_payload = {
-            'content_json': {
-                'index': '4',
-                'title': 'Diseño',
-                'paragraphs': [],
-                'focusTitle': '',
-                'focusItems': [],
-                'objectiveTitle': '',
-                'objective': '',
-                '_editMode': 'paste',
-                'rawText': 'First paste version.',
-            },
-        }
+        paste_payload = copy.deepcopy(_PASTE_MODE_PAYLOAD)
         admin_client.patch(url, paste_payload, format='json')
         section.refresh_from_db()
         assert section.content_json['rawText'] == 'First paste version.'
@@ -578,6 +575,35 @@ class TestUpdateSectionPasteMode:
         assert section.content_json['rawText'] == 'Updated paste version.'
 
 
+_GROUP_PASTE_PAYLOAD = {
+    'content_json': {
+        'index': '7',
+        'title': 'Requerimientos',
+        'intro': '',
+        'groups': [
+            {
+                'id': 'views', 'icon': '🖥️', 'title': 'Vistas',
+                'description': '', 'items': [],
+                '_editMode': 'paste', 'rawText': 'Pasted views content here.',
+            },
+            {
+                'id': 'components', 'icon': '🧩', 'title': 'Componentes',
+                'description': '',
+                'items': [{'icon': '🔝', 'name': 'Header', 'description': 'Logo.'}],
+                '_editMode': 'form',
+            },
+        ],
+        'additionalModules': [
+            {
+                'icon': '📊', 'title': 'Analytics',
+                'description': '', 'items': [],
+                '_editMode': 'paste', 'rawText': 'Analytics pasted content.',
+            },
+        ],
+    },
+}
+
+
 class TestUpdateFunctionalRequirementsGroupPaste:
     """Tests for per-group _editMode/rawText in functional_requirements."""
 
@@ -585,49 +611,7 @@ class TestUpdateFunctionalRequirementsGroupPaste:
         """Verify group-level _editMode='paste' and rawText persist."""
         section = _create_section(prop, 'functional_requirements')
         url = reverse('update-proposal-section', kwargs={'section_id': section.id})
-        payload = {
-            'content_json': {
-                'index': '7',
-                'title': 'Requerimientos',
-                'intro': '',
-                'groups': [
-                    {
-                        'id': 'views',
-                        'icon': '🖥️',
-                        'title': 'Vistas',
-                        'description': '',
-                        'items': [],
-                        '_editMode': 'paste',
-                        'rawText': 'Pasted views content here.',
-                    },
-                    {
-                        'id': 'components',
-                        'icon': '🧩',
-                        'title': 'Componentes',
-                        'description': '',
-                        'items': [
-                            {
-                                'icon': '🔝',
-                                'name': 'Header',
-                                'description': 'Logo.',
-                            },
-                        ],
-                        '_editMode': 'form',
-                    },
-                ],
-                'additionalModules': [
-                    {
-                        'icon': '📊',
-                        'title': 'Analytics',
-                        'description': '',
-                        'items': [],
-                        '_editMode': 'paste',
-                        'rawText': 'Analytics pasted content.',
-                    },
-                ],
-            },
-        }
-        response = admin_client.patch(url, payload, format='json')
+        response = admin_client.patch(url, _GROUP_PASTE_PAYLOAD, format='json')
         assert response.status_code == 200
         section.refresh_from_db()
         groups = section.content_json['groups']
@@ -635,6 +619,14 @@ class TestUpdateFunctionalRequirementsGroupPaste:
         assert groups[0]['rawText'] == 'Pasted views content here.'
         assert groups[1]['_editMode'] == 'form'
         assert 'rawText' not in groups[1]
+
+    def test_saves_additional_module_paste_metadata(self, admin_client, prop):
+        """Verify additionalModules _editMode='paste' and rawText persist."""
+        section = _create_section(prop, 'functional_requirements')
+        url = reverse('update-proposal-section', kwargs={'section_id': section.id})
+        response = admin_client.patch(url, _GROUP_PASTE_PAYLOAD, format='json')
+        assert response.status_code == 200
+        section.refresh_from_db()
         modules = section.content_json['additionalModules']
         assert modules[0]['_editMode'] == 'paste'
         assert modules[0]['rawText'] == 'Analytics pasted content.'

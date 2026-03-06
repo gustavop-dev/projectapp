@@ -22,21 +22,18 @@ from content.models import (
 )
 from content.services.proposal_pdf_service import (
     CONTENT_W,
+    ESMERALD,
+    LEMON,
     MARGIN_B,
     MARGIN_L,
     PAGE_H,
-    PAGE_W,
     SECTION_RENDERERS,
-    SIDEBAR_W,
-    SIDEBAR_X,
-    TEXT_AREA_W,
     ProposalPdfService,
     _clean_inline_bold,
     _draw_banner_box,
     _draw_bullet_list,
     _draw_footer,
     _draw_green_bar,
-    _draw_header_bar,
     _draw_paragraphs,
     _draw_pill,
     _draw_section_header,
@@ -190,6 +187,7 @@ def proposal_with_sections(db):
 
 class TestStripEmoji:
     def test_removes_standard_emoji(self):
+        """Standard emoji characters are stripped from the string."""
         assert _strip_emoji('Hello 🎨 World') == 'Hello  World'
 
     def test_removes_multiple_emojis(self):
@@ -199,15 +197,19 @@ class TestStripEmoji:
         assert '🎯' not in result
 
     def test_preserves_plain_latin_text(self):
+        """Plain ASCII text passes through unchanged."""
         assert _strip_emoji('Hello World') == 'Hello World'
 
     def test_preserves_accented_characters(self):
+        """Accented Latin characters are preserved."""
         assert _strip_emoji('Diseño gráfico') == 'Diseño gráfico'
 
     def test_returns_empty_for_none(self):
+        """None input returns None."""
         assert _strip_emoji(None) is None
 
     def test_returns_empty_for_empty_string(self):
+        """Empty string returns empty string."""
         assert _strip_emoji('') == ''
 
     def test_removes_variation_selectors(self):
@@ -224,43 +226,77 @@ class TestStripEmoji:
 
 class TestSafe:
     def test_returns_value_for_existing_key(self):
+        """Existing key with a truthy value is returned."""
         assert _safe({'name': 'Alice'}, 'name') == 'Alice'
 
     def test_returns_default_for_missing_key(self):
+        """Missing key falls back to the provided default."""
         assert _safe({}, 'name', 'Unknown') == 'Unknown'
 
     def test_returns_default_for_none_value(self):
+        """None value falls back to the default."""
         assert _safe({'name': None}, 'name', 'Default') == 'Default'
 
     def test_returns_default_for_empty_string_value(self):
+        """Empty string value falls back to the default."""
         assert _safe({'name': ''}, 'name', 'Default') == 'Default'
 
     def test_returns_empty_string_default(self):
+        """No explicit default returns empty string."""
         assert _safe({}, 'name') == ''
 
     def test_returns_default_for_non_dict(self):
+        """Non-dict input falls back to the default."""
         assert _safe('not_a_dict', 'key', 'fallback') == 'fallback'
 
     def test_returns_list_default(self):
+        """List default is returned for missing key."""
         assert _safe({}, 'items', []) == []
 
     def test_returns_existing_list(self):
+        """Existing list value is returned over the default."""
         assert _safe({'items': [1, 2]}, 'items', []) == [1, 2]
+
+
+_INVESTMENT_DATA = {
+    'index': '9', 'title': 'Investment',
+    'introText': 'Total:',
+    'totalInvestment': '$5,000,000', 'currency': 'COP',
+    'whatsIncluded': [{'title': 'Design', 'description': 'UX'}],
+    'paymentOptions': [{'label': '50%', 'description': '$2.5M'}],
+    'hostingPlan': {'title': 'Cloud', 'description': 'Included.'},
+    'valueReasons': ['Quality'],
+}
+
+_FINAL_NOTE_DATA = {
+    'index': '10', 'title': 'Final Note',
+    'message': 'Thank you.',
+    'personalNote': 'A pleasure.',
+    'teamName': 'Team', 'teamRole': 'CEO',
+    'contactEmail': 'team@test.com',
+    'commitmentBadges': [{'title': 'Quality', 'description': 'Guaranteed'}],
+}
 
 
 # ── Drawing helper tests ─────────────────────────────────────
 
 class TestDrawGreenBar:
     def test_draws_without_error(self, pdf_canvas):
+        ops_before = len(pdf_canvas._code)
         _draw_green_bar(pdf_canvas)
+        assert len(pdf_canvas._code) > ops_before
 
 
 class TestDrawFooter:
     def test_draws_footer_without_error(self, pdf_canvas):
+        ops_before = len(pdf_canvas._code)
         _draw_footer(pdf_canvas, 1, 10, 'Test Client')
+        assert len(pdf_canvas._code) > ops_before
 
     def test_draws_footer_with_empty_client_name(self, pdf_canvas):
+        ops_before = len(pdf_canvas._code)
         _draw_footer(pdf_canvas, 1, 5, '')
+        assert len(pdf_canvas._code) > ops_before
 
 
 class TestDrawPill:
@@ -272,7 +308,6 @@ class TestDrawPill:
         assert bottom_y < PAGE_H - 100
 
     def test_custom_colors(self, pdf_canvas):
-        from content.services.proposal_pdf_service import LEMON, ESMERALD
         right_x, _ = _draw_pill(
             pdf_canvas, MARGIN_L, PAGE_H - 100, 'COP',
             bg_color=LEMON, text_color=ESMERALD, font_size=8,
@@ -364,11 +399,15 @@ class TestDrawSubtitle:
 class TestSectionRenderers:
     def test_greeting_renders_without_error(self, pdf_canvas, proposal):
         data = {'clientName': 'Test', 'inspirationalQuote': 'Be great.'}
+        page_before = pdf_canvas.getPageNumber()
         SECTION_RENDERERS['greeting'](pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_greeting_renders_with_long_name(self, pdf_canvas, proposal):
         data = {'clientName': 'A' * 50, 'inspirationalQuote': ''}
+        page_before = pdf_canvas.getPageNumber()
         SECTION_RENDERERS['greeting'](pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_executive_summary_renders(self, pdf_canvas, proposal):
         data = {
@@ -376,7 +415,9 @@ class TestSectionRenderers:
             'paragraphs': ['Paragraph one.'],
             'highlightsTitle': 'Key', 'highlights': ['Point'],
         }
+        page_before = pdf_canvas.getPageNumber()
         SECTION_RENDERERS['executive_summary'](pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_context_diagnostic_renders(self, pdf_canvas, proposal):
         data = {
@@ -385,7 +426,9 @@ class TestSectionRenderers:
             'issuesTitle': 'Issues', 'issues': ['SEO'],
             'opportunityTitle': 'Opportunity', 'opportunity': 'Growth.',
         }
+        page_before = pdf_canvas.getPageNumber()
         SECTION_RENDERERS['context_diagnostic'](pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_conversion_strategy_renders(self, pdf_canvas, proposal):
         data = {
@@ -394,7 +437,9 @@ class TestSectionRenderers:
             'steps': [{'title': 'Step 1', 'bullets': ['A']}],
             'resultTitle': 'Result', 'result': 'More clients.',
         }
+        page_before = pdf_canvas.getPageNumber()
         SECTION_RENDERERS['conversion_strategy'](pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_design_ux_renders(self, pdf_canvas, proposal):
         data = {
@@ -403,7 +448,9 @@ class TestSectionRenderers:
             'focusTitle': 'Focus', 'focusItems': ['Mobile'],
             'objectiveTitle': 'Objective', 'objective': 'Impact.',
         }
+        page_before = pdf_canvas.getPageNumber()
         SECTION_RENDERERS['design_ux'](pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_creative_support_renders(self, pdf_canvas, proposal):
         data = {
@@ -412,7 +459,9 @@ class TestSectionRenderers:
             'includesTitle': 'Includes', 'includes': ['Reviews'],
             'closing': 'We are here.',
         }
+        page_before = pdf_canvas.getPageNumber()
         SECTION_RENDERERS['creative_support'](pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_development_stages_renders(self, pdf_canvas, proposal):
         data = {
@@ -422,9 +471,12 @@ class TestSectionRenderers:
                 {'title': 'Phase 2', 'description': 'Build.', 'current': False},
             ],
         }
+        page_before = pdf_canvas.getPageNumber()
         SECTION_RENDERERS['development_stages'](pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_functional_requirements_returns_y_and_stores_groups(self, pdf_canvas, proposal):
+        """functional_requirements returns a y-position and stores groups in ps."""
         ps = {'num': 1, 'client': 'Test'}
         data = {
             'index': '7', 'title': 'Requirements',
@@ -441,6 +493,7 @@ class TestSectionRenderers:
         assert len(ps['_func_req_groups']) >= 1
 
     def test_timeline_renders(self, pdf_canvas, proposal):
+        """Timeline section renders phases without error."""
         data = {
             'index': '8', 'title': 'Timeline',
             'introText': 'Phases.',
@@ -452,30 +505,21 @@ class TestSectionRenderers:
                 'milestone': 'Approval',
             }],
         }
+        page_before = pdf_canvas.getPageNumber()
         SECTION_RENDERERS['timeline'](pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_investment_renders(self, pdf_canvas, proposal):
-        data = {
-            'index': '9', 'title': 'Investment',
-            'introText': 'Total:',
-            'totalInvestment': '$5,000,000', 'currency': 'COP',
-            'whatsIncluded': [{'title': 'Design', 'description': 'UX'}],
-            'paymentOptions': [{'label': '50%', 'description': '$2.5M'}],
-            'hostingPlan': {'title': 'Cloud', 'description': 'Included.'},
-            'valueReasons': ['Quality'],
-        }
-        SECTION_RENDERERS['investment'](pdf_canvas, data, proposal)
+        """Investment section renders pricing info without error."""
+        page_before = pdf_canvas.getPageNumber()
+        SECTION_RENDERERS['investment'](pdf_canvas, _INVESTMENT_DATA, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_final_note_renders(self, pdf_canvas, proposal):
-        data = {
-            'index': '10', 'title': 'Final Note',
-            'message': 'Thank you.',
-            'personalNote': 'A pleasure.',
-            'teamName': 'Team', 'teamRole': 'CEO',
-            'contactEmail': 'team@test.com',
-            'commitmentBadges': [{'title': 'Quality', 'description': 'Guaranteed'}],
-        }
-        SECTION_RENDERERS['final_note'](pdf_canvas, data, proposal)
+        """Final note section renders team info without error."""
+        page_before = pdf_canvas.getPageNumber()
+        SECTION_RENDERERS['final_note'](pdf_canvas, _FINAL_NOTE_DATA, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_next_steps_renders(self, pdf_canvas, proposal):
         data = {
@@ -485,7 +529,9 @@ class TestSectionRenderers:
             'ctaMessage': 'Call us.',
             'contactMethods': [{'title': 'Email', 'value': 'team@test.com'}],
         }
+        page_before = pdf_canvas.getPageNumber()
         SECTION_RENDERERS['next_steps'](pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
 
 class TestRenderRawText:
@@ -494,39 +540,51 @@ class TestRenderRawText:
             'index': '12', 'title': 'Custom',
             'rawText': 'Custom content from paste mode.',
         }
+        page_before = pdf_canvas.getPageNumber()
         _render_raw_text(pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_renders_markdown_headings(self, pdf_canvas, proposal):
         data = {
             'index': '1', 'title': 'Markdown Test',
             'rawText': '# Heading 1\n## Heading 2\n### Heading 3\nParagraph.',
         }
+        page_before = pdf_canvas.getPageNumber()
         _render_raw_text(pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_renders_markdown_bullets(self, pdf_canvas, proposal):
         data = {
             'index': '1', 'title': 'Bullets',
             'rawText': '- Item one\n- Item two\n* Item three',
         }
+        page_before = pdf_canvas.getPageNumber()
         _render_raw_text(pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_renders_numbered_list(self, pdf_canvas, proposal):
         data = {
             'index': '1', 'title': 'Numbered',
             'rawText': '1. First\n2. Second\n3. Third',
         }
+        page_before = pdf_canvas.getPageNumber()
         _render_raw_text(pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_renders_bold_lines(self, pdf_canvas, proposal):
         data = {
             'index': '1', 'title': 'Bold',
             'rawText': '**Bold line**\nNormal text with **inline bold** here.',
         }
+        page_before = pdf_canvas.getPageNumber()
         _render_raw_text(pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
     def test_handles_empty_raw_text(self, pdf_canvas, proposal):
         data = {'index': '1', 'title': 'Empty', 'rawText': ''}
+        page_before = pdf_canvas.getPageNumber()
         _render_raw_text(pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
 
 
 class TestParseMarkdownLines:
@@ -559,14 +617,17 @@ class TestParseMarkdownLines:
         ]
 
     def test_returns_empty_for_none(self):
+        """None input returns an empty token list."""
         assert _parse_markdown_lines(None) == []
 
     def test_returns_empty_for_empty_string(self):
+        """Empty string returns an empty token list."""
         assert _parse_markdown_lines('') == []
 
 
 class TestCleanInlineBold:
     def test_removes_bold_markers(self):
+        """Double-asterisk bold markers are stripped."""
         assert _clean_inline_bold('Use **bold** text') == 'Use bold text'
 
     def test_handles_multiple_bold(self):
@@ -574,6 +635,7 @@ class TestCleanInlineBold:
         assert result == 'A and B'
 
     def test_preserves_non_bold_text(self):
+        """Text without bold markers passes through unchanged."""
         assert _clean_inline_bold('No bold here') == 'No bold here'
 
 
@@ -599,12 +661,15 @@ class TestGenerate:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_returns_pdf_bytes(self, _mock_back, _mock_cover, proposal_with_sections):
+    def test_returns_pdf_bytes(self, mock_back, mock_cover, proposal_with_sections):
+        """Generate produces valid PDF bytes for a proposal with sections."""
         result = ProposalPdfService.generate(proposal_with_sections)
 
         assert result is not None
         assert isinstance(result, bytes)
         assert result[:5] == b'%PDF-'
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -614,13 +679,15 @@ class TestGenerate:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_generates_multiple_pages(self, _mock_back, _mock_cover, proposal_with_sections):
+    def test_generates_multiple_pages(self, mock_back, mock_cover, proposal_with_sections):
+        """Multiple sections produce at least 2 PDF pages."""
         from pypdf import PdfReader
 
         pdf_bytes = ProposalPdfService.generate(proposal_with_sections)
         reader = PdfReader(io.BytesIO(pdf_bytes))
-        # Greeting gets own page; remaining sections flow continuously
         assert len(reader.pages) >= 2
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
 
     @patch('content.services.proposal_pdf_service.canvas.Canvas')
     def test_returns_none_on_exception(self, mock_canvas_cls, proposal):
@@ -638,11 +705,14 @@ class TestGenerate:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_handles_proposal_with_no_sections(self, _mock_back, _mock_cover, proposal):
+    def test_handles_proposal_with_no_sections(self, mock_back, mock_cover, proposal):
+        """Proposal with zero sections still produces valid PDF bytes."""
         result = ProposalPdfService.generate(proposal)
 
         assert result is not None
         assert isinstance(result, bytes)
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -652,7 +722,8 @@ class TestGenerate:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_handles_db_requirement_groups(self, _mock_back, _mock_cover, proposal):
+    def test_handles_db_requirement_groups(self, mock_back, mock_cover, proposal):
+        """DB-backed requirement groups are rendered into the PDF."""
         ProposalSection.objects.create(
             proposal=proposal,
             section_type='functional_requirements',
@@ -678,6 +749,8 @@ class TestGenerate:
 
         assert result is not None
         assert result[:5] == b'%PDF-'
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -687,7 +760,8 @@ class TestGenerate:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_handles_raw_text_section(self, _mock_back, _mock_cover, proposal):
+    def test_handles_raw_text_section(self, mock_back, mock_cover, proposal):
+        """Unknown section type with rawText falls back to raw text rendering."""
         ProposalSection.objects.create(
             proposal=proposal,
             section_type='unknown_type',
@@ -700,6 +774,8 @@ class TestGenerate:
         result = ProposalPdfService.generate(proposal)
 
         assert result is not None
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -709,7 +785,7 @@ class TestGenerate:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_paste_mode_overrides_form_renderer(self, _mock_back, _mock_cover, proposal):
+    def test_paste_mode_overrides_form_renderer(self, mock_back, mock_cover, proposal):
         """Known section type with _editMode='paste' should use rawText, not form renderer."""
         ProposalSection.objects.create(
             proposal=proposal,
@@ -732,6 +808,8 @@ class TestGenerate:
         assert result is not None
         assert isinstance(result, bytes)
         assert result[:5] == b'%PDF-'
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -741,7 +819,7 @@ class TestGenerate:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_form_mode_uses_form_renderer(self, _mock_back, _mock_cover, proposal):
+    def test_form_mode_uses_form_renderer(self, mock_back, mock_cover, proposal):
         """Known section type with _editMode='form' should use the form renderer."""
         ProposalSection.objects.create(
             proposal=proposal,
@@ -762,6 +840,8 @@ class TestGenerate:
 
         assert result is not None
         assert result[:5] == b'%PDF-'
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -771,7 +851,7 @@ class TestGenerate:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_paste_mode_requirement_group(self, _mock_back, _mock_cover, proposal):
+    def test_paste_mode_requirement_group(self, mock_back, mock_cover, proposal):
         """Functional requirement group in paste mode should render rawText."""
         ProposalSection.objects.create(
             proposal=proposal,
@@ -798,6 +878,8 @@ class TestGenerate:
 
         assert result is not None
         assert result[:5] == b'%PDF-'
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
 
 
 # ── _merge_with_covers tests ─────────────────────────────────
@@ -816,6 +898,7 @@ class TestMergeWithCovers:
     @patch('content.services.proposal_pdf_service.COVER_PDF')
     @patch('content.services.proposal_pdf_service.BACK_COVER_PDF')
     def test_returns_content_when_no_covers(self, mock_back, mock_cover):
+        """Without cover PDFs, merge returns the original content unchanged."""
         mock_cover.exists.return_value = False
         mock_back.exists.return_value = False
 
@@ -825,10 +908,13 @@ class TestMergeWithCovers:
         from pypdf import PdfReader
         reader = PdfReader(io.BytesIO(result))
         assert len(reader.pages) == 2
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
 
     @patch('content.services.proposal_pdf_service.BACK_COVER_PDF')
     @patch('content.services.proposal_pdf_service.COVER_PDF')
     def test_adds_cover_when_exists(self, mock_cover, mock_back):
+        """When a cover PDF exists, it is prepended to the content pages."""
         cover_bytes = self._make_pdf_bytes(1)
         cover_path = Path('/tmp/test_cover.pdf')
         cover_path.write_bytes(cover_bytes)
@@ -843,12 +929,15 @@ class TestMergeWithCovers:
         from pypdf import PdfReader
         reader = PdfReader(io.BytesIO(result))
         assert len(reader.pages) == 3  # 1 cover + 2 content
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
 
         cover_path.unlink(missing_ok=True)
 
     @patch('content.services.proposal_pdf_service.BACK_COVER_PDF')
     @patch('content.services.proposal_pdf_service.COVER_PDF')
     def test_handles_corrupt_cover_gracefully(self, mock_cover, mock_back):
+        """Corrupt cover PDF is skipped, returning only the content pages."""
         corrupt_path = Path('/tmp/test_corrupt.pdf')
         corrupt_path.write_bytes(b'not a pdf')
 
@@ -862,6 +951,7 @@ class TestMergeWithCovers:
         from pypdf import PdfReader
         reader = PdfReader(io.BytesIO(result))
         assert len(reader.pages) == 1  # only content, corrupt cover skipped
+        mock_cover.exists.assert_called()
 
         corrupt_path.unlink(missing_ok=True)
 
@@ -877,7 +967,8 @@ class TestGenerateToFile:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_saves_pdf_to_specified_path(self, _m1, _m2, proposal_with_sections, tmp_path):
+    def test_saves_pdf_to_specified_path(self, mock_back, mock_cover, proposal_with_sections, tmp_path):
+        """generate_to_file writes a valid PDF to the specified output path."""
         out = tmp_path / 'output.pdf'
 
         result = ProposalPdfService.generate_to_file(
@@ -887,6 +978,8 @@ class TestGenerateToFile:
         assert result == str(out)
         assert out.exists()
         assert out.read_bytes()[:5] == b'%PDF-'
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -896,16 +989,21 @@ class TestGenerateToFile:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_saves_to_temp_path_when_no_output_path(self, _m1, _m2, proposal_with_sections):
+    def test_saves_to_temp_path_when_no_output_path(self, mock_back, mock_cover, proposal_with_sections):
+        """Without output_path, generate_to_file creates a temp file."""
         result = ProposalPdfService.generate_to_file(proposal_with_sections)
 
         assert result is not None
         assert Path(result).exists()
         assert Path(result).read_bytes()[:5] == b'%PDF-'
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
         Path(result).unlink(missing_ok=True)
 
     @patch.object(ProposalPdfService, 'generate', return_value=None)
-    def test_returns_none_when_generate_fails(self, _mock_gen, proposal):
+    def test_returns_none_when_generate_fails(self, mock_gen, proposal):
+        """generate_to_file returns None when generate() returns None."""
         result = ProposalPdfService.generate_to_file(proposal)
 
         assert result is None
+        mock_gen.assert_called_once_with(proposal)

@@ -1,15 +1,15 @@
 <template>
-  <div class="section-editor">
+  <div class="section-editor" data-testid="section-editor">
     <!-- Section title -->
-    <div class="mb-5">
-      <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Título de la sección</label>
+    <label class="block mb-5">
+      <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Título de la sección</span>
       <input
         v-model="sectionTitle"
         type="text"
         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
                focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
       />
-    </div>
+    </label>
 
     <!-- Paste mode toggle -->
     <div v-if="hasPasteSupport" class="mb-5">
@@ -40,6 +40,7 @@
         <textarea
           v-model="pasteText"
           rows="18"
+          data-testid="paste-textarea"
           placeholder="Escribe o pega aquí el contenido de esta sección..."
           class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm font-mono
                  focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y"
@@ -174,7 +175,7 @@
         <FieldTextarea v-model="form.intro" label="Introducción" :rows="3" :isSingle="true" />
 
         <!-- Groups: collapsible -->
-        <div v-for="(group, gIdx) in form.groups" :key="group.id || gIdx" class="mt-4 border border-gray-200 rounded-xl overflow-hidden">
+        <div v-for="(group, gIdx) in form.groups" :key="group.id || gIdx" :data-testid="`requirement-group-${group.id || gIdx}`" class="mt-4 border border-gray-200 rounded-xl overflow-hidden">
           <!-- Collapse header -->
           <div class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
                @click="group._collapsed = !group._collapsed">
@@ -209,7 +210,7 @@
             <!-- Paste mode for this group -->
             <div v-if="group._pasteMode" class="space-y-3">
               <p class="text-[11px] text-gray-500">Contenido Markdown para esta sub-sección.</p>
-              <textarea v-model="group._pasteText" rows="10" placeholder="Escribe o pega aquí el contenido de este grupo..."
+              <textarea v-model="group._pasteText" rows="10" data-testid="group-paste-textarea" placeholder="Escribe o pega aquí el contenido de este grupo..."
                 class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-1 focus:ring-emerald-500 outline-none resize-y" />
             </div>
 
@@ -616,8 +617,8 @@ const FieldInput = {
   props: { modelValue: String, label: String, placeholder: String },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
-    return () => h('div', [
-      props.label ? h('label', { class: 'block text-xs text-gray-500 mb-0.5' }, props.label) : null,
+    return () => h('label', { class: 'block' }, [
+      props.label ? h('span', { class: 'block text-xs text-gray-500 mb-0.5' }, props.label) : null,
       h('input', {
         value: props.modelValue,
         placeholder: props.placeholder,
@@ -632,8 +633,8 @@ const FieldTextarea = {
   props: { modelValue: String, label: String, help: String, rows: { type: Number, default: 4 }, isSingle: Boolean },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
-    return () => h('div', [
-      props.label ? h('label', { class: 'block text-xs text-gray-500 mb-0.5' }, props.label) : null,
+    return () => h('label', { class: 'block' }, [
+      props.label ? h('span', { class: 'block text-xs text-gray-500 mb-0.5' }, props.label) : null,
       h('textarea', {
         value: props.modelValue,
         rows: props.rows,

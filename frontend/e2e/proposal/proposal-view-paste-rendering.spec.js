@@ -150,11 +150,10 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
     await page.waitForLoadState('networkidle');
 
     // Wait for preloader to finish and content to appear
-    await page.waitForTimeout(3000);
+    await page.getByTestId('raw-content').first().waitFor({ state: 'visible', timeout: 10000 });
 
     // The paste-mode executive_summary should render as RawContentSection
-    // Look for the raw-content class which is unique to RawContentSection
-    const rawContentSections = page.locator('.raw-content');
+    const rawContentSections = page.getByTestId('raw-content');
     const count = await rawContentSections.count();
     // Should have at least 2 raw content sections (exec_summary + conversion_strategy paste modes)
     // Plus 1 for the components group paste mode
@@ -168,11 +167,10 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
     await mockApi(page, buildMockHandler(proposal));
     await page.goto(`/proposal/${MOCK_UUID}`);
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
 
-    // The RawContentSection uses marked to render markdown
-    // Check that the rendered HTML contains markdown elements
-    const rawContentCard = page.locator('.raw-content-card').first();
+    // Wait for content to appear
+    const rawContentCard = page.getByTestId('raw-content-card').first();
+    await rawContentCard.waitFor({ state: 'visible', timeout: 10000 });
     await expect(rawContentCard).toBeVisible();
 
     // The markdown "## Resumen del Proyecto" should become an h2
@@ -192,10 +190,10 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
     await mockApi(page, buildMockHandler(proposal));
     await page.goto(`/proposal/${MOCK_UUID}`);
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
 
-    // The card should have the expected classes
-    const rawContentCard = page.locator('.raw-content-card').first();
+    // Wait for content to appear
+    const rawContentCard = page.getByTestId('raw-content-card').first();
+    await rawContentCard.waitFor({ state: 'visible', timeout: 10000 });
     await expect(rawContentCard).toBeVisible();
 
     // Verify the card has rounded corners (rounded-2xl class)
@@ -211,16 +209,14 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
     await mockApi(page, buildMockHandler(proposal));
     await page.goto(`/proposal/${MOCK_UUID}`);
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
 
-    // The form-mode context_diagnostic (section index 2) should render
-    // using the structured ContextDiagnostic component, not RawContentSection.
-    // It should have the issues list rendered structurally
+    // Wait for structured content to appear
     const contextPanel = page.locator('[data-section-type="context_diagnostic"]');
+    await contextPanel.waitFor({ state: 'visible', timeout: 10000 });
     await expect(contextPanel).toBeVisible();
 
-    // Should NOT have raw-content class inside it
-    const rawInContext = contextPanel.locator('.raw-content');
+    // Should NOT have raw-content inside it
+    const rawInContext = contextPanel.getByTestId('raw-content');
     expect(await rawInContext.count()).toBe(0);
   });
 
@@ -231,10 +227,10 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
     await mockApi(page, buildMockHandler(proposal));
     await page.goto(`/proposal/${MOCK_UUID}`);
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
 
-    // The paste-mode section should show the title from content_json
-    const rawContentSection = page.locator('.raw-content').first();
+    // Wait for content to appear
+    const rawContentSection = page.getByTestId('raw-content').first();
+    await rawContentSection.waitFor({ state: 'visible', timeout: 10000 });
     const title = rawContentSection.locator('h2');
     await expect(title).toBeVisible();
     const titleText = await title.textContent();
@@ -248,12 +244,11 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
     await mockApi(page, buildMockHandler(proposal));
     await page.goto(`/proposal/${MOCK_UUID}`);
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
 
-    // The raw content section should display the index (e.g., "1")
-    const rawContentSection = page.locator('.raw-content').first();
-    const indexSpan = rawContentSection.locator('span').first();
-    await expect(indexSpan).toBeVisible();
+    // Wait for the index "1" (from executive_summary paste section) to appear
+    const rawContentIndex = page.getByTestId('raw-content-index').getByText('1');
+    await rawContentIndex.waitFor({ state: 'visible', timeout: 10000 });
+    await expect(rawContentIndex).toBeVisible();
   });
 
   test('functional_requirements group in paste mode renders as RawContentSection', {
@@ -263,24 +258,14 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
     await mockApi(page, buildMockHandler(proposal));
     await page.goto(`/proposal/${MOCK_UUID}`);
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
 
-    // The components group (paste mode) should render as raw content
-    // Look for a panel with functional_requirements_group type that has raw-content
-    const groupPanels = page.locator('[data-section-type="functional_requirements_group"]');
-    const groupCount = await groupPanels.count();
-    expect(groupCount).toBeGreaterThanOrEqual(2);
+    // Wait for functional requirements groups to appear
+    const groupPanel = page.locator('[data-section-type="functional_requirements_group"]');
+    await expect(groupPanel).toHaveCount(2, { timeout: 10000 });
 
-    // At least one group panel should contain raw-content (the paste-mode one)
-    let foundPasteGroup = false;
-    for (let i = 0; i < groupCount; i++) {
-      const rawContent = groupPanels.nth(i).locator('.raw-content');
-      if (await rawContent.count() > 0) {
-        foundPasteGroup = true;
-        break;
-      }
-    }
-    expect(foundPasteGroup).toBe(true);
+    // At least one group panel should contain raw-content (the paste-mode "Componentes" group)
+    const pasteGroupContent = groupPanel.filter({ has: page.getByTestId('raw-content') });
+    await expect(pasteGroupContent).toHaveCount(1);
   });
 
   test('mixed form/paste proposal: form sections use structured components', {
@@ -290,15 +275,17 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
     await mockApi(page, buildMockHandler(proposal));
     await page.goto(`/proposal/${MOCK_UUID}`);
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
+
+    // Wait for greeting to appear
+    const greetingPanel = page.locator('[data-section-type="greeting"]');
+    await greetingPanel.waitFor({ state: 'visible', timeout: 10000 });
 
     // greeting (form) should NOT have raw-content
-    const greetingPanel = page.locator('[data-section-type="greeting"]');
-    expect(await greetingPanel.locator('.raw-content').count()).toBe(0);
+    expect(await greetingPanel.getByTestId('raw-content').count()).toBe(0);
 
     // timeline (form) should NOT have raw-content
     const timelinePanel = page.locator('[data-section-type="timeline"]');
-    expect(await timelinePanel.locator('.raw-content').count()).toBe(0);
+    expect(await timelinePanel.getByTestId('raw-content').count()).toBe(0);
   });
 
   test('markdown list items render correctly in paste section', {
@@ -308,10 +295,10 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
     await mockApi(page, buildMockHandler(proposal));
     await page.goto(`/proposal/${MOCK_UUID}`);
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
 
-    // The executive_summary paste section has "- Punto importante 1" which should render as <li>
-    const rawContentCard = page.locator('.raw-content-card').first();
+    // Wait for content to appear
+    const rawContentCard = page.getByTestId('raw-content-card').first();
+    await rawContentCard.waitFor({ state: 'visible', timeout: 10000 });
     const listItems = rawContentCard.locator('li');
     const liCount = await listItems.count();
     expect(liCount).toBeGreaterThanOrEqual(2);
@@ -348,10 +335,10 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
     await mockApi(page, buildMockHandler(allFormProposal));
     await page.goto(`/proposal/${MOCK_UUID}`);
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
 
-    // No raw-content sections should exist
-    const rawContentSections = page.locator('.raw-content');
+    // Wait for page to load, then check no raw-content sections exist
+    await page.locator('[data-section-type="greeting"]').waitFor({ state: 'visible', timeout: 10000 });
+    const rawContentSections = page.getByTestId('raw-content');
     expect(await rawContentSections.count()).toBe(0);
   });
 });

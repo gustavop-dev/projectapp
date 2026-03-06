@@ -883,6 +883,13 @@ def run_frontend_e2e(
     show_coverage: bool = False,
 ) -> StepResult:
     env = dict(os.environ)
+    subprocess.run(
+        ["npx", "playwright", "install", "chromium", "--quiet"],
+        cwd=frontend_root,
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
     playwright_cmd = ["npx", "playwright", "test"]
     if workers:
         playwright_cmd.append(f"--workers={workers}")

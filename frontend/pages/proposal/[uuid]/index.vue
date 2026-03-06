@@ -38,6 +38,16 @@
       <!-- PDF download -->
       <PdfDownloadButton />
 
+      <!-- Side navigation arrows (fixed, outside transition) -->
+      <SectionNavButtons
+        :prevTitle="prevPanelTitle"
+        :nextTitle="nextPanelTitle"
+        :isFirst="currentIndex === 0"
+        :isLast="currentIndex === totalSections - 1"
+        @prev="goPrev"
+        @next="goNext"
+      />
+
       <!-- Single-panel view with transition -->
       <Transition :name="transitionName" mode="out-in">
         <div :key="currentPanel.id" class="panel-container">
@@ -51,16 +61,6 @@
             v-else
             :is="sectionComponentMap[currentPanel.section_type]"
             v-bind="getSectionProps(currentPanel)"
-          />
-
-          <!-- Navigation buttons at the bottom of every section -->
-          <SectionNavButtons
-            :prevTitle="prevPanelTitle"
-            :nextTitle="nextPanelTitle"
-            :isFirst="currentIndex === 0"
-            :isLast="currentIndex === totalSections - 1"
-            @prev="goPrev"
-            @next="goNext"
           />
         </div>
       </Transition>

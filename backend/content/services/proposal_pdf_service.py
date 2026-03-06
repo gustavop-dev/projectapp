@@ -833,67 +833,73 @@ def _render_requirement_group_page(c, grp, ps=None, y=None,
         return y
 
     col_gap = 12
+    row_gap = 14
     card_w = (CONTENT_W - col_gap) / 2
     card_chars = int(card_w / (8 * 0.48)) - 4
-    col = 0
+
+    def _card_height(itm):
+        d = _strip_emoji(_safe(itm, 'description'))
+        dl = textwrap.wrap(d, width=card_chars) if d else []
+        return 14 + 14 + len(dl) * 11 + 10
+
+    # Process items in pairs (rows)
     row_y = y
-    row_bottom = y
+    idx = 0
+    while idx < len(items):
+        left_item = items[idx]
+        right_item = items[idx + 1] if idx + 1 < len(items) else None
 
-    for idx, item in enumerate(items):
-        name = _strip_emoji(_safe(item, 'name'))
-        item_desc = _strip_emoji(_safe(item, 'description'))
+        left_h = _card_height(left_item)
+        right_h = _card_height(right_item) if right_item else 0
+        max_h = max(left_h, right_h)
 
-        # Estimate card height
-        desc_lines = textwrap.wrap(item_desc, width=card_chars) if item_desc else []
-        card_h = 14 + 14 + len(desc_lines) * 11 + 10  # padding + name + desc + bottom
-
+        # Page check once per row
         if ps:
-            row_y = _check_y(c, row_y, ps, need=card_h + 10)
-            if col == 0:
-                y = row_y
+            row_y = _check_y(c, row_y, ps, need=max_h + 10)
+        y = row_y
 
-        card_x = MARGIN_L + col * (card_w + col_gap)
-        card_y_top = row_y
+        for ci, item in enumerate(
+            [left_item, right_item] if right_item else [left_item]
+        ):
+            name = _strip_emoji(_safe(item, 'name'))
+            item_desc = _strip_emoji(_safe(item, 'description'))
+            desc_lines = (
+                textwrap.wrap(item_desc, width=card_chars)
+                if item_desc else []
+            )
+            card_h = 14 + 14 + len(desc_lines) * 11 + 10
 
-        # Card background
-        c.setFillColor(ESMERALD_LIGHT)
-        c.roundRect(card_x, card_y_top - card_h + 8, card_w, card_h,
-                    6, fill=1, stroke=0)
+            card_x = MARGIN_L + ci * (card_w + col_gap)
 
-        # Subtle left accent bar on each card
-        c.setFillColor(LEMON)
-        c.roundRect(card_x, card_y_top - card_h + 8, 3, card_h, 1,
-                    fill=1, stroke=0)
+            # Card background
+            c.setFillColor(ESMERALD_LIGHT)
+            c.roundRect(card_x, row_y - card_h + 8, card_w, card_h,
+                        6, fill=1, stroke=0)
 
-        # Item name
-        inner_x = card_x + 12
-        text_y = card_y_top - 6
-        c.setFont(_font('bold'), 9)
-        c.setFillColor(ESMERALD)
-        c.drawString(inner_x, text_y, name)
-        text_y -= 14
+            # Subtle left accent bar
+            c.setFillColor(LEMON)
+            c.roundRect(card_x, row_y - card_h + 8, 3, card_h, 1,
+                        fill=1, stroke=0)
 
-        # Item description
-        if desc_lines:
-            c.setFont(_font('regular'), 8)
-            c.setFillColor(ESMERALD_80)
-            for dl in desc_lines:
-                c.drawString(inner_x, text_y, dl)
-                text_y -= 11
+            # Item name
+            inner_x = card_x + 12
+            text_y = row_y - 6
+            c.setFont(_font('bold'), 9)
+            c.setFillColor(ESMERALD)
+            c.drawString(inner_x, text_y, name)
+            text_y -= 14
 
-        card_bottom = card_y_top - card_h + 8
-        row_bottom = min(row_bottom, card_bottom)
+            # Item description
+            if desc_lines:
+                c.setFont(_font('regular'), 8)
+                c.setFillColor(ESMERALD_80)
+                for dl in desc_lines:
+                    c.drawString(inner_x, text_y, dl)
+                    text_y -= 11
 
-        col += 1
-        if col >= 2:
-            col = 0
-            row_y = row_bottom - 8
-            row_bottom = row_y
-            y = row_y
-
-    # If last row had only 1 card, update y
-    if col == 1:
-        y = row_bottom - 8
+        row_y = row_y - max_h - row_gap + 8
+        y = row_y
+        idx += 2 if right_item else 1
 
     return y
 
@@ -979,7 +985,7 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
 
 
 def _render_investment(c, data, _proposal, ps=None, y=None):
-    """Render investment section with two-column layout."""
+    """Render investment section with sidebar Incluye layout."""
     if y is None:
         y = PAGE_H - MARGIN_T
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
@@ -990,88 +996,72 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
     total = _safe(data, 'totalInvestment')
     currency = _safe(data, 'currency')
     options = _safe(data, 'paymentOptions', [])
+    content_top = y
 
-    # Intro text (full width)
+    # Intro text — use narrower column when sidebar fits
     if intro:
-        y = _draw_paragraphs(c, y, [intro], ps=ps)
+        if included and (content_top - MARGIN_B) > 200:
+            y = _draw_paragraphs(c, y, [intro], max_width=TEXT_AREA_W, ps=ps)
+        else:
+            y = _draw_paragraphs(c, y, [intro], ps=ps)
         y -= 6
 
-    # ── Two-column zone: left = total + payments, right = Incluye ──
-    has_room = (y - MARGIN_B) > 180
-    left_w = CONTENT_W * 0.58
-    right_x = MARGIN_L + left_w + 16
-    right_w = CONTENT_W - left_w - 16
-    two_col_top = y
+    # What's included sidebar (same position as other sidebars)
+    if included:
+        items_text = [
+            f'{_strip_emoji(_safe(it, "title"))} \u2014 '
+            f'{_strip_emoji(_safe(it, "description"))}'
+            for it in included
+        ]
+        if (content_top - MARGIN_B) > 200:
+            sb = _draw_sidebar_box(c, content_top, 'Incluye', items_text)
+            y = min(y, sb - 8)
+        else:
+            y -= 6
+            y = _draw_subtitle(c, y, 'Incluye', ps=ps)
+            y = _draw_bullet_list(c, y, items_text, ps=ps)
 
-    # LEFT COLUMN: total investment box + payment options
-    left_y = y
+    # Total investment highlight box (full width)
     if total:
         if ps:
-            left_y = _check_y(c, left_y, ps, need=60)
-        box_h = 50
-        box_w = left_w
-        box_y = left_y - box_h
+            y = _check_y(c, y, ps, need=70)
+        box_h = 54
+        box_w = CONTENT_W
+        box_y = y - box_h
         c.setFillColor(ESMERALD)
         c.roundRect(MARGIN_L, box_y, box_w, box_h, 8, fill=1, stroke=0)
-        c.setFont(_font('bold'), 24)
+        c.setFont(_font('bold'), 26)
         c.setFillColor(WHITE)
-        label_text = total
-        c.drawCentredString(MARGIN_L + box_w / 2, box_y + 24, label_text)
+        c.drawCentredString(MARGIN_L + box_w / 2, box_y + 26, total)
         if currency:
             _draw_pill(c, MARGIN_L + box_w / 2 - 14, box_y + 6, currency,
                        bg_color=LEMON, text_color=ESMERALD, font_size=8)
-        left_y = box_y - 12
+        y = box_y - 14
 
+    # Payment options as styled pill rows (full width)
     if options:
-        left_y -= 4
-        c.setFont(_font('bold'), 11)
-        c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L, left_y, 'Formas de Pago')
-        left_y -= 16
+        y -= 4
+        y = _draw_subtitle(c, y, 'Formas de Pago', ps=ps)
         for opt in options:
             if ps:
-                left_y = _check_y(c, left_y, ps)
-            elif left_y < MARGIN_B + 20:
+                y = _check_y(c, y, ps, need=22)
+            elif y < MARGIN_B + 20:
                 break
             label = _strip_emoji(_safe(opt, 'label'))
             desc = _strip_emoji(_safe(opt, 'description'))
 
             # Row bg
             c.setFillColor(ESMERALD_LIGHT)
-            c.roundRect(MARGIN_L, left_y - 6, left_w, 18, 4,
+            c.roundRect(MARGIN_L, y - 6, CONTENT_W, 18, 4,
                         fill=1, stroke=0)
             c.setFont(_font('regular'), 8)
             c.setFillColor(ESMERALD_80)
-            c.drawString(MARGIN_L + 8, left_y - 2, label)
-            # Amount pill on right side of left column
+            c.drawString(MARGIN_L + 8, y - 2, label)
+            # Amount pill on right
             if desc:
-                _draw_pill(c, MARGIN_L + left_w - 70, left_y - 2, desc,
+                _draw_pill(c, PAGE_W - MARGIN_R - 80, y - 2, desc,
                            bg_color=ESMERALD, text_color=WHITE, font_size=7)
-            left_y -= 22
-
-    # RIGHT COLUMN: What's included
-    right_y = two_col_top
-    if included and has_room:
-        items_text = [
-            f'{_strip_emoji(_safe(it, "title"))} \u2014 '
-            f'{_strip_emoji(_safe(it, "description"))}'
-            for it in included
-        ]
-        _draw_sidebar_box(c, right_y, 'Incluye', items_text,
-                          sidebar_x=right_x, sidebar_w=right_w)
-
-    y = min(left_y, y) - 4
-
-    # Fallback: if no room for two-col, render Incluye inline below
-    if included and not has_room:
-        y -= 6
-        items_text = [
-            f'{_strip_emoji(_safe(it, "title"))} \u2014 '
-            f'{_strip_emoji(_safe(it, "description"))}'
-            for it in included
-        ]
-        y = _draw_subtitle(c, y, 'Incluye', ps=ps)
-        y = _draw_bullet_list(c, y, items_text, ps=ps)
+            y -= 22
 
     # Hosting plan
     hosting = _safe(data, 'hostingPlan', {})
@@ -1080,7 +1070,6 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         y -= 8
         if ps:
             y = _check_y(c, y, ps, need=30)
-        # Hosting as a pill + description
         _draw_pill(c, MARGIN_L, y, h_title,
                    bg_color=ESMERALD_LIGHT, text_color=ESMERALD, font_size=8)
         y -= 16

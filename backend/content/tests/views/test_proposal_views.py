@@ -212,6 +212,7 @@ class TestAdminCreateProposal:
         assert len(response.data['sections']) == 12
 
     def test_auto_fills_investment_section_from_proposal_data(self, admin_client):
+        """Investment section auto-fills totalInvestment, currency, and paymentOptions."""
         payload = {
             'title': 'Investment Test',
             'client_name': 'Client',
@@ -234,6 +235,7 @@ class TestAdminCreateProposal:
         assert len(content['paymentOptions']) == 3
 
     def test_auto_fills_greeting_client_name(self, admin_client):
+        """Greeting section auto-fills clientName from the proposal client_name."""
         payload = {
             'title': 'Greeting Test',
             'client_name': 'María García',

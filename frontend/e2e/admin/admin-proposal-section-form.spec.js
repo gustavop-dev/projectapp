@@ -132,11 +132,10 @@ async function openSectionEditor(page, capturedUpdates, sectionTitle) {
   await page.getByRole('button', { name: 'Secciones' }).click();
 
   // Find section header and expand it
-  const sectionHeader = page.locator('div').filter({ hasText: sectionTitle }).first();
+  const sectionHeader = page.getByText(sectionTitle, { exact: false }).first();
   await sectionHeader.click();
 
-  // Wait for editor to appear
-  await page.waitForTimeout(300);
+  await page.getByTestId('section-editor').waitFor({ state: 'visible' });
 }
 
 test.describe('Proposal Section Edit — Form Mode', () => {
@@ -170,18 +169,14 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await openSectionEditor(page, captured, 'Greeting');
 
     // Fill greeting fields — find the section editor area
-    const editor = page.locator('.section-editor').first();
-    const inputs = editor.locator('input[type="text"]');
+    const editor = page.getByTestId('section-editor');
 
-    // clientName is the first FieldInput after section title
-    // The section title input is first, then clientName, then inspirationalQuote (textarea)
-    await inputs.nth(1).fill('María García');
-    const textareas = editor.locator('textarea');
-    await textareas.first().fill('Design is how it works.');
+    await editor.getByLabel('Nombre del cliente').fill('María García');
+    await editor.getByLabel('Frase inspiracional').fill('Design is how it works.');
 
     // Click save
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await page.waitForTimeout(500);
+    await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     // Verify captured payload
     expect(captured.length).toBeGreaterThanOrEqual(1);
@@ -198,19 +193,13 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     const captured = [];
     await openSectionEditor(page, captured, '🧾 Resumen ejecutivo');
 
-    const editor = page.locator('.section-editor').first();
-    const textareas = editor.locator('textarea');
+    const editor = page.getByTestId('section-editor');
 
-    // Fill paragraphs textarea (has help text "Un párrafo por línea")
-    const paragraphsTextarea = editor.locator('textarea').nth(0);
-    await paragraphsTextarea.fill('Primer párrafo.\nSegundo párrafo.');
-
-    // Fill highlights textarea
-    const highlightsTextarea = editor.locator('textarea').nth(1);
-    await highlightsTextarea.fill('Diseño personalizado\nDesarrollo responsivo');
+    await editor.getByLabel('Párrafos').fill('Primer párrafo.\nSegundo párrafo.');
+    await editor.getByLabel('Highlights / Incluye').fill('Diseño personalizado\nDesarrollo responsivo');
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await page.waitForTimeout(500);
+    await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -225,17 +214,14 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     const captured = [];
     await openSectionEditor(page, captured, '🧩 Contexto');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
 
-    // Fill opportunity textarea (isSingle, last textarea)
-    const textareas = editor.locator('textarea');
-    // paragraphs(0), issues(1), opportunity(2)
-    await textareas.nth(0).fill('Contexto del proyecto.');
-    await textareas.nth(1).fill('Falta de web\nSin presencia digital');
-    await textareas.nth(2).fill('Crear plataforma de confianza.');
+    await editor.getByLabel('Párrafos').fill('Contexto del proyecto.');
+    await editor.getByLabel('Problemas').fill('Falta de web\nSin presencia digital');
+    await editor.getByLabel('Oportunidad').fill('Crear plataforma de confianza.');
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await page.waitForTimeout(500);
+    await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -249,7 +235,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
   }, async ({ page }) => {
     await openSectionEditor(page, [], 'Greeting');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
 
     // Verify "✓ Guardado" appears
@@ -262,14 +248,12 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     const captured = [];
     await openSectionEditor(page, captured, 'Greeting');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
 
-    // The first input is the section title
-    const titleInput = editor.locator('input[type="text"]').first();
-    await titleInput.fill('Custom Greeting Title');
+    await editor.getByLabel('Título de la sección').fill('Custom Greeting Title');
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await page.waitForTimeout(500);
+    await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -282,11 +266,11 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     const captured = [];
     await openSectionEditor(page, captured, 'Greeting');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
 
     // Leave all fields empty, just click save
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await page.waitForTimeout(500);
+    await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -300,9 +284,9 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     const captured = [];
     await openSectionEditor(page, captured, '🧾 Resumen ejecutivo');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await page.waitForTimeout(500);
+    await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -316,9 +300,9 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     const captured = [];
     await openSectionEditor(page, captured, '🧩 Contexto');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await page.waitForTimeout(500);
+    await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];

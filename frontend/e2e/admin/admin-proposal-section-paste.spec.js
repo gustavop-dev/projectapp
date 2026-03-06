@@ -133,9 +133,9 @@ async function openSectionEditor(page, capturedUpdates, sectionTitle) {
 
   await page.getByRole('button', { name: 'Secciones' }).click();
 
-  const sectionHeader = page.locator('div').filter({ hasText: sectionTitle }).first();
+  const sectionHeader = page.getByText(sectionTitle, { exact: false }).first();
   await sectionHeader.click();
-  await page.waitForTimeout(300);
+  await page.getByTestId('section-editor').waitFor({ state: 'visible' });
 }
 
 test.describe('Proposal Section Edit — Paste Content Mode', () => {
@@ -151,14 +151,13 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
   }, async ({ page }) => {
     await openSectionEditor(page, [], 'Greeting');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
 
     // Click "Pegar contenido" button to switch to paste mode
     await editor.getByRole('button', { name: 'Pegar contenido' }).click();
-    await page.waitForTimeout(200);
 
-    // A large textarea should appear (rows=18)
-    const pasteTextarea = editor.locator('textarea[rows="18"]');
+    // A large textarea should appear
+    const pasteTextarea = editor.getByTestId('paste-textarea');
     await expect(pasteTextarea).toBeVisible();
 
     // It should be pre-filled with formToReadableText output
@@ -172,19 +171,19 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     const captured = [];
     await openSectionEditor(page, captured, '🧾 Resumen ejecutivo');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
 
     // Switch to paste mode
     await editor.getByRole('button', { name: 'Pegar contenido' }).click();
-    await page.waitForTimeout(200);
 
     // Type custom content in the paste textarea
-    const pasteTextarea = editor.locator('textarea[rows="18"]');
+    const pasteTextarea = editor.getByTestId('paste-textarea');
+    await expect(pasteTextarea).toBeVisible();
     await pasteTextarea.fill('Custom pasted executive summary content.\n\nWith multiple paragraphs.');
 
     // Save
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await page.waitForTimeout(500);
+    await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     // Verify payload
     expect(captured.length).toBeGreaterThanOrEqual(1);
@@ -200,17 +199,17 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     const captured = [];
     await openSectionEditor(page, captured, '🧩 Contexto');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
 
     // Switch to paste mode
     await editor.getByRole('button', { name: 'Pegar contenido' }).click();
-    await page.waitForTimeout(200);
 
-    const pasteTextarea = editor.locator('textarea[rows="18"]');
+    const pasteTextarea = editor.getByTestId('paste-textarea');
+    await expect(pasteTextarea).toBeVisible();
     await pasteTextarea.fill('Contexto pegado directamente.');
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await page.waitForTimeout(500);
+    await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -226,17 +225,17 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     const captured = [];
     await openSectionEditor(page, captured, '🧾 Resumen ejecutivo');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
 
     // Switch to paste, then back to form
     await editor.getByRole('button', { name: 'Pegar contenido' }).click();
-    await page.waitForTimeout(200);
+    await expect(editor.getByTestId('paste-textarea')).toBeVisible();
     await editor.getByRole('button', { name: 'Formulario' }).click();
-    await page.waitForTimeout(200);
+    await expect(editor.getByTestId('paste-textarea')).not.toBeVisible();
 
     // Save in form mode
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await page.waitForTimeout(500);
+    await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -250,18 +249,18 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     const captured = [];
     await openSectionEditor(page, captured, '🎨 Diseño UX');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
 
     // Switch to paste mode
     await editor.getByRole('button', { name: 'Pegar contenido' }).click();
-    await page.waitForTimeout(200);
 
     // Clear the textarea completely
-    const pasteTextarea = editor.locator('textarea[rows="18"]');
+    const pasteTextarea = editor.getByTestId('paste-textarea');
+    await expect(pasteTextarea).toBeVisible();
     await pasteTextarea.fill('');
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await page.waitForTimeout(500);
+    await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -274,7 +273,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
   }, async ({ page }) => {
     await openSectionEditor(page, [], 'Greeting');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
 
     // hasPasteSupport is always true — both buttons should exist
     await expect(editor.getByRole('button', { name: 'Formulario' })).toBeVisible();
@@ -286,13 +285,13 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
   }, async ({ page }) => {
     await openSectionEditor(page, [], '🧾 Resumen ejecutivo');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
 
     // Toggle to paste
     await editor.getByRole('button', { name: 'Pegar contenido' }).click();
-    await page.waitForTimeout(200);
 
-    const pasteTextarea = editor.locator('textarea[rows="18"]');
+    const pasteTextarea = editor.getByTestId('paste-textarea');
+    await expect(pasteTextarea).toBeVisible();
     const value = await pasteTextarea.inputValue();
 
     // Should contain data from the mockProposal section content_json
@@ -306,11 +305,11 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
   }, async ({ page }) => {
     await openSectionEditor(page, [], '🧩 Contexto');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
     await editor.getByRole('button', { name: 'Pegar contenido' }).click();
-    await page.waitForTimeout(200);
 
-    const pasteTextarea = editor.locator('textarea[rows="18"]');
+    const pasteTextarea = editor.getByTestId('paste-textarea');
+    await expect(pasteTextarea).toBeVisible();
     const value = await pasteTextarea.inputValue();
 
     expect(value).toContain('Desafíos');
@@ -323,9 +322,9 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
   }, async ({ page }) => {
     await openSectionEditor(page, [], '🧾 Resumen ejecutivo');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
     await editor.getByRole('button', { name: 'Pegar contenido' }).click();
-    await page.waitForTimeout(200);
+    await expect(editor.getByTestId('paste-textarea')).toBeVisible();
 
     // Verify instructional text is visible
     await expect(editor.getByText('Puedes usar formato Markdown')).toBeVisible();
@@ -362,14 +361,14 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     await page.getByRole('button', { name: 'Secciones' }).click();
 
     // Expand executive_summary section
-    const sectionHeader = page.locator('div').filter({ hasText: '🧾 Resumen ejecutivo' }).first();
+    const sectionHeader = page.getByText('Resumen ejecutivo', { exact: false }).first();
     await sectionHeader.click();
-    await page.waitForTimeout(300);
+    await page.getByTestId('section-editor').waitFor({ state: 'visible' });
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
 
     // The paste textarea should be visible immediately (no need to click "Pegar contenido")
-    const pasteTextarea = editor.locator('textarea[rows="18"]');
+    const pasteTextarea = editor.getByTestId('paste-textarea');
     await expect(pasteTextarea).toBeVisible();
 
     // And it should contain the previously saved rawText
@@ -383,14 +382,13 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     // Default mockProposal sections have no _editMode (defaults to form)
     await openSectionEditor(page, [], '🧾 Resumen ejecutivo');
 
-    const editor = page.locator('.section-editor').first();
+    const editor = page.getByTestId('section-editor');
 
-    // The paste textarea (rows=18) should NOT be visible — we should see form fields
-    const pasteTextarea = editor.locator('textarea[rows="18"]');
+    // The paste textarea should NOT be visible — we should see form fields
+    const pasteTextarea = editor.getByTestId('paste-textarea');
     await expect(pasteTextarea).not.toBeVisible();
 
-    // Form textareas (rows=4 or similar) should be present
-    const formTextareas = editor.locator('textarea').first();
-    await expect(formTextareas).toBeVisible();
+    // Form textareas should be present (executive_summary has Párrafos field)
+    await expect(editor.getByLabel('Párrafos')).toBeVisible();
   });
 });
