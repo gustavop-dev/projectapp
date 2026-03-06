@@ -673,7 +673,7 @@ function groupToReadableText(group) {
 function onToggleGroupPaste(group, on) {
   group._pasteMode = on;
   if (on) {
-    group._pasteText = group._pasteText || groupToReadableText(group);
+    group._pasteText = groupToReadableText(group);
   }
 }
 

@@ -647,10 +647,15 @@ describe('formToReadableText', () => {
     expect(text).toContain('co-creación');
   });
 
-  it('generates text for functional_requirements (intro only)', () => {
+  it('generates text for functional_requirements with groups and modules', () => {
     const form = buildFormFromJson(functionalRequirementsJson, 'functional_requirements');
     const text = formToReadableText(form, 'functional_requirements');
-    expect(text).toBe('Detalle de requerimientos.');
+    expect(text).toContain('Detalle de requerimientos.');
+    expect(text).toContain('Vistas');
+    expect(text).toContain('**Home**');
+    expect(text).toContain('**Contacto**');
+    expect(text).toContain('Analytics');
+    expect(text).toContain('**Reports**');
   });
 
   it('generates text for development_stages', () => {
