@@ -987,7 +987,12 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
 
 
 def _render_investment(c, data, _proposal, ps=None, y=None):
-    """Render investment section with sidebar Incluye layout."""
+    """Render investment section with two-column layout.
+
+    Left column:  Formas de Pago (payment options).
+    Right column: Incluye (what's included).
+    Below both:   Compact Inversión Total line.
+    """
     if y is None:
         y = PAGE_H - MARGIN_T
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
@@ -998,73 +1003,74 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
     total = _safe(data, 'totalInvestment')
     currency = _safe(data, 'currency')
     options = _safe(data, 'paymentOptions', [])
-    content_top = y
 
-    # Intro text — use narrower column when sidebar fits
+    # Intro text — full width, brief
     if intro:
-        if included and (content_top - MARGIN_B) > 200:
-            y = _draw_paragraphs(c, y, [intro], max_width=TEXT_AREA_W, ps=ps)
-        else:
-            y = _draw_paragraphs(c, y, [intro], ps=ps)
-        y -= 6
+        y = _draw_paragraphs(c, y, [intro], ps=ps)
+        y -= 10
 
-    # What's included sidebar (same position as other sidebars)
+    # ── Two-column area: Formas de Pago (left) | Incluye (right) ──
+    col_gap = 20
+    left_w = CONTENT_W * 0.58
+    right_w = CONTENT_W - left_w - col_gap
+    right_x = MARGIN_L + left_w + col_gap
+    columns_top = y
+
+    # ── LEFT COLUMN: Formas de Pago ──────────────────────────────
+    left_y = columns_top
+    if options:
+        c.setFont(_font('bold'), 12)
+        c.setFillColor(ESMERALD)
+        c.drawString(MARGIN_L, left_y, 'Formas de Pago')
+        left_y -= 20
+
+        for opt in options:
+            label = _strip_emoji(_safe(opt, 'label'))
+            desc = _strip_emoji(_safe(opt, 'description'))
+
+            # Row background
+            c.setFillColor(ESMERALD_LIGHT)
+            c.roundRect(MARGIN_L, left_y - 6, left_w, 18, 4,
+                        fill=1, stroke=0)
+            c.setFont(_font('regular'), 8)
+            c.setFillColor(ESMERALD_80)
+            c.drawString(MARGIN_L + 8, left_y - 2, label)
+            # Amount pill on right edge of column
+            if desc:
+                _draw_pill(c, MARGIN_L + left_w - 80, left_y - 2, desc,
+                           bg_color=ESMERALD, text_color=WHITE, font_size=7)
+            left_y -= 22
+
+    # ── RIGHT COLUMN: Incluye ────────────────────────────────────
+    right_y = columns_top
     if included:
         items_text = [
             f'{_strip_emoji(_safe(it, "title"))} \u2014 '
             f'{_strip_emoji(_safe(it, "description"))}'
             for it in included
         ]
-        if (content_top - MARGIN_B) > 200:
-            sb = _draw_sidebar_box(c, content_top, 'Incluye', items_text)
-            y = min(y, sb - 8)
-        else:
-            y -= 6
-            y = _draw_subtitle(c, y, 'Incluye', ps=ps)
-            y = _draw_bullet_list(c, y, items_text, ps=ps)
+        _draw_sidebar_box(c, columns_top, 'Incluye', items_text,
+                          sidebar_x=right_x, sidebar_w=right_w)
 
-    # Payment options first — more prominent than total
-    if options:
-        y -= 4
-        y = _draw_subtitle(c, y, 'Formas de Pago', ps=ps)
-        for opt in options:
-            if ps:
-                y = _check_y(c, y, ps, need=22)
-            elif y < MARGIN_B + 20:
-                break
-            label = _strip_emoji(_safe(opt, 'label'))
-            desc = _strip_emoji(_safe(opt, 'description'))
+    # Advance y past whichever column is taller
+    y = min(left_y, columns_top) - 10
 
-            # Row bg
-            c.setFillColor(ESMERALD_LIGHT)
-            c.roundRect(MARGIN_L, y - 6, CONTENT_W, 18, 4,
-                        fill=1, stroke=0)
-            c.setFont(_font('regular'), 8)
-            c.setFillColor(ESMERALD_80)
-            c.drawString(MARGIN_L + 8, y - 2, label)
-            # Amount pill on right
-            if desc:
-                _draw_pill(c, PAGE_W - MARGIN_R - 80, y - 2, desc,
-                           bg_color=ESMERALD, text_color=WHITE, font_size=7)
-            y -= 22
-
-    # Compact total investment line
+    # ── Compact Inversión Total ──────────────────────────────────
     if total:
-        y -= 6
         if ps:
-            y = _check_y(c, y, ps, need=38)
-        box_h = 34
+            y = _check_y(c, y, ps, need=28)
+        box_h = 24
         box_w = CONTENT_W
         box_y = y - box_h
         c.setFillColor(ESMERALD)
-        c.roundRect(MARGIN_L, box_y, box_w, box_h, 6, fill=1, stroke=0)
-        c.setFont(_font('bold'), 16)
+        c.roundRect(MARGIN_L, box_y, box_w, box_h, 5, fill=1, stroke=0)
+        c.setFont(_font('bold'), 11)
         c.setFillColor(WHITE)
         label = f'Inversi\u00f3n Total: {total}'
         if currency:
             label = f'{label}  {currency}'
-        c.drawCentredString(MARGIN_L + box_w / 2, box_y + 11, label)
-        y = box_y - 6
+        c.drawCentredString(MARGIN_L + box_w / 2, box_y + 7, label)
+        y = box_y - 8
 
     # Hosting plan
     hosting = _safe(data, 'hostingPlan', {})

@@ -124,7 +124,7 @@ describe('useSectionAnimations', () => {
       expect(mockGsap.timeline).not.toHaveBeenCalled();
     });
 
-    it('sets uniform initial state (opacity:0, y:20) for all elements', async () => {
+    it('sets uniform initial state (opacity:0, y:30) for all elements', async () => {
       const sectionRef = createMockSectionRef(['fade-up', 'fade-up']);
       useSectionAnimations(sectionRef);
 
@@ -133,7 +133,7 @@ describe('useSectionAnimations', () => {
 
       expect(mockGsap.set).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({ opacity: 0, y: 20 })
+        expect.objectContaining({ opacity: 0, y: 30 })
       );
     });
 
@@ -174,7 +174,7 @@ describe('useSectionAnimations', () => {
       expect(setCall[0]).toHaveLength(2);
     });
 
-    it('animates with uniform fade-up (duration:0.55, stagger:0.08)', async () => {
+    it('animates with uniform fade-up (duration:0.7, stagger:0.1)', async () => {
       const sectionRef = createMockSectionRef(['fade-up']);
       useSectionAnimations(sectionRef);
 
@@ -183,7 +183,7 @@ describe('useSectionAnimations', () => {
 
       expect(mockTimeline.to).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({ opacity: 1, y: 0, duration: 0.55, stagger: 0.08 }),
+        expect.objectContaining({ opacity: 1, y: 0, duration: 0.7, stagger: 0.1 }),
         0
       );
     });

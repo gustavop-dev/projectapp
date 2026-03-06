@@ -379,29 +379,25 @@ onBeforeUnmount(() => {
 /* Slide left (navigating forward) */
 .slide-left-enter-active,
 .slide-left-leave-active {
-  transition: transform 0.35s ease, opacity 0.35s ease;
+  transition: transform 0.35s ease;
 }
 .slide-left-enter-from {
   transform: translateX(60px);
-  opacity: 0;
 }
 .slide-left-leave-to {
   transform: translateX(-60px);
-  opacity: 0;
 }
 
 /* Slide right (navigating backward) */
 .slide-right-enter-active,
 .slide-right-leave-active {
-  transition: transform 0.35s ease, opacity 0.35s ease;
+  transition: transform 0.35s ease;
 }
 .slide-right-enter-from {
   transform: translateX(-60px);
-  opacity: 0;
 }
 .slide-right-leave-to {
   transform: translateX(60px);
-  opacity: 0;
 }
 
 @keyframes fadeIn {

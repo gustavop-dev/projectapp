@@ -47,10 +47,10 @@ export function useSectionAnimations(sectionRef) {
     if (!animTargets.length) return;
 
     // Set initial state: all hidden + slight slide up
-    gsap.set(animTargets, { opacity: 0, y: 20 });
+    gsap.set(animTargets, { opacity: 0, y: 30 });
 
     // Create timeline (with or without ScrollTrigger)
-    const timelineOpts = { defaults: { ease: 'power3.out' } };
+    const timelineOpts = { defaults: { ease: 'power2.out' } };
     if (scrollTriggerOpts) {
       timelineOpts.scrollTrigger = scrollTriggerOpts;
     }
@@ -60,8 +60,8 @@ export function useSectionAnimations(sectionRef) {
     timeline.to(animTargets, {
       opacity: 1,
       y: 0,
-      duration: 0.55,
-      stagger: 0.08,
+      duration: 0.7,
+      stagger: 0.1,
     }, 0);
   }
 
@@ -118,7 +118,7 @@ export function useSectionAnimations(sectionRef) {
       if (!horizontalTweenRef.value && !timeline) {
         initOnMount();
       }
-    }, 150);
+    }, 400);
   });
 
   onBeforeUnmount(cleanup);
