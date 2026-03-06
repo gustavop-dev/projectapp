@@ -55,6 +55,12 @@
         </div>
         <p class="text-gray-600 leading-relaxed mb-6 pl-0 sm:pl-16">{{ hostingPlan.description }}</p>
 
+        <div v-if="hostingPlan.coverageNote" class="mb-6 pl-0 sm:pl-16">
+          <div class="bg-gray-50 border border-gray-200 rounded-xl p-5">
+            <p class="text-sm text-gray-600 leading-relaxed">{{ hostingPlan.coverageNote }}</p>
+          </div>
+        </div>
+
         <div class="grid md:grid-cols-2 gap-4 pl-0 sm:pl-16">
           <div
             v-for="(spec, idx) in hostingPlan.specs"
@@ -100,7 +106,7 @@
         </div>
       </div>
 
-      <div v-if="valueReasons && valueReasons.length" data-animate="fade-up" class="value-proposition bg-gradient-to-br from-gray-900 to-gray-800 p-5 sm:p-8 md:p-12 rounded-2xl text-white">
+      <div v-if="valueReasons && valueReasons.length" data-animate="fade-up" class="value-proposition mt-12 bg-gradient-to-br from-gray-900 to-gray-800 p-5 sm:p-8 md:p-12 rounded-2xl text-white">
         <h3 class="text-2xl font-bold mb-6">¿Por Qué Esta Inversión Vale la Pena?</h3>
         <div class="grid md:grid-cols-2 gap-6">
           <div v-for="(reason, index) in normalizedReasons" :key="index"
