@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
-from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
 from content.models import (
@@ -34,10 +34,12 @@ from content.services.proposal_pdf_service import (
     _draw_bullet_list,
     _draw_footer,
     _draw_green_bar,
+    _draw_header_bar,
     _draw_paragraphs,
     _draw_section_header,
     _draw_sidebar_box,
     _draw_subtitle,
+    _register_fonts,
     _render_raw_text,
     _safe,
     _strip_emoji,
@@ -51,8 +53,9 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def pdf_canvas():
     """A ReportLab canvas backed by an in-memory buffer."""
+    _register_fonts()
     buf = io.BytesIO()
-    c = canvas.Canvas(buf, pagesize=landscape(A4))
+    c = canvas.Canvas(buf, pagesize=A4)
     c._test_buf = buf
     return c
 
@@ -266,7 +269,7 @@ class TestDrawSectionHeader:
         start_y = PAGE_H - 50
         long_title = 'A' * 100
         end_y = _draw_section_header(pdf_canvas, start_y, '1', long_title)
-        assert end_y < start_y - 32
+        assert end_y < start_y - 30
 
     def test_draws_without_index(self, pdf_canvas):
         start_y = PAGE_H - 50
@@ -322,7 +325,7 @@ class TestDrawSidebarBox:
 class TestDrawSubtitle:
     def test_returns_lower_y(self, pdf_canvas):
         end_y = _draw_subtitle(pdf_canvas, 400, 'Subtitle')
-        assert end_y == 380
+        assert end_y == 382
 
 
 # ── Section renderer tests ───────────────────────────────────
@@ -591,7 +594,7 @@ class TestMergeWithCovers:
     def _make_pdf_bytes(self, num_pages=1):
         """Create minimal valid PDF bytes."""
         buf = io.BytesIO()
-        c = canvas.Canvas(buf, pagesize=landscape(A4))
+        c = canvas.Canvas(buf, pagesize=A4)
         for i in range(num_pages):
             c.drawString(100, 400, f'Page {i + 1}')
             c.showPage()
