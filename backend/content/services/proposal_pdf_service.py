@@ -1053,7 +1053,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                           sidebar_x=right_x, sidebar_w=right_w)
 
     # Advance y past whichever column is taller
-    y = min(left_y, columns_top) - 10
+    y = min(left_y, columns_top) - 22
 
     # ── Compact Inversión Total ──────────────────────────────────
     if total:
@@ -1072,20 +1072,93 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         c.drawCentredString(MARGIN_L + box_w / 2, box_y + 7, label)
         y = box_y - 8
 
-    # Hosting plan
+    # ── Hosting plan (detailed specs + pricing) ───────────────────
     hosting = _safe(data, 'hostingPlan', {})
     h_title = _safe(hosting, 'title')
     if h_title:
-        y -= 8
+        y -= 14
         if ps:
-            y = _check_y(c, y, ps, need=30)
-        _draw_pill(c, MARGIN_L, y, h_title,
-                   bg_color=ESMERALD_LIGHT, text_color=ESMERALD, font_size=8)
+            y = _check_y(c, y, ps, need=120)
+        # Title
+        c.setFont(_font('bold'), 12)
+        c.setFillColor(ESMERALD)
+        c.drawString(MARGIN_L, y, _strip_emoji(str(h_title)))
         y -= 16
+        # Description
         h_desc = _safe(hosting, 'description')
         if h_desc:
             y = _draw_paragraphs(c, y, [h_desc], font_size=9,
                                  leading=13, ps=ps)
+            y -= 6
+
+        # Specs grid — 2 columns of pill-style badges
+        specs = _safe(hosting, 'specs', [])
+        if specs:
+            spec_col_w = (CONTENT_W - 14) / 2
+            spec_row_h = 28
+            for si, spec in enumerate(specs):
+                col = si % 2
+                if col == 0 and ps:
+                    y = _check_y(c, y, ps, need=spec_row_h + 4)
+                sx = MARGIN_L + col * (spec_col_w + 14)
+                # Badge background
+                c.setFillColor(ESMERALD_LIGHT)
+                c.roundRect(sx, y - 18, spec_col_w, spec_row_h, 5,
+                            fill=1, stroke=0)
+                # Label (bold)
+                spec_label = _strip_emoji(_safe(spec, 'label'))
+                c.setFont(_font('bold'), 8)
+                c.setFillColor(ESMERALD)
+                c.drawString(sx + 8, y, spec_label)
+                # Value (regular, right-aligned in badge)
+                spec_value = _strip_emoji(_safe(spec, 'value'))
+                c.setFont(_font('regular'), 7.5)
+                c.setFillColor(ESMERALD_80)
+                c.drawRightString(sx + spec_col_w - 8, y, spec_value)
+                # Move down after every 2nd column
+                if col == 1 or si == len(specs) - 1:
+                    y -= spec_row_h + 4
+            y -= 2
+
+        # Pricing row — monthly + annual side by side
+        m_price = _safe(hosting, 'monthlyPrice')
+        a_price = _safe(hosting, 'annualPrice')
+        if m_price or a_price:
+            if ps:
+                y = _check_y(c, y, ps, need=40)
+            price_col_w = (CONTENT_W - 14) / 2
+            price_h = 34
+            price_y = y - price_h + 6
+            if m_price:
+                # Monthly — emerald bg, white text
+                c.setFillColor(ESMERALD)
+                c.roundRect(MARGIN_L, price_y, price_col_w, price_h, 5,
+                            fill=1, stroke=0)
+                c.setFont(_font('medium'), 7)
+                c.setFillColor(colors.HexColor('#A7F3D0'))
+                m_label = _strip_emoji(
+                    _safe(hosting, 'monthlyLabel', 'por mes'))
+                c.drawString(MARGIN_L + 10, y - 2, m_label)
+                c.setFont(_font('bold'), 11)
+                c.setFillColor(WHITE)
+                c.drawString(MARGIN_L + 10, y - 16,
+                             _strip_emoji(str(m_price)))
+            if a_price:
+                # Annual — bone bg, esmerald text
+                ax = MARGIN_L + price_col_w + 14
+                c.setFillColor(BONE)
+                c.roundRect(ax, price_y, price_col_w, price_h, 5,
+                            fill=1, stroke=0)
+                c.setFont(_font('medium'), 7)
+                c.setFillColor(GRAY_500)
+                a_label = _strip_emoji(
+                    _safe(hosting, 'annualLabel', 'pago anual'))
+                c.drawString(ax + 10, y - 2, a_label)
+                c.setFont(_font('bold'), 11)
+                c.setFillColor(ESMERALD)
+                c.drawString(ax + 10, y - 16,
+                             _strip_emoji(str(a_price)))
+            y = price_y - 6
 
     # Value reasons
     reasons = _safe(data, 'valueReasons', [])

@@ -379,25 +379,29 @@ onBeforeUnmount(() => {
 /* Slide left (navigating forward) */
 .slide-left-enter-active,
 .slide-left-leave-active {
-  transition: transform 0.35s ease;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .slide-left-enter-from {
-  transform: translateX(60px);
+  opacity: 0;
+  transform: translateX(40px);
 }
 .slide-left-leave-to {
-  transform: translateX(-60px);
+  opacity: 0;
+  transform: translateX(-40px);
 }
 
 /* Slide right (navigating backward) */
 .slide-right-enter-active,
 .slide-right-leave-active {
-  transition: transform 0.35s ease;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .slide-right-enter-from {
-  transform: translateX(-60px);
+  opacity: 0;
+  transform: translateX(-40px);
 }
 .slide-right-leave-to {
-  transform: translateX(60px);
+  opacity: 0;
+  transform: translateX(40px);
 }
 
 @keyframes fadeIn {
