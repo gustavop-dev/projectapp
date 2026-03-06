@@ -709,8 +709,10 @@ describe('formToReadableText', () => {
 // ─── groupToReadableText ─────────────────────────────────────────────────────
 
 describe('groupToReadableText', () => {
-  it('generates text with description and items', () => {
+  it('generates text with title, description and items', () => {
     const group = {
+      icon: '🖥️',
+      title: 'Vistas',
       description: 'Pantallas del sitio.',
       items: [
         { icon: '🏠', name: 'Home', description: 'Landing.' },
@@ -718,6 +720,7 @@ describe('groupToReadableText', () => {
       ],
     };
     const text = groupToReadableText(group);
+    expect(text).toContain('🖥️ Vistas');
     expect(text).toContain('Pantallas del sitio.');
     expect(text).toContain('- 🏠 **Home**: Landing.');
     expect(text).toContain('- 📧 **Contacto**: Formulario.');
@@ -725,17 +728,18 @@ describe('groupToReadableText', () => {
 
   it('handles group with no description', () => {
     const group = {
+      title: 'Test',
       description: '',
       items: [{ icon: '', name: 'Item', description: 'Desc' }],
     };
     const text = groupToReadableText(group);
-    expect(text).toBe('-  **Item**: Desc');
+    expect(text).toBe('Test\n-  **Item**: Desc');
   });
 
   it('handles group with no items', () => {
-    const group = { description: 'Just description.', items: [] };
+    const group = { title: 'Empty', icon: '📦', description: 'Just description.', items: [] };
     const text = groupToReadableText(group);
-    expect(text).toBe('Just description.');
+    expect(text).toBe('📦 Empty\nJust description.');
   });
 
   it('returns empty string for empty group', () => {

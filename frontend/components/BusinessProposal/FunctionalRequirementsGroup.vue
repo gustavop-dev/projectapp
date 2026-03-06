@@ -1,6 +1,6 @@
 <template>
-  <section ref="sectionRef" class="fr-group h-full w-full bg-white flex items-start pt-16 overflow-y-auto">
-    <div class="w-full px-6 md:px-12 lg:px-24 pb-16">
+  <section ref="sectionRef" class="fr-group w-full bg-white py-16">
+    <div class="w-full px-6 md:px-12 lg:px-24">
       <div class="max-w-5xl mx-auto">
         <!-- Sub-section number + title -->
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">

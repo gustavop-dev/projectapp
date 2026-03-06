@@ -19,7 +19,13 @@
     <ProposalExpired v-else-if="loadError === 'expired'" :proposal="proposal" />
 
     <!-- Main proposal view -->
-    <div v-else-if="showContent && proposal" class="horizontal-scroll-wrapper">
+    <div
+      v-else-if="showContent && proposal"
+      ref="proposalContainer"
+      class="proposal-wrapper"
+      @touchstart.passive="onTouchStart"
+      @touchend.passive="onTouchEnd"
+    >
       <!-- UX overlay elements -->
       <ProposalIndex
         :sections="displayPanels"
@@ -32,38 +38,38 @@
       <!-- PDF download -->
       <PdfDownloadButton />
 
-      <!-- Horizontal scroll container -->
-      <div ref="scrollContainer" class="scroll-container">
-        <div class="panels-wrapper">
-          <div
-            v-for="(panel, idx) in displayPanels"
-            :key="panel.id"
-            class="panel"
-            :data-section-type="panel.section_type"
-          >
-            <RawContentSection
-              v-if="isPastePanel(panel)"
-              :title="getPastePanelTitle(panel)"
-              :index="getPastePanelIndex(panel)"
-              :rawText="getPastePanelRawText(panel)"
-            />
-            <component
-              v-else
-              :is="sectionComponentMap[panel.section_type]"
-              v-bind="getSectionProps(panel)"
-            />
-          </div>
+      <!-- Single-panel view with transition -->
+      <Transition :name="transitionName" mode="out-in">
+        <div :key="currentPanel.id" class="panel-container">
+          <RawContentSection
+            v-if="isPastePanel(currentPanel)"
+            :title="getPastePanelTitle(currentPanel)"
+            :index="getPastePanelIndex(currentPanel)"
+            :rawText="getPastePanelRawText(currentPanel)"
+          />
+          <component
+            v-else
+            :is="sectionComponentMap[currentPanel.section_type]"
+            v-bind="getSectionProps(currentPanel)"
+          />
+
+          <!-- Navigation buttons at the bottom of every section -->
+          <SectionNavButtons
+            :prevTitle="prevPanelTitle"
+            :nextTitle="nextPanelTitle"
+            :isFirst="currentIndex === 0"
+            :isLast="currentIndex === totalSections - 1"
+            @prev="goPrev"
+            @next="goNext"
+          />
         </div>
-      </div>
+      </Transition>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onBeforeUnmount, provide, onMounted } from 'vue';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
+import { ref, computed, onBeforeUnmount, onMounted } from 'vue';
 import PreloaderAnimation from '~/components/animations/PreloaderAnimation.vue';
 import {
   Greeting,
@@ -87,8 +93,7 @@ import ProposalExpired from '~/components/BusinessProposal/ProposalExpired.vue';
 import PdfDownloadButton from '~/components/BusinessProposal/PdfDownloadButton.vue';
 import RawContentSection from '~/components/BusinessProposal/RawContentSection.vue';
 import ProposalClosing from '~/components/BusinessProposal/ProposalClosing.vue';
-
-gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+import SectionNavButtons from '~/components/BusinessProposal/SectionNavButtons.vue';
 
 definePageMeta({ layout: false });
 
@@ -172,24 +177,20 @@ const totalSections = computed(() => displayPanels.value.length);
 
 const showContent = ref(false);
 const loadError = ref(null);
-const scrollContainer = ref(null);
+const proposalContainer = ref(null);
 const currentIndex = ref(0);
+const transitionName = ref('slide-left');
 
-const horizontalTweenRef = ref(null);
-provide('horizontalTweenRef', horizontalTweenRef);
-
-let horizontalTween = null;
-let panelVerticalScrollTriggers = [];
-let activeScrollablePanel = null;
-let panelsWrapperEl = null;
-let horizontalScrollTrigger = null;
-let isHorizontalLocked = false;
-let lockedHorizontalScrollPos = null;
-let lastIntentDeltaY = 0;
-const HORIZONTAL_SCRUB_DURATION = 1;
-const LOCK_DWELL_MS = 250;
-let lockDelayTimer = null;
-let touchStartY = 0;
+// Current panel and neighbors
+const currentPanel = computed(() => displayPanels.value[currentIndex.value] || displayPanels.value[0]);
+const prevPanelTitle = computed(() => {
+  const prev = displayPanels.value[currentIndex.value - 1];
+  return prev?.title || '';
+});
+const nextPanelTitle = computed(() => {
+  const next = displayPanels.value[currentIndex.value + 1];
+  return next?.title || '';
+});
 
 // --- Fetch proposal on mount ---
 onMounted(async () => {
@@ -292,262 +293,67 @@ function getPastePanelRawText(panel) {
   return panel.content_json?.rawText || '';
 }
 
-// --- Navigation handler ---
-function handleNavigate(index) {
-  if (!horizontalScrollTrigger || !panelsWrapperEl) {
-    currentIndex.value = index;
-    return;
-  }
-
-  const panels = Array.from(panelsWrapperEl.querySelectorAll('.panel'));
-  if (!panels[index]) return;
-
-  const totalScroll = Math.max(0, panelsWrapperEl.scrollWidth - window.innerWidth);
-  if (totalScroll <= 0) return;
-
-  // Calculate target scroll position based on panel offset
-  const panelLeft = panels[index].offsetLeft;
-  const progress = Math.min(panelLeft / totalScroll, 1);
-  const targetWindowScroll = horizontalScrollTrigger.start
-    + progress * (horizontalScrollTrigger.end - horizontalScrollTrigger.start);
-
-  gsap.to(window, {
-    scrollTo: { y: targetWindowScroll },
-    duration: 0.8,
-    ease: 'power2.inOut',
-  });
+// --- Navigation ---
+function navigateTo(index) {
+  if (index < 0 || index >= totalSections.value) return;
+  transitionName.value = index > currentIndex.value ? 'slide-left' : 'slide-right';
+  currentIndex.value = index;
+  window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
-// --- Horizontal scroll logic (from legacy BusinessProposal.vue) ---
-const shouldConsumeVerticalScroll = (el, deltaY) => {
-  if (!el) return false;
-  const maxScrollTop = el.scrollHeight - el.clientHeight;
-  if (maxScrollTop <= 0) return false;
-  if (deltaY > 0) return el.scrollTop < maxScrollTop;
-  if (deltaY < 0) return el.scrollTop > 0;
-  return false;
-};
+function handleNavigate(index) {
+  navigateTo(index);
+}
 
-const handleGlobalWheel = (e) => {
-  if (!activeScrollablePanel) return;
-  const deltaY = e.deltaY ?? 0;
-  if (!deltaY) return;
-  lastIntentDeltaY = deltaY;
-  if (shouldConsumeVerticalScroll(activeScrollablePanel, deltaY)) {
-    e.preventDefault();
-    activeScrollablePanel.scrollTop += deltaY;
+function goNext() {
+  navigateTo(currentIndex.value + 1);
+}
+
+function goPrev() {
+  navigateTo(currentIndex.value - 1);
+}
+
+// --- Keyboard navigation ---
+function handleKeydown(e) {
+  const tag = document.activeElement?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
+}
+
+// --- Swipe gesture detection ---
+let touchStartX = 0;
+let touchStartY = 0;
+
+function onTouchStart(e) {
+  const touch = e.touches?.[0];
+  if (!touch) return;
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+}
+
+function onTouchEnd(e) {
+  const touch = e.changedTouches?.[0];
+  if (!touch) return;
+  const deltaX = touch.clientX - touchStartX;
+  const deltaY = touch.clientY - touchStartY;
+
+  // Only trigger if horizontal swipe is dominant and long enough
+  if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+    if (deltaX < 0) goNext();   // swipe left → next
+    else goPrev();              // swipe right → previous
   }
-};
+}
 
-const handleGlobalTouchStart = (e) => {
-  touchStartY = e.touches?.[0]?.clientY ?? 0;
-};
-
-const handleGlobalTouchMove = (e) => {
-  if (!activeScrollablePanel) return;
-  const currentY = e.touches?.[0]?.clientY;
-  if (typeof currentY !== 'number') return;
-  const deltaY = touchStartY - currentY;
-  touchStartY = currentY;
-  if (!deltaY) return;
-  lastIntentDeltaY = deltaY;
-  if (shouldConsumeVerticalScroll(activeScrollablePanel, deltaY)) {
-    e.preventDefault();
-    activeScrollablePanel.scrollTop += deltaY;
-  }
-};
-
-const handleGlobalScroll = () => {
-  if (!isHorizontalLocked || !horizontalScrollTrigger || !activeScrollablePanel) return;
-  if (lockedHorizontalScrollPos === null) return;
-  if (!lastIntentDeltaY) return;
-  if (!shouldConsumeVerticalScroll(activeScrollablePanel, lastIntentDeltaY)) return;
-  const current = horizontalScrollTrigger.scroll();
-  if (Math.abs(current - lockedHorizontalScrollPos) < 1) return;
-  horizontalScrollTrigger.scroll(lockedHorizontalScrollPos);
-  horizontalScrollTrigger.update();
-};
-
-const attachGlobalScrollInterceptors = () => {
-  window.addEventListener('wheel', handleGlobalWheel, { passive: false });
-  window.addEventListener('touchstart', handleGlobalTouchStart, { passive: true });
-  window.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
-  window.addEventListener('scroll', handleGlobalScroll, { passive: true });
-};
-
-const detachGlobalScrollInterceptors = () => {
-  window.removeEventListener('wheel', handleGlobalWheel);
-  window.removeEventListener('touchstart', handleGlobalTouchStart);
-  window.removeEventListener('touchmove', handleGlobalTouchMove);
-  window.removeEventListener('scroll', handleGlobalScroll);
-};
-
-const lockHorizontalToPanel = (panel) => {
-  if (!horizontalScrollTrigger || !panelsWrapperEl || !panel) return;
-  const totalScroll = Math.max(0, panelsWrapperEl.scrollWidth - window.innerWidth);
-  if (totalScroll <= 0) return;
-  const desiredScrollX = panel.offsetLeft + panel.offsetWidth / 2 - window.innerWidth / 2;
-  const scrollX = Math.min(totalScroll, Math.max(0, desiredScrollX));
-  const progress = scrollX / totalScroll;
-  const targetScroll = horizontalScrollTrigger.start + progress * (horizontalScrollTrigger.end - horizontalScrollTrigger.start);
-  horizontalScrollTrigger.scroll(targetScroll);
-  horizontalScrollTrigger.update();
-};
-
-const setHorizontalScrubDuration = (duration) => {
-  if (!horizontalScrollTrigger) return;
-  if (typeof horizontalScrollTrigger.scrubDuration !== 'function') return;
-  horizontalScrollTrigger.scrubDuration(duration);
-};
-
-const killPanelVerticalScrollTriggers = () => {
-  if (lockDelayTimer) { clearTimeout(lockDelayTimer); lockDelayTimer = null; }
-  panelVerticalScrollTriggers.forEach((t) => t.kill());
-  panelVerticalScrollTriggers = [];
-  activeScrollablePanel = null;
-  lockedHorizontalScrollPos = null;
-  lastIntentDeltaY = 0;
-  setHorizontalScrubDuration(HORIZONTAL_SCRUB_DURATION);
-  isHorizontalLocked = false;
-};
-
-const initPanelVerticalScroll = (containerTween) => {
-  killPanelVerticalScrollTriggers();
-  detachGlobalScrollInterceptors();
-  if (!scrollContainer.value || !containerTween) return;
-
-  const wrapper = scrollContainer.value.querySelector('.panels-wrapper');
-  if (!wrapper) return;
-
-  const panels = Array.from(wrapper.querySelectorAll('.panel'));
-  if (panels.length === 0) return;
-
-  panels.forEach((panel) => {
-    panel.classList.remove('panel--vertical-scroll');
-
-    const update = (isActive) => {
-      const isScrollable = panel.scrollHeight > panel.clientHeight + 1;
-      panel.classList.toggle('panel--vertical-scroll', Boolean(isActive && isScrollable));
-
-      if (isActive && isScrollable) {
-        if (lockDelayTimer) clearTimeout(lockDelayTimer);
-        lockDelayTimer = setTimeout(() => {
-          lockDelayTimer = null;
-          activeScrollablePanel = panel;
-          lockHorizontalToPanel(panel);
-          setHorizontalScrubDuration(0);
-          lockedHorizontalScrollPos = horizontalScrollTrigger?.scroll?.() ?? null;
-          isHorizontalLocked = true;
-        }, LOCK_DWELL_MS);
-        return;
-      }
-
-      if (lockDelayTimer) {
-        clearTimeout(lockDelayTimer);
-        lockDelayTimer = null;
-      }
-
-      panel.classList.remove('panel--vertical-scroll');
-
-      if (activeScrollablePanel === panel) {
-        activeScrollablePanel = null;
-      }
-
-      if (!activeScrollablePanel && isHorizontalLocked) {
-        setHorizontalScrubDuration(HORIZONTAL_SCRUB_DURATION);
-        isHorizontalLocked = false;
-        lockedHorizontalScrollPos = null;
-      }
-    };
-
-    const st = ScrollTrigger.create({
-      trigger: panel,
-      containerAnimation: containerTween,
-      start: 'center center',
-      end: 'right left',
-      onToggle: (self) => update(self.isActive),
-      onRefresh: (self) => update(self.isActive),
-    });
-
-    panelVerticalScrollTriggers.push(st);
-  });
-};
-
+// --- Lifecycle ---
 const onAnimationComplete = () => {
   if (loadError.value) return;
   showContent.value = true;
-  nextTick(() => {
-    initHorizontalScroll();
-  });
-};
-
-const initHorizontalScroll = () => {
-  if (!scrollContainer.value) return;
-
-  if (horizontalTween) {
-    horizontalTween.scrollTrigger?.kill();
-    horizontalTween.kill();
-    horizontalTween = null;
-    horizontalScrollTrigger = null;
-    panelsWrapperEl = null;
-  }
-
-  killPanelVerticalScrollTriggers();
-
-  const wrapper = scrollContainer.value.querySelector('.panels-wrapper');
-  if (!wrapper) return;
-
-  const panels = Array.from(wrapper.querySelectorAll('.panel'));
-  if (panels.length === 0) return;
-
-  const getTotalScroll = () => Math.max(0, wrapper.scrollWidth - window.innerWidth);
-
-  gsap.set(wrapper, { x: 0 });
-
-  horizontalTween = gsap.to(wrapper, {
-    x: () => -getTotalScroll(),
-    ease: 'none',
-    scrollTrigger: {
-      trigger: scrollContainer.value,
-      pin: true,
-      scrub: HORIZONTAL_SCRUB_DURATION,
-      anticipatePin: 1,
-      invalidateOnRefresh: true,
-      end: () => `+=${getTotalScroll()}`,
-      onUpdate: (self) => {
-        // Track current section index based on scroll progress
-        const panelCount = panels.length;
-        if (panelCount > 0) {
-          const idx = Math.round(self.progress * (panelCount - 1));
-          currentIndex.value = Math.min(idx, panelCount - 1);
-        }
-      },
-    },
-  });
-
-  horizontalTweenRef.value = horizontalTween;
-  panelsWrapperEl = wrapper;
-  horizontalScrollTrigger = horizontalTween.scrollTrigger;
-
-  initPanelVerticalScroll(horizontalTween);
-  attachGlobalScrollInterceptors();
-
-  ScrollTrigger.refresh();
+  window.addEventListener('keydown', handleKeydown);
 };
 
 onBeforeUnmount(() => {
-  if (horizontalTween) {
-    horizontalTween.scrollTrigger?.kill();
-    horizontalTween.kill();
-    horizontalTween = null;
-  }
-
-  killPanelVerticalScrollTriggers();
-  detachGlobalScrollInterceptors();
-
-  horizontalScrollTrigger = null;
-  panelsWrapperEl = null;
-  horizontalTweenRef.value = null;
+  window.removeEventListener('keydown', handleKeydown);
 });
 </script>
 
@@ -557,43 +363,42 @@ onBeforeUnmount(() => {
   overflow-x: hidden;
 }
 
-.horizontal-scroll-wrapper {
+.proposal-wrapper {
   opacity: 0;
   animation: fadeIn 0.8s ease-in forwards;
 }
 
-.scroll-container {
+.panel-container {
   width: 100%;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
-.panels-wrapper {
-  display: flex;
-  flex-wrap: nowrap;
-  height: 100vh;
-  width: max-content;
-  will-change: transform;
+/* Slide left (navigating forward) */
+.slide-left-enter-active,
+.slide-left-leave-active {
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+.slide-left-enter-from {
+  transform: translateX(60px);
+  opacity: 0;
+}
+.slide-left-leave-to {
+  transform: translateX(-60px);
+  opacity: 0;
 }
 
-.panel {
-  width: 100vw;
-  height: 100vh;
-  flex-shrink: 0;
-  overflow-y: hidden;
-  overflow-x: hidden;
+/* Slide right (navigating backward) */
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: transform 0.35s ease, opacity 0.35s ease;
 }
-
-.panel--vertical-scroll {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+.slide-right-enter-from {
+  transform: translateX(-60px);
+  opacity: 0;
 }
-
-.panel--vertical-scroll::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+.slide-right-leave-to {
+  transform: translateX(60px);
+  opacity: 0;
 }
 
 @keyframes fadeIn {

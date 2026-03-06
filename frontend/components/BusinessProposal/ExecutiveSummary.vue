@@ -1,5 +1,5 @@
 <template>
-  <section ref="sectionRef" class="executive-summary min-h-full w-full bg-white flex items-center">
+  <section ref="sectionRef" class="executive-summary min-h-screen w-full bg-white flex items-center">
     <div class="w-full px-6 md:px-12 lg:px-24 py-12 md:py-6">
       <div class="max-w-7xl">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">

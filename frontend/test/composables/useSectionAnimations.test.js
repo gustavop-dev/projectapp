@@ -32,6 +32,7 @@ beforeEach(() => {
     const actualVue = jest.requireActual('vue');
     return {
       ...actualVue,
+      onMounted: (cb) => { /* no-op in tests */ },
       onBeforeUnmount: (cb) => { unmountCallbacks.push(cb); },
       inject: () => actualVue.ref(null),
       watch: (source, cb, opts) => {

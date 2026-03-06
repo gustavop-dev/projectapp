@@ -250,6 +250,7 @@ export function formToReadableText(form, type) {
  */
 export function groupToReadableText(group) {
   const parts = [];
+  if (group.title) parts.push(`${group.icon || ''} ${group.title}`.trim());
   if (group.description) parts.push(group.description);
   for (const item of (group.items || [])) {
     parts.push(`- ${item.icon || ''} **${item.name}**: ${item.description || ''}`);

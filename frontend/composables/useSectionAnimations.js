@@ -4,7 +4,10 @@ import { onMounted, onBeforeUnmount, inject, watch, ref } from 'vue';
  * Composable for adding entrance animations to proposal sections.
  *
  * Queries child elements with [data-animate] attribute and creates
- * GSAP entrance animations triggered by the horizontal ScrollTrigger.
+ * GSAP entrance animations. Works in two modes:
+ *
+ * 1. With horizontal ScrollTrigger (legacy): animations tied to containerAnimation
+ * 2. Mount-based (new navigation): animations play on mount after a short delay
  *
  * Supported data-animate values:
  * - "fade-up": fade in + slide up
@@ -20,18 +23,9 @@ export function useSectionAnimations(sectionRef) {
   const horizontalTweenRef = inject('horizontalTweenRef', ref(null));
   let timeline = null;
   let triggers = [];
+  let mountTimer = null;
 
-  async function initAnimations(containerTween) {
-    cleanup();
-
-    if (!sectionRef.value || !containerTween) return;
-
-    const { gsap } = await import('gsap');
-    const { ScrollTrigger } = await import('gsap/ScrollTrigger');
-    gsap.registerPlugin(ScrollTrigger);
-
-    const section = sectionRef.value;
-
+  async function buildTimeline(section, gsap, scrollTriggerOpts) {
     // Collect all [data-animate] elements
     const fadeUpEls = section.querySelectorAll('[data-animate="fade-up"]');
     const staggerEls = section.querySelectorAll('[data-animate="fade-up-stagger"]');
@@ -52,16 +46,12 @@ export function useSectionAnimations(sectionRef) {
       if (children.length) gsap.set(children, { opacity: 0, y: 18 });
     });
 
-    // Create timeline with ScrollTrigger on the section
-    timeline = gsap.timeline({
-      defaults: { ease: 'power3.out' },
-      scrollTrigger: {
-        trigger: section,
-        containerAnimation: containerTween,
-        start: 'left 75%',
-        toggleActions: 'play none none reverse',
-      },
-    });
+    // Create timeline (with or without ScrollTrigger)
+    const timelineOpts = { defaults: { ease: 'power3.out' } };
+    if (scrollTriggerOpts) {
+      timelineOpts.scrollTrigger = scrollTriggerOpts;
+    }
+    timeline = gsap.timeline(timelineOpts);
 
     // Animate fade-up elements
     if (fadeUpEls.length) {
@@ -126,7 +116,34 @@ export function useSectionAnimations(sectionRef) {
     }
   }
 
+  async function initWithScrollTrigger(containerTween) {
+    cleanup();
+    if (!sectionRef.value || !containerTween) return;
+
+    const { gsap } = await import('gsap');
+    const { ScrollTrigger } = await import('gsap/ScrollTrigger');
+    gsap.registerPlugin(ScrollTrigger);
+
+    await buildTimeline(sectionRef.value, gsap, {
+      trigger: sectionRef.value,
+      containerAnimation: containerTween,
+      start: 'left 75%',
+      toggleActions: 'play none none reverse',
+    });
+  }
+
+  async function initOnMount() {
+    cleanup();
+    if (!sectionRef.value) return;
+
+    const { gsap } = await import('gsap');
+
+    // Short delay so Vue transition finishes before animations start
+    await buildTimeline(sectionRef.value, gsap, null);
+  }
+
   function cleanup() {
+    if (mountTimer) { clearTimeout(mountTimer); mountTimer = null; }
     if (timeline) {
       timeline.scrollTrigger?.kill();
       timeline.kill();
@@ -136,13 +153,24 @@ export function useSectionAnimations(sectionRef) {
     triggers = [];
   }
 
+  // If a horizontal tween is provided (legacy mode), use ScrollTrigger
   watch(
     () => horizontalTweenRef.value,
     (tween) => {
-      if (tween) initAnimations(tween);
+      if (tween) initWithScrollTrigger(tween);
     },
     { immediate: true },
   );
+
+  // Mount-based animations: if no horizontal tween after a short delay, animate on mount
+  onMounted(() => {
+    mountTimer = setTimeout(() => {
+      mountTimer = null;
+      if (!horizontalTweenRef.value && !timeline) {
+        initOnMount();
+      }
+    }, 150);
+  });
 
   onBeforeUnmount(cleanup);
 }

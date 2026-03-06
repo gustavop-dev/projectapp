@@ -21,8 +21,13 @@
       <!-- Preview panel -->
       <div class="preview-panel w-[95vw] h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-white">
         <div class="w-full h-full overflow-y-auto">
+          <FunctionalRequirementsGroup
+            v-if="subSection"
+            :group="subSection.group"
+            :subIndex="subSection.subIndex"
+          />
           <RawContentSection
-            v-if="isPaste"
+            v-else-if="isPaste"
             :title="pastePanelTitle"
             :index="pastePanelIndex"
             :rawText="pastePanelRawText"
@@ -58,6 +63,7 @@ import {
   NextSteps,
 } from '~/components/BusinessProposal';
 import RawContentSection from '~/components/BusinessProposal/RawContentSection.vue';
+import FunctionalRequirementsGroup from '~/components/BusinessProposal/FunctionalRequirementsGroup.vue';
 
 const sectionComponentMap = {
   greeting: Greeting,
@@ -78,6 +84,7 @@ const props = defineProps({
   visible: { type: Boolean, default: false },
   section: { type: Object, default: () => ({}) },
   proposalData: { type: Object, default: () => ({}) },
+  subSection: { type: Object, default: null },
 });
 
 defineEmits(['close']);
@@ -133,6 +140,10 @@ const resolvedProps = computed(() => {
 <style scoped>
 .preview-panel {
   animation: modalIn 0.25s ease-out;
+}
+
+.preview-panel :deep(section) {
+  align-items: flex-start;
 }
 
 @keyframes modalIn {

@@ -1,5 +1,5 @@
 <template>
-  <section ref="sectionRef" class="proposal-closing h-full w-full bg-white flex flex-col items-center justify-center py-8 px-6 md:px-12 lg:px-24">
+  <section ref="sectionRef" class="proposal-closing min-h-screen w-full bg-white flex flex-col items-center justify-center py-8 px-6 md:px-12 lg:px-24">
     <div class="max-w-4xl w-full mx-auto text-center flex flex-col items-center gap-6">
       <!-- Validity notice -->
       <div v-if="validityMessage" data-animate="fade-up" class="validity-notice w-full bg-yellow-50 border-2 border-yellow-200 p-4 md:p-6 rounded-xl text-left">

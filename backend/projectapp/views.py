@@ -37,16 +37,22 @@ def serve_nuxt(request, path=''):
     # 2. Directory with index.html (e.g. /en-us/about-us/ → index.html)
     index_file = os.path.join(resolved, 'index.html')
     if os.path.isfile(index_file):
-        return FileResponse(open(index_file, 'rb'), content_type='text/html')
+        response = FileResponse(open(index_file, 'rb'), content_type='text/html')
+        response['Cache-Control'] = 'no-cache'
+        return response
 
     # 3. SPA fallback for client-side routes not pre-rendered
     fallback = os.path.join(FRONTEND_DIR, '200.html')
     if os.path.isfile(fallback):
-        return FileResponse(open(fallback, 'rb'), content_type='text/html')
+        response = FileResponse(open(fallback, 'rb'), content_type='text/html')
+        response['Cache-Control'] = 'no-cache'
+        return response
 
     # 4. Root index.html as last resort
     root_index = os.path.join(FRONTEND_DIR, 'index.html')
     if os.path.isfile(root_index):
-        return FileResponse(open(root_index, 'rb'), content_type='text/html')
+        response = FileResponse(open(root_index, 'rb'), content_type='text/html')
+        response['Cache-Control'] = 'no-cache'
+        return response
 
     raise Http404('Page not found')

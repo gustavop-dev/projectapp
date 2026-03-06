@@ -248,6 +248,9 @@ def _draw_paragraphs(c, y, paragraphs, max_width=None, font_size=10,
         if not para:
             continue
         lines = textwrap.wrap(_strip_emoji(str(para)), width=chars_per_line)
+        # Prevent orphan: if >1 line and only 1 fits, start new page
+        if ps and len(lines) > 1 and y < MARGIN_B + leading * 2:
+            y = _new_page(c, ps)
         for line in lines:
             if ps:
                 y = _check_y(c, y, ps)
@@ -275,6 +278,9 @@ def _draw_bullet_list(c, y, items, x=None, max_width=None,
     for item in (items or []):
         text = _strip_emoji(str(item))
         lines = textwrap.wrap(text, width=chars_per_line - 4)
+        # Prevent orphan: keep at least 2 lines together
+        if ps and len(lines) > 1 and y < MARGIN_B + leading * 2:
+            y = _new_page(c, ps)
         for i, line in enumerate(lines):
             if ps:
                 y = _check_y(c, y, ps)
@@ -335,6 +341,50 @@ def _draw_subtitle(c, y, text, color=ESMERALD, ps=None):
     c.setFillColor(color)
     c.drawString(MARGIN_L, y, _strip_emoji(str(text)))
     return y - 18
+
+
+def _draw_pill(c, x, y, text, bg_color=ESMERALD_LIGHT, text_color=ESMERALD,
+               font_size=7, padding_h=8, padding_v=3):
+    """Draw a rounded pill/badge and return (right_x, pill_y_bottom).
+
+    The pill is vertically centred on *y* so that it aligns nicely next to
+    text drawn at the same y coordinate.
+    """
+    text = _strip_emoji(str(text))
+    c.setFont(_font('medium'), font_size)
+    tw = c.stringWidth(text, _font('medium'), font_size)
+    pill_w = tw + padding_h * 2
+    pill_h = font_size + padding_v * 2
+    pill_y = y - padding_v + 1
+    c.setFillColor(bg_color)
+    c.roundRect(x, pill_y, pill_w, pill_h, pill_h / 2, fill=1, stroke=0)
+    c.setFont(_font('medium'), font_size)
+    c.setFillColor(text_color)
+    c.drawString(x + padding_h, y, text)
+    return x + pill_w, pill_y
+
+
+def _draw_banner_box(c, x, y, width, text, bg_color=BONE,
+                     text_color=ESMERALD, font_size=9, icon_text='',
+                     ps=None):
+    """Draw a full-width banner box with optional icon prefix. Returns new y."""
+    if ps:
+        y = _check_y(c, y, ps, need=36)
+    text = _strip_emoji(str(text))
+    box_h = 28
+    box_y = y - box_h + 8
+    c.setFillColor(bg_color)
+    c.roundRect(x, box_y, width, box_h, 6, fill=1, stroke=0)
+    inner_x = x + 12
+    if icon_text:
+        c.setFont(_font('bold'), font_size)
+        c.setFillColor(text_color)
+        c.drawString(inner_x, box_y + 9, icon_text)
+        inner_x += c.stringWidth(icon_text, _font('bold'), font_size) + 6
+    c.setFont(_font('regular'), font_size)
+    c.setFillColor(text_color)
+    c.drawString(inner_x, box_y + 9, text)
+    return box_y - 6
 
 
 # ─────────────────────────────────────────────────────────────
@@ -641,6 +691,12 @@ def _render_development_stages(c, data, _proposal, ps=None, y=None):
         c.setFont(_font('bold'), 11)
         c.setFillColor(ESMERALD)
         c.drawString(tx, y, _strip_emoji(stage_title))
+        # "Etapa actual" pill for the current stage
+        if is_current:
+            title_w = c.stringWidth(_strip_emoji(stage_title),
+                                    _font('bold'), 11)
+            _draw_pill(c, tx + title_w + 8, y + 1, 'Etapa actual',
+                       bg_color=LEMON, text_color=ESMERALD)
         y -= 15
 
         if desc:
@@ -697,11 +753,23 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
 
         c.setFillColor(ESMERALD_LIGHT)
         c.roundRect(card_x, card_y - 44, col_w, 50, 5, fill=1, stroke=0)
+        # Left accent bar
+        c.setFillColor(LEMON)
+        c.roundRect(card_x, card_y - 44, 3, 50, 1, fill=1, stroke=0)
 
+        grp_title = _strip_emoji(_safe(grp, 'title'))
         c.setFont(_font('bold'), 10)
         c.setFillColor(ESMERALD)
-        c.drawString(card_x + 8, card_y - 10,
-                     _strip_emoji(_safe(grp, 'title')))
+        c.drawString(card_x + 10, card_y - 10, grp_title)
+
+        # Item count pill
+        grp_items = _safe(grp, 'items', [])
+        if grp_items:
+            tw = c.stringWidth(grp_title, _font('bold'), 10)
+            _draw_pill(c, card_x + 10 + tw + 6, card_y - 10,
+                       str(len(grp_items)),
+                       bg_color=BONE, text_color=ESMERALD, font_size=6,
+                       padding_h=5, padding_v=2)
 
         desc = _safe(grp, 'description')
         if desc:
@@ -710,7 +778,7 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
             d_lines = textwrap.wrap(_strip_emoji(str(desc)), width=chars)
             dy = card_y - 24
             for dl in d_lines[:2]:
-                c.drawString(card_x + 8, dy, dl)
+                c.drawString(card_x + 10, dy, dl)
                 dy -= 11
         last_card_bottom = min(last_card_bottom, card_y - 44)
 
@@ -721,47 +789,112 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
     return last_card_bottom - 8
 
 
-def _render_requirement_group_page(c, grp, ps=None, y=None):
-    """Render a single requirement group detail."""
+def _render_requirement_group_page(c, grp, ps=None, y=None,
+                                    sub_index=''):
+    """Render a single requirement group detail with cards layout."""
     if y is None:
         y = PAGE_H - MARGIN_T
 
+    # Sub-index numeral (e.g. "07.1")
+    if sub_index:
+        c.setFont(_font('light'), 11)
+        c.setFillColor(GREEN_LIGHT)
+        c.drawString(MARGIN_L, y, str(sub_index))
+        y -= 22
+
+    # Group title
+    title_text = _strip_emoji(_safe(grp, 'title'))
     c.setFont(_font('light'), 20)
     c.setFillColor(ESMERALD)
-    c.drawString(MARGIN_L, y, _strip_emoji(_safe(grp, 'title')))
+    c.drawString(MARGIN_L, y, title_text)
+
+    # Item count pill next to title
+    items = _safe(grp, 'items', [])
+    if items:
+        title_w = c.stringWidth(title_text, _font('light'), 20)
+        pill_label = f'{len(items)} elemento{"s" if len(items) != 1 else ""}'
+        _draw_pill(c, MARGIN_L + title_w + 12, y + 2, pill_label,
+                   bg_color=BONE, text_color=ESMERALD)
     y -= 28
+
+    # Thin accent line
+    c.setStrokeColor(LEMON)
+    c.setLineWidth(2)
+    c.line(MARGIN_L, y + 6, MARGIN_L + 40, y + 6)
+    y -= 12
 
     desc = _safe(grp, 'description')
     if desc:
         y = _draw_paragraphs(c, y, [desc], ps=ps)
-        y -= 8
+        y -= 6
 
-    items = _safe(grp, 'items', [])
-    for item in items:
+    # Render items as 2-column cards
+    if not items:
+        return y
+
+    col_gap = 12
+    card_w = (CONTENT_W - col_gap) / 2
+    card_chars = int(card_w / (8 * 0.48)) - 4
+    col = 0
+    row_y = y
+    row_bottom = y
+
+    for idx, item in enumerate(items):
+        name = _strip_emoji(_safe(item, 'name'))
+        item_desc = _strip_emoji(_safe(item, 'description'))
+
+        # Estimate card height
+        desc_lines = textwrap.wrap(item_desc, width=card_chars) if item_desc else []
+        card_h = 14 + 14 + len(desc_lines) * 11 + 10  # padding + name + desc + bottom
+
         if ps:
-            y = _check_y(c, y, ps, need=30)
-        elif y < MARGIN_B + 30:
-            break
-        name = _safe(item, 'name')
-        item_desc = _safe(item, 'description')
+            row_y = _check_y(c, row_y, ps, need=card_h + 10)
+            if col == 0:
+                y = row_y
 
-        c.setFont(_font('bold'), 10)
+        card_x = MARGIN_L + col * (card_w + col_gap)
+        card_y_top = row_y
+
+        # Card background
+        c.setFillColor(ESMERALD_LIGHT)
+        c.roundRect(card_x, card_y_top - card_h + 8, card_w, card_h,
+                    6, fill=1, stroke=0)
+
+        # Subtle left accent bar on each card
+        c.setFillColor(LEMON)
+        c.roundRect(card_x, card_y_top - card_h + 8, 3, card_h, 1,
+                    fill=1, stroke=0)
+
+        # Item name
+        inner_x = card_x + 12
+        text_y = card_y_top - 6
+        c.setFont(_font('bold'), 9)
         c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L + 4, y, f'\u2022  {_strip_emoji(name)}')
-        y -= 14
+        c.drawString(inner_x, text_y, name)
+        text_y -= 14
 
-        if item_desc:
-            c.setFont(_font('regular'), 9)
+        # Item description
+        if desc_lines:
+            c.setFont(_font('regular'), 8)
             c.setFillColor(ESMERALD_80)
-            i_lines = textwrap.wrap(_strip_emoji(str(item_desc)), width=80)
-            for il in i_lines:
-                if ps:
-                    y = _check_y(c, y, ps)
-                elif y < MARGIN_B + 20:
-                    break
-                c.drawString(MARGIN_L + 20, y, il)
-                y -= 13
-        y -= 5
+            for dl in desc_lines:
+                c.drawString(inner_x, text_y, dl)
+                text_y -= 11
+
+        card_bottom = card_y_top - card_h + 8
+        row_bottom = min(row_bottom, card_bottom)
+
+        col += 1
+        if col >= 2:
+            col = 0
+            row_y = row_bottom - 8
+            row_bottom = row_y
+            y = row_y
+
+    # If last row had only 1 card, update y
+    if col == 1:
+        y = row_bottom - 8
+
     return y
 
 
@@ -814,9 +947,9 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
 
         dur = _safe(phase, 'duration')
         if dur:
-            c.setFont(_font('regular'), 8)
-            c.setFillColor(GREEN_LIGHT)
-            c.drawRightString(PAGE_W - MARGIN_R, y, _strip_emoji(dur))
+            _draw_pill(c, PAGE_W - MARGIN_R - 80, y + 1,
+                       _strip_emoji(dur),
+                       bg_color=ESMERALD_LIGHT, text_color=ESMERALD)
         y -= 15
 
         desc = _safe(phase, 'description')
@@ -837,17 +970,16 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
 
         milestone = _safe(phase, 'milestone')
         if milestone:
-            c.setFont(_font('bold'), 8)
-            c.setFillColor(ESMERALD)
-            c.drawString(tx, y, f'Hito: {_strip_emoji(milestone)}')
-            y -= 12
+            _draw_pill(c, tx, y, f'Hito: {_strip_emoji(milestone)}',
+                       bg_color=BONE, text_color=ESMERALD, font_size=7)
+            y -= 16
 
         y -= 6
     return y
 
 
 def _render_investment(c, data, _proposal, ps=None, y=None):
-    """Render investment section."""
+    """Render investment section with two-column layout."""
     if y is None:
         y = PAGE_H - MARGIN_T
     y = _draw_section_header(c, y, _safe(data, 'index'), _safe(data, 'title'))
@@ -855,77 +987,103 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
 
     intro = _safe(data, 'introText')
     included = _safe(data, 'whatsIncluded', [])
-    content_top = y
+    total = _safe(data, 'totalInvestment')
+    currency = _safe(data, 'currency')
+    options = _safe(data, 'paymentOptions', [])
 
-    # Intro text — use narrower column if sidebar fits
+    # Intro text (full width)
     if intro:
-        if included and (content_top - MARGIN_B) > 200:
-            y = _draw_paragraphs(c, y, [intro], max_width=TEXT_AREA_W, ps=ps)
-        else:
-            y = _draw_paragraphs(c, y, [intro], ps=ps)
+        y = _draw_paragraphs(c, y, [intro], ps=ps)
         y -= 6
 
-    # What's included sidebar (only if room)
-    if included:
+    # ── Two-column zone: left = total + payments, right = Incluye ──
+    has_room = (y - MARGIN_B) > 180
+    left_w = CONTENT_W * 0.58
+    right_x = MARGIN_L + left_w + 16
+    right_w = CONTENT_W - left_w - 16
+    two_col_top = y
+
+    # LEFT COLUMN: total investment box + payment options
+    left_y = y
+    if total:
+        if ps:
+            left_y = _check_y(c, left_y, ps, need=60)
+        box_h = 50
+        box_w = left_w
+        box_y = left_y - box_h
+        c.setFillColor(ESMERALD)
+        c.roundRect(MARGIN_L, box_y, box_w, box_h, 8, fill=1, stroke=0)
+        c.setFont(_font('bold'), 24)
+        c.setFillColor(WHITE)
+        label_text = total
+        c.drawCentredString(MARGIN_L + box_w / 2, box_y + 24, label_text)
+        if currency:
+            _draw_pill(c, MARGIN_L + box_w / 2 - 14, box_y + 6, currency,
+                       bg_color=LEMON, text_color=ESMERALD, font_size=8)
+        left_y = box_y - 12
+
+    if options:
+        left_y -= 4
+        c.setFont(_font('bold'), 11)
+        c.setFillColor(ESMERALD)
+        c.drawString(MARGIN_L, left_y, 'Formas de Pago')
+        left_y -= 16
+        for opt in options:
+            if ps:
+                left_y = _check_y(c, left_y, ps)
+            elif left_y < MARGIN_B + 20:
+                break
+            label = _strip_emoji(_safe(opt, 'label'))
+            desc = _strip_emoji(_safe(opt, 'description'))
+
+            # Row bg
+            c.setFillColor(ESMERALD_LIGHT)
+            c.roundRect(MARGIN_L, left_y - 6, left_w, 18, 4,
+                        fill=1, stroke=0)
+            c.setFont(_font('regular'), 8)
+            c.setFillColor(ESMERALD_80)
+            c.drawString(MARGIN_L + 8, left_y - 2, label)
+            # Amount pill on right side of left column
+            if desc:
+                _draw_pill(c, MARGIN_L + left_w - 70, left_y - 2, desc,
+                           bg_color=ESMERALD, text_color=WHITE, font_size=7)
+            left_y -= 22
+
+    # RIGHT COLUMN: What's included
+    right_y = two_col_top
+    if included and has_room:
         items_text = [
             f'{_strip_emoji(_safe(it, "title"))} \u2014 '
             f'{_strip_emoji(_safe(it, "description"))}'
             for it in included
         ]
-        if (content_top - MARGIN_B) > 200:
-            sb = _draw_sidebar_box(c, content_top, 'Incluye', items_text)
-            y = min(y, sb - 8)
-        else:
-            y -= 6
-            y = _draw_subtitle(c, y, 'Incluye', ps=ps)
-            y = _draw_bullet_list(c, y, items_text, ps=ps)
+        _draw_sidebar_box(c, right_y, 'Incluye', items_text,
+                          sidebar_x=right_x, sidebar_w=right_w)
 
-    # Total investment highlight box
-    total = _safe(data, 'totalInvestment')
-    currency = _safe(data, 'currency')
-    if total:
-        if ps:
-            y = _check_y(c, y, ps, need=70)
-        box_h = 54
-        box_w = CONTENT_W
-        box_y = y - box_h
-        c.setFillColor(ESMERALD)
-        c.roundRect(MARGIN_L, box_y, box_w, box_h, 8, fill=1, stroke=0)
-        c.setFont(_font('bold'), 26)
-        c.setFillColor(WHITE)
-        c.drawCentredString(MARGIN_L + box_w / 2, box_y + 26, total)
-        if currency:
-            c.setFont(_font('regular'), 10)
-            c.setFillColor(LEMON)
-            c.drawCentredString(MARGIN_L + box_w / 2, box_y + 8, currency)
-        y = box_y - 14
+    y = min(left_y, y) - 4
 
-    # Payment options
-    options = _safe(data, 'paymentOptions', [])
-    if options:
-        y -= 4
-        y = _draw_subtitle(c, y, 'Formas de Pago', ps=ps)
-        for opt in options:
-            if ps:
-                y = _check_y(c, y, ps)
-            elif y < MARGIN_B + 20:
-                break
-            label = _safe(opt, 'label')
-            desc = _safe(opt, 'description')
-            c.setFont(_font('regular'), 9)
-            c.setFillColor(ESMERALD_80)
-            c.drawString(MARGIN_L + 8, y,
-                         f'\u2022  {_strip_emoji(label)}')
-            c.setFont(_font('bold'), 9)
-            c.drawRightString(PAGE_W - MARGIN_R, y, _strip_emoji(desc))
-            y -= 15
+    # Fallback: if no room for two-col, render Incluye inline below
+    if included and not has_room:
+        y -= 6
+        items_text = [
+            f'{_strip_emoji(_safe(it, "title"))} \u2014 '
+            f'{_strip_emoji(_safe(it, "description"))}'
+            for it in included
+        ]
+        y = _draw_subtitle(c, y, 'Incluye', ps=ps)
+        y = _draw_bullet_list(c, y, items_text, ps=ps)
 
     # Hosting plan
     hosting = _safe(data, 'hostingPlan', {})
     h_title = _safe(hosting, 'title')
     if h_title:
         y -= 8
-        y = _draw_subtitle(c, y, h_title, ps=ps)
+        if ps:
+            y = _check_y(c, y, ps, need=30)
+        # Hosting as a pill + description
+        _draw_pill(c, MARGIN_L, y, h_title,
+                   bg_color=ESMERALD_LIGHT, text_color=ESMERALD, font_size=8)
+        y -= 16
         h_desc = _safe(hosting, 'description')
         if h_desc:
             y = _draw_paragraphs(c, y, [h_desc], font_size=9,
@@ -954,17 +1112,15 @@ def _render_final_note(c, data, proposal, ps=None, y=None):
     y -= 8
 
     badges = _safe(data, 'commitmentBadges', [])
-    content_top = y
-    text_w = TEXT_AREA_W if badges and (content_top - MARGIN_B) > 200 else None
 
     message = _safe(data, 'message')
     if message:
-        y = _draw_paragraphs(c, y, [message], max_width=text_w, ps=ps)
+        y = _draw_paragraphs(c, y, [message], ps=ps)
 
     personal = _safe(data, 'personalNote')
     if personal:
         y -= 6
-        chars = int((text_w or CONTENT_W) / (10 * 0.48))
+        chars = int(CONTENT_W / (10 * 0.48))
         c.setFont(_font('italic'), 10)
         c.setFillColor(GREEN_LIGHT)
         p_lines = textwrap.wrap(_strip_emoji(str(personal)), width=chars)
@@ -976,20 +1132,16 @@ def _render_final_note(c, data, proposal, ps=None, y=None):
             c.drawString(MARGIN_L, y, pl)
             y -= 14
 
-    # Validity period
+    # Validity period — eye-catching banner
     validity = _safe(data, 'validityPeriod',
                      'Esta propuesta tiene una vigencia de 30 d\u00edas '
                      'calendario a partir de su fecha de env\u00edo.')
     if validity:
-        y -= 10
-        if ps:
-            y = _check_y(c, y, ps, need=30)
-        c.setFont(_font('regular'), 8)
-        c.setFillColor(GRAY_500)
-        v_lines = textwrap.wrap(_strip_emoji(str(validity)), width=90)
-        for vl in v_lines:
-            c.drawString(MARGIN_L, y, vl)
-            y -= 11
+        y -= 12
+        y = _draw_banner_box(c, MARGIN_L, y, CONTENT_W,
+                             _strip_emoji(str(validity)),
+                             bg_color=BONE, text_color=ESMERALD,
+                             icon_text='Vigencia:', ps=ps)
 
     # Client name
     client_name = getattr(proposal, 'client_name', '')
@@ -1030,20 +1182,32 @@ def _render_final_note(c, data, proposal, ps=None, y=None):
         c.drawString(MARGIN_L, y, email)
         y -= 13
 
-    # Commitment badges
+    # Commitment badges as inline pills
     if badges:
-        items = [
-            f'{_strip_emoji(_safe(b, "title"))} \u2014 '
-            f'{_strip_emoji(_safe(b, "description"))}'
-            for b in badges
-        ]
-        if (content_top - MARGIN_B) > 200:
-            sb = _draw_sidebar_box(c, content_top, 'Compromisos', items)
-            y = min(y, sb - 8)
-        else:
-            y -= 6
-            y = _draw_subtitle(c, y, 'Compromisos', ps=ps)
-            y = _draw_bullet_list(c, y, items, ps=ps)
+        y -= 10
+        if ps:
+            y = _check_y(c, y, ps, need=40)
+        c.setFont(_font('bold'), 10)
+        c.setFillColor(ESMERALD)
+        c.drawString(MARGIN_L, y, 'Compromisos')
+        y -= 18
+        pill_x = MARGIN_L
+        for b in badges:
+            b_title = _strip_emoji(_safe(b, 'title'))
+            if not b_title:
+                continue
+            c.setFont(_font('medium'), 7)
+            tw = c.stringWidth(b_title, _font('medium'), 7) + 16
+            # Wrap to next row if pill overflows
+            if pill_x + tw > PAGE_W - MARGIN_R:
+                pill_x = MARGIN_L
+                y -= 18
+                if ps:
+                    y = _check_y(c, y, ps)
+            _draw_pill(c, pill_x, y, b_title,
+                       bg_color=ESMERALD_LIGHT, text_color=ESMERALD)
+            pill_x += tw + 6
+        y -= 14
     return y
 
 
@@ -1055,14 +1219,10 @@ def _render_next_steps(c, data, _proposal, ps=None, y=None):
     y -= 8
 
     contacts = _safe(data, 'contactMethods', [])
-    content_top = y
 
     intro = _safe(data, 'introMessage')
     if intro:
-        if contacts and (content_top - MARGIN_B) > 200:
-            y = _draw_paragraphs(c, y, [intro], max_width=TEXT_AREA_W, ps=ps)
-        else:
-            y = _draw_paragraphs(c, y, [intro], ps=ps)
+        y = _draw_paragraphs(c, y, [intro], ps=ps)
         y -= 6
 
     steps = _safe(data, 'steps', [])
@@ -1107,20 +1267,30 @@ def _render_next_steps(c, data, _proposal, ps=None, y=None):
             c.drawString(MARGIN_L, y, cl)
             y -= 16
 
-    # Contact methods
+    # Contact methods as pills
     if contacts:
-        items = [
-            f'{_strip_emoji(_safe(ct, "title"))}: '
-            f'{_strip_emoji(_safe(ct, "value"))}'
-            for ct in contacts
-        ]
-        if (content_top - MARGIN_B) > 200:
-            sb = _draw_sidebar_box(c, content_top, 'Contacto', items)
-            y = min(y, sb - 8)
-        else:
-            y -= 6
-            y = _draw_subtitle(c, y, 'Contacto', ps=ps)
-            y = _draw_bullet_list(c, y, items, ps=ps)
+        y -= 10
+        if ps:
+            y = _check_y(c, y, ps, need=40)
+        c.setFont(_font('bold'), 10)
+        c.setFillColor(ESMERALD)
+        c.drawString(MARGIN_L, y, 'Contacto')
+        y -= 18
+        for ct in contacts:
+            ct_title = _strip_emoji(_safe(ct, 'title'))
+            ct_value = _strip_emoji(_safe(ct, 'value'))
+            if not ct_title:
+                continue
+            if ps:
+                y = _check_y(c, y, ps, need=18)
+            # Title pill + value text
+            pr, _ = _draw_pill(c, MARGIN_L, y, ct_title,
+                               bg_color=ESMERALD, text_color=WHITE,
+                               font_size=7)
+            c.setFont(_font('regular'), 9)
+            c.setFillColor(ESMERALD_80)
+            c.drawString(pr + 8, y, ct_value)
+            y -= 18
     return y
 
 
@@ -1305,6 +1475,8 @@ class ProposalPdfService:
 
                 if 'title' not in data or not data['title']:
                     data['title'] = sec.title
+                if not data.get('index'):
+                    data['index'] = str(sec.order + 1).zfill(2)
 
                 # Decide rendering mode: paste-mode wins over form
                 is_paste = (
@@ -1351,8 +1523,9 @@ class ProposalPdfService:
 
                     # Functional requirements: per-group details
                     func_groups = ps.pop('_func_req_groups', None)
+                    parent_idx = data.get('index', '')
                     if stype == 'functional_requirements' and func_groups:
-                        for grp in func_groups:
+                        for gi, grp in enumerate(func_groups):
                             grp_paste = (
                                 _safe(grp, '_editMode') == 'paste'
                                 and _safe(grp, 'rawText')
@@ -1360,18 +1533,24 @@ class ProposalPdfService:
                             items = _safe(grp, 'items', [])
                             if not items and not grp_paste:
                                 continue
+                            sub_idx = (
+                                f'{parent_idx}.{gi + 1}'
+                                if parent_idx else str(gi + 1)
+                            )
                             y -= 28
                             y = _check_y(c, y, ps, need=80)
                             if grp_paste:
                                 y = _render_raw_text(
                                     c,
                                     {'title': _safe(grp, 'title'),
+                                     'index': sub_idx,
                                      'rawText': _safe(grp, 'rawText')},
                                     proposal, ps=ps, y=y,
                                 ) or y
                             else:
                                 y = _render_requirement_group_page(
                                     c, grp, ps=ps, y=y,
+                                    sub_index=sub_idx,
                                 ) or y
                 elif data.get('rawText'):
                     y = _render_raw_text(c, data, proposal, ps=ps,

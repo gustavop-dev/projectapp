@@ -192,6 +192,13 @@
               <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
                 :class="group._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
                 @click="onToggleGroupPaste(group, true)">Pegar contenido</button>
+              <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                @click="openSubPreview(group, gIdx)">
+                <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </button>
               <button v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features' && group.id !== 'integrations_api' && group.id !== 'admin_module'"
                 type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.groups.splice(gIdx, 1)">Eliminar</button>
             </div>
@@ -258,6 +265,13 @@
                 <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
                   :class="mod._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
                   @click="onToggleGroupPaste(mod, true)">Pegar contenido</button>
+                <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                  @click="openSubPreview(mod, mIdx, true)">
+                  <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                </button>
                 <button type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.additionalModules.splice(mIdx, 1)">Eliminar</button>
               </div>
             </div>
@@ -572,6 +586,15 @@
       :proposalData="proposalData"
       @close="showPreview = false"
     />
+
+    <!-- Sub-section preview modal -->
+    <SectionPreviewModal
+      :visible="showSubPreview"
+      :section="previewSection"
+      :proposalData="proposalData"
+      :subSection="subPreviewData"
+      @close="showSubPreview = false"
+    />
   </div>
 </template>
 
@@ -633,6 +656,8 @@ const sectionType = computed(() => props.section.section_type);
 const sectionTitle = ref(props.section.title);
 const isSaving = ref(false);
 const showPreview = ref(false);
+const showSubPreview = ref(false);
+const subPreviewData = ref(null);
 
 const previewSection = computed(() => {
   const contentJson = formToJson(form, sectionType.value);
@@ -675,6 +700,16 @@ function onToggleGroupPaste(group, on) {
   if (on) {
     group._pasteText = groupToReadableText(group);
   }
+}
+
+function openSubPreview(group, idx, isAdditional = false) {
+  const baseIndex = form.index || '7';
+  const offset = isAdditional ? form.groups.length + idx + 1 : idx + 1;
+  subPreviewData.value = {
+    group: { ...group, items: [...(group.items || [])] },
+    subIndex: `${baseIndex}.${offset}`,
+  };
+  showSubPreview.value = true;
 }
 
 function fillInvestmentFromProposal() {
@@ -742,9 +777,14 @@ watch(
 // Auto-sync group/module paste text for functional_requirements subsections
 if (sectionType.value === 'functional_requirements') {
   watch(
-    () => [...form.groups, ...form.additionalModules].map(g =>
-      JSON.stringify({ d: g.description, items: g.items }),
-    ).join('|'),
+    () => {
+      return [...form.groups, ...form.additionalModules].map(g => {
+        const itemsSig = (g.items || []).map(i =>
+          `${i.icon}|${i.name}|${i.description}`
+        ).join('~');
+        return `${g.title}|${g.icon}|${g.description}|${itemsSig}`;
+      }).join('||');
+    },
     () => {
       for (const g of form.groups) {
         if (!g._pasteMode) g._pasteText = _groupToReadableText(g);

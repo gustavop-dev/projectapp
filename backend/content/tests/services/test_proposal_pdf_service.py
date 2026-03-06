@@ -32,11 +32,13 @@ from content.services.proposal_pdf_service import (
     TEXT_AREA_W,
     ProposalPdfService,
     _clean_inline_bold,
+    _draw_banner_box,
     _draw_bullet_list,
     _draw_footer,
     _draw_green_bar,
     _draw_header_bar,
     _draw_paragraphs,
+    _draw_pill,
     _draw_section_header,
     _draw_sidebar_box,
     _draw_subtitle,
@@ -259,6 +261,33 @@ class TestDrawFooter:
 
     def test_draws_footer_with_empty_client_name(self, pdf_canvas):
         _draw_footer(pdf_canvas, 1, 5, '')
+
+
+class TestDrawPill:
+    def test_returns_right_x_and_bottom_y(self, pdf_canvas):
+        right_x, bottom_y = _draw_pill(
+            pdf_canvas, MARGIN_L, PAGE_H - 100, 'Test Badge',
+        )
+        assert right_x > MARGIN_L
+        assert bottom_y < PAGE_H - 100
+
+    def test_custom_colors(self, pdf_canvas):
+        from content.services.proposal_pdf_service import LEMON, ESMERALD
+        right_x, _ = _draw_pill(
+            pdf_canvas, MARGIN_L, PAGE_H - 100, 'COP',
+            bg_color=LEMON, text_color=ESMERALD, font_size=8,
+        )
+        assert right_x > MARGIN_L
+
+
+class TestDrawBannerBox:
+    def test_returns_lower_y(self, pdf_canvas):
+        start_y = PAGE_H - 100
+        end_y = _draw_banner_box(
+            pdf_canvas, MARGIN_L, start_y, CONTENT_W,
+            'Test banner text', icon_text='Info:',
+        )
+        assert end_y < start_y
 
 
 class TestDrawSectionHeader:
