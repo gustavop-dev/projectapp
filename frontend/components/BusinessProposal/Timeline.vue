@@ -1,6 +1,6 @@
 <template>
   <section ref="sectionRef" class="timeline py-16 md:py-24 bg-gray-50">
-    <div class="container mx-auto px-6 sm:px-4 max-w-5xl">
+    <div class="container mx-auto px-6 md:px-12 lg:px-24 max-w-5xl">
       <div class="section-header mb-12">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
@@ -16,7 +16,7 @@
         <p data-animate="fade-up" class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl mb-6">
           {{ introText }}
         </p>
-        <div data-animate="scale-in" class="duration-summary bg-white p-6 rounded-xl shadow-sm inline-block">
+        <div data-animate="fade-up" class="duration-summary bg-white p-6 rounded-xl shadow-sm inline-block">
           <div class="flex items-center">
             <svg class="w-8 h-8 text-emerald-600 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>

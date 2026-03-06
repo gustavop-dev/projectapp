@@ -21,7 +21,7 @@
       </div>
 
       <!-- Accept / Reject buttons -->
-      <div v-if="canRespond && !submitted" data-animate="scale-in" class="flex flex-col sm:flex-row gap-4 justify-center items-center pt-2">
+      <div v-if="canRespond && !submitted" data-animate="fade-up" class="flex flex-col sm:flex-row gap-4 justify-center items-center pt-2">
         <button
           class="px-6 sm:px-8 py-3 sm:py-4 bg-emerald-600 text-white rounded-xl font-medium text-sm sm:text-base
                  hover:bg-emerald-700 transition-colors shadow-lg flex items-center gap-2"

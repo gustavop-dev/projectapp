@@ -1,7 +1,7 @@
 <template>
   <section ref="sectionRef" class="conversion-strategy min-h-screen w-full bg-white">
     <div class="w-full px-6 md:px-12 lg:px-24 py-10 md:py-14">
-      <div class="max-w-7xl">
+      <div class="max-w-7xl mx-auto">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
             {{ content.index }}
@@ -44,7 +44,7 @@
             </div>
           </div>
 
-          <aside v-if="content.result" data-animate="scale-in" class="lg:col-span-4">
+          <aside v-if="content.result" data-animate="fade-up" class="lg:col-span-4">
             <div class="rounded-3xl bg-esmerald-light/60 p-6 md:p-8">
               <h3 class="text-esmerald font-light text-base md:text-lg tracking-wide mb-4">
                 {{ content.resultTitle }}

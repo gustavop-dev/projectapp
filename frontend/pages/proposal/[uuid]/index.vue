@@ -31,6 +31,7 @@
         :sections="displayPanels"
         :currentIndex="currentIndex"
         @navigate="handleNavigate"
+        @update:open="(val) => indexOpen = val"
       />
       <SectionCounter :current="currentIndex + 1" :total="totalSections" />
       <ExpirationBadge v-if="proposal.expires_at" :expiresAt="proposal.expires_at" />
@@ -44,6 +45,7 @@
         :nextTitle="nextPanelTitle"
         :isFirst="currentIndex === 0"
         :isLast="currentIndex === totalSections - 1"
+        :hideLeft="indexOpen"
         @prev="goPrev"
         @next="goNext"
       />
@@ -180,6 +182,7 @@ const loadError = ref(null);
 const proposalContainer = ref(null);
 const currentIndex = ref(0);
 const transitionName = ref('slide-left');
+const indexOpen = ref(false);
 
 // Current panel and neighbors
 const currentPanel = computed(() => displayPanels.value[currentIndex.value] || displayPanels.value[0]);

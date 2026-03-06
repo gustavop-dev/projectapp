@@ -56,7 +56,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 defineProps({
   sections: {
@@ -69,9 +69,11 @@ defineProps({
   },
 });
 
-defineEmits(['navigate']);
+const emit = defineEmits(['navigate', 'update:open']);
 
 const isOpen = ref(typeof window !== 'undefined' && window.innerWidth >= 640);
+
+watch(isOpen, (val) => emit('update:open', val), { immediate: true });
 </script>
 
 <style scoped>

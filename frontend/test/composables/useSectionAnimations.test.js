@@ -2,7 +2,7 @@
  * Tests for the useSectionAnimations composable.
  *
  * Covers: initAnimations, cleanup, watcher behavior,
- * animation setup for various data-animate values.
+ * unified top-to-bottom fade-up animation cascade.
  */
 let unmountCallbacks;
 let watchCallbacks;
@@ -52,14 +52,21 @@ afterEach(() => {
 
 const flushPromises = () => new Promise((r) => setTimeout(r, 0));
 
+/**
+ * Creates a mock section ref with [data-animate] elements.
+ * Each element gets a getBoundingClientRect mock sorted by topOffset.
+ */
 function createMockSectionRef(animateTypes = []) {
   const { ref } = jest.requireActual('vue');
+  const elements = animateTypes.map((type, idx) => {
+    const el = document.createElement('div');
+    el.setAttribute('data-animate', type);
+    el.getBoundingClientRect = () => ({ top: idx * 100, left: 0 });
+    return el;
+  });
   const mockEl = {
     querySelectorAll: jest.fn((selector) => {
-      const type = selector.match(/data-animate="([^"]+)"/)?.[1];
-      if (animateTypes.includes(type)) {
-        return [document.createElement('div')];
-      }
+      if (selector === '[data-animate]') return elements;
       return [];
     }),
   };
@@ -70,7 +77,6 @@ describe('useSectionAnimations', () => {
   describe('initialization', () => {
     it('sets up a watcher with immediate option', () => {
       const sectionRef = createMockSectionRef();
-
       useSectionAnimations(sectionRef);
 
       expect(watchCallbacks).toHaveLength(1);
@@ -79,7 +85,6 @@ describe('useSectionAnimations', () => {
 
     it('registers onBeforeUnmount callback', () => {
       const sectionRef = createMockSectionRef();
-
       useSectionAnimations(sectionRef);
 
       expect(unmountCallbacks).toHaveLength(1);
@@ -119,8 +124,8 @@ describe('useSectionAnimations', () => {
       expect(mockGsap.timeline).not.toHaveBeenCalled();
     });
 
-    it('sets initial state for fade-up elements', async () => {
-      const sectionRef = createMockSectionRef(['fade-up']);
+    it('sets uniform initial state (opacity:0, y:20) for all elements', async () => {
+      const sectionRef = createMockSectionRef(['fade-up', 'fade-up']);
       useSectionAnimations(sectionRef);
 
       watchCallbacks[0].cb({ scrollTrigger: {} });
@@ -128,71 +133,33 @@ describe('useSectionAnimations', () => {
 
       expect(mockGsap.set).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({ opacity: 0, y: 24 })
+        expect.objectContaining({ opacity: 0, y: 20 })
       );
     });
 
-    it('sets initial state for scale-in elements', async () => {
-      const sectionRef = createMockSectionRef(['scale-in']);
+    it('does not create timeline when no [data-animate] elements exist', async () => {
+      const sectionRef = createMockSectionRef([]);
       useSectionAnimations(sectionRef);
 
       watchCallbacks[0].cb({ scrollTrigger: {} });
       await flushPromises();
 
-      expect(mockGsap.set).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ opacity: 0, scale: 0.92 })
-      );
+      expect(mockGsap.timeline).not.toHaveBeenCalled();
     });
 
-    it('sets initial state for slide-in-left elements', async () => {
-      const sectionRef = createMockSectionRef(['slide-in-left']);
-      useSectionAnimations(sectionRef);
-
-      watchCallbacks[0].cb({ scrollTrigger: {} });
-      await flushPromises();
-
-      expect(mockGsap.set).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ opacity: 0, x: -40 })
-      );
-    });
-
-    it('sets initial state for slide-in-right elements', async () => {
-      const sectionRef = createMockSectionRef(['slide-in-right']);
-      useSectionAnimations(sectionRef);
-
-      watchCallbacks[0].cb({ scrollTrigger: {} });
-      await flushPromises();
-
-      expect(mockGsap.set).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ opacity: 0, x: 40 })
-      );
-    });
-
-    it('sets initial state for fade-in elements', async () => {
-      const sectionRef = createMockSectionRef(['fade-in']);
-      useSectionAnimations(sectionRef);
-
-      watchCallbacks[0].cb({ scrollTrigger: {} });
-      await flushPromises();
-
-      expect(mockGsap.set).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ opacity: 0 })
-      );
-    });
-
-    it('animates fade-up-stagger children', async () => {
+    it('expands fade-up-stagger children into individual targets', async () => {
       const { ref } = jest.requireActual('vue');
-      const child = document.createElement('span');
+      const child1 = document.createElement('span');
+      child1.getBoundingClientRect = () => ({ top: 0, left: 0 });
+      const child2 = document.createElement('span');
+      child2.getBoundingClientRect = () => ({ top: 50, left: 0 });
       const container = document.createElement('div');
-      container.appendChild(child);
+      container.setAttribute('data-animate', 'fade-up-stagger');
+      container.appendChild(child1);
+      container.appendChild(child2);
       const mockEl = {
         querySelectorAll: jest.fn((selector) => {
-          const type = selector.match(/data-animate="([^"]+)"/)?.[1];
-          if (type === 'fade-up-stagger') return [container];
+          if (selector === '[data-animate]') return [container];
           return [];
         }),
       };
@@ -202,13 +169,12 @@ describe('useSectionAnimations', () => {
       watchCallbacks[0].cb({ scrollTrigger: {} });
       await flushPromises();
 
-      expect(mockGsap.set).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ opacity: 0, y: 18 })
-      );
+      // Should animate 2 children (not the container itself)
+      const setCall = mockGsap.set.mock.calls[0];
+      expect(setCall[0]).toHaveLength(2);
     });
 
-    it('animates timeline.to for fade-up elements', async () => {
+    it('animates with uniform fade-up (duration:0.55, stagger:0.08)', async () => {
       const sectionRef = createMockSectionRef(['fade-up']);
       useSectionAnimations(sectionRef);
 
@@ -217,7 +183,7 @@ describe('useSectionAnimations', () => {
 
       expect(mockTimeline.to).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({ opacity: 1, y: 0, duration: 0.7 }),
+        expect.objectContaining({ opacity: 1, y: 0, duration: 0.55, stagger: 0.08 }),
         0
       );
     });

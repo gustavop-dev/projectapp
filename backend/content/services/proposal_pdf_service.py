@@ -702,7 +702,8 @@ def _render_development_stages(c, data, _proposal, ps=None, y=None):
         if desc:
             c.setFont(_font('regular'), 9)
             c.setFillColor(ESMERALD_80)
-            d_lines = textwrap.wrap(_strip_emoji(str(desc)), width=70)
+            stage_chars = int((PAGE_W - MARGIN_R - tx) / (9 * 0.48))
+            d_lines = textwrap.wrap(_strip_emoji(str(desc)), width=stage_chars)
             for dl in d_lines:
                 c.drawString(tx, y, dl)
                 y -= 13
@@ -962,7 +963,8 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
         if desc:
             c.setFont(_font('regular'), 9)
             c.setFillColor(ESMERALD_80)
-            d_lines = textwrap.wrap(_strip_emoji(str(desc)), width=75)
+            phase_chars = int((PAGE_W - MARGIN_R - tx) / (9 * 0.48))
+            d_lines = textwrap.wrap(_strip_emoji(str(desc)), width=phase_chars)
             for dl in d_lines:
                 c.drawString(tx, y, dl)
                 y -= 12
@@ -1021,24 +1023,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             y = _draw_subtitle(c, y, 'Incluye', ps=ps)
             y = _draw_bullet_list(c, y, items_text, ps=ps)
 
-    # Total investment highlight box (full width)
-    if total:
-        if ps:
-            y = _check_y(c, y, ps, need=70)
-        box_h = 54
-        box_w = CONTENT_W
-        box_y = y - box_h
-        c.setFillColor(ESMERALD)
-        c.roundRect(MARGIN_L, box_y, box_w, box_h, 8, fill=1, stroke=0)
-        c.setFont(_font('bold'), 26)
-        c.setFillColor(WHITE)
-        c.drawCentredString(MARGIN_L + box_w / 2, box_y + 26, total)
-        if currency:
-            _draw_pill(c, MARGIN_L + box_w / 2 - 14, box_y + 6, currency,
-                       bg_color=LEMON, text_color=ESMERALD, font_size=8)
-        y = box_y - 14
-
-    # Payment options as styled pill rows (full width)
+    # Payment options first — more prominent than total
     if options:
         y -= 4
         y = _draw_subtitle(c, y, 'Formas de Pago', ps=ps)
@@ -1062,6 +1047,24 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 _draw_pill(c, PAGE_W - MARGIN_R - 80, y - 2, desc,
                            bg_color=ESMERALD, text_color=WHITE, font_size=7)
             y -= 22
+
+    # Compact total investment line
+    if total:
+        y -= 6
+        if ps:
+            y = _check_y(c, y, ps, need=38)
+        box_h = 34
+        box_w = CONTENT_W
+        box_y = y - box_h
+        c.setFillColor(ESMERALD)
+        c.roundRect(MARGIN_L, box_y, box_w, box_h, 6, fill=1, stroke=0)
+        c.setFont(_font('bold'), 16)
+        c.setFillColor(WHITE)
+        label = f'Inversi\u00f3n Total: {total}'
+        if currency:
+            label = f'{label}  {currency}'
+        c.drawCentredString(MARGIN_L + box_w / 2, box_y + 11, label)
+        y = box_y - 6
 
     # Hosting plan
     hosting = _safe(data, 'hostingPlan', {})
@@ -1231,7 +1234,9 @@ def _render_next_steps(c, data, _proposal, ps=None, y=None):
         if step_desc:
             c.setFont(_font('regular'), 9)
             c.setFillColor(ESMERALD_80)
-            s_lines = textwrap.wrap(_strip_emoji(str(step_desc)), width=70)
+            desc_w = CONTENT_W - 18  # account for x offset
+            desc_chars = int(desc_w / (9 * 0.48))
+            s_lines = textwrap.wrap(_strip_emoji(str(step_desc)), width=desc_chars)
             for sl in s_lines:
                 if ps:
                     y = _check_y(c, y, ps)
@@ -1247,7 +1252,8 @@ def _render_next_steps(c, data, _proposal, ps=None, y=None):
         y -= 8
         c.setFont(_font('bold'), 12)
         c.setFillColor(ESMERALD)
-        cta_lines = textwrap.wrap(_strip_emoji(str(cta)), width=55)
+        cta_chars = int(CONTENT_W / (12 * 0.48))
+        cta_lines = textwrap.wrap(_strip_emoji(str(cta)), width=cta_chars)
         for cl in cta_lines:
             if ps:
                 y = _check_y(c, y, ps)

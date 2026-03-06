@@ -19,7 +19,7 @@
         </div>
 
         <!-- Description -->
-        <div data-animate="slide-in-left" class="mb-10">
+        <div data-animate="fade-up" class="mb-10">
           <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl max-w-3xl">
             {{ group.description }}
           </p>

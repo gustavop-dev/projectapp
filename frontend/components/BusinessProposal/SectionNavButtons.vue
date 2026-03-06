@@ -1,7 +1,7 @@
 <template>
   <!-- Previous button — fixed left edge -->
   <button
-    v-if="!isFirst"
+    v-if="!isFirst && !hideLeft"
     class="nav-side nav-side--left group"
     :title="prevTitle"
     @click="$emit('prev')"
@@ -10,8 +10,8 @@
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
     </svg>
     <span class="nav-label hidden md:flex flex-col items-start leading-tight min-w-0">
-      <span class="text-[10px] uppercase tracking-wider text-emerald-600/60 font-medium">Anterior</span>
-      <span class="text-xs font-medium truncate max-w-[120px]">{{ prevTitle }}</span>
+      <span class="text-[10px] uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity font-medium">Anterior</span>
+      <span class="text-xs font-medium truncate max-w-[120px] opacity-0 group-hover:opacity-100 transition-opacity">{{ prevTitle }}</span>
     </span>
   </button>
 
@@ -23,8 +23,8 @@
     @click="$emit('next')"
   >
     <span class="nav-label hidden md:flex flex-col items-end leading-tight min-w-0">
-      <span class="text-[10px] uppercase tracking-wider text-emerald-600/60 font-medium">Siguiente</span>
-      <span class="text-xs font-medium truncate max-w-[120px]">{{ nextTitle }}</span>
+      <span class="text-[10px] uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity font-medium">Siguiente</span>
+      <span class="text-xs font-medium truncate max-w-[120px] opacity-0 group-hover:opacity-100 transition-opacity">{{ nextTitle }}</span>
     </span>
     <svg class="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -38,6 +38,7 @@ defineProps({
   nextTitle: { type: String, default: '' },
   isFirst: { type: Boolean, default: false },
   isLast: { type: Boolean, default: false },
+  hideLeft: { type: Boolean, default: false },
 });
 
 defineEmits(['prev', 'next']);
@@ -53,20 +54,21 @@ defineEmits(['prev', 'next']);
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem;
-  border: 2px solid rgba(16, 185, 129, 0.2);
+  border: 1.5px solid rgba(16, 185, 129, 0.1);
   border-radius: 9999px;
-  color: #047857;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  color: rgba(4, 120, 87, 0.35);
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(4px);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
 }
 
 .nav-side:hover {
-  background: rgba(236, 253, 245, 0.9);
-  border-color: rgba(16, 185, 129, 0.45);
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.15);
+  color: #047857;
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+  backdrop-filter: blur(8px);
 }
 
 .nav-side:active {
@@ -96,7 +98,6 @@ defineEmits(['prev', 'next']);
 @media (min-width: 768px) {
   .nav-side {
     padding: 0.625rem 1rem;
-    border-radius: 9999px;
   }
 }
 </style>

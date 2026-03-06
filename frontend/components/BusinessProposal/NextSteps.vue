@@ -1,6 +1,6 @@
 <template>
   <section ref="sectionRef" class="next-steps py-16 md:py-24 bg-white">
-    <div class="container mx-auto px-6 sm:px-4 max-w-5xl">
+    <div class="container mx-auto px-6 md:px-12 lg:px-24 max-w-5xl">
       <div class="section-header mb-12">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
@@ -31,7 +31,7 @@
         </div>
       </div>
 
-      <div data-animate="scale-in" class="cta-section bg-gradient-to-br from-emerald-600 to-emerald-700 p-5 sm:p-8 md:p-12 rounded-3xl text-white text-center mb-12 shadow-2xl">
+      <div data-animate="fade-up" class="cta-section bg-gradient-to-br from-emerald-600 to-emerald-700 p-5 sm:p-8 md:p-12 rounded-3xl text-white text-center mb-12 shadow-2xl">
         <h3 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">¿Listo para Comenzar?</h3>
         <p class="text-base sm:text-xl text-emerald-100 mb-6 sm:mb-8 max-w-2xl mx-auto">
           {{ ctaMessage }}

@@ -1,6 +1,6 @@
 <template>
   <section ref="sectionRef" class="final-note py-16 md:py-24 bg-gray-50">
-    <div class="container mx-auto px-6 sm:px-4 max-w-4xl">
+    <div class="container mx-auto px-6 md:px-12 lg:px-24 max-w-4xl">
       <div class="section-header mb-12">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">

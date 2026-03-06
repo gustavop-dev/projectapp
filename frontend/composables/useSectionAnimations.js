@@ -3,19 +3,13 @@ import { onMounted, onBeforeUnmount, inject, watch, ref } from 'vue';
 /**
  * Composable for adding entrance animations to proposal sections.
  *
- * Queries child elements with [data-animate] attribute and creates
- * GSAP entrance animations. Works in two modes:
- *
- * 1. With horizontal ScrollTrigger (legacy): animations tied to containerAnimation
- * 2. Mount-based (new navigation): animations play on mount after a short delay
+ * Queries child elements with [data-animate] attribute, sorts them by
+ * vertical position (top-to-bottom), and animates them in sequence with
+ * a uniform fade-up effect. Creates a fluid waterfall cascade.
  *
  * Supported data-animate values:
- * - "fade-up": fade in + slide up
- * - "fade-up-stagger": fade in + slide up with stagger (applied to children)
- * - "scale-in": scale from 0.9 to 1 + fade
- * - "slide-in-left": slide in from the left
- * - "slide-in-right": slide in from the right
- * - "fade-in": simple fade in (no movement)
+ * - "fade-up": element participates in the top-to-bottom cascade
+ * - "fade-up-stagger": each direct child participates individually
  *
  * @param {import('vue').Ref} sectionRef - Ref to the section root element
  */
@@ -26,25 +20,34 @@ export function useSectionAnimations(sectionRef) {
   let mountTimer = null;
 
   async function buildTimeline(section, gsap, scrollTriggerOpts) {
-    // Collect all [data-animate] elements
-    const fadeUpEls = section.querySelectorAll('[data-animate="fade-up"]');
-    const staggerEls = section.querySelectorAll('[data-animate="fade-up-stagger"]');
-    const scaleEls = section.querySelectorAll('[data-animate="scale-in"]');
-    const slideLeftEls = section.querySelectorAll('[data-animate="slide-in-left"]');
-    const slideRightEls = section.querySelectorAll('[data-animate="slide-in-right"]');
-    const fadeInEls = section.querySelectorAll('[data-animate="fade-in"]');
+    // Collect ALL [data-animate] elements and their stagger-children
+    const directEls = Array.from(section.querySelectorAll('[data-animate]'));
+    const animTargets = [];
 
-    // Set initial states
-    if (fadeUpEls.length) gsap.set(fadeUpEls, { opacity: 0, y: 24 });
-    if (scaleEls.length) gsap.set(scaleEls, { opacity: 0, scale: 0.92 });
-    if (slideLeftEls.length) gsap.set(slideLeftEls, { opacity: 0, x: -40 });
-    if (slideRightEls.length) gsap.set(slideRightEls, { opacity: 0, x: 40 });
-    if (fadeInEls.length) gsap.set(fadeInEls, { opacity: 0 });
+    for (const el of directEls) {
+      const type = el.getAttribute('data-animate');
+      if (type === 'fade-up-stagger') {
+        // For stagger containers, animate each child individually
+        const children = Array.from(el.children);
+        if (children.length) {
+          children.forEach((child) => animTargets.push(child));
+        }
+      } else {
+        animTargets.push(el);
+      }
+    }
 
-    staggerEls.forEach((container) => {
-      const children = container.children;
-      if (children.length) gsap.set(children, { opacity: 0, y: 18 });
+    // Sort by vertical position (top-to-bottom cascade)
+    animTargets.sort((a, b) => {
+      const aRect = a.getBoundingClientRect();
+      const bRect = b.getBoundingClientRect();
+      return aRect.top - bRect.top || aRect.left - bRect.left;
     });
+
+    if (!animTargets.length) return;
+
+    // Set initial state: all hidden + slight slide up
+    gsap.set(animTargets, { opacity: 0, y: 20 });
 
     // Create timeline (with or without ScrollTrigger)
     const timelineOpts = { defaults: { ease: 'power3.out' } };
@@ -53,67 +56,13 @@ export function useSectionAnimations(sectionRef) {
     }
     timeline = gsap.timeline(timelineOpts);
 
-    // Animate fade-up elements
-    if (fadeUpEls.length) {
-      timeline.to(fadeUpEls, {
-        opacity: 1,
-        y: 0,
-        duration: 0.7,
-        stagger: 0.1,
-      }, 0);
-    }
-
-    // Animate stagger containers (children stagger)
-    staggerEls.forEach((container) => {
-      const children = container.children;
-      if (children.length) {
-        timeline.to(children, {
-          opacity: 1,
-          y: 0,
-          duration: 0.5,
-          stagger: 0.06,
-        }, 0.2);
-      }
-    });
-
-    // Animate scale-in elements
-    if (scaleEls.length) {
-      timeline.to(scaleEls, {
-        opacity: 1,
-        scale: 1,
-        duration: 0.6,
-        stagger: 0.08,
-      }, 0.15);
-    }
-
-    // Animate slide-in-left elements
-    if (slideLeftEls.length) {
-      timeline.to(slideLeftEls, {
-        opacity: 1,
-        x: 0,
-        duration: 0.7,
-        stagger: 0.1,
-      }, 0.1);
-    }
-
-    // Animate slide-in-right elements
-    if (slideRightEls.length) {
-      timeline.to(slideRightEls, {
-        opacity: 1,
-        x: 0,
-        duration: 0.7,
-        stagger: 0.1,
-      }, 0.1);
-    }
-
-    // Animate fade-in elements
-    if (fadeInEls.length) {
-      timeline.to(fadeInEls, {
-        opacity: 1,
-        duration: 0.8,
-        stagger: 0.1,
-      }, 0.2);
-    }
+    // Single sequential animation: fade-up each element in DOM-vertical order
+    timeline.to(animTargets, {
+      opacity: 1,
+      y: 0,
+      duration: 0.55,
+      stagger: 0.08,
+    }, 0);
   }
 
   async function initWithScrollTrigger(containerTween) {
