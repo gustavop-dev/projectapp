@@ -8,7 +8,7 @@
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
           </svg>
           <div>
-            <h4 class="font-bold text-gray-900 mb-1 text-sm md:text-base">Validez de la Propuesta</h4>
+            <h4 class="font-bold text-gray-900 mb-1 text-sm md:text-base">{{ t.validityTitle }}</h4>
             <p class="text-xs md:text-sm text-gray-600">{{ displayedValidity }}</p>
           </div>
         </div>
@@ -16,39 +16,115 @@
 
       <!-- Thank you message -->
       <div v-if="thankYouMessage" data-animate="fade-up">
-        <h3 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">¡Gracias por tu Tiempo!</h3>
+        <h3 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{{ t.thankYouTitle }}</h3>
         <p class="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">{{ thankYouMessage }}</p>
       </div>
 
+      <!-- Discount badge near accept button -->
+      <div v-if="canRespond && !submitted && hasActiveDiscount" data-animate="fade-up" class="w-full max-w-md bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl p-4 text-center">
+        <p class="text-xs font-semibold text-amber-800 uppercase tracking-wider mb-1">🔥 {{ t.specialPrice }}</p>
+        <div class="flex items-baseline justify-center gap-2">
+          <span class="text-2xl font-bold text-amber-700">{{ formatCurrency(proposal?.discounted_investment) }}</span>
+          <span class="text-sm text-gray-400 line-through">{{ formatCurrency(proposal?.total_investment) }}</span>
+          <span class="text-xs text-amber-600">{{ proposal?.currency }}</span>
+        </div>
+      </div>
+
       <!-- Accept / Reject buttons -->
-      <div v-if="canRespond && !submitted" data-animate="fade-up" class="flex flex-col sm:flex-row gap-4 justify-center items-center pt-2">
+      <div v-if="canRespond && !submitted" data-animate="fade-up" class="flex flex-col items-center gap-3 pt-2">
         <button
-          class="px-6 sm:px-8 py-3 sm:py-4 bg-emerald-600 text-white rounded-xl font-medium text-sm sm:text-base
+          class="px-8 sm:px-12 py-4 bg-emerald-600 text-white rounded-xl font-medium text-base sm:text-lg
                  hover:bg-emerald-700 transition-colors shadow-lg flex items-center gap-2"
           :disabled="isSubmitting"
           @click="showAcceptConfirm = true"
         >
-          <span>✅</span> Acepto la propuesta
+          <span>✅</span> {{ t.acceptBtn }}
+        </button>
+        <a
+          v-if="whatsappTalkUrl"
+          :href="whatsappTalkUrl"
+          target="_blank"
+          class="px-8 sm:px-12 py-3 bg-green-50 border-2 border-green-300 text-green-800 rounded-xl font-medium text-sm
+                 hover:bg-green-100 transition-colors flex items-center gap-2"
+        >
+          {{ t.talkBtn }}
+        </a>
+        <button
+          class="text-xs text-emerald-600 hover:text-emerald-700 transition-colors mt-1 font-medium"
+          :disabled="isSubmitting"
+          @click="showCommentModal = true"
+        >
+          💬 {{ t.commentBtn }}
         </button>
         <button
-          class="px-6 sm:px-8 py-3 sm:py-4 bg-white text-gray-600 rounded-xl font-medium text-sm sm:text-base
-                 border-2 border-gray-200 hover:bg-gray-50 hover:text-red-600 hover:border-red-200
-                 transition-colors flex items-center gap-2"
+          class="text-xs text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2"
           :disabled="isSubmitting"
           @click="showRejectModal = true"
         >
-          <span>❌</span> Rechazar propuesta
+          {{ t.rejectBtn }}
         </button>
+      </div>
+
+      <!-- Comment submitted confirmation -->
+      <div v-if="commentSubmitted && canRespond && !submitted" data-animate="fade-up" class="w-full max-w-md bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+        <p class="text-sm font-medium text-emerald-700">✅ {{ t.commentSent }}</p>
       </div>
 
       <!-- Success messages -->
       <div v-if="submitted || proposal?.status === 'accepted'" data-animate="fade-up" class="py-4">
         <div class="text-5xl mb-3">🎉</div>
-        <p class="text-xl font-bold text-emerald-600">¡Propuesta aceptada!</p>
-        <p class="text-gray-500 mt-2">Te enviaremos un email de confirmación.</p>
+        <p class="text-xl font-bold text-emerald-600">{{ t.accepted }}</p>
+        <p class="text-gray-500 mt-2">{{ t.acceptedSub }}</p>
       </div>
-      <div v-else-if="proposal?.status === 'rejected'" data-animate="fade-up" class="py-4">
-        <p class="text-lg text-gray-500">Propuesta rechazada. Gracias por tu tiempo.</p>
+
+      <!-- Smart rejection recovery (Feature 12) -->
+      <div v-else-if="rejectionSubmitted || proposal?.status === 'rejected'" data-animate="fade-up" class="py-4 w-full max-w-lg">
+        <p class="text-lg text-gray-500 mb-6">{{ t.rejected }}</p>
+
+        <!-- Budget too high -->
+        <div v-if="submittedReason === t.reasons[0]" class="bg-emerald-50 border border-emerald-200 rounded-xl p-5 text-left">
+          <h4 class="font-bold text-emerald-800 mb-2">💡 {{ t.recovery.budgetTitle }}</h4>
+          <p class="text-sm text-emerald-700 mb-4">{{ t.recovery.budgetText }}</p>
+          <a :href="whatsappRecoveryLink" target="_blank" class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors">
+            💬 {{ t.recovery.budgetCta }}
+          </a>
+        </div>
+
+        <!-- Not the right time -->
+        <div v-else-if="submittedReason === t.reasons[2]" class="bg-blue-50 border border-blue-200 rounded-xl p-5 text-left">
+          <h4 class="font-bold text-blue-800 mb-2">⏰ {{ t.recovery.timeTitle }}</h4>
+          <p class="text-sm text-blue-700 mb-4">{{ t.recovery.timeText }}</p>
+          <button
+            v-if="!followupScheduled"
+            class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+            :disabled="isScheduling"
+            @click="scheduleReminder"
+          >
+            🔔 {{ isScheduling ? t.sending : t.recovery.timeCta }}
+          </button>
+          <p v-else class="text-sm font-medium text-blue-600">✅ {{ t.recovery.timeScheduled }}</p>
+        </div>
+
+        <!-- Found another option -->
+        <div v-else-if="submittedReason === t.reasons[1]" class="bg-gray-50 border border-gray-200 rounded-xl p-5 text-left">
+          <h4 class="font-bold text-gray-800 mb-2">🤝 {{ t.recovery.otherTitle }}</h4>
+          <p class="text-sm text-gray-600">{{ t.recovery.otherText }}</p>
+        </div>
+
+        <!-- Does not meet expectations -->
+        <div v-else-if="submittedReason === t.reasons[3]" class="bg-purple-50 border border-purple-200 rounded-xl p-5 text-left">
+          <h4 class="font-bold text-purple-800 mb-2">🎯 {{ t.recovery.expectTitle }}</h4>
+          <p class="text-sm text-purple-700 mb-4">{{ t.recovery.expectText }}</p>
+          <a :href="whatsappRecoveryLink" target="_blank" class="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors">
+            💬 {{ t.recovery.expectCta }}
+          </a>
+        </div>
+
+        <!-- Generic / Other -->
+        <div v-else class="bg-gray-50 border border-gray-200 rounded-xl p-5 text-left">
+          <h4 class="font-bold text-gray-800 mb-2">🙏 {{ t.recovery.genericTitle }}</h4>
+          <p class="text-sm text-gray-600">{{ t.recovery.genericText }}</p>
+        </div>
       </div>
     </div>
   </section>
@@ -58,13 +134,39 @@
     <div v-if="showAcceptConfirm" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showAcceptConfirm = false">
       <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-5 sm:p-8 text-center">
         <div class="text-5xl mb-4">🎉</div>
-        <h3 class="text-xl font-bold text-gray-900 mb-2">¿Confirmar aceptación?</h3>
-        <p class="text-gray-600 text-sm mb-6">Al aceptar, recibirás un email de confirmación con los próximos pasos.</p>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ t.confirmTitle }}</h3>
+        <p class="text-gray-600 text-sm mb-6">{{ t.confirmText }}</p>
         <div class="flex gap-3 justify-center">
           <button class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors" :disabled="isSubmitting" @click="confirmAccept">
-            {{ isSubmitting ? 'Enviando...' : 'Sí, acepto' }}
+            {{ isSubmitting ? t.sending : t.confirmYes }}
           </button>
-          <button class="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showAcceptConfirm = false">Cancelar</button>
+          <button class="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showAcceptConfirm = false">{{ t.cancel }}</button>
+        </div>
+      </div>
+    </div>
+  </teleport>
+
+  <!-- Comment modal -->
+  <teleport to="body">
+    <div v-if="showCommentModal" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showCommentModal = false">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-5 sm:p-8">
+        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ t.commentTitle }}</h3>
+        <p class="text-gray-600 text-sm mb-4">{{ t.commentText }}</p>
+        <textarea
+          v-model="negotiationComment"
+          rows="4"
+          :placeholder="t.commentPlaceholder2"
+          class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
+        />
+        <div class="flex gap-3 justify-end mt-4">
+          <button class="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showCommentModal = false">{{ t.cancel }}</button>
+          <button
+            class="px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
+            :disabled="isCommenting || !negotiationComment.trim()"
+            @click="submitComment"
+          >
+            {{ isCommenting ? t.sending : t.commentSend }}
+          </button>
         </div>
       </div>
     </div>
@@ -74,30 +176,26 @@
   <teleport to="body">
     <div v-if="showRejectModal" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showRejectModal = false">
       <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-5 sm:p-8">
-        <h3 class="text-xl font-bold text-gray-900 mb-2">Lamentamos que no sea el momento</h3>
-        <p class="text-gray-600 text-sm mb-6">Tu opinión es muy importante para nosotros. ¿Podrías indicarnos el motivo?</p>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ t.rejectTitle }}</h3>
+        <p class="text-gray-600 text-sm mb-6">{{ t.rejectText }}</p>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Motivo</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t.reasonLabel }}</label>
             <select v-model="rejectReason" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
-              <option value="">Selecciona un motivo...</option>
-              <option value="Presupuesto muy alto">Presupuesto muy alto</option>
-              <option value="Encontré otra opción">Encontré otra opción</option>
-              <option value="No es el momento">No es el momento</option>
-              <option value="No cumple mis expectativas">No cumple mis expectativas</option>
-              <option value="Otros">Otros</option>
+              <option value="">{{ t.selectReason }}</option>
+              <option v-for="reason in t.reasons" :key="reason" :value="reason">{{ reason }}</option>
             </select>
           </div>
           <div v-if="rejectReason">
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ rejectReason === 'Otros' ? 'Cuéntanos más' : 'Comentario adicional (opcional)' }}</label>
-            <textarea v-model="rejectComment" rows="3" :placeholder="rejectReason === 'Otros' ? 'Escribe tu motivo aquí...' : 'Algún comentario adicional...'"
+            <label class="block text-sm font-medium text-gray-700 mb-1">{{ isOtherReason ? t.otherLabel : t.commentLabel }}</label>
+            <textarea v-model="rejectComment" rows="3" :placeholder="isOtherReason ? t.otherPlaceholder : t.commentPlaceholder"
               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none" />
           </div>
         </div>
         <div class="flex gap-3 justify-end mt-6">
-          <button class="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showRejectModal = false">Cancelar</button>
+          <button class="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showRejectModal = false">{{ t.cancel }}</button>
           <button class="px-5 py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors" :disabled="isSubmitting || !rejectReason" @click="confirmReject">
-            {{ isSubmitting ? 'Enviando...' : 'Confirmar rechazo' }}
+            {{ isSubmitting ? t.sending : t.confirmReject }}
           </button>
         </div>
       </div>
@@ -119,14 +217,130 @@ const props = defineProps({
   validityMessage: { type: String, default: '' },
   thankYouMessage: { type: String, default: '' },
   expiresAt: { type: String, default: '' },
+  language: { type: String, default: 'es' },
+  whatsappLink: { type: String, default: '' },
 });
+
+const whatsappTalkUrl = computed(() => {
+  if (props.whatsappLink) return props.whatsappLink;
+  const title = props.proposal?.title || '';
+  if (!title) return '';
+  const msg = encodeURIComponent(
+    `Hola, estoy revisando la propuesta "${title}" y me gustaría hablar antes de tomar una decisión.`
+  );
+  return `https://wa.me/573238122373?text=${msg}`;
+});
+
+const i18nStrings = {
+  es: {
+    validityTitle: 'Validez de la Propuesta',
+    thankYouTitle: '¡Gracias por tu Tiempo!',
+    acceptBtn: 'Acepto la propuesta',
+    talkBtn: '📞 Prefiero hablar antes de decidir',
+    commentBtn: 'Tengo comentarios por escrito',
+    commentTitle: 'Tus comentarios nos ayudan',
+    commentText: 'Sin compromiso — cuéntanos qué dudas tienes o qué ajustes necesitarías para avanzar.',
+    commentPlaceholder2: 'Ej: El precio está un poco fuera de mi presupuesto, ¿podemos explorar opciones?',
+    commentSend: 'Enviar mensaje',
+    commentSent: 'Mensaje enviado. Te contactaremos pronto.',
+    rejectBtn: 'No me interesa por ahora',
+    confirmTitle: '¿Confirmar aceptación?',
+    confirmText: 'Al aceptar, recibirás un email de confirmación con los próximos pasos.',
+    confirmYes: 'Sí, acepto',
+    cancel: 'Cancelar',
+    sending: 'Enviando...',
+    accepted: '¡Propuesta aceptada!',
+    acceptedSub: 'Te enviaremos un email de confirmación.',
+    rejected: 'Propuesta rechazada. Gracias por tu tiempo.',
+    rejectTitle: 'Lamentamos que no sea el momento',
+    rejectText: 'Tu opinión es muy importante para nosotros. ¿Podrías indicarnos el motivo?',
+    reasonLabel: 'Motivo',
+    selectReason: 'Selecciona un motivo...',
+    reasons: ['Presupuesto muy alto', 'Encontré otra opción', 'No es el momento', 'No cumple mis expectativas', 'Otros'],
+    otherReason: 'Otros',
+    otherLabel: 'Cuéntanos más',
+    commentLabel: 'Comentario adicional (opcional)',
+    otherPlaceholder: 'Escribe tu motivo aquí...',
+    commentPlaceholder: 'Algún comentario adicional...',
+    confirmReject: 'Confirmar rechazo',
+    specialPrice: 'Precio especial disponible',
+    recovery: {
+      budgetTitle: '¿Qué tal una versión más enfocada?',
+      budgetText: 'Entendemos. Podemos ajustar el alcance del proyecto para adaptarnos a tu presupuesto. ¿Te gustaría explorar opciones?',
+      budgetCta: 'Explorar opciones',
+      timeTitle: '¿Te recordamos más adelante?',
+      timeText: 'Sin problema. Podemos recordarte en 3 meses para retomar la conversación cuando sea más oportuno.',
+      timeCta: 'Recordármelo en 3 meses',
+      timeScheduled: 'Listo, te recordaremos en 3 meses.',
+      otherTitle: 'Gracias por tu honestidad',
+      otherText: 'Apreciamos tu transparencia. Si algo cambia o necesitas una segunda opinión, estaremos aquí.',
+      expectTitle: 'Queremos entender mejor',
+      expectText: '¿Te gustaría agendar 15 minutos para contarnos qué esperabas? Podemos ajustar la propuesta.',
+      expectCta: 'Conversemos',
+      genericTitle: 'Gracias por tu tiempo',
+      genericText: 'Valoramos tu opinión. Si en el futuro necesitas algo, no dudes en contactarnos.',
+    },
+  },
+  en: {
+    validityTitle: 'Proposal Validity',
+    thankYouTitle: 'Thank You for Your Time!',
+    acceptBtn: 'I accept the proposal',
+    talkBtn: '📞 I prefer to talk before deciding',
+    commentBtn: 'I have written comments',
+    commentTitle: 'Your feedback helps us',
+    commentText: 'No commitment — tell us what questions you have or what adjustments you would need to move forward.',
+    commentPlaceholder2: 'E.g.: The price is a bit over my budget, can we explore options?',
+    commentSend: 'Send message',
+    commentSent: 'Message sent. We will be in touch soon.',
+    rejectBtn: 'Not interested right now',
+    confirmTitle: 'Confirm acceptance?',
+    confirmText: 'By accepting, you will receive a confirmation email with the next steps.',
+    confirmYes: 'Yes, I accept',
+    cancel: 'Cancel',
+    sending: 'Sending...',
+    accepted: 'Proposal accepted!',
+    acceptedSub: 'We will send you a confirmation email.',
+    rejected: 'Proposal declined. Thank you for your time.',
+    rejectTitle: 'We\'re sorry it\'s not the right time',
+    rejectText: 'Your feedback is very important to us. Could you let us know why?',
+    reasonLabel: 'Reason',
+    selectReason: 'Select a reason...',
+    reasons: ['Budget too high', 'Found another option', 'Not the right time', 'Does not meet my expectations', 'Other'],
+    otherReason: 'Other',
+    otherLabel: 'Tell us more',
+    commentLabel: 'Additional comment (optional)',
+    otherPlaceholder: 'Write your reason here...',
+    commentPlaceholder: 'Any additional comments...',
+    confirmReject: 'Confirm rejection',
+    specialPrice: 'Special price available',
+    recovery: {
+      budgetTitle: 'How about a more focused version?',
+      budgetText: 'We understand. We can adjust the project scope to fit your budget. Would you like to explore options?',
+      budgetCta: 'Explore options',
+      timeTitle: 'Should we remind you later?',
+      timeText: 'No problem. We can remind you in 3 months to revisit the conversation when the timing is better.',
+      timeCta: 'Remind me in 3 months',
+      timeScheduled: 'Done! We\'ll remind you in 3 months.',
+      otherTitle: 'Thank you for your honesty',
+      otherText: 'We appreciate your transparency. If anything changes or you need a second opinion, we\'re here.',
+      expectTitle: 'We want to understand better',
+      expectText: 'Would you like to schedule 15 minutes to tell us what you expected? We can adjust the proposal.',
+      expectCta: 'Let\'s talk',
+      genericTitle: 'Thank you for your time',
+      genericText: 'We value your feedback. If you need anything in the future, don\'t hesitate to reach out.',
+    },
+  },
+};
+
+const t = computed(() => i18nStrings[props.language] || i18nStrings.es);
 
 const { daysRemaining } = useExpirationTimer(toRef(props, 'expiresAt'));
 
 const displayedValidity = computed(() => {
   if (!props.validityMessage) return '';
   if (daysRemaining.value === null) return props.validityMessage;
-  return props.validityMessage.replace(/\d+\s*días/, `${daysRemaining.value} días`);
+  const dayWord = props.language === 'en' ? 'days' : 'días';
+  return props.validityMessage.replace(/\d+\s*(días|days)/, `${daysRemaining.value} ${dayWord}`);
 });
 
 onMounted(() => {
@@ -147,12 +361,38 @@ const canRespond = computed(() => {
   return s === 'sent' || s === 'viewed';
 });
 
+const hasActiveDiscount = computed(() => {
+  return props.proposal?.discount_percent > 0 && props.proposal?.discounted_investment;
+});
+
+function formatCurrency(value) {
+  if (!value) return '';
+  const num = parseFloat(value);
+  if (isNaN(num)) return value;
+  return '$' + num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
 const isSubmitting = ref(false);
 const submitted = ref(false);
+const rejectionSubmitted = ref(false);
+const submittedReason = ref('');
 const showAcceptConfirm = ref(false);
 const showRejectModal = ref(false);
+const showCommentModal = ref(false);
+const negotiationComment = ref('');
+const isCommenting = ref(false);
+const commentSubmitted = ref(false);
 const rejectReason = ref('');
 const rejectComment = ref('');
+const isOtherReason = computed(() => rejectReason.value === t.value.otherReason);
+const followupScheduled = ref(false);
+const isScheduling = ref(false);
+
+const whatsappRecoveryLink = computed(() => {
+  const title = props.proposal?.title || '';
+  const msg = encodeURIComponent(`Hola, estoy revisando la propuesta "${title}" y me gustaría conversar sobre opciones.`);
+  return `https://wa.me/573238122373?text=${msg}`;
+});
 
 async function confirmAccept() {
   if (!props.proposal?.uuid) return;
@@ -177,11 +417,36 @@ async function confirmReject() {
       { reason: rejectReason.value, comment: rejectComment.value },
     );
     if (result.success) {
-      submitted.value = true;
+      submittedReason.value = rejectReason.value;
+      rejectionSubmitted.value = true;
       showRejectModal.value = false;
     }
   } finally {
     isSubmitting.value = false;
+  }
+}
+
+async function submitComment() {
+  if (!props.proposal?.uuid || !negotiationComment.value.trim()) return;
+  isCommenting.value = true;
+  try {
+    await proposalStore.commentOnProposal(props.proposal.uuid, negotiationComment.value.trim());
+    commentSubmitted.value = true;
+    showCommentModal.value = false;
+    negotiationComment.value = '';
+  } finally {
+    isCommenting.value = false;
+  }
+}
+
+async function scheduleReminder() {
+  if (!props.proposal?.uuid) return;
+  isScheduling.value = true;
+  try {
+    await proposalStore.scheduleFollowup(props.proposal.uuid, 3);
+    followupScheduled.value = true;
+  } finally {
+    isScheduling.value = false;
   }
 }
 </script>

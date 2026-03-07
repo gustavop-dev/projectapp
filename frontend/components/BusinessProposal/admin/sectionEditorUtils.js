@@ -35,7 +35,7 @@ export function buildFormFromJson(json, type, proposalData) {
   const j = json || {};
   switch (type) {
     case 'greeting':
-      return { clientName: j.clientName || proposalData?.client_name || '', inspirationalQuote: j.inspirationalQuote || '' };
+      return { proposalTitle: j.proposalTitle || proposalData?.title || '', clientName: j.clientName || proposalData?.client_name || '', inspirationalQuote: j.inspirationalQuote || '' };
     case 'executive_summary':
       return { index: j.index || '', title: j.title || '', paragraphs: arrToText(j.paragraphs), highlightsTitle: j.highlightsTitle || '', highlights: arrToText(j.highlights) };
     case 'context_diagnostic':
@@ -47,7 +47,7 @@ export function buildFormFromJson(json, type, proposalData) {
     case 'creative_support':
       return { index: j.index || '', title: j.title || '', paragraphs: arrToText(j.paragraphs), includesTitle: j.includesTitle || '', includes: arrToText(j.includes), closing: j.closing || '' };
     case 'development_stages':
-      return { stages: (j.stages || []).map(s => ({ icon: s.icon || '', title: s.title || '', description: s.description || '', current: !!s.current })) };
+      return { index: j.index || '', title: j.title || '', intro: j.intro || '', currentLabel: j.currentLabel || '', stages: (j.stages || []).map(s => ({ icon: s.icon || '', title: s.title || '', description: s.description || '', current: !!s.current })) };
     case 'functional_requirements':
       return {
         index: j.index || '', title: j.title || '', intro: j.intro || '',
@@ -83,7 +83,7 @@ export function buildFormFromJson(json, type, proposalData) {
       };
     }
     case 'final_note':
-      return { index: j.index || '', title: j.title || '', message: j.message || '', personalNote: j.personalNote || '', teamName: j.teamName || '', teamRole: j.teamRole || '', contactEmail: j.contactEmail || '', commitmentBadges: (j.commitmentBadges || []).map(b => ({ ...b })), validityMessage: j.validityMessage || '', thankYouMessage: j.thankYouMessage || '' };
+      return { index: j.index || '', title: j.title || '', message: j.message || '', personalNote: j.personalNote || '', teamName: j.teamName || '', teamRole: j.teamRole || '', contactEmail: j.contactEmail || '', signature: j.signature || '', commitmentBadges: (j.commitmentBadges || []).map(b => ({ ...b })), validityMessage: j.validityMessage || '', thankYouMessage: j.thankYouMessage || '' };
     case 'next_steps':
       return { index: j.index || '', title: j.title || '', introMessage: j.introMessage || '', steps: (j.steps || []).map(s => ({ ...s })), ctaMessage: j.ctaMessage || '', primaryCTA: { text: j.primaryCTA?.text || '', link: j.primaryCTA?.link || '' }, secondaryCTA: { text: j.secondaryCTA?.text || '', link: j.secondaryCTA?.link || '' }, contactMethods: (j.contactMethods || []).map(m => ({ ...m })), validityMessage: j.validityMessage || '', thankYouMessage: j.thankYouMessage || '' };
     default:
@@ -101,7 +101,7 @@ export function formToJson(formData, type) {
   const f = formData;
   switch (type) {
     case 'greeting':
-      return { clientName: f.clientName, inspirationalQuote: f.inspirationalQuote };
+      return { proposalTitle: f.proposalTitle, clientName: f.clientName, inspirationalQuote: f.inspirationalQuote };
     case 'executive_summary':
       return { index: f.index, title: f.title, paragraphs: textToArr(f.paragraphs), highlightsTitle: f.highlightsTitle, highlights: textToArr(f.highlights) };
     case 'context_diagnostic':
@@ -113,7 +113,7 @@ export function formToJson(formData, type) {
     case 'creative_support':
       return { index: f.index, title: f.title, paragraphs: textToArr(f.paragraphs), includesTitle: f.includesTitle, includes: textToArr(f.includes), closing: f.closing };
     case 'development_stages':
-      return { stages: f.stages.map(s => ({ icon: s.icon, title: s.title, description: s.description, ...(s.current ? { current: true } : {}) })) };
+      return { index: f.index, title: f.title, intro: f.intro, currentLabel: f.currentLabel, stages: f.stages.map(s => ({ icon: s.icon, title: s.title, description: s.description, ...(s.current ? { current: true } : {}) })) };
     case 'functional_requirements': {
       const cleanGroup = (g) => {
         const out = {
@@ -153,7 +153,7 @@ export function formToJson(formData, type) {
       };
     }
     case 'final_note':
-      return { index: f.index, title: f.title, message: f.message, personalNote: f.personalNote, teamName: f.teamName, teamRole: f.teamRole, contactEmail: f.contactEmail, commitmentBadges: f.commitmentBadges, validityMessage: f.validityMessage, thankYouMessage: f.thankYouMessage };
+      return { index: f.index, title: f.title, message: f.message, personalNote: f.personalNote, teamName: f.teamName, teamRole: f.teamRole, contactEmail: f.contactEmail, signature: f.signature, commitmentBadges: f.commitmentBadges, validityMessage: f.validityMessage, thankYouMessage: f.thankYouMessage };
     case 'next_steps':
       return { index: f.index, title: f.title, introMessage: f.introMessage, steps: f.steps, ctaMessage: f.ctaMessage, primaryCTA: f.primaryCTA, secondaryCTA: f.secondaryCTA, contactMethods: f.contactMethods, validityMessage: f.validityMessage, thankYouMessage: f.thankYouMessage };
     default:

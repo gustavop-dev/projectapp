@@ -115,6 +115,7 @@ const resolvedProps = computed(() => {
 
   if (sType === 'greeting') {
     return {
+      proposalTitle: content.proposalTitle || props.proposalData?.title || '',
       clientName: content.clientName || props.proposalData?.client_name || '',
       inspirationalQuote: content.inspirationalQuote,
     };

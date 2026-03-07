@@ -346,6 +346,48 @@ describe('useBlogStore', () => {
       expect(result.errors).toBeUndefined();
     });
 
+    it('uploads image file and sets currentPost on success', async () => {
+      const responseData = { id: 1, cover_image: '/media/cover.jpg' };
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(responseData),
+      });
+      Object.defineProperty(document, 'cookie', {
+        value: 'csrftoken=abc123',
+        writable: true,
+      });
+      const file = new File(['img'], 'cover.jpg', { type: 'image/jpeg' });
+
+      const result = await store.uploadCoverImage(1, file);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/blog/admin/1/upload-cover/',
+        expect.objectContaining({ method: 'POST' }),
+      );
+      expect(result.success).toBe(true);
+      expect(store.currentPost).toEqual(responseData);
+    });
+
+    it('sets upload_failed error when server returns non-ok response', async () => {
+      global.fetch = jest.fn().mockResolvedValue({ ok: false });
+
+      const file = new File(['img'], 'cover.jpg', { type: 'image/jpeg' });
+      const result = await store.uploadCoverImage(1, file);
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('upload_failed');
+    });
+
+    it('sets upload_failed error on network failure', async () => {
+      global.fetch = jest.fn().mockRejectedValue(new Error('network'));
+
+      const file = new File(['img'], 'cover.jpg', { type: 'image/jpeg' });
+      const result = await store.uploadCoverImage(1, file);
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('upload_failed');
+    });
+
     it('downloadJSONTemplate returns template data', async () => {
       const templateData = { title_es: 'Template', content_json_es: { intro: 'I' } };
       get_request.mockResolvedValue({ data: templateData });

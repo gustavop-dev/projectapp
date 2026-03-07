@@ -71,23 +71,7 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
           <select v-model="form.category" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white">
             <option value="">Sin categoría</option>
-            <option value="technology">Technology</option>
-            <option value="design">Design</option>
-            <option value="guides">Guides</option>
-            <option value="business">Business</option>
-            <option value="case-study">Case Study</option>
-            <option value="ai">AI</option>
-            <option value="development">Development</option>
-            <option value="marketing">Digital Marketing</option>
-            <option value="startup">Startups</option>
-            <option value="productivity">Productivity</option>
-            <option value="security">Cybersecurity</option>
-            <option value="cloud">Cloud & DevOps</option>
-            <option value="data">Data & Analytics</option>
-            <option value="no-code">No-Code / Low-Code</option>
-            <option value="trends">Trends</option>
-            <option value="e-commerce">E-Commerce</option>
-            <option value="ux-ui">UX / UI</option>
+            <option v-for="cat in blogStore.availableCategories" :key="cat.slug" :value="cat.slug">{{ cat.label }}</option>
           </select>
         </div>
         <div>
@@ -126,14 +110,28 @@
         <p v-if="form.sources.length === 0" class="text-xs text-gray-400">No hay fuentes agregadas.</p>
       </div>
 
-      <!-- Publish toggle -->
-      <div class="flex items-center gap-3">
-        <label class="relative inline-flex items-center cursor-pointer">
-          <input v-model="form.is_published" type="checkbox" class="sr-only peer" />
-          <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
-        </label>
-        <span class="text-sm text-gray-700">Publicar inmediatamente</span>
-      </div>
+      <!-- Publishing options -->
+      <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
+        <legend class="text-sm font-medium text-gray-700 px-2">Publicación</legend>
+        <div class="flex flex-col gap-3">
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input v-model="publishMode" type="radio" value="draft" name="createPublishMode" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
+            <span class="text-sm text-gray-700">Borrador</span>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input v-model="publishMode" type="radio" value="now" name="createPublishMode" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
+            <span class="text-sm text-gray-700">Publicar ahora</span>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input v-model="publishMode" type="radio" value="schedule" name="createPublishMode" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
+            <span class="text-sm text-gray-700">Programar publicación</span>
+          </label>
+          <div v-if="publishMode === 'schedule'" class="ml-7">
+            <input v-model="scheduledDate" type="datetime-local" class="px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+            <p class="text-xs text-gray-400 mt-1">El post se publicará automáticamente en la fecha seleccionada.</p>
+          </div>
+        </div>
+      </fieldset>
 
       <!-- Error -->
       <p v-if="errorMsg" class="text-sm text-red-500">{{ errorMsg }}</p>
@@ -205,39 +203,18 @@
               <label class="block text-xs font-medium text-gray-600 mb-1">Categoría</label>
               <select v-model="jsonMeta.category" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
                 <option value="">Sin categoría</option>
-                <option value="technology">Technology</option>
-                <option value="design">Design</option>
-                <option value="guides">Guides</option>
-                <option value="business">Business</option>
-                <option value="case-study">Case Study</option>
-                <option value="ai">AI</option>
-                <option value="development">Development</option>
-                <option value="marketing">Digital Marketing</option>
-                <option value="startup">Startups</option>
-                <option value="productivity">Productivity</option>
-                <option value="security">Cybersecurity</option>
-                <option value="cloud">Cloud & DevOps</option>
-                <option value="data">Data & Analytics</option>
-                <option value="no-code">No-Code / Low-Code</option>
-                <option value="trends">Trends</option>
-                <option value="e-commerce">E-Commerce</option>
-                <option value="ux-ui">UX / UI</option>
+                <option v-for="cat in blogStore.availableCategories" :key="cat.slug" :value="cat.slug">{{ cat.label }}</option>
               </select>
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-600 mb-1">Tiempo lectura (min)</label>
               <input v-model.number="jsonMeta.read_time_minutes" type="number" min="0" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             </div>
-            <div class="flex items-end gap-4">
+            <div class="flex items-end">
               <label class="relative inline-flex items-center cursor-pointer gap-3">
                 <input v-model="jsonMeta.is_featured" type="checkbox" class="sr-only peer" />
                 <div class="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
                 <span class="text-xs text-gray-700">Destacado</span>
-              </label>
-              <label class="relative inline-flex items-center cursor-pointer gap-3">
-                <input v-model="jsonMeta.is_published" type="checkbox" class="sr-only peer" />
-                <div class="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
-                <span class="text-xs text-gray-700">Publicar</span>
               </label>
             </div>
           </div>
@@ -257,7 +234,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import { useBlogStore } from '~/stores/blog';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -265,6 +242,12 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const blogStore = useBlogStore();
 const errorMsg = ref('');
 const mode = ref('manual');
+const publishMode = ref('draft');
+const scheduledDate = ref('');
+
+onMounted(() => {
+  blogStore.fetchCategories();
+});
 
 // -------------------------------------------------------------------------
 // MANUAL mode
@@ -300,8 +283,17 @@ async function handleSubmit() {
     category: form.category,
     read_time_minutes: form.read_time_minutes,
     is_featured: form.is_featured,
-    is_published: form.is_published,
   };
+
+  if (publishMode.value === 'now') {
+    payload.is_published = true;
+  } else if (publishMode.value === 'schedule') {
+    payload.is_published = false;
+    payload.published_at = scheduledDate.value ? new Date(scheduledDate.value).toISOString() : null;
+  } else {
+    payload.is_published = false;
+  }
+
   if (form.cover_image_url) payload.cover_image_url = form.cover_image_url;
 
   const result = await blogStore.createPost(payload);
@@ -402,7 +394,7 @@ async function handleJsonSubmit() {
     category: jsonMeta.category,
     read_time_minutes: jsonMeta.read_time_minutes,
     is_featured: jsonMeta.is_featured,
-    is_published: jsonMeta.is_published,
+    is_published: jsonMeta.is_published || false,
     meta_title_es: p.meta_title_es || '',
     meta_title_en: p.meta_title_en || '',
     meta_description_es: p.meta_description_es || '',

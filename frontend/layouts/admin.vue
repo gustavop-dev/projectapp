@@ -27,6 +27,15 @@
               Propuestas
             </NuxtLink>
             <NuxtLink
+              to="/panel/clients"
+              class="text-sm font-medium transition-colors border-b-2 pb-0.5"
+              :class="isModule('clients')
+                ? 'text-emerald-600 border-emerald-600'
+                : 'text-gray-500 border-transparent hover:text-emerald-600'"
+            >
+              Clientes
+            </NuxtLink>
+            <NuxtLink
               to="/panel/blog"
               class="text-sm font-medium transition-colors border-b-2 pb-0.5"
               :class="isModule('blog')
@@ -52,6 +61,16 @@
           @click="mobileMenuOpen = false"
         >
           Propuestas
+        </NuxtLink>
+        <NuxtLink
+          to="/panel/clients"
+          class="text-sm font-medium px-2 py-1.5 rounded-lg transition-colors"
+          :class="isModule('clients')
+            ? 'text-emerald-600 bg-emerald-50'
+            : 'text-gray-600 hover:bg-gray-50'"
+          @click="mobileMenuOpen = false"
+        >
+          Clientes
         </NuxtLink>
         <NuxtLink
           to="/panel/blog"

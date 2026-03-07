@@ -1,5 +1,8 @@
 <template>
   <div class="min-h-screen bg-esmerald-light" itemscope itemtype="https://schema.org/BlogPosting">
+    <!-- Reading progress bar + time remaining -->
+    <ReadingProgressBar v-if="post" :read-time-minutes="post.read_time_minutes || 0" />
+
     <!-- Navbar -->
     <header class="fixed top-0 left-0 w-full z-50">
       <Navbar />
@@ -159,6 +162,35 @@
                 </li>
               </ul>
             </section>
+
+            <!-- Previous / Next Article Navigation -->
+            <nav v-if="prevPost || nextPost" class="mt-16 pt-8 border-t border-gray-200/50">
+              <div class="grid gap-4" :class="prevPost && nextPost ? 'sm:grid-cols-2' : 'sm:grid-cols-1'">
+                <NuxtLink
+                  v-if="prevPost"
+                  :to="`/blog/${prevPost.slug}`"
+                  class="group flex items-center gap-4 p-4 rounded-2xl bg-white border border-gray-200/60 hover:shadow-md transition-all"
+                >
+                  <svg class="w-5 h-5 text-green-light group-hover:text-esmerald transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                  <div class="min-w-0">
+                    <p class="text-xs text-green-light mb-1">{{ isEnglish ? 'Previous' : 'Anterior' }}</p>
+                    <p class="text-sm font-medium text-esmerald leading-tight truncate">{{ prevPost.title }}</p>
+                  </div>
+                </NuxtLink>
+                <NuxtLink
+                  v-if="nextPost"
+                  :to="`/blog/${nextPost.slug}`"
+                  class="group flex items-center justify-end gap-4 p-4 rounded-2xl bg-white border border-gray-200/60 hover:shadow-md transition-all text-right"
+                  :class="!prevPost ? 'sm:col-start-2' : ''"
+                >
+                  <div class="min-w-0">
+                    <p class="text-xs text-green-light mb-1">{{ isEnglish ? 'Next' : 'Siguiente' }}</p>
+                    <p class="text-sm font-medium text-esmerald leading-tight truncate">{{ nextPost.title }}</p>
+                  </div>
+                  <svg class="w-5 h-5 text-green-light group-hover:text-esmerald transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                </NuxtLink>
+              </div>
+            </nav>
           </div>
         </div>
       </article>
@@ -222,6 +254,7 @@ import Navbar from '~/components/layouts/Navbar.vue';
 import ContactSection from '~/views-legacy/partials/ContactSection.vue';
 import FooterSection from '~/views-legacy/partials/FooterSection.vue';
 import BlogContentRenderer from '~/components/blog/BlogContentRenderer.vue';
+import ReadingProgressBar from '~/components/blog/ReadingProgressBar.vue';
 import { useBlogStore } from '~/stores/blog';
 
 const route = useRoute();
@@ -236,6 +269,23 @@ const relatedPosts = computed(() => {
   return blogStore.posts
     .filter((p) => p.id !== post.value.id)
     .slice(0, 3);
+});
+
+const currentIndex = computed(() => {
+  if (!post.value || !blogStore.posts.length) return -1;
+  return blogStore.posts.findIndex((p) => p.id === post.value.id);
+});
+
+const prevPost = computed(() => {
+  const idx = currentIndex.value;
+  if (idx <= 0) return null;
+  return blogStore.posts[idx - 1];
+});
+
+const nextPost = computed(() => {
+  const idx = currentIndex.value;
+  if (idx < 0 || idx >= blogStore.posts.length - 1) return null;
+  return blogStore.posts[idx + 1];
 });
 
 useHead({

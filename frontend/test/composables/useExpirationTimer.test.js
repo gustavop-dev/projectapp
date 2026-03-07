@@ -70,11 +70,11 @@ describe('useExpirationTimer', () => {
       expect(urgencyLevel.value).toBe('calm');
     });
 
-    it('formats countdown with days and hours', () => {
+    it('formats countdown with days only when days are positive', () => {
       const expiresAt = ref('2026-03-04T18:00:00Z');
       const { formattedCountdown } = useExpirationTimer(expiresAt);
 
-      expect(formattedCountdown.value).toBe('3 días, 6 horas');
+      expect(formattedCountdown.value).toBe('3 días');
     });
   });
 
@@ -183,14 +183,14 @@ describe('useExpirationTimer', () => {
       const expiresAt = ref('2026-03-02T18:00:00Z');
       const { formattedCountdown } = useExpirationTimer(expiresAt);
 
-      expect(formattedCountdown.value).toBe('1 día, 6 horas');
+      expect(formattedCountdown.value).toBe('1 día');
     });
 
-    it('formats singular día and singular hora when 1 day 1 hour left', () => {
+    it('formats singular día when 1 day and 1 hour left', () => {
       const expiresAt = ref('2026-03-02T13:00:00Z');
       const { formattedCountdown } = useExpirationTimer(expiresAt);
 
-      expect(formattedCountdown.value).toBe('1 día, 1 hora');
+      expect(formattedCountdown.value).toBe('1 día');
     });
 
     it('formats singular día with no hours when exactly 1 day left', () => {

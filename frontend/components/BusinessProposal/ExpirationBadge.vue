@@ -1,6 +1,19 @@
 <template>
+  <!-- Full-width urgent banner (< 1 day) -->
   <div
-    v-if="!isExpired"
+    v-if="!isExpired && urgencyLevel === 'urgent'"
+    class="expiration-badge fixed top-0 left-0 right-0 z-40
+           px-4 py-2.5 shadow-lg select-none
+           bg-red-600 text-white text-center urgent-pulse"
+  >
+    <span class="flex items-center justify-center gap-2 text-sm font-bold">
+      <span class="inline-block w-2 h-2 rounded-full bg-white animate-ping" />
+      Expira en {{ formattedCountdown }}
+    </span>
+  </div>
+  <!-- Standard pill badge -->
+  <div
+    v-else-if="!isExpired"
     class="expiration-badge fixed top-4 left-1/2 -translate-x-1/2 z-40
            px-3 sm:px-4 py-1 sm:py-2 rounded-full backdrop-blur-sm shadow-md border
            select-none transition-colors duration-300 text-xs sm:text-sm"

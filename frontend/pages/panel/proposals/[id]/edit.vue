@@ -180,6 +180,11 @@
         </form>
       </div>
 
+      <!-- Tab: Analytics -->
+      <div v-show="activeTab === 'analytics'">
+        <ProposalAnalytics :proposalId="proposal.id" :proposal="proposal" />
+      </div>
+
       <!-- Tab: Sections -->
       <div v-show="activeTab === 'sections'">
         <div class="space-y-3">
@@ -236,6 +241,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
+import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -251,6 +257,7 @@ const activeTab = ref('general');
 const tabs = [
   { id: 'general', label: 'General' },
   { id: 'sections', label: 'Secciones' },
+  { id: 'analytics', label: 'Analytics' },
 ];
 
 const expandedSections = ref(new Set());

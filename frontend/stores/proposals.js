@@ -212,6 +212,27 @@ export const useProposalStore = defineStore('proposals', {
     },
 
     /**
+     * duplicateProposal: Create a deep copy of a proposal as a new draft.
+     * @param {number} id - Proposal ID to duplicate.
+     */
+    async duplicateProposal(id) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(`proposals/${id}/duplicate/`, {});
+        this.proposals.unshift(response.data);
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'duplicate_failed';
+        console.error('Error duplicating proposal:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
      * sendProposal: Mark proposal as SENT and schedule reminder.
      * @param {number} id - Proposal ID.
      */
@@ -365,6 +386,136 @@ export const useProposalStore = defineStore('proposals', {
         return { success: true, data: response.data };
       } catch (error) {
         console.error('Error responding to proposal:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * commentOnProposal: Client submits a negotiation comment before deciding.
+     * @param {string} uuid - Proposal UUID.
+     * @param {string} comment - Client's comment text.
+     */
+    async commentOnProposal(uuid, comment) {
+      try {
+        const response = await create_request(`proposals/${uuid}/comment/`, { comment });
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error submitting proposal comment:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * trackSectionViews: Send section engagement data for a proposal.
+     * @param {string} uuid - Proposal UUID.
+     * @param {object} payload - { session_id, sections }.
+     */
+    async trackSectionViews(uuid, payload) {
+      try {
+        await create_request(`proposals/${uuid}/track/`, payload);
+        return { success: true };
+      } catch (error) {
+        console.error('Error tracking section views:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * fetchProposalAnalytics: Retrieve engagement analytics for a proposal.
+     * @param {number} id - Proposal ID.
+     */
+    async fetchProposalAnalytics(id) {
+      try {
+        const response = await get_request(`proposals/${id}/analytics/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching proposal analytics:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * fetchProposalDashboard: Retrieve global KPI metrics for all proposals.
+     */
+    async fetchProposalDashboard() {
+      try {
+        const response = await get_request('proposals/dashboard/');
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching proposal dashboard:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * scheduleFollowup: Schedule a follow-up reminder for a rejected proposal.
+     * @param {string} uuid - Proposal UUID.
+     * @param {number} months - Number of months until follow-up.
+     */
+    async scheduleFollowup(uuid, months = 3) {
+      try {
+        const response = await create_request(`proposals/${uuid}/schedule-followup/`, { months });
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error scheduling followup:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * shareProposal: Create a tracked share link for a proposal.
+     * @param {string} uuid - Proposal UUID.
+     * @param {object} payload - { name, email }.
+     */
+    async shareProposal(uuid, payload) {
+      try {
+        const response = await create_request(`proposals/${uuid}/share/`, payload);
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error sharing proposal:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * fetchSharedProposal: Retrieve a proposal via a share link UUID.
+     * @param {string} shareUuid - Share link UUID.
+     * @param {object} params - Optional { name, email } query params.
+     */
+    async fetchSharedProposal(shareUuid, params = {}) {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const query = new URLSearchParams(params).toString();
+        const url = query ? `proposals/shared/${shareUuid}/?${query}` : `proposals/shared/${shareUuid}/`;
+        const response = await get_request(url);
+        this.currentProposal = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        const status = error.response?.status;
+        if (status === 410) {
+          this.error = 'expired';
+        } else if (status === 404) {
+          this.error = 'not_found';
+        } else {
+          this.error = 'unknown';
+        }
+        return { success: false, error: this.error, status };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    /**
+     * fetchClients: List all unique clients with their proposal history.
+     */
+    async fetchClients() {
+      try {
+        const response = await get_request('proposals/clients/');
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching clients:', error);
         return { success: false };
       }
     },

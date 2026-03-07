@@ -15,6 +15,7 @@ export const useBlogStore = defineStore('blog', {
   state: () => ({
     posts: [],
     currentPost: null,
+    availableCategories: [],
     isLoading: false,
     isUpdating: false,
     error: null,
@@ -270,6 +271,41 @@ export const useBlogStore = defineStore('blog', {
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
+      }
+    },
+
+    /**
+     * duplicatePost: Create a deep copy of a blog post as a new draft.
+     * @param {number} id - Post ID to duplicate.
+     */
+    async duplicatePost(id) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(`blog/admin/${id}/duplicate/`, {});
+        this.posts.unshift(response.data);
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'duplicate_failed';
+        console.error('Error duplicating blog post:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * fetchCategories: Fetch available categories from the JSON template endpoint.
+     */
+    async fetchCategories() {
+      try {
+        const response = await get_request('blog/admin/json-template/');
+        this.availableCategories = response.data._available_categories || [];
+        return { success: true };
+      } catch (error) {
+        console.error('Error fetching blog categories:', error);
+        return { success: false };
       }
     },
 

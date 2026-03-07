@@ -63,6 +63,10 @@
     <div v-show="!pasteMode" class="space-y-5">
       <!-- GREETING -->
       <template v-if="sectionType === 'greeting'">
+        <FieldInput v-model="form.proposalTitle" label="Título de la propuesta" />
+        <p v-if="!form.proposalTitle && proposalData?.title" class="text-xs text-amber-600 -mt-3">
+          ⚠ Vacío — se usará "{{ proposalData.title }}" del título de la propuesta.
+        </p>
         <FieldInput v-model="form.clientName" label="Nombre del cliente" />
         <p v-if="!form.clientName && proposalData?.client_name" class="text-xs text-amber-600 -mt-3">
           ⚠ Vacío — se usará "{{ proposalData.client_name }}" de los datos generales.
@@ -147,6 +151,12 @@
 
       <!-- DEVELOPMENT STAGES -->
       <template v-else-if="sectionType === 'development_stages'">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FieldInput v-model="form.index" label="Índice" placeholder="6" />
+          <FieldInput v-model="form.title" label="Título" />
+        </div>
+        <FieldTextarea v-model="form.intro" label="Texto introductorio" :rows="2" :isSingle="true" />
+        <FieldInput v-model="form.currentLabel" label="Etiqueta de etapa actual" placeholder="Actual" />
         <div>
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Etapas</label>
           <draggable v-model="form.stages" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
@@ -358,6 +368,7 @@
           <FieldInput v-model="form.teamRole" label="Rol" />
           <FieldInput v-model="form.contactEmail" label="Email de contacto" />
         </div>
+        <FieldInput v-model="form.signature" label="URL de la firma (imagen)" />
         <div>
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Badges de compromiso</label>
           <draggable v-model="form.commitmentBadges" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">

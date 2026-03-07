@@ -30,17 +30,32 @@
       <ProposalIndex
         :sections="displayPanels"
         :currentIndex="currentIndex"
+        :visitedPanelIds="visitedPanelIds"
         @navigate="handleNavigate"
         @update:open="(val) => indexOpen = val"
       />
       <SectionCounter :current="currentIndex + 1" :total="totalSections" />
       <ExpirationBadge v-if="proposal.expires_at" :expiresAt="proposal.expires_at" />
 
-      <!-- PDF download -->
+      <!-- PDF download + Share -->
       <PdfDownloadButton />
+      <ShareProposalButton
+        v-if="proposal?.uuid"
+        :proposalUuid="proposal.uuid"
+        :language="proposal?.language || 'es'"
+      />
 
       <!-- Onboarding tutorial tooltips -->
       <ProposalOnboarding ref="onboardingRef" @complete="showReadingTimePopup" />
+
+      <!-- Sticky accept bar (all panels except greeting and closing) -->
+      <ProposalResponseButtons
+        :proposal="proposal"
+        :visible="currentIndex > 0 && currentPanel.section_type !== 'proposal_closing'"
+        :language="proposal?.language || 'es'"
+        :whatsappLink="extractedWhatsappLink"
+        :proposalTitle="proposal?.title || ''"
+      />
 
       <!-- Reading time popup -->
       <Teleport to="body">
@@ -103,7 +118,8 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onBeforeUnmount, onMounted } from 'vue';
+import { ref, computed, nextTick, onBeforeUnmount, onMounted, toRef, watch } from 'vue';
+import { useProposalTracking } from '~/composables/useProposalTracking';
 import PreloaderAnimation from '~/components/animations/PreloaderAnimation.vue';
 import {
   Greeting,
@@ -129,6 +145,8 @@ import RawContentSection from '~/components/BusinessProposal/RawContentSection.v
 import ProposalClosing from '~/components/BusinessProposal/ProposalClosing.vue';
 import SectionNavButtons from '~/components/BusinessProposal/SectionNavButtons.vue';
 import ProposalOnboarding from '~/components/BusinessProposal/ProposalOnboarding.vue';
+import ProposalResponseButtons from '~/components/BusinessProposal/ProposalResponseButtons.vue';
+import ShareProposalButton from '~/components/BusinessProposal/ShareProposalButton.vue';
 
 definePageMeta({ layout: false });
 
@@ -215,6 +233,7 @@ const showContent = ref(false);
 const loadError = ref(null);
 const proposalContainer = ref(null);
 const currentIndex = ref(0);
+const visitedPanelIds = ref(new Set());
 const transitionName = ref('slide-left');
 const indexOpen = ref(false);
 const navBlinkNext = ref(false);
@@ -223,12 +242,31 @@ let blinkTimer = null;
 const onboardingRef = ref(null);
 const readingPopupVisible = ref(false);
 
+// Current panel and neighbors
+const currentPanel = computed(() => displayPanels.value[currentIndex.value] || displayPanels.value[0]);
+
+// Track visited panels whenever currentIndex changes
+watch(currentPanel, (panel) => {
+  if (panel?.id !== undefined) {
+    visitedPanelIds.value = new Set([...visitedPanelIds.value, panel.id]);
+  }
+}, { immediate: true });
+
+// Section engagement tracking
+const proposalUuidRef = computed(() => proposal.value?.uuid || route.params.uuid);
+useProposalTracking(proposalUuidRef, currentPanel);
+
 function showReadingTimePopup() {
   readingPopupVisible.value = true;
 }
+// Extract WhatsApp link from next_steps section primaryCTA if it contains wa.me
+const extractedWhatsappLink = computed(() => {
+  const nextSteps = enabledSections.value.find(s => s.section_type === 'next_steps');
+  const cta = nextSteps?.content_json?.primaryCTA;
+  if (cta?.link && cta.link.includes('wa.me')) return cta.link;
+  return '';
+});
 
-// Current panel and neighbors
-const currentPanel = computed(() => displayPanels.value[currentIndex.value] || displayPanels.value[0]);
 const prevPanelTitle = computed(() => {
   const prev = displayPanels.value[currentIndex.value - 1];
   return prev?.title || '';
@@ -257,11 +295,14 @@ function getSectionProps(section) {
       validityMessage: section._validityMessage || '',
       thankYouMessage: section._thankYouMessage || '',
       expiresAt: section._expiresAt || '',
+      language: proposal.value?.language || 'es',
+      whatsappLink: extractedWhatsappLink.value,
     };
   }
 
   if (section.section_type === 'greeting') {
     return {
+      proposalTitle: content.proposalTitle || proposal.value?.title || '',
       clientName: content.clientName || proposal.value?.client_name || '',
       inspirationalQuote: content.inspirationalQuote,
     };
@@ -307,7 +348,18 @@ function getSectionProps(section) {
     };
   }
 
-  // For development_stages, timeline, investment, final_note, next_steps
+  // For investment: inject discount data from proposal
+  if (section.section_type === 'investment') {
+    return {
+      ...content,
+      language: proposal.value?.language || 'es',
+      discountPercent: proposal.value?.discount_percent || 0,
+      discountedInvestment: proposal.value?.discounted_investment || '',
+      expiresAt: proposal.value?.expires_at || '',
+    };
+  }
+
+  // For development_stages, timeline, final_note, next_steps
   // Spread content_json as individual props
   return content;
 }

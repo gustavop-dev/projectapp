@@ -69,9 +69,18 @@
               class="w-6 h-6 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[11px] sm:text-[10px] font-medium flex-shrink-0 transition-colors"
               :class="idx === currentIndex
                 ? 'bg-emerald-600 text-white'
-                : 'bg-gray-200 text-gray-500 group-hover:bg-gray-300'"
+                : visitedPanelIds.has(section.id)
+                  ? 'bg-emerald-100 text-emerald-600'
+                  : 'bg-gray-200 text-gray-500 group-hover:bg-gray-300'"
             >
-              {{ idx + 1 }}
+              <svg
+                v-if="visitedPanelIds.has(section.id) && idx !== currentIndex"
+                class="w-3 h-3"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+              </svg>
+              <span v-else>{{ idx + 1 }}</span>
             </span>
             <span class="leading-tight text-base sm:text-sm">{{ section.title }}</span>
           </button>
@@ -92,6 +101,10 @@ defineProps({
   currentIndex: {
     type: Number,
     default: 0,
+  },
+  visitedPanelIds: {
+    type: Set,
+    default: () => new Set(),
   },
 });
 

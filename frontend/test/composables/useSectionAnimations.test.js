@@ -223,4 +223,90 @@ describe('useSectionAnimations', () => {
       expect(mockTimelineKill.mock.calls.length).toBeGreaterThan(killCountAfterFirst);
     });
   });
+
+  describe('initOnMount (mount-based fallback)', () => {
+    let mountedCallbacks;
+    let localUseSectionAnimations;
+
+    beforeEach(() => {
+      mountedCallbacks = [];
+      jest.resetModules();
+      jest.clearAllMocks();
+
+      jest.doMock('vue', () => {
+        const actualVue = jest.requireActual('vue');
+        return {
+          ...actualVue,
+          onMounted: (cb) => { mountedCallbacks.push(cb); },
+          onBeforeUnmount: (cb) => { unmountCallbacks.push(cb); },
+          inject: () => actualVue.ref(null),
+          watch: (source, cb, opts) => { watchCallbacks.push({ source, cb, opts }); },
+        };
+      });
+      jest.doMock('gsap', () => ({ gsap: mockGsap }));
+      jest.doMock('gsap/ScrollTrigger', () => ({ ScrollTrigger: mockScrollTriggerClass }));
+
+      localUseSectionAnimations = require('../../composables/useSectionAnimations').useSectionAnimations;
+    });
+
+    it('triggers initOnMount after timeout when no horizontal tween exists', async () => {
+      jest.useFakeTimers();
+      const sectionRef = createMockSectionRef(['fade-up']);
+      localUseSectionAnimations(sectionRef);
+
+      expect(mountedCallbacks).toHaveLength(1);
+
+      mountedCallbacks[0]();
+      jest.advanceTimersByTime(60);
+      // Flush microtasks from dynamic import('gsap') and buildTimeline
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockGsap.set).toHaveBeenCalled();
+      expect(mockGsap.timeline).toHaveBeenCalledWith(
+        expect.objectContaining({ defaults: { ease: 'power3.out' } }),
+      );
+
+      jest.useRealTimers();
+    });
+
+    it('does not trigger initOnMount if horizontal tween is set before timeout', async () => {
+      jest.useFakeTimers();
+      const sectionRef = createMockSectionRef(['fade-up']);
+      localUseSectionAnimations(sectionRef);
+
+      mountedCallbacks[0]();
+
+      // Simulate horizontal tween arriving before timeout fires
+      watchCallbacks[0].cb({ scrollTrigger: {} });
+      // initWithScrollTrigger has multiple awaits (import gsap, import ScrollTrigger, buildTimeline)
+      for (let i = 0; i < 10; i++) await Promise.resolve();
+      const callCount = mockGsap.timeline.mock.calls.length;
+
+      jest.advanceTimersByTime(60);
+      for (let i = 0; i < 10; i++) await Promise.resolve();
+
+      // Should NOT have created another timeline (horizontal tween already did)
+      expect(mockGsap.timeline.mock.calls.length).toBe(callCount);
+
+      jest.useRealTimers();
+    });
+
+    it('skips initOnMount when sectionRef is null', async () => {
+      jest.useFakeTimers();
+      const { ref } = jest.requireActual('vue');
+      const sectionRef = ref(null);
+      localUseSectionAnimations(sectionRef);
+
+      mountedCallbacks[0]();
+      jest.advanceTimersByTime(60);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockGsap.timeline).not.toHaveBeenCalled();
+
+      jest.useRealTimers();
+    });
+  });
 });

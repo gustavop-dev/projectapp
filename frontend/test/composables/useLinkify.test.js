@@ -103,6 +103,21 @@ describe('linkify — edge cases', () => {
 });
 
 
+describe('formatDisplay error fallback', () => {
+  it('returns raw URL when URL constructor throws', () => {
+    const OriginalURL = globalThis.URL;
+    globalThis.URL = function () { throw new Error('invalid'); };
+
+    const result = linkify('Visit https://example.com please.');
+
+    // formatDisplay catch returns the raw URL as display text
+    expect(result).toContain('>https://example.com<');
+
+    globalThis.URL = OriginalURL;
+  });
+});
+
+
 describe('useLinkify composable', () => {
   it('exposes linkify function', () => {
     const { linkify: fn } = useLinkify();

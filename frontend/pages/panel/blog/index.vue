@@ -41,11 +41,9 @@
             </NuxtLink>
             <span
               class="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0"
-              :class="post.is_published
-                ? 'bg-emerald-50 text-emerald-700'
-                : 'bg-gray-100 text-gray-600'"
+              :class="statusBadgeClass(post)"
             >
-              {{ post.is_published ? 'Publicado' : 'Borrador' }}
+              {{ statusLabel(post) }}
             </span>
           </div>
           <p class="text-xs text-gray-400 mb-3">{{ post.slug }} · {{ formatDate(post.published_at || post.created_at) }}</p>
@@ -56,6 +54,12 @@
             >
               Editar
             </NuxtLink>
+            <button
+              class="text-xs text-gray-500 hover:text-emerald-600 transition-colors"
+              @click="handleDuplicate(post)"
+            >
+              Duplicar
+            </button>
             <button
               class="text-xs text-red-400 hover:text-red-600 transition-colors"
               @click="handleDelete(post)"
@@ -92,11 +96,9 @@
                 <td class="px-6 py-4">
                   <span
                     class="text-xs px-2.5 py-1 rounded-full font-medium"
-                    :class="post.is_published
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'bg-gray-100 text-gray-600'"
+                    :class="statusBadgeClass(post)"
                   >
-                    {{ post.is_published ? 'Publicado' : 'Borrador' }}
+                    {{ statusLabel(post) }}
                   </span>
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-500">
@@ -110,6 +112,12 @@
                     >
                       Editar
                     </NuxtLink>
+                    <button
+                      class="text-xs text-gray-500 hover:text-emerald-600 transition-colors"
+                      @click="handleDuplicate(post)"
+                    >
+                      Duplicar
+                    </button>
                     <button
                       class="text-xs text-red-400 hover:text-red-600 transition-colors"
                       @click="handleDelete(post)"
@@ -148,6 +156,27 @@ function formatDate(dateStr) {
     month: 'short',
     day: 'numeric',
   });
+}
+
+function isScheduled(post) {
+  return !post.is_published && post.published_at && new Date(post.published_at) > new Date();
+}
+
+function statusLabel(post) {
+  if (post.is_published) return 'Publicado';
+  if (isScheduled(post)) return `Programado: ${formatDate(post.published_at)}`;
+  return 'Borrador';
+}
+
+function statusBadgeClass(post) {
+  if (post.is_published) return 'bg-emerald-50 text-emerald-700';
+  if (isScheduled(post)) return 'bg-blue-50 text-blue-700';
+  return 'bg-gray-100 text-gray-600';
+}
+
+async function handleDuplicate(post) {
+  if (!confirm(`¿Duplicar "${post.title_es}"?`)) return;
+  await blogStore.duplicatePost(post.id);
 }
 
 async function handleDelete(post) {

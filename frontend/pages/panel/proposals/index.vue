@@ -14,6 +14,9 @@
       </NuxtLink>
     </div>
 
+    <!-- KPI Dashboard -->
+    <ProposalDashboard />
+
     <!-- Status filter -->
     <div class="flex gap-2 mb-6 flex-wrap">
       <button
@@ -131,6 +134,19 @@
                   >
                     {{ p.is_active ? 'Desactivar' : 'Activar' }}
                   </button>
+                  <button
+                    class="block w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 transition-colors"
+                    @click="handleDuplicate(p.id)"
+                  >
+                    Duplicar
+                  </button>
+                  <button
+                    class="block w-full text-left px-4 py-2 text-sm transition-colors"
+                    :class="copiedId === p.id ? 'text-emerald-600' : 'text-gray-700 hover:bg-gray-50'"
+                    @click="handleCopyLink(p)"
+                  >
+                    {{ copiedId === p.id ? '¡Copiado!' : 'Copiar enlace' }}
+                  </button>
                   <a
                     :href="'/proposal/' + p.uuid"
                     target="_blank"
@@ -156,6 +172,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
+import ProposalDashboard from '~/components/BusinessProposal/admin/ProposalDashboard.vue';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -163,6 +180,7 @@ const proposalStore = useProposalStore();
 const proposals = computed(() => proposalStore.proposals);
 const activeFilter = ref('');
 const openDropdownId = ref(null);
+const copiedId = ref(null);
 
 function toggleDropdown(id) {
   openDropdownId.value = openDropdownId.value === id ? null : id;
@@ -219,6 +237,22 @@ async function handleToggleActive(id, currentlyActive) {
   const label = currentlyActive ? 'desactivar' : 'activar';
   if (!confirm(`¿${label.charAt(0).toUpperCase() + label.slice(1)} esta propuesta?`)) return;
   await proposalStore.toggleProposalActive(id);
+}
+
+async function handleDuplicate(id) {
+  openDropdownId.value = null;
+  const result = await proposalStore.duplicateProposal(id);
+  if (result.success) {
+    router.push(`/panel/proposals/${result.data.id}/edit`);
+  }
+}
+
+function handleCopyLink(p) {
+  const url = `${window.location.origin}/proposal/${p.uuid}`;
+  navigator.clipboard.writeText(url).then(() => {
+    copiedId.value = p.id;
+    setTimeout(() => { copiedId.value = null; }, 1500);
+  });
 }
 
 async function handleDelete(id) {

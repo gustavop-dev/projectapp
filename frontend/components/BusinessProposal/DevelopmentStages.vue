@@ -3,15 +3,15 @@
     <div class="container mx-auto px-6 md:px-12 lg:px-24 max-w-5xl">
       <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
         <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">
-          06
+          {{ index }}
         </span>
         <h2 class="text-esmerald font-light leading-tight text-4xl md:text-6xl">
-          Etapas de contratación y desarrollo
+          {{ title }}
         </h2>
       </div>
 
       <p data-animate="fade-up" class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl mb-12">
-        Nuestro proceso está diseñado para ofrecer claridad, confianza y acompañamiento en cada fase 🧭:
+        {{ intro }}
       </p>
 
       <!-- Vertical timeline -->
@@ -40,7 +40,7 @@
                     {{ stage.title }}
                   </h3>
                   <span v-if="stage.current" class="text-[10px] uppercase tracking-wider text-esmerald bg-lemon px-2 py-0.5 rounded-full font-medium">
-                    Actual
+                    {{ currentLabel }}
                   </span>
                 </div>
                 <p class="font-light leading-relaxed text-sm md:text-base" :class="stage.current ? 'text-esmerald-light/80' : 'text-esmerald/70'">
@@ -66,6 +66,22 @@ const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
 
 const props = defineProps({
+  index: {
+    type: String,
+    default: '06'
+  },
+  title: {
+    type: String,
+    default: 'Etapas de contratación y desarrollo'
+  },
+  intro: {
+    type: String,
+    default: 'Nuestro proceso está diseñado para ofrecer claridad, confianza y acompañamiento en cada fase 🧭:'
+  },
+  currentLabel: {
+    type: String,
+    default: 'Actual'
+  },
   stages: {
     type: Array,
     default: () => [
@@ -79,8 +95,6 @@ const props = defineProps({
     ],
   },
 });
-
-const stages = props.stages;
 </script>
 
 <style scoped>

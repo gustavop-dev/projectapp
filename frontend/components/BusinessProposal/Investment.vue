@@ -20,7 +20,7 @@
 
       <div data-animate="fade-up" class="pricing-card bg-esmerald p-5 sm:p-8 md:p-12 rounded-3xl text-white mb-12 shadow-2xl">
         <div class="text-center mb-8">
-          <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-green-light">Inversión Total</div>
+          <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-green-light">{{ t.totalInvestment }}</div>
           <div class="text-4xl sm:text-6xl md:text-7xl font-bold mb-2 text-lemon">{{ totalInvestment }}</div>
           <div class="text-green-light">{{ currency }}</div>
         </div>
@@ -35,8 +35,29 @@
         </div>
       </div>
 
+      <!-- Discount banner -->
+      <div v-if="hasActiveDiscount" data-animate="fade-up" class="discount-banner mb-12 relative overflow-hidden bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-5 sm:p-8">
+        <div class="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl">
+          🔥 {{ discountPercent }}% OFF
+        </div>
+        <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
+          <div class="text-center sm:text-left">
+            <p class="text-sm font-semibold text-amber-800 uppercase tracking-wider mb-1">{{ t.specialPriceLabel }}</p>
+            <div class="flex items-baseline gap-3">
+              <span class="text-3xl sm:text-4xl font-bold text-amber-700">{{ formatCurrency(discountedInvestment) }}</span>
+              <span class="text-lg text-gray-400 line-through">{{ totalInvestment }}</span>
+            </div>
+            <p class="text-xs text-amber-600 mt-2">
+              {{ currency }} · {{ t.validFor }}
+              <template v-if="daysRemaining !== null">{{ daysRemaining }} {{ daysRemaining !== 1 ? t.days : t.day }}</template>
+              <template v-else>{{ t.limitedTime }}</template>
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div v-if="paymentOptions && paymentOptions.length" data-animate="fade-up" class="payment-options mb-12">
-        <h3 class="text-2xl font-bold text-esmerald mb-6">Formas de Pago</h3>
+        <h3 class="text-2xl font-bold text-esmerald mb-6">{{ t.paymentOptions }}</h3>
         <div class="space-y-4">
           <div v-for="(option, index) in paymentOptions" :key="index"
                class="payment-option-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4 p-4 sm:p-5 bg-esmerald/5 rounded-xl border-2 border-esmerald/10 hover:border-esmerald/30 transition-all">
@@ -82,12 +103,12 @@
         <div v-if="hostingPlan.monthlyPrice || hostingPlan.annualPrice" class="mt-6 pl-0 sm:pl-16">
           <div class="grid md:grid-cols-2 gap-4">
             <div v-if="hostingPlan.monthlyPrice" class="bg-esmerald-light/60 border border-esmerald/10 rounded-xl p-5">
-              <div class="text-sm text-green-light font-medium">Precio especial</div>
+              <div class="text-sm text-green-light font-medium">{{ t.specialPrice }}</div>
               <div class="text-2xl font-bold text-esmerald">{{ hostingPlan.monthlyPrice }}</div>
               <div v-if="hostingPlan.monthlyLabel" class="text-sm text-esmerald/70">{{ hostingPlan.monthlyLabel }}</div>
             </div>
             <div v-if="hostingPlan.annualPrice" class="bg-esmerald/5 border border-esmerald/10 rounded-xl p-5">
-              <div class="text-sm text-green-light font-medium">Pago anual único</div>
+              <div class="text-sm text-green-light font-medium">{{ t.annualPayment }}</div>
               <div class="text-2xl font-bold text-esmerald">{{ hostingPlan.annualPrice }}</div>
               <div v-if="hostingPlan.annualLabel" class="text-sm text-esmerald/70">{{ hostingPlan.annualLabel }}</div>
             </div>
@@ -107,7 +128,7 @@
       </div>
 
       <div v-if="valueReasons && valueReasons.length" data-animate="fade-up" class="value-proposition mt-12 bg-esmerald p-5 sm:p-8 md:p-12 rounded-2xl">
-        <h3 class="text-2xl font-bold text-lemon mb-6">¿Por Qué Esta Inversión Vale la Pena?</h3>
+        <h3 class="text-2xl font-bold text-lemon mb-6">{{ t.whyWorthIt }}</h3>
         <div class="grid md:grid-cols-2 gap-6">
           <div v-for="(reason, index) in normalizedReasons" :key="index"
                class="value-reason flex items-start">
@@ -127,13 +148,18 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, toRef } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import { useExpirationTimer } from '~/composables/useExpirationTimer';
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
 
 const props = defineProps({
+  language: {
+    type: String,
+    default: 'es',
+  },
   index: {
     type: String,
     default: '9'
@@ -202,8 +228,62 @@ const props = defineProps({
       'Código optimizado',
       'Soporte post-lanzamiento',
     ]
+  },
+  discountPercent: {
+    type: Number,
+    default: 0
+  },
+  discountedInvestment: {
+    type: String,
+    default: ''
+  },
+  expiresAt: {
+    type: String,
+    default: ''
   }
 });
+
+const { daysRemaining, urgencyLevel } = useExpirationTimer(toRef(props, 'expiresAt'));
+
+const i18n = {
+  es: {
+    totalInvestment: 'Inversión Total',
+    specialPriceLabel: 'Precio especial por tiempo limitado',
+    validFor: 'Válido por',
+    days: 'días',
+    day: 'día',
+    limitedTime: 'tiempo limitado',
+    paymentOptions: 'Formas de Pago',
+    specialPrice: 'Precio especial',
+    annualPayment: 'Pago anual único',
+    whyWorthIt: '¿Por Qué Esta Inversión Vale la Pena?',
+  },
+  en: {
+    totalInvestment: 'Total Investment',
+    specialPriceLabel: 'Special price — limited time',
+    validFor: 'Valid for',
+    days: 'days',
+    day: 'day',
+    limitedTime: 'a limited time',
+    paymentOptions: 'Payment Options',
+    specialPrice: 'Special price',
+    annualPayment: 'Annual payment',
+    whyWorthIt: 'Why Is This Investment Worth It?',
+  },
+};
+
+const t = computed(() => i18n[props.language] || i18n.es);
+
+const hasActiveDiscount = computed(() => {
+  return props.discountPercent > 0 && props.discountedInvestment && !['expired'].includes(urgencyLevel.value);
+});
+
+function formatCurrency(value) {
+  if (!value) return '';
+  const num = parseFloat(value);
+  if (isNaN(num)) return value;
+  return '$' + num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
 
 const filteredSpecs = computed(() => {
   return (props.hostingPlan?.specs || []).filter(s => s.label || s.value);

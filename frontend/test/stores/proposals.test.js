@@ -2,8 +2,11 @@
  * Tests for the proposals store.
  *
  * Covers: fetchPublicProposal, fetchProposals, fetchProposal,
- * createProposal, updateProposal, deleteProposal, sendProposal,
- * updateSection, reorderSections, respondToProposal, checkAdminAuth,
+ * createProposal, createProposalFromJSON, updateProposal, deleteProposal,
+ * duplicateProposal, sendProposal, resendProposal, toggleProposalActive,
+ * updateSection, reorderSections, respondToProposal, commentOnProposal,
+ * trackSectionViews, fetchProposalAnalytics, fetchProposalDashboard,
+ * scheduleFollowup, shareProposal, fetchSharedProposal, checkAdminAuth,
  * getters: getProposalById, enabledSections, totalSections.
  */
 import { setActivePinia, createPinia } from 'pinia';
@@ -648,6 +651,294 @@ describe('useProposalStore', () => {
       const result = await store.checkAdminAuth();
 
       expect(result.success).toBe(false);
+    });
+  });
+
+  describe('duplicateProposal', () => {
+    it('duplicates proposal and prepends to list', async () => {
+      store.proposals = [{ id: 1, title: 'Original' }];
+      const duplicated = { id: 2, title: 'Original (copy)' };
+      create_request.mockResolvedValue({ data: duplicated });
+
+      const result = await store.duplicateProposal(1);
+
+      expect(create_request).toHaveBeenCalledWith('proposals/1/duplicate/', {});
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(duplicated);
+      expect(store.proposals[0]).toEqual(duplicated);
+    });
+
+    it('sets error on failure', async () => {
+      create_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.duplicateProposal(1);
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('duplicate_failed');
+    });
+  });
+
+  describe('resendProposal', () => {
+    it('resends proposal and updates currentProposal', async () => {
+      const resent = { id: 1, status: 'sent', sent_at: '2026-03-07' };
+      create_request.mockResolvedValue({ data: resent });
+
+      const result = await store.resendProposal(1);
+
+      expect(create_request).toHaveBeenCalledWith('proposals/1/resend/', {});
+      expect(result.success).toBe(true);
+      expect(store.currentProposal).toEqual(resent);
+    });
+
+    it('sets error on failure', async () => {
+      create_request.mockRejectedValue({ response: { data: { error: 'not sent' } } });
+
+      const result = await store.resendProposal(1);
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('resend_failed');
+      expect(result.errors).toEqual({ error: 'not sent' });
+    });
+  });
+
+  describe('toggleProposalActive', () => {
+    it('toggles active and updates currentProposal when matching', async () => {
+      store.currentProposal = { id: 5, is_active: true };
+      store.proposals = [{ id: 5, is_active: true }];
+      const toggled = { id: 5, is_active: false };
+      create_request.mockResolvedValue({ data: toggled });
+
+      const result = await store.toggleProposalActive(5);
+
+      expect(create_request).toHaveBeenCalledWith('proposals/5/toggle-active/', {});
+      expect(result.success).toBe(true);
+      expect(store.currentProposal).toEqual(toggled);
+      expect(store.proposals[0].is_active).toBe(false);
+    });
+
+    it('updates proposals list even when currentProposal differs', async () => {
+      store.currentProposal = { id: 99 };
+      store.proposals = [{ id: 5, is_active: true }];
+      create_request.mockResolvedValue({ data: { id: 5, is_active: false } });
+
+      const result = await store.toggleProposalActive(5);
+
+      expect(result.success).toBe(true);
+      expect(store.proposals[0].is_active).toBe(false);
+      expect(store.currentProposal.id).toBe(99);
+    });
+
+    it('sets error on failure', async () => {
+      create_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.toggleProposalActive(5);
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('toggle_active_failed');
+    });
+  });
+
+  describe('commentOnProposal', () => {
+    it('submits comment and returns success', async () => {
+      const responseData = { status: 'comment_received' };
+      create_request.mockResolvedValue({ data: responseData });
+
+      const result = await store.commentOnProposal('uuid-1', 'Need lower price');
+
+      expect(create_request).toHaveBeenCalledWith(
+        'proposals/uuid-1/comment/',
+        { comment: 'Need lower price' },
+      );
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(responseData);
+    });
+
+    it('returns failure on error', async () => {
+      create_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.commentOnProposal('uuid-1', 'text');
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('trackSectionViews', () => {
+    it('sends tracking payload and returns success', async () => {
+      create_request.mockResolvedValue({});
+      const payload = { session_id: 'ses_1', sections: [{ section_type: 'greeting' }] };
+
+      const result = await store.trackSectionViews('uuid-1', payload);
+
+      expect(create_request).toHaveBeenCalledWith('proposals/uuid-1/track/', payload);
+      expect(result.success).toBe(true);
+    });
+
+    it('returns failure on error', async () => {
+      create_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.trackSectionViews('uuid-1', {});
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('fetchProposalAnalytics', () => {
+    it('fetches analytics data', async () => {
+      const analytics = { total_views: 10, unique_sessions: 3 };
+      get_request.mockResolvedValue({ data: analytics });
+
+      const result = await store.fetchProposalAnalytics(1);
+
+      expect(get_request).toHaveBeenCalledWith('proposals/1/analytics/');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(analytics);
+    });
+
+    it('returns failure on error', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.fetchProposalAnalytics(1);
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('fetchProposalDashboard', () => {
+    it('fetches dashboard KPIs', async () => {
+      const dashboard = { total_proposals: 5, acceptance_rate: 0.6 };
+      get_request.mockResolvedValue({ data: dashboard });
+
+      const result = await store.fetchProposalDashboard();
+
+      expect(get_request).toHaveBeenCalledWith('proposals/dashboard/');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(dashboard);
+    });
+
+    it('returns failure on error', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.fetchProposalDashboard();
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('scheduleFollowup', () => {
+    it('schedules followup with default 3 months', async () => {
+      const responseData = { followup_scheduled_at: '2026-06-07' };
+      create_request.mockResolvedValue({ data: responseData });
+
+      const result = await store.scheduleFollowup('uuid-1');
+
+      expect(create_request).toHaveBeenCalledWith(
+        'proposals/uuid-1/schedule-followup/',
+        { months: 3 },
+      );
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(responseData);
+    });
+
+    it('schedules followup with custom months', async () => {
+      create_request.mockResolvedValue({ data: {} });
+
+      await store.scheduleFollowup('uuid-1', 6);
+
+      expect(create_request).toHaveBeenCalledWith(
+        'proposals/uuid-1/schedule-followup/',
+        { months: 6 },
+      );
+    });
+
+    it('returns failure on error', async () => {
+      create_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.scheduleFollowup('uuid-1');
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('shareProposal', () => {
+    it('creates share link and returns data', async () => {
+      const shareData = { uuid: 'share-uuid', url: '/proposals/shared/share-uuid/' };
+      create_request.mockResolvedValue({ data: shareData });
+
+      const result = await store.shareProposal('uuid-1', { name: 'Alice', email: 'a@co.com' });
+
+      expect(create_request).toHaveBeenCalledWith(
+        'proposals/uuid-1/share/',
+        { name: 'Alice', email: 'a@co.com' },
+      );
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(shareData);
+    });
+
+    it('returns failure on error', async () => {
+      create_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.shareProposal('uuid-1', {});
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('fetchSharedProposal', () => {
+    it('fetches shared proposal and sets currentProposal', async () => {
+      const proposal = { id: 1, title: 'Shared' };
+      get_request.mockResolvedValue({ data: proposal });
+
+      const result = await store.fetchSharedProposal('share-uuid');
+
+      expect(get_request).toHaveBeenCalledWith('proposals/shared/share-uuid/');
+      expect(result.success).toBe(true);
+      expect(store.currentProposal).toEqual(proposal);
+    });
+
+    it('appends query params when provided', async () => {
+      get_request.mockResolvedValue({ data: {} });
+
+      await store.fetchSharedProposal('share-uuid', { name: 'Bob', email: 'b@co.com' });
+
+      expect(get_request).toHaveBeenCalledWith(
+        'proposals/shared/share-uuid/?name=Bob&email=b%40co.com',
+      );
+    });
+
+    it('sets expired error on 410', async () => {
+      get_request.mockRejectedValue({ response: { status: 410 } });
+
+      const result = await store.fetchSharedProposal('expired-uuid');
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('expired');
+      expect(result.status).toBe(410);
+    });
+
+    it('sets not_found error on 404', async () => {
+      get_request.mockRejectedValue({ response: { status: 404 } });
+
+      const result = await store.fetchSharedProposal('missing-uuid');
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('not_found');
+    });
+
+    it('sets unknown error on other status', async () => {
+      get_request.mockRejectedValue({ response: { status: 500 } });
+
+      const result = await store.fetchSharedProposal('error-uuid');
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('unknown');
+    });
+
+    it('resets isLoading after request', async () => {
+      get_request.mockResolvedValue({ data: {} });
+
+      await store.fetchSharedProposal('uuid');
+
+      expect(store.isLoading).toBe(false);
     });
   });
 });

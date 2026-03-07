@@ -3,7 +3,7 @@
     <div class="container mx-auto px-6 md:px-12 lg:px-24 relative z-10">
       <div class="greeting-content max-w-7xl">
         <h1 data-animate="fade-up" class="main-title font-light text-esmerald leading-tight mb-8">
-          Propuesta de Desarrollo Web, {{ clientName }}
+          {{ proposalTitle }}, {{ clientName }}
         </h1>
         
         <p data-animate="fade-up" class="subtitle font-light text-green-light italic">
@@ -22,6 +22,10 @@ const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
 
 const props = defineProps({
+  proposalTitle: {
+    type: String,
+    default: 'Propuesta de Desarrollo Web'
+  },
   clientName: {
     type: String,
     default: 'Juan Pablo'
