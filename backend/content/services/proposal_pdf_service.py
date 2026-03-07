@@ -576,34 +576,26 @@ def _render_design_ux(c, data, _proposal, ps=None, y=None):
     focus_title = _safe(data, 'focusTitle', 'Enfoque')
     content_top = y
 
+    # Render paragraphs + objective first (full width or left column)
+    paragraphs = _safe(data, 'paragraphs', [])
+    obj_title = _safe(data, 'objectiveTitle')
+    obj = _safe(data, 'objective')
+
     if focus_items:
-        has_room = (content_top - MARGIN_B) > 200
-        if has_room:
-            y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []),
-                                 max_width=TEXT_AREA_W, ps=ps)
-            obj_title = _safe(data, 'objectiveTitle')
-            obj = _safe(data, 'objective')
-            if obj:
-                y -= 6
-                y = _draw_subtitle(c, y, obj_title or 'Objetivo', ps=ps)
-                y = _draw_paragraphs(c, y, [obj], max_width=TEXT_AREA_W, ps=ps)
-            sb = _draw_sidebar_box(c, content_top, focus_title, focus_items)
-            y = min(y, sb - 8)
-        else:
-            y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []), ps=ps)
-            obj_title = _safe(data, 'objectiveTitle')
-            obj = _safe(data, 'objective')
-            if obj:
-                y -= 6
-                y = _draw_subtitle(c, y, obj_title or 'Objetivo', ps=ps)
-                y = _draw_paragraphs(c, y, [obj], ps=ps)
+        # Always render inline (full-width) to avoid whitespace gaps
+        y = _draw_paragraphs(c, y, paragraphs, ps=ps)
+        if obj:
             y -= 6
-            y = _draw_subtitle(c, y, focus_title, ps=ps)
-            y = _draw_bullet_list(c, y, focus_items, ps=ps)
+            y = _draw_subtitle(c, y, obj_title or 'Objetivo', ps=ps)
+            y = _draw_paragraphs(c, y, [obj], ps=ps)
+        y -= 10
+        # Focus items as a full-width branded box below paragraphs
+        if ps:
+            y = _check_y(c, y, ps, need=60)
+        y = _draw_subtitle(c, y, focus_title, ps=ps)
+        y = _draw_bullet_list(c, y, focus_items, ps=ps)
     else:
-        y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []), ps=ps)
-        obj_title = _safe(data, 'objectiveTitle')
-        obj = _safe(data, 'objective')
+        y = _draw_paragraphs(c, y, paragraphs, ps=ps)
         if obj:
             y -= 6
             y = _draw_subtitle(c, y, obj_title or 'Objetivo', ps=ps)
@@ -1042,18 +1034,18 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             left_y -= 22
 
     # ── RIGHT COLUMN: Incluye ────────────────────────────────────
-    right_y = columns_top
+    right_bottom = columns_top
     if included:
         items_text = [
             f'{_strip_emoji(_safe(it, "title"))} \u2014 '
             f'{_strip_emoji(_safe(it, "description"))}'
             for it in included
         ]
-        _draw_sidebar_box(c, columns_top, 'Incluye', items_text,
-                          sidebar_x=right_x, sidebar_w=right_w)
+        right_bottom = _draw_sidebar_box(c, columns_top, 'Incluye', items_text,
+                                          sidebar_x=right_x, sidebar_w=right_w)
 
     # Advance y past whichever column is taller
-    y = min(left_y, columns_top) - 36
+    y = min(left_y, right_bottom) - 12
 
     # ── Compact Inversión Total ──────────────────────────────────
     if total:
