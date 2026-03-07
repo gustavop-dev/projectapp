@@ -21,8 +21,14 @@
       <!-- Preview panel -->
       <div class="preview-panel w-[95vw] h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-white">
         <div class="w-full h-full overflow-y-auto">
+          <RawContentSection
+            v-if="subSection && subSection.group._pasteMode"
+            :title="subSection.group.title"
+            :index="subSection.subIndex"
+            :rawText="subSection.group._pasteText"
+          />
           <FunctionalRequirementsGroup
-            v-if="subSection"
+            v-else-if="subSection"
             :group="subSection.group"
             :subIndex="subSection.subIndex"
           />
@@ -90,6 +96,7 @@ const props = defineProps({
 defineEmits(['close']);
 
 const isPaste = computed(() => {
+  if (props.section?.section_type === 'functional_requirements') return false;
   const cj = props.section?.content_json;
   return cj?._editMode === 'paste' && cj?.rawText;
 });

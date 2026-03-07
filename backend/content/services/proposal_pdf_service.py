@@ -1803,6 +1803,7 @@ class ProposalPdfService:
             try:
                 cover_reader = PdfReader(str(COVER_PDF))
                 for page in cover_reader.pages:
+                    page.scale_to(PAGE_W, PAGE_H)
                     writer.add_page(page)
             except Exception:
                 logger.warning('Could not read cover PDF: %s', COVER_PDF)
@@ -1815,6 +1816,7 @@ class ProposalPdfService:
             try:
                 back_reader = PdfReader(str(BACK_COVER_PDF))
                 for page in back_reader.pages:
+                    page.scale_to(PAGE_W, PAGE_H)
                     writer.add_page(page)
             except Exception:
                 logger.warning(

@@ -1,8 +1,8 @@
 <template>
-  <div class="proposal-index fixed left-0 top-0 z-50">
+  <div class="proposal-index fixed left-0 top-0 z-50 pointer-events-none">
     <!-- Toggle button (always visible) -->
     <button
-      class="index-toggle absolute left-4 top-4 z-50
+      class="index-toggle absolute left-4 top-4 z-50 pointer-events-auto
              w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg
              flex items-center justify-center text-emerald-600
              hover:bg-emerald-50 transition-colors"
@@ -20,7 +20,7 @@
     <Transition name="idx-fade">
       <div
         v-if="isOpen"
-        class="fixed inset-0 z-[9990] bg-white/60 backdrop-blur-[3px] sm:bg-white/60"
+        class="fixed inset-0 z-[9990] bg-white/60 backdrop-blur-[3px] sm:bg-white/60 pointer-events-auto"
         @click="isOpen = false"
       />
     </Transition>
@@ -32,7 +32,7 @@
              sm:relative sm:inset-auto sm:ml-3 sm:py-4 sm:px-3 sm:mt-[50vh] sm:-translate-y-1/2
              sm:rounded-2xl sm:shadow-xl sm:border sm:border-gray-100
              sm:max-h-[80vh]"
-      :class="isOpen ? '' : 'translate-x-[-120%]'"
+      :class="isOpen ? 'pointer-events-auto' : 'pointer-events-none translate-x-[-120%]'"
     >
       <!-- Mobile close button — same style/position as hamburger toggle -->
       <button
