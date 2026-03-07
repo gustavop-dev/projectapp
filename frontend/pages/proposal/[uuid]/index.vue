@@ -319,7 +319,7 @@ function triggerNavBlink() {
     blinkTimer = setTimeout(() => {
       navBlinkNext.value = false;
       navBlinkPrev.value = false;
-    }, 2700);
+    }, 4000);
   }, 100);
 }
 

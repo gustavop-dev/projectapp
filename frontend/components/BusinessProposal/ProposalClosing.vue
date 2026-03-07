@@ -188,15 +188,15 @@ async function confirmReject() {
 
 <style scoped>
 .validity-blink {
-  animation: validityDoublePulse 2.6s ease-in-out;
+  animation: validityDoublePulse 3.8s ease-in-out;
 }
 
 @keyframes validityDoublePulse {
-  0%   { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.3); }
-  12%  { box-shadow: 0 0 14px 5px rgba(234, 179, 8, 0.28); }
-  28%  { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
-  42%  { box-shadow: 0 0 14px 5px rgba(234, 179, 8, 0.28); }
-  60%  { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.25); }
+  10%  { box-shadow: 0 0 14px 5px rgba(234, 179, 8, 0.22); }
+  24%  { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+  38%  { box-shadow: 0 0 14px 5px rgba(234, 179, 8, 0.22); }
+  54%  { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
   100% { box-shadow: none; }
 }
 </style>

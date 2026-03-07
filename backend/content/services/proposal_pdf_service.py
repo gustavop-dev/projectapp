@@ -1184,10 +1184,10 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                         fill=1, stroke=0)
             c.setFont(_font('medium'), 7.5)
             c.setFillColor(ESMERALD)
-            ty = y
-            center_x = MARGIN_L + CONTENT_W / 2
+            text_block_h = len(cov_lines) * 12
+            ty = box_y + box_h - (box_h - text_block_h) / 2 - 10
             for cl in cov_lines:
-                c.drawCentredString(center_x, ty, cl)
+                c.drawString(MARGIN_L + 10, ty, cl)
                 ty -= 12
             y = box_y - 6
 
