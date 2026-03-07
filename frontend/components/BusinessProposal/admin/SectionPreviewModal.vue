@@ -96,7 +96,6 @@ const props = defineProps({
 defineEmits(['close']);
 
 const isPaste = computed(() => {
-  if (props.section?.section_type === 'functional_requirements') return false;
   const cj = props.section?.content_json;
   return cj?._editMode === 'paste' && cj?.rawText;
 });
