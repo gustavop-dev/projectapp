@@ -2,6 +2,7 @@
   <!-- Previous button — fixed left edge -->
   <button
     v-if="!isFirst && !hideLeft"
+    data-testid="nav-prev"
     class="nav-side nav-side--left group"
     :class="{ 'nav-blink': blinkPrev }"
     :title="prevTitle"
@@ -16,6 +17,7 @@
   <!-- Next button — fixed right edge -->
   <button
     v-if="!isLast"
+    data-testid="nav-next"
     class="nav-side nav-side--right group"
     :class="{ 'nav-blink': blinkNext }"
     :title="nextTitle"

@@ -2,6 +2,7 @@
   <div class="proposal-index fixed left-0 top-0 z-50 pointer-events-none">
     <!-- Toggle button (always visible) -->
     <button
+      data-testid="index-toggle"
       class="index-toggle absolute left-4 top-4 z-50 pointer-events-auto
              w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg
              flex items-center justify-center text-emerald-600
@@ -27,6 +28,7 @@
 
     <!-- Index panel: fullscreen on mobile, floating on desktop -->
     <nav
+      data-testid="index-panel"
       class="index-panel z-[9999] bg-white/95 backdrop-blur-md overflow-y-auto transition-all duration-300
              fixed inset-0 py-4 px-4
              sm:relative sm:inset-auto sm:ml-3 sm:py-4 sm:px-3 sm:mt-[50vh] sm:-translate-y-1/2

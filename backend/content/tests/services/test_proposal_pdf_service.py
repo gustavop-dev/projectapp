@@ -11,7 +11,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
-from reportlab.lib.pagesizes import A4
+from pypdf import PdfReader
+from reportlab.lib.pagesizes import A4, LETTER
 from reportlab.pdfgen import canvas
 
 from content.models import (
@@ -905,7 +906,6 @@ class TestMergeWithCovers:
         content = self._make_pdf_bytes(2)
         result = ProposalPdfService._merge_with_covers(content)
 
-        from pypdf import PdfReader
         reader = PdfReader(io.BytesIO(result))
         assert len(reader.pages) == 2
         mock_cover.exists.assert_called()
@@ -926,7 +926,6 @@ class TestMergeWithCovers:
         content = self._make_pdf_bytes(2)
         result = ProposalPdfService._merge_with_covers(content)
 
-        from pypdf import PdfReader
         reader = PdfReader(io.BytesIO(result))
         assert len(reader.pages) == 3  # 1 cover + 2 content
         mock_cover.exists.assert_called()
@@ -948,12 +947,56 @@ class TestMergeWithCovers:
         content = self._make_pdf_bytes(1)
         result = ProposalPdfService._merge_with_covers(content)
 
-        from pypdf import PdfReader
         reader = PdfReader(io.BytesIO(result))
         assert len(reader.pages) == 1  # only content, corrupt cover skipped
         mock_cover.exists.assert_called()
 
         corrupt_path.unlink(missing_ok=True)
+
+    def _make_letter_cover_path(self):
+        """Create a LETTER-size cover PDF on disk and return its path."""
+        buf = io.BytesIO()
+        c = canvas.Canvas(buf, pagesize=LETTER)
+        c.drawString(100, 400, 'Cover page in Letter size')
+        c.showPage()
+        c.save()
+        path = Path('/tmp/test_cover_letter.pdf')
+        path.write_bytes(buf.getvalue())
+        return path
+
+    @patch('content.services.proposal_pdf_service.BACK_COVER_PDF')
+    @patch('content.services.proposal_pdf_service.COVER_PDF')
+    def test_letter_cover_merged_produces_two_pages(self, mock_cover, mock_back):
+        """A Letter-size cover merges with 1 content page → 2 pages total."""
+        cover_path = self._make_letter_cover_path()
+        mock_cover.exists.return_value = True
+        mock_cover.__str__ = MagicMock(return_value=str(cover_path))
+        mock_back.exists.return_value = False
+
+        result = ProposalPdfService._merge_with_covers(self._make_pdf_bytes(1))
+        reader = PdfReader(io.BytesIO(result))
+        assert len(reader.pages) == 2
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
+
+        cover_path.unlink(missing_ok=True)
+
+    @patch('content.services.proposal_pdf_service.BACK_COVER_PDF')
+    @patch('content.services.proposal_pdf_service.COVER_PDF')
+    def test_letter_cover_scaled_to_a4_dimensions(self, mock_cover, mock_back):
+        """scale_to normalises Letter-size cover page to A4 (≈595×842 pt)."""
+        cover_path = self._make_letter_cover_path()
+        mock_cover.exists.return_value = True
+        mock_cover.__str__ = MagicMock(return_value=str(cover_path))
+        mock_back.exists.return_value = False
+
+        result = ProposalPdfService._merge_with_covers(self._make_pdf_bytes(1))
+        cover_page = PdfReader(io.BytesIO(result)).pages[0]
+        assert abs(float(cover_page.mediabox.width) - 595.0) < 2
+        assert abs(float(cover_page.mediabox.height) - 842.0) < 2
+        mock_cover.exists.assert_called()
+
+        cover_path.unlink(missing_ok=True)
 
 
 # ── generate_to_file tests ───────────────────────────────────

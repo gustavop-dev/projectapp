@@ -363,6 +363,82 @@ class TestBulkReorderSections:
 
 
 # ---------------------------------------------------------------------------
+# create_proposal_from_json
+# ---------------------------------------------------------------------------
+
+class TestCreateProposalFromJSON:
+    def _minimal_payload(self):
+        """Return a minimal valid create-from-json payload."""
+        return {
+            'title': 'JSON Proposal',
+            'client_name': 'JSON Client',
+            'sections': {
+                'general': {'clientName': 'JSON Client'},
+            },
+        }
+
+    def test_creates_proposal_returns_201(self, admin_client):
+        url = reverse('create-proposal-from-json')
+        response = admin_client.post(url, self._minimal_payload(), format='json')
+        assert response.status_code == 201
+
+    def test_creates_proposal_with_correct_title(self, admin_client):
+        url = reverse('create-proposal-from-json')
+        response = admin_client.post(url, self._minimal_payload(), format='json')
+        assert response.data['title'] == 'JSON Proposal'
+
+    def test_creates_default_12_sections(self, admin_client):
+        url = reverse('create-proposal-from-json')
+        response = admin_client.post(url, self._minimal_payload(), format='json')
+        assert response.status_code == 201
+        assert len(response.data['sections']) == 12
+
+    def test_greeting_section_has_client_name(self, admin_client):
+        url = reverse('create-proposal-from-json')
+        payload = self._minimal_payload()
+        payload['sections']['general']['clientName'] = 'JSON Client'
+        response = admin_client.post(url, payload, format='json')
+        sections = {s['section_type']: s for s in response.data['sections']}
+        assert sections['greeting']['content_json']['clientName'] == 'JSON Client'
+
+    def test_custom_section_content_overrides_default(self, admin_client):
+        url = reverse('create-proposal-from-json')
+        payload = self._minimal_payload()
+        payload['sections']['executiveSummary'] = {
+            'title': 'Custom Summary',
+            'paragraphs': ['Custom paragraph.'],
+        }
+        response = admin_client.post(url, payload, format='json')
+        assert response.status_code == 201
+        sections = {s['section_type']: s for s in response.data['sections']}
+        assert sections['executive_summary']['content_json']['title'] == 'Custom Summary'
+
+    def test_returns_400_for_missing_general_key(self, admin_client):
+        url = reverse('create-proposal-from-json')
+        payload = {
+            'title': 'Bad Proposal',
+            'client_name': 'Client',
+            'sections': {'executiveSummary': {}},
+        }
+        response = admin_client.post(url, payload, format='json')
+        assert response.status_code == 400
+
+    def test_returns_403_for_non_admin(self, api_client, db):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.create_user(username='nonadmin', password='pass')
+        api_client.force_authenticate(user=user)
+        url = reverse('create-proposal-from-json')
+        response = api_client.post(url, self._minimal_payload(), format='json')
+        assert response.status_code == 403
+
+    def test_returns_401_for_unauthenticated(self, api_client):
+        url = reverse('create-proposal-from-json')
+        response = api_client.post(url, self._minimal_payload(), format='json')
+        assert response.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
 # Auth check
 # ---------------------------------------------------------------------------
 

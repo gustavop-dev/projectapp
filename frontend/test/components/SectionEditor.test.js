@@ -660,15 +660,23 @@ describe('formToReadableText', () => {
     expect(text).toContain('co-creación');
   });
 
-  it('generates text for functional_requirements with groups and modules', () => {
+  it('generates text for functional_requirements including title, intro and group overviews', () => {
     const form = buildFormFromJson(functionalRequirementsJson, 'functional_requirements');
     const text = formToReadableText(form, 'functional_requirements');
+    expect(text).toContain('Requerimientos');
     expect(text).toContain('Detalle de requerimientos.');
     expect(text).toContain('Vistas');
-    expect(text).toContain('**Home**');
-    expect(text).toContain('**Contacto**');
+    expect(text).toContain('Pantallas.');
     expect(text).toContain('Analytics');
-    expect(text).toContain('**Reports**');
+    expect(text).toContain('Dashboard.');
+  });
+
+  it('generates text for functional_requirements excluding individual items', () => {
+    const form = buildFormFromJson(functionalRequirementsJson, 'functional_requirements');
+    const text = formToReadableText(form, 'functional_requirements');
+    expect(text).not.toContain('**Home**');
+    expect(text).not.toContain('**Contacto**');
+    expect(text).not.toContain('**Reports**');
   });
 
   it('generates text for development_stages', () => {

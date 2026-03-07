@@ -20,7 +20,7 @@ const BARE_DOMAIN_RE = /(?<![\/\w@])([a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.(
  * @returns {string} HTML string with URLs wrapped in <a> tags.
  */
 export function linkify(text) {
-  if (!text || typeof text !== 'string') return text || '';
+  if (!text || typeof text !== 'string') return '';
 
   // Step 1: replace full URLs first
   let result = text.replace(FULL_URL_RE, (url) => {

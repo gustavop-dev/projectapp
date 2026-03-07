@@ -261,6 +261,58 @@ describe('useProposalStore', () => {
     });
   });
 
+  describe('createProposalFromJSON', () => {
+    it('calls create-from-json endpoint with full payload', async () => {
+      const responseData = { id: 20, title: 'From JSON', sections: [] };
+      create_request.mockResolvedValue({ data: responseData });
+
+      const jsonData = {
+        title: 'From JSON',
+        client_name: 'JSON Client',
+        sections: { general: { clientName: 'JSON Client' } },
+      };
+      const result = await store.createProposalFromJSON(jsonData);
+
+      expect(create_request).toHaveBeenCalledWith('proposals/create-from-json/', jsonData);
+      expect(store.currentProposal).toEqual(responseData);
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(responseData);
+    });
+
+    it('sets isUpdating true during request and false after', async () => {
+      let capturedUpdating = false;
+      create_request.mockImplementation(() => {
+        capturedUpdating = store.isUpdating;
+        return Promise.resolve({ data: { id: 21, sections: [] } });
+      });
+
+      await store.createProposalFromJSON({ title: 'X', sections: { general: { clientName: 'X' } } });
+
+      expect(capturedUpdating).toBe(true);
+      expect(store.isUpdating).toBe(false);
+    });
+
+    it('returns failure and sets error on network error', async () => {
+      create_request.mockRejectedValue(new Error('network error'));
+
+      const result = await store.createProposalFromJSON({ sections: {} });
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('create_from_json_failed');
+    });
+
+    it('returns validation errors from response data on 400', async () => {
+      create_request.mockRejectedValue({
+        response: { data: { sections: ['general key required'] } },
+      });
+
+      const result = await store.createProposalFromJSON({});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual({ sections: ['general key required'] });
+    });
+  });
+
   describe('updateProposal', () => {
     it('updates proposal metadata', async () => {
       const updated = { id: 1, title: 'Updated' };

@@ -6,6 +6,7 @@ from content.models import ProposalSection
 from content.serializers.proposal import (
     ProposalCreateUpdateSerializer,
     ProposalDetailSerializer,
+    ProposalFromJSONSerializer,
     ProposalListSerializer,
     ProposalSectionUpdateSerializer,
 )
@@ -127,3 +128,77 @@ class TestProposalDetailSerializerComputedFields:
             proposal, context={'is_admin': True}
         )
         assert 'public_url' in serializer.data
+
+
+class TestProposalFromJSONSerializer:
+    """Validation tests for ProposalFromJSONSerializer."""
+
+    def _valid_payload(self, **overrides):
+        """Return a minimal valid payload."""
+        data = {
+            'title': 'Test Proposal',
+            'client_name': 'Test Client',
+            'sections': {
+                'general': {'clientName': 'Test Client'},
+            },
+        }
+        data.update(overrides)
+        return data
+
+    def test_valid_minimal_payload_is_valid(self):
+        serializer = ProposalFromJSONSerializer(data=self._valid_payload())
+        assert serializer.is_valid(), serializer.errors
+
+    def test_missing_general_key_is_invalid(self):
+        payload = self._valid_payload()
+        payload['sections'] = {'executiveSummary': {'title': 'Summary'}}
+        serializer = ProposalFromJSONSerializer(data=payload)
+        assert not serializer.is_valid()
+        assert 'sections' in serializer.errors
+
+    def test_general_without_client_name_is_invalid(self):
+        payload = self._valid_payload()
+        payload['sections'] = {'general': {'clientName': ''}}
+        serializer = ProposalFromJSONSerializer(data=payload)
+        assert not serializer.is_valid()
+        assert 'sections' in serializer.errors
+
+    def test_general_with_non_dict_value_is_invalid(self):
+        payload = self._valid_payload()
+        payload['sections'] = {'general': 'not a dict'}
+        serializer = ProposalFromJSONSerializer(data=payload)
+        assert not serializer.is_valid()
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_future_expires_at_is_valid(self):
+        payload = self._valid_payload(expires_at='2026-06-01T12:00:00Z')
+        serializer = ProposalFromJSONSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_past_expires_at_is_invalid(self):
+        payload = self._valid_payload(expires_at='2026-01-01T12:00:00Z')
+        serializer = ProposalFromJSONSerializer(data=payload)
+        assert not serializer.is_valid()
+        assert 'expires_at' in serializer.errors
+
+    def test_null_expires_at_is_accepted(self):
+        payload = self._valid_payload(expires_at=None)
+        serializer = ProposalFromJSONSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+
+    def test_meta_key_stripped_from_sections(self):
+        payload = self._valid_payload()
+        payload['sections']['_meta'] = {'version': '1.0'}
+        serializer = ProposalFromJSONSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+        assert '_meta' not in serializer.validated_data['sections']
+
+    def test_full_payload_with_multiple_sections_is_valid(self):
+        payload = self._valid_payload()
+        payload['sections'].update({
+            'executiveSummary': {'title': 'Summary', 'paragraphs': []},
+            'investment': {'totalInvestment': '$5,000,000', 'currency': 'COP'},
+        })
+        serializer = ProposalFromJSONSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors

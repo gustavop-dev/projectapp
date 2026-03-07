@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 1.1.0
-> **Last updated:** 2026-03-05
+> **Version:** 1.2.0
+> **Last updated:** 2026-07-11
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -308,6 +308,48 @@
 - **Branches:**
   - [Branch A — Proposal expired] Expired proposal page renders with expiration message.
   - [Branch B — Proposal not found] 404 or error page renders.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-view.spec.js`
+
+### FLOW: `proposal-view-navigation`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P1
+- **Routes:** `/proposal/:uuid`
+- **Description:** Navigate between proposal sections using prev/next arrow buttons and the ProposalIndex side panel. Includes SectionNavButtons (with `hideLeft` when index is open), ProposalIndex (floating hamburger menu listing all sections), and SectionCounter.
+- **Steps:**
+  1. User opens the proposal URL.
+  2. First section renders. Next button (`nav-side--right`) is visible; Prev button absent.
+  3. User clicks next button → transition animation → second section renders.
+  4. Prev button (`nav-side--left`) now visible.
+  5. User clicks hamburger toggle (`.index-toggle`) → ProposalIndex panel opens.
+  6. While index is open, prev button is hidden (`hideLeft` prop).
+  7. User clicks an index item → navigates directly to that section → index closes.
+  8. On last panel (proposal_closing), next button disappears.
+- **Branches:**
+  - [Branch A — Index navigation] User jumps to any section via ProposalIndex.
+  - [Branch B — Sequential navigation] User steps through each section one by one.
+  - [Branch C — Mobile swipe] Touch swipe left/right triggers navigation.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-view-navigation.spec.js`
+
+### FLOW: `proposal-view-onboarding`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P3
+- **Routes:** `/proposal/:uuid`
+- **Description:** First-visit tutorial overlay (ProposalOnboarding component) that shows step-by-step tooltips guiding the client through the proposal interface. After completion, a reading-time popup appears.
+- **Steps:**
+  1. User opens the proposal for the first time.
+  2. ProposalOnboarding overlay appears with first tooltip step.
+  3. User clicks through each onboarding step.
+  4. Onboarding completes and emits `@complete` event.
+  5. Reading time popup appears: "Tiempo de lectura: ~7 minutos".
+  6. User clicks "Entendido" to dismiss popup.
+- **Branches:**
+  - [Branch A — Returning visitor] Onboarding is skipped if already seen (localStorage flag).
 - **Coverage:** ❌ Missing
 
 ### FLOW: `proposal-respond`
@@ -316,16 +358,19 @@
 - **Role:** guest (via shared UUID link)
 - **Priority:** P1
 - **Routes:** `/proposal/:uuid`
-- **Description:** Client responds to (accepts/rejects) a business proposal.
+- **Description:** Client responds to (accepts/rejects) a business proposal from the ProposalClosing panel.
 - **Steps:**
-  1. User views the proposal (follows `proposal-view` steps 1-5).
-  2. User clicks the respond/accept button.
-  3. API call to `POST /api/proposals/:uuid/respond/`.
-  4. Success feedback displays.
+  1. User views the proposal and navigates to the closing panel.
+  2. Accept/reject buttons visible when `proposal.status` is `sent` or `viewed`.
+  3. User clicks "Acepto la propuesta" → confirmation modal opens.
+  4. User confirms → API call to `POST /api/proposals/:uuid/respond/` with `decision: accepted`.
+  5. Success state: "¡Propuesta aceptada!" message renders.
 - **Branches:**
-  - [Branch A — Accept] Client accepts the proposal → status updates.
-  - [Branch B — Reject] Client rejects the proposal → status updates.
-- **Coverage:** ❌ Missing
+  - [Branch A — Accept] Client clicks accept → confirm modal → API → success emoji + message.
+  - [Branch B — Reject] Client clicks "Rechazar propuesta" → reject modal (select reason + comment) → API → thank-you message.
+  - [Branch C — Already responded] Buttons hidden, status message shown.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-respond.spec.js`
 
 ### FLOW: `proposal-download-pdf`
 
@@ -392,17 +437,42 @@
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/proposals/create`
-- **Description:** Create a new business proposal with sections and requirements.
+- **Description:** Create a new business proposal (manual mode) with 12 auto-generated default sections.
 - **Steps:**
   1. Admin navigates to `/panel/proposals/create`.
-  2. Proposal form renders with fields (title, client, language, sections).
-  3. Admin fills in proposal details.
-  4. Admin adds sections with requirement groups and items.
-  5. Admin submits the form.
-  6. API call to `POST /api/proposals/create/`.
-  7. On success, admin is redirected to proposal list or edit page.
+  2. Page loads with Manual / Importar JSON tab toggle.
+  3. Manual tab is active by default — form renders with Título, Nombre del cliente, Email del cliente, Idioma, etc.
+  4. Admin fills in the fields and submits.
+  5. API call to `POST /api/proposals/create/`.
+  6. Backend auto-creates 12 default sections and returns the full proposal.
+  7. Admin is redirected to `/panel/proposals/:id/edit`.
 - **Branches:**
   - [Branch A — Validation error] Form shows errors, admin corrects and resubmits.
+  - [Branch B — JSON import] Admin switches to "Importar JSON" tab (see `admin-proposal-create-from-json`).
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-create.spec.js`
+
+### FLOW: `admin-proposal-create-from-json`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/proposals/create` (JSON import tab)
+- **Description:** Admin creates a proposal by importing a pre-filled JSON payload (e.g., exported from a template). All 12 section `content_json` values are provided in the payload. Missing sections fall back to defaults.
+- **Steps:**
+  1. Admin navigates to `/panel/proposals/create`.
+  2. Admin clicks "Importar JSON" tab.
+  3. JSON textarea/file input appears.
+  4. Admin pastes or loads a valid JSON payload (must include `sections.general.clientName`).
+  5. Admin submits.
+  6. API call to `POST /api/proposals/create-from-json/` with `ProposalFromJSONSerializer` validation.
+  7. Backend creates proposal + all 12 sections with the provided `content_json`.
+  8. Admin is redirected to `/panel/proposals/:id/edit`.
+- **Branches:**
+  - [Branch A — Missing general key] Validation error `sections.general required`.
+  - [Branch B — Past expires_at] Validation error on date.
+  - [Branch C — Partial sections] Unspecified sections default to template defaults.
+  - [Branch D — `_meta` key] Stripped from sections before saving.
 - **Coverage:** ❌ Missing
 
 ### FLOW: `admin-proposal-edit`
@@ -566,7 +636,8 @@
   3. API call to `POST /api/proposals/:id/send/`.
   4. Email is sent to the client with the proposal link.
   5. Success feedback displays.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-send.spec.js`
 
 ### FLOW: `admin-blog-list`
 
@@ -654,13 +725,16 @@
 | `public-contact-submit` | public | guest | P1 | ❌ Missing | — |
 | `blog-list` | blog | guest | P2 | ❌ Missing | — |
 | `blog-detail` | blog | guest | P2 | ❌ Missing | — |
-| `proposal-view` | proposal | guest | P1 | ❌ Missing | — |
-| `proposal-respond` | proposal | guest | P1 | ❌ Missing | — |
-| `proposal-download-pdf` | proposal | guest | P2 | ❌ Missing | — |
+| `proposal-view` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view.spec.js` |
+| `proposal-view-navigation` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view-navigation.spec.js` |
+| `proposal-view-onboarding` | proposal | guest | P3 | ❌ Missing | — |
+| `proposal-respond` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-respond.spec.js` |
+| `proposal-download-pdf` | proposal | guest | P2 | ⚠️ Partial | `e2e/proposal/proposal-pdf.spec.js` |
 | `admin-login` | auth | admin | P1 | ❌ Missing | — |
 | `admin-dashboard` | admin | admin | P2 | ❌ Missing | — |
 | `admin-proposal-list` | admin | admin | P1 | ❌ Missing | — |
-| `admin-proposal-create` | admin | admin | P1 | ❌ Missing | — |
+| `admin-proposal-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
+| `admin-proposal-create-from-json` | admin | admin | P1 | ❌ Missing | — |
 | `admin-proposal-edit` | admin | admin | P1 | ❌ Missing | — |
 | `admin-proposal-section-edit-form` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-section-form.spec.js` |
 | `admin-proposal-section-edit-paste` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-section-paste.spec.js` |
@@ -668,7 +742,7 @@
 | `admin-proposal-functional-requirements-form` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-requirements.spec.js` |
 | `admin-proposal-functional-requirements-paste` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-requirements.spec.js` |
 | `admin-proposal-delete` | admin | admin | P2 | ❌ Missing | — |
-| `admin-proposal-send` | admin | admin | P1 | ❌ Missing | — |
+| `admin-proposal-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-send.spec.js` |
 | `admin-blog-list` | admin | admin | P2 | ❌ Missing | — |
 | `admin-blog-create` | admin | admin | P2 | ❌ Missing | — |
 | `admin-blog-edit` | admin | admin | P2 | ❌ Missing | — |
@@ -676,13 +750,13 @@
 
 ### Summary
 
-- **Total flows:** 35
-- **P1 (Critical):** 13
+- **Total flows:** 38 (+3 new flows added: proposal-view-navigation, proposal-view-onboarding, admin-proposal-create-from-json)
+- **P1 (Critical):** 16
 - **P2 (High):** 15
 - **P3 (Medium):** 7
-- **Covered (full):** 0 (0%)
-- **Partial:** 4 (11%) — section-edit-form, section-edit-paste, requirements-form, requirements-paste
-- **Missing:** 31 (89%)
+- **Covered (full):** 7 (18%) — proposal-view, proposal-view-navigation, proposal-respond, admin-proposal-create, admin-proposal-send, admin-proposal-section-edit-form (partial→full), admin-proposal-section-edit-paste (partial→full)
+- **Partial:** 3 (8%) — proposal-download-pdf, requirements-form, requirements-paste
+- **Missing:** 28 (74%)
 
 ### Unit Test Coverage
 
