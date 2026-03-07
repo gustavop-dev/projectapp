@@ -1,9 +1,9 @@
 <template>
   <div
     v-if="!isExpired"
-    class="expiration-badge fixed top-16 sm:top-4 left-1/2 -translate-x-1/2 z-40
-           px-3 sm:px-4 py-1.5 sm:py-2 rounded-full backdrop-blur-sm shadow-md border
-           select-none transition-colors duration-300"
+    class="expiration-badge fixed top-4 left-1/2 -translate-x-1/2 z-40
+           px-3 sm:px-4 py-1 sm:py-2 rounded-full backdrop-blur-sm shadow-md border
+           select-none transition-colors duration-300 text-xs sm:text-sm"
     :class="badgeClasses"
   >
     <span class="flex items-center gap-2 text-sm font-medium">

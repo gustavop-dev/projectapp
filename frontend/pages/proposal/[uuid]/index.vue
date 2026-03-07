@@ -413,15 +413,22 @@ onBeforeUnmount(() => {
 }
 
 .panel-container :deep(section:not(.greeting-section)) {
-  scroll-margin-top: 56px;
+  scroll-margin-top: 40px;
 }
 
 .panel-container :deep(.min-h-screen:not(.greeting-section)) {
-  padding-top: 48px;
+  padding-top: 40px;
 }
 
 .panel-container :deep(.greeting-section) {
   padding-top: 0;
+}
+
+/* On mobile, sections that scroll need less top padding since badge is inline */
+@media (max-width: 639px) {
+  .panel-container :deep(section:not(.greeting-section):not(.min-h-screen)) {
+    padding-top: 40px;
+  }
 }
 
 /* Slide left (navigating forward) */

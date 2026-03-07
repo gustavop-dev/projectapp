@@ -43,6 +43,7 @@ defineEmits(['prev', 'next']);
 </script>
 
 <style scoped>
+/* ── Mobile: edge tabs flush against screen border ── */
 .nav-side {
   position: fixed;
   top: 50%;
@@ -51,35 +52,31 @@ defineEmits(['prev', 'next']);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.375rem;
-  padding: 0.5rem;
-  border: 1.5px solid rgba(16, 185, 129, 0.35);
-  border-radius: 9999px;
-  color: rgba(4, 120, 87, 0.7);
-  background: rgba(255, 255, 255, 0.75);
+  padding: 0.75rem 0.375rem;
+  color: rgba(4, 120, 87, 0.8);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(6px);
   cursor: pointer;
   transition: all 0.25s ease;
-}
-
-.nav-side:hover {
-  color: #047857;
-  background: rgba(255, 255, 255, 0.92);
-  border-color: rgba(16, 185, 129, 0.5);
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.15);
-  backdrop-filter: blur(8px);
-}
-
-.nav-side:active {
-  transform: translateY(-50%) scale(0.95);
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .nav-side--left {
-  left: 0.375rem;
+  left: 0;
+  border-left: none;
+  border-radius: 0 0.75rem 0.75rem 0;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
 }
 
 .nav-side--right {
-  right: 0.375rem;
+  right: 0;
+  border-right: none;
+  border-radius: 0.75rem 0 0 0.75rem;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.06);
+}
+
+.nav-side:active {
+  transform: translateY(-50%) scale(0.92);
 }
 
 .nav-blink {
@@ -95,16 +92,28 @@ defineEmits(['prev', 'next']);
   100% { box-shadow: none; }
 }
 
+/* ── Desktop: floating pill buttons with labels ── */
 @media (min-width: 768px) {
   .nav-side {
     padding: 0.625rem 1rem;
     gap: 0.5rem;
+    border: 1.5px solid rgba(16, 185, 129, 0.35);
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.75);
+  }
+  .nav-side:hover {
+    color: #047857;
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(16, 185, 129, 0.5);
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.15);
   }
   .nav-side--left {
     left: 0.75rem;
+    box-shadow: none;
   }
   .nav-side--right {
     right: 0.75rem;
+    box-shadow: none;
   }
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="proposal-index fixed left-0 top-0 z-40 h-full flex items-center">
+  <div class="proposal-index fixed left-0 top-0 z-40">
     <!-- Toggle button (always visible) -->
     <button
       class="index-toggle absolute left-4 top-4 z-50
@@ -20,17 +20,19 @@
     <Transition name="idx-fade">
       <div
         v-if="isOpen"
-        class="fixed inset-0 z-40 bg-white/60 backdrop-blur-[3px]"
+        class="fixed inset-0 z-40 bg-white/60 backdrop-blur-[3px] sm:bg-white/60"
         @click="isOpen = false"
       />
     </Transition>
 
-    <!-- Index panel -->
+    <!-- Index panel: fullscreen on mobile, floating on desktop -->
     <nav
-      class="index-panel ml-3 py-4 px-3 rounded-2xl z-50
-             bg-white/95 backdrop-blur-md shadow-xl border border-gray-100
-             transition-all duration-300 max-h-[70vh] sm:max-h-[80vh] overflow-y-auto"
-      :class="{ 'translate-x-[-120%]': !isOpen }"
+      class="index-panel z-50 bg-white/95 backdrop-blur-md overflow-y-auto transition-all duration-300
+             fixed inset-0 py-16 px-4
+             sm:relative sm:inset-auto sm:ml-3 sm:py-4 sm:px-3 sm:mt-[50vh] sm:-translate-y-1/2
+             sm:rounded-2xl sm:shadow-xl sm:border sm:border-gray-100
+             sm:max-h-[80vh]"
+      :class="isOpen ? '' : 'translate-x-[-120%]'"
     >
       <p class="text-[10px] uppercase tracking-[0.2em] text-emerald-600 font-medium mb-2 px-2">
         Índice
@@ -42,21 +44,21 @@
           class="group"
         >
           <button
-            class="w-full text-left px-2.5 py-1.5 rounded-xl text-sm transition-all duration-200 flex items-center gap-2"
+            class="w-full text-left px-2.5 py-2 sm:py-1.5 rounded-xl text-sm transition-all duration-200 flex items-center gap-2"
             :class="idx === currentIndex
               ? 'bg-emerald-50 text-emerald-700 font-medium'
               : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'"
             @click="$emit('navigate', idx); isOpen = false"
           >
             <span
-              class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0 transition-colors"
+              class="w-6 h-6 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[11px] sm:text-[10px] font-medium flex-shrink-0 transition-colors"
               :class="idx === currentIndex
                 ? 'bg-emerald-600 text-white'
                 : 'bg-gray-200 text-gray-500 group-hover:bg-gray-300'"
             >
               {{ idx + 1 }}
             </span>
-            <span class="leading-tight">{{ section.title }}</span>
+            <span class="leading-tight text-base sm:text-sm">{{ section.title }}</span>
           </button>
         </li>
       </ul>
@@ -87,9 +89,14 @@ watch(isOpen, (val) => emit('update:open', val), { immediate: true });
 
 <style scoped>
 .index-panel {
-  min-width: 180px;
-  max-width: 280px;
   scrollbar-width: none;
+}
+
+@media (min-width: 640px) {
+  .index-panel {
+    min-width: 180px;
+    max-width: 280px;
+  }
 }
 
 .index-panel::-webkit-scrollbar {
