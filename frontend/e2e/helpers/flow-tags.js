@@ -55,3 +55,14 @@ export const ADMIN_BLOG_CREATE = ['@flow:admin-blog-create', '@module:admin', '@
 export const ADMIN_BLOG_CREATE_FROM_JSON = ['@flow:admin-blog-create-from-json', '@module:admin', '@priority:P2'];
 export const ADMIN_BLOG_EDIT = ['@flow:admin-blog-edit', '@module:admin', '@priority:P2'];
 export const ADMIN_BLOG_DELETE = ['@flow:admin-blog-delete', '@module:admin', '@priority:P3'];
+
+// ── Proposal (new) ──
+export const PROPOSAL_SHARE = ['@flow:proposal-share', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_ENGAGEMENT_TRACKING = ['@flow:proposal-engagement-tracking', '@module:proposal', '@priority:P2'];
+
+// ── Admin (new) ──
+export const ADMIN_PROPOSAL_DUPLICATE = ['@flow:admin-proposal-duplicate', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_COMMENT = ['@flow:admin-proposal-comment', '@module:admin', '@priority:P3'];
+export const ADMIN_PROPOSAL_ANALYTICS = ['@flow:admin-proposal-analytics', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_DASHBOARD = ['@flow:admin-proposal-dashboard', '@module:admin', '@priority:P2'];
+export const ADMIN_MINI_CRM_CLIENTS = ['@flow:admin-mini-crm-clients', '@module:admin', '@priority:P2'];

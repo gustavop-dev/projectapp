@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 1.2.0
-> **Last updated:** 2026-07-11
+> **Version:** 1.3.0
+> **Last updated:** 2026-03-07
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -78,7 +78,8 @@
 - **Branches:**
   - [Branch A] User switches language via locale switcher → page reloads in selected locale (`/en-us/` or `/es-co/`).
   - [Branch B] User clicks WhatsApp button → external link opens.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/layout/layout-navbar.spec.js`
 
 ### FLOW: `layout-locale-switch`
 
@@ -92,7 +93,8 @@
   2. User selects a different language.
   3. URL updates with the new locale prefix.
   4. Page content re-renders in the selected language.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/layout/layout-locale.spec.js`
 
 ### FLOW: `layout-footer-navigation`
 
@@ -105,7 +107,8 @@
   1. User scrolls to the footer section.
   2. User clicks a footer link (social media, navigation, or contact).
   3. Page navigates or external link opens.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/layout/layout-footer.spec.js`
 
 ---
 
@@ -131,7 +134,8 @@
 - **Branches:**
   - [Branch A] User fills contact form → form submits via API → success feedback.
   - [Branch B] User clicks "Book a Call" → external booking link opens.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/public/public-home.spec.js`
 
 ### FLOW: `public-portfolio`
 
@@ -145,7 +149,8 @@
   2. Portfolio works load from API (`GET /api/portfolio_works/`).
   3. Portfolio grid renders with project cards.
   4. User views project details (images, descriptions).
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/public/public-pages.spec.js`
 
 ### FLOW: `public-web-designs`
 
@@ -158,7 +163,8 @@
   1. User navigates to the web designs page.
   2. Design data loads from API (`GET /api/designs/`).
   3. Design showcase renders.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/public/public-pages.spec.js`
 
 ### FLOW: `public-3d-animations`
 
@@ -171,7 +177,8 @@
   1. User navigates to the 3D animations page.
   2. 3D model data loads from API (`GET /api/models3d/`).
   3. 3D animation showcase renders.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/public/public-pages.spec.js`
 
 ### FLOW: `public-hosting`
 
@@ -184,7 +191,8 @@
   1. User navigates to the hosting page.
   2. Hosting plans load from API (`GET /api/hostings/`).
   3. Hosting plans render with pricing details.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/public/public-pages.spec.js`
 
 ### FLOW: `public-ecommerce-prices`
 
@@ -197,7 +205,8 @@
   1. User navigates to the e-commerce prices page.
   2. Product/pricing data loads from API (`GET /api/products/`).
   3. Pricing cards render.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/public/public-pages.spec.js`
 
 ### FLOW: `public-custom-software`
 
@@ -209,7 +218,8 @@
 - **Steps:**
   1. User navigates to the custom software page.
   2. Service information renders.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/public/public-pages.spec.js`
 
 ### FLOW: `public-about-us`
 
@@ -221,7 +231,8 @@
 - **Steps:**
   1. User navigates to the about us page.
   2. About us content renders.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/public/public-pages.spec.js`
 
 ### FLOW: `public-landing-web-design`
 
@@ -236,7 +247,8 @@
   3. Contact form section renders.
 - **Branches:**
   - [Branch A] User submits contact form → API call → success feedback.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/public/public-pages.spec.js`
 
 ### FLOW: `public-contact-submit`
 
@@ -255,7 +267,8 @@
 - **Branches:**
   - [Branch A — Validation error] Form shows inline validation errors, user corrects and resubmits.
   - [Branch B — API error] Error message displays, form remains editable.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/public/public-contact.spec.js`
 
 ### FLOW: `blog-list`
 
@@ -269,7 +282,8 @@
   2. Blog posts load from API (`GET /api/blog/?lang=es|en`).
   3. Post grid renders with titles, excerpts, and cover images.
   4. Language is resolved from the URL locale prefix.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/blog/blog-list.spec.js`
 
 ### FLOW: `blog-detail`
 
@@ -285,7 +299,8 @@
   4. Navigation back to blog listing is available.
 - **Branches:**
   - [Branch A — Post not found] 404 page or error message displays.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/blog/blog-detail.spec.js`
 
 ---
 
@@ -384,6 +399,41 @@
   2. User clicks the download PDF button.
   3. API call to `GET /api/proposals/:uuid/pdf/`.
   4. PDF file downloads to user's device.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-pdf.spec.js`
+
+### FLOW: `proposal-share`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** Client shares the proposal with a team member or stakeholder via the share button. A tracked share link is created, and the recipient receives an email notification.
+- **Steps:**
+  1. User views the proposal.
+  2. User clicks the share button (ShareProposalButton component).
+  3. User fills in recipient name and email.
+  4. API call to `POST /api/proposals/:uuid/share/`.
+  5. Backend creates a ProposalShareLink record.
+  6. Share notification email is sent to the recipient.
+  7. Success feedback displays.
+- **Coverage:** ❌ Missing
+
+### FLOW: `proposal-engagement-tracking`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** Automatic tracking of client engagement while viewing a proposal. The frontend composable `useProposalTracking` sends section-level time data to the backend, which records view events and section views, detects stakeholders by IP, and triggers smart follow-up alerts.
+- **Steps:**
+  1. User opens a proposal page.
+  2. `useProposalTracking` composable initializes and generates a session ID.
+  3. As user navigates sections, time spent per section is recorded.
+  4. Periodically, engagement data is sent via `POST /api/proposals/:uuid/track/`.
+  5. Backend creates/updates ProposalViewEvent and ProposalSectionView records.
+  6. [Optional] If ≥3 unique sessions detected, a revisit alert email is sent to the admin.
+  7. [Optional] If a new IP is detected, a stakeholder detection alert is sent.
 - **Coverage:** ❌ Missing
 
 ---
@@ -403,7 +453,8 @@
   3. User authenticates via Django Admin (`/admin/`).
   4. Auth check verifies session (`GET /api/auth/check/`).
   5. User is redirected to `/panel/` dashboard.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/auth/auth-admin-login.spec.js`
 
 ### FLOW: `admin-dashboard`
 
@@ -416,7 +467,8 @@
   1. Authenticated admin navigates to `/panel/`.
   2. Dashboard renders with summary data.
   3. Quick links to proposal and blog management are available.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
 
 ### FLOW: `admin-proposal-list`
 
@@ -429,7 +481,8 @@
   1. Admin navigates to `/panel/proposals/`.
   2. Proposals load from API (`GET /api/proposals/`).
   3. Proposal table renders with status, client, dates.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-list.spec.js`
 
 ### FLOW: `admin-proposal-create`
 
@@ -493,7 +546,8 @@
 - **Branches:**
   - [Branch A] Admin reorders sections → `POST /api/proposals/:id/reorder-sections/`.
   - [Branch B] Admin updates individual section → `PATCH /api/proposals/sections/:id/update/`.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-edit.spec.js`
 
 ### FLOW: `admin-proposal-section-edit-form`
 
@@ -563,7 +617,8 @@
   2. Admin changes the order of sections.
   3. API call to `POST /api/proposals/:id/reorder-sections/` with `{ sections: [{id, order}] }`.
   4. Sections re-render in the new order.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-section-reorder.spec.js`
 
 ### FLOW: `admin-proposal-functional-requirements-form`
 
@@ -621,6 +676,87 @@
   4. Admin confirms deletion.
   5. API call to `DELETE /api/proposals/:id/delete/`.
   6. Proposal is removed from the list.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-delete.spec.js`
+
+### FLOW: `admin-proposal-duplicate`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/`
+- **Description:** Duplicate an existing proposal to create a new draft copy with the same sections and content.
+- **Steps:**
+  1. Admin views the proposal list or detail page.
+  2. Admin clicks "Duplicar" on a proposal.
+  3. API call to `POST /api/proposals/:id/duplicate/`.
+  4. Backend creates a new proposal with status=draft, copying all sections and content.
+  5. Admin is redirected to the new proposal's edit page.
+- **Coverage:** ❌ Missing
+
+### FLOW: `admin-proposal-comment`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/proposals/:id/edit`
+- **Description:** Add internal comments to a proposal for team collaboration.
+- **Steps:**
+  1. Admin opens a proposal in edit mode.
+  2. Admin writes a comment in the comment field.
+  3. API call to `POST /api/proposals/:id/comment/`.
+  4. Comment is saved and a changelog entry is created.
+  5. Comment notification email is sent to the client.
+- **Coverage:** ❌ Missing
+
+### FLOW: `admin-proposal-analytics`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/:id/edit` (Analytics tab)
+- **Description:** View detailed analytics for a single proposal including engagement funnel, section time heatmap, device breakdown, shared links, session history, suggested actions, and CSV export.
+- **Steps:**
+  1. Admin opens a proposal and navigates to the Analytics tab.
+  2. ProposalAnalytics component loads data from `GET /api/proposals/:id/analytics/`.
+  3. Summary cards render (views, unique sessions, avg time, bounce rate).
+  4. Comparison badges show performance vs portfolio average.
+  5. Engagement funnel visualization renders (Sent → Viewed → Engaged → Responded).
+  6. Section time heatmap shows color-coded bars per section.
+  7. Shared links table renders if any ProposalShareLinks exist.
+  8. Activity timeline and session history display.
+  9. [Optional] Admin clicks "Exportar CSV" to download analytics data.
+- **Coverage:** ❌ Missing
+
+### FLOW: `admin-proposal-dashboard`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/` (Dashboard KPI section)
+- **Description:** View global KPI dashboard for all proposals: total proposals, conversion rate, average time to first view, average time to response, average value by status, status distribution, top rejection reasons, monthly trends, and discount vs no-discount close rates.
+- **Steps:**
+  1. Admin navigates to `/panel/`.
+  2. ProposalDashboard component loads data from `GET /api/proposals/dashboard/`.
+  3. KPI cards render with total proposals, conversion rate, avg time metrics.
+  4. Status distribution chart renders.
+  5. Top rejection reasons list renders.
+  6. Monthly trend data renders.
+- **Coverage:** ❌ Missing
+
+### FLOW: `admin-mini-crm-clients`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/clients/`
+- **Description:** View a Mini-CRM client list grouped by client email, with proposal history, statistics, and search functionality.
+- **Steps:**
+  1. Admin navigates to `/panel/clients/`.
+  2. Client list loads from `GET /api/proposals/clients/`.
+  3. Clients render with stats (total, accepted, rejected, pending proposals).
+  4. Admin searches clients by name or email.
+  5. Admin expands a client row to view individual proposals.
 - **Coverage:** ❌ Missing
 
 ### FLOW: `admin-proposal-send`
@@ -650,7 +786,8 @@
   1. Admin navigates to `/panel/blog/`.
   2. Blog posts load from API (`GET /api/blog/admin/`).
   3. Blog table renders with title_es, title_en, status, dates.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-blog-list.spec.js`
 
 ### FLOW: `admin-blog-create`
 
@@ -669,7 +806,8 @@
   7. On success, admin is redirected to blog list.
 - **Branches:**
   - [Branch A — Validation error] Form shows errors, admin corrects and resubmits.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-blog-create.spec.js`
 
 ### FLOW: `admin-blog-edit`
 
@@ -686,7 +824,8 @@
   5. Admin saves changes.
   6. API call to `PATCH /api/blog/admin/:id/update/`.
   7. Success feedback displays.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-blog-edit.spec.js`
 
 ### FLOW: `admin-blog-delete`
 
@@ -702,6 +841,23 @@
   4. Admin confirms deletion.
   5. API call to `DELETE /api/blog/admin/:id/delete/`.
   6. Blog post is removed from the list.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-blog-delete.spec.js`
+
+### FLOW: `admin-blog-create-from-json`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/blog/create` (JSON import tab)
+- **Description:** Create a blog post by importing a structured JSON payload with content_json sections, template download, validation, and preview.
+- **Steps:**
+  1. Admin navigates to `/panel/blog/create`.
+  2. Admin clicks "Importar JSON" tab.
+  3. Admin pastes or uploads a valid JSON payload.
+  4. Admin submits.
+  5. API call to `POST /api/blog/admin/create/` with structured content_json.
+  6. On success, admin is redirected to blog list.
 - **Coverage:** ❌ Missing
 
 ---
@@ -710,58 +866,69 @@
 
 | Flow ID | Module | Role | Priority | Coverage | E2E Spec |
 |---------|--------|------|----------|----------|----------|
-| `layout-navbar-navigation` | layout | guest/admin | P2 | ❌ Missing | — |
-| `layout-locale-switch` | layout | guest/admin | P2 | ❌ Missing | — |
-| `layout-footer-navigation` | layout | guest/admin | P3 | ❌ Missing | — |
-| `public-home` | public | guest | P1 | ❌ Missing | — |
-| `public-portfolio` | public | guest | P2 | ❌ Missing | — |
-| `public-web-designs` | public | guest | P2 | ❌ Missing | — |
-| `public-3d-animations` | public | guest | P3 | ❌ Missing | — |
-| `public-hosting` | public | guest | P3 | ❌ Missing | — |
-| `public-ecommerce-prices` | public | guest | P3 | ❌ Missing | — |
-| `public-custom-software` | public | guest | P3 | ❌ Missing | — |
-| `public-about-us` | public | guest | P3 | ❌ Missing | — |
-| `public-landing-web-design` | public | guest | P2 | ❌ Missing | — |
-| `public-contact-submit` | public | guest | P1 | ❌ Missing | — |
-| `blog-list` | blog | guest | P2 | ❌ Missing | — |
-| `blog-detail` | blog | guest | P2 | ❌ Missing | — |
+| `layout-navbar-navigation` | layout | guest/admin | P2 | ✅ Covered | `e2e/layout/layout-navbar.spec.js` |
+| `layout-locale-switch` | layout | guest/admin | P2 | ✅ Covered | `e2e/layout/layout-locale.spec.js` |
+| `layout-footer-navigation` | layout | guest/admin | P3 | ✅ Covered | `e2e/layout/layout-footer.spec.js` |
+| `public-home` | public | guest | P1 | ✅ Covered | `e2e/public/public-home.spec.js` |
+| `public-portfolio` | public | guest | P2 | ✅ Covered | `e2e/public/public-pages.spec.js` |
+| `public-web-designs` | public | guest | P2 | ✅ Covered | `e2e/public/public-pages.spec.js` |
+| `public-3d-animations` | public | guest | P3 | ✅ Covered | `e2e/public/public-pages.spec.js` |
+| `public-hosting` | public | guest | P3 | ✅ Covered | `e2e/public/public-pages.spec.js` |
+| `public-ecommerce-prices` | public | guest | P3 | ✅ Covered | `e2e/public/public-pages.spec.js` |
+| `public-custom-software` | public | guest | P3 | ✅ Covered | `e2e/public/public-pages.spec.js` |
+| `public-about-us` | public | guest | P3 | ✅ Covered | `e2e/public/public-pages.spec.js` |
+| `public-landing-web-design` | public | guest | P2 | ✅ Covered | `e2e/public/public-pages.spec.js` |
+| `public-contact-submit` | public | guest | P1 | ✅ Covered | `e2e/public/public-contact.spec.js` |
+| `blog-list` | blog | guest | P2 | ✅ Covered | `e2e/blog/blog-list.spec.js` |
+| `blog-detail` | blog | guest | P2 | ✅ Covered | `e2e/blog/blog-detail.spec.js` |
 | `proposal-view` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view.spec.js` |
 | `proposal-view-navigation` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view-navigation.spec.js` |
 | `proposal-view-onboarding` | proposal | guest | P3 | ❌ Missing | — |
 | `proposal-respond` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-respond.spec.js` |
-| `proposal-download-pdf` | proposal | guest | P2 | ⚠️ Partial | `e2e/proposal/proposal-pdf.spec.js` |
-| `admin-login` | auth | admin | P1 | ❌ Missing | — |
-| `admin-dashboard` | admin | admin | P2 | ❌ Missing | — |
-| `admin-proposal-list` | admin | admin | P1 | ❌ Missing | — |
+| `proposal-download-pdf` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-pdf.spec.js` |
+| `proposal-share` | proposal | guest | P2 | ❌ Missing | — |
+| `proposal-engagement-tracking` | proposal | guest | P2 | ❌ Missing | — |
+| `admin-login` | auth | admin | P1 | ✅ Covered | `e2e/auth/auth-admin-login.spec.js` |
+| `admin-dashboard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
+| `admin-proposal-list` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
 | `admin-proposal-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-proposal-create-from-json` | admin | admin | P1 | ❌ Missing | — |
-| `admin-proposal-edit` | admin | admin | P1 | ❌ Missing | — |
+| `admin-proposal-edit` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-edit.spec.js` |
 | `admin-proposal-section-edit-form` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-section-form.spec.js` |
 | `admin-proposal-section-edit-paste` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-section-paste.spec.js` |
-| `admin-proposal-section-reorder` | admin | admin | P2 | ❌ Missing | — |
+| `admin-proposal-section-reorder` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-section-reorder.spec.js` |
 | `admin-proposal-functional-requirements-form` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-requirements.spec.js` |
 | `admin-proposal-functional-requirements-paste` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-requirements.spec.js` |
-| `admin-proposal-delete` | admin | admin | P2 | ❌ Missing | — |
+| `admin-proposal-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-delete.spec.js` |
+| `admin-proposal-duplicate` | admin | admin | P2 | ❌ Missing | — |
+| `admin-proposal-comment` | admin | admin | P3 | ❌ Missing | — |
+| `admin-proposal-analytics` | admin | admin | P2 | ❌ Missing | — |
+| `admin-proposal-dashboard` | admin | admin | P2 | ❌ Missing | — |
+| `admin-mini-crm-clients` | admin | admin | P2 | ❌ Missing | — |
 | `admin-proposal-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-send.spec.js` |
-| `admin-blog-list` | admin | admin | P2 | ❌ Missing | — |
-| `admin-blog-create` | admin | admin | P2 | ❌ Missing | — |
-| `admin-blog-edit` | admin | admin | P2 | ❌ Missing | — |
-| `admin-blog-delete` | admin | admin | P3 | ❌ Missing | — |
+| `admin-blog-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-list.spec.js` |
+| `admin-blog-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-create.spec.js` |
+| `admin-blog-create-from-json` | admin | admin | P2 | ❌ Missing | — |
+| `admin-blog-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-edit.spec.js` |
+| `admin-blog-delete` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-blog-delete.spec.js` |
 
 ### Summary
 
-- **Total flows:** 38 (+3 new flows added: proposal-view-navigation, proposal-view-onboarding, admin-proposal-create-from-json)
+- **Total flows:** 47 (+9 new flows: proposal-share, proposal-engagement-tracking, admin-proposal-duplicate, admin-proposal-comment, admin-proposal-analytics, admin-proposal-dashboard, admin-mini-crm-clients, admin-blog-create-from-json)
 - **P1 (Critical):** 16
-- **P2 (High):** 15
-- **P3 (Medium):** 7
-- **Covered (full):** 7 (18%) — proposal-view, proposal-view-navigation, proposal-respond, admin-proposal-create, admin-proposal-send, admin-proposal-section-edit-form (partial→full), admin-proposal-section-edit-paste (partial→full)
-- **Partial:** 3 (8%) — proposal-download-pdf, requirements-form, requirements-paste
-- **Missing:** 28 (74%)
+- **P2 (High):** 22
+- **P3 (Medium):** 9
+- **Covered (full):** 30 (64%)
+- **Partial:** 4 (9%) — section-edit-form, section-edit-paste, requirements-form, requirements-paste
+- **Missing:** 13 (28%) — proposal-view-onboarding, proposal-share, proposal-engagement-tracking, admin-proposal-create-from-json, admin-proposal-duplicate, admin-proposal-comment, admin-proposal-analytics, admin-proposal-dashboard, admin-mini-crm-clients, admin-blog-create-from-json, +3 more
 
 ### Unit Test Coverage
 
 | Test File | Layer | Tests | Scope |
 |-----------|-------|-------|-------|
 | `test/components/SectionEditor.test.js` | Frontend unit | 97 | All 12 section types: formToJson, buildFormFromJson, round-trips, formToReadableText, buildSavePayload, edge cases |
+| `test/composables/useProposalTracking.test.js` | Frontend unit | — | Engagement tracking composable |
+| `test/stores/proposals.test.js` | Frontend unit | — | Proposal store actions including analytics, dashboard, clients, share, duplicate |
+| `content/tests/views/test_proposal_views.py` | Backend view | 102 | Full proposal API: CRUD, respond, track, analytics, dashboard, clients, share, duplicate, comment, CSV |
 | `content/tests/views/test_section_update_views.py` | Backend view | 22 | PATCH per section type + paste mode + group paste |
 | `content/tests/models/test_section_content_json.py` | Backend model | ~40 | DB round-trip for all 12 types |

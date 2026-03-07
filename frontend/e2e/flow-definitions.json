@@ -1,6 +1,6 @@
 {
-  "version": "2.1.0",
-  "lastUpdated": "2026-03-04",
+  "version": "2.2.0",
+  "lastUpdated": "2026-03-07",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -281,6 +281,62 @@
       "roles": ["admin"],
       "priority": "P3",
       "description": "Delete an existing blog post.",
+      "expectedSpecs": 1
+    },
+    "proposal-share": {
+      "name": "Proposal Share",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Client shares the proposal with a stakeholder via tracked share link.",
+      "expectedSpecs": 1
+    },
+    "proposal-engagement-tracking": {
+      "name": "Proposal Engagement Tracking",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Automatic section-level engagement tracking with stakeholder detection and follow-up alerts.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-duplicate": {
+      "name": "Admin Proposal Duplicate",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Duplicate an existing proposal to create a new draft copy.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-comment": {
+      "name": "Admin Proposal Comment",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P3",
+      "description": "Add internal comments to a proposal for team collaboration.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-analytics": {
+      "name": "Admin Proposal Analytics",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "View detailed analytics for a single proposal: funnel, heatmap, sessions, CSV export.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-dashboard": {
+      "name": "Admin Proposal Dashboard",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "View global KPI dashboard for all proposals: conversion rate, trends, rejection reasons.",
+      "expectedSpecs": 1
+    },
+    "admin-mini-crm-clients": {
+      "name": "Admin Mini-CRM Clients",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "View client list grouped by email with proposal history and search.",
       "expectedSpecs": 1
     }
   }
