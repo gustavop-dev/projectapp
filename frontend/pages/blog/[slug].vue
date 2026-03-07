@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-white" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="min-h-screen bg-esmerald-light" itemscope itemtype="https://schema.org/BlogPosting">
     <!-- Navbar -->
     <header class="fixed top-0 left-0 w-full z-50">
       <Navbar />
@@ -265,6 +265,16 @@ const CATEGORY_LABELS = {
   'case-study': { es: 'Casos de Éxito', en: 'Case Studies' },
   ai: { es: 'IA', en: 'AI' },
   development: { es: 'Desarrollo', en: 'Development' },
+  marketing: { es: 'Marketing Digital', en: 'Digital Marketing' },
+  startup: { es: 'Startups', en: 'Startups' },
+  productivity: { es: 'Productividad', en: 'Productivity' },
+  security: { es: 'Ciberseguridad', en: 'Cybersecurity' },
+  cloud: { es: 'Cloud & DevOps', en: 'Cloud & DevOps' },
+  data: { es: 'Datos & Analytics', en: 'Data & Analytics' },
+  'no-code': { es: 'No-Code / Low-Code', en: 'No-Code / Low-Code' },
+  trends: { es: 'Tendencias', en: 'Trends' },
+  'e-commerce': { es: 'E-Commerce', en: 'E-Commerce' },
+  'ux-ui': { es: 'UX / UI', en: 'UX / UI' },
 };
 
 function formatCategory(cat) {

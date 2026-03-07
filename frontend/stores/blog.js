@@ -240,6 +240,40 @@ export const useBlogStore = defineStore('blog', {
     },
 
     /**
+     * uploadCoverImage: Upload a cover image file for a blog post.
+     * @param {number} id - Post ID.
+     * @param {File} file - Image file to upload.
+     */
+    async uploadCoverImage(id, file) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const formData = new FormData();
+        formData.append('cover_image', file);
+        const csrfToken = document.cookie
+          .split('; ')
+          .find((c) => c.startsWith('csrftoken='))
+          ?.split('=')[1] || '';
+        const response = await fetch(`/api/blog/admin/${id}/upload-cover/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrfToken },
+          body: formData,
+        });
+        if (!response.ok) throw new Error('Upload failed');
+        const data = await response.json();
+        this.currentPost = data;
+        return { success: true, data };
+      } catch (error) {
+        this.error = 'upload_failed';
+        console.error('Error uploading cover image:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
      * downloadJSONTemplate: Fetch the blog JSON template from the API.
      */
     async downloadJSONTemplate() {

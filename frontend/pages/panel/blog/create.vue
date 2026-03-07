@@ -78,6 +78,16 @@
             <option value="case-study">Case Study</option>
             <option value="ai">AI</option>
             <option value="development">Development</option>
+            <option value="marketing">Digital Marketing</option>
+            <option value="startup">Startups</option>
+            <option value="productivity">Productivity</option>
+            <option value="security">Cybersecurity</option>
+            <option value="cloud">Cloud & DevOps</option>
+            <option value="data">Data & Analytics</option>
+            <option value="no-code">No-Code / Low-Code</option>
+            <option value="trends">Trends</option>
+            <option value="e-commerce">E-Commerce</option>
+            <option value="ux-ui">UX / UI</option>
           </select>
         </div>
         <div>
@@ -95,9 +105,9 @@
 
       <!-- Cover image URL -->
       <div>
-        <label for="cover_image" class="block text-sm font-medium text-gray-700 mb-1">Imagen de portada (URL)</label>
-        <input id="cover_image" v-model="form.cover_image" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://example.com/image.jpg (opcional)" />
-        <p class="text-xs text-gray-400 mt-1">Dejar vacío si no hay imagen disponible aún.</p>
+        <label for="cover_image_url" class="block text-sm font-medium text-gray-700 mb-1">Imagen de portada (URL)</label>
+        <input id="cover_image_url" v-model="form.cover_image_url" type="url" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://example.com/image.jpg (opcional)" />
+        <p class="text-xs text-gray-400 mt-1">También puedes subir un archivo después de crear el post desde la vista de edición.</p>
       </div>
 
       <!-- Sources -->
@@ -202,6 +212,16 @@
                 <option value="case-study">Case Study</option>
                 <option value="ai">AI</option>
                 <option value="development">Development</option>
+                <option value="marketing">Digital Marketing</option>
+                <option value="startup">Startups</option>
+                <option value="productivity">Productivity</option>
+                <option value="security">Cybersecurity</option>
+                <option value="cloud">Cloud & DevOps</option>
+                <option value="data">Data & Analytics</option>
+                <option value="no-code">No-Code / Low-Code</option>
+                <option value="trends">Trends</option>
+                <option value="e-commerce">E-Commerce</option>
+                <option value="ux-ui">UX / UI</option>
               </select>
             </div>
             <div>
@@ -256,7 +276,7 @@ const form = reactive({
   excerpt_en: '',
   content_es: '',
   content_en: '',
-  cover_image: '',
+  cover_image_url: '',
   sources: [],
   category: '',
   read_time_minutes: 0,
@@ -282,7 +302,7 @@ async function handleSubmit() {
     is_featured: form.is_featured,
     is_published: form.is_published,
   };
-  if (form.cover_image) payload.cover_image = form.cover_image;
+  if (form.cover_image_url) payload.cover_image_url = form.cover_image_url;
 
   const result = await blogStore.createPost(payload);
   if (result.success) {
@@ -377,7 +397,7 @@ async function handleJsonSubmit() {
     excerpt_en: p.excerpt_en || '',
     content_json_es: p.content_json_es,
     content_json_en: p.content_json_en || {},
-    cover_image: p.cover_image || '',
+    cover_image_url: p.cover_image_url || p.cover_image || '',
     sources: p.sources || [],
     category: jsonMeta.category,
     read_time_minutes: jsonMeta.read_time_minutes,

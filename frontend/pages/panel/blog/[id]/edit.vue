@@ -35,6 +35,16 @@
             <option value="case-study">Case Study</option>
             <option value="ai">AI</option>
             <option value="development">Development</option>
+            <option value="marketing">Digital Marketing</option>
+            <option value="startup">Startups</option>
+            <option value="productivity">Productivity</option>
+            <option value="security">Cybersecurity</option>
+            <option value="cloud">Cloud & DevOps</option>
+            <option value="data">Data & Analytics</option>
+            <option value="no-code">No-Code / Low-Code</option>
+            <option value="trends">Trends</option>
+            <option value="e-commerce">E-Commerce</option>
+            <option value="ux-ui">UX / UI</option>
           </select>
         </div>
         <div>
@@ -95,40 +105,68 @@
 
       <!-- SEO Section (collapsible) -->
       <details class="border border-gray-200 rounded-xl">
-        <summary class="text-sm font-medium text-gray-700 px-5 py-3 cursor-pointer select-none">SEO (opcional)</summary>
-        <div class="px-5 pb-5 space-y-4">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <summary class="text-sm font-medium text-gray-700 px-5 py-4 cursor-pointer select-none">SEO (opcional)</summary>
+        <div class="px-5 pb-6 space-y-6">
+          <div class="space-y-4">
             <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Meta título (ES)</label>
-              <input v-model="form.meta_title_es" type="text" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+              <label class="block text-sm font-medium text-gray-700 mb-1">Meta título (ES)</label>
+              <input v-model="form.meta_title_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Título SEO en español (60 caracteres recomendado)" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Meta title (EN)</label>
-              <input v-model="form.meta_title_en" type="text" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+              <label class="block text-sm font-medium text-gray-700 mb-1">Meta title (EN)</label>
+              <input v-model="form.meta_title_en" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="SEO title in English (60 characters recommended)" />
             </div>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="space-y-4">
             <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Meta descripción (ES)</label>
-              <textarea v-model="form.meta_description_es" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" />
+              <label class="block text-sm font-medium text-gray-700 mb-1">Meta descripción (ES)</label>
+              <textarea v-model="form.meta_description_es" rows="4" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Descripción SEO en español (150-160 caracteres recomendado)" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Meta description (EN)</label>
-              <textarea v-model="form.meta_description_en" rows="2" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" />
+              <label class="block text-sm font-medium text-gray-700 mb-1">Meta description (EN)</label>
+              <textarea v-model="form.meta_description_en" rows="4" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="SEO description in English (150-160 characters recommended)" />
             </div>
           </div>
         </div>
       </details>
 
-      <!-- Cover image URL -->
-      <div>
-        <label for="cover_image" class="block text-sm font-medium text-gray-700 mb-1">Imagen de portada (URL)</label>
-        <input id="cover_image" v-model="form.cover_image" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://example.com/image.jpg" />
-        <div v-if="form.cover_image" class="mt-2 rounded-lg overflow-hidden border border-gray-200 max-w-sm">
-          <img :src="form.cover_image" alt="Preview" class="w-full h-auto" @error="imgError = true" />
+      <!-- Cover image -->
+      <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
+        <legend class="text-sm font-medium text-gray-700 px-2">Imagen de portada</legend>
+
+        <!-- File upload -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Subir archivo</label>
+          <div class="flex items-center gap-3">
+            <label class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+              Seleccionar imagen
+              <input type="file" accept="image/*" class="hidden" @change="handleCoverUpload" />
+            </label>
+            <span v-if="uploadFileName" class="text-xs text-gray-500">{{ uploadFileName }}</span>
+            <span v-if="isUploading" class="text-xs text-emerald-600">Subiendo...</span>
+          </div>
+        </div>
+
+        <!-- OR divider -->
+        <div class="flex items-center gap-3">
+          <div class="flex-1 border-t border-gray-200" />
+          <span class="text-xs text-gray-400">o pegar URL externa</span>
+          <div class="flex-1 border-t border-gray-200" />
+        </div>
+
+        <!-- URL input -->
+        <div>
+          <label for="cover_image_url" class="block text-sm font-medium text-gray-700 mb-1">URL de imagen</label>
+          <input id="cover_image_url" v-model="form.cover_image_url" type="url" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://example.com/image.jpg" />
+        </div>
+
+        <!-- Preview -->
+        <div v-if="coverImagePreview" class="mt-2 rounded-xl overflow-hidden border border-gray-200 max-w-md">
+          <img :src="coverImagePreview" alt="Preview" class="w-full h-auto" @error="imgError = true" />
           <p v-if="imgError" class="text-xs text-red-400 p-2">No se pudo cargar la imagen.</p>
         </div>
-      </div>
+      </fieldset>
 
       <!-- Sources -->
       <div>
@@ -186,6 +224,8 @@ const loaded = ref(false);
 const errorMsg = ref('');
 const successMsg = ref('');
 const imgError = ref(false);
+const uploadFileName = ref('');
+const isUploading = ref(false);
 
 const form = reactive({
   title_es: '',
@@ -198,6 +238,7 @@ const form = reactive({
   content_json_es_raw: '',
   content_json_en_raw: '',
   cover_image: '',
+  cover_image_url: '',
   sources: [],
   category: '',
   read_time_minutes: 0,
@@ -238,7 +279,8 @@ function populateForm(data) {
   form.content_en = data.content_en || '';
   form.content_json_es_raw = jsonToStr(data.content_json_es);
   form.content_json_en_raw = jsonToStr(data.content_json_en);
-  form.cover_image = data.cover_image || '';
+  form.cover_image = data.cover_image_display || data.cover_image || '';
+  form.cover_image_url = data.cover_image_url || '';
   form.sources = Array.isArray(data.sources)
     ? data.sources.map(s => ({ ...s }))
     : [];
@@ -252,9 +294,27 @@ function populateForm(data) {
   form.meta_description_en = data.meta_description_en || '';
 }
 
-watch(() => form.cover_image, () => {
+const coverImagePreview = computed(() => form.cover_image || form.cover_image_url || '');
+
+watch(() => form.cover_image_url, () => {
   imgError.value = false;
 });
+
+async function handleCoverUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  uploadFileName.value = file.name;
+  isUploading.value = true;
+  const result = await blogStore.uploadCoverImage(route.params.id, file);
+  isUploading.value = false;
+  if (result.success) {
+    form.cover_image = result.data.cover_image_display || '';
+    successMsg.value = 'Imagen subida correctamente.';
+    setTimeout(() => { successMsg.value = ''; }, 3000);
+  } else {
+    errorMsg.value = 'Error al subir la imagen.';
+  }
+}
 
 function addSource() {
   form.sources.push({ name: '', url: '' });
@@ -289,8 +349,8 @@ async function handleSubmit() {
     meta_description_en: form.meta_description_en,
   };
 
-  if (form.cover_image) {
-    payload.cover_image = form.cover_image;
+  if (form.cover_image_url) {
+    payload.cover_image_url = form.cover_image_url;
   }
 
   const result = await blogStore.updatePost(route.params.id, payload);

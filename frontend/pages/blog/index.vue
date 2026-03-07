@@ -1,13 +1,16 @@
 <template>
-  <div class="min-h-screen bg-white" itemscope itemtype="https://schema.org/Blog">
+  <div class="min-h-screen bg-esmerald-light" itemscope itemtype="https://schema.org/Blog">
     <!-- Navbar -->
     <header class="fixed top-0 left-0 w-full z-50">
       <Navbar />
     </header>
 
     <!-- Hero Section -->
-    <section class="pt-32 sm:pt-40 pb-16 sm:pb-20 px-4 sm:px-6" aria-labelledby="blog-title">
-      <div class="max-w-7xl mx-auto">
+    <section class="relative pt-32 sm:pt-40 pb-16 sm:pb-20 px-4 sm:px-6 overflow-hidden" aria-labelledby="blog-title">
+      <!-- Subtle decorative circles -->
+      <div class="absolute top-20 -left-32 w-96 h-96 bg-esmerald/5 rounded-full blur-3xl" />
+      <div class="absolute top-40 -right-32 w-80 h-80 bg-lemon/10 rounded-full blur-3xl" />
+      <div class="max-w-7xl mx-auto relative">
         <div class="text-center mb-16">
           <h1
             id="blog-title"
@@ -39,10 +42,10 @@
             </div>
           </div>
 
-          <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+          <div class="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0 sm:flex-wrap sm:justify-center sm:overflow-visible scrollbar-hide">
             <button
               :class="[
-                'px-4 sm:px-6 py-2.5 sm:py-3 rounded-full transition-all hover:scale-105 border-2 text-sm sm:text-base',
+                'flex-shrink-0 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full transition-all hover:scale-105 border-2 text-sm sm:text-base whitespace-nowrap',
                 selectedCategory === ''
                   ? 'bg-esmerald text-white border-esmerald font-medium'
                   : 'bg-white text-green-light border-gray-200 font-regular hover:border-esmerald/40'
@@ -55,7 +58,7 @@
               v-for="cat in availableCategories"
               :key="cat"
               :class="[
-                'px-4 sm:px-6 py-2.5 sm:py-3 rounded-full transition-all hover:scale-105 border-2 text-sm sm:text-base capitalize',
+                'flex-shrink-0 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full transition-all hover:scale-105 border-2 text-sm sm:text-base capitalize whitespace-nowrap',
                 selectedCategory === cat
                   ? 'bg-esmerald text-white border-esmerald font-medium'
                   : 'bg-white text-green-light border-gray-200 font-regular hover:border-esmerald/40'
@@ -355,6 +358,16 @@ const CATEGORY_LABELS = {
   'case-study': { es: 'Casos de Éxito', en: 'Case Studies' },
   ai: { es: 'IA', en: 'AI' },
   development: { es: 'Desarrollo', en: 'Development' },
+  marketing: { es: 'Marketing Digital', en: 'Digital Marketing' },
+  startup: { es: 'Startups', en: 'Startups' },
+  productivity: { es: 'Productividad', en: 'Productivity' },
+  security: { es: 'Ciberseguridad', en: 'Cybersecurity' },
+  cloud: { es: 'Cloud & DevOps', en: 'Cloud & DevOps' },
+  data: { es: 'Datos & Analytics', en: 'Data & Analytics' },
+  'no-code': { es: 'No-Code / Low-Code', en: 'No-Code / Low-Code' },
+  trends: { es: 'Tendencias', en: 'Trends' },
+  'e-commerce': { es: 'E-Commerce', en: 'E-Commerce' },
+  'ux-ui': { es: 'UX / UI', en: 'UX / UI' },
 };
 
 function formatCategory(cat) {
@@ -386,3 +399,8 @@ function formatDateShort(dateStr) {
   });
 }
 </script>
+
+<style scoped>
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
