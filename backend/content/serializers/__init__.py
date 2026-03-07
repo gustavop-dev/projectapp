@@ -12,5 +12,7 @@ from .proposal import (
 )
 from .blog import (
     BlogPostListSerializer, BlogPostDetailSerializer,
-    BlogPostCreateUpdateSerializer,
+    BlogPostCreateUpdateSerializer, BlogPostFromJSONSerializer,
+    BlogPostAdminListSerializer, BlogPostAdminDetailSerializer,
+    BLOG_JSON_TEMPLATE,
 )

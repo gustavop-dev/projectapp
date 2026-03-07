@@ -44,7 +44,12 @@ describe('useBlogStore', () => {
   });
 
   describe('getters', () => {
-    it('featuredPost returns first post', () => {
+    it('featuredPost returns post with is_featured flag', () => {
+      store.posts = [{ id: 1 }, { id: 2, is_featured: true }, { id: 3 }];
+      expect(store.featuredPost).toEqual({ id: 2, is_featured: true });
+    });
+
+    it('featuredPost falls back to first post when none is_featured', () => {
       store.posts = [{ id: 1 }, { id: 2 }];
       expect(store.featuredPost).toEqual({ id: 1 });
     });
@@ -53,9 +58,33 @@ describe('useBlogStore', () => {
       expect(store.featuredPost).toBeNull();
     });
 
-    it('otherPosts returns all except first', () => {
+    it('otherPosts returns all except the featured one', () => {
+      store.posts = [{ id: 1 }, { id: 2, is_featured: true }, { id: 3 }];
+      expect(store.otherPosts).toEqual([{ id: 1 }, { id: 3 }]);
+    });
+
+    it('otherPosts returns all except first when none is_featured', () => {
       store.posts = [{ id: 1 }, { id: 2 }, { id: 3 }];
       expect(store.otherPosts).toEqual([{ id: 2 }, { id: 3 }]);
+    });
+
+    it('otherPosts returns empty array when no posts', () => {
+      store.posts = [];
+      expect(store.otherPosts).toEqual([]);
+    });
+
+    it('categories returns unique sorted category values', () => {
+      store.posts = [
+        { id: 1, category: 'design' },
+        { id: 2, category: 'ai' },
+        { id: 3, category: 'design' },
+        { id: 4, category: '' },
+      ];
+      expect(store.categories).toEqual(['ai', 'design']);
+    });
+
+    it('categories returns empty array when no posts', () => {
+      expect(store.categories).toEqual([]);
     });
 
     it('getPostById finds post by id', () => {
@@ -280,6 +309,60 @@ describe('useBlogStore', () => {
       expect(result.success).toBe(false);
       expect(store.error).toBe('delete_failed');
       expect(store.isUpdating).toBe(false);
+    });
+
+    it('createPostFromJSON sends payload and sets currentPost', async () => {
+      const newPost = { id: 20, title_es: 'JSON Post' };
+      create_request.mockResolvedValue({ data: newPost });
+
+      const result = await store.createPostFromJSON({ title_es: 'JSON Post', content_json_es: {} });
+
+      expect(create_request).toHaveBeenCalledWith(
+        'blog/admin/create-from-json/',
+        { title_es: 'JSON Post', content_json_es: {} },
+      );
+      expect(store.currentPost).toEqual(newPost);
+      expect(result.success).toBe(true);
+    });
+
+    it('createPostFromJSON handles error', async () => {
+      create_request.mockRejectedValue({
+        response: { data: { content_json_es: ['Invalid'] } },
+      });
+
+      const result = await store.createPostFromJSON({});
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('create_failed');
+      expect(store.isUpdating).toBe(false);
+    });
+
+    it('createPostFromJSON handles error without response property', async () => {
+      create_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.createPostFromJSON({});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toBeUndefined();
+    });
+
+    it('downloadJSONTemplate returns template data', async () => {
+      const templateData = { title_es: 'Template', content_json_es: { intro: 'I' } };
+      get_request.mockResolvedValue({ data: templateData });
+
+      const result = await store.downloadJSONTemplate();
+
+      expect(get_request).toHaveBeenCalledWith('blog/admin/json-template/');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(templateData);
+    });
+
+    it('downloadJSONTemplate handles error', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.downloadJSONTemplate();
+
+      expect(result.success).toBe(false);
     });
   });
 });

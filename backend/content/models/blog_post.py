@@ -10,7 +10,24 @@ class BlogPost(models.Model):
     Each post has a title, slug (auto-generated), cover image,
     excerpt for cards/listing, full HTML content, and a JSON list
     of sources consulted (each with name and url).
+
+    Supports two content formats:
+    - HTML (content_es / content_en) — legacy plain HTML.
+    - Structured JSON (content_json_es / content_json_en) — rich
+      sections with headings, lists, timelines, subsections, etc.
+      When present, the frontend renders the JSON; otherwise it
+      falls back to HTML via v-html.
     """
+
+    CATEGORY_CHOICES = [
+        ('technology', 'Technology'),
+        ('design', 'Design'),
+        ('guides', 'Guides'),
+        ('business', 'Business'),
+        ('case-study', 'Case Study'),
+        ('ai', 'AI'),
+        ('development', 'Development'),
+    ]
 
     title_es = models.CharField(max_length=255)
     title_en = models.CharField(max_length=255)
@@ -23,15 +40,56 @@ class BlogPost(models.Model):
         help_text='Short summary in English (1-2 sentences).'
     )
     content_es = models.TextField(
+        blank=True, default='',
         help_text='Contenido completo del artículo en HTML (español).'
     )
     content_en = models.TextField(
+        blank=True, default='',
         help_text='Full article content in HTML (English).'
+    )
+    content_json_es = models.JSONField(
+        default=dict, blank=True,
+        help_text='Structured JSON content in Spanish (intro, sections, conclusion, cta).'
+    )
+    content_json_en = models.JSONField(
+        default=dict, blank=True,
+        help_text='Structured JSON content in English (intro, sections, conclusion, cta).'
     )
     sources = models.JSONField(
         default=list, blank=True,
         help_text='List of {name, url} objects for consulted sources.'
     )
+
+    category = models.CharField(
+        max_length=50, blank=True, default='',
+        help_text='Category slug for filtering (e.g. technology, design, guides).'
+    )
+    read_time_minutes = models.PositiveIntegerField(
+        default=0,
+        help_text='Estimated reading time in minutes.'
+    )
+    is_featured = models.BooleanField(
+        default=False,
+        help_text='Pin this post as the featured/hero post on the blog listing.'
+    )
+
+    meta_title_es = models.CharField(
+        max_length=255, blank=True, default='',
+        help_text='SEO title override in Spanish.'
+    )
+    meta_title_en = models.CharField(
+        max_length=255, blank=True, default='',
+        help_text='SEO title override in English.'
+    )
+    meta_description_es = models.TextField(
+        blank=True, default='',
+        help_text='SEO meta description in Spanish.'
+    )
+    meta_description_en = models.TextField(
+        blank=True, default='',
+        help_text='SEO meta description in English.'
+    )
+
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
 

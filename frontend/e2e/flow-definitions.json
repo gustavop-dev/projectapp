@@ -111,7 +111,7 @@
       "module": "blog",
       "roles": ["guest"],
       "priority": "P2",
-      "description": "Browse the blog post listing with bilingual support.",
+      "description": "Browse the blog listing with search, category filters, featured hero post, and responsive grid/mobile cards.",
       "expectedSpecs": 1
     },
     "blog-detail": {
@@ -119,7 +119,7 @@
       "module": "blog",
       "roles": ["guest"],
       "priority": "P2",
-      "description": "Read a single blog post with bilingual content.",
+      "description": "Read a blog post with structured JSON content (sections, timelines, lists, subsections) or HTML fallback, sources, share, related posts.",
       "expectedSpecs": 1
     },
     "proposal-view": {
@@ -212,11 +212,19 @@
       "expectedSpecs": 1
     },
     "admin-blog-create": {
-      "name": "Admin Blog Create",
+      "name": "Admin Blog Create (Manual)",
       "module": "admin",
       "roles": ["admin"],
       "priority": "P2",
-      "description": "Create a new bilingual blog post.",
+      "description": "Create a new bilingual blog post via manual form with category, readTime, featured, SEO fields.",
+      "expectedSpecs": 1
+    },
+    "admin-blog-create-from-json": {
+      "name": "Admin Blog Create (JSON Import)",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Create a blog post by importing a structured JSON payload with content_json sections, template download, validation, and preview.",
       "expectedSpecs": 1
     },
     "admin-blog-edit": {
@@ -224,7 +232,7 @@
       "module": "admin",
       "roles": ["admin"],
       "priority": "P2",
-      "description": "Edit an existing bilingual blog post.",
+      "description": "Edit an existing blog post including new fields: category, readTime, isFeatured, content_json, SEO meta.",
       "expectedSpecs": 1
     },
     "admin-proposal-section-edit-form": {

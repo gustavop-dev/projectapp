@@ -12,7 +12,9 @@ from content.serializers.blog import (
     BlogPostAdminListSerializer,
     BlogPostCreateUpdateSerializer,
     BlogPostDetailSerializer,
+    BlogPostFromJSONSerializer,
     BlogPostListSerializer,
+    BLOG_JSON_TEMPLATE,
 )
 
 logger = logging.getLogger(__name__)
@@ -121,3 +123,69 @@ def delete_blog_post(request, post_id):
     post = get_object_or_404(BlogPost, pk=post_id)
     post.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def create_blog_post_from_json(request):
+    """
+    Create a blog post from a complete JSON payload.
+
+    Mirrors the proposal create-from-json pattern: accepts metadata
+    and structured content_json in a single request.
+    """
+    serializer = BlogPostFromJSONSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    data = serializer.validated_data
+    post = BlogPost.objects.create(
+        title_es=data['title_es'],
+        title_en=data['title_en'],
+        excerpt_es=data['excerpt_es'],
+        excerpt_en=data['excerpt_en'],
+        content_json_es=data['content_json_es'],
+        content_json_en=data.get('content_json_en') or {},
+        sources=data.get('sources', []),
+        category=data.get('category', ''),
+        read_time_minutes=data.get('read_time_minutes', 0),
+        is_featured=data.get('is_featured', False),
+        is_published=data.get('is_published', False),
+        meta_title_es=data.get('meta_title_es', ''),
+        meta_title_en=data.get('meta_title_en', ''),
+        meta_description_es=data.get('meta_description_es', ''),
+        meta_description_en=data.get('meta_description_en', ''),
+    )
+
+    detail = BlogPostAdminDetailSerializer(post)
+    return Response(detail.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_blog_json_template(request):
+    """
+    Return a downloadable JSON template for blog post creation.
+    Includes all section types with placeholder content.
+    """
+    import copy
+    template = {
+        'title_es': 'Título del artículo en español',
+        'title_en': 'Article title in English',
+        'excerpt_es': 'Resumen corto en español (1-2 oraciones).',
+        'excerpt_en': 'Short summary in English (1-2 sentences).',
+        'content_json_es': copy.deepcopy(BLOG_JSON_TEMPLATE),
+        'content_json_en': copy.deepcopy(BLOG_JSON_TEMPLATE),
+        'sources': [
+            {'name': 'Source Name', 'url': 'https://example.com'},
+        ],
+        'category': 'technology',
+        'read_time_minutes': 8,
+        'is_featured': False,
+        'is_published': False,
+        'meta_title_es': '',
+        'meta_title_en': '',
+        'meta_description_es': '',
+        'meta_description_en': '',
+    }
+    return Response(template, status=status.HTTP_200_OK)

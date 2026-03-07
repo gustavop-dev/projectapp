@@ -22,14 +22,30 @@ export const useBlogStore = defineStore('blog', {
 
   getters: {
     /**
-     * featuredPost: The most recent published post (first in the list).
+     * featuredPost: Post explicitly marked as featured, or the most recent.
      */
-    featuredPost: (state) => state.posts[0] || null,
+    featuredPost: (state) => {
+      const pinned = state.posts.find((p) => p.is_featured);
+      return pinned || state.posts[0] || null;
+    },
 
     /**
      * otherPosts: All posts except the featured one.
      */
-    otherPosts: (state) => state.posts.slice(1),
+    otherPosts(state) {
+      const featured = this.featuredPost;
+      if (!featured) return state.posts;
+      return state.posts.filter((p) => p.id !== featured.id);
+    },
+
+    /**
+     * categories: Unique category values extracted from the post list.
+     */
+    categories: (state) => {
+      const cats = new Set();
+      state.posts.forEach((p) => { if (p.category) cats.add(p.category); });
+      return [...cats].sort();
+    },
 
     /**
      * getPostById: Find a post in the list by its ID.
@@ -199,6 +215,40 @@ export const useBlogStore = defineStore('blog', {
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
+      }
+    },
+
+    /**
+     * createPostFromJSON: Create a blog post from a full JSON payload.
+     * @param {object} payload - Full blog JSON including content_json.
+     */
+    async createPostFromJSON(payload) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request('blog/admin/create-from-json/', payload);
+        this.currentPost = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'create_failed';
+        console.error('Error creating blog post from JSON:', error);
+        return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * downloadJSONTemplate: Fetch the blog JSON template from the API.
+     */
+    async downloadJSONTemplate() {
+      try {
+        const response = await get_request('blog/admin/json-template/');
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error downloading blog JSON template:', error);
+        return { success: false };
       }
     },
   },

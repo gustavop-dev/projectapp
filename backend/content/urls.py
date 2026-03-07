@@ -16,7 +16,8 @@ from content.views.proposal import (
 )
 from content.views.blog import (
     list_blog_posts, retrieve_blog_post,
-    list_admin_blog_posts, create_blog_post,
+    list_admin_blog_posts, create_blog_post, create_blog_post_from_json,
+    get_blog_json_template,
     retrieve_admin_blog_post, update_blog_post, delete_blog_post,
 )
 
@@ -56,6 +57,8 @@ urlpatterns = [
     # Blog — admin CRUD (must come before slug catch-all)
     path('blog/admin/', list_admin_blog_posts, name='list-admin-blog-posts'),
     path('blog/admin/create/', create_blog_post, name='create-blog-post'),
+    path('blog/admin/create-from-json/', create_blog_post_from_json, name='create-blog-post-from-json'),
+    path('blog/admin/json-template/', get_blog_json_template, name='blog-json-template'),
     path('blog/admin/<int:post_id>/detail/', retrieve_admin_blog_post, name='retrieve-admin-blog-post'),
     path('blog/admin/<int:post_id>/update/', update_blog_post, name='update-blog-post'),
     path('blog/admin/<int:post_id>/delete/', delete_blog_post, name='delete-blog-post'),

@@ -214,6 +214,102 @@ SOURCES_POOL = [
     {'name': 'Wired', 'url': 'https://www.wired.com/tag/artificial-intelligence/'},
 ]
 
+CATEGORIES = ['technology', 'design', 'guides', 'business', 'case-study', 'ai', 'development']
+
+CONTENT_JSON_TEMPLATES_ES = [
+    {
+        'intro': 'La inteligencia artificial continúa evolucionando a un ritmo impresionante con implicaciones profundas para múltiples industrias.',
+        'sections': [
+            {'heading': 'Contexto y antecedentes', 'content': 'Durante los últimos meses, hemos sido testigos de una aceleración sin precedentes en el desarrollo de modelos de IA.'},
+            {'heading': 'Beneficios clave', 'list': ['Mayor eficiencia operativa', 'Reducción de costos', 'Automatización inteligente', 'Análisis predictivo avanzado']},
+            {'heading': 'Proceso de implementación', 'timeline': [
+                {'step': 'Evaluación inicial', 'description': 'Analizar las necesidades y oportunidades de IA en tu negocio.'},
+                {'step': 'Diseño de solución', 'description': 'Crear una arquitectura personalizada basada en los requisitos.'},
+                {'step': 'Desarrollo e integración', 'description': 'Implementar y conectar con los sistemas existentes.'},
+            ]},
+            {'heading': 'Casos de uso', 'examples': ['Chatbots con IA para atención al cliente', 'Sistemas de recomendación personalizados', 'Automatización de procesos repetitivos']},
+        ],
+        'conclusion': 'La IA no es solo una tendencia — es una herramienta fundamental para la competitividad empresarial en 2026.',
+        'cta': '¿Listo para transformar tu negocio con IA? Agenda una consultoría gratuita.',
+    },
+    {
+        'intro': 'El diseño de software moderno exige nuevas metodologías y herramientas que permitan crear productos digitales excepcionales.',
+        'sections': [
+            {'heading': 'El estado del arte', 'content': 'Las mejores prácticas de desarrollo han evolucionado significativamente en los últimos años.'},
+            {'heading': 'Tecnologías emergentes', 'subsections': [
+                {'title': 'Frameworks modernos', 'description': 'React, Vue, Next.js y Nuxt dominan el ecosistema frontend con arquitecturas más eficientes.'},
+                {'title': 'Backend escalable', 'description': 'Django, FastAPI y Node.js ofrecen soluciones robustas para APIs y microservicios.'},
+                {'title': 'DevOps y CI/CD', 'description': 'Automatización de despliegues con GitHub Actions, Docker y Kubernetes.'},
+            ]},
+            {'heading': 'Mejores prácticas', 'list': ['Testing automatizado desde el día 1', 'Documentación como código', 'Code reviews obligatorios', 'Monitoreo continuo en producción']},
+        ],
+        'conclusion': 'Invertir en buenas prácticas de desarrollo genera retornos exponenciales en calidad y velocidad de entrega.',
+        'cta': 'Descubre cómo podemos elevar la calidad de tu producto digital.',
+    },
+    {
+        'intro': 'La transformación digital ya no es opcional — es un requisito para la supervivencia empresarial en un mercado cada vez más competitivo.',
+        'sections': [
+            {'heading': '¿Por qué ahora?', 'content': 'Las empresas que no adoptan tecnología digital están perdiendo terreno frente a competidores más ágiles y conectados.'},
+            {'heading': 'Pasos hacia la transformación', 'timeline': [
+                {'step': 'Diagnóstico digital', 'description': 'Evaluar la madurez tecnológica actual de la organización.'},
+                {'step': 'Estrategia digital', 'description': 'Definir objetivos claros y priorizados de transformación.'},
+                {'step': 'Implementación gradual', 'description': 'Ejecutar por fases con medición continua de resultados.'},
+                {'step': 'Optimización continua', 'description': 'Iterar basándose en datos y retroalimentación real.'},
+            ]},
+            {'heading': 'Resultados esperados', 'examples': ['Reducción del 40% en tiempos de respuesta al cliente', 'Aumento del 25% en conversiones digitales', 'Mejora del 60% en eficiencia operativa']},
+        ],
+        'conclusion': 'La transformación digital exitosa combina tecnología, procesos y personas en una estrategia coherente.',
+        'cta': 'Hablemos sobre el futuro digital de tu empresa.',
+    },
+]
+
+CONTENT_JSON_TEMPLATES_EN = [
+    {
+        'intro': 'Artificial intelligence continues to evolve at an impressive pace with profound implications for multiple industries.',
+        'sections': [
+            {'heading': 'Context and Background', 'content': 'Over the past few months, we have witnessed an unprecedented acceleration in AI model development.'},
+            {'heading': 'Key Benefits', 'list': ['Greater operational efficiency', 'Cost reduction', 'Intelligent automation', 'Advanced predictive analytics']},
+            {'heading': 'Implementation Process', 'timeline': [
+                {'step': 'Initial Assessment', 'description': 'Analyze AI needs and opportunities in your business.'},
+                {'step': 'Solution Design', 'description': 'Create a customized architecture based on requirements.'},
+                {'step': 'Development & Integration', 'description': 'Implement and connect with existing systems.'},
+            ]},
+            {'heading': 'Use Cases', 'examples': ['AI chatbots for customer service', 'Personalized recommendation systems', 'Automation of repetitive processes']},
+        ],
+        'conclusion': 'AI is not just a trend — it is a fundamental tool for business competitiveness in 2026.',
+        'cta': 'Ready to transform your business with AI? Schedule a free consultation.',
+    },
+    {
+        'intro': 'Modern software design demands new methodologies and tools to create exceptional digital products.',
+        'sections': [
+            {'heading': 'State of the Art', 'content': 'Development best practices have evolved significantly in recent years.'},
+            {'heading': 'Emerging Technologies', 'subsections': [
+                {'title': 'Modern Frameworks', 'description': 'React, Vue, Next.js, and Nuxt dominate the frontend ecosystem with more efficient architectures.'},
+                {'title': 'Scalable Backend', 'description': 'Django, FastAPI, and Node.js offer robust solutions for APIs and microservices.'},
+                {'title': 'DevOps & CI/CD', 'description': 'Deployment automation with GitHub Actions, Docker, and Kubernetes.'},
+            ]},
+            {'heading': 'Best Practices', 'list': ['Automated testing from day 1', 'Documentation as code', 'Mandatory code reviews', 'Continuous production monitoring']},
+        ],
+        'conclusion': 'Investing in good development practices generates exponential returns in quality and delivery speed.',
+        'cta': 'Discover how we can elevate your digital product quality.',
+    },
+    {
+        'intro': 'Digital transformation is no longer optional — it is a requirement for business survival in an increasingly competitive market.',
+        'sections': [
+            {'heading': 'Why Now?', 'content': 'Companies that do not adopt digital technology are losing ground to more agile and connected competitors.'},
+            {'heading': 'Steps Toward Transformation', 'timeline': [
+                {'step': 'Digital Diagnosis', 'description': 'Assess the current technological maturity of the organization.'},
+                {'step': 'Digital Strategy', 'description': 'Define clear and prioritized transformation goals.'},
+                {'step': 'Gradual Implementation', 'description': 'Execute in phases with continuous measurement of results.'},
+                {'step': 'Continuous Optimization', 'description': 'Iterate based on real data and feedback.'},
+            ]},
+            {'heading': 'Expected Results', 'examples': ['40% reduction in customer response times', '25% increase in digital conversions', '60% improvement in operational efficiency']},
+        ],
+        'conclusion': 'Successful digital transformation combines technology, processes, and people in a coherent strategy.',
+        'cta': "Let's talk about your company's digital future.",
+    },
+]
+
 
 class Command(BaseCommand):
     help = 'Create fake blog posts for development/testing'
@@ -262,6 +358,33 @@ class Command(BaseCommand):
             content_en = template_en.format(topic=title_en)
             sources = random.sample(SOURCES_POOL, k=random.randint(2, 4))
 
+            # New fields: category, read_time, is_featured, content_json, SEO
+            category = CATEGORIES[i % len(CATEGORIES)]
+            read_time_minutes = random.randint(3, 15)
+            is_featured = (i == 0)  # First post is featured
+
+            # Content format mix: 0-3 = JSON+HTML, 4-6 = JSON only, 7-9 = HTML only
+            mode = i % 10
+            content_json_es = {}
+            content_json_en = {}
+            if mode <= 6:
+                content_json_es = CONTENT_JSON_TEMPLATES_ES[i % len(CONTENT_JSON_TEMPLATES_ES)]
+                content_json_en = CONTENT_JSON_TEMPLATES_EN[i % len(CONTENT_JSON_TEMPLATES_EN)]
+            if mode >= 4 and mode <= 6:
+                content_es = ''
+                content_en = ''
+
+            # SEO fields for ~50% of posts
+            meta_title_es = ''
+            meta_title_en = ''
+            meta_description_es = ''
+            meta_description_en = ''
+            if i % 2 == 0:
+                meta_title_es = f'{title_es} | Project App Blog'
+                meta_title_en = f'{title_en} | Project App Blog'
+                meta_description_es = excerpt_es[:160]
+                meta_description_en = excerpt_en[:160]
+
             # ~80% published, 20% draft
             is_published = (i % 5) != 4
             published_at = (
@@ -276,14 +399,24 @@ class Command(BaseCommand):
                 excerpt_en=excerpt_en,
                 content_es=content_es,
                 content_en=content_en,
+                content_json_es=content_json_es,
+                content_json_en=content_json_en,
                 sources=sources,
+                category=category,
+                read_time_minutes=read_time_minutes,
+                is_featured=is_featured,
+                meta_title_es=meta_title_es,
+                meta_title_en=meta_title_en,
+                meta_description_es=meta_description_es,
+                meta_description_en=meta_description_en,
                 is_published=is_published,
                 published_at=published_at,
             )
+            fmt = 'json' if content_json_es else 'html'
             status_label = 'published' if is_published else 'draft'
             created += 1
             self.stdout.write(self.style.SUCCESS(
-                f'[{status_label:>9}] Created: "{title_es}" / "{title_en}"'
+                f'[{status_label:>9}] [{fmt:>4}] [{category:>12}] "{title_es}"'
             ))
 
         self.stdout.write(self.style.SUCCESS(

@@ -195,6 +195,39 @@ def draft_blog_post(db):
 
 
 @pytest.fixture
+def blog_post_with_json(db):
+    """A published blog post with structured JSON content."""
+    return BlogPost.objects.create(
+        title_es='Post con JSON estructurado',
+        title_en='Post with structured JSON',
+        excerpt_es='Resumen del post JSON.',
+        excerpt_en='JSON post excerpt.',
+        content_json_es={
+            'intro': 'Introducción en español.',
+            'sections': [
+                {'heading': 'Sección 1', 'content': 'Contenido de la sección 1.'},
+                {'heading': 'Sección 2', 'list': ['Item A', 'Item B']},
+            ],
+            'conclusion': 'Conclusión.',
+            'cta': 'Contáctanos.',
+        },
+        content_json_en={
+            'intro': 'Introduction in English.',
+            'sections': [
+                {'heading': 'Section 1', 'content': 'Section 1 content.'},
+            ],
+            'conclusion': 'Conclusion.',
+            'cta': 'Contact us.',
+        },
+        category='technology',
+        read_time_minutes=8,
+        is_featured=True,
+        is_published=True,
+        published_at=timezone.now(),
+    )
+
+
+@pytest.fixture
 def proposal(db):
     """A sample business proposal in draft status."""
     return BusinessProposal.objects.create(

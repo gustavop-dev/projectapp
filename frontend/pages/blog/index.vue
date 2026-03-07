@@ -1,27 +1,81 @@
 <template>
-  <div class="bg-white" itemscope itemtype="https://schema.org/Blog">
+  <div class="min-h-screen bg-white" itemscope itemtype="https://schema.org/Blog">
     <!-- Navbar -->
     <header class="fixed top-0 left-0 w-full z-50">
       <Navbar />
     </header>
 
-    <!-- Hero -->
-    <section class="px-3 pt-32 pb-16 lg:pt-52 lg:pb-24" aria-labelledby="blog-title">
+    <!-- Hero Section -->
+    <section class="pt-32 sm:pt-40 pb-16 sm:pb-20 px-4 sm:px-6" aria-labelledby="blog-title">
       <div class="max-w-7xl mx-auto">
-        <h1 id="blog-title" class="text-6xl lg:text-8xl font-light text-esmerald">Blog</h1>
-        <p class="mt-4 text-lg text-green-light font-regular max-w-xl">
-          {{ isEnglish ? 'Insights and trends in AI, software development, and digital transformation.' : 'Novedades y tendencias en IA, desarrollo de software y transformación digital.' }}
-        </p>
+        <div class="text-center mb-16">
+          <h1
+            id="blog-title"
+            class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-light mb-6 tracking-tight leading-[1.05] text-esmerald"
+          >
+            Blog
+          </h1>
+          <p class="text-xl md:text-2xl max-w-3xl mx-auto text-green-light leading-relaxed font-regular">
+            {{ isEnglish
+              ? 'Insights and trends in AI, software development, and digital transformation.'
+              : 'Novedades y tendencias en IA, desarrollo de software y transformación digital.'
+            }}
+          </p>
+        </div>
+
+        <!-- Search & Category Filters -->
+        <div class="mb-16">
+          <div class="max-w-2xl mx-auto mb-8">
+            <div class="relative">
+              <svg class="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-green-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                v-model="searchQuery"
+                type="text"
+                :placeholder="isEnglish ? 'Search articles...' : 'Buscar artículos...'"
+                class="w-full pl-14 pr-6 py-5 rounded-2xl border-2 border-gray-200 focus:outline-none focus:border-esmerald transition-all text-lg bg-white font-regular"
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+            <button
+              :class="[
+                'px-4 sm:px-6 py-2.5 sm:py-3 rounded-full transition-all hover:scale-105 border-2 text-sm sm:text-base',
+                selectedCategory === ''
+                  ? 'bg-esmerald text-white border-esmerald font-medium'
+                  : 'bg-white text-green-light border-gray-200 font-regular hover:border-esmerald/40'
+              ]"
+              @click="selectedCategory = ''"
+            >
+              {{ isEnglish ? 'All' : 'Todos' }}
+            </button>
+            <button
+              v-for="cat in availableCategories"
+              :key="cat"
+              :class="[
+                'px-4 sm:px-6 py-2.5 sm:py-3 rounded-full transition-all hover:scale-105 border-2 text-sm sm:text-base capitalize',
+                selectedCategory === cat
+                  ? 'bg-esmerald text-white border-esmerald font-medium'
+                  : 'bg-white text-green-light border-gray-200 font-regular hover:border-esmerald/40'
+              ]"
+              @click="selectedCategory = cat"
+            >
+              {{ formatCategory(cat) }}
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- Loading -->
-    <div v-if="blogStore.isLoading" class="flex items-center justify-center py-32 bg-esmerald-light">
+    <div v-if="blogStore.isLoading" class="flex items-center justify-center py-32">
       <div class="w-8 h-8 border-2 border-esmerald/30 border-t-esmerald rounded-full animate-spin" />
     </div>
 
     <!-- Content -->
-    <main v-else class="bg-esmerald-light px-3 py-16 lg:py-24">
+    <main v-else class="px-4 sm:px-6">
       <div class="max-w-7xl mx-auto">
 
         <!-- Empty state -->
@@ -32,123 +86,210 @@
         </div>
 
         <template v-else>
-          <!-- Featured Post (Hero Card) -->
+          <!-- Featured Post (full-width hero with gradient overlay) -->
           <article
-            v-if="featured"
-            class="mb-16 group cursor-pointer"
+            v-if="featured && selectedCategory === '' && !searchQuery"
+            class="mb-20 group cursor-pointer"
             @click="navigateTo(`/blog/${featured.slug}`)"
             itemscope
             itemtype="https://schema.org/BlogPosting"
           >
-            <div class="relative overflow-hidden rounded-xl bg-white border border-gray-200/60">
-              <!-- Cover image -->
-              <div class="aspect-[21/9] overflow-hidden">
-                <img
-                  v-if="featured.cover_image"
-                  :src="featured.cover_image"
-                  :alt="featured.title"
-                  class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  loading="eager"
-                  itemprop="image"
-                />
-                <div
-                  v-else
-                  class="w-full h-full bg-gradient-to-br from-esmerald-light to-gray-100 flex items-center justify-center"
-                >
-                  <svg class="w-16 h-16 text-esmerald/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                  </svg>
-                </div>
-              </div>
+            <div class="relative aspect-[16/9] sm:aspect-[21/9] rounded-2xl sm:rounded-3xl overflow-hidden bg-white shadow-lg hover:shadow-2xl transition-all duration-500">
+              <img
+                v-if="featured.cover_image"
+                :src="featured.cover_image"
+                :alt="featured.title"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                loading="eager"
+                itemprop="image"
+              />
+              <div
+                v-else
+                class="w-full h-full bg-gradient-to-br from-esmerald to-esmerald-dark"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-esmerald-dark/80 via-esmerald-dark/30 to-transparent" />
 
-              <!-- Text -->
-              <div class="p-6 sm:p-8">
-                <div class="flex items-center gap-3 mb-4">
-                  <span class="text-xs font-medium text-esmerald bg-lemon px-3 py-1 rounded-full">
-                    {{ isEnglish ? 'Latest article' : 'Último artículo' }}
+              <div class="absolute inset-0 flex flex-col justify-end p-5 sm:p-8 md:p-12 lg:p-16">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
+                  <span class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm bg-lemon text-esmerald font-medium">
+                    {{ isEnglish ? '⭐ Featured' : '⭐ Destacado' }}
                   </span>
-                  <time
-                    v-if="featured.published_at"
-                    :datetime="featured.published_at"
-                    class="text-xs text-green-light"
-                    itemprop="datePublished"
-                  >
-                    {{ formatDate(featured.published_at) }}
-                  </time>
+                  <span v-if="featured.category" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm bg-white/20 text-white font-regular capitalize">
+                    {{ formatCategory(featured.category) }}
+                  </span>
                 </div>
-                <h2 class="text-2xl sm:text-3xl lg:text-4xl font-light text-esmerald mb-3 group-hover:text-esmerald/70 transition-colors leading-tight" itemprop="headline">
+
+                <h2 class="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-light mb-4 sm:mb-6 max-w-4xl text-white leading-[1.1]" itemprop="headline">
                   {{ featured.title }}
                 </h2>
-                <p class="text-green-light text-base sm:text-lg leading-relaxed max-w-3xl font-regular" itemprop="description">
+
+                <p class="text-sm sm:text-lg md:text-xl mb-4 sm:mb-8 max-w-3xl text-white/80 leading-relaxed hidden sm:block font-regular" itemprop="description">
                   {{ featured.excerpt }}
                 </p>
-                <span class="inline-flex items-center gap-1 mt-5 text-sm text-esmerald font-regular group-hover:text-esmerald/70 transition-colors">
-                  {{ isEnglish ? 'Read article' : 'Leer artículo' }}
-                  <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </span>
+
+                <div class="hidden sm:flex items-center gap-6 text-sm text-white/70">
+                  <div v-if="featured.published_at" class="flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <time :datetime="featured.published_at" itemprop="datePublished">{{ formatDate(featured.published_at) }}</time>
+                  </div>
+                  <div v-if="featured.read_time_minutes" class="flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span>{{ featured.read_time_minutes }} min {{ isEnglish ? 'read' : 'de lectura' }}</span>
+                  </div>
+                  <div class="flex items-center gap-2 ml-auto group-hover:gap-4 transition-all">
+                    <span class="font-medium text-white">{{ isEnglish ? 'Read article' : 'Leer artículo' }}</span>
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                  </div>
+                </div>
               </div>
             </div>
           </article>
 
-          <!-- Other Posts Grid -->
-          <section v-if="others.length > 0">
-            <h3 class="text-sm font-regular text-green-light uppercase tracking-wider mb-8">
-              {{ isEnglish ? 'More articles' : 'Más artículos' }}
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <article
-                v-for="post in others"
-                :key="post.id"
-                class="group cursor-pointer bg-white border border-gray-200/60 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300"
-                @click="navigateTo(`/blog/${post.slug}`)"
-                itemscope
-                itemtype="https://schema.org/BlogPosting"
-              >
-                <!-- Card image -->
-                <div class="aspect-[16/9] overflow-hidden">
+          <!-- Mobile cards (compact horizontal) -->
+          <div class="sm:hidden space-y-3 pb-16">
+            <article
+              v-for="post in filteredPosts"
+              :key="post.id"
+              class="group bg-white rounded-2xl overflow-hidden shadow-sm active:scale-[0.98] transition-transform border border-gray-200/60 cursor-pointer"
+              @click="navigateTo(`/blog/${post.slug}`)"
+              itemscope
+              itemtype="https://schema.org/BlogPosting"
+            >
+              <div class="flex gap-3 p-3">
+                <div class="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0">
                   <img
                     v-if="post.cover_image"
                     :src="post.cover_image"
                     :alt="post.title"
-                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    class="w-full h-full object-cover"
                     loading="lazy"
                     itemprop="image"
                   />
-                  <div
-                    v-else
-                    class="w-full h-full bg-gradient-to-br from-esmerald-light to-gray-100 flex items-center justify-center"
-                  >
-                    <svg class="w-10 h-10 text-esmerald/15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                    </svg>
+                  <div v-else class="w-full h-full bg-esmerald-light flex items-center justify-center">
+                    <svg class="w-8 h-8 text-esmerald/15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
+                  </div>
+                  <div v-if="post.category" class="absolute top-1.5 left-1.5">
+                    <span class="px-2 py-0.5 rounded-full text-[10px] backdrop-blur-md bg-white/90 text-esmerald font-medium capitalize">
+                      {{ formatCategory(post.category) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0 py-0.5 flex flex-col">
+                  <h3 class="text-sm font-medium text-esmerald mb-1 leading-tight line-clamp-2" itemprop="headline">
+                    {{ post.title }}
+                  </h3>
+                  <p class="text-xs text-green-light line-clamp-2 mb-1.5 flex-1 font-regular" itemprop="description">{{ post.excerpt }}</p>
+                  <div class="flex items-center gap-3 text-[10px] text-green-light">
+                    <span v-if="post.published_at" class="flex items-center gap-1">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      <time :datetime="post.published_at" itemprop="datePublished">{{ formatDateShort(post.published_at) }}</time>
+                    </span>
+                    <span v-if="post.read_time_minutes" class="flex items-center gap-1">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      {{ post.read_time_minutes }} min
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <!-- Desktop grid -->
+          <div class="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 pb-20">
+            <article
+              v-for="post in filteredPosts"
+              :key="post.id"
+              class="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 h-full flex flex-col cursor-pointer border border-gray-200/40"
+              @click="navigateTo(`/blog/${post.slug}`)"
+              itemscope
+              itemtype="https://schema.org/BlogPosting"
+            >
+              <div class="relative aspect-[16/10] overflow-hidden">
+                <img
+                  v-if="post.cover_image"
+                  :src="post.cover_image"
+                  :alt="post.title"
+                  class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  loading="lazy"
+                  itemprop="image"
+                />
+                <div v-else class="w-full h-full bg-gradient-to-br from-esmerald-light to-gray-100 flex items-center justify-center">
+                  <svg class="w-10 h-10 text-esmerald/15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
+                </div>
+                <div v-if="post.category" class="absolute top-4 left-4">
+                  <span class="px-3 py-1.5 rounded-full text-xs backdrop-blur-md bg-white/90 text-esmerald font-medium capitalize">
+                    {{ formatCategory(post.category) }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="p-6 flex-1 flex flex-col">
+                <div class="flex items-center gap-4 mb-4 text-xs text-green-light">
+                  <div v-if="post.published_at" class="flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <time :datetime="post.published_at" itemprop="datePublished">{{ formatDate(post.published_at) }}</time>
+                  </div>
+                  <div v-if="post.read_time_minutes" class="flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span>{{ post.read_time_minutes }} min</span>
                   </div>
                 </div>
 
-                <!-- Card body -->
-                <div class="p-5">
-                  <time
-                    v-if="post.published_at"
-                    :datetime="post.published_at"
-                    class="text-xs text-green-light mb-2 block"
-                    itemprop="datePublished"
-                  >
-                    {{ formatDate(post.published_at) }}
-                  </time>
-                  <h4 class="text-lg font-light text-esmerald mb-2 group-hover:text-esmerald/70 transition-colors leading-snug" itemprop="headline">
-                    {{ post.title }}
-                  </h4>
-                  <p class="text-sm text-green-light leading-relaxed line-clamp-3 font-regular" itemprop="description">
-                    {{ post.excerpt }}
-                  </p>
+                <h3 class="text-xl font-light mb-3 group-hover:text-green-light transition-colors leading-tight text-esmerald" itemprop="headline">
+                  {{ post.title }}
+                </h3>
+
+                <p class="text-base mb-6 flex-1 text-green-light leading-relaxed font-regular" itemprop="description">
+                  {{ post.excerpt }}
+                </p>
+
+                <div class="flex items-center gap-2 text-sm text-esmerald font-medium group-hover:gap-4 transition-all">
+                  <span>{{ isEnglish ? 'Read more' : 'Leer más' }}</span>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                 </div>
-              </article>
-            </div>
-          </section>
+              </div>
+            </article>
+          </div>
+
+          <!-- No Results -->
+          <div v-if="filteredPosts.length === 0 && (searchQuery || selectedCategory)" class="text-center py-20">
+            <p class="text-2xl mb-4 text-green-light font-regular">
+              {{ isEnglish ? 'No articles match your criteria' : 'No encontramos artículos con esos criterios' }}
+            </p>
+            <button
+              class="text-sm font-medium text-esmerald hover:opacity-60 transition-opacity"
+              @click="searchQuery = ''; selectedCategory = ''"
+            >
+              {{ isEnglish ? 'Clear filters' : 'Limpiar filtros' }}
+            </button>
+          </div>
         </template>
       </div>
     </main>
+
+    <!-- CTA Section -->
+    <section class="py-14 sm:py-20 px-4 sm:px-6 bg-esmerald">
+      <div class="max-w-4xl mx-auto text-center">
+        <h2 class="text-3xl sm:text-4xl md:text-5xl font-light mb-6 tracking-tight text-white">
+          {{ isEnglish ? 'Have a Project in Mind?' : '¿Tienes un Proyecto en Mente?' }}
+        </h2>
+        <p class="text-xl mb-10 text-white/70 leading-relaxed font-regular">
+          {{ isEnglish
+            ? 'Schedule a free consultation and discover how we can transform your digital presence.'
+            : 'Agenda una consultoría gratuita y descubre cómo podemos transformar tu presencia digital.'
+          }}
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <NuxtLink
+            to="/contact"
+            class="px-8 sm:px-10 py-4 sm:py-5 rounded-full flex items-center justify-center gap-3 transition-all hover:scale-105 bg-lemon text-esmerald"
+          >
+            <span class="text-base sm:text-lg font-medium">{{ isEnglish ? 'Contact Us' : 'Contáctanos' }}</span>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+          </NuxtLink>
+        </div>
+      </div>
+    </section>
 
     <!-- Contact + Footer -->
     <ContactSection />
@@ -157,7 +298,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import Navbar from '~/components/layouts/Navbar.vue';
 import ContactSection from '~/views-legacy/partials/ContactSection.vue';
 import FooterSection from '~/views-legacy/partials/FooterSection.vue';
@@ -167,10 +308,60 @@ const { locale } = useI18n();
 const blogStore = useBlogStore();
 const posts = computed(() => blogStore.posts);
 const featured = computed(() => blogStore.featuredPost);
-const others = computed(() => blogStore.otherPosts);
 const isEnglish = computed(() => locale.value.startsWith('en'));
-
 const blogLang = computed(() => isEnglish.value ? 'en' : 'es');
+
+useHead({
+  title: computed(() => isEnglish.value ? 'Blog — Project App' : 'Blog — Project App'),
+  meta: [
+    { name: 'description', content: computed(() => isEnglish.value
+      ? 'Insights and trends in AI, software development, and digital transformation.'
+      : 'Novedades y tendencias en IA, desarrollo de software y transformación digital.'
+    )},
+    { property: 'og:title', content: 'Blog — Project App' },
+    { property: 'og:description', content: computed(() => isEnglish.value
+      ? 'Insights and trends in AI, software development, and digital transformation.'
+      : 'Novedades y tendencias en IA, desarrollo de software y transformación digital.'
+    )},
+    { property: 'og:type', content: 'website' },
+  ],
+  link: [
+    { rel: 'canonical', href: 'https://projectapp.co/blog' },
+  ],
+});
+
+const searchQuery = ref('');
+const selectedCategory = ref('');
+
+const availableCategories = computed(() => blogStore.categories);
+
+const filteredPosts = computed(() => {
+  const others = blogStore.otherPosts;
+  return others.filter((post) => {
+    const matchesCategory = !selectedCategory.value || post.category === selectedCategory.value;
+    const q = searchQuery.value.toLowerCase();
+    const matchesSearch = !q
+      || (post.title || '').toLowerCase().includes(q)
+      || (post.excerpt || '').toLowerCase().includes(q);
+    return matchesCategory && matchesSearch;
+  });
+});
+
+const CATEGORY_LABELS = {
+  technology: { es: 'Tecnología', en: 'Technology' },
+  design: { es: 'Diseño', en: 'Design' },
+  guides: { es: 'Guías', en: 'Guides' },
+  business: { es: 'Negocios', en: 'Business' },
+  'case-study': { es: 'Casos de Éxito', en: 'Case Studies' },
+  ai: { es: 'IA', en: 'AI' },
+  development: { es: 'Desarrollo', en: 'Development' },
+};
+
+function formatCategory(cat) {
+  const labels = CATEGORY_LABELS[cat];
+  if (labels) return isEnglish.value ? labels.en : labels.es;
+  return cat;
+}
 
 onMounted(() => {
   blogStore.fetchPosts(blogLang.value);
@@ -182,6 +373,15 @@ function formatDate(dateStr) {
   return d.toLocaleDateString(isEnglish.value ? 'en-US' : 'es-CO', {
     year: 'numeric',
     month: 'long',
+    day: 'numeric',
+  });
+}
+
+function formatDateShort(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString(isEnglish.value ? 'en-US' : 'es-CO', {
+    month: 'short',
     day: 'numeric',
   });
 }

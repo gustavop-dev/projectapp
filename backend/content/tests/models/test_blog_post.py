@@ -110,6 +110,64 @@ class TestBlogPostSources:
         assert blog_post.sources[0]['name'] == 'OpenAI'
 
 
+class TestBlogPostNewFields:
+    def test_content_json_defaults_empty_dict(self):
+        post = BlogPost.objects.create(
+            title_es='Post sin JSON', title_en='Post without JSON',
+            excerpt_es='E.', excerpt_en='E.',
+        )
+        assert post.content_json_es == {}
+        assert post.content_json_en == {}
+
+    def test_category_defaults_empty_string(self):
+        post = BlogPost.objects.create(
+            title_es='Post sin cat', title_en='Post no cat',
+            excerpt_es='E.', excerpt_en='E.',
+        )
+        assert post.category == ''
+
+    def test_read_time_minutes_defaults_zero(self):
+        post = BlogPost.objects.create(
+            title_es='Post sin tiempo', title_en='Post no time',
+            excerpt_es='E.', excerpt_en='E.',
+        )
+        assert post.read_time_minutes == 0
+
+    def test_is_featured_defaults_false(self):
+        post = BlogPost.objects.create(
+            title_es='Post no destacado', title_en='Not featured',
+            excerpt_es='E.', excerpt_en='E.',
+        )
+        assert post.is_featured is False
+
+    def test_meta_fields_default_empty(self):
+        post = BlogPost.objects.create(
+            title_es='Post sin SEO', title_en='No SEO',
+            excerpt_es='E.', excerpt_en='E.',
+        )
+        assert post.meta_title_es == ''
+        assert post.meta_title_en == ''
+        assert post.meta_description_es == ''
+        assert post.meta_description_en == ''
+
+    def test_content_json_stores_structured_data(self, blog_post_with_json):
+        assert blog_post_with_json.content_json_es['intro'] == 'Introducción en español.'
+        assert len(blog_post_with_json.content_json_es['sections']) == 2
+        assert blog_post_with_json.content_json_en['intro'] == 'Introduction in English.'
+        assert blog_post_with_json.category == 'technology'
+        assert blog_post_with_json.read_time_minutes == 8
+        assert blog_post_with_json.is_featured is True
+
+    def test_content_es_and_en_optional_with_json(self):
+        post = BlogPost.objects.create(
+            title_es='Solo JSON', title_en='JSON only',
+            excerpt_es='E.', excerpt_en='E.',
+            content_json_es={'intro': 'I', 'sections': []},
+        )
+        assert post.content_es == ''
+        assert post.content_en == ''
+
+
 class TestBlogPostOrdering:
     @freeze_time('2026-03-01 12:00:00')
     def test_ordered_by_published_at_descending(self):

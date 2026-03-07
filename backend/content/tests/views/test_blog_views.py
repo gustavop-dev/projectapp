@@ -168,3 +168,150 @@ class TestAdminDeleteBlogPost:
         url = reverse('delete-blog-post', kwargs={'post_id': 99999})
         response = admin_client.delete(url)
         assert response.status_code == 404
+
+
+class TestPublicBlogNewFields:
+    def test_list_includes_category_and_read_time(self, api_client, blog_post_with_json):
+        response = api_client.get(reverse('list-blog-posts'))
+        assert response.status_code == 200
+        post = response.data[0]
+        assert post['category'] == 'technology'
+        assert post['read_time_minutes'] == 8
+        assert post['is_featured'] is True
+
+    def test_detail_includes_content_json(self, api_client, blog_post_with_json):
+        url = reverse('retrieve-blog-post', kwargs={'slug': blog_post_with_json.slug})
+        response = api_client.get(url)
+        assert response.status_code == 200
+        assert response.data['content_json']['intro'] == 'Introducción en español.'
+        assert len(response.data['content_json']['sections']) == 2
+
+    def test_detail_content_json_resolves_lang(self, api_client, blog_post_with_json):
+        url = reverse('retrieve-blog-post', kwargs={'slug': blog_post_with_json.slug})
+        response = api_client.get(url, {'lang': 'en'})
+        assert response.status_code == 200
+        assert response.data['content_json']['intro'] == 'Introduction in English.'
+
+
+class TestAdminCreateFromJSON:
+    def test_returns_401_for_unauthenticated(self, api_client):
+        response = api_client.post(reverse('create-blog-post-from-json'), {}, format='json')
+        assert response.status_code in (401, 403)
+
+    def test_creates_post_from_json_returns_201(self, admin_client):
+        """Create a blog post from a full JSON payload with content_json and metadata."""
+        payload = {
+            'title_es': 'Post desde JSON',
+            'title_en': 'Post from JSON',
+            'excerpt_es': 'Resumen JSON.',
+            'excerpt_en': 'JSON excerpt.',
+            'content_json_es': {
+                'intro': 'Intro ES.',
+                'sections': [{'heading': 'Sec 1', 'content': 'Text.'}],
+                'conclusion': 'Fin.',
+                'cta': 'CTA.',
+            },
+            'category': 'ai',
+            'read_time_minutes': 5,
+        }
+        response = admin_client.post(
+            reverse('create-blog-post-from-json'), payload, format='json'
+        )
+        assert response.status_code == 201
+        assert BlogPost.objects.count() == 1
+        post = BlogPost.objects.first()
+        assert post.content_json_es['intro'] == 'Intro ES.'
+        assert post.category == 'ai'
+
+    def test_returns_400_missing_title(self, admin_client):
+        payload = {
+            'title_es': 'Only ES',
+            'excerpt_es': 'E',
+            'excerpt_en': 'E',
+            'content_json_es': {'intro': 'I', 'sections': []},
+        }
+        response = admin_client.post(
+            reverse('create-blog-post-from-json'), payload, format='json'
+        )
+        assert response.status_code == 400
+
+    def test_returns_400_invalid_content_json(self, admin_client):
+        payload = {
+            'title_es': 'T', 'title_en': 'T',
+            'excerpt_es': 'E', 'excerpt_en': 'E',
+            'content_json_es': {'no_intro': True},
+        }
+        response = admin_client.post(
+            reverse('create-blog-post-from-json'), payload, format='json'
+        )
+        assert response.status_code == 400
+        assert 'content_json_es' in response.data
+
+    def test_returns_400_section_without_heading(self, admin_client):
+        payload = {
+            'title_es': 'T', 'title_en': 'T',
+            'excerpt_es': 'E', 'excerpt_en': 'E',
+            'content_json_es': {
+                'intro': 'I',
+                'sections': [{'content': 'no heading'}],
+            },
+        }
+        response = admin_client.post(
+            reverse('create-blog-post-from-json'), payload, format='json'
+        )
+        assert response.status_code == 400
+
+
+class TestAdminBlogJSONTemplate:
+    def test_returns_401_for_unauthenticated(self, api_client):
+        response = api_client.get(reverse('blog-json-template'))
+        assert response.status_code in (401, 403)
+
+    def test_returns_200_with_template(self, admin_client):
+        response = admin_client.get(reverse('blog-json-template'))
+        assert response.status_code == 200
+        assert 'content_json_es' in response.data
+        assert 'intro' in response.data['content_json_es']
+        assert 'sections' in response.data['content_json_es']
+
+    def test_template_has_all_expected_keys(self, admin_client):
+        response = admin_client.get(reverse('blog-json-template'))
+        assert response.status_code == 200
+        for key in ('title_es', 'title_en', 'excerpt_es', 'excerpt_en',
+                     'content_json_es', 'content_json_en', 'category',
+                     'read_time_minutes', 'sources'):
+            assert key in response.data
+
+
+class TestAdminUpdateNewFields:
+    def test_updates_category_and_read_time(self, admin_client, blog_post):
+        url = reverse('update-blog-post', kwargs={'post_id': blog_post.id})
+        response = admin_client.patch(
+            url, {'category': 'design', 'read_time_minutes': 12}, format='json'
+        )
+        assert response.status_code == 200
+        blog_post.refresh_from_db()
+        assert blog_post.category == 'design'
+        assert blog_post.read_time_minutes == 12
+
+    def test_updates_content_json(self, admin_client, blog_post):
+        url = reverse('update-blog-post', kwargs={'post_id': blog_post.id})
+        json_content = {
+            'intro': 'New intro.',
+            'sections': [{'heading': 'New heading'}],
+            'conclusion': 'End.',
+            'cta': 'Act now.',
+        }
+        response = admin_client.patch(
+            url, {'content_json_es': json_content}, format='json'
+        )
+        assert response.status_code == 200
+        blog_post.refresh_from_db()
+        assert blog_post.content_json_es['intro'] == 'New intro.'
+
+    def test_rejects_invalid_content_json(self, admin_client, blog_post):
+        url = reverse('update-blog-post', kwargs={'post_id': blog_post.id})
+        response = admin_client.patch(
+            url, {'content_json_es': {'missing_intro': True}}, format='json'
+        )
+        assert response.status_code == 400

@@ -68,20 +68,24 @@ class BlogPostAdmin(admin.ModelAdmin):
     """
     Custom admin configuration for the BlogPost model.
     """
-    list_display = ('title_es', 'title_en', 'slug', 'is_published', 'published_at', 'created_at')
-    list_filter = ('is_published',)
+    list_display = ('title_es', 'title_en', 'slug', 'category', 'is_featured', 'is_published', 'published_at', 'created_at')
+    list_filter = ('is_published', 'is_featured', 'category')
     search_fields = ('title_es', 'title_en', 'excerpt_es', 'excerpt_en', 'content_es', 'content_en')
     prepopulated_fields = {'slug': ('title_es',)}
     readonly_fields = ('created_at', 'updated_at')
     fieldsets = (
         ('Español', {
-            'fields': ('title_es', 'excerpt_es', 'content_es'),
+            'fields': ('title_es', 'excerpt_es', 'content_es', 'content_json_es'),
         }),
         ('English', {
-            'fields': ('title_en', 'excerpt_en', 'content_en'),
+            'fields': ('title_en', 'excerpt_en', 'content_en', 'content_json_en'),
         }),
         (None, {
-            'fields': ('slug', 'cover_image'),
+            'fields': ('slug', 'cover_image', 'category', 'read_time_minutes', 'is_featured'),
+        }),
+        ('SEO', {
+            'fields': ('meta_title_es', 'meta_title_en', 'meta_description_es', 'meta_description_en'),
+            'classes': ('collapse',),
         }),
         ('Sources', {
             'fields': ('sources',),
