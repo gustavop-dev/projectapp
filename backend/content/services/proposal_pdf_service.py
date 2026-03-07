@@ -143,6 +143,108 @@ def _strip_emoji(text):
     return _EMOJI_RE.sub('', str(text)).strip()
 
 
+_URL_RE = re.compile(r'(https?://[^\s),]+)')
+_BARE_DOMAIN_RE = re.compile(
+    r'(?<![/\w@])'
+    r'([a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.'
+    r'(?:com|co|net|org|io|dev|app|at|de|es|fr|uk|us|me|info|biz|tv|cc)'
+    r'(?:/[^\s),]*)?)'
+    r'(?![/\w])'
+)
+
+
+def _clean_url_display(url):
+    """Return a clean display label for a URL (domain + path, no scheme)."""
+    try:
+        from urllib.parse import urlparse
+        p = urlparse(url if '://' in url else f'https://{url}')
+        host = p.hostname or url
+        host = host.lstrip('www.')
+        path = p.path.rstrip('/')
+        return host + path if path and path != '/' else host
+    except Exception:
+        return url
+
+
+def _replace_urls_with_placeholders(text):
+    """Find URLs (full + bare domains) in text and return (clean_text, links).
+
+    Returns:
+        clean_text: text with URLs replaced by their display labels.
+        links: list of (display_label, full_url) tuples in order.
+    """
+    links = []
+
+    def _collect_full(m):
+        url = m.group(0)
+        display = _clean_url_display(url)
+        links.append((display, url))
+        return display
+
+    def _collect_bare(m):
+        domain = m.group(0)
+        display = _clean_url_display(domain)
+        full = f'https://{domain}'
+        links.append((display, full))
+        return display
+
+    result = _URL_RE.sub(_collect_full, text)
+    result = _BARE_DOMAIN_RE.sub(_collect_bare, result)
+    return result, links
+
+
+def _draw_line_with_links(c, x, y, line, font_name, font_size, text_color,
+                          link_color=None):
+    """Draw a single line of text, rendering detected URL display labels
+    as clickable links in *link_color*.
+
+    This operates on *already wrapped* lines where full URLs have been
+    replaced by their display labels via ``_replace_urls_with_placeholders``.
+    """
+    if link_color is None:
+        link_color = colors.HexColor('#059669')  # emerald-600
+
+    # Split line into segments: text vs link-display-labels
+    # We search for patterns that look like domain.tld or domain.tld/path
+    parts = re.split(
+        r'([a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.'
+        r'(?:com|co|net|org|io|dev|app|at|de|es|fr|uk|us|me|info|biz|tv|cc)'
+        r'(?:/[^\s),]*)?)',
+        line,
+    )
+
+    cx = x
+    for part in parts:
+        if not part:
+            continue
+        # Check if this part looks like a domain
+        is_link = bool(re.fullmatch(
+            r'[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.'
+            r'(?:com|co|net|org|io|dev|app|at|de|es|fr|uk|us|me|info|biz|tv|cc)'
+            r'(?:/[^\s),]*)?',
+            part,
+        ))
+        if is_link:
+            url = f'https://{part}' if not part.startswith('http') else part
+            c.setFont(font_name, font_size)
+            c.setFillColor(link_color)
+            tw = c.stringWidth(part, font_name, font_size)
+            # Clickable rect
+            c.linkURL(url, (cx, y - 2, cx + tw, y + font_size - 1), relative=0)
+            c.drawString(cx, y, part)
+            # Subtle underline
+            c.setStrokeColor(link_color)
+            c.setLineWidth(0.4)
+            c.line(cx, y - 1.5, cx + tw, y - 1.5)
+            cx += tw
+        else:
+            c.setFont(font_name, font_size)
+            c.setFillColor(text_color)
+            c.drawString(cx, y, part)
+            cx += c.stringWidth(part, font_name, font_size)
+    return cx
+
+
 def _safe(data, key, default=''):
     """Safely get a key from a dict, returning default if missing."""
     if not isinstance(data, dict):
@@ -242,23 +344,20 @@ def _draw_paragraphs(c, y, paragraphs, max_width=None, font_size=10,
     if x is None:
         x = MARGIN_L
     chars_per_line = int(max_width / (font_size * 0.48))
-    c.setFont(_font('regular'), font_size)
-    c.setFillColor(color)
+    fn = _font('regular')
     for para in (paragraphs or []):
         if not para:
             continue
-        lines = textwrap.wrap(_strip_emoji(str(para)), width=chars_per_line)
-        # Prevent orphan: if >1 line and only 1 fits, start new page
+        clean, _links = _replace_urls_with_placeholders(_strip_emoji(str(para)))
+        lines = textwrap.wrap(clean, width=chars_per_line)
         if ps and len(lines) > 1 and y < MARGIN_B + leading * 2:
             y = _new_page(c, ps)
         for line in lines:
             if ps:
                 y = _check_y(c, y, ps)
-                c.setFont(_font('regular'), font_size)
-                c.setFillColor(color)
             elif y < MARGIN_B + 20:
                 return y
-            c.drawString(x, y, line)
+            _draw_line_with_links(c, x, y, line, fn, font_size, color)
             y -= leading
         y -= 5
     return y
@@ -273,23 +372,24 @@ def _draw_bullet_list(c, y, items, x=None, max_width=None,
     if x is None:
         x = MARGIN_L
     chars_per_line = int(max_width / (font_size * 0.48))
-    c.setFont(_font('regular'), font_size)
-    c.setFillColor(color)
+    fn = _font('regular')
     for item in (items or []):
-        text = _strip_emoji(str(item))
-        lines = textwrap.wrap(text, width=chars_per_line - 4)
-        # Prevent orphan: keep at least 2 lines together
+        clean, _links = _replace_urls_with_placeholders(_strip_emoji(str(item)))
+        lines = textwrap.wrap(clean, width=chars_per_line - 4)
         if ps and len(lines) > 1 and y < MARGIN_B + leading * 2:
             y = _new_page(c, ps)
         for i, line in enumerate(lines):
             if ps:
                 y = _check_y(c, y, ps)
-                c.setFont(_font('regular'), font_size)
-                c.setFillColor(color)
             elif y < MARGIN_B + 20:
                 return y
             prefix = f'  {bullet}  ' if i == 0 else '      '
-            c.drawString(x, y, f'{prefix}{line}')
+            # Draw prefix in normal color, then line with links
+            c.setFont(fn, font_size)
+            c.setFillColor(color)
+            pw = c.stringWidth(prefix, fn, font_size)
+            c.drawString(x, y, prefix)
+            _draw_line_with_links(c, x + pw, y, line, fn, font_size, color)
             y -= leading
         y -= 2
     return y
