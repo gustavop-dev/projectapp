@@ -23,8 +23,8 @@
           <div
             v-for="(stage, idx) in stages"
             :key="stage.title"
-            class="relative rounded-2xl border border-emerald-100 bg-white px-6 py-5 md:ml-14 transition-all"
-            :class="stage.current ? 'border-emerald-500 bg-emerald-50/50 shadow-sm' : 'hover:border-emerald-200'"
+            class="relative rounded-2xl border px-6 py-5 md:ml-14 transition-all"
+            :class="stage.current ? 'bg-esmerald border-esmerald shadow-lg' : 'border-emerald-100 bg-white hover:border-emerald-200'"
           >
             <!-- Timeline dot -->
             <div
@@ -36,18 +36,18 @@
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                   <span class="text-xl md:text-2xl">{{ stage.icon }}</span>
-                  <h3 class="text-esmerald font-medium text-base sm:text-lg md:text-xl leading-snug">
+                  <h3 class="font-medium text-base sm:text-lg md:text-xl leading-snug" :class="stage.current ? 'text-esmerald-light' : 'text-esmerald'">
                     {{ stage.title }}
                   </h3>
-                  <span v-if="stage.current" class="text-[10px] uppercase tracking-wider text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full font-medium">
+                  <span v-if="stage.current" class="text-[10px] uppercase tracking-wider text-esmerald bg-lemon px-2 py-0.5 rounded-full font-medium">
                     Actual
                   </span>
                 </div>
-                <p class="text-esmerald/70 font-light leading-relaxed text-sm md:text-base">
+                <p class="font-light leading-relaxed text-sm md:text-base" :class="stage.current ? 'text-esmerald-light/80' : 'text-esmerald/70'">
                   {{ stage.description }}
                 </p>
               </div>
-              <div class="flex-shrink-0 text-green-light font-light tracking-[0.25em] text-xs pt-1">
+              <div class="flex-shrink-0 font-light tracking-[0.25em] text-xs pt-1" :class="stage.current ? 'text-lemon' : 'text-green-light'">
                 {{ String(idx + 1).padStart(2, '0') }}
               </div>
             </div>

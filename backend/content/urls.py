@@ -8,6 +8,7 @@ from content.views.portfolio_works import portfolio_works_list
 from content.views.proposal import (
     retrieve_public_proposal, download_proposal_pdf,
     list_proposals, retrieve_proposal, create_proposal,
+    create_proposal_from_json, get_proposal_json_template,
     update_proposal, delete_proposal, send_proposal,
     resend_proposal, toggle_proposal_active,
     update_proposal_section, bulk_reorder_sections,
@@ -39,6 +40,8 @@ urlpatterns = [
     # Proposals — admin CRUD
     path('proposals/', list_proposals, name='list-proposals'),
     path('proposals/create/', create_proposal, name='create-proposal'),
+    path('proposals/create-from-json/', create_proposal_from_json, name='create-proposal-from-json'),
+    path('proposals/json-template/', get_proposal_json_template, name='proposal-json-template'),
     path('proposals/<int:proposal_id>/detail/', retrieve_proposal, name='retrieve-proposal'),
     path('proposals/<int:proposal_id>/update/', update_proposal, name='update-proposal'),
     path('proposals/<int:proposal_id>/delete/', delete_proposal, name='delete-proposal'),

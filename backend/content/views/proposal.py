@@ -11,8 +11,11 @@ from content.models import BusinessProposal, ProposalSection
 from content.serializers.proposal import (
     ProposalCreateUpdateSerializer,
     ProposalDetailSerializer,
+    ProposalFromJSONSerializer,
     ProposalListSerializer,
     ProposalSectionUpdateSerializer,
+    SECTION_KEY_MAP,
+    SECTION_TYPE_TO_KEY,
 )
 
 logger = logging.getLogger(__name__)
@@ -180,6 +183,111 @@ def create_proposal(request):
         proposal, context={'request': request, 'is_admin': True}
     )
     return Response(detail.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def create_proposal_from_json(request):
+    """
+    Create a proposal from a complete JSON payload.
+
+    The payload includes metadata (title, client_name, etc.) and a
+    ``sections`` dict whose keys are camelCase section names with their
+    full content_json.  Missing sections fall back to DEFAULT_SECTIONS.
+    """
+    serializer = ProposalFromJSONSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    data = serializer.validated_data
+    sections_data = data.pop('sections')
+
+    # Create the BusinessProposal
+    proposal = BusinessProposal.objects.create(
+        title=data['title'],
+        client_name=data['client_name'],
+        client_email=data.get('client_email', ''),
+        language=data.get('language', 'es'),
+        total_investment=data.get('total_investment', 0),
+        currency=data.get('currency', 'COP'),
+        expires_at=data.get('expires_at'),
+        reminder_days=data.get('reminder_days', 10),
+        urgency_reminder_days=data.get('urgency_reminder_days', 15),
+        discount_percent=data.get('discount_percent', 20),
+    )
+
+    # Use DEFAULT_SECTIONS as a template for title/order/is_wide_panel
+    from content.services.proposal_service import ProposalService
+    default_sections = ProposalService.get_default_sections(proposal.language)
+    defaults_by_type = {s['section_type']: s for s in default_sections}
+
+    for section_cfg in default_sections:
+        section_type = section_cfg['section_type']
+        json_key = SECTION_TYPE_TO_KEY.get(section_type)
+
+        if json_key and json_key in sections_data:
+            content_json = sections_data[json_key]
+        else:
+            content_json = section_cfg['content_json']
+
+        # Special handling for greeting — ensure clientName is set
+        if section_type == 'greeting':
+            general = sections_data.get('general', {})
+            content_json.setdefault('clientName', proposal.client_name)
+            if general.get('inspirationalQuote'):
+                content_json['inspirationalQuote'] = general['inspirationalQuote']
+
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type=section_type,
+            title=section_cfg['title'],
+            order=section_cfg['order'],
+            is_wide_panel=section_cfg.get('is_wide_panel', False),
+            content_json=content_json,
+        )
+
+    detail = ProposalDetailSerializer(
+        proposal, context={'request': request, 'is_admin': True}
+    )
+    return Response(detail.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_proposal_json_template(request):
+    """
+    Return a downloadable JSON template with all 12 sections
+    pre-populated with default placeholder content.
+
+    Query params:
+        lang: 'es' (default) or 'en'
+    """
+    import copy
+    lang = request.query_params.get('lang', 'es')
+
+    from content.services.proposal_service import ProposalService
+    default_sections = ProposalService.get_default_sections(lang)
+
+    template = {}
+    for section_cfg in default_sections:
+        section_type = section_cfg['section_type']
+        json_key = SECTION_TYPE_TO_KEY.get(section_type, section_type)
+        template[json_key] = copy.deepcopy(section_cfg['content_json'])
+
+    template['_meta'] = {
+        'description': 'Proposal JSON template — fill in each section and import via the panel',
+        'required_fields': ['general.clientName'],
+        'optional_metadata': {
+            'title': 'Propuesta de ... — Client Name',
+            'client_email': 'client@example.com',
+            'language': 'es | en',
+            'total_investment': 0,
+            'currency': 'COP | USD',
+            'expires_at': '2026-04-06T00:00:00Z',
+        },
+    }
+
+    return Response(template, status=status.HTTP_200_OK)
 
 
 @api_view(['PATCH'])

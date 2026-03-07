@@ -18,46 +18,46 @@
         </p>
       </div>
 
-      <div data-animate="fade-up" class="pricing-card bg-gradient-to-br from-emerald-600 to-emerald-700 p-5 sm:p-8 md:p-12 rounded-3xl text-white mb-12 shadow-2xl">
+      <div data-animate="fade-up" class="pricing-card bg-esmerald p-5 sm:p-8 md:p-12 rounded-3xl text-white mb-12 shadow-2xl">
         <div class="text-center mb-8">
-          <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-emerald-200">Inversión Total</div>
-          <div class="text-4xl sm:text-6xl md:text-7xl font-bold mb-2">{{ totalInvestment }}</div>
-          <div class="text-emerald-200">{{ currency }}</div>
+          <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-green-light">Inversión Total</div>
+          <div class="text-4xl sm:text-6xl md:text-7xl font-bold mb-2 text-lemon">{{ totalInvestment }}</div>
+          <div class="text-green-light">{{ currency }}</div>
         </div>
         
         <div class="grid md:grid-cols-3 gap-6 mt-8">
           <div v-for="(item, index) in whatsIncluded" :key="index"
                class="text-center p-4 bg-white/10 backdrop-blur-sm rounded-xl">
             <div class="text-3xl mb-2">{{ item.icon }}</div>
-            <div class="font-bold mb-1">{{ item.title }}</div>
-            <div class="text-sm text-emerald-100">{{ item.description }}</div>
+            <div class="font-bold text-esmerald-light mb-1">{{ item.title }}</div>
+            <div class="text-sm text-esmerald-light/70">{{ item.description }}</div>
           </div>
         </div>
       </div>
 
       <div v-if="paymentOptions && paymentOptions.length" data-animate="fade-up" class="payment-options mb-12">
-        <h3 class="text-2xl font-bold text-gray-900 mb-6">Formas de Pago</h3>
+        <h3 class="text-2xl font-bold text-esmerald mb-6">Formas de Pago</h3>
         <div class="space-y-4">
           <div v-for="(option, index) in paymentOptions" :key="index"
-               class="payment-option-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4 p-4 sm:p-5 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-emerald-500 transition-all">
-            <span class="text-gray-700 font-medium text-sm sm:text-base">{{ option.label }}</span>
-            <span class="font-bold text-gray-900 text-base sm:text-lg">{{ option.description }}</span>
+               class="payment-option-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4 p-4 sm:p-5 bg-esmerald/5 rounded-xl border-2 border-esmerald/10 hover:border-esmerald/30 transition-all">
+            <span class="text-esmerald/80 font-medium text-sm sm:text-base">{{ option.label }}</span>
+            <span class="font-bold text-esmerald text-base sm:text-lg">{{ option.description }}</span>
           </div>
         </div>
       </div>
 
-      <div v-if="hostingPlan.title" data-animate="fade-up" class="hosting-plan mt-12 bg-white p-5 sm:p-8 md:p-10 rounded-2xl border-2 border-gray-100">
+      <div v-if="hostingPlan.title" data-animate="fade-up" class="hosting-plan mt-12 bg-white p-5 sm:p-8 md:p-10 rounded-2xl border-2 border-esmerald/10">
         <div class="flex items-center mb-4">
-          <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mr-4">
+          <div class="w-12 h-12 bg-esmerald-light/60 rounded-xl flex items-center justify-center mr-4">
             <span class="text-2xl">☁️</span>
           </div>
-          <h3 class="text-2xl font-bold text-gray-900">{{ hostingPlan.title }}</h3>
+          <h3 class="text-2xl font-bold text-esmerald">{{ hostingPlan.title }}</h3>
         </div>
-        <p v-if="hostingPlan.description" class="text-gray-600 leading-relaxed mb-6 pl-0 sm:pl-16">{{ hostingPlan.description }}</p>
+        <p v-if="hostingPlan.description" class="text-esmerald/70 font-light leading-relaxed mb-6 pl-0 sm:pl-16">{{ hostingPlan.description }}</p>
 
         <div v-if="hostingPlan.coverageNote" class="mb-6 pl-0 sm:pl-16">
-          <div class="bg-gray-50 border border-gray-200 rounded-xl p-5">
-            <p class="text-sm text-gray-600 leading-relaxed">{{ hostingPlan.coverageNote }}</p>
+          <div class="bg-esmerald/5 border border-esmerald/10 rounded-xl p-5">
+            <p class="text-sm text-esmerald/70 leading-relaxed">{{ hostingPlan.coverageNote }}</p>
           </div>
         </div>
 
@@ -65,15 +65,15 @@
           <div
             v-for="(spec, idx) in filteredSpecs"
             :key="idx"
-            class="bg-gray-50 p-5 rounded-xl border border-gray-100"
+            class="bg-esmerald/5 p-5 rounded-xl border border-esmerald/10"
           >
             <div class="flex items-start">
-              <div class="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center mr-3 flex-shrink-0">
+              <div class="w-9 h-9 rounded-lg bg-esmerald-light/60 border border-esmerald/10 flex items-center justify-center mr-3 flex-shrink-0">
                 <span class="text-lg">{{ spec.icon }}</span>
               </div>
               <div>
-                <div class="font-bold text-gray-900">{{ spec.label }}</div>
-                <div class="text-sm text-gray-600">{{ spec.value }}</div>
+                <div class="font-bold text-esmerald">{{ spec.label }}</div>
+                <div class="text-sm text-esmerald/70">{{ spec.value }}</div>
               </div>
             </div>
           </div>
@@ -81,15 +81,15 @@
 
         <div v-if="hostingPlan.monthlyPrice || hostingPlan.annualPrice" class="mt-6 pl-0 sm:pl-16">
           <div class="grid md:grid-cols-2 gap-4">
-            <div v-if="hostingPlan.monthlyPrice" class="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
-              <div class="text-sm text-emerald-700 font-medium">Precio especial</div>
-              <div class="text-2xl font-bold text-gray-900">{{ hostingPlan.monthlyPrice }}</div>
-              <div v-if="hostingPlan.monthlyLabel" class="text-sm text-gray-600">{{ hostingPlan.monthlyLabel }}</div>
+            <div v-if="hostingPlan.monthlyPrice" class="bg-esmerald-light/60 border border-esmerald/10 rounded-xl p-5">
+              <div class="text-sm text-green-light font-medium">Precio especial</div>
+              <div class="text-2xl font-bold text-esmerald">{{ hostingPlan.monthlyPrice }}</div>
+              <div v-if="hostingPlan.monthlyLabel" class="text-sm text-esmerald/70">{{ hostingPlan.monthlyLabel }}</div>
             </div>
-            <div v-if="hostingPlan.annualPrice" class="bg-gray-50 border border-gray-200 rounded-xl p-5">
-              <div class="text-sm text-gray-700 font-medium">Pago anual único</div>
-              <div class="text-2xl font-bold text-gray-900">{{ hostingPlan.annualPrice }}</div>
-              <div v-if="hostingPlan.annualLabel" class="text-sm text-gray-600">{{ hostingPlan.annualLabel }}</div>
+            <div v-if="hostingPlan.annualPrice" class="bg-esmerald/5 border border-esmerald/10 rounded-xl p-5">
+              <div class="text-sm text-green-light font-medium">Pago anual único</div>
+              <div class="text-2xl font-bold text-esmerald">{{ hostingPlan.annualPrice }}</div>
+              <div v-if="hostingPlan.annualLabel" class="text-sm text-esmerald/70">{{ hostingPlan.annualLabel }}</div>
             </div>
           </div>
         </div>
@@ -106,18 +106,18 @@
         </div>
       </div>
 
-      <div v-if="valueReasons && valueReasons.length" data-animate="fade-up" class="value-proposition mt-12 bg-gradient-to-br from-gray-900 to-gray-800 p-5 sm:p-8 md:p-12 rounded-2xl text-white">
-        <h3 class="text-2xl font-bold mb-6">¿Por Qué Esta Inversión Vale la Pena?</h3>
+      <div v-if="valueReasons && valueReasons.length" data-animate="fade-up" class="value-proposition mt-12 bg-esmerald p-5 sm:p-8 md:p-12 rounded-2xl">
+        <h3 class="text-2xl font-bold text-lemon mb-6">¿Por Qué Esta Inversión Vale la Pena?</h3>
         <div class="grid md:grid-cols-2 gap-6">
           <div v-for="(reason, index) in normalizedReasons" :key="index"
                class="value-reason flex items-start">
-            <div class="flex-shrink-0 w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center mr-4">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="flex-shrink-0 w-10 h-10 bg-lemon rounded-lg flex items-center justify-center mr-4">
+              <svg class="w-6 h-6 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
               </svg>
             </div>
             <div>
-              <p class="text-sm text-gray-200 leading-relaxed">{{ reason }}</p>
+              <p class="text-sm text-esmerald-light leading-relaxed">{{ reason }}</p>
             </div>
           </div>
         </div>

@@ -7,7 +7,34 @@
       <h1 class="text-2xl font-light text-gray-900 mt-2">Nueva Propuesta</h1>
     </div>
 
-    <form class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-8 max-w-2xl" @submit.prevent="handleSubmit">
+    <!-- Tab toggle -->
+    <div class="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 max-w-xs">
+      <button
+        type="button"
+        :class="[
+          'flex-1 px-4 py-2 text-sm rounded-lg transition-all',
+          mode === 'manual' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'
+        ]"
+        @click="mode = 'manual'"
+      >
+        Manual
+      </button>
+      <button
+        type="button"
+        :class="[
+          'flex-1 px-4 py-2 text-sm rounded-lg transition-all',
+          mode === 'json' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'
+        ]"
+        @click="mode = 'json'"
+      >
+        Importar JSON
+      </button>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- MANUAL MODE (existing form, unchanged) -->
+    <!-- ============================================================ -->
+    <form v-if="mode === 'manual'" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-8 max-w-2xl" @submit.prevent="handleSubmit">
       <div class="space-y-6">
         <!-- Title -->
         <div>
@@ -162,23 +189,244 @@
         </div>
       </div>
     </form>
+
+    <!-- ============================================================ -->
+    <!-- JSON IMPORT MODE -->
+    <!-- ============================================================ -->
+    <div v-else class="max-w-3xl space-y-6">
+
+      <!-- Download template row -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h3 class="text-sm font-medium text-gray-900">Plantilla JSON</h3>
+            <p class="text-xs text-gray-400 mt-0.5">Descarga la plantilla con todas las secciones y campos de ejemplo.</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <select
+              v-model="jsonForm.language"
+              class="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white
+                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            >
+              <option value="es">Español</option>
+              <option value="en">English</option>
+            </select>
+            <button
+              type="button"
+              :disabled="isDownloading"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm
+                     font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+              @click="downloadTemplate"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              {{ isDownloading ? 'Descargando...' : 'Descargar Plantilla' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- JSON input -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+        <h3 class="text-sm font-medium text-gray-900 mb-3">Pegar o subir JSON</h3>
+
+        <div class="flex items-center gap-3 mb-3">
+          <label
+            class="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm
+                   text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            Subir archivo .json
+            <input type="file" accept=".json" class="hidden" @change="handleFileUpload" />
+          </label>
+          <span v-if="uploadedFileName" class="text-xs text-gray-500">{{ uploadedFileName }}</span>
+        </div>
+
+        <textarea
+          v-model="jsonRaw"
+          rows="14"
+          placeholder='{ "general": { "clientName": "..." }, "executiveSummary": { ... }, ... }'
+          class="w-full px-4 py-3 border border-gray-200 rounded-xl text-xs font-mono leading-relaxed
+                 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y"
+          @input="parseJson"
+        ></textarea>
+
+        <!-- Parse error -->
+        <div v-if="jsonError" class="mt-2 text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">
+          {{ jsonError }}
+        </div>
+
+        <!-- Preview -->
+        <div v-if="jsonParsed && !jsonError" class="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
+          <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+            <span><span class="text-gray-500">Cliente:</span> <span class="font-medium text-gray-900">{{ jsonPreview.clientName }}</span></span>
+            <span><span class="text-gray-500">Secciones:</span> <span class="font-medium text-gray-900">{{ jsonPreview.sectionCount }}</span></span>
+            <span v-if="jsonPreview.investment"><span class="text-gray-500">Inversión:</span> <span class="font-medium text-gray-900">{{ jsonPreview.investment }}</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Metadata form -->
+      <form v-if="jsonParsed && !jsonError" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6" @submit.prevent="handleJsonSubmit">
+        <h3 class="text-sm font-medium text-gray-900 mb-4">Datos de la propuesta</h3>
+        <div class="space-y-4">
+          <!-- Title -->
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Título</label>
+            <input
+              v-model="jsonForm.title"
+              type="text"
+              required
+              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            />
+          </div>
+
+          <!-- Client email -->
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Email del cliente</label>
+            <input
+              v-model="jsonForm.client_email"
+              type="email"
+              placeholder="cliente@example.com"
+              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            />
+          </div>
+
+          <!-- Investment + Currency -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Inversión total</label>
+              <input
+                v-model.number="jsonForm.total_investment"
+                type="number"
+                min="0"
+                step="0.01"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Moneda</label>
+              <select
+                v-model="jsonForm.currency"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
+              >
+                <option value="COP">COP</option>
+                <option value="USD">USD</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Expires at -->
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Fecha de expiración</label>
+            <input
+              v-model="jsonForm.expires_at"
+              type="datetime-local"
+              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            />
+          </div>
+
+          <!-- Reminder / Urgency / Discount -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Recordatorio (día)</label>
+              <input
+                v-model.number="jsonForm.reminder_days"
+                type="number" min="1" max="30"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Urgencia (día)</label>
+              <input
+                v-model.number="jsonForm.urgency_reminder_days"
+                type="number" min="1" max="30"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Descuento (%)</label>
+              <input
+                v-model.number="jsonForm.discount_percent"
+                type="number" min="0" max="100"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+            </div>
+          </div>
+
+          <!-- Errors -->
+          <div v-if="errorMsg" class="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl">
+            {{ errorMsg }}
+          </div>
+
+          <!-- Submit -->
+          <div class="flex flex-wrap items-center gap-4 pt-2">
+            <button
+              type="submit"
+              :disabled="proposalStore.isUpdating"
+              class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
+                     hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+            >
+              {{ proposalStore.isUpdating ? 'Creando...' : 'Crear desde JSON' }}
+            </button>
+            <NuxtLink to="/panel/proposals" class="text-sm text-gray-500 hover:text-gray-700">
+              Cancelar
+            </NuxtLink>
+          </div>
+        </div>
+      </form>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, computed } from 'vue';
+import { get_request } from '~/stores/services/request_http';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const router = useRouter();
 const proposalStore = useProposalStore();
 const errorMsg = ref('');
+const mode = ref('manual');
 
-// Default expires_at: 20 days from now
+// -------------------------------------------------------------------------
+// Shared helpers
+// -------------------------------------------------------------------------
 const defaultExpiry = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000);
 const pad = (n) => String(n).padStart(2, '0');
 const defaultExpiryStr = `${defaultExpiry.getFullYear()}-${pad(defaultExpiry.getMonth() + 1)}-${pad(defaultExpiry.getDate())}T${pad(defaultExpiry.getHours())}:${pad(defaultExpiry.getMinutes())}`;
 
+function parseInvestmentString(str) {
+  if (!str) return 0;
+  if (typeof str === 'number') return str;
+  const cleaned = String(str).replace(/[^0-9]/g, '');
+  return cleaned ? Number(cleaned) : 0;
+}
+
+function formatError(errors) {
+  if (errors && typeof errors === 'object') {
+    return Object.entries(errors)
+      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+      .join(' | ');
+  }
+  return 'Error al crear la propuesta.';
+}
+
+// -------------------------------------------------------------------------
+// MANUAL mode
+// -------------------------------------------------------------------------
 const form = reactive({
   title: '',
   client_name: '',
@@ -204,14 +452,144 @@ async function handleSubmit() {
   if (result.success) {
     router.push(`/panel/proposals/${result.data.id}/edit`);
   } else {
-    const errors = result.errors;
-    if (errors && typeof errors === 'object') {
-      errorMsg.value = Object.entries(errors)
-        .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
-        .join(' | ');
-    } else {
-      errorMsg.value = 'Error al crear la propuesta.';
-    }
+    errorMsg.value = formatError(result.errors);
+  }
+}
+
+// -------------------------------------------------------------------------
+// JSON IMPORT mode
+// -------------------------------------------------------------------------
+const EXPECTED_SECTION_KEYS = [
+  'general', 'executiveSummary', 'contextDiagnostic', 'conversionStrategy',
+  'designUX', 'creativeSupport', 'developmentStages', 'functionalRequirements',
+  'timeline', 'investment', 'finalNote', 'nextSteps',
+];
+
+const jsonRaw = ref('');
+const jsonParsed = ref(null);
+const jsonError = ref('');
+const uploadedFileName = ref('');
+const isDownloading = ref(false);
+
+const jsonForm = reactive({
+  title: '',
+  client_email: '',
+  language: 'es',
+  total_investment: 0,
+  currency: 'COP',
+  expires_at: defaultExpiryStr,
+  reminder_days: 10,
+  urgency_reminder_days: 15,
+  discount_percent: 20,
+});
+
+const jsonPreview = computed(() => {
+  if (!jsonParsed.value) return {};
+  const p = jsonParsed.value;
+  const clientName = p.general?.clientName || '';
+  const sectionCount = EXPECTED_SECTION_KEYS.filter((k) => k in p).length;
+  const investment = p.investment?.totalInvestment || '';
+  return { clientName, sectionCount, investment };
+});
+
+function parseJson() {
+  jsonError.value = '';
+  jsonParsed.value = null;
+
+  const raw = jsonRaw.value.trim();
+  if (!raw) return;
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    jsonError.value = 'JSON inválido. Revisa la sintaxis.';
+    return;
+  }
+
+  if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+    jsonError.value = 'El JSON debe ser un objeto, no un array.';
+    return;
+  }
+
+  if (!parsed.general || !parsed.general.clientName) {
+    jsonError.value = 'El JSON debe incluir "general" con "clientName".';
+    return;
+  }
+
+  jsonParsed.value = parsed;
+
+  // Auto-populate metadata form
+  const clientName = parsed.general.clientName;
+  jsonForm.title = `Propuesta — ${clientName}`;
+  jsonForm.total_investment = parseInvestmentString(parsed.investment?.totalInvestment);
+  jsonForm.currency = parsed.investment?.currency || 'COP';
+}
+
+function handleFileUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  uploadedFileName.value = file.name;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    jsonRaw.value = e.target.result;
+    parseJson();
+  };
+  reader.readAsText(file);
+}
+
+async function downloadTemplate() {
+  isDownloading.value = true;
+  try {
+    const response = await get_request(`proposals/json-template/?lang=${jsonForm.language}`);
+    const jsonStr = JSON.stringify(response.data, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `proposal-template-${jsonForm.language}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Error downloading template:', err);
+  } finally {
+    isDownloading.value = false;
+  }
+}
+
+async function handleJsonSubmit() {
+  errorMsg.value = '';
+
+  if (!jsonParsed.value) {
+    errorMsg.value = 'Pega o sube un JSON válido primero.';
+    return;
+  }
+
+  const sections = { ...jsonParsed.value };
+  delete sections._meta;
+
+  const payload = {
+    title: jsonForm.title,
+    client_name: jsonParsed.value.general.clientName,
+    client_email: jsonForm.client_email || '',
+    language: jsonForm.language,
+    total_investment: jsonForm.total_investment || 0,
+    currency: jsonForm.currency,
+    expires_at: jsonForm.expires_at ? new Date(jsonForm.expires_at).toISOString() : null,
+    reminder_days: jsonForm.reminder_days,
+    urgency_reminder_days: jsonForm.urgency_reminder_days,
+    discount_percent: jsonForm.discount_percent,
+    sections,
+  };
+
+  const result = await proposalStore.createProposalFromJSON(payload);
+  if (result.success) {
+    router.push(`/panel/proposals/${result.data.id}/edit`);
+  } else {
+    errorMsg.value = formatError(result.errors);
   }
 }
 </script>

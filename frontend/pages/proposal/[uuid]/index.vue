@@ -39,6 +39,9 @@
       <!-- PDF download -->
       <PdfDownloadButton />
 
+      <!-- Onboarding tutorial tooltips -->
+      <ProposalOnboarding ref="onboardingRef" />
+
       <!-- Side navigation arrows (fixed, outside transition) -->
       <SectionNavButtons
         :prevTitle="prevPanelTitle"
@@ -73,7 +76,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onBeforeUnmount, onMounted } from 'vue';
+import { ref, computed, nextTick, onBeforeUnmount, onMounted } from 'vue';
 import PreloaderAnimation from '~/components/animations/PreloaderAnimation.vue';
 import {
   Greeting,
@@ -98,6 +101,7 @@ import PdfDownloadButton from '~/components/BusinessProposal/PdfDownloadButton.v
 import RawContentSection from '~/components/BusinessProposal/RawContentSection.vue';
 import ProposalClosing from '~/components/BusinessProposal/ProposalClosing.vue';
 import SectionNavButtons from '~/components/BusinessProposal/SectionNavButtons.vue';
+import ProposalOnboarding from '~/components/BusinessProposal/ProposalOnboarding.vue';
 
 definePageMeta({ layout: false });
 
@@ -189,6 +193,7 @@ const indexOpen = ref(false);
 const navBlinkNext = ref(false);
 const navBlinkPrev = ref(false);
 let blinkTimer = null;
+const onboardingRef = ref(null);
 
 // Current panel and neighbors
 const currentPanel = computed(() => displayPanels.value[currentIndex.value] || displayPanels.value[0]);
@@ -380,6 +385,10 @@ const onAnimationComplete = () => {
   if (loadError.value) return;
   showContent.value = true;
   window.addEventListener('keydown', handleKeydown);
+  // Start onboarding tutorial after a short delay for elements to render
+  nextTick(() => {
+    onboardingRef.value?.start();
+  });
 };
 
 onBeforeUnmount(() => {
@@ -401,6 +410,18 @@ onBeforeUnmount(() => {
 .panel-container {
   width: 100%;
   min-height: 100vh;
+}
+
+.panel-container :deep(section:not(.greeting-section)) {
+  scroll-margin-top: 56px;
+}
+
+.panel-container :deep(.min-h-screen:not(.greeting-section)) {
+  padding-top: 48px;
+}
+
+.panel-container :deep(.greeting-section) {
+  padding-top: 0;
 }
 
 /* Slide left (navigating forward) */

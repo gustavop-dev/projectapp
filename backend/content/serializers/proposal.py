@@ -174,3 +174,74 @@ class ProposalSectionUpdateSerializer(serializers.ModelSerializer):
                 'content_json must be a JSON object (dict).'
             )
         return value
+
+
+# ---------------------------------------------------------------------------
+# JSON key → section_type mapping
+# ---------------------------------------------------------------------------
+SECTION_KEY_MAP = {
+    'general': 'greeting',
+    'executiveSummary': 'executive_summary',
+    'contextDiagnostic': 'context_diagnostic',
+    'conversionStrategy': 'conversion_strategy',
+    'designUX': 'design_ux',
+    'creativeSupport': 'creative_support',
+    'developmentStages': 'development_stages',
+    'functionalRequirements': 'functional_requirements',
+    'timeline': 'timeline',
+    'investment': 'investment',
+    'finalNote': 'final_note',
+    'nextSteps': 'next_steps',
+}
+
+SECTION_TYPE_TO_KEY = {v: k for k, v in SECTION_KEY_MAP.items()}
+
+
+class ProposalFromJSONSerializer(serializers.Serializer):
+    """
+    Serializer for creating a proposal from a complete JSON payload.
+
+    Accepts proposal metadata at the top level and a ``sections`` dict
+    whose keys are camelCase section names mapped to content_json dicts.
+    """
+
+    title = serializers.CharField(max_length=255)
+    client_name = serializers.CharField(max_length=255)
+    client_email = serializers.EmailField(required=False, default='')
+    language = serializers.ChoiceField(
+        choices=BusinessProposal.Language.choices, default='es',
+    )
+    total_investment = serializers.DecimalField(
+        max_digits=12, decimal_places=2, required=False, default=0,
+    )
+    currency = serializers.ChoiceField(
+        choices=BusinessProposal.Currency.choices, default='COP',
+    )
+    expires_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
+    reminder_days = serializers.IntegerField(required=False, default=10)
+    urgency_reminder_days = serializers.IntegerField(required=False, default=15)
+    discount_percent = serializers.IntegerField(required=False, default=20)
+    sections = serializers.DictField(child=serializers.DictField(), required=True)
+
+    def validate_expires_at(self, value):
+        if value is not None:
+            from django.utils import timezone
+            if value < timezone.now():
+                raise serializers.ValidationError(
+                    'Expiration date must be in the future.'
+                )
+        return value
+
+    def validate_sections(self, value):
+        if 'general' not in value:
+            raise serializers.ValidationError(
+                'The sections dict must include a "general" key with at least clientName.'
+            )
+        general = value['general']
+        if not isinstance(general, dict) or not general.get('clientName'):
+            raise serializers.ValidationError(
+                'sections.general must contain a non-empty "clientName".'
+            )
+        # Strip _meta helper key if present (template download artifact)
+        value.pop('_meta', None)
+        return value

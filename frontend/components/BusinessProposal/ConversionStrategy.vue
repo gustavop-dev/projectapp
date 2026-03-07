@@ -13,15 +13,13 @@
 
         <div class="grid lg:grid-cols-12 gap-10 items-start">
           <div class="lg:col-span-8 space-y-8">
-            <p data-animate="fade-up" class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl">
-              {{ content.intro }}
-            </p>
+            <p data-animate="fade-up" class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl" v-html="linkify(content.intro)" />
 
             <div data-animate="fade-up-stagger" class="grid md:grid-cols-2 gap-6">
               <div
                 v-for="(step, idx) in content.steps"
                 :key="idx"
-                class="rounded-3xl border border-esmerald-light/70 p-6 md:p-7"
+                class="rounded-3xl border border-esmerald/20 bg-esmerald/5 p-6 md:p-7"
               >
                 <div class="flex items-baseline justify-between gap-6 mb-4">
                   <h3 class="text-esmerald font-light text-lg md:text-xl leading-snug">
@@ -35,9 +33,7 @@
                 <ul class="space-y-3">
                   <li v-for="(item, j) in step.bullets" :key="j" class="flex gap-3">
                     <span class="mt-3 h-1.5 w-1.5 rounded-full bg-esmerald flex-shrink-0"></span>
-                    <p class="text-esmerald/80 font-light leading-relaxed">
-                      {{ item }}
-                    </p>
+                    <p class="text-esmerald/80 font-light leading-relaxed" v-html="linkify(item)" />
                   </li>
                 </ul>
               </div>
@@ -45,13 +41,11 @@
           </div>
 
           <aside v-if="content.result" data-animate="fade-up" class="lg:col-span-4">
-            <div class="rounded-3xl bg-esmerald-light/60 p-6 md:p-8">
-              <h3 class="text-esmerald font-light text-base md:text-lg tracking-wide mb-4">
+            <div class="rounded-3xl bg-esmerald p-6 md:p-8">
+              <h3 class="text-lemon font-light text-base md:text-lg tracking-wide mb-4">
                 {{ content.resultTitle }}
               </h3>
-              <p class="text-esmerald/80 font-light leading-relaxed text-lg">
-                {{ content.result }}
-              </p>
+              <p class="text-esmerald-light font-light leading-relaxed text-lg" v-html="linkify(content.result)" />
             </div>
           </aside>
         </div>
@@ -63,6 +57,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import { linkify } from '~/composables/useLinkify';
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
@@ -115,4 +110,14 @@ const props = defineProps({
 </script>
 
 <style scoped>
+:deep(.linkify-link) {
+  color: #059669;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(5, 150, 105, 0.3);
+  transition: text-decoration-color 0.2s ease;
+}
+:deep(.linkify-link:hover) {
+  text-decoration-color: rgba(5, 150, 105, 0.8);
+}
 </style>

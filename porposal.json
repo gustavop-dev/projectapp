@@ -1,0 +1,681 @@
+{
+  "general": {
+    "clientName": "Denisse Lafaurie",
+    "clientSlug": "denisse-lafaurie",
+    "inspirationalQuote": "Luxury is in each detail."
+  },
+  "executiveSummary": {
+    "index": "01",
+    "title": "Resumen ejecutivo",
+    "paragraphs": [
+      "Desarrollaremos una propuesta de rediseño web integral para dos activos digitales de gran valor de marca: Círculo Colombiano de Joyerías y Joyería Liévano. El objetivo no es solo cambiar de proveedor, sino elevar la presencia digital de ambas marcas hacia un estándar visual, técnico y operativo alineado con el nivel premium de su mercado.",
+      "La nueva solución estará enfocada en transmitir confianza, exclusividad y sofisticación desde el primer segundo, con una experiencia visual mucho más cuidada, rápida y coherente con productos y servicios high ticket. En el caso de Joyería Liévano, la web funcionará como un catálogo premium orientado a generar asesorías y citas; en el caso del Círculo, como un sitio institucional robusto que represente autoridad, respaldo y prestigio en el sector joyero.",
+      "Además del rediseño, la propuesta contempla una base técnica preparada para medición y analítica, permitiendo obtener estadísticas periódicas sobre navegación, interés por productos, clics en botones estratégicos y comportamiento general de los visitantes. Esto permitirá tomar mejores decisiones comerciales y de marketing con soporte en datos reales.",
+      "Finalmente, esta propuesta resuelve uno de los dolores más importantes del cliente: la gestión oportuna del contenido y el soporte continuo. Project App entra no solo como proveedor de desarrollo, sino como un equipo estructurado de diseño, desarrollo, QA y soporte, capaz de responder con rapidez cuando el negocio necesite actualizar catálogos, campañas, productos o contenido estacional."
+    ],
+    "highlightsTitle": "Incluye",
+    "highlights": [
+      "Rediseño premium de dos sitios web con enfoque en confianza y percepción de alto valor",
+      "Catálogo digital orientado a asesorías y citas, no a e-commerce tradicional",
+      "Base de analítica para entender comportamiento, interés y conversión",
+      "Gestión de contenido, soporte y mantenimiento como parte del servicio continuo",
+      "Infraestructura con equipo definido: diseño, desarrollo, QA y soporte"
+    ]
+  },
+  "contextDiagnostic": {
+    "index": "02",
+    "title": "Contexto y diagnóstico",
+    "paragraphs": [
+      "Actualmente, ambas marcas ya cuentan con presencia web, pero la experiencia existente no acompaña adecuadamente el valor de su posicionamiento. En un segmento como joyería premium, donde la confianza, la exclusividad y la percepción de calidad son determinantes, una página genérica, lenta o visualmente plana puede convertirse en una barrera directa para la conversión.",
+      "El escenario actual también presenta una dependencia operativa importante del proveedor existente, quien administra el contenido y realiza mantenimiento, pero con tiempos de respuesta poco confiables. Esto afecta especialmente momentos críticos del negocio, como campañas estacionales, catálogos especiales, lanzamientos y fechas comerciales de alta demanda.",
+      "Adicionalmente, hoy no existe un enfoque sólido sobre analítica y comportamiento del usuario que permita responder preguntas clave para el negocio: qué productos despiertan más interés, qué secciones reciben más interacción, cuántas personas hacen clic en solicitar asesoría, o cómo navegan los usuarios dentro del sitio.",
+      "La oportunidad aquí no es únicamente reemplazar una plataforma o un proveedor: es construir una presencia digital que sí esté a la altura de marcas que venden confianza, lujo, historia y atención personalizada."
+    ],
+    "issuesTitle": "Problemas detectados ⚠️",
+    "issues": [
+      "Diseño genérico que no transmite una sensación premium ni diferenciadora.",
+      "Experiencia visual que puede generar desconfianza en usuarios de alto poder adquisitivo.",
+      "Dependencia de un proveedor con respuesta tardía o inconsistente para gestión de contenido.",
+      "Pérdida potencial de ventas y oportunidades por no tener una puerta de entrada digital a la altura del ticket del producto.",
+      "Baja visibilidad sobre métricas reales de navegación, interés y comportamiento del usuario.",
+      "Dificultad para reaccionar con agilidad en temporadas especiales, colecciones o campañas."
+    ],
+    "opportunityTitle": "La oportunidad 🎯",
+    "opportunity": "Transformar ambos sitios en activos digitales de alto nivel: uno institucional, que represente con autoridad al sector joyero colombiano, y otro comercial, que convierta interés en conversaciones de asesoría de alto valor. Todo esto acompañado por soporte real, rapidez operativa y analítica accionable para el negocio."
+  },
+  "conversionStrategy": {
+    "index": "03",
+    "title": "Enfoque propuesto y estrategia de conversión",
+    "intro": "La estrategia no estará centrada en vender por impulso, sino en construir confianza, transmitir exclusividad y convertir visitas en conversaciones comerciales de valor. Dado que se trata de joyería high ticket, la página debe actuar como un puente elegante entre el interés inicial del visitante y una asesoría personalizada.",
+    "steps": [
+      {
+        "title": "👀 Captar atención con una primera impresión premium",
+        "bullets": [
+          "Hero sections con fotografía de alto impacto y dirección de arte cuidada",
+          "Mensajes de marca claros, sobrios y coherentes con lujo, tradición y exclusividad",
+          "Jerarquía visual pensada para que el visitante entienda rápidamente el valor de la marca"
+        ]
+      },
+      {
+        "title": "🤝 Construir confianza desde el diseño y el contenido",
+        "bullets": [
+          "Storytelling de marca y trayectoria para elevar credibilidad",
+          "Presentación elegante de colecciones, productos o asociados",
+          "Señales de legitimidad, respaldo, historia y atención personalizada"
+        ]
+      },
+      {
+        "title": "💬 Convertir interés en asesoría",
+        "bullets": [
+          "Botones estratégicos para solicitar cita, asesoría o atención personalizada",
+          "CTAs visibles y consistentes a lo largo del recorrido",
+          "Flujo pensado para que el usuario no tenga dudas sobre el siguiente paso"
+        ]
+      },
+      {
+        "title": "📊 Medir para optimizar",
+        "bullets": [
+          "Integración con Google Analytics para entender navegación y comportamiento",
+          "Integración con Google Tag Manager para medición avanzada y futuras campañas",
+          "Base lista para mapas de calor y eventos sobre clics, formularios y secciones clave"
+        ]
+      },
+      {
+        "title": "🛠 Mantener contenido fresco sin fricción operativa",
+        "bullets": [
+          "Gestión continua de catálogos, campañas y contenido por parte del equipo",
+          "Respuesta rápida ante cambios estacionales o necesidades comerciales",
+          "Evitar cuellos de botella por depender de una sola persona o proveedor inestable"
+        ]
+      }
+    ],
+    "resultTitle": "🎯 Resultado esperado",
+    "result": "Dos sitios web que no solo se vean impecables, sino que eleven la percepción de marca, generen confianza en un público exigente y conviertan más visitantes en oportunidades reales de asesoría y venta."
+  },
+  "designUX": {
+    "index": "04",
+    "title": "Diseño visual y experiencia de usuario",
+    "paragraphs": [
+      "La propuesta visual será concebida bajo una lógica premium, limpia y cuidadosamente editorial. En joyería de alto valor, el diseño no es un detalle decorativo: es parte de la percepción de legitimidad, exclusividad y confianza. Por eso, cada sitio será diseñado a medida, evitando estructuras genéricas o sensaciones de plantilla.",
+      "Para Joyería Liévano, la experiencia debe inspirar lujo, precisión y deseo, con una presentación refinada del catálogo, foco en detalles, imágenes protagónicas y llamados a la acción elegantes para agendar asesoría. Para Círculo Colombiano de Joyerías, la interfaz debe comunicar solidez institucional, tradición, calidad y respaldo sectorial.",
+      "La navegación será clara, fluida y enfocada en ayudar al usuario a encontrar rápidamente lo que busca sin sacrificar la sofisticación visual. El objetivo es que cada recorrido transmita que detrás de la web existe una marca seria, cuidada y a la altura del nivel económico y cultural de su audiencia.",
+      "Como referencia visual, tomamos inspiración de marcas premium como Nida Tabba (https://nidatabba.com/), Constance Hotels & Resorts (https://www.constancehotels.com/en/) y MOOSER Hotel (https://www.mooserhotel.at/de/), donde el diseño comunica exclusividad y confianza desde el primer scroll."
+    ],
+    "focusTitle": "Referencias de diseño",
+    "focusItems": [
+      "💎 Nida Tabba (nidatabba.com) — joyería editorial: colecciones, storytelling y experiencia visual premium.",
+      "🏝 Constance Hotels (constancehotels.com) — hospitalidad de lujo con diseño digital que transmite exclusividad.",
+      "🏔 MOOSER Hotel (mooserhotel.at) — identidad visual fuerte y comunicación directa de experiencia high end."
+    ],
+    "objectiveTitle": "Objetivo",
+    "objective": "Lograr que ambas webs transmitan exclusividad, confianza y alto valor percibido desde la primera impresión, alineando la experiencia digital con la categoría real del negocio."
+  },
+  "creativeSupport": {
+    "index": "05",
+    "title": "Acompañamiento creativo personalizado",
+    "paragraphs": [
+      "Durante todo el proceso, Denisse y su equipo contarán con un acompañamiento cercano, estratégico y creativo por parte de Project App. No se tratará únicamente de ejecutar pantallas, sino de construir una presencia digital con intención, criterio visual y alineación comercial.",
+      "Nuestro equipo participará en la definición del tono visual, la organización del contenido, la priorización de las secciones y la mejor forma de presentar tanto la marca institucional como el catálogo premium. Cada decisión buscará mantener coherencia entre estética, negocio y experiencia del usuario.",
+      "Este acompañamiento también es clave para traducir el valor offline de la joyería y del círculo a un entorno digital que sí represente su categoría real. El objetivo es que la web no se sienta como un simple sitio informativo, sino como una extensión natural de una marca seria, elegante y exclusiva."
+    ],
+    "includesTitle": "Incluye",
+    "includes": [
+      "🎨 Dirección visual y criterios de diseño alineados con un público high ticket.",
+      "🧠 Acompañamiento en la organización del contenido y jerarquía de mensajes.",
+      "🔁 Revisiones colaborativas de estructura, estilo y presentación.",
+      "🧩 Definición de componentes y secciones con visión de marca, conversión y mantenimiento.",
+      "📸 Recomendaciones sobre tratamiento visual de imágenes, banners y catálogos."
+    ],
+    "closing": "Cada etapa será una co-creación bien acompañada, donde el resultado final no solo se vea mejor, sino que represente de forma más fiel y estratégica el valor real de ambas marcas."
+  },
+  "developmentStages": {
+    "stages": [
+      {
+        "icon": "✉️",
+        "title": "Propuesta Comercial",
+        "description": "Presentación formal del enfoque técnico, creativo y estratégico para el rediseño de ambos sitios web.",
+        "current": true
+      },
+      {
+        "icon": "🧾",
+        "title": "Borrador de Contrato",
+        "description": "Envío del documento contractual con alcance, condiciones, soporte y lineamientos del servicio."
+      },
+      {
+        "icon": "✍️",
+        "title": "Formalización del Contrato",
+        "description": "Aprobación y firma para iniciar oficialmente el proyecto."
+      },
+      {
+        "icon": "🎨",
+        "title": "Etapa de Diseño",
+        "description": "Diseño visual a medida en Figma, exploración estética, definición de estructura y validación del look & feel premium de ambas marcas."
+      },
+      {
+        "icon": "💻",
+        "title": "Etapa de Desarrollo",
+        "description": "Implementación en código nativo, optimizado para velocidad, escalabilidad operativa, medición y experiencia de usuario."
+      },
+      {
+        "icon": "🧪",
+        "title": "QA y Validación",
+        "description": "Pruebas de experiencia, visualización responsive, carga, interacción, formularios y medición."
+      },
+      {
+        "icon": "🚀",
+        "title": "Despliegue del Proyecto",
+        "description": "Publicación en producción, revisión final y salida en vivo."
+      },
+      {
+        "icon": "🛠",
+        "title": "Soporte y Gestión Continua",
+        "description": "Mantenimiento, acompañamiento y gestión de contenido posterior al lanzamiento como parte del servicio continuo."
+      }
+    ]
+  },
+  "functionalRequirements": {
+    "index": "07",
+    "title": "Requerimientos Funcionales del Proyecto",
+    "intro": "A continuación se plantea una estructura funcional inicial para el rediseño de ambos sitios web, basada en el análisis del contenido visible actual, los dolores identificados por el cliente y el objetivo estratégico del proyecto: elevar la percepción de marca, facilitar la gestión del contenido y preparar la base de medición y conversión.",
+    "groups": [
+      {
+        "id": "views",
+        "title": "Vistas",
+        "description": "Pantallas o secciones principales del ecosistema web propuesto para ambos sitios.",
+        "items": [
+          {
+            "id": "ccj-home",
+            "icon": "🏛️",
+            "name": "Inicio — Círculo Colombiano de Joyerías",
+            "description": "Página principal institucional con propuesta de valor del círculo, respaldo sectorial, mensaje de confianza y acceso a secciones clave."
+          },
+          {
+            "id": "ccj-about",
+            "icon": "💠",
+            "name": "Quiénes somos / Sobre el Círculo",
+            "description": "Sección para presentar historia, propósito, visión, valores y rol del Círculo dentro del sector joyero colombiano."
+          },
+          {
+            "id": "ccj-associated",
+            "icon": "🤝",
+            "name": "Joyerías Asociadas",
+            "description": "Directorio premium de asociados con fichas o tarjetas por marca, categoría, ciudad o punto de atención."
+          },
+          {
+            "id": "ccj-cities",
+            "icon": "📍",
+            "name": "Presencia por ciudad",
+            "description": "Páginas o filtros por ubicación para descubrir asociados según ciudad o zona de interés."
+          },
+          {
+            "id": "ccj-blog",
+            "icon": "📰",
+            "name": "Blog / Novedades",
+            "description": "Espacio editorial para fortalecer posicionamiento, autoridad, contenido institucional y visibilidad orgánica."
+          },
+          {
+            "id": "ccj-contact",
+            "icon": "📩",
+            "name": "Contacto — Círculo",
+            "description": "Formulario e información de contacto para comunicación institucional, alianzas o consultas."
+          },
+          {
+            "id": "lievano-home",
+            "icon": "💎",
+            "name": "Inicio — Joyería Liévano",
+            "description": "Página principal con narrativa premium, hero visual, trayectoria de marca, colecciones destacadas y CTA hacia asesoría."
+          },
+          {
+            "id": "lievano-history",
+            "icon": "🕰️",
+            "name": "Historia / Marca",
+            "description": "Sección para contar el legado de la joyería, su trayectoria y diferenciadores de marca."
+          },
+          {
+            "id": "lievano-catalog",
+            "icon": "🪄",
+            "name": "Catálogo General",
+            "description": "Vista para explorar productos o colecciones con una experiencia visual elegante y fácil de navegar."
+          },
+          {
+            "id": "lievano-category",
+            "icon": "📚",
+            "name": "Categorías / Colecciones",
+            "description": "Páginas por tipo de joya, material o colección, pensadas para filtrar y escalar visualmente el catálogo."
+          },
+          {
+            "id": "lievano-product",
+            "icon": "🔍",
+            "name": "Detalle de Producto",
+            "description": "Ficha premium de producto con galería, atributos clave, storytelling breve y CTA para solicitar asesoría personalizada."
+          },
+          {
+            "id": "lievano-appointment",
+            "icon": "📅",
+            "name": "Agendar asesoría / cita",
+            "description": "Vista o flujo para incentivar contacto de alto valor con enfoque consultivo en vez de compra inmediata."
+          },
+          {
+            "id": "lievano-contact",
+            "icon": "☎️",
+            "name": "Contacto / Boutiques / Atención",
+            "description": "Página con canales de contacto, ubicación física, horarios y vías de atención."
+          },
+          {
+            "id": "legal-pages",
+            "icon": "⚖️",
+            "name": "Políticas y términos",
+            "description": "Páginas legales para tratamiento de datos, términos de uso y cumplimiento normativo."
+          }
+        ]
+      },
+      {
+        "id": "components",
+        "title": "Componentes",
+        "description": "Elementos reutilizables que darán consistencia visual y funcional a ambos sitios.",
+        "items": [
+          {
+            "id": "header",
+            "icon": "🧭",
+            "name": "Header premium",
+            "description": "Encabezado con navegación clara, branding elegante y accesos a secciones clave."
+          },
+          {
+            "id": "footer",
+            "icon": "⬛",
+            "name": "Footer institucional",
+            "description": "Pie de página con enlaces de soporte, legales, contacto y elementos de confianza."
+          },
+          {
+            "id": "hero",
+            "icon": "✨",
+            "name": "Hero section editorial",
+            "description": "Componente de apertura con imagen o video de alto impacto, mensaje principal y CTA."
+          },
+          {
+            "id": "cards",
+            "icon": "🃏",
+            "name": "Tarjetas de productos / asociados",
+            "description": "Componentes para presentar joyas, colecciones o asociados con consistencia visual."
+          },
+          {
+            "id": "gallery",
+            "icon": "🖼️",
+            "name": "Galerías de imagen",
+            "description": "Módulos visuales para exhibir piezas, colecciones o espacios físicos con alto nivel estético."
+          },
+          {
+            "id": "cta-banner",
+            "icon": "📣",
+            "name": "Bloques CTA",
+            "description": "Secciones estratégicas con llamados a la acción para asesoría, contacto o cita."
+          },
+          {
+            "id": "testimonial",
+            "icon": "🌟",
+            "name": "Bloques de confianza / reputación",
+            "description": "Espacios para reforzar historia, respaldo, prestigio o experiencia."
+          },
+          {
+            "id": "blog-cards",
+            "icon": "📝",
+            "name": "Cards editoriales / blog",
+            "description": "Componentes para noticias, artículos, tendencias o novedades."
+          },
+          {
+            "id": "filters",
+            "icon": "🎛️",
+            "name": "Filtros de catálogo",
+            "description": "Controles para facilitar exploración por categoría, colección o atributos."
+          },
+          {
+            "id": "contact-form",
+            "icon": "📨",
+            "name": "Formulario de contacto / asesoría",
+            "description": "Formulario enfocado en captar leads de calidad y solicitudes de atención personalizada."
+          }
+        ]
+      },
+      {
+        "id": "features",
+        "title": "Funcionalidades",
+        "description": "Comportamientos interactivos y capacidades clave del proyecto.",
+        "items": [
+          {
+            "id": "responsive",
+            "icon": "📱",
+            "name": "Diseño responsive",
+            "description": "Adaptación impecable para móvil, tablet y escritorio, priorizando experiencia premium en todos los dispositivos."
+          },
+          {
+            "id": "catalog-management",
+            "icon": "🛍️",
+            "name": "Gestión de catálogo y contenido",
+            "description": "Capacidad de actualizar productos, banners, campañas y contenido de forma rápida dentro del modelo de soporte acordado."
+          },
+          {
+            "id": "lead-capture",
+            "icon": "💬",
+            "name": "Captación de leads y asesorías",
+            "description": "Botones, formularios y puntos de contacto pensados para convertir interés en conversación comercial."
+          },
+          {
+            "id": "analytics-events",
+            "icon": "📊",
+            "name": "Medición de eventos y comportamiento",
+            "description": "Configuración base para medir clics, formularios, navegación, secciones visitadas y comportamiento clave."
+          },
+          {
+            "id": "heatmap-ready",
+            "icon": "🔥",
+            "name": "Preparación para mapas de calor",
+            "description": "Estructura lista para integrar herramientas de mapas de calor y análisis visual del comportamiento."
+          },
+          {
+            "id": "seo-base",
+            "icon": "🔎",
+            "name": "SEO técnico base",
+            "description": "Buenas prácticas iniciales para indexación, estructura semántica, velocidad y visibilidad orgánica."
+          },
+          {
+            "id": "performance",
+            "icon": "⚡",
+            "name": "Optimización de carga",
+            "description": "Carga rápida de imágenes y recursos para reducir fricción y mejorar percepción de calidad."
+          },
+          {
+            "id": "security",
+            "icon": "🔐",
+            "name": "Seguridad y estabilidad",
+            "description": "Buenas prácticas técnicas para asegurar estabilidad, certificados SSL y entorno confiable."
+          }
+        ]
+      },
+      {
+        "id": "admin",
+        "title": "Gestión Operativa y Soporte",
+        "description": "Aspectos operativos que resuelven el dolor principal del cliente.",
+        "items": [
+          {
+            "id": "content-ops",
+            "icon": "🧑‍💻",
+            "name": "Gestión continua de contenido",
+            "description": "Carga y actualización de contenido comercial o institucional según necesidades del negocio."
+          },
+          {
+            "id": "seasonal-updates",
+            "icon": "🎁",
+            "name": "Actualizaciones de campañas y temporadas",
+            "description": "Soporte para cambios rápidos en fechas especiales, lanzamientos o catálogos estacionales."
+          },
+          {
+            "id": "support-team",
+            "icon": "🆘",
+            "name": "Soporte y mantenimiento",
+            "description": "Acompañamiento post-lanzamiento con capacidad de respuesta organizada por equipo, no por una sola persona."
+          }
+        ]
+      }
+    ],
+    "technicalSpecs": [
+      {
+        "title": "Frontend",
+        "icon": "M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4",
+        "items": [
+          "Desarrollo frontend a medida",
+          "Diseño responsive",
+          "Optimización visual para marcas premium",
+          "Jerarquía visual orientada a conversión"
+        ]
+      },
+      {
+        "title": "Backend / CMS Operativo",
+        "icon": "M5 12h14M12 5v14",
+        "items": [
+          "Base preparada para gestión de contenido",
+          "Arquitectura orientada a estabilidad y mantenimiento",
+          "Escalabilidad operativa para futuras integraciones"
+        ]
+      },
+      {
+        "title": "QA",
+        "icon": "M9 12l2 2 4-4",
+        "items": [
+          "Pruebas responsive",
+          "Pruebas de formularios y CTAs",
+          "Revisión de carga y experiencia de navegación"
+        ]
+      }
+    ],
+    "integrations": [
+      { "name": "Google Analytics", "icon": "📈" },
+      { "name": "Google Tag Manager", "icon": "🏷️" },
+      { "name": "Google Ads Ready", "icon": "🎯" },
+      { "name": "Heatmaps Ready", "icon": "🔥" },
+      { "name": "WhatsApp / canales de contacto", "icon": "📲" }
+    ]
+  },
+  "timeline": {
+    "index": "08",
+    "title": "Cronograma del Proyecto",
+    "introText": "Este cronograma presenta una ruta realista para diseñar, desarrollar, probar y desplegar el rediseño de ambos sitios web con una lógica de calidad, validación y salida controlada.",
+    "totalDuration": "Por definir según alcance final",
+    "phases": [
+      {
+        "title": "Discovery & Strategy",
+        "duration": "Fase 1",
+        "weeks": "Por definir",
+        "circleColor": "bg-blue-600",
+        "statusColor": "bg-blue-100 text-blue-700",
+        "description": "Levantamiento detallado del alcance, arquitectura de información y definición estratégica de ambos sitios.",
+        "tasks": [
+          "Kickoff y alineación de objetivos",
+          "Revisión de contenido actual",
+          "Arquitectura de navegación",
+          "Definición de prioridades por sitio"
+        ],
+        "milestone": "Aprobación de estructura base"
+      },
+      {
+        "title": "Design & Prototyping",
+        "duration": "Fase 2",
+        "weeks": "Por definir",
+        "circleColor": "bg-purple-600",
+        "statusColor": "bg-purple-100 text-purple-700",
+        "description": "Diseño visual de alto nivel, definición de dirección estética y validación de prototipos.",
+        "tasks": [
+          "Moodboard y referencias visuales",
+          "Diseño de home y páginas clave",
+          "Iteraciones visuales",
+          "Aprobación de look & feel"
+        ],
+        "milestone": "Aprobación de diseño final"
+      },
+      {
+        "title": "Development",
+        "duration": "Fase 3",
+        "weeks": "Por definir",
+        "circleColor": "bg-green-600",
+        "statusColor": "bg-green-100 text-green-700",
+        "description": "Implementación técnica del diseño y construcción funcional de ambos sitios.",
+        "tasks": [
+          "Desarrollo frontend responsive",
+          "Configuración de estructura de contenido",
+          "Implementación de CTAs y formularios",
+          "Preparación de analítica"
+        ],
+        "milestone": "Demo funcional"
+      },
+      {
+        "title": "Testing & QA",
+        "duration": "Fase 4",
+        "weeks": "Por definir",
+        "circleColor": "bg-orange-600",
+        "statusColor": "bg-orange-100 text-orange-700",
+        "description": "Validación funcional, visual y técnica antes del lanzamiento.",
+        "tasks": [
+          "Pruebas cross-device",
+          "Revisión de carga",
+          "Pruebas de formularios",
+          "Ajustes finales"
+        ],
+        "milestone": "Aprobación para salida"
+      },
+      {
+        "title": "Launch & Support",
+        "duration": "Fase 5",
+        "weeks": "Por definir",
+        "circleColor": "bg-pink-600",
+        "statusColor": "bg-pink-100 text-pink-700",
+        "description": "Publicación en producción y activación del servicio continuo de soporte y gestión.",
+        "tasks": [
+          "Deploy a producción",
+          "Configuración de dominio y SSL",
+          "Monitoreo inicial",
+          "Inicio del soporte y mantenimiento"
+        ],
+        "milestone": "Sitios en producción"
+      }
+    ]
+  },
+  "investment": {
+    "index": "09",
+    "title": "Inversión y Formas de Pago",
+    "introText": "Inversión total del proyecto de rediseño para ambos sitios web:",
+    "totalInvestment": "$5.400.000",
+    "currency": "COP",
+    "whatsIncluded": [
+      { "icon": "🎨", "title": "Diseño", "description": "Diseño visual premium y UX orientado a confianza y conversión" },
+      { "icon": "⚙️", "title": "Desarrollo", "description": "Implementación completa del rediseño y estructura técnica" },
+      { "icon": "📊", "title": "Analítica", "description": "Base de medición para comportamiento, clics y navegación" },
+      { "icon": "☁️", "title": "Infraestructura", "description": "Hosting, mantenimiento técnico y entorno productivo" },
+      { "icon": "🛠️", "title": "Gestión continua", "description": "Soporte y administración de contenido según modelo acordado" }
+    ],
+    "paymentOptions": [
+      { "label": "40% al firmar el contrato ✍️", "description": "$2,160,000 COP" },
+      { "label": "30% al aprobar el diseño final ✅", "description": "$1,620,000 COP" },
+      { "label": "30% al desplegar los sitios web 🚀", "description": "$1,620,000 COP" }
+    ],
+    "hostingPlan": {
+      "title": "Hosting, Mantenimiento y Gestión de Contenido",
+      "description": "Infraestructura optimizada para dos sitios web premium con soporte, mantenimiento técnico y gestión ágil de contenido comercial e institucional:",
+      "specs": [
+        { "icon": "🧠", "label": "vCPU", "value": "2 núcleos de vCPU" },
+        { "icon": "🧮", "label": "RAM", "value": "2 GB de RAM dedicada" },
+        { "icon": "💾", "label": "Almacenamiento", "value": "5 GB de almacenamiento NVMe" },
+        { "icon": "🌐", "label": "Ancho de banda", "value": "1 TB mensual" },
+        { "icon": "📍", "label": "Centros de datos", "value": "EE.UU., Brasil, Francia" },
+        { "icon": "🛡️", "label": "Mantenimiento", "value": "Actualizaciones, estabilidad y soporte técnico" },
+        { "icon": "📦", "label": "Gestión de contenido", "value": "Carga de campañas, catálogos y ajustes operativos" },
+        { "icon": "🆘", "label": "Soporte", "value": "Atención por equipo estructurado de Project App" }
+      ],
+      "monthlyPrice": "$89.999 COP",
+      "monthlyLabel": "por mes",
+      "annualPrice": "$960.000 COP",
+      "annualLabel": "Hosting anual — Año 1",
+      "renewalNote": "Renovaciones a partir del segundo año: el costo se ajusta anualmente con base en el SMLMV (Salario Mínimo Legal Mensual Vigente) del año de renovación, aplicando la siguiente fórmula:\n\nCosto de renovación = Costo del año anterior + (5% × SMLMV del año de renovación)",
+      "coverageNote": "El costo de hosting cubre tres componentes: el mantenimiento técnico de la plataforma (actualizaciones de seguridad, parches y optimización), el soporte ante incidencias o bugs, y los recursos computacionales necesarios para que ambos sitios funcionen (servidor, almacenamiento, ancho de banda y certificados SSL)."
+    },
+    "paymentMethods": [
+      { "name": "Transferencia", "icon": "🏦" },
+      { "name": "Tarjeta", "icon": "💳" }
+    ],
+    "valueReasons": [
+      {
+        "title": "Percepción premium",
+        "description": "Una web mejor diseñada eleva la confianza y la percepción de valor de la marca."
+      },
+      {
+        "title": "Soporte real",
+        "description": "El cliente deja de depender de una sola persona y pasa a tener respaldo de un equipo estructurado."
+      },
+      {
+        "title": "Decisiones con datos",
+        "description": "La analítica permite entender mejor el interés de los usuarios y optimizar campañas o contenidos."
+      },
+      {
+        "title": "Activo digital sólido",
+        "description": "La inversión construye un activo de marca mejor alineado con el nivel del negocio."
+      }
+    ]
+  },
+  "finalNote": {
+    "index": "10",
+    "title": "Nota Final",
+    "message": "Creemos firmemente que esta propuesta representa una oportunidad clara para elevar la presencia digital de Círculo Colombiano de Joyerías y Joyería Liévano hacia un estándar mucho más alineado con su categoría, historia y valor de marca.",
+    "personalNote": "Más que rediseñar dos sitios, buscamos construir dos experiencias digitales que transmitan confianza, exclusividad y respaldo, al tiempo que resuelven una necesidad operativa real de soporte, gestión y acompañamiento continuo.",
+    "teamName": "El equipo de Project App",
+    "teamRole": "Tu socio en transformación digital",
+    "contactEmail": "team@projectapp.co",
+    "signature": "— Gustavo Pérez, Project App",
+    "validityMessage": "Esta propuesta es válida por 30 días a partir de la fecha de presentación. Precios y condiciones pueden estar sujetos a cambios después de este período.",
+    "thankYouMessage": "Agradecemos la oportunidad de presentar esta propuesta. Nos entusiasma la posibilidad de acompañar a Denisse y su equipo en un proceso de evolución digital a la altura de estas marcas.",
+    "commitmentBadges": [
+      {
+        "icon": "🤝",
+        "title": "Equipo Real",
+        "description": "Diseño, desarrollo, QA y soporte como capacidades organizadas, no improvisadas."
+      },
+      {
+        "icon": "⚡",
+        "title": "Respuesta Ágil",
+        "description": "Acompañamiento oportuno para necesidades comerciales y operativas del sitio."
+      },
+      {
+        "icon": "🎯",
+        "title": "Enfoque en Marca y Conversión",
+        "description": "Diseñamos para elevar percepción, generar confianza y facilitar el contacto."
+      }
+    ]
+  },
+  "nextSteps": {
+    "index": "11",
+    "title": "Próximos pasos",
+    "introMessage": "Estamos listos para avanzar con la siguiente etapa del proceso y convertir esta visión en una propuesta final cerrada.",
+    "steps": [
+      {
+        "title": "Revisión de la propuesta",
+        "description": "Validar el enfoque estratégico, creativo y operativo planteado para ambos sitios."
+      },
+      {
+        "title": "Definición de alcance final",
+        "description": "Ajustar funcionalidades, nivel de acompañamiento y modelo de gestión continua."
+      },
+      {
+        "title": "Cierre económico y contractual",
+        "description": "Presentar inversión final, formalizar condiciones y programar el kickoff."
+      }
+    ],
+    "ctaMessage": "Cuando estén listos, avanzamos con el cierre del alcance y la versión final de la propuesta económica.",
+    "primaryCTA": {
+      "text": "Contactar por WhatsApp",
+      "link": "https://wa.me/573238122373"
+    },
+    "secondaryCTA": {
+      "text": "Agendar Reunión",
+      "link": "https://calendly.com/projectapp"
+    },
+    "contactMethods": [
+      {
+        "icon": "📧",
+        "title": "Email",
+        "value": "team@projectapp.co",
+        "link": "mailto:team@projectapp.co"
+      },
+      {
+        "icon": "📱",
+        "title": "WhatsApp",
+        "value": "+57 323 812 2373",
+        "link": "https://wa.me/573238122373"
+      },
+      {
+        "icon": "🌐",
+        "title": "Website",
+        "value": "www.projectapp.co",
+        "link": "https://www.projectapp.co"
+      }
+    ],
+    "validityMessage": "Esta propuesta conceptual y estratégica es válida por 30 días calendario a partir de su fecha de presentación. La inversión final quedará sujeta a validación del alcance definitivo.",
+    "thankYouMessage": "Agradecemos la oportunidad de presentar esta propuesta. Nos entusiasma la posibilidad de acompañar a estas dos marcas en un proceso de evolución digital mucho más alineado con su verdadero nivel."
+  }
+}

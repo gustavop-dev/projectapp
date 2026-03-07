@@ -17,28 +17,23 @@
               v-for="(paragraph, idx) in content.paragraphs"
               :key="idx"
               class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl"
-            >
-              {{ paragraph }}
-            </p>
+              v-html="linkify(paragraph)"
+            />
 
             <div v-if="content.closing" class="pt-2">
-              <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl">
-                {{ content.closing }}
-              </p>
+              <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl" v-html="linkify(content.closing)" />
             </div>
           </div>
 
           <aside v-if="content.includes?.length" data-animate="fade-up" class="lg:col-span-4">
-            <div class="rounded-3xl bg-esmerald-light/60 p-6 md:p-8">
-              <h3 class="text-esmerald font-light text-base md:text-lg tracking-wide mb-5">
+            <div class="rounded-3xl bg-esmerald p-6 md:p-8">
+              <h3 class="text-lemon font-light text-base md:text-lg tracking-wide mb-5">
                 {{ content.includesTitle }}
               </h3>
               <ul class="space-y-4">
                 <li v-for="(item, idx) in content.includes" :key="idx" class="flex gap-3">
-                  <span class="mt-3 h-1.5 w-1.5 rounded-full bg-esmerald flex-shrink-0"></span>
-                  <p class="text-esmerald/80 font-light leading-relaxed">
-                    {{ item }}
-                  </p>
+                  <span class="mt-3 h-1.5 w-1.5 rounded-full bg-lemon flex-shrink-0"></span>
+                  <p class="text-esmerald-light font-light leading-relaxed" v-html="linkify(item)" />
                 </li>
               </ul>
             </div>
@@ -52,6 +47,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import { linkify } from '~/composables/useLinkify';
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
@@ -80,4 +76,14 @@ const props = defineProps({
 </script>
 
 <style scoped>
+:deep(.linkify-link) {
+  color: #059669;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(5, 150, 105, 0.3);
+  transition: text-decoration-color 0.2s ease;
+}
+:deep(.linkify-link:hover) {
+  text-decoration-color: rgba(5, 150, 105, 0.8);
+}
 </style>

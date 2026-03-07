@@ -16,10 +16,19 @@
       </svg>
     </button>
 
+    <!-- Blur backdrop when index is open -->
+    <Transition name="idx-fade">
+      <div
+        v-if="isOpen"
+        class="fixed inset-0 z-40 bg-white/60 backdrop-blur-[3px]"
+        @click="isOpen = false"
+      />
+    </Transition>
+
     <!-- Index panel -->
     <nav
-      class="index-panel ml-3 py-4 px-3 rounded-2xl
-             bg-white/90 backdrop-blur-md shadow-xl border border-gray-100
+      class="index-panel ml-3 py-4 px-3 rounded-2xl z-50
+             bg-white/95 backdrop-blur-md shadow-xl border border-gray-100
              transition-all duration-300 max-h-[70vh] sm:max-h-[80vh] overflow-y-auto"
       :class="{ 'translate-x-[-120%]': !isOpen }"
     >
@@ -71,7 +80,7 @@ defineProps({
 
 const emit = defineEmits(['navigate', 'update:open']);
 
-const isOpen = ref(typeof window !== 'undefined' && window.innerWidth >= 640);
+const isOpen = ref(false);
 
 watch(isOpen, (val) => emit('update:open', val), { immediate: true });
 </script>
@@ -85,5 +94,14 @@ watch(isOpen, (val) => emit('update:open', val), { immediate: true });
 
 .index-panel::-webkit-scrollbar {
   display: none;
+}
+
+.idx-fade-enter-active,
+.idx-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.idx-fade-enter-from,
+.idx-fade-leave-to {
+  opacity: 0;
 }
 </style>

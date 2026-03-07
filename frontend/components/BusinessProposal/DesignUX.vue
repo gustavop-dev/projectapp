@@ -17,31 +17,26 @@
               v-for="(paragraph, idx) in content.paragraphs"
               :key="idx"
               class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl"
-            >
-              {{ paragraph }}
-            </p>
+              v-html="linkify(paragraph)"
+            />
 
             <div v-if="content.objective" class="pt-2">
               <h3 class="text-esmerald font-light text-base md:text-lg tracking-wide mb-3">
                 {{ content.objectiveTitle }}
               </h3>
-              <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl">
-                {{ content.objective }}
-              </p>
+              <p class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl" v-html="linkify(content.objective)" />
             </div>
           </div>
 
           <aside v-if="content.focusItems?.length" data-animate="fade-up" class="lg:col-span-4">
-            <div class="rounded-3xl bg-esmerald-light/60 p-6 md:p-8">
-              <h3 class="text-esmerald font-light text-base md:text-lg tracking-wide mb-5">
+            <div class="focus-card rounded-3xl bg-esmerald p-6 md:p-8">
+              <h3 class="text-lemon font-light text-base md:text-lg tracking-wide mb-5">
                 {{ content.focusTitle }}
               </h3>
               <ul class="space-y-4">
                 <li v-for="(item, idx) in content.focusItems" :key="idx" class="flex gap-3">
-                  <span class="mt-3 h-1.5 w-1.5 rounded-full bg-esmerald flex-shrink-0"></span>
-                  <p class="text-esmerald/80 font-light leading-relaxed">
-                    {{ item }}
-                  </p>
+                  <span class="mt-3 h-1.5 w-1.5 rounded-full bg-lemon flex-shrink-0"></span>
+                  <p class="text-esmerald-light font-light leading-relaxed" v-html="linkify(item)" />
                 </li>
               </ul>
             </div>
@@ -55,6 +50,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import { linkify } from '~/composables/useLinkify';
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
@@ -85,4 +81,23 @@ const props = defineProps({
 </script>
 
 <style scoped>
+:deep(.linkify-link) {
+  color: #059669;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(5, 150, 105, 0.3);
+  transition: all 0.2s ease;
+}
+:deep(.linkify-link:hover) {
+  text-decoration-color: rgba(5, 150, 105, 0.8);
+}
+
+.focus-card :deep(.linkify-link) {
+  color: #f0ff3d;
+  text-decoration-color: rgba(240, 255, 61, 0.4);
+}
+.focus-card :deep(.linkify-link:hover) {
+  color: #f0ff3d;
+  text-decoration-color: rgba(240, 255, 61, 0.8);
+}
 </style>

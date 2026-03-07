@@ -145,6 +145,27 @@ export const useProposalStore = defineStore('proposals', {
     },
 
     /**
+     * createProposalFromJSON: Create a proposal from a complete JSON payload.
+     * @param {object} jsonData - Full payload with metadata + sections.
+     */
+    async createProposalFromJSON(jsonData) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request('proposals/create-from-json/', jsonData);
+        this.currentProposal = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'create_from_json_failed';
+        console.error('Error creating proposal from JSON:', error);
+        return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
      * updateProposal: Update proposal metadata.
      * @param {number} id - Proposal ID.
      * @param {object} payload - Fields to update.

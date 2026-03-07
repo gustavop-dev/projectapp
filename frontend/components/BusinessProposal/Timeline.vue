@@ -1,5 +1,5 @@
 <template>
-  <section ref="sectionRef" class="timeline py-16 md:py-24 bg-gray-50">
+  <section ref="sectionRef" class="timeline py-16 md:py-24 bg-white">
     <div class="container mx-auto px-6 md:px-12 lg:px-24 max-w-5xl">
       <div class="section-header mb-12">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
@@ -16,38 +16,37 @@
         <p data-animate="fade-up" class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl mb-6">
           {{ introText }}
         </p>
-        <div data-animate="fade-up" class="duration-summary bg-white p-6 rounded-xl shadow-sm inline-block">
+        <div data-animate="fade-up" class="duration-summary bg-esmerald-light/60 p-6 rounded-xl inline-block">
           <div class="flex items-center">
-            <svg class="w-8 h-8 text-emerald-600 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-8 h-8 text-esmerald mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
             <div>
-              <div class="text-sm text-gray-600">Duración Total Estimada</div>
-              <div class="text-2xl font-bold text-gray-900">{{ totalDuration }}</div>
+              <div class="text-sm text-green-light">Duración Total Estimada</div>
+              <div class="text-2xl font-bold text-esmerald">{{ totalDuration }}</div>
             </div>
           </div>
         </div>
       </div>
 
       <div class="timeline-container relative">
-        <div class="absolute left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-600 via-emerald-400 to-emerald-200 hidden md:block"></div>
+        <div class="absolute left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-esmerald via-esmerald/60 to-green-light/10 hidden md:block"></div>
         
         <div data-animate="fade-up-stagger" class="space-y-8">
           <div v-for="(phase, index) in phases" :key="index"
                class="timeline-item relative">
             <div class="flex flex-col sm:flex-row items-start gap-4 sm:gap-0">
               <div class="flex-shrink-0 sm:mr-8 relative z-10">
-                <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center shadow-lg"
-                     :class="phase.circleColor">
-                  <span class="text-xl sm:text-2xl font-bold text-white">{{ index + 1 }}</span>
+                <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center shadow-lg bg-esmerald">
+                  <span class="text-xl sm:text-2xl font-bold text-lemon">{{ index + 1 }}</span>
                 </div>
               </div>
               
               <div class="flex-1 bg-white p-5 sm:p-8 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                   <div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-2">{{ phase.title }}</h3>
-                    <div class="flex items-center text-sm text-gray-600">
+                    <h3 class="text-2xl font-bold text-esmerald mb-2">{{ phase.title }}</h3>
+                    <div class="flex items-center text-sm text-green-light">
                       <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
                       </svg>
@@ -55,31 +54,30 @@
                     </div>
                   </div>
                   <div v-if="phase.weeks" class="mt-4 md:mt-0">
-                    <span class="inline-block px-4 py-2 rounded-full text-sm font-medium"
-                          :class="phase.statusColor || 'bg-gray-100 text-gray-700'">
+                    <span class="inline-block px-4 py-2 rounded-full text-sm font-medium bg-esmerald-light/60 text-esmerald">
                       {{ typeof phase.weeks === 'string' ? phase.weeks : 'Semanas: ' + (Array.isArray(phase.weeks) ? phase.weeks.join(', ') : phase.weeks) }}
                     </span>
                   </div>
                 </div>
                 
-                <p class="text-gray-600 leading-relaxed mb-6">{{ phase.description }}</p>
+                <p class="text-esmerald/70 font-light leading-relaxed mb-6">{{ phase.description }}</p>
                 
                 <div class="tasks-list space-y-3">
                   <div v-for="(task, idx) in phase.tasks" :key="idx"
-                       class="task-item flex items-start p-3 bg-gray-50 rounded-lg hover:bg-emerald-50 transition-colors">
-                    <svg class="w-5 h-5 text-emerald-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                       class="task-item flex items-start p-3 bg-esmerald/5 rounded-lg hover:bg-esmerald-light/60 transition-colors">
+                    <svg class="w-5 h-5 text-esmerald mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                     </svg>
-                    <span class="text-sm text-gray-700">{{ task }}</span>
+                    <span class="text-sm text-esmerald/80">{{ task }}</span>
                   </div>
                 </div>
 
                 <div v-if="phase.milestone" class="milestone-badge mt-6 pt-6 border-t border-gray-100">
                   <div class="flex items-center">
-                    <svg class="w-6 h-6 text-yellow-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="w-6 h-6 text-lemon mr-2" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                     </svg>
-                    <span class="font-bold text-gray-900">Hito: {{ phase.milestone }}</span>
+                    <span class="font-bold text-esmerald">Hito: {{ phase.milestone }}</span>
                   </div>
                 </div>
               </div>
