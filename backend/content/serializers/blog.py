@@ -16,6 +16,13 @@ def _get_lang(serializer):
 # Public serializers — expose virtual title/excerpt/content based on lang
 # ---------------------------------------------------------------------------
 
+def _get_cover_image_display(obj):
+    """Return the best available cover image URL: uploaded file first, then external URL."""
+    if obj.cover_image:
+        return obj.cover_image.url
+    return obj.cover_image_url or ''
+
+
 class BlogPostListSerializer(serializers.ModelSerializer):
     """
     Lightweight serializer for listing blog posts on public and admin views.
@@ -23,6 +30,7 @@ class BlogPostListSerializer(serializers.ModelSerializer):
     """
     title = serializers.SerializerMethodField()
     excerpt = serializers.SerializerMethodField()
+    cover_image = serializers.SerializerMethodField()
 
     class Meta:
         model = BlogPost
@@ -40,6 +48,9 @@ class BlogPostListSerializer(serializers.ModelSerializer):
         lang = _get_lang(self)
         return getattr(obj, f'excerpt_{lang}')
 
+    def get_cover_image(self, obj):
+        return _get_cover_image_display(obj)
+
 
 class BlogPostDetailSerializer(serializers.ModelSerializer):
     """
@@ -52,6 +63,7 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
     content_json = serializers.SerializerMethodField()
     meta_title = serializers.SerializerMethodField()
     meta_description = serializers.SerializerMethodField()
+    cover_image = serializers.SerializerMethodField()
 
     class Meta:
         model = BlogPost
@@ -88,6 +100,9 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
         lang = _get_lang(self)
         return getattr(obj, f'meta_description_{lang}')
 
+    def get_cover_image(self, obj):
+        return _get_cover_image_display(obj)
+
 
 # ---------------------------------------------------------------------------
 # Admin serializers — expose all _es/_en fields
@@ -97,26 +112,33 @@ class BlogPostAdminListSerializer(serializers.ModelSerializer):
     """
     Admin list serializer — returns both language titles.
     """
+    cover_image_display = serializers.SerializerMethodField()
 
     class Meta:
         model = BlogPost
         fields = (
             'id', 'title_es', 'title_en', 'slug', 'cover_image',
+            'cover_image_url', 'cover_image_display',
             'excerpt_es', 'excerpt_en',
             'category', 'read_time_minutes', 'is_featured',
             'is_published', 'published_at', 'created_at',
         )
+
+    def get_cover_image_display(self, obj):
+        return _get_cover_image_display(obj)
 
 
 class BlogPostAdminDetailSerializer(serializers.ModelSerializer):
     """
     Admin detail serializer — returns all bilingual fields.
     """
+    cover_image_display = serializers.SerializerMethodField()
 
     class Meta:
         model = BlogPost
         fields = (
             'id', 'title_es', 'title_en', 'slug', 'cover_image',
+            'cover_image_url', 'cover_image_display',
             'excerpt_es', 'excerpt_en',
             'content_es', 'content_en',
             'content_json_es', 'content_json_en',
@@ -126,6 +148,9 @@ class BlogPostAdminDetailSerializer(serializers.ModelSerializer):
             'is_published', 'published_at',
             'created_at', 'updated_at',
         )
+
+    def get_cover_image_display(self, obj):
+        return _get_cover_image_display(obj)
 
 
 class BlogPostCreateUpdateSerializer(serializers.ModelSerializer):
@@ -137,6 +162,7 @@ class BlogPostCreateUpdateSerializer(serializers.ModelSerializer):
         model = BlogPost
         fields = (
             'title_es', 'title_en', 'slug', 'cover_image',
+            'cover_image_url',
             'excerpt_es', 'excerpt_en',
             'content_es', 'content_en',
             'content_json_es', 'content_json_en',
@@ -254,6 +280,11 @@ BLOG_JSON_TEMPLATE = {
     'cta': 'Call to action text inviting the reader to take the next step.',
 }
 
+AVAILABLE_CATEGORIES = [
+    {'slug': slug, 'label': label}
+    for slug, label in BlogPost.CATEGORY_CHOICES
+]
+
 
 class BlogPostFromJSONSerializer(serializers.Serializer):
     """
@@ -266,7 +297,7 @@ class BlogPostFromJSONSerializer(serializers.Serializer):
     excerpt_en = serializers.CharField()
     content_json_es = serializers.DictField(required=True)
     content_json_en = serializers.DictField(required=False, default=dict)
-    cover_image = serializers.CharField(required=False, default='', allow_blank=True)
+    cover_image_url = serializers.CharField(required=False, default='', allow_blank=True)
     sources = serializers.ListField(
         child=serializers.DictField(), required=False, default=list,
     )

@@ -19,6 +19,7 @@ from content.views.blog import (
     list_admin_blog_posts, create_blog_post, create_blog_post_from_json,
     get_blog_json_template,
     retrieve_admin_blog_post, update_blog_post, delete_blog_post,
+    upload_blog_cover_image,
 )
 
 urlpatterns = [
@@ -62,6 +63,7 @@ urlpatterns = [
     path('blog/admin/<int:post_id>/detail/', retrieve_admin_blog_post, name='retrieve-admin-blog-post'),
     path('blog/admin/<int:post_id>/update/', update_blog_post, name='update-blog-post'),
     path('blog/admin/<int:post_id>/delete/', delete_blog_post, name='delete-blog-post'),
+    path('blog/admin/<int:post_id>/upload-cover/', upload_blog_cover_image, name='upload-blog-cover-image'),
 
     # Blog — public
     path('blog/', list_blog_posts, name='list-blog-posts'),

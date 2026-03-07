@@ -81,7 +81,7 @@ class BlogPostAdmin(admin.ModelAdmin):
             'fields': ('title_en', 'excerpt_en', 'content_en', 'content_json_en'),
         }),
         (None, {
-            'fields': ('slug', 'cover_image', 'category', 'read_time_minutes', 'is_featured'),
+            'fields': ('slug', 'cover_image', 'cover_image_url', 'category', 'read_time_minutes', 'is_featured'),
         }),
         ('SEO', {
             'fields': ('meta_title_es', 'meta_title_en', 'meta_description_es', 'meta_description_en'),

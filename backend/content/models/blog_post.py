@@ -27,12 +27,26 @@ class BlogPost(models.Model):
         ('case-study', 'Case Study'),
         ('ai', 'AI'),
         ('development', 'Development'),
+        ('marketing', 'Digital Marketing'),
+        ('startup', 'Startups'),
+        ('productivity', 'Productivity'),
+        ('security', 'Cybersecurity'),
+        ('cloud', 'Cloud & DevOps'),
+        ('data', 'Data & Analytics'),
+        ('no-code', 'No-Code / Low-Code'),
+        ('trends', 'Trends'),
+        ('e-commerce', 'E-Commerce'),
+        ('ux-ui', 'UX / UI'),
     ]
 
     title_es = models.CharField(max_length=255)
     title_en = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     cover_image = models.ImageField(upload_to='blog/covers/', blank=True)
+    cover_image_url = models.URLField(
+        max_length=500, blank=True, default='',
+        help_text='External URL for cover image (used when no file is uploaded).',
+    )
     excerpt_es = models.TextField(
         help_text='Resumen corto en español (1-2 oraciones).'
     )

@@ -2,7 +2,8 @@ import logging
 
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
@@ -14,6 +15,7 @@ from content.serializers.blog import (
     BlogPostDetailSerializer,
     BlogPostFromJSONSerializer,
     BlogPostListSerializer,
+    AVAILABLE_CATEGORIES,
     BLOG_JSON_TEMPLATE,
 )
 
@@ -146,6 +148,7 @@ def create_blog_post_from_json(request):
         excerpt_en=data['excerpt_en'],
         content_json_es=data['content_json_es'],
         content_json_en=data.get('content_json_en') or {},
+        cover_image_url=data.get('cover_image_url', ''),
         sources=data.get('sources', []),
         category=data.get('category', ''),
         read_time_minutes=data.get('read_time_minutes', 0),
@@ -187,5 +190,29 @@ def get_blog_json_template(request):
         'meta_title_en': '',
         'meta_description_es': '',
         'meta_description_en': '',
+        '_available_categories': AVAILABLE_CATEGORIES,
     }
     return Response(template, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+@parser_classes([MultiPartParser])
+def upload_blog_cover_image(request, post_id):
+    """
+    Upload a cover image file for a blog post.
+    Expects multipart/form-data with a 'cover_image' file field.
+    """
+    post = get_object_or_404(BlogPost, pk=post_id)
+    cover = request.FILES.get('cover_image')
+    if not cover:
+        return Response(
+            {'cover_image': 'No file provided.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    post.cover_image = cover
+    post.save(update_fields=['cover_image', 'updated_at'])
+
+    detail = BlogPostAdminDetailSerializer(post)
+    return Response(detail.data, status=status.HTTP_200_OK)
