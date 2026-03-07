@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>¿Podemos encontrar una solución? — Project App</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;max-width:600px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#059669;padding:32px 40px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;">
+                Project App.
+              </h1>
+              <p style="margin:8px 0 0;color:#d1fae5;font-size:14px;">
+                Transformación Digital
+              </p>
+            </td>
+          </tr>
+
+          <!-- Greeting -->
+          <tr>
+            <td style="padding:40px 40px 24px;">
+              <h2 style="margin:0;color:#1f2937;font-size:22px;font-weight:600;">
+                {{ client_name }}, ¿podemos encontrar una solución? 🤝
+              </h2>
+              <p style="margin:16px 0 0;color:#4b5563;font-size:16px;line-height:1.6;">
+                Hace un par de días recibimos tu decisión sobre la propuesta
+                <strong>{{ proposal_title }}</strong>. Entendemos completamente
+                que el presupuesto es un factor clave, y queremos explorar contigo
+                si hay una forma de hacer que esto funcione.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Options box -->
+          <tr>
+            <td style="padding:0 40px 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0fdf4;border-radius:12px;border:1px solid #bbf7d0;">
+                <tr>
+                  <td style="padding:24px;">
+                    <p style="margin:0 0 16px;color:#059669;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">
+                      Algunas opciones que podemos explorar:
+                    </p>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding:8px 0;border-bottom:1px solid #d1fae5;">
+                          <p style="margin:0;color:#374151;font-size:14px;line-height:1.5;">
+                            <strong style="color:#059669;">🔧 Alcance ajustado</strong> — Desarrollamos primero las funcionalidades esenciales y dejamos las adicionales para una segunda fase.
+                          </p>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px 0;border-bottom:1px solid #d1fae5;">
+                          <p style="margin:0;color:#374151;font-size:14px;line-height:1.5;">
+                            <strong style="color:#059669;">📅 Plan de pagos flexible</strong> — Distribuimos el costo en cuotas que se adapten a tu flujo de caja.
+                          </p>
+                        </td>
+                      </tr>
+                      {% if discount_percent %}
+                      <tr>
+                        <td style="padding:8px 0;">
+                          <p style="margin:0;color:#374151;font-size:14px;line-height:1.5;">
+                            <strong style="color:#d97706;">🎯 Precio especial</strong> — Podemos ofrecerte un {{ discount_percent }}% de descuento si retomamos la conversación esta semana.
+                          </p>
+                        </td>
+                      </tr>
+                      {% else %}
+                      <tr>
+                        <td style="padding:8px 0;">
+                          <p style="margin:0;color:#374151;font-size:14px;line-height:1.5;">
+                            <strong style="color:#d97706;">💬 Conversa con nosotros</strong> — Cuéntanos qué parte del proyecto es la más prioritaria y encontramos una solución.
+                          </p>
+                        </td>
+                      </tr>
+                      {% endif %}
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          {% if discount_percent and discounted_investment %}
+          <!-- Discount highlight -->
+          <tr>
+            <td style="padding:0 40px 24px;">
+              <div style="background-color:#fffbeb;border:2px solid #fcd34d;border-radius:12px;padding:20px 24px;text-align:center;">
+                <p style="margin:0 0 8px;color:#92400e;font-size:13px;font-weight:600;text-transform:uppercase;">Oferta especial para retomar</p>
+                <p style="margin:0;color:#92400e;font-size:28px;font-weight:700;">{{ discounted_investment }} {{ currency }}</p>
+                <p style="margin:4px 0 0;color:#b45309;font-size:13px;">{{ discount_percent }}% de descuento — válido esta semana</p>
+              </div>
+            </td>
+          </tr>
+          {% endif %}
+
+          <!-- CTA -->
+          <tr>
+            <td style="padding:0 40px 32px;text-align:center;">
+              <p style="margin:0 0 16px;color:#4b5563;font-size:15px;line-height:1.6;">
+                No necesitas tomar una decisión ahora mismo. Solo queremos que sepas
+                que estamos aquí para encontrar la mejor solución juntos.
+              </p>
+              <a href="https://wa.me/573238122373?text=Hola,%20quiero%20retomar%20la%20conversaci%C3%B3n%20sobre%20la%20propuesta"
+                 style="display:inline-block;background-color:#059669;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:12px;font-size:15px;font-weight:600;">
+                💬 Hablemos por WhatsApp
+              </a>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 40px;">
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:0;">
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 40px 32px;text-align:center;">
+              <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.5;">
+                También puedes escribirnos a
+                <a href="mailto:team@projectapp.co" style="color:#059669;text-decoration:none;font-weight:600;">team@projectapp.co</a>
+              </p>
+              <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;">
+                © 2026 ProjectApp.co | Bogotá, Colombia
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

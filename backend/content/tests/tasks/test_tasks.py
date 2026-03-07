@@ -1,14 +1,21 @@
-"""Tests for Huey tasks: send_proposal_reminder, send_urgency_reminder, expire_stale_proposals.
+"""Tests for Huey tasks.
 
-Covers: happy paths, skip conditions, edge cases.
+Covers: send_proposal_reminder, send_urgency_reminder, expire_stale_proposals,
+send_rejection_reengagement, check_engagement_followups, send_scheduled_followup.
 """
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from content.models import BusinessProposal
+from content.models import (
+    BusinessProposal,
+    ProposalChangeLog,
+    ProposalSectionView,
+    ProposalViewEvent,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -281,3 +288,340 @@ class TestExpireStaleProposalsTask:
 
         proposal.refresh_from_db()
         assert proposal.status == 'sent'
+
+
+class TestSendRejectionReengagementTask:
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_rejection_reengagement',
+        return_value=True,
+    )
+    def test_sends_reengagement_for_rejected_proposal(self, mock_send):
+        """Rejected proposal triggers re-engagement email and changelog entry."""
+        proposal = BusinessProposal.objects.create(
+            title='Rejected',
+            client_name='Client',
+            client_email='client@test.com',
+            status='rejected',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_rejection_reengagement.call_local(proposal.id)
+
+        mock_send.assert_called_once()
+        assert ProposalChangeLog.objects.filter(
+            proposal=proposal, change_type='reengagement'
+        ).exists()
+
+    def test_skips_when_proposal_not_found(self):
+        import content.tasks as tasks_module
+        result = tasks_module.send_rejection_reengagement.call_local(99999)
+        assert result is None
+
+    def test_skips_when_status_is_not_rejected(self):
+        proposal = BusinessProposal.objects.create(
+            title='Sent',
+            client_name='Client',
+            client_email='client@test.com',
+            status='sent',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_rejection_reengagement.call_local(proposal.id)
+        assert not ProposalChangeLog.objects.filter(change_type='reengagement').exists()
+
+    def test_skips_when_no_client_email(self):
+        proposal = BusinessProposal.objects.create(
+            title='No Email',
+            client_name='Client',
+            client_email='',
+            status='rejected',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_rejection_reengagement.call_local(proposal.id)
+        assert not ProposalChangeLog.objects.filter(change_type='reengagement').exists()
+
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_rejection_reengagement',
+        return_value=True,
+    )
+    def test_skips_when_already_sent(self, mock_send):
+        """Re-engagement skips when a changelog entry already exists."""
+        proposal = BusinessProposal.objects.create(
+            title='Already Sent',
+            client_name='Client',
+            client_email='client@test.com',
+            status='rejected',
+        )
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type='reengagement',
+            description='Already sent.',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_rejection_reengagement.call_local(proposal.id)
+
+        mock_send.assert_not_called()
+        assert ProposalChangeLog.objects.filter(
+            proposal=proposal, change_type='reengagement'
+        ).count() == 1  # unchanged
+
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_rejection_reengagement',
+        return_value=False,
+    )
+    def test_does_not_log_when_send_fails(self, mock_send):
+        """No changelog entry created when email sending returns False."""
+        proposal = BusinessProposal.objects.create(
+            title='Fail Send',
+            client_name='Client',
+            client_email='client@test.com',
+            status='rejected',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_rejection_reengagement.call_local(proposal.id)
+
+        mock_send.assert_called_once()
+        assert not ProposalChangeLog.objects.filter(
+            proposal=proposal, change_type='reengagement'
+        ).exists()
+
+
+class TestCheckEngagementFollowupsTask:
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_abandonment_followup',
+        return_value=True,
+    )
+    def test_sends_abandonment_followup(self, mock_send):
+        """Proposal viewed >4h ago without investment section triggers abandonment email."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Abandoned',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            first_viewed_at=now - timedelta(hours=5),
+        )
+        ve = ProposalViewEvent.objects.create(
+            proposal=proposal,
+            session_id='sess-1',
+            ip_address='127.0.0.1',
+        )
+        ProposalSectionView.objects.create(
+            view_event=ve,
+            section_type='greeting',
+            time_spent_seconds=10,
+            entered_at=now - timedelta(hours=5),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_engagement_followups.call_local()
+
+        mock_send.assert_called_once()
+        assert mock_send.call_args[0][0].pk == proposal.pk
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_abandonment_followup',
+        return_value=True,
+    )
+    def test_skips_abandonment_when_investment_visited(self, mock_send):
+        """Abandonment email skipped when client visited the investment section."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Visited Investment',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            first_viewed_at=now - timedelta(hours=5),
+        )
+        ve = ProposalViewEvent.objects.create(
+            proposal=proposal,
+            session_id='sess-1',
+            ip_address='127.0.0.1',
+        )
+        ProposalSectionView.objects.create(
+            view_event=ve,
+            section_type='investment',
+            time_spent_seconds=30,
+            entered_at=now - timedelta(hours=5),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_engagement_followups.call_local()
+
+        assert mock_send.call_count == 0
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_investment_interest_followup',
+        return_value=True,
+    )
+    def test_sends_investment_interest_followup(self, mock_send):
+        """Proposal with >60s on investment and last view >2h ago triggers interest email."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Interested',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            first_viewed_at=now - timedelta(hours=5),
+        )
+        ve = ProposalViewEvent.objects.create(
+            proposal=proposal,
+            session_id='sess-1',
+            ip_address='127.0.0.1',
+        )
+        # auto_now_add ignores kwargs, so force via update()
+        ProposalViewEvent.objects.filter(pk=ve.pk).update(
+            viewed_at=now - timedelta(hours=3),
+        )
+        ProposalSectionView.objects.create(
+            view_event=ve,
+            section_type='investment',
+            time_spent_seconds=90,
+            entered_at=now - timedelta(hours=3),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_engagement_followups.call_local()
+
+        mock_send.assert_called_once()
+        assert mock_send.call_args[0][0].pk == proposal.pk
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_investment_interest_followup',
+        return_value=True,
+    )
+    def test_skips_interest_when_investment_time_under_60s(self, mock_send):
+        """Interest email skipped when total investment time is under 60 seconds."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Short Investment',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            first_viewed_at=now - timedelta(hours=5),
+        )
+        ve = ProposalViewEvent.objects.create(
+            proposal=proposal,
+            session_id='sess-1',
+            ip_address='127.0.0.1',
+        )
+        ProposalViewEvent.objects.filter(pk=ve.pk).update(
+            viewed_at=now - timedelta(hours=3),
+        )
+        ProposalSectionView.objects.create(
+            view_event=ve,
+            section_type='investment',
+            time_spent_seconds=30,
+            entered_at=now - timedelta(hours=3),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_engagement_followups.call_local()
+
+        assert mock_send.call_count == 0
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_investment_interest_followup',
+        return_value=True,
+    )
+    def test_skips_interest_when_last_view_is_recent(self, mock_send):
+        """Interest email skipped when the last view event is less than 2 hours ago."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Recent View',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            first_viewed_at=now - timedelta(hours=5),
+        )
+        ve = ProposalViewEvent.objects.create(
+            proposal=proposal,
+            session_id='sess-1',
+            ip_address='127.0.0.1',
+        )
+        ProposalViewEvent.objects.filter(pk=ve.pk).update(
+            viewed_at=now - timedelta(minutes=30),
+        )
+        ProposalSectionView.objects.create(
+            view_event=ve,
+            section_type='investment',
+            time_spent_seconds=90,
+            entered_at=now - timedelta(minutes=30),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_engagement_followups.call_local()
+
+        assert mock_send.call_count == 0
+
+
+class TestSendScheduledFollowupTask:
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_scheduled_followup',
+        return_value=True,
+    )
+    def test_sends_followup_for_scheduled_proposal(self, mock_send):
+        """Scheduled followup task calls email service for a valid proposal."""
+        proposal = BusinessProposal.objects.create(
+            title='Scheduled',
+            client_name='Client',
+            client_email='client@test.com',
+            status='rejected',
+            followup_scheduled_at=timezone.now(),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_scheduled_followup.call_local(proposal.id)
+
+        mock_send.assert_called_once()
+        assert mock_send.call_args[0][0].pk == proposal.pk
+
+    def test_skips_when_proposal_not_found(self):
+        import content.tasks as tasks_module
+        result = tasks_module.send_scheduled_followup.call_local(99999)
+        assert result is None
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_scheduled_followup',
+    )
+    def test_skips_when_no_client_email(self, mock_send):
+        """Scheduled followup skips when proposal has no client_email."""
+        proposal = BusinessProposal.objects.create(
+            title='No Email',
+            client_name='Client',
+            client_email='',
+            status='rejected',
+            followup_scheduled_at=timezone.now(),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_scheduled_followup.call_local(proposal.id)
+
+        assert mock_send.call_count == 0
+
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_scheduled_followup',
+    )
+    def test_skips_when_no_scheduled_date(self, mock_send):
+        """Scheduled followup skips when followup_scheduled_at is not set."""
+        proposal = BusinessProposal.objects.create(
+            title='No Date',
+            client_name='Client',
+            client_email='client@test.com',
+            status='rejected',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_scheduled_followup.call_local(proposal.id)
+
+        assert mock_send.call_count == 0

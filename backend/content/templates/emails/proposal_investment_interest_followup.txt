@@ -1,0 +1,13 @@
+Hola {{ client_name }},
+
+Noté que estás evaluando la inversión de la propuesta "{{ title }}".
+
+¿Qué tal si hablamos sobre opciones de pago flexibles? Podemos ajustar el plan de pagos a tu presupuesto y tiempos.
+
+{% if total_investment %}Inversión actual: ${{ total_investment }} {{ currency }}{% endif %}
+
+💬 Hablar sobre opciones: https://wa.me/573238122373
+👉 Ver propuesta: {{ proposal_url }}
+
+---
+© 2026 ProjectApp.co | Bogotá, Colombia

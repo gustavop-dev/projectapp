@@ -59,7 +59,7 @@ class BusinessProposal(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
     reminder_days = models.PositiveIntegerField(default=10)
     urgency_reminder_days = models.PositiveIntegerField(default=15)
-    discount_percent = models.PositiveIntegerField(default=20)
+    discount_percent = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     reminder_sent_at = models.DateTimeField(null=True, blank=True)
     urgency_email_sent_at = models.DateTimeField(null=True, blank=True)
@@ -72,6 +72,12 @@ class BusinessProposal(models.Model):
     view_count = models.PositiveIntegerField(default=0)
     first_viewed_at = models.DateTimeField(null=True, blank=True)
     sent_at = models.DateTimeField(null=True, blank=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+    revisit_alert_sent_at = models.DateTimeField(null=True, blank=True)
+    abandonment_email_sent_at = models.DateTimeField(null=True, blank=True)
+    investment_interest_email_sent_at = models.DateTimeField(null=True, blank=True)
+    followup_scheduled_at = models.DateTimeField(null=True, blank=True)
+    stakeholder_alert_sent_at = models.DateTimeField(null=True, blank=True)
 
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)

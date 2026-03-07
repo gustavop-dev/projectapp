@@ -283,6 +283,43 @@ class TestAdminBlogJSONTemplate:
             assert key in response.data
 
 
+class TestAdminDuplicateBlogPost:
+    def test_returns_401_for_unauthenticated(self, api_client, blog_post):
+        """Unauthenticated users cannot duplicate a blog post."""
+        url = reverse('duplicate-blog-post', kwargs={'post_id': blog_post.id})
+        response = api_client.post(url)
+        assert response.status_code in (401, 403)
+
+    def test_duplicates_post_returns_201(self, admin_client, blog_post_with_json):
+        """Duplicating creates a new draft post with '(copia)' suffix and reset fields."""
+        url = reverse('duplicate-blog-post', kwargs={'post_id': blog_post_with_json.id})
+        response = admin_client.post(url)
+        assert response.status_code == 201
+        assert BlogPost.objects.count() == 2
+        new_post = BlogPost.objects.exclude(pk=blog_post_with_json.pk).first()
+        assert '(copia)' in new_post.title_es
+        assert '(copy)' in new_post.title_en
+        assert new_post.is_published is False
+        assert new_post.published_at is None
+        assert new_post.is_featured is False
+        assert new_post.slug != blog_post_with_json.slug
+
+    def test_duplicated_post_copies_content_json(self, admin_client, blog_post_with_json):
+        """Duplicated post preserves the original content_json structure."""
+        url = reverse('duplicate-blog-post', kwargs={'post_id': blog_post_with_json.id})
+        response = admin_client.post(url)
+        assert response.status_code == 201
+        new_post = BlogPost.objects.exclude(pk=blog_post_with_json.pk).first()
+        assert new_post.content_json_es == blog_post_with_json.content_json_es
+        assert new_post.category == blog_post_with_json.category
+
+    def test_returns_404_for_nonexistent_id(self, admin_client):
+        """Duplicating a nonexistent post returns 404."""
+        url = reverse('duplicate-blog-post', kwargs={'post_id': 99999})
+        response = admin_client.post(url)
+        assert response.status_code == 404
+
+
 class TestAdminUpdateNewFields:
     def test_updates_category_and_read_time(self, admin_client, blog_post):
         url = reverse('update-blog-post', kwargs={'post_id': blog_post.id})

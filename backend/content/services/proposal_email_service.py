@@ -357,3 +357,505 @@ class ProposalEmailService:
                 proposal.uuid,
             )
             return False
+
+    @classmethod
+    def send_first_view_notification(cls, proposal):
+        """
+        Send notification email to team@projectapp.co when a client
+        opens a proposal for the first time. This is the ideal moment
+        for the sales team to do follow-up.
+        """
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_title': proposal.title,
+            'total_investment': proposal.total_investment,
+            'currency': proposal.currency,
+            'proposal_uuid': str(proposal.uuid),
+            'viewed_at': proposal.first_viewed_at or timezone.now(),
+            'client_email': proposal.client_email or '',
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_first_view_notification.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_first_view_notification.txt', context
+            )
+
+            subject = (
+                f'\U0001f441 [OPENED] Propuesta: {proposal.title} — '
+                f'{proposal.client_name}'
+            )
+
+            notification_email = getattr(
+                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[notification_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info(
+                'Sent first-view notification for proposal %s',
+                proposal.uuid,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send first-view notification for proposal %s',
+                proposal.uuid,
+            )
+            return False
+
+    @classmethod
+    def send_comment_notification(cls, proposal, comment):
+        """
+        Send notification email to team@projectapp.co when a client
+        submits a negotiation comment ("Tengo comentarios antes de decidir").
+        This is a high-intent signal — client is not rejecting, just negotiating.
+        """
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_title': proposal.title,
+            'total_investment': proposal.total_investment,
+            'currency': proposal.currency,
+            'comment': comment,
+            'proposal_uuid': str(proposal.uuid),
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_comment_notification.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_comment_notification.txt', context
+            )
+
+            subject = (
+                f'[COMENTARIO] Propuesta: {proposal.title} — '
+                f'{proposal.client_name}'
+            )
+
+            notification_email = getattr(
+                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[notification_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info(
+                'Sent comment notification for proposal %s',
+                proposal.uuid,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send comment notification for proposal %s',
+                proposal.uuid,
+            )
+            return False
+
+    @classmethod
+    def send_rejection_reengagement(cls, proposal):
+        """
+        Send a personalized re-engagement email to the client 48h after
+        rejecting due to budget concerns. Invites them to explore a
+        reduced scope or payment flexibility.
+        """
+        if not proposal.client_email:
+            return False
+
+        from decimal import Decimal
+        has_discount = bool(proposal.discount_percent and proposal.discount_percent > 0)
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_title': proposal.title,
+            'total_investment': proposal.total_investment,
+            'currency': proposal.currency,
+        }
+        if has_discount:
+            discount_factor = (
+                Decimal(100 - proposal.discount_percent) / Decimal(100)
+            )
+            context['discounted_investment'] = proposal.total_investment * discount_factor
+            context['discount_percent'] = proposal.discount_percent
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_reengagement.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_reengagement.txt', context
+            )
+
+            subject = (
+                f'{proposal.client_name}, ¿podemos encontrar una solución '
+                f'que se ajuste a tu presupuesto?'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[proposal.client_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info(
+                'Sent rejection re-engagement email for proposal %s to %s',
+                proposal.uuid, proposal.client_email,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send re-engagement email for proposal %s',
+                proposal.uuid,
+            )
+            return False
+
+    @classmethod
+    def send_revisit_alert(cls, proposal, visit_count, top_section='', top_section_time=0):
+        """
+        Send a smart follow-up alert to team@projectapp.co when a client
+        shows strong engagement signals (multiple revisits or high time on
+        key sections like Investment).
+        """
+        top_section_display = top_section or 'N/A'
+        top_time_display = f'{int(top_section_time // 60)}m {int(top_section_time % 60)}s'
+
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_title': proposal.title,
+            'total_investment': proposal.total_investment,
+            'currency': proposal.currency,
+            'visit_count': visit_count,
+            'top_section': top_section_display,
+            'top_section_time': top_time_display,
+            'proposal_uuid': str(proposal.uuid),
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_revisit_alert.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_revisit_alert.txt', context
+            )
+
+            subject = (
+                f'\U0001f525 [HOT LEAD] {proposal.client_name} revisó la propuesta '
+                f'{visit_count} veces'
+            )
+
+            notification_email = getattr(
+                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[notification_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            proposal.revisit_alert_sent_at = timezone.now()
+            proposal.save(update_fields=['revisit_alert_sent_at'])
+
+            logger.info(
+                'Sent revisit alert for proposal %s (visits=%d)',
+                proposal.uuid, visit_count,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send revisit alert for proposal %s',
+                proposal.uuid,
+            )
+            return False
+
+    @classmethod
+    def send_abandonment_followup(cls, proposal):
+        """
+        Send a follow-up email when the client viewed the proposal but
+        never reached the investment section, suggesting a call to discuss.
+        """
+        if not proposal.client_email:
+            return False
+
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_url': proposal.public_url,
+            'title': proposal.title,
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_abandonment_followup.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_abandonment_followup.txt', context
+            )
+
+            subject = (
+                f'📋 {proposal.client_name}, ¿te quedaron dudas sobre '
+                f'la propuesta? — Project App'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[proposal.client_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            proposal.abandonment_email_sent_at = timezone.now()
+            proposal.save(update_fields=['abandonment_email_sent_at'])
+
+            logger.info(
+                'Sent abandonment followup for proposal %s to %s',
+                proposal.uuid, proposal.client_email,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send abandonment followup for proposal %s',
+                proposal.uuid,
+            )
+            return False
+
+    @classmethod
+    def send_investment_interest_followup(cls, proposal, time_on_investment=0):
+        """
+        Send a follow-up email when the client spent significant time
+        on the investment section, offering to discuss payment options.
+        """
+        if not proposal.client_email:
+            return False
+
+        time_display = f'{int(time_on_investment // 60)}m {int(time_on_investment % 60)}s'
+
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_url': proposal.public_url,
+            'title': proposal.title,
+            'total_investment': proposal.total_investment,
+            'currency': proposal.currency,
+            'time_on_investment': time_display,
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_investment_interest_followup.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_investment_interest_followup.txt', context
+            )
+
+            subject = (
+                f'💰 {proposal.client_name}, hablemos sobre opciones '
+                f'de inversión — Project App'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[proposal.client_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            proposal.investment_interest_email_sent_at = timezone.now()
+            proposal.save(update_fields=['investment_interest_email_sent_at'])
+
+            logger.info(
+                'Sent investment interest followup for proposal %s to %s',
+                proposal.uuid, proposal.client_email,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send investment interest followup for proposal %s',
+                proposal.uuid,
+            )
+            return False
+
+    @classmethod
+    def send_share_notification(cls, proposal, share_link):
+        """
+        Notify the sales team when a client shares the proposal
+        with another person (multi-stakeholder signal).
+        """
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_title': proposal.title,
+            'shared_by_name': share_link.shared_by_name,
+            'shared_by_email': share_link.shared_by_email,
+            'proposal_uuid': str(proposal.uuid),
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_share_notification.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_share_notification.txt', context
+            )
+
+            subject = (
+                f'🔗 [SHARED] {proposal.client_name} compartió la propuesta '
+                f'"{proposal.title}"'
+            )
+
+            notification_email = getattr(
+                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[notification_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info(
+                'Sent share notification for proposal %s (shared by %s)',
+                proposal.uuid, share_link.shared_by_name,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send share notification for proposal %s',
+                proposal.uuid,
+            )
+            return False
+
+    @classmethod
+    def send_scheduled_followup(cls, proposal):
+        """
+        Send a scheduled follow-up email to a client who previously
+        rejected the proposal with "Not the right time".
+        """
+        if not proposal.client_email:
+            return False
+
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_url': proposal.public_url,
+            'title': proposal.title,
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_scheduled_followup.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_scheduled_followup.txt', context
+            )
+
+            subject = (
+                f'👋 {proposal.client_name}, ¿es buen momento para '
+                f'retomar tu proyecto? — Project App'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[proposal.client_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info(
+                'Sent scheduled followup for proposal %s to %s',
+                proposal.uuid, proposal.client_email,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send scheduled followup for proposal %s',
+                proposal.uuid,
+            )
+            return False
+
+    @classmethod
+    def send_stakeholder_detected_notification(cls, proposal, known_ips_count):
+        """
+        Notify the sales team when the proposal is accessed from a new
+        IP address, suggesting a secondary decision-maker is reviewing it.
+        """
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_title': proposal.title,
+            'total_investment': proposal.total_investment,
+            'currency': proposal.currency,
+            'proposal_uuid': str(proposal.uuid),
+            'known_ips_count': known_ips_count,
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_stakeholder_detected.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_stakeholder_detected.txt', context
+            )
+
+            subject = (
+                f'\U0001f465 [NUEVO LECTOR] Propuesta: {proposal.title} — '
+                f'{proposal.client_name}'
+            )
+
+            notification_email = getattr(
+                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[notification_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info(
+                'Sent stakeholder detection notification for proposal %s',
+                proposal.uuid,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send stakeholder notification for proposal %s',
+                proposal.uuid,
+            )
+            return False

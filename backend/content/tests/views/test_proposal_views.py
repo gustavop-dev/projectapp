@@ -11,7 +11,14 @@ import pytest
 from django.urls import reverse
 from freezegun import freeze_time
 
-from content.models import BusinessProposal, ProposalSection
+from content.models import (
+    BusinessProposal,
+    ProposalChangeLog,
+    ProposalSection,
+    ProposalSectionView,
+    ProposalShareLink,
+    ProposalViewEvent,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -461,3 +468,558 @@ class TestCheckAdminAuth:
         api_client.force_authenticate(user=user)
         response = api_client.get(reverse('check-admin-auth'))
         assert response.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Share link endpoints
+# ---------------------------------------------------------------------------
+
+class TestCreateShareLink:
+    def _url(self, uuid):
+        return reverse('create-share-link', kwargs={'proposal_uuid': uuid})
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_share_notification', return_value=True)
+    def test_creates_share_link_returns_201(self, mock_notify, api_client, sent_proposal):
+        response = api_client.post(
+            self._url(sent_proposal.uuid),
+            {'name': 'Bob', 'email': 'bob@co.com'},
+            format='json',
+        )
+        assert response.status_code == 201
+        assert response.data['shared_by_name'] == 'Bob'
+        assert ProposalShareLink.objects.count() == 1
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_share_notification', return_value=True)
+    def test_sends_share_notification(self, mock_notify, api_client, sent_proposal):
+        """Creating a share link triggers a notification email to the sales team."""
+        response = api_client.post(
+            self._url(sent_proposal.uuid),
+            {'name': 'Bob', 'email': 'bob@co.com'},
+            format='json',
+        )
+        assert response.status_code == 201
+        mock_notify.assert_called_once()
+
+    def test_returns_400_when_name_missing(self, api_client, sent_proposal):
+        response = api_client.post(
+            self._url(sent_proposal.uuid),
+            {'email': 'bob@co.com'},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    def test_returns_404_for_inactive_proposal(self, api_client, sent_proposal):
+        sent_proposal.is_active = False
+        sent_proposal.save(update_fields=['is_active'])
+        response = api_client.post(
+            self._url(sent_proposal.uuid),
+            {'name': 'Bob'},
+            format='json',
+        )
+        assert response.status_code == 404
+
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_share_notification',
+        side_effect=Exception('SMTP error'),
+    )
+    def test_still_creates_link_when_notification_fails(self, mock_notify, api_client, sent_proposal):
+        response = api_client.post(
+            self._url(sent_proposal.uuid),
+            {'name': 'Bob'},
+            format='json',
+        )
+        assert response.status_code == 201
+        assert ProposalShareLink.objects.count() == 1
+
+
+class TestRetrieveSharedProposal:
+    def _url(self, share_uuid):
+        return reverse('retrieve-shared-proposal', kwargs={'share_uuid': share_uuid})
+
+    def test_returns_200_with_proposal_data(self, api_client, share_link):
+        response = api_client.get(self._url(share_link.uuid))
+        assert response.status_code == 200
+        assert response.data['uuid'] is not None
+
+    def test_increments_view_count(self, api_client, share_link):
+        api_client.get(self._url(share_link.uuid))
+        share_link.refresh_from_db()
+        assert share_link.view_count == 1
+
+    def test_sets_first_viewed_at_on_first_visit(self, api_client, share_link):
+        assert share_link.first_viewed_at is None
+        api_client.get(self._url(share_link.uuid))
+        share_link.refresh_from_db()
+        assert share_link.first_viewed_at is not None
+
+    def test_records_viewer_info_from_query_params(self, api_client, share_link):
+        api_client.get(self._url(share_link.uuid) + '?name=Carlos&email=carlos@test.com')
+        share_link.refresh_from_db()
+        assert share_link.recipient_name == 'Carlos'
+        assert share_link.recipient_email == 'carlos@test.com'
+
+    def test_does_not_overwrite_existing_recipient(self, api_client, share_link):
+        share_link.recipient_name = 'Original'
+        share_link.save(update_fields=['recipient_name'])
+        api_client.get(self._url(share_link.uuid) + '?name=Override')
+        share_link.refresh_from_db()
+        assert share_link.recipient_name == 'Original'
+
+    def test_returns_404_for_inactive_proposal(self, api_client, share_link):
+        share_link.proposal.is_active = False
+        share_link.proposal.save(update_fields=['is_active'])
+        response = api_client.get(self._url(share_link.uuid))
+        assert response.status_code == 404
+
+    def test_returns_410_for_expired_proposal(self, api_client, share_link):
+        share_link.proposal.expires_at = datetime(2020, 1, 1, tzinfo=dt_tz.utc)
+        share_link.proposal.status = 'expired'
+        share_link.proposal.save(update_fields=['expires_at', 'status'])
+        response = api_client.get(self._url(share_link.uuid))
+        assert response.status_code == 410
+
+
+# ---------------------------------------------------------------------------
+# Schedule follow-up
+# ---------------------------------------------------------------------------
+
+class TestScheduleFollowup:
+    def _url(self, uuid):
+        return reverse('schedule-followup', kwargs={'proposal_uuid': uuid})
+
+    @patch('content.tasks.send_scheduled_followup.schedule')
+    def test_schedules_followup_returns_200(self, mock_task, api_client, rejected_proposal):
+        response = api_client.post(
+            self._url(rejected_proposal.uuid),
+            {'months': 3},
+            format='json',
+        )
+        assert response.status_code == 200
+        assert response.data['status'] == 'scheduled'
+        rejected_proposal.refresh_from_db()
+        assert rejected_proposal.followup_scheduled_at is not None
+
+    def test_returns_400_for_non_rejected_proposal(self, api_client, sent_proposal):
+        response = api_client.post(
+            self._url(sent_proposal.uuid),
+            {'months': 3},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch('content.tasks.send_scheduled_followup.schedule')
+    def test_returns_400_when_already_scheduled(self, mock_task, api_client, rejected_proposal):
+        from django.utils import timezone
+        rejected_proposal.followup_scheduled_at = timezone.now()
+        rejected_proposal.save(update_fields=['followup_scheduled_at'])
+        response = api_client.post(
+            self._url(rejected_proposal.uuid),
+            {'months': 3},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    def test_returns_400_for_invalid_months(self, api_client, rejected_proposal):
+        response = api_client.post(
+            self._url(rejected_proposal.uuid),
+            {'months': 0},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    def test_returns_400_for_months_over_12(self, api_client, rejected_proposal):
+        response = api_client.post(
+            self._url(rejected_proposal.uuid),
+            {'months': 13},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    @patch('content.tasks.send_scheduled_followup.schedule')
+    def test_creates_change_log_entry(self, mock_task, api_client, rejected_proposal):
+        api_client.post(
+            self._url(rejected_proposal.uuid),
+            {'months': 6},
+            format='json',
+        )
+        log = ProposalChangeLog.objects.filter(
+            proposal=rejected_proposal, field_name='followup_scheduled_at'
+        )
+        assert log.exists()
+
+    @patch('content.tasks.send_scheduled_followup.schedule', side_effect=Exception('Huey down'))
+    def test_still_saves_followup_when_task_scheduling_fails(self, mock_task, api_client, rejected_proposal):
+        response = api_client.post(
+            self._url(rejected_proposal.uuid),
+            {'months': 3},
+            format='json',
+        )
+        assert response.status_code == 200
+        rejected_proposal.refresh_from_db()
+        assert rejected_proposal.followup_scheduled_at is not None
+
+
+# ---------------------------------------------------------------------------
+# Track engagement
+# ---------------------------------------------------------------------------
+
+class TestTrackProposalEngagement:
+    def _url(self, uuid):
+        return reverse('track-proposal-engagement', kwargs={'proposal_uuid': uuid})
+
+    def test_records_section_views_returns_200(self, api_client, sent_proposal):
+        """Valid engagement payload creates view event and section view records."""
+        payload = {
+            'session_id': 'sess-001',
+            'sections': [
+                {
+                    'section_type': 'greeting',
+                    'section_title': 'Welcome',
+                    'time_spent_seconds': 5.2,
+                    'entered_at': '2026-03-01T10:00:00Z',
+                },
+            ],
+        }
+        response = api_client.post(self._url(sent_proposal.uuid), payload, format='json')
+        assert response.status_code == 200
+        assert ProposalViewEvent.objects.filter(proposal=sent_proposal).count() == 1
+        assert ProposalSectionView.objects.count() == 1
+
+    def test_returns_400_when_session_id_missing(self, api_client, sent_proposal):
+        payload = {'sections': [{'section_type': 'greeting', 'time_spent_seconds': 1}]}
+        response = api_client.post(self._url(sent_proposal.uuid), payload, format='json')
+        assert response.status_code == 400
+
+    def test_returns_400_when_sections_empty(self, api_client, sent_proposal):
+        payload = {'session_id': 'sess-001', 'sections': []}
+        response = api_client.post(self._url(sent_proposal.uuid), payload, format='json')
+        assert response.status_code == 400
+
+    def test_updates_existing_section_view_on_duplicate(self, api_client, sent_proposal):
+        """Sending the same section twice updates time_spent rather than creating a duplicate."""
+        payload = {
+            'session_id': 'sess-002',
+            'sections': [
+                {
+                    'section_type': 'investment',
+                    'section_title': 'Investment',
+                    'time_spent_seconds': 10.0,
+                    'entered_at': '2026-03-01T10:00:00Z',
+                },
+            ],
+        }
+        api_client.post(self._url(sent_proposal.uuid), payload, format='json')
+        payload['sections'][0]['time_spent_seconds'] = 25.0
+        api_client.post(self._url(sent_proposal.uuid), payload, format='json')
+        sv = ProposalSectionView.objects.filter(section_type='investment')
+        assert sv.count() == 1
+        assert sv.first().time_spent_seconds == 25.0
+
+    def test_skips_section_without_section_type(self, api_client, sent_proposal):
+        payload = {
+            'session_id': 'sess-003',
+            'sections': [
+                {'section_title': 'No Type', 'time_spent_seconds': 1},
+            ],
+        }
+        response = api_client.post(self._url(sent_proposal.uuid), payload, format='json')
+        assert response.status_code == 200
+        assert ProposalSectionView.objects.count() == 0
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_revisit_alert', return_value=True)
+    def test_sends_revisit_alert_after_3_sessions(self, mock_alert, api_client, sent_proposal):
+        """Revisit alert fires after 3 distinct session IDs track engagement."""
+        for i in range(3):
+            payload = {
+                'session_id': f'sess-{i}',
+                'sections': [
+                    {
+                        'section_type': 'greeting',
+                        'section_title': 'Welcome',
+                        'time_spent_seconds': 5,
+                        'entered_at': '2026-03-01T10:00:00Z',
+                    },
+                ],
+            }
+            api_client.post(self._url(sent_proposal.uuid), payload, format='json')
+        mock_alert.assert_called_once()
+        assert mock_alert.call_args[0][0].pk == sent_proposal.pk
+
+
+# ---------------------------------------------------------------------------
+# Comment on proposal
+# ---------------------------------------------------------------------------
+
+class TestCommentOnProposal:
+    def _url(self, uuid):
+        return reverse('comment-on-proposal', kwargs={'proposal_uuid': uuid})
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_comment_notification')
+    def test_submits_comment_returns_200(self, mock_notify, api_client, sent_proposal):
+        response = api_client.post(
+            self._url(sent_proposal.uuid),
+            {'comment': 'Can we negotiate the price?'},
+            format='json',
+        )
+        assert response.status_code == 200
+        assert ProposalChangeLog.objects.filter(
+            proposal=sent_proposal, change_type='commented'
+        ).exists()
+
+    def test_returns_400_for_empty_comment(self, api_client, sent_proposal):
+        response = api_client.post(
+            self._url(sent_proposal.uuid),
+            {'comment': ''},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    def test_returns_400_for_draft_proposal(self, api_client, proposal):
+        response = api_client.post(
+            self._url(proposal.uuid),
+            {'comment': 'Hello'},
+            format='json',
+        )
+        assert response.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Duplicate proposal
+# ---------------------------------------------------------------------------
+
+class TestDuplicateProposal:
+    def _url(self, pk):
+        return reverse('duplicate-proposal', kwargs={'proposal_id': pk})
+
+    def test_duplicates_proposal_returns_201(self, admin_client, proposal, proposal_section):
+        response = admin_client.post(self._url(proposal.id))
+        assert response.status_code == 201
+        assert BusinessProposal.objects.count() == 2
+        new = BusinessProposal.objects.exclude(pk=proposal.id).first()
+        assert new.title == f'{proposal.title} (copia)'
+        assert new.status == 'draft'
+
+    def test_duplicated_proposal_has_sections(self, admin_client, proposal, proposal_section):
+        response = admin_client.post(self._url(proposal.id))
+        assert response.status_code == 201
+        new_id = response.data['id']
+        assert ProposalSection.objects.filter(proposal_id=new_id).count() == 1
+
+    def test_creates_change_log_entry(self, admin_client, proposal):
+        admin_client.post(self._url(proposal.id))
+        new = BusinessProposal.objects.exclude(pk=proposal.id).first()
+        assert ProposalChangeLog.objects.filter(
+            proposal=new, change_type='duplicated'
+        ).exists()
+
+    def test_returns_401_for_unauthenticated(self, api_client, proposal):
+        response = api_client.post(self._url(proposal.id))
+        assert response.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# Toggle active
+# ---------------------------------------------------------------------------
+
+class TestToggleProposalActive:
+    def _url(self, pk):
+        return reverse('toggle-proposal-active', kwargs={'proposal_id': pk})
+
+    def test_toggles_active_to_false(self, admin_client, proposal):
+        assert proposal.is_active is True
+        response = admin_client.post(self._url(proposal.id))
+        assert response.status_code == 200
+        proposal.refresh_from_db()
+        assert proposal.is_active is False
+
+    def test_toggles_active_to_true(self, admin_client, proposal):
+        proposal.is_active = False
+        proposal.save(update_fields=['is_active'])
+        response = admin_client.post(self._url(proposal.id))
+        assert response.status_code == 200
+        proposal.refresh_from_db()
+        assert proposal.is_active is True
+
+    def test_returns_401_for_unauthenticated(self, api_client, proposal):
+        response = api_client.post(self._url(proposal.id))
+        assert response.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# Resend proposal
+# ---------------------------------------------------------------------------
+
+class TestResendProposal:
+    def _url(self, pk):
+        return reverse('resend-proposal', kwargs={'proposal_id': pk})
+
+    @patch('content.services.proposal_service.ProposalService.resend_proposal')
+    def test_resends_proposal_returns_200(self, mock_resend, admin_client, sent_proposal):
+        response = admin_client.post(self._url(sent_proposal.id))
+        assert response.status_code == 200
+        mock_resend.assert_called_once()
+
+    @patch('content.services.proposal_service.ProposalService.resend_proposal')
+    def test_creates_change_log_entry(self, mock_resend, admin_client, sent_proposal):
+        admin_client.post(self._url(sent_proposal.id))
+        assert ProposalChangeLog.objects.filter(
+            proposal=sent_proposal, change_type='resent'
+        ).exists()
+
+    @patch(
+        'content.services.proposal_service.ProposalService.resend_proposal',
+        side_effect=ValueError('Missing email'),
+    )
+    def test_returns_400_on_service_error(self, mock_resend, admin_client, sent_proposal):
+        response = admin_client.post(self._url(sent_proposal.id))
+        assert response.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Analytics
+# ---------------------------------------------------------------------------
+
+class TestRetrieveProposalAnalytics:
+    def _url(self, pk):
+        return reverse('proposal-analytics', kwargs={'proposal_id': pk})
+
+    def test_returns_200_with_analytics_data(self, admin_client, sent_proposal):
+        response = admin_client.get(self._url(sent_proposal.id))
+        assert response.status_code == 200
+        data = response.data
+        assert 'total_views' in data
+        assert 'unique_sessions' in data
+        assert 'sections' in data
+        assert 'funnel' in data
+        assert 'comparison' in data
+        assert 'share_links' in data
+
+    def test_returns_time_to_first_view_when_available(self, admin_client, viewed_proposal):
+        response = admin_client.get(self._url(viewed_proposal.id))
+        assert response.status_code == 200
+        assert response.data['time_to_first_view_hours'] is not None
+
+    def test_returns_401_for_unauthenticated(self, api_client, sent_proposal):
+        response = api_client.get(self._url(sent_proposal.id))
+        assert response.status_code in (401, 403)
+
+
+class TestExportProposalAnalyticsCsv:
+    def _url(self, pk):
+        return reverse('proposal-analytics-csv', kwargs={'proposal_id': pk})
+
+    def test_returns_csv_content_type(self, admin_client, sent_proposal):
+        response = admin_client.get(self._url(sent_proposal.id))
+        assert response.status_code == 200
+        assert 'text/csv' in response['Content-Type']
+
+    def test_returns_401_for_unauthenticated(self, api_client, sent_proposal):
+        response = api_client.get(self._url(sent_proposal.id))
+        assert response.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# Dashboard
+# ---------------------------------------------------------------------------
+
+class TestProposalDashboard:
+    def _url(self):
+        return reverse('proposal-dashboard')
+
+    def test_returns_200_with_dashboard_data(self, admin_client, sent_proposal):
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        data = response.data
+        assert 'total_proposals' in data
+        assert 'by_status' in data
+        assert 'conversion_rate' in data
+        assert 'monthly_trend' in data
+
+    def test_returns_401_for_unauthenticated(self, api_client):
+        response = api_client.get(self._url())
+        assert response.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# JSON template
+# ---------------------------------------------------------------------------
+
+class TestGetProposalJsonTemplate:
+    def _url(self):
+        return reverse('proposal-json-template')
+
+    def test_returns_200_with_template_json(self, admin_client):
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        assert '_meta' in response.data
+
+    def test_accepts_lang_query_param(self, admin_client):
+        response = admin_client.get(self._url() + '?lang=en')
+        assert response.status_code == 200
+
+    def test_returns_401_for_unauthenticated(self, api_client):
+        response = api_client.get(self._url())
+        assert response.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# Respond — re-engagement scheduling
+# ---------------------------------------------------------------------------
+
+class TestRespondReengagement:
+    def _url(self, uuid):
+        return reverse('respond-to-proposal', kwargs={'proposal_uuid': uuid})
+
+    @patch('content.tasks.send_rejection_reengagement.schedule')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_response_notification')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_rejection_thank_you')
+    def test_schedules_reengagement_for_budget_rejection(
+        self, mock_thank, mock_notify, mock_schedule, api_client, sent_proposal,
+    ):
+        response = api_client.post(
+            self._url(sent_proposal.uuid),
+            {'action': 'rejected', 'reason': 'presupuesto alto'},
+            format='json',
+        )
+        assert response.status_code == 200
+        sent_proposal.refresh_from_db()
+        assert sent_proposal.status == 'rejected'
+        mock_schedule.assert_called_once()
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_response_notification')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_rejection_thank_you')
+    def test_does_not_schedule_reengagement_for_non_budget_rejection(
+        self, mock_thank, mock_notify, api_client, sent_proposal,
+    ):
+        with patch('content.tasks.send_rejection_reengagement.schedule') as mock_schedule:
+            response = api_client.post(
+                self._url(sent_proposal.uuid),
+                {'action': 'rejected', 'reason': 'another option'},
+                format='json',
+            )
+            assert response.status_code == 200
+            mock_schedule.assert_not_called()
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_response_notification')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_acceptance_confirmation')
+    def test_acceptance_sends_confirmation_email(
+        self, mock_confirm, mock_notify, api_client, sent_proposal,
+    ):
+        response = api_client.post(
+            self._url(sent_proposal.uuid),
+            {'action': 'accepted'},
+            format='json',
+        )
+        assert response.status_code == 200
+        mock_confirm.assert_called_once()
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_response_notification')
+    def test_sets_responded_at_on_response(self, mock_notify, api_client, sent_proposal):
+        api_client.post(
+            self._url(sent_proposal.uuid),
+            {'action': 'accepted'},
+            format='json',
+        )
+        sent_proposal.refresh_from_db()
+        assert sent_proposal.responded_at is not None

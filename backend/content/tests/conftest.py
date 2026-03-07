@@ -24,6 +24,7 @@ from content.models import (
     ProposalRequirementGroup,
     ProposalRequirementItem,
     ProposalSection,
+    ProposalShareLink,
 )
 
 User = get_user_model()
@@ -272,6 +273,50 @@ def expired_proposal(db):
         currency='COP',
         status='expired',
         expires_at=timezone.now() - timezone.timedelta(days=1),
+    )
+
+
+@pytest.fixture
+def rejected_proposal(db):
+    """A proposal that has been rejected by the client."""
+    return BusinessProposal.objects.create(
+        title='Rejected Project',
+        client_name='Declined Client',
+        client_email='declined@client.com',
+        language='es',
+        total_investment=Decimal('8000.00'),
+        currency='COP',
+        status='rejected',
+        rejection_reason='presupuesto alto',
+        sent_at=timezone.now() - timezone.timedelta(days=5),
+        expires_at=timezone.now() + timezone.timedelta(days=10),
+    )
+
+
+@pytest.fixture
+def viewed_proposal(db):
+    """A proposal that has been viewed by the client."""
+    return BusinessProposal.objects.create(
+        title='Viewed Project',
+        client_name='Viewer Client',
+        client_email='viewer@client.com',
+        language='es',
+        total_investment=Decimal('12000.00'),
+        currency='COP',
+        status='viewed',
+        sent_at=timezone.now() - timezone.timedelta(days=3),
+        first_viewed_at=timezone.now() - timezone.timedelta(hours=6),
+        expires_at=timezone.now() + timezone.timedelta(days=20),
+    )
+
+
+@pytest.fixture
+def share_link(db, sent_proposal):
+    """A share link for a sent proposal."""
+    return ProposalShareLink.objects.create(
+        proposal=sent_proposal,
+        shared_by_name='Alice',
+        shared_by_email='alice@company.com',
     )
 
 

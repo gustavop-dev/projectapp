@@ -5,6 +5,7 @@ from content.models import (
     ProposalSection,
     ProposalRequirementGroup,
     ProposalRequirementItem,
+    ProposalShareLink,
 )
 
 
@@ -63,7 +64,7 @@ class ProposalListSerializer(serializers.ModelSerializer):
             'id', 'uuid', 'title', 'client_name', 'status',
             'total_investment', 'currency', 'expires_at',
             'view_count', 'created_at', 'days_remaining', 'is_expired',
-            'is_active',
+            'is_active', 'responded_at',
         )
 
     def get_days_remaining(self, obj):
@@ -85,6 +86,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
     days_remaining = serializers.SerializerMethodField()
     is_expired = serializers.SerializerMethodField()
     public_url = serializers.SerializerMethodField()
+    discounted_investment = serializers.SerializerMethodField()
 
     class Meta:
         model = BusinessProposal
@@ -93,9 +95,11 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
             'language', 'total_investment', 'currency', 'status', 'expires_at',
             'reminder_days', 'urgency_reminder_days', 'discount_percent',
             'is_active', 'reminder_sent_at', 'urgency_email_sent_at',
-            'view_count', 'first_viewed_at', 'sent_at', 'created_at', 'updated_at',
+            'view_count', 'first_viewed_at', 'sent_at', 'responded_at',
+            'created_at', 'updated_at',
             'sections', 'requirement_groups',
             'days_remaining', 'is_expired', 'public_url',
+            'discounted_investment',
         )
 
     def get_sections(self, obj):
@@ -118,6 +122,14 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
 
     def get_public_url(self, obj):
         return obj.public_url
+
+    def get_discounted_investment(self, obj):
+        """Return discounted price when discount_percent > 0."""
+        if not obj.discount_percent or obj.discount_percent <= 0:
+            return None
+        from decimal import Decimal
+        factor = (Decimal(100) - Decimal(obj.discount_percent)) / Decimal(100)
+        return str(round(obj.total_investment * factor, 2))
 
 
 class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
@@ -245,3 +257,20 @@ class ProposalFromJSONSerializer(serializers.Serializer):
         # Strip _meta helper key if present (template download artifact)
         value.pop('_meta', None)
         return value
+
+
+class ProposalShareLinkSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating and displaying proposal share links.
+    """
+
+    class Meta:
+        model = ProposalShareLink
+        fields = (
+            'id', 'uuid', 'shared_by_name', 'shared_by_email',
+            'recipient_name', 'recipient_email',
+            'view_count', 'first_viewed_at', 'created_at',
+        )
+        read_only_fields = (
+            'id', 'uuid', 'view_count', 'first_viewed_at', 'created_at',
+        )

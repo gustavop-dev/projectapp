@@ -1,0 +1,16 @@
+🔥 HOT LEAD — {{ client_name }} revisó la propuesta {{ visit_count }} veces
+
+Propuesta: {{ proposal_title }}
+Cliente: {{ client_name }}
+Inversión: ${{ total_investment }} {{ currency }}
+
+Señales de interés:
+- Visitas totales: {{ visit_count }}
+- Sección más vista: {{ top_section }}
+- Tiempo en sección: {{ top_section_time }}
+
+💡 Recomendación: Contacta al cliente ahora.
+Un cliente que vuelve múltiples veces está evaluando seriamente la propuesta.
+
+---
+Notificación automática — ProjectApp.co

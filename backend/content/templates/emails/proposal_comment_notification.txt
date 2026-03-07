@@ -1,0 +1,16 @@
+[COMENTARIO] Propuesta: {{ proposal_title }} — {{ client_name }}
+
+El cliente {{ client_name }} tiene comentarios antes de decidir sobre la propuesta.
+
+Propuesta: {{ proposal_title }}
+Inversión: {{ total_investment }} {{ currency }}
+
+Mensaje del cliente:
+---
+{{ comment }}
+---
+
+Este es un momento ideal para hacer un seguimiento personalizado.
+Responde por WhatsApp: https://wa.me/573238122373
+
+© 2026 ProjectApp.co

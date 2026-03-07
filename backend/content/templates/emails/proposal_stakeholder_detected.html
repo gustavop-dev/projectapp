@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nuevo Lector Detectado — Project App</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;max-width:600px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#059669;padding:32px 40px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;">
+                👥 Posible Stakeholder Detectado
+              </h1>
+              <p style="margin:8px 0 0;color:#d1fae5;font-size:14px;font-weight:400;">
+                Tu propuesta está siendo revisada desde una nueva ubicación
+              </p>
+            </td>
+          </tr>
+
+          <!-- Alert badge -->
+          <tr>
+            <td style="padding:24px 40px 0;">
+              <div style="background-color:#ecfdf5;border:2px solid #6ee7b7;border-radius:12px;padding:16px 20px;text-align:center;">
+                <p style="margin:0;color:#065f46;font-size:15px;font-weight:700;">
+                  🔍 Señal de múltiples tomadores de decisión
+                </p>
+                <p style="margin:6px 0 0;color:#047857;font-size:13px;">
+                  Esto puede significar que <strong>{{ client_name }}</strong> compartió la propuesta con alguien más de su equipo antes de decidir.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:24px 40px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background-color:#f9fafb;border-radius:12px;padding:20px;">
+                <tr>
+                  <td style="padding:12px 20px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;">
+                      <tr>
+                        <td style="padding:8px 0;color:#6b7280;font-size:14px;width:160px;">Propuesta:</td>
+                        <td style="padding:8px 0;color:#1f2937;font-size:14px;font-weight:600;">{{ proposal_title }}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px 0;color:#6b7280;font-size:14px;">Cliente original:</td>
+                        <td style="padding:8px 0;color:#1f2937;font-size:14px;font-weight:600;">{{ client_name }}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px 0;color:#6b7280;font-size:14px;">Inversión:</td>
+                        <td style="padding:8px 0;color:#1f2937;font-size:14px;font-weight:600;">${{ total_investment }} {{ currency }}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px 0;color:#6b7280;font-size:14px;">Ubicaciones únicas:</td>
+                        <td style="padding:8px 0;color:#059669;font-size:14px;font-weight:700;">{{ known_ips_count }} ubicaciones distintas</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- What to do -->
+              <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin-top:20px;background-color:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:16px 20px;">
+                <tr>
+                  <td>
+                    <p style="margin:0 0 8px;color:#92400e;font-size:13px;font-weight:700;">💡 ¿Qué hacer ahora?</p>
+                    <ul style="margin:0;padding-left:18px;color:#78350f;font-size:13px;line-height:1.7;">
+                      <li>Contacta a <strong>{{ client_name }}</strong> y pregunta si hay más personas involucradas en la decisión.</li>
+                      <li>Ofrece una llamada grupal para resolver dudas de todo el equipo a la vez.</li>
+                      <li>Si hay un CFO o gerente revisando, enfatiza el ROI y el retorno de inversión.</li>
+                    </ul>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA -->
+          <tr>
+            <td style="padding:0 40px 32px;text-align:center;">
+              <a href="https://projectapp.co/panel/proposals/"
+                 style="display:inline-block;background-color:#059669;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 28px;border-radius:10px;">
+                Ver Panel de Propuestas →
+              </a>
+              <p style="margin:20px 0 0;color:#9ca3af;font-size:12px;">
+                Notificación automática — ProjectApp.co
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

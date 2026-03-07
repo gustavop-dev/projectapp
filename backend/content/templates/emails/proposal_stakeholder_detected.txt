@@ -1,0 +1,21 @@
+👥 POSIBLE STAKEHOLDER DETECTADO — {{ proposal_title }}
+
+Tu propuesta está siendo revisada desde una nueva ubicación.
+
+Cliente: {{ client_name }}
+Propuesta: {{ proposal_title }}
+Inversión: ${{ total_investment }} {{ currency }}
+Ubicaciones únicas: {{ known_ips_count }}
+
+Esto puede significar que {{ client_name }} compartió la propuesta con
+alguien más de su equipo antes de tomar la decisión.
+
+¿Qué hacer ahora?
+- Contacta a {{ client_name }} y pregunta si hay más personas involucradas.
+- Ofrece una llamada grupal para resolver dudas de todo el equipo.
+- Si hay un CFO o gerente revisando, enfatiza el ROI y retorno de inversión.
+
+Ver Panel: https://projectapp.co/panel/proposals/
+
+---
+Notificación automática — ProjectApp.co

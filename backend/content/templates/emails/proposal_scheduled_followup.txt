@@ -1,0 +1,11 @@
+Hola {{ client_name }},
+
+Hace un tiempo nos pediste que te recordáramos sobre la propuesta "{{ title }}". ¡Aquí estamos!
+
+Nos encantaría saber cómo va todo y si ahora es un buen momento para retomar el proyecto. La propuesta sigue disponible y podemos actualizarla según tus necesidades actuales.
+
+👉 Revisar la propuesta: {{ proposal_url }}
+💬 Escribir por WhatsApp: https://wa.me/573238122373
+
+---
+© 2026 ProjectApp.co | Bogotá, Colombia

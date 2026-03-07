@@ -1,0 +1,24 @@
+{{ client_name }}, ¿podemos encontrar una solución que se ajuste a tu presupuesto?
+
+Hace un par de días recibimos tu decisión sobre la propuesta "{{ proposal_title }}".
+Entendemos que el presupuesto es un factor clave, y queremos explorar si hay una forma de hacer que esto funcione.
+
+Algunas opciones que podemos explorar:
+
+🔧 Alcance ajustado — Desarrollamos primero las funcionalidades esenciales y dejamos las adicionales para una segunda fase.
+
+📅 Plan de pagos flexible — Distribuimos el costo en cuotas que se adapten a tu flujo de caja.
+
+{% if discount_percent and discounted_investment %}
+🎯 Precio especial — Podemos ofrecerte un {{ discount_percent }}% de descuento.
+   Precio con descuento: {{ discounted_investment }} {{ currency }}
+{% else %}
+💬 Conversa con nosotros — Cuéntanos qué parte del proyecto es la más prioritaria.
+{% endif %}
+
+No necesitas tomar una decisión ahora mismo. Solo queremos que sepas que estamos aquí.
+
+💬 Hablemos por WhatsApp: https://wa.me/573238122373
+📧 O escríbenos: team@projectapp.co
+
+© 2026 ProjectApp.co

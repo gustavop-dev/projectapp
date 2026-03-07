@@ -1,0 +1,12 @@
+Hola {{ client_name }},
+
+Noté que revisaste la propuesta "{{ title }}" pero no alcanzaste a ver todas las secciones.
+
+¿Te gustaría agendar una llamada rápida de 15 minutos para resolver cualquier duda? Podemos repasar la propuesta juntos y ajustarla a lo que necesites.
+
+👉 Continuar revisando: {{ proposal_url }}
+
+💬 Escribir por WhatsApp: https://wa.me/573238122373
+
+---
+© 2026 ProjectApp.co | Bogotá, Colombia

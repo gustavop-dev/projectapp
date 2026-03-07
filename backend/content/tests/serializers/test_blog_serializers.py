@@ -1,5 +1,8 @@
-"""Tests for blog serializers — _get_lang helper, language-resolved fields,
-validate_sources, _validate_content_json, BlogPostFromJSONSerializer."""
+"""Tests for blog serializers.
+
+Covers _get_lang helper, language-resolved fields,
+validate_sources, _validate_content_json, BlogPostFromJSONSerializer.
+"""
 import pytest
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory

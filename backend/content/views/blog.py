@@ -1,3 +1,4 @@
+import copy as _copy
 import logging
 
 from django.shortcuts import get_object_or_404
@@ -171,14 +172,13 @@ def get_blog_json_template(request):
     Return a downloadable JSON template for blog post creation.
     Includes all section types with placeholder content.
     """
-    import copy
     template = {
         'title_es': 'Título del artículo en español',
         'title_en': 'Article title in English',
         'excerpt_es': 'Resumen corto en español (1-2 oraciones).',
         'excerpt_en': 'Short summary in English (1-2 sentences).',
-        'content_json_es': copy.deepcopy(BLOG_JSON_TEMPLATE),
-        'content_json_en': copy.deepcopy(BLOG_JSON_TEMPLATE),
+        'content_json_es': _copy.deepcopy(BLOG_JSON_TEMPLATE),
+        'content_json_en': _copy.deepcopy(BLOG_JSON_TEMPLATE),
         'sources': [
             {'name': 'Source Name', 'url': 'https://example.com'},
         ],
@@ -193,6 +193,41 @@ def get_blog_json_template(request):
         '_available_categories': AVAILABLE_CATEGORIES,
     }
     return Response(template, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def duplicate_blog_post(request, post_id):
+    """
+    Duplicate a blog post: creates a deep copy reset to draft status.
+    """
+    post = get_object_or_404(BlogPost, pk=post_id)
+
+    new_post = BlogPost.objects.create(
+        title_es=f'{post.title_es} (copia)',
+        title_en=f'{post.title_en} (copy)',
+        slug='',
+        excerpt_es=post.excerpt_es,
+        excerpt_en=post.excerpt_en,
+        content_es=post.content_es,
+        content_en=post.content_en,
+        content_json_es=_copy.deepcopy(post.content_json_es),
+        content_json_en=_copy.deepcopy(post.content_json_en),
+        cover_image_url=post.cover_image_url,
+        sources=_copy.deepcopy(post.sources),
+        category=post.category,
+        read_time_minutes=post.read_time_minutes,
+        is_featured=False,
+        meta_title_es=post.meta_title_es,
+        meta_title_en=post.meta_title_en,
+        meta_description_es=post.meta_description_es,
+        meta_description_en=post.meta_description_en,
+        is_published=False,
+        published_at=None,
+    )
+
+    detail = BlogPostAdminDetailSerializer(new_post)
+    return Response(detail.data, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])

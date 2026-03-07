@@ -18,6 +18,7 @@ DEFAULT_SECTIONS = [
         'order': 0,
         'is_wide_panel': False,
         'content_json': {
+            'proposalTitle': '',
             'clientName': '',
             'inspirationalQuote': (
                 'Design is not just what it looks like and feels like. '
@@ -174,6 +175,10 @@ DEFAULT_SECTIONS = [
         'order': 6,
         'is_wide_panel': True,
         'content_json': {
+            'index': '6',
+            'title': 'Etapas de contratación y desarrollo',
+            'intro': 'Nuestro proceso está diseñado para ofrecer claridad, confianza y acompañamiento en cada fase 🧭:',
+            'currentLabel': 'Actual',
             'stages': [
                 {
                     'icon': '✉️',
@@ -347,13 +352,13 @@ DEFAULT_SECTIONS = [
                     'milestone': 'MVP funcional',
                 },
                 {
-                    'title': '🚀 QA & Launch',
+                    'title': '🚀 QA y Lanzamiento',
                     'duration': '3 días',
                     'weeks': 'Semana 4',
                     'circleColor': 'bg-orange-600',
                     'statusColor': 'bg-orange-100 text-orange-700',
                     'description': 'Pruebas finales, ajustes y publicación.',
-                    'tasks': ['Testing cross-browser', 'Ajustes finales', 'Deploy a producción'],
+                    'tasks': ['Pruebas en múltiples navegadores', 'Ajustes finales', 'Despliegue a producción'],
                     'milestone': 'Sitio en producción',
                 },
                 {
@@ -557,6 +562,7 @@ DEFAULT_SECTIONS_EN = [
         'order': 0,
         'is_wide_panel': False,
         'content_json': {
+            'proposalTitle': '',
             'clientName': '',
             'inspirationalQuote': (
                 'Design is not just what it looks like and feels like. '
@@ -703,6 +709,10 @@ DEFAULT_SECTIONS_EN = [
         'order': 6,
         'is_wide_panel': True,
         'content_json': {
+            'index': '6',
+            'title': 'Contracting & Development Stages',
+            'intro': 'Our process is designed to offer clarity, trust, and support at every stage 🧭:',
+            'currentLabel': 'Current',
             'stages': [
                 {
                     'icon': '✉️',

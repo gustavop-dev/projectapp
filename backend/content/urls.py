@@ -9,17 +9,21 @@ from content.views.proposal import (
     retrieve_public_proposal, download_proposal_pdf,
     list_proposals, retrieve_proposal, create_proposal,
     create_proposal_from_json, get_proposal_json_template,
-    update_proposal, delete_proposal, send_proposal,
+    update_proposal, delete_proposal, duplicate_proposal, send_proposal,
     resend_proposal, toggle_proposal_active,
     update_proposal_section, bulk_reorder_sections,
-    respond_to_proposal, check_admin_auth,
+    respond_to_proposal, comment_on_proposal, check_admin_auth,
+    track_proposal_engagement, retrieve_proposal_analytics,
+    proposal_dashboard, export_proposal_analytics_csv,
+    create_share_link, retrieve_shared_proposal, schedule_followup,
+    list_clients,
 )
 from content.views.blog import (
     list_blog_posts, retrieve_blog_post,
     list_admin_blog_posts, create_blog_post, create_blog_post_from_json,
     get_blog_json_template,
     retrieve_admin_blog_post, update_blog_post, delete_blog_post,
-    upload_blog_cover_image,
+    duplicate_blog_post, upload_blog_cover_image,
 )
 
 urlpatterns = [
@@ -35,6 +39,11 @@ urlpatterns = [
     path('proposals/<uuid:proposal_uuid>/', retrieve_public_proposal, name='retrieve-public-proposal'),
     path('proposals/<uuid:proposal_uuid>/pdf/', download_proposal_pdf, name='download-proposal-pdf'),
     path('proposals/<uuid:proposal_uuid>/respond/', respond_to_proposal, name='respond-to-proposal'),
+    path('proposals/<uuid:proposal_uuid>/comment/', comment_on_proposal, name='comment-on-proposal'),
+    path('proposals/<uuid:proposal_uuid>/track/', track_proposal_engagement, name='track-proposal-engagement'),
+    path('proposals/<uuid:proposal_uuid>/share/', create_share_link, name='create-share-link'),
+    path('proposals/<uuid:proposal_uuid>/schedule-followup/', schedule_followup, name='schedule-followup'),
+    path('proposals/shared/<uuid:share_uuid>/', retrieve_shared_proposal, name='retrieve-shared-proposal'),
 
     # Proposals — admin auth check
     path('auth/check/', check_admin_auth, name='check-admin-auth'),
@@ -47,10 +56,15 @@ urlpatterns = [
     path('proposals/<int:proposal_id>/detail/', retrieve_proposal, name='retrieve-proposal'),
     path('proposals/<int:proposal_id>/update/', update_proposal, name='update-proposal'),
     path('proposals/<int:proposal_id>/delete/', delete_proposal, name='delete-proposal'),
+    path('proposals/<int:proposal_id>/duplicate/', duplicate_proposal, name='duplicate-proposal'),
     path('proposals/<int:proposal_id>/send/', send_proposal, name='send-proposal'),
     path('proposals/<int:proposal_id>/resend/', resend_proposal, name='resend-proposal'),
     path('proposals/<int:proposal_id>/toggle-active/', toggle_proposal_active, name='toggle-proposal-active'),
     path('proposals/<int:proposal_id>/reorder-sections/', bulk_reorder_sections, name='reorder-sections'),
+    path('proposals/<int:proposal_id>/analytics/', retrieve_proposal_analytics, name='proposal-analytics'),
+    path('proposals/<int:proposal_id>/analytics/csv/', export_proposal_analytics_csv, name='proposal-analytics-csv'),
+    path('proposals/dashboard/', proposal_dashboard, name='proposal-dashboard'),
+    path('proposals/clients/', list_clients, name='list-clients'),
 
     # Proposals — section editing
     path('proposals/sections/<int:section_id>/update/', update_proposal_section, name='update-proposal-section'),
@@ -63,6 +77,7 @@ urlpatterns = [
     path('blog/admin/<int:post_id>/detail/', retrieve_admin_blog_post, name='retrieve-admin-blog-post'),
     path('blog/admin/<int:post_id>/update/', update_blog_post, name='update-blog-post'),
     path('blog/admin/<int:post_id>/delete/', delete_blog_post, name='delete-blog-post'),
+    path('blog/admin/<int:post_id>/duplicate/', duplicate_blog_post, name='duplicate-blog-post'),
     path('blog/admin/<int:post_id>/upload-cover/', upload_blog_cover_image, name='upload-blog-cover-image'),
 
     # Blog — public

@@ -3,7 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from .models import (
     Contact, Design, Model3D, Product, Category, Item, Hosting, PortfolioWork,
     BusinessProposal, ProposalSection, ProposalRequirementGroup, ProposalRequirementItem,
-    BlogPost,
+    BlogPost, ProposalViewEvent, ProposalSectionView, ProposalChangeLog,
 )
 
 class PortfolioWorkAdmin(admin.ModelAdmin):
@@ -132,6 +132,7 @@ class BusinessProposalAdmin(admin.ModelAdmin):
     search_fields = ('title', 'client_name', 'client_email')
     readonly_fields = (
         'uuid', 'view_count', 'first_viewed_at', 'sent_at',
+        'responded_at', 'revisit_alert_sent_at',
         'reminder_sent_at', 'created_at', 'updated_at',
     )
     inlines = [ProposalSectionInline, ProposalRequirementGroupInline]
@@ -150,7 +151,10 @@ class BusinessProposalAdmin(admin.ModelAdmin):
             ),
         }),
         ('Tracking', {
-            'fields': ('view_count', 'first_viewed_at', 'sent_at'),
+            'fields': (
+                'view_count', 'first_viewed_at', 'sent_at',
+                'responded_at', 'revisit_alert_sent_at',
+            ),
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
@@ -234,6 +238,8 @@ class ProjectAppAdminSite(admin.AdminSite):
                     if model['object_name'] in [
                         'BusinessProposal', 'ProposalSection',
                         'ProposalRequirementGroup', 'ProposalRequirementItem',
+                        'ProposalViewEvent', 'ProposalSectionView',
+                        'ProposalChangeLog',
                     ]
                 ]
             },
@@ -263,3 +269,6 @@ admin_site.register(ProposalSection)
 admin_site.register(ProposalRequirementGroup)
 admin_site.register(ProposalRequirementItem, ProposalRequirementItemAdmin)
 admin_site.register(BlogPost, BlogPostAdmin)
+admin_site.register(ProposalViewEvent)
+admin_site.register(ProposalSectionView)
+admin_site.register(ProposalChangeLog)

@@ -1,0 +1,12 @@
+🔗 Propuesta compartida
+
+{{ client_name }} ha compartido la propuesta "{{ proposal_title }}" con alguien más.
+
+Detalles:
+- Compartido por: {{ shared_by_name }}
+{% if shared_by_email %}- Email: {{ shared_by_email }}{% endif %}
+
+Esto es una señal positiva: el cliente está involucrando a más personas en la decisión.
+
+---
+© 2026 ProjectApp.co | Notificación interna del equipo

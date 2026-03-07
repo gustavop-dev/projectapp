@@ -25,3 +25,7 @@ from .proposal_section import ProposalSection
 from .proposal_requirement_group import ProposalRequirementGroup
 from .proposal_requirement_item import ProposalRequirementItem
 from .blog_post import BlogPost
+from .proposal_view_event import ProposalViewEvent
+from .proposal_section_view import ProposalSectionView
+from .proposal_change_log import ProposalChangeLog
+from .proposal_share_link import ProposalShareLink

@@ -216,3 +216,345 @@ class TestGetFromEmail:
     def test_returns_class_from_email_when_set(self):
         with patch.object(ProposalEmailService, 'FROM_EMAIL', 'custom@test.com'):
             assert ProposalEmailService._get_from_email() == 'custom@test.com'
+
+
+# ---------------------------------------------------------------------------
+# Acceptance confirmation
+# ---------------------------------------------------------------------------
+
+class TestSendAcceptanceConfirmation:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=b'%PDF-fake')
+    def test_sends_with_pdf_attachment(self, mock_pdf, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>Accepted</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_acceptance_confirmation(email_proposal)
+
+        assert result is True
+        mock_instance.attach.assert_called_once()
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=None)
+    def test_sends_without_pdf_when_generation_returns_none(self, mock_pdf, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>Accepted</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_acceptance_confirmation(email_proposal)
+
+        assert result is True
+        mock_instance.attach.assert_not_called()
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', side_effect=Exception('PDF error'))
+    def test_sends_without_pdf_when_generation_fails(self, mock_pdf, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>Accepted</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_acceptance_confirmation(email_proposal)
+
+        assert result is True
+        mock_instance.send.assert_called_once()
+
+    def test_returns_false_when_no_client_email(self, no_email_proposal):
+        result = ProposalEmailService.send_acceptance_confirmation(no_email_proposal)
+        assert result is False
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('Template error'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        result = ProposalEmailService.send_acceptance_confirmation(email_proposal)
+        assert result is False
+
+
+# ---------------------------------------------------------------------------
+# Rejection thank-you
+# ---------------------------------------------------------------------------
+
+class TestSendRejectionThankYou:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_rejection_thank_you(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>Thank you</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_rejection_thank_you(email_proposal)
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+
+    def test_returns_false_when_no_client_email(self, no_email_proposal):
+        result = ProposalEmailService.send_rejection_thank_you(no_email_proposal)
+        assert result is False
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        result = ProposalEmailService.send_rejection_thank_you(email_proposal)
+        assert result is False
+
+
+# ---------------------------------------------------------------------------
+# First-view notification
+# ---------------------------------------------------------------------------
+
+class TestSendFirstViewNotification:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_first_view_notification(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>First view</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_first_view_notification(email_proposal)
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        call_kwargs = mock_email_cls.call_args[1]
+        assert '[OPENED]' in call_kwargs['subject']
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        result = ProposalEmailService.send_first_view_notification(email_proposal)
+        assert result is False
+
+
+# ---------------------------------------------------------------------------
+# Comment notification
+# ---------------------------------------------------------------------------
+
+class TestSendCommentNotification:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_comment_notification(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>Comment</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_comment_notification(
+            email_proposal, 'Can we negotiate?'
+        )
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        call_kwargs = mock_email_cls.call_args[1]
+        assert '[COMENTARIO]' in call_kwargs['subject']
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        result = ProposalEmailService.send_comment_notification(email_proposal, 'test')
+        assert result is False
+
+
+# ---------------------------------------------------------------------------
+# Rejection re-engagement
+# ---------------------------------------------------------------------------
+
+class TestSendRejectionReengagement:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_reengagement_with_discount(self, mock_render, mock_email_cls, email_proposal):
+        email_proposal.discount_percent = 15
+        email_proposal.save(update_fields=['discount_percent'])
+        mock_render.return_value = '<html>Reengage</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_rejection_reengagement(email_proposal)
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_reengagement_without_discount(self, mock_render, mock_email_cls, email_proposal):
+        """Re-engagement email sends successfully when discount_percent is zero."""
+        email_proposal.discount_percent = 0
+        email_proposal.save(update_fields=['discount_percent'])
+        mock_render.return_value = '<html>Reengage</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_rejection_reengagement(email_proposal)
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+
+    def test_returns_false_when_no_client_email(self, no_email_proposal):
+        result = ProposalEmailService.send_rejection_reengagement(no_email_proposal)
+        assert result is False
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        result = ProposalEmailService.send_rejection_reengagement(email_proposal)
+        assert result is False
+
+
+# ---------------------------------------------------------------------------
+# Revisit alert
+# ---------------------------------------------------------------------------
+
+class TestSendRevisitAlert:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_revisit_alert(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>Alert</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_revisit_alert(
+            email_proposal, visit_count=5, top_section='Investment', top_section_time=120,
+        )
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        email_proposal.refresh_from_db()
+        assert email_proposal.revisit_alert_sent_at is not None
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_handles_empty_top_section(self, mock_render, mock_email_cls, email_proposal):
+        """Revisit alert sends successfully when top_section is not provided."""
+        mock_render.return_value = '<html>Alert</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_revisit_alert(email_proposal, visit_count=3)
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        result = ProposalEmailService.send_revisit_alert(email_proposal, visit_count=3)
+        assert result is False
+
+
+# ---------------------------------------------------------------------------
+# Abandonment followup
+# ---------------------------------------------------------------------------
+
+class TestSendAbandonmentFollowup:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_abandonment_followup(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>Abandoned</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_abandonment_followup(email_proposal)
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        email_proposal.refresh_from_db()
+        assert email_proposal.abandonment_email_sent_at is not None
+
+    def test_returns_false_when_no_client_email(self, no_email_proposal):
+        result = ProposalEmailService.send_abandonment_followup(no_email_proposal)
+        assert result is False
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        result = ProposalEmailService.send_abandonment_followup(email_proposal)
+        assert result is False
+
+
+# ---------------------------------------------------------------------------
+# Investment interest followup
+# ---------------------------------------------------------------------------
+
+class TestSendInvestmentInterestFollowup:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_investment_interest_followup(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>Interest</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_investment_interest_followup(
+            email_proposal, time_on_investment=120,
+        )
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        email_proposal.refresh_from_db()
+        assert email_proposal.investment_interest_email_sent_at is not None
+
+    def test_returns_false_when_no_client_email(self, no_email_proposal):
+        result = ProposalEmailService.send_investment_interest_followup(no_email_proposal)
+        assert result is False
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        result = ProposalEmailService.send_investment_interest_followup(email_proposal, 90)
+        assert result is False
+
+
+# ---------------------------------------------------------------------------
+# Share notification
+# ---------------------------------------------------------------------------
+
+class TestSendShareNotification:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_share_notification(self, mock_render, mock_email_cls, email_proposal):
+        """Share notification sends to team with [SHARED] subject tag."""
+        from content.models import ProposalShareLink
+        share = ProposalShareLink.objects.create(
+            proposal=email_proposal,
+            shared_by_name='Alice',
+            shared_by_email='alice@co.com',
+        )
+        mock_render.return_value = '<html>Shared</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_share_notification(email_proposal, share)
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        call_kwargs = mock_email_cls.call_args[1]
+        assert '[SHARED]' in call_kwargs['subject']
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        from content.models import ProposalShareLink
+        share = ProposalShareLink.objects.create(
+            proposal=email_proposal,
+            shared_by_name='Alice',
+        )
+        result = ProposalEmailService.send_share_notification(email_proposal, share)
+        assert result is False
+
+
+# ---------------------------------------------------------------------------
+# Scheduled followup
+# ---------------------------------------------------------------------------
+
+class TestSendScheduledFollowup:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_scheduled_followup(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>Followup</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_scheduled_followup(email_proposal)
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+
+    def test_returns_false_when_no_client_email(self, no_email_proposal):
+        result = ProposalEmailService.send_scheduled_followup(no_email_proposal)
+        assert result is False
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        result = ProposalEmailService.send_scheduled_followup(email_proposal)
+        assert result is False
