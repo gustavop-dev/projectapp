@@ -185,150 +185,6 @@
         </div>
         <FieldTextarea v-model="form.intro" label="Introducción" :rows="3" :isSingle="true" />
 
-        <!-- Groups: collapsible -->
-        <div v-for="(group, gIdx) in form.groups" :key="group.id || gIdx" :data-testid="`requirement-group-${group.id || gIdx}`" class="mt-4 border border-gray-200 rounded-xl overflow-hidden">
-          <!-- Collapse header -->
-          <div class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-               @click="group._collapsed = !group._collapsed">
-            <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': !group._collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-              <span>{{ group.icon }}</span> {{ group.title }}
-              <span class="text-[10px] text-gray-400 font-normal">({{ (group.items || []).length }} elementos)</span>
-            </h4>
-            <div class="flex flex-wrap items-center gap-2" @click.stop>
-              <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-                :class="!group._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
-                @click="onToggleGroupPaste(group, false)">Formulario</button>
-              <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-                :class="group._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
-                @click="onToggleGroupPaste(group, true)">Pegar contenido</button>
-              <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
-                @click="openSubPreview(group, gIdx)">
-                <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-              </button>
-              <button v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features' && group.id !== 'integrations_api' && group.id !== 'admin_module'"
-                type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.groups.splice(gIdx, 1)">Eliminar</button>
-            </div>
-          </div>
-
-          <!-- Collapse content -->
-          <div v-show="!group._collapsed" class="p-4">
-            <!-- Paste mode for this group -->
-            <div v-if="group._pasteMode" class="space-y-3">
-              <p class="text-[11px] text-gray-500">Contenido Markdown para esta sub-sección.</p>
-              <textarea v-model="group._pasteText" rows="10" data-testid="group-paste-textarea" placeholder="Escribe o pega aquí el contenido de este grupo..."
-                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-1 focus:ring-emerald-500 outline-none resize-y" />
-            </div>
-
-            <!-- Form mode for this group -->
-            <div v-else class="space-y-3">
-              <div class="grid grid-cols-[100px_1fr] gap-3">
-                <EmojiIconField v-model="group.icon" label="Icono" placeholder="🖥️" />
-                <FieldInput v-model="group.title" label="Título del grupo" />
-              </div>
-              <FieldTextarea v-model="group.description" label="Descripción" :rows="2" :isSingle="true" />
-              <div>
-                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
-                <draggable v-model="group.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
-                  <template #item="{ element: item, index: iIdx }">
-                    <div class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
-                      <div class="flex items-center justify-between mb-1">
-                        <div class="flex items-center gap-2">
-                          <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
-                          <span class="text-[10px] text-gray-400">{{ iIdx + 1 }}</span>
-                        </div>
-                        <button type="button" class="text-[10px] text-red-500" @click="group.items.splice(iIdx, 1)">Eliminar</button>
-                      </div>
-                      <div class="grid grid-cols-[90px_1fr] gap-2 mb-1">
-                        <EmojiIconField v-model="item.icon" label="Icono" placeholder="🏠" />
-                        <FieldInput v-model="item.name" label="Nombre" />
-                      </div>
-                      <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
-                    </div>
-                  </template>
-                </draggable>
-                <button type="button" class="text-xs text-emerald-600 font-medium" @click="group.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Additional Modules: collapsible -->
-        <div class="mt-6">
-          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Módulos Adicionales</label>
-          <div v-for="(mod, mIdx) in form.additionalModules" :key="mIdx" class="mb-4 border border-gray-200 rounded-xl overflow-hidden">
-            <div class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-                 @click="mod._collapsed = !mod._collapsed">
-              <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': !mod._collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-                <span>{{ mod.icon || '🧩' }}</span> {{ mod.title || 'Módulo adicional' }}
-              </h4>
-              <div class="flex flex-wrap items-center gap-2" @click.stop>
-                <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-                  :class="!mod._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
-                  @click="onToggleGroupPaste(mod, false)">Formulario</button>
-                <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-                  :class="mod._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
-                  @click="onToggleGroupPaste(mod, true)">Pegar contenido</button>
-                <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
-                  @click="openSubPreview(mod, mIdx, true)">
-                  <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                </button>
-                <button type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.additionalModules.splice(mIdx, 1)">Eliminar</button>
-              </div>
-            </div>
-            <div v-show="!mod._collapsed" class="p-4">
-              <div v-if="mod._pasteMode" class="space-y-3">
-                <p class="text-[11px] text-gray-500">Contenido Markdown para este módulo.</p>
-                <textarea v-model="mod._pasteText" rows="8" placeholder="Escribe o pega aquí el contenido de este módulo..."
-                  class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-1 focus:ring-emerald-500 outline-none resize-y" />
-              </div>
-              <div v-else class="space-y-3">
-                <div class="grid grid-cols-[100px_1fr] gap-3">
-                  <EmojiIconField v-model="mod.icon" label="Icono" placeholder="🧩" />
-                  <FieldInput v-model="mod.title" label="Título del módulo" />
-                </div>
-                <FieldTextarea v-model="mod.description" label="Descripción" :rows="2" :isSingle="true" />
-                <div>
-                  <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
-                  <draggable v-model="mod.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
-                    <template #item="{ element: item, index: iIdx }">
-                      <div class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
-                        <div class="flex items-center justify-between mb-1">
-                          <div class="flex items-center gap-2">
-                            <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
-                            <span class="text-[10px] text-gray-400">{{ iIdx + 1 }}</span>
-                          </div>
-                          <button type="button" class="text-[10px] text-red-500" @click="mod.items.splice(iIdx, 1)">Eliminar</button>
-                        </div>
-                        <div class="grid grid-cols-[90px_1fr] gap-2 mb-1">
-                          <EmojiIconField v-model="item.icon" label="Icono" />
-                          <FieldInput v-model="item.name" label="Nombre" />
-                        </div>
-                        <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
-                      </div>
-                    </template>
-                  </draggable>
-                  <button type="button" class="text-xs text-emerald-600 font-medium" @click="mod.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-            @click="form.additionalModules.push({ icon: '🧩', title: '', description: '', items: [], _pasteMode: false, _pasteText: '', _collapsed: false })">
-            + Agregar módulo adicional
-          </button>
-        </div>
       </template>
 
       <!-- TIMELINE -->
@@ -594,6 +450,154 @@
         <FieldTextarea v-model="form.thankYouMessage" label="Mensaje de agradecimiento" :rows="2" :isSingle="true" />
       </template>
     </div>
+
+    <!-- Functional requirements groups: always visible regardless of paste mode -->
+    <template v-if="sectionType === 'functional_requirements'">
+      <!-- Groups: collapsible -->
+      <div v-for="(group, gIdx) in form.groups" :key="group.id || gIdx" :data-testid="`requirement-group-${group.id || gIdx}`" class="mt-4 border border-gray-200 rounded-xl overflow-hidden">
+        <!-- Collapse header -->
+        <div class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+             @click="group._collapsed = !group._collapsed">
+          <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': !group._collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+            <span>{{ group.icon }}</span> {{ group.title }}
+            <span class="text-[10px] text-gray-400 font-normal">({{ (group.items || []).length }} elementos)</span>
+          </h4>
+          <div class="flex flex-wrap items-center gap-2" @click.stop>
+            <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
+              :class="!group._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
+              @click="onToggleGroupPaste(group, false)">Formulario</button>
+            <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
+              :class="group._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
+              @click="onToggleGroupPaste(group, true)">Pegar contenido</button>
+            <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+              @click="openSubPreview(group, gIdx)">
+              <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </button>
+            <button v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features' && group.id !== 'integrations_api' && group.id !== 'admin_module'"
+              type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.groups.splice(gIdx, 1)">Eliminar</button>
+          </div>
+        </div>
+
+        <!-- Collapse content -->
+        <div v-show="!group._collapsed" class="p-4">
+          <!-- Paste mode for this group -->
+          <div v-if="group._pasteMode" class="space-y-3">
+            <p class="text-[11px] text-gray-500">Contenido Markdown para esta sub-sección.</p>
+            <textarea v-model="group._pasteText" rows="10" data-testid="group-paste-textarea" placeholder="Escribe o pega aquí el contenido de este grupo..."
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-1 focus:ring-emerald-500 outline-none resize-y" />
+          </div>
+
+          <!-- Form mode for this group -->
+          <div v-else class="space-y-3">
+            <div class="grid grid-cols-[100px_1fr] gap-3">
+              <EmojiIconField v-model="group.icon" label="Icono" placeholder="🖥️" />
+              <FieldInput v-model="group.title" label="Título del grupo" />
+            </div>
+            <FieldTextarea v-model="group.description" label="Descripción" :rows="2" :isSingle="true" />
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
+              <draggable v-model="group.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+                <template #item="{ element: item, index: iIdx }">
+                  <div class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    <div class="flex items-center justify-between mb-1">
+                      <div class="flex items-center gap-2">
+                        <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
+                        <span class="text-[10px] text-gray-400">{{ iIdx + 1 }}</span>
+                      </div>
+                      <button type="button" class="text-[10px] text-red-500" @click="group.items.splice(iIdx, 1)">Eliminar</button>
+                    </div>
+                    <div class="grid grid-cols-[90px_1fr] gap-2 mb-1">
+                      <EmojiIconField v-model="item.icon" label="Icono" placeholder="🏠" />
+                      <FieldInput v-model="item.name" label="Nombre" />
+                    </div>
+                    <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
+                  </div>
+                </template>
+              </draggable>
+              <button type="button" class="text-xs text-emerald-600 font-medium" @click="group.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Modules: collapsible -->
+      <div class="mt-6">
+        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Módulos Adicionales</label>
+        <div v-for="(mod, mIdx) in form.additionalModules" :key="mIdx" class="mb-4 border border-gray-200 rounded-xl overflow-hidden">
+          <div class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+               @click="mod._collapsed = !mod._collapsed">
+            <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': !mod._collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+              <span>{{ mod.icon || '🧩' }}</span> {{ mod.title || 'Módulo adicional' }}
+            </h4>
+            <div class="flex flex-wrap items-center gap-2" @click.stop>
+              <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
+                :class="!mod._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
+                @click="onToggleGroupPaste(mod, false)">Formulario</button>
+              <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
+                :class="mod._pasteMode ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-500 border-gray-200'"
+                @click="onToggleGroupPaste(mod, true)">Pegar contenido</button>
+              <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                @click="openSubPreview(mod, mIdx, true)">
+                <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </button>
+              <button type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.additionalModules.splice(mIdx, 1)">Eliminar</button>
+            </div>
+          </div>
+          <div v-show="!mod._collapsed" class="p-4">
+            <div v-if="mod._pasteMode" class="space-y-3">
+              <p class="text-[11px] text-gray-500">Contenido Markdown para este módulo.</p>
+              <textarea v-model="mod._pasteText" rows="8" placeholder="Escribe o pega aquí el contenido de este módulo..."
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-1 focus:ring-emerald-500 outline-none resize-y" />
+            </div>
+            <div v-else class="space-y-3">
+              <div class="grid grid-cols-[100px_1fr] gap-3">
+                <EmojiIconField v-model="mod.icon" label="Icono" placeholder="🧩" />
+                <FieldInput v-model="mod.title" label="Título del módulo" />
+              </div>
+              <FieldTextarea v-model="mod.description" label="Descripción" :rows="2" :isSingle="true" />
+              <div>
+                <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
+                <draggable v-model="mod.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+                  <template #item="{ element: item, index: iIdx }">
+                    <div class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                      <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center gap-2">
+                          <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
+                          <span class="text-[10px] text-gray-400">{{ iIdx + 1 }}</span>
+                        </div>
+                        <button type="button" class="text-[10px] text-red-500" @click="mod.items.splice(iIdx, 1)">Eliminar</button>
+                      </div>
+                      <div class="grid grid-cols-[90px_1fr] gap-2 mb-1">
+                        <EmojiIconField v-model="item.icon" label="Icono" />
+                        <FieldInput v-model="item.name" label="Nombre" />
+                      </div>
+                      <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
+                    </div>
+                  </template>
+                </draggable>
+                <button type="button" class="text-xs text-emerald-600 font-medium" @click="mod.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+          @click="form.additionalModules.push({ icon: '🧩', title: '', description: '', items: [], _pasteMode: false, _pasteText: '', _collapsed: false })">
+          + Agregar módulo adicional
+        </button>
+      </div>
+    </template>
 
     <!-- Raw JSON toggle -->
     <div class="mt-6 border-t border-gray-100 pt-4">
