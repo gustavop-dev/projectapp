@@ -8,8 +8,7 @@
             {{ subIndex }}
           </span>
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-xl flex items-center justify-center"
-                 :class="groupBgColor">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-esmerald-light/60">
               <span class="text-2xl">{{ group.icon || '🧩' }}</span>
             </div>
             <h2 class="text-esmerald font-light leading-tight text-3xl md:text-5xl">
@@ -29,14 +28,14 @@
         <div v-if="group.items && group.items.length" data-animate="fade-up-stagger"
              class="requirements-grid grid md:grid-cols-2 gap-4">
           <div v-for="(item, idx) in group.items" :key="idx"
-               class="requirement-card bg-gray-50 p-5 rounded-xl hover:bg-emerald-50 transition-colors border border-gray-100 hover:border-emerald-200">
+               class="requirement-card bg-esmerald/5 p-5 rounded-xl hover:bg-esmerald-light/60 transition-colors border border-esmerald/10 hover:border-esmerald/20">
             <div class="flex items-start">
-              <div class="w-9 h-9 rounded-lg bg-white border border-gray-200 flex items-center justify-center mr-3 flex-shrink-0">
+              <div class="w-9 h-9 rounded-lg bg-esmerald-light/60 border border-esmerald/10 flex items-center justify-center mr-3 flex-shrink-0">
                 <span class="text-lg">{{ item.icon || '✅' }}</span>
               </div>
               <div>
-                <h4 class="font-bold text-gray-900 mb-1">{{ item.name }}</h4>
-                <p class="text-sm text-gray-600">{{ item.description }}</p>
+                <h4 class="font-bold text-esmerald mb-1">{{ item.name }}</h4>
+                <p class="text-sm text-esmerald/70 font-light">{{ item.description }}</p>
               </div>
             </div>
           </div>
@@ -70,15 +69,6 @@ const props = defineProps({
   },
 });
 
-const groupBgColor = computed(() => {
-  const id = props.group?.id;
-  if (id === 'views') return 'bg-blue-100';
-  if (id === 'components') return 'bg-purple-100';
-  if (id === 'features') return 'bg-green-100';
-  if (id === 'integrations_api') return 'bg-indigo-100';
-  if (id === 'admin_module') return 'bg-amber-100';
-  return 'bg-emerald-100';
-});
 </script>
 
 <style scoped>

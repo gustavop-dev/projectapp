@@ -1,5 +1,5 @@
 <template>
-  <div class="proposal-index fixed left-0 top-0 z-40">
+  <div class="proposal-index fixed left-0 top-0 z-50">
     <!-- Toggle button (always visible) -->
     <button
       class="index-toggle absolute left-4 top-4 z-50
@@ -20,21 +20,34 @@
     <Transition name="idx-fade">
       <div
         v-if="isOpen"
-        class="fixed inset-0 z-40 bg-white/60 backdrop-blur-[3px] sm:bg-white/60"
+        class="fixed inset-0 z-[9990] bg-white/60 backdrop-blur-[3px] sm:bg-white/60"
         @click="isOpen = false"
       />
     </Transition>
 
     <!-- Index panel: fullscreen on mobile, floating on desktop -->
     <nav
-      class="index-panel z-50 bg-white/95 backdrop-blur-md overflow-y-auto transition-all duration-300
-             fixed inset-0 py-16 px-4
+      class="index-panel z-[9999] bg-white/95 backdrop-blur-md overflow-y-auto transition-all duration-300
+             fixed inset-0 py-4 px-4
              sm:relative sm:inset-auto sm:ml-3 sm:py-4 sm:px-3 sm:mt-[50vh] sm:-translate-y-1/2
              sm:rounded-2xl sm:shadow-xl sm:border sm:border-gray-100
              sm:max-h-[80vh]"
       :class="isOpen ? '' : 'translate-x-[-120%]'"
     >
-      <p class="text-[10px] uppercase tracking-[0.2em] text-emerald-600 font-medium mb-2 px-2">
+      <!-- Mobile close button — same style/position as hamburger toggle -->
+      <button
+        class="sm:hidden absolute left-4 top-4 z-10
+               w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg
+               flex items-center justify-center text-emerald-600
+               hover:bg-emerald-50 transition-colors"
+        @click="isOpen = false"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <p class="text-[10px] uppercase tracking-[0.2em] text-emerald-600 font-medium mb-2 px-2 mt-14 sm:mt-0">
         Índice
       </p>
       <ul class="space-y-0.5">

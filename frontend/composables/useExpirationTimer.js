@@ -76,9 +76,6 @@ export function useExpirationTimer(expiresAt) {
     const days = Math.floor(totalHours / 24);
     const hours = totalHours % 24;
 
-    if (days > 0 && hours > 0) {
-      return `${days} día${days !== 1 ? 's' : ''}, ${hours} hora${hours !== 1 ? 's' : ''}`;
-    }
     if (days > 0) {
       return `${days} día${days !== 1 ? 's' : ''}`;
     }

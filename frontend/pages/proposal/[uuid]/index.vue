@@ -40,7 +40,34 @@
       <PdfDownloadButton />
 
       <!-- Onboarding tutorial tooltips -->
-      <ProposalOnboarding ref="onboardingRef" />
+      <ProposalOnboarding ref="onboardingRef" @complete="showReadingTimePopup" />
+
+      <!-- Reading time popup -->
+      <Teleport to="body">
+        <Transition name="fade-popup">
+          <div v-if="readingPopupVisible" class="fixed inset-0 z-[10000] flex items-center justify-center p-6">
+            <div class="absolute inset-0 bg-white/60 backdrop-blur-[3px]" />
+            <div class="relative bg-white rounded-3xl shadow-2xl border border-gray-100 p-6 sm:p-8 max-w-sm w-full text-center">
+              <div class="w-14 h-14 bg-esmerald rounded-2xl flex items-center justify-center mx-auto mb-5">
+                <svg class="w-7 h-7 text-lemon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 class="text-lg font-bold text-esmerald mb-2">Tiempo de lectura: ~7 minutos</h3>
+              <p class="text-sm text-esmerald/70 font-light leading-relaxed mb-6">
+                Por favor lee el contenido de todas las secciones. Cada una aborda un punto importante y diferente de la propuesta.
+              </p>
+              <button
+                class="w-full px-6 py-3 bg-esmerald text-lemon rounded-xl font-bold text-sm
+                       hover:bg-esmerald/90 transition-colors shadow-sm"
+                @click="readingPopupVisible = false"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
 
       <!-- Side navigation arrows (fixed, outside transition) -->
       <SectionNavButtons
@@ -194,6 +221,11 @@ const navBlinkNext = ref(false);
 const navBlinkPrev = ref(false);
 let blinkTimer = null;
 const onboardingRef = ref(null);
+const readingPopupVisible = ref(false);
+
+function showReadingTimePopup() {
+  readingPopupVisible.value = true;
+}
 
 // Current panel and neighbors
 const currentPanel = computed(() => displayPanels.value[currentIndex.value] || displayPanels.value[0]);
@@ -417,17 +449,25 @@ onBeforeUnmount(() => {
 }
 
 .panel-container :deep(.min-h-screen:not(.greeting-section)) {
-  padding-top: 40px;
+  padding-top: 48px;
 }
 
 .panel-container :deep(.greeting-section) {
   padding-top: 0;
 }
 
-/* On mobile, sections that scroll need less top padding since badge is inline */
+/* On mobile: scrollable sections get bottom padding so PDF/WhatsApp buttons
+   don't cover content. Greeting stays untouched. */
 @media (max-width: 639px) {
+  .panel-container :deep(.min-h-screen:not(.greeting-section)) {
+    padding-top: 48px;
+  }
   .panel-container :deep(section:not(.greeting-section):not(.min-h-screen)) {
-    padding-top: 40px;
+    padding-top: 80px;
+    padding-bottom: 100px;
+  }
+  .panel-container :deep(.greeting-section) {
+    padding-top: 0;
   }
 }
 
@@ -463,5 +503,16 @@ onBeforeUnmount(() => {
   to {
     opacity: 1;
   }
+}
+
+.fade-popup-enter-active {
+  transition: opacity 0.3s ease;
+}
+.fade-popup-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-popup-enter-from,
+.fade-popup-leave-to {
+  opacity: 0;
 }
 </style>
