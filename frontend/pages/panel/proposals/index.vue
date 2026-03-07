@@ -60,7 +60,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-50">
-          <tr v-for="(p, rowIdx) in proposals" :key="p.id" class="transition-colors" :class="p.is_active ? 'hover:bg-gray-50' : 'bg-gray-50 opacity-60'">
+          <tr v-for="(p, rowIdx) in proposals" :key="p.id" class="transition-colors cursor-pointer" :class="p.is_active ? 'hover:bg-gray-50' : 'bg-gray-50 opacity-60'" @click="navigateToProposal(p.id)">
             <td class="px-6 py-4">
               <NuxtLink
                 :to="`/panel/proposals/${p.id}/edit`"
@@ -172,6 +172,11 @@ function closeDropdown(e) {
   if (openDropdownId.value !== null) {
     openDropdownId.value = null;
   }
+}
+
+const router = useRouter();
+function navigateToProposal(id) {
+  router.push(`/panel/proposals/${id}/edit`);
 }
 
 onUnmounted(() => {

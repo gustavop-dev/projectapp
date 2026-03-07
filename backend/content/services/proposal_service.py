@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_SECTIONS = [
     {
         'section_type': 'greeting',
-        'title': '👋 Greeting',
+        'title': '👋 Saludo',
         'order': 0,
         'is_wide_panel': False,
         'content_json': {
@@ -482,12 +482,12 @@ DEFAULT_SECTIONS = [
     },
     {
         'section_type': 'next_steps',
-        'title': '✅ Cierre y próximos pasos',
+        'title': '✅ Próximos pasos',
         'order': 11,
         'is_wide_panel': False,
         'content_json': {
             'index': '11',
-            'title': 'Cierre y próximos pasos',
+            'title': 'Próximos pasos',
             'introMessage': (
                 'Estamos listos para comenzar este viaje juntos. '
                 'Aquí te explicamos cómo dar el siguiente paso:'

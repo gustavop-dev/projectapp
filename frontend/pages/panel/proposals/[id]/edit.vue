@@ -19,7 +19,7 @@
 
     <template v-else-if="proposal">
       <!-- Tabs -->
-      <div class="flex gap-1 mb-6 border-b border-gray-200 overflow-x-auto">
+      <div class="flex gap-1 mb-6 border-b border-gray-200 overflow-hidden">
         <button
           v-for="tab in tabs"
           :key="tab.id"

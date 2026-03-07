@@ -85,7 +85,7 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: 'Cierre y Próximos Pasos'
+    default: 'Próximos Pasos'
   },
   introMessage: {
     type: String,
