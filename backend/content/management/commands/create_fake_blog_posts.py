@@ -17,60 +17,70 @@ POSTS = [
         'title_en': 'GPT-5 and the Future of Generative AI',
         'excerpt_es': 'Exploramos los avances más significativos y su impacto en la industria tecnológica.',
         'excerpt_en': 'We explore the most significant advances and their impact on the tech industry.',
+        'cover_image_url': 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1200&q=80',
     },
     {
         'title_es': 'Google DeepMind revoluciona la predicción de proteínas',
         'title_en': 'Google DeepMind Revolutionizes Protein Prediction',
         'excerpt_es': 'Un análisis profundo de los últimos desarrollos y lo que significan para el futuro.',
         'excerpt_en': 'A deep analysis of the latest developments and what they mean for the future.',
+        'cover_image_url': 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=1200&q=80',
     },
     {
         'title_es': 'Meta lanza Llama 4: IA de código abierto más potente',
         'title_en': 'Meta Launches Llama 4: The Most Powerful Open-Source AI',
         'excerpt_es': 'Las nuevas capacidades prometen transformar múltiples sectores de la economía.',
         'excerpt_en': 'New capabilities promise to transform multiple sectors of the economy.',
+        'cover_image_url': 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1200&q=80',
     },
     {
         'title_es': 'Agentes de IA: La próxima frontera del desarrollo de software',
         'title_en': 'AI Agents: The Next Frontier in Software Development',
         'excerpt_es': '¿Qué implicaciones tiene este avance para desarrolladores y empresas?',
         'excerpt_en': 'What implications does this advance have for developers and businesses?',
+        'cover_image_url': 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&q=80',
     },
     {
         'title_es': 'Regulación de IA en 2025: ¿Qué nos espera?',
         'title_en': 'AI Regulation in 2025: What Lies Ahead?',
         'excerpt_es': 'Revisamos las tendencias más importantes y las oportunidades que presentan.',
         'excerpt_en': 'We review the most important trends and the opportunities they present.',
+        'cover_image_url': 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=1200&q=80',
     },
     {
         'title_es': 'Cómo la IA está transformando la educación en Latinoamérica',
         'title_en': 'How AI Is Transforming Education in Latin America',
         'excerpt_es': 'Un recorrido por las innovaciones que están redefiniendo lo posible.',
         'excerpt_en': 'A tour through the innovations that are redefining what is possible.',
+        'cover_image_url': 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&q=80',
     },
     {
         'title_es': 'Midjourney V7: La generación de imágenes alcanza un nuevo nivel',
         'title_en': 'Midjourney V7: Image Generation Reaches a New Level',
         'excerpt_es': 'Los expertos analizan el impacto a corto y largo plazo de estos cambios.',
         'excerpt_en': 'Experts analyze the short and long-term impact of these changes.',
+        'cover_image_url': 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=80',
     },
     {
         'title_es': 'Anthropic presenta Claude 4 con razonamiento extendido',
         'title_en': 'Anthropic Introduces Claude 4 with Extended Reasoning',
         'excerpt_es': 'Cómo estas tecnologías están democratizando el acceso a herramientas avanzadas.',
         'excerpt_en': 'How these technologies are democratizing access to advanced tools.',
+        'cover_image_url': 'https://images.unsplash.com/photo-1535378917042-10a22c95931a?w=1200&q=80',
     },
     {
         'title_es': 'El auge de los modelos de IA pequeños y eficientes',
         'title_en': 'The Rise of Small and Efficient AI Models',
         'excerpt_es': 'Todo lo que necesitas saber sobre los últimos avances en inteligencia artificial.',
         'excerpt_en': 'Everything you need to know about the latest advances in artificial intelligence.',
+        'cover_image_url': 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&q=80',
     },
     {
         'title_es': 'IA y ciberseguridad: Amenazas y defensas en 2025',
         'title_en': 'AI and Cybersecurity: Threats and Defenses in 2025',
         'excerpt_es': 'Un vistazo a las innovaciones que marcarán el rumbo de la tecnología.',
         'excerpt_en': 'A look at the innovations that will shape the direction of technology.',
+        'cover_image_url': 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=1200&q=80',
     },
 ]
 
@@ -214,7 +224,11 @@ SOURCES_POOL = [
     {'name': 'Wired', 'url': 'https://www.wired.com/tag/artificial-intelligence/'},
 ]
 
-CATEGORIES = ['technology', 'design', 'guides', 'business', 'case-study', 'ai', 'development']
+CATEGORIES = [
+    'technology', 'design', 'guides', 'business', 'case-study', 'ai', 'development',
+    'marketing', 'startup', 'productivity', 'security', 'cloud', 'data',
+    'no-code', 'trends', 'e-commerce', 'ux-ui',
+]
 
 CONTENT_JSON_TEMPLATES_ES = [
     {
@@ -401,6 +415,7 @@ class Command(BaseCommand):
                 content_en=content_en,
                 content_json_es=content_json_es,
                 content_json_en=content_json_en,
+                cover_image_url=post_data.get('cover_image_url', ''),
                 sources=sources,
                 category=category,
                 read_time_minutes=read_time_minutes,
