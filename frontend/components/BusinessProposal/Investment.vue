@@ -321,7 +321,9 @@ onMounted(() => {
             return !locked && !selectedIds.includes(m.id);
           })
           .reduce((sum, m) => sum + (m.price || 0), 0);
-        customTotal.value = base - deselectedSum;
+        if (deselectedSum > 0) {
+          customTotal.value = base - deselectedSum;
+        }
       }
     } catch (_e) { /* ignore */ }
   }

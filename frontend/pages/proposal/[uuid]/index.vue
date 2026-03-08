@@ -264,6 +264,15 @@ const configurableRequirementItems = computed(() => {
   return items;
 });
 
+function computeAllModuleIds() {
+  const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
+  if (!investmentSection) return [];
+  const content = investmentSection.content_json || {};
+  const investmentIds = (content.modules || []).map(m => m.id).filter(Boolean);
+  const frIds = configurableRequirementItems.value.map(item => item.id);
+  return [...investmentIds, ...frIds];
+}
+
 const prevPanelTitle = computed(() => {
   const prev = displayPanels.value[currentIndex.value - 1];
   return prev?.title || '';
@@ -465,10 +474,16 @@ function onTouchEnd(e) {
 // --- Lifecycle ---
 const onAnimationComplete = () => {
   if (loadError.value) return;
-  // Clear stale module selections so every load starts fresh (all selected)
+  // Clear stale module selections and pre-populate with "all selected" default
   try {
     const uuid = proposal.value?.uuid;
-    if (uuid) localStorage.removeItem(`proposal-${uuid}-modules`);
+    if (uuid) {
+      localStorage.removeItem(`proposal-${uuid}-modules`);
+      const allIds = computeAllModuleIds();
+      if (allIds.length) {
+        localStorage.setItem(`proposal-${uuid}-modules`, JSON.stringify(allIds));
+      }
+    }
   } catch (_e) { /* ignore */ }
   showContent.value = true;
   window.addEventListener('keydown', handleKeydown);
