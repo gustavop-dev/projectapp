@@ -248,7 +248,7 @@ const configurableRequirementItems = computed(() => {
   const items = [];
   for (const group of allGroups) {
     for (const item of (group.items || [])) {
-      if (item.price != null || item.removable) {
+      if (item.price != null || item.is_required === false) {
         items.push({
           id: `fr-${group.id || group.title}-${item.name}`.replace(/\s+/g, '-').toLowerCase(),
           name: `${item.name}`,
@@ -256,7 +256,6 @@ const configurableRequirementItems = computed(() => {
           price: item.price ?? 0,
           included: true,
           is_required: item.is_required !== false,
-          removable: !!item.removable,
           _source: 'functional_requirements',
         });
       }
@@ -466,6 +465,11 @@ function onTouchEnd(e) {
 // --- Lifecycle ---
 const onAnimationComplete = () => {
   if (loadError.value) return;
+  // Clear stale module selections so every load starts fresh (all selected)
+  try {
+    const uuid = proposal.value?.uuid;
+    if (uuid) localStorage.removeItem(`proposal-${uuid}-modules`);
+  } catch (_e) { /* ignore */ }
   showContent.value = true;
   window.addEventListener('keydown', handleKeydown);
   // Start onboarding tutorial after a short delay for elements to render

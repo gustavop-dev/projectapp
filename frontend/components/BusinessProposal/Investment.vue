@@ -304,7 +304,7 @@ onMounted(() => {
         const base = parseInvestment(props.totalInvestment);
         const deselectedSum = props.modules
           .filter(m => {
-            const locked = m.is_required !== false && !m.removable;
+            const locked = m.is_required !== false;
             return !locked && !selectedIds.includes(m.id);
           })
           .reduce((sum, m) => sum + (m.price || 0), 0);
@@ -318,7 +318,21 @@ onMounted(() => {
       setTimeout(() => { btnPulse.value = false; }, 4000);
     }, 1500);
     setTimeout(() => {
-      customizeBtnRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const el = customizeBtnRef.value;
+      if (!el) return;
+      const targetY = el.getBoundingClientRect().top + window.scrollY - window.innerHeight / 2;
+      const startY = window.scrollY;
+      const diff = targetY - startY;
+      const duration = 1500;
+      let startTime = null;
+      function step(ts) {
+        if (!startTime) startTime = ts;
+        const progress = Math.min((ts - startTime) / duration, 1);
+        const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+        window.scrollTo(0, startY + diff * ease);
+        if (progress < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
     }, 2000);
   }
 });

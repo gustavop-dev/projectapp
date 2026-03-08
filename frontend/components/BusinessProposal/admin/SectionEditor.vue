@@ -338,13 +338,9 @@
                   <input type="checkbox" v-model="mod.is_required" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                   <span class="text-xs text-gray-600">Obligatorio</span>
                 </label>
-                <label class="flex items-center gap-2">
-                  <input type="checkbox" v-model="mod.removable" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                  <span class="text-xs text-gray-600">Puede quitarse</span>
-                </label>
               </div>
             </div>
-            <button type="button" class="text-xs text-emerald-600 font-medium" @click="(form.modules = form.modules || []).push({ id: '', name: '', price: 0, included: true, is_required: true, removable: false })">+ Agregar módulo</button>
+            <button type="button" class="text-xs text-emerald-600 font-medium" @click="(form.modules = form.modules || []).push({ id: '', name: '', price: 0, included: true, is_required: true })">+ Agregar módulo</button>
           </div>
         </div>
 
@@ -577,15 +573,11 @@
                         <input type="checkbox" v-model="item.is_required" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                         <span class="text-[10px] text-gray-500">Obligatorio</span>
                       </label>
-                      <label class="flex items-center gap-1.5">
-                        <input type="checkbox" v-model="item.removable" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                        <span class="text-[10px] text-gray-500">Puede quitarse</span>
-                      </label>
                     </div>
                   </div>
                 </template>
               </draggable>
-              <button type="button" class="text-xs text-emerald-600 font-medium" @click="group.items.push({ icon: '', name: '', description: '', price: null, is_required: true, removable: false })">+ Agregar elemento</button>
+              <button type="button" class="text-xs text-emerald-600 font-medium" @click="group.items.push({ icon: '', name: '', description: '', price: null, is_required: true })">+ Agregar elemento</button>
             </div>
           </div>
         </div>
@@ -655,15 +647,11 @@
                           <input type="checkbox" v-model="item.is_required" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                           <span class="text-[10px] text-gray-500">Obligatorio</span>
                         </label>
-                        <label class="flex items-center gap-1.5">
-                          <input type="checkbox" v-model="item.removable" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                          <span class="text-[10px] text-gray-500">Puede quitarse</span>
-                        </label>
                       </div>
                     </div>
                   </template>
                 </draggable>
-                <button type="button" class="text-xs text-emerald-600 font-medium" @click="mod.items.push({ icon: '', name: '', description: '', price: null, is_required: true, removable: false })">+ Agregar elemento</button>
+                <button type="button" class="text-xs text-emerald-600 font-medium" @click="mod.items.push({ icon: '', name: '', description: '', price: null, is_required: true })">+ Agregar elemento</button>
               </div>
             </div>
           </div>

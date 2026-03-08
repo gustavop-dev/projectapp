@@ -863,7 +863,7 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
             grp_key = (_safe(grp, 'id') or _safe(grp, 'title') or '')
             grp_items = [
                 it for it in grp_items
-                if f'fr-{grp_key}-{_safe(it, "name") or ""}'.replace(' ', '-').lower()
+                if re.sub(r'\s+', '-', f'fr-{grp_key}-{_safe(it, "name") or ""}').lower()
                 in sel_ids
             ]
         if grp_items:
@@ -1161,13 +1161,16 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         selected_ids = ps.get('selected_modules') if ps else None
         display_total = total
         if selected_ids is not None:
-            # Recalculate: base - deselected module prices
-            import re as _re
-            base_num = int(_re.sub(r'[^\d]', '', str(total)) or '0')
+            # Recalculate: base - deselected (investment modules + FR items)
+            base_num = int(re.sub(r'[^\d]', '', str(total)) or '0')
             all_mods = _safe(data, 'modules', [])
+            fr_items = ps.get('_fr_items', []) if ps else []
             deselected_sum = sum(
                 _safe(m, 'price', 0) for m in all_mods
                 if _safe(m, 'id') not in selected_ids
+            ) + sum(
+                it.get('price', 0) for it in fr_items
+                if it.get('id') not in selected_ids
             )
             adjusted = base_num - deselected_sum
             display_total = f'${adjusted:,.0f}'
@@ -1736,6 +1739,23 @@ class ProposalPdfService:
                 'selected_modules': selected_modules,
             }
 
+            # Pre-collect FR configurable items for total calculation
+            _fr_items = []
+            if selected_modules is not None:
+                for _sec in sections:
+                    if _sec.section_type != 'functional_requirements':
+                        continue
+                    _cj = _sec.content_json or {}
+                    for _grp in list(_cj.get('groups') or []) + list(_cj.get('additionalModules') or []):
+                        _gkey = _safe(_grp, 'id') or _safe(_grp, 'title') or ''
+                        for _it in _safe(_grp, 'items', []):
+                            _iname = _safe(_it, 'name') or ''
+                            _fid = re.sub(r'\s+', '-', f'fr-{_gkey}-{_iname}').lower()
+                            _fprice = _safe(_it, 'price', 0)
+                            if _fprice or _safe(_it, 'is_required') is False:
+                                _fr_items.append({'id': _fid, 'price': _fprice})
+            ps['_fr_items'] = _fr_items
+
             # Start first page
             _draw_header_bar(c)
             y = PAGE_H - MARGIN_T
@@ -1811,7 +1831,7 @@ class ProposalPdfService:
                                 filtered = []
                                 for it in items:
                                     it_name = _safe(it, 'name') or ''
-                                    fr_id = f'fr-{grp_key}-{it_name}'.replace(' ', '-').lower()
+                                    fr_id = re.sub(r'\s+', '-', f'fr-{grp_key}-{it_name}').lower()
                                     if fr_id in sel_ids:
                                         filtered.append(it)
                                 items = filtered
