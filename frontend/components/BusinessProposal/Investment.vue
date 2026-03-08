@@ -71,7 +71,7 @@
       <div v-if="paymentOptions && paymentOptions.length" data-animate="fade-up" class="payment-options mb-12">
         <h3 class="text-2xl font-bold text-esmerald mb-6">{{ t.paymentOptions }}</h3>
         <div class="space-y-4">
-          <div v-for="(option, index) in paymentOptions" :key="index"
+          <div v-for="(option, index) in computedPaymentOptions" :key="index"
                class="payment-option-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4 p-4 sm:p-5 bg-esmerald/5 rounded-xl border-2 border-esmerald/10 hover:border-esmerald/30 transition-all">
             <span class="text-esmerald/80 font-medium text-sm sm:text-base">{{ option.label }}</span>
             <span class="font-bold text-esmerald text-base sm:text-lg">{{ option.description }}</span>
@@ -342,6 +342,29 @@ onMounted(() => {
 function onSelectionUpdate({ total }) {
   customTotal.value = total;
 }
+
+const computedPaymentOptions = computed(() => {
+  if (customTotal.value === null || !props.paymentOptions?.length) {
+    return props.paymentOptions;
+  }
+  const baseNum = parseInvestment(props.totalInvestment);
+  if (baseNum <= 0) return props.paymentOptions;
+  const ratio = customTotal.value / baseNum;
+
+  return props.paymentOptions.map(opt => {
+    const descNum = parseInvestment(opt.description);
+    if (descNum <= 0) return opt;
+    const newAmount = Math.round(descNum * ratio);
+    const newDesc = opt.description.replace(
+      /[\$]?[\d.,]+/,
+      formatCurrency(newAmount).replace('$', '')
+    );
+    return {
+      ...opt,
+      description: newDesc.startsWith('$') ? newDesc : '$' + newDesc,
+    };
+  });
+});
 
 const { daysRemaining, urgencyLevel } = useExpirationTimer(toRef(props, 'expiresAt'));
 
