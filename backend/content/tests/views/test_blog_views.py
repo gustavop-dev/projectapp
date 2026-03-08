@@ -15,17 +15,18 @@ class TestPublicBlogListView:
     def test_returns_200_with_published_posts(self, api_client, blog_post):
         response = api_client.get(reverse('list-blog-posts'))
         assert response.status_code == 200
-        assert len(response.data) == 1
+        assert len(response.data['results']) == 1
+        assert response.data['count'] == 1
 
     def test_excludes_draft_posts(self, api_client, draft_blog_post):
         response = api_client.get(reverse('list-blog-posts'))
         assert response.status_code == 200
-        assert len(response.data) == 0
+        assert len(response.data['results']) == 0
 
     def test_returns_empty_list_when_no_posts(self, api_client):
         response = api_client.get(reverse('list-blog-posts'))
         assert response.status_code == 200
-        assert response.data == []
+        assert response.data['results'] == []
 
     def test_accepts_lang_query_param(self, api_client, blog_post):
         response = api_client.get(reverse('list-blog-posts'), {'lang': 'en'})
@@ -174,7 +175,7 @@ class TestPublicBlogNewFields:
     def test_list_includes_category_and_read_time(self, api_client, blog_post_with_json):
         response = api_client.get(reverse('list-blog-posts'))
         assert response.status_code == 200
-        post = response.data[0]
+        post = response.data['results'][0]
         assert post['category'] == 'technology'
         assert post['read_time_minutes'] == 8
         assert post['is_featured'] is True

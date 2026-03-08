@@ -16,6 +16,7 @@ export const useBlogStore = defineStore('blog', {
     posts: [],
     currentPost: null,
     availableCategories: [],
+    pagination: { count: 0, page: 1, pageSize: 6, totalPages: 1 },
     isLoading: false,
     isUpdating: false,
     error: null,
@@ -64,12 +65,19 @@ export const useBlogStore = defineStore('blog', {
      * fetchPosts: List all published blog posts.
      * @param {string} lang - Language code ('es' or 'en').
      */
-    async fetchPosts(lang = 'es') {
+    async fetchPosts(lang = 'es', page = 1, pageSize = 6) {
       this.isLoading = true;
       this.error = null;
       try {
-        const response = await get_request(`blog/?lang=${lang}`);
-        this.posts = response.data;
+        const response = await get_request(`blog/?lang=${lang}&page=${page}&page_size=${pageSize}`);
+        const data = response.data;
+        this.posts = data.results || data;
+        this.pagination = {
+          count: data.count || this.posts.length,
+          page: data.page || 1,
+          pageSize: data.page_size || pageSize,
+          totalPages: data.total_pages || 1,
+        };
         return { success: true };
       } catch (error) {
         this.error = 'fetch_failed';

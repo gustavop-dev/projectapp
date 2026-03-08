@@ -31,14 +31,39 @@ logger = logging.getLogger(__name__)
 @permission_classes([AllowAny])
 def list_blog_posts(request):
     """
-    List all published blog posts, ordered by published_at descending.
-    Accepts ?lang=es|en query param (default 'es').
+    List published blog posts with pagination.
+    Accepts ?lang=es|en, ?page=1, ?page_size=6 query params.
+    Returns {results, count, page, page_size, total_pages}.
     """
     qs = BlogPost.objects.filter(is_published=True)
+
+    try:
+        page = max(1, int(request.query_params.get('page', 1)))
+    except (ValueError, TypeError):
+        page = 1
+    try:
+        page_size = min(50, max(1, int(request.query_params.get('page_size', 6))))
+    except (ValueError, TypeError):
+        page_size = 6
+
+    total = qs.count()
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    page = min(page, total_pages)
+
+    start = (page - 1) * page_size
+    end = start + page_size
+    page_qs = qs[start:end]
+
     serializer = BlogPostListSerializer(
-        qs, many=True, context={'request': request}
+        page_qs, many=True, context={'request': request}
     )
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response({
+        'results': serializer.data,
+        'count': total,
+        'page': page,
+        'page_size': page_size,
+        'total_pages': total_pages,
+    }, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])

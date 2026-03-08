@@ -267,6 +267,37 @@
               {{ isEnglish ? 'Clear filters' : 'Limpiar filtros' }}
             </button>
           </div>
+
+          <!-- Pagination -->
+          <div v-if="totalPages > 1 && !searchQuery && !selectedCategory" class="flex items-center justify-center gap-2 pb-20 pt-4">
+            <button
+              :disabled="currentPage <= 1"
+              class="px-4 py-2.5 rounded-full border-2 text-sm transition-all hover:scale-105 disabled:opacity-30 disabled:hover:scale-100"
+              :class="currentPage <= 1 ? 'border-gray-200 text-gray-400' : 'border-gray-200 text-esmerald hover:border-esmerald/40'"
+              @click="goToPage(currentPage - 1)"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <button
+              v-for="p in paginationRange"
+              :key="p"
+              class="w-10 h-10 rounded-full text-sm font-medium transition-all hover:scale-105 border-2"
+              :class="p === currentPage
+                ? 'bg-esmerald text-white border-esmerald'
+                : 'bg-white text-green-light border-gray-200 hover:border-esmerald/40'"
+              @click="goToPage(p)"
+            >
+              {{ p }}
+            </button>
+            <button
+              :disabled="currentPage >= totalPages"
+              class="px-4 py-2.5 rounded-full border-2 text-sm transition-all hover:scale-105 disabled:opacity-30 disabled:hover:scale-100"
+              :class="currentPage >= totalPages ? 'border-gray-200 text-gray-400' : 'border-gray-200 text-esmerald hover:border-esmerald/40'"
+              @click="goToPage(currentPage + 1)"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            </button>
+          </div>
         </template>
       </div>
     </main>
@@ -376,6 +407,25 @@ function formatCategory(cat) {
   const labels = CATEGORY_LABELS[cat];
   if (labels) return isEnglish.value ? labels.en : labels.es;
   return cat;
+}
+
+const currentPage = computed(() => blogStore.pagination.page);
+const totalPages = computed(() => blogStore.pagination.totalPages);
+
+const paginationRange = computed(() => {
+  const total = totalPages.value;
+  const current = currentPage.value;
+  const pages = [];
+  const start = Math.max(1, current - 2);
+  const end = Math.min(total, current + 2);
+  for (let i = start; i <= end; i++) pages.push(i);
+  return pages;
+});
+
+function goToPage(page) {
+  if (page < 1 || page > totalPages.value) return;
+  blogStore.fetchPosts(blogLang.value, page, 6);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 const heroSection = ref(null);
