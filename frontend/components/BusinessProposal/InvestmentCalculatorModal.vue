@@ -51,6 +51,7 @@
                       {{ mod.name }}
                     </span>
                     <span v-if="mod._locked" class="ml-2 text-[10px] text-esmerald/50 font-medium uppercase">{{ t.required }}</span>
+                    <div v-if="mod.groupTitle" class="text-[10px] text-gray-400 mt-0.5">{{ mod.groupTitle }}</div>
                   </div>
                 </div>
                 <span class="font-bold text-sm" :class="mod.selected ? 'text-esmerald' : 'text-gray-400'">

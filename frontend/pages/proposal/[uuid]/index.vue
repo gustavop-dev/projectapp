@@ -237,6 +237,32 @@ const extractedWhatsappLink = computed(() => {
   return '';
 });
 
+const configurableRequirementItems = computed(() => {
+  const frSection = enabledSections.value.find(s => s.section_type === 'functional_requirements');
+  if (!frSection) return [];
+  const cj = frSection.content_json || {};
+  const allGroups = [...(cj.groups || []), ...(cj.additionalModules || [])];
+  const items = [];
+  for (const group of allGroups) {
+    for (const item of (group.items || [])) {
+      if (item.price != null || item.removable) {
+        items.push({
+          id: `fr-${group.id || group.title}-${item.name}`.replace(/\s+/g, '-').toLowerCase(),
+          name: `${item.name}`,
+          groupTitle: group.title,
+          price: item.price ?? 0,
+          included: true,
+          show_price: !!item.show_price,
+          is_required: item.is_required !== false,
+          removable: !!item.removable,
+          _source: 'functional_requirements',
+        });
+      }
+    }
+  }
+  return items;
+});
+
 const prevPanelTitle = computed(() => {
   const prev = displayPanels.value[currentIndex.value - 1];
   return prev?.title || '';
@@ -314,13 +340,15 @@ function getSectionProps(section) {
 
   // For investment: inject discount data from proposal
   if (section.section_type === 'investment') {
+    const investmentModules = (content.modules || []).map(m => ({ ...m, _source: 'investment' }));
+    const allCalculatorItems = [...investmentModules, ...configurableRequirementItems.value];
     return {
       ...content,
       language: proposal.value?.language || 'es',
       discountPercent: proposal.value?.discount_percent || 0,
       discountedInvestment: proposal.value?.discounted_investment || '',
       expiresAt: proposal.value?.expires_at || '',
-      modules: content.modules || [],
+      modules: allCalculatorItems,
       proposalUuid: proposal.value?.uuid || '',
     };
   }

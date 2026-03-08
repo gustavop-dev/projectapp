@@ -578,10 +578,24 @@
                       <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
                       <FieldInput v-model.number="item.price" label="Precio" type="number" placeholder="0" />
                     </div>
+                    <div class="grid grid-cols-3 gap-x-3 gap-y-1 mt-2">
+                      <label class="flex items-center gap-1.5">
+                        <input type="checkbox" v-model="item.show_price" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                        <span class="text-[10px] text-gray-500">Mostrar precio</span>
+                      </label>
+                      <label class="flex items-center gap-1.5">
+                        <input type="checkbox" v-model="item.is_required" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                        <span class="text-[10px] text-gray-500">Obligatorio</span>
+                      </label>
+                      <label class="flex items-center gap-1.5">
+                        <input type="checkbox" v-model="item.removable" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                        <span class="text-[10px] text-gray-500">Puede quitarse</span>
+                      </label>
+                    </div>
                   </div>
                 </template>
               </draggable>
-              <button type="button" class="text-xs text-emerald-600 font-medium" @click="group.items.push({ icon: '', name: '', description: '', price: null })">+ Agregar elemento</button>
+              <button type="button" class="text-xs text-emerald-600 font-medium" @click="group.items.push({ icon: '', name: '', description: '', price: null, show_price: false, is_required: true, removable: false })">+ Agregar elemento</button>
             </div>
           </div>
         </div>
@@ -645,10 +659,24 @@
                         <FieldInput v-model="item.name" label="Nombre" />
                       </div>
                       <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
+                      <div class="grid grid-cols-3 gap-x-3 gap-y-1 mt-2">
+                        <label class="flex items-center gap-1.5">
+                          <input type="checkbox" v-model="item.show_price" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                          <span class="text-[10px] text-gray-500">Mostrar precio</span>
+                        </label>
+                        <label class="flex items-center gap-1.5">
+                          <input type="checkbox" v-model="item.is_required" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                          <span class="text-[10px] text-gray-500">Obligatorio</span>
+                        </label>
+                        <label class="flex items-center gap-1.5">
+                          <input type="checkbox" v-model="item.removable" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                          <span class="text-[10px] text-gray-500">Puede quitarse</span>
+                        </label>
+                      </div>
                     </div>
                   </template>
                 </draggable>
-                <button type="button" class="text-xs text-emerald-600 font-medium" @click="mod.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
+                <button type="button" class="text-xs text-emerald-600 font-medium" @click="mod.items.push({ icon: '', name: '', description: '', price: null, show_price: false, is_required: true, removable: false })">+ Agregar elemento</button>
               </div>
             </div>
           </div>

@@ -54,12 +54,12 @@ export function buildFormFromJson(json, type, proposalData) {
         groups: (j.groups || []).map(g => ({
           id: g.id || '', icon: g.icon || '', title: g.title || '',
           description: g.description || '',
-          items: (g.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '', price: i.price ?? null })),
+          items: (g.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '', price: i.price ?? null, show_price: !!i.show_price, is_required: i.is_required !== false, removable: !!i.removable })),
           _pasteMode: g._editMode === 'paste', _pasteText: g.rawText || '', _collapsed: true,
         })),
         additionalModules: (j.additionalModules || []).map(m => ({
           icon: m.icon || '', title: m.title || '', description: m.description || '',
-          items: (m.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '', price: i.price ?? null })),
+          items: (m.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '', price: i.price ?? null, show_price: !!i.show_price, is_required: i.is_required !== false, removable: !!i.removable })),
           _pasteMode: m._editMode === 'paste', _pasteText: m.rawText || '', _collapsed: true,
         })),
       };
@@ -119,7 +119,7 @@ export function formToJson(formData, type) {
       const cleanGroup = (g) => {
         const out = {
           id: g.id, icon: g.icon, title: g.title, description: g.description,
-          items: (g.items || []).map(i => ({ icon: i.icon, name: i.name, description: i.description, ...(i.price != null ? { price: i.price } : {}) })),
+          items: (g.items || []).map(i => ({ icon: i.icon, name: i.name, description: i.description, ...(i.price != null ? { price: i.price } : {}), show_price: !!i.show_price, is_required: i.is_required !== false, removable: !!i.removable })),
         };
         if (g._pasteMode) {
           out._editMode = 'paste';
