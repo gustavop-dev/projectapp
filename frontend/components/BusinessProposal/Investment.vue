@@ -171,6 +171,7 @@
       :currency="currency"
       :proposalUuid="proposalUuid"
       :language="language"
+      :totalInvestment="totalInvestment"
       @close="calculatorOpen = false"
       @update:selection="onSelectionUpdate"
     />
@@ -288,19 +289,26 @@ const props = defineProps({
   }
 });
 
+function parseInvestment(str) {
+  if (!str) return 0;
+  const cleaned = String(str).replace(/[^\d]/g, '');
+  return parseInt(cleaned, 10) || 0;
+}
+
 onMounted(() => {
   if (props.proposalUuid && props.modules?.length) {
     try {
       const raw = localStorage.getItem(`proposal-${props.proposalUuid}-modules`);
       if (raw) {
         const selectedIds = JSON.parse(raw);
-        const total = props.modules
+        const base = parseInvestment(props.totalInvestment);
+        const deselectedSum = props.modules
           .filter(m => {
             const locked = m.is_required !== false && !m.removable;
-            return locked || selectedIds.includes(m.id);
+            return !locked && !selectedIds.includes(m.id);
           })
           .reduce((sum, m) => sum + (m.price || 0), 0);
-        customTotal.value = total;
+        customTotal.value = base - deselectedSum;
       }
     } catch (_e) { /* ignore */ }
   }

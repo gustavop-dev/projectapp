@@ -96,7 +96,14 @@ const props = defineProps({
   currency: { type: String, default: 'COP' },
   proposalUuid: { type: String, default: '' },
   language: { type: String, default: 'es' },
+  totalInvestment: { type: String, default: '' },
 });
+
+function parseInvestment(str) {
+  if (!str) return 0;
+  const cleaned = String(str).replace(/[^\d]/g, '');
+  return parseInt(cleaned, 10) || 0;
+}
 
 const emit = defineEmits(['close', 'update:selection']);
 
@@ -147,9 +154,14 @@ watch(() => props.visible, (val) => {
 
 const selectedCount = computed(() => localModules.value.filter(m => m.selected).length);
 
-const dynamicTotal = computed(() =>
-  localModules.value.filter(m => m.selected).reduce((sum, m) => sum + (m.price || 0), 0)
-);
+const baseTotalInvestment = computed(() => parseInvestment(props.totalInvestment));
+
+const dynamicTotal = computed(() => {
+  const deselectedSum = localModules.value
+    .filter(m => !m.selected)
+    .reduce((sum, m) => sum + (m.price || 0), 0);
+  return baseTotalInvestment.value - deselectedSum;
+});
 
 function formatPrice(value) {
   if (!value && value !== 0) return '';
