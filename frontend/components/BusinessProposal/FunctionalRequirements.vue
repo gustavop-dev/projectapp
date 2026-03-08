@@ -20,20 +20,23 @@
         <!-- Overview: clickable group cards that open detail modal -->
         <div v-if="allGroups.length" data-animate="fade-up-stagger" class="overview-grid grid md:grid-cols-2 gap-6">
           <div v-for="group in allGroups" :key="group.id || group.title"
-               class="overview-card bg-esmerald/5 p-6 rounded-2xl border border-esmerald/10 cursor-pointer"
+               class="overview-card group bg-esmerald/5 p-6 rounded-2xl border-2 border-esmerald/10 cursor-pointer hover:border-esmerald/30"
                @click="openModal(group)">
             <div class="flex items-center gap-3 mb-3">
-              <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-esmerald-light/60">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-esmerald-light/60 group-hover:scale-110 transition-transform">
                 <span class="text-xl">{{ group.icon || '🧩' }}</span>
               </div>
               <h3 class="text-lg font-medium text-esmerald">{{ group.title }}</h3>
-              <span v-if="group.items?.length" class="ml-auto text-xs font-medium text-esmerald/60 bg-esmerald/10 px-2 py-0.5 rounded-full">
+              <span v-if="group.items?.length" class="ml-auto badge-count text-xs font-bold text-white bg-esmerald/70 px-2.5 py-1 rounded-full group-hover:bg-esmerald group-hover:scale-110 transition-all">
                 {{ group.items.length }}
               </span>
             </div>
             <p class="text-sm text-esmerald/70 font-light leading-relaxed mb-3">{{ group.description }}</p>
-            <span class="text-xs font-medium text-green-light hover:text-esmerald transition-colors">
-              Ver detalle →
+            <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-light group-hover:text-esmerald transition-colors">
+              {{ t.viewDetail }}
+              <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
             </span>
           </div>
         </div>
@@ -66,8 +69,18 @@ const props = defineProps({
       groups: [],
       additionalModules: [],
     })
-  }
+  },
+  language: {
+    type: String,
+    default: 'es',
+  },
 });
+
+const i18n = {
+  es: { viewDetail: 'Ver detalle' },
+  en: { viewDetail: 'View details' },
+};
+const t = computed(() => i18n[props.language] || i18n.es);
 
 const data = props.data;
 
@@ -92,8 +105,16 @@ function openModal(group) {
 }
 
 .overview-card:hover {
-  border-color: #d1d5db;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.12);
+}
+
+.badge-count {
+  animation: badge-pulse 2s ease-in-out 0.5s 2;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
 }
 </style>

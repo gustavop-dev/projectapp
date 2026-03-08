@@ -308,6 +308,7 @@ function getSectionProps(section) {
         groups,
         additionalModules: content.additionalModules || [],
       },
+      language: proposal.value?.language || 'es',
     };
   }
 

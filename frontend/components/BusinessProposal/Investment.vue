@@ -86,9 +86,14 @@
         </div>
         <p v-if="hostingPlan.description" class="text-esmerald/70 font-light leading-relaxed mb-6 pl-0 sm:pl-16">{{ hostingPlan.description }}</p>
 
-        <div v-if="hostingPlan.coverageNote" class="mb-6 pl-0 sm:pl-16">
-          <div class="bg-esmerald/5 border border-esmerald/10 rounded-xl p-5">
-            <p class="text-sm text-esmerald/70 leading-relaxed">{{ hostingPlan.coverageNote }}</p>
+        <div class="mb-6 pl-0 sm:pl-16">
+          <div class="grid sm:grid-cols-3 gap-4">
+            <div v-for="(card, cIdx) in t.coverageCards" :key="cIdx"
+                 class="bg-esmerald/5 border border-esmerald/10 rounded-xl p-5 text-center">
+              <div class="text-3xl mb-3">{{ card.icon }}</div>
+              <div class="font-bold text-esmerald text-sm mb-1">{{ card.title }}</div>
+              <p class="text-xs text-esmerald/60 leading-relaxed">{{ card.description }}</p>
+            </div>
           </div>
         </div>
 
@@ -213,7 +218,7 @@ const props = defineProps({
     default: () => [
       { icon: '🎨', title: 'Diseño', description: 'UX/UI enfocado en conversión' },
       { icon: '⚙️', title: 'Desarrollo', description: 'Implementación completa del proyecto' },
-      { icon: '☁️', title: 'Hosting', description: 'Plan Cloud 1 disponible' }
+      { icon: '📦', title: 'Entrega y despliegue', description: 'Despliegue en producción y puesta en marcha' }
     ]
   },
   paymentOptions: {
@@ -286,7 +291,10 @@ onMounted(() => {
       if (raw) {
         const selectedIds = JSON.parse(raw);
         const total = props.modules
-          .filter(m => selectedIds.includes(m.id))
+          .filter(m => {
+            const locked = m.is_required !== false && !m.removable;
+            return locked || selectedIds.includes(m.id);
+          })
           .reduce((sum, m) => sum + (m.price || 0), 0);
         customTotal.value = total;
       }
@@ -315,6 +323,11 @@ const i18n = {
     viewTechSpecs: 'Ver especificaciones técnicas',
     customizeBtn: 'Personalizar tu inversión',
     customized: 'Precio personalizado según tu selección',
+    coverageCards: [
+      { icon: '🔧', title: 'Mantenimiento técnico', description: 'Actualizaciones de seguridad, parches y optimización de base de datos' },
+      { icon: '🛟', title: 'Soporte ante incidencias', description: 'Resolución de bugs y asistencia técnica continua' },
+      { icon: '☁️', title: 'Recursos computacionales', description: 'Servidor, almacenamiento, ancho de banda y certificados SSL' },
+    ],
   },
   en: {
     totalInvestment: 'Total Investment',
@@ -330,6 +343,11 @@ const i18n = {
     viewTechSpecs: 'View technical specs',
     customizeBtn: 'Customize your investment',
     customized: 'Custom price based on your selection',
+    coverageCards: [
+      { icon: '🔧', title: 'Technical Maintenance', description: 'Security updates, patches, and database optimization' },
+      { icon: '🛟', title: 'Incident Support', description: 'Bug resolution and ongoing technical assistance' },
+      { icon: '☁️', title: 'Computing Resources', description: 'Server, storage, bandwidth, and SSL certificates' },
+    ],
   },
 };
 

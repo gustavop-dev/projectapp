@@ -79,7 +79,7 @@ export function buildFormFromJson(json, type, proposalData) {
           annualPrice: hp.annualPrice || '', annualLabel: hp.annualLabel || '',
           renewalNote: hp.renewalNote || '', coverageNote: hp.coverageNote || '',
         },
-        modules: (j.modules || []).map(m => ({ id: m.id || '', name: m.name || '', price: m.price ?? 0, included: m.included !== false })),
+        modules: (j.modules || []).map(m => ({ id: m.id || '', name: m.name || '', price: m.price ?? 0, included: m.included !== false, show_price: !!m.show_price, is_required: m.is_required !== false, removable: !!m.removable })),
         paymentMethods: arrToText(j.paymentMethods), valueReasons: arrToText(j.valueReasons),
       };
     }
@@ -150,7 +150,7 @@ export function formToJson(formData, type) {
           annualPrice: hp.annualPrice, annualLabel: hp.annualLabel,
           renewalNote: hp.renewalNote || '', coverageNote: hp.coverageNote || '',
         },
-        modules: (f.modules || []).map(m => ({ id: m.id, name: m.name, price: m.price ?? 0, included: m.included !== false })),
+        modules: (f.modules || []).map(m => ({ id: m.id, name: m.name, price: m.price ?? 0, included: m.included !== false, show_price: !!m.show_price, is_required: m.is_required !== false, removable: !!m.removable })),
         paymentMethods: textToArr(f.paymentMethods), valueReasons: textToArr(f.valueReasons),
       };
     }

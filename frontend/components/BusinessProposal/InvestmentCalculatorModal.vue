@@ -26,11 +26,14 @@
               <div
                 v-for="mod in localModules"
                 :key="mod.id"
-                class="flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer"
-                :class="mod.selected
-                  ? 'bg-esmerald/5 border-esmerald/20 hover:border-esmerald/40'
-                  : 'bg-gray-50 border-gray-200 hover:border-gray-300'"
-                @click="mod.selected = !mod.selected"
+                class="flex items-center justify-between p-4 rounded-xl border transition-all"
+                :class="[
+                  mod.selected
+                    ? 'bg-esmerald/5 border-esmerald/20'
+                    : 'bg-gray-50 border-gray-200',
+                  mod._locked ? 'opacity-80' : 'cursor-pointer hover:border-esmerald/40'
+                ]"
+                @click="toggleModule(mod)"
               >
                 <div class="flex items-center gap-3">
                   <div
@@ -43,12 +46,15 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <span class="font-medium" :class="mod.selected ? 'text-esmerald' : 'text-gray-500'">
-                    {{ mod.name }}
-                  </span>
+                  <div>
+                    <span class="font-medium" :class="mod.selected ? 'text-esmerald' : 'text-gray-500'">
+                      {{ mod.name }}
+                    </span>
+                    <span v-if="mod._locked" class="ml-2 text-[10px] text-esmerald/50 font-medium uppercase">{{ t.required }}</span>
+                  </div>
                 </div>
                 <span class="font-bold text-sm" :class="mod.selected ? 'text-esmerald' : 'text-gray-400'">
-                  {{ formatPrice(mod.price) }}
+                  {{ mod._showPrice ? formatPrice(mod.price) : t.included }}
                 </span>
               </div>
             </div>
@@ -100,6 +106,8 @@ const i18n = {
     selectedModules: 'Módulos seleccionados:',
     estimatedTotal: 'Total estimado',
     confirm: 'Confirmar selección',
+    included: 'Incluido',
+    required: 'obligatorio',
   },
   en: {
     title: 'Customize your investment',
@@ -107,6 +115,8 @@ const i18n = {
     selectedModules: 'Selected modules:',
     estimatedTotal: 'Estimated total',
     confirm: 'Confirm selection',
+    included: 'Included',
+    required: 'required',
   },
 };
 
@@ -123,10 +133,15 @@ watch(() => props.visible, (val) => {
       if (raw) saved = JSON.parse(raw);
     } catch (_e) { /* ignore */ }
 
-    localModules.value = props.modules.map(m => ({
-      ...m,
-      selected: saved ? saved.includes(m.id) : m.included !== false,
-    }));
+    localModules.value = props.modules.map(m => {
+      const locked = m.is_required !== false && !m.removable;
+      return {
+        ...m,
+        selected: locked ? true : (saved ? saved.includes(m.id) : m.included !== false),
+        _locked: locked,
+        _showPrice: !!m.show_price,
+      };
+    });
   }
 }, { immediate: true });
 
@@ -139,6 +154,11 @@ const dynamicTotal = computed(() =>
 function formatPrice(value) {
   if (!value && value !== 0) return '';
   return '$' + Number(value).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function toggleModule(mod) {
+  if (mod._locked) return;
+  mod.selected = !mod.selected;
 }
 
 function confirmSelection() {

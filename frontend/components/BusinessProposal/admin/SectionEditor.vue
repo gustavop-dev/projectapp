@@ -329,12 +329,26 @@
                 <FieldInput v-model="mod.name" label="Nombre" placeholder="Sitio Web Principal" />
                 <FieldInput v-model.number="mod.price" label="Precio" type="number" placeholder="0" />
               </div>
-              <label class="flex items-center gap-2 mt-1">
-                <input type="checkbox" v-model="mod.included" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                <span class="text-xs text-gray-600">Incluido por defecto</span>
-              </label>
+              <div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2">
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" v-model="mod.included" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span class="text-xs text-gray-600">Incluido por defecto</span>
+                </label>
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" v-model="mod.show_price" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span class="text-xs text-gray-600">Mostrar precio al cliente</span>
+                </label>
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" v-model="mod.is_required" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span class="text-xs text-gray-600">Obligatorio (no se puede quitar)</span>
+                </label>
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" v-model="mod.removable" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span class="text-xs text-gray-600">El cliente puede agregarlo/quitarlo</span>
+                </label>
+              </div>
             </div>
-            <button type="button" class="text-xs text-emerald-600 font-medium" @click="(form.modules = form.modules || []).push({ id: '', name: '', price: 0, included: true })">+ Agregar módulo</button>
+            <button type="button" class="text-xs text-emerald-600 font-medium" @click="(form.modules = form.modules || []).push({ id: '', name: '', price: 0, included: true, show_price: false, is_required: true, removable: false })">+ Agregar módulo</button>
           </div>
         </div>
 
