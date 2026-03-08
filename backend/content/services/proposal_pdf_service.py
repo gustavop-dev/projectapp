@@ -833,6 +833,7 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
         })
 
     # Overview cards (2-column grid)
+    sel_ids = ps.get('selected_modules') if ps else None
     col_w = (CONTENT_W - 16) / 2
     chars = int(col_w / 5.0)
     last_card_bottom = y
@@ -856,8 +857,15 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
         c.setFillColor(ESMERALD)
         c.drawString(card_x + 10, card_y - 10, grp_title)
 
-        # Item count pill
+        # Item count pill (filtered if selected_modules active)
         grp_items = _safe(grp, 'items', [])
+        if sel_ids is not None and grp_items:
+            grp_key = (_safe(grp, 'id') or _safe(grp, 'title') or '')
+            grp_items = [
+                it for it in grp_items
+                if f'fr-{grp_key}-{_safe(it, "name") or ""}'.replace(' ', '-').lower()
+                in sel_ids
+            ]
         if grp_items:
             tw = c.stringWidth(grp_title, _font('bold'), 10)
             _draw_pill(c, card_x + 10 + tw + 6, card_y - 10,
@@ -1150,6 +1158,19 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
 
     # ── Compact Inversión Total ──────────────────────────────────
     if total:
+        selected_ids = ps.get('selected_modules') if ps else None
+        display_total = total
+        if selected_ids is not None:
+            # Recalculate: base - deselected module prices
+            import re as _re
+            base_num = int(_re.sub(r'[^\d]', '', str(total)) or '0')
+            all_mods = _safe(data, 'modules', [])
+            deselected_sum = sum(
+                _safe(m, 'price', 0) for m in all_mods
+                if _safe(m, 'id') not in selected_ids
+            )
+            adjusted = base_num - deselected_sum
+            display_total = f'${adjusted:,.0f}'
         if ps:
             y = _check_y(c, y, ps, need=28)
         box_h = 24
@@ -1159,7 +1180,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         c.roundRect(MARGIN_L, box_y, box_w, box_h, 5, fill=1, stroke=0)
         c.setFont(_font('bold'), 11)
         c.setFillColor(WHITE)
-        label = f'Inversi\u00f3n Total: {total}'
+        label = f'Inversi\u00f3n Total: {display_total}'
         if currency:
             label = f'{label}  {currency}'
         c.drawCentredString(MARGIN_L + box_w / 2, box_y + 7, label)
@@ -1168,7 +1189,12 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
     # ── Interactive Modules (if present) ──────────────────────────
     modules = _safe(data, 'modules', [])
     selected_ids = ps.get('selected_modules') if ps else None
-    if modules:
+    # Only show selected modules (or all if no filter)
+    visible_modules = [
+        mod for mod in modules
+        if selected_ids is None or _safe(mod, 'id') in (selected_ids or [])
+    ]
+    if visible_modules:
         y -= 14
         if ps:
             y = _check_y(c, y, ps, need=60)
@@ -1176,47 +1202,21 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         c.setFillColor(ESMERALD)
         c.drawString(MARGIN_L, y, 'Módulos del Proyecto')
         y -= 18
-        for mod in modules:
-            mod_id = _safe(mod, 'id')
+        for mod in visible_modules:
             mod_name = _strip_emoji(_safe(mod, 'name'))
             mod_price = _safe(mod, 'price', 0)
-            is_selected = (
-                selected_ids is None  # no filter = show all as included
-                or mod_id in (selected_ids or [])
-            )
             if ps:
                 y = _check_y(c, y, ps, need=20)
-            # Row background
-            bg = ESMERALD_LIGHT if is_selected else HexColor('#F3F4F6')
-            c.setFillColor(bg)
+            c.setFillColor(ESMERALD_LIGHT)
             c.roundRect(MARGIN_L, y - 6, CONTENT_W, 18, 4, fill=1, stroke=0)
-            # Check / X icon + name
-            icon = '✓' if is_selected else '✗'
             c.setFont(_font('regular'), 8)
-            c.setFillColor(ESMERALD if is_selected else HexColor('#9CA3AF'))
-            c.drawString(MARGIN_L + 8, y - 2, f'{icon}  {mod_name}')
-            # Price on the right
+            c.setFillColor(ESMERALD)
+            c.drawString(MARGIN_L + 8, y - 2, f'✓  {mod_name}')
             if mod_price:
                 price_str = f'${mod_price:,.0f}'
                 c.setFont(_font('bold'), 8)
                 c.drawRightString(MARGIN_L + CONTENT_W - 8, y - 2, price_str)
             y -= 22
-
-        # Dynamic total if modules were selected
-        if selected_ids is not None:
-            dynamic_total = sum(
-                _safe(m, 'price', 0) for m in modules
-                if _safe(m, 'id') in selected_ids
-            )
-            if ps:
-                y = _check_y(c, y, ps, need=24)
-            c.setFont(_font('bold'), 10)
-            c.setFillColor(ESMERALD)
-            c.drawRightString(
-                MARGIN_L + CONTENT_W - 8, y,
-                f'Total personalizado: ${dynamic_total:,.0f} {currency or ""}'
-            )
-            y -= 20
 
     # ── Hosting plan (detailed specs + pricing) ───────────────────
     hosting = _safe(data, 'hostingPlan', {})
@@ -1722,6 +1722,13 @@ class ProposalPdfService:
             c = canvas.Canvas(buf, pagesize=A4)
             c.setTitle(f'Propuesta \u2014 {proposal.client_name}')
             c.setAuthor('Project App')
+            # PDF metadata: creation date
+            from django.utils import timezone as _tz
+            _created = proposal.created_at or _tz.now()
+            c.setSubject(
+                f'Propuesta de negocio — {proposal.client_name} — '
+                f'{_created.strftime("%Y-%m-%d")}'
+            )
 
             ps = {
                 'num': 1,
@@ -1790,6 +1797,7 @@ class ProposalPdfService:
                     # Functional requirements: per-group details
                     func_groups = ps.pop('_func_req_groups', None)
                     parent_idx = data.get('index', '')
+                    sel_ids = ps.get('selected_modules')
                     if stype == 'functional_requirements' and func_groups:
                         for gi, grp in enumerate(func_groups):
                             grp_paste = (
@@ -1797,6 +1805,17 @@ class ProposalPdfService:
                                 and _safe(grp, 'rawText')
                             )
                             items = _safe(grp, 'items', [])
+                            # Filter out deselected FR items
+                            if sel_ids is not None and items:
+                                grp_key = (_safe(grp, 'id') or _safe(grp, 'title') or '')
+                                filtered = []
+                                for it in items:
+                                    it_name = _safe(it, 'name') or ''
+                                    fr_id = f'fr-{grp_key}-{it_name}'.replace(' ', '-').lower()
+                                    if fr_id in sel_ids:
+                                        filtered.append(it)
+                                items = filtered
+                                grp = dict(grp, items=items)
                             if not items and not grp_paste:
                                 continue
                             sub_idx = (
@@ -1821,6 +1840,29 @@ class ProposalPdfService:
                 elif data.get('rawText'):
                     y = _render_raw_text(c, data, proposal, ps=ps,
                                          y=y) or y
+
+            # Creation date line at the bottom of the last content
+            from django.utils import timezone as _tz
+            _created = proposal.created_at or _tz.now()
+            _MONTHS_ES = {
+                1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
+                5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',
+                9: 'septiembre', 10: 'octubre', 11: 'noviembre',
+                12: 'diciembre',
+            }
+            date_str = (
+                f'{_created.day} de '
+                f'{_MONTHS_ES.get(_created.month, "")} de '
+                f'{_created.year}'
+            )
+            y -= 30
+            y = _check_y(c, y, ps, need=20)
+            c.setFont(_font('regular'), 8)
+            c.setFillColor(GRAY_500)
+            c.drawCentredString(
+                PAGE_W / 2, y,
+                f'Fecha de creaci\u00f3n de la propuesta: {date_str}',
+            )
 
             # Finalize last page
             if page_started:

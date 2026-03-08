@@ -145,7 +145,7 @@ watch(() => props.visible, (val) => {
       const locked = m.is_required !== false && !m.removable;
       return {
         ...m,
-        selected: locked ? true : (saved ? saved.includes(m.id) : m.included !== false),
+        selected: locked ? true : (saved ? saved.includes(m.id) : true),
         _locked: locked,
       };
     });

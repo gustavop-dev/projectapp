@@ -61,10 +61,12 @@ async function downloadPdf() {
 
     const clientName = proposalStore.currentProposal?.client_name || 'Propuesta';
     const safeName = clientName.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g, '').trim();
+    const createdAt = proposalStore.currentProposal?.created_at;
+    const dateSuffix = createdAt ? new Date(createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
 
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Propuesta_${safeName}.pdf`;
+    link.download = `Propuesta_${safeName}_${dateSuffix}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

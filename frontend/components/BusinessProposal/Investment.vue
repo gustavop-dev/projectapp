@@ -317,6 +317,9 @@ onMounted(() => {
       btnPulse.value = true;
       setTimeout(() => { btnPulse.value = false; }, 4000);
     }, 1500);
+    setTimeout(() => {
+      customizeBtnRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 2000);
   }
 });
 
