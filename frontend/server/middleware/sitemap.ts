@@ -1,8 +1,7 @@
-import { defineEventHandler, setResponseHeader } from 'h3';
+import { defineEventHandler, setResponseHeader, getRequestURL } from 'h3';
 
 const BASE_URL = 'https://projectapp.co';
 
-// Static pages — mirrors what was in public/sitemap.xml
 const STATIC_PAGES = [
   { path: '/en-us', alt: '/es-co', changefreq: 'weekly', priority: '1.0' },
   { path: '/es-co', alt: '/en-us', changefreq: 'weekly', priority: '1.0' },
@@ -38,11 +37,7 @@ function formatDate(dateStr: string): string {
   }
 }
 
-export default defineEventHandler(async (event) => {
-  setResponseHeader(event, 'Content-Type', 'application/xml; charset=utf-8');
-  setResponseHeader(event, 'Cache-Control', 'public, max-age=3600, s-maxage=3600');
-
-  // Fetch blog posts from backend API
+async function generateSitemap(): Promise<string> {
   let blogPosts: Array<{ slug: string; updated_at: string }> = [];
   try {
     const apiBase = process.env.NUXT_API_BASE || 'http://127.0.0.1:8000';
@@ -58,7 +53,6 @@ export default defineEventHandler(async (event) => {
   xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n`;
   xml += `        xmlns:xhtml="http://www.w3.org/1999/xhtml">\n\n`;
 
-  // Static pages
   for (const page of STATIC_PAGES) {
     const loc = `${BASE_URL}${page.path}`;
     const altLoc = `${BASE_URL}${page.alt}`;
@@ -74,7 +68,6 @@ export default defineEventHandler(async (event) => {
     xml += `  </url>\n`;
   }
 
-  // Blog listing page
   xml += `\n  <!-- Blog -->\n`;
   xml += `  <url>\n`;
   xml += `    <loc>${BASE_URL}/blog</loc>\n`;
@@ -82,7 +75,6 @@ export default defineEventHandler(async (event) => {
   xml += `    <priority>0.8</priority>\n`;
   xml += `  </url>\n`;
 
-  // Blog posts
   for (const post of blogPosts) {
     const lastmod = post.updated_at ? formatDate(post.updated_at) : formatDate(new Date().toISOString());
     xml += `  <url>\n`;
@@ -94,6 +86,15 @@ export default defineEventHandler(async (event) => {
   }
 
   xml += `\n</urlset>\n`;
-
   return xml;
+}
+
+export default defineEventHandler(async (event) => {
+  const url = getRequestURL(event);
+  if (url.pathname !== '/sitemap.xml') return;
+
+  setResponseHeader(event, 'Content-Type', 'application/xml; charset=utf-8');
+  setResponseHeader(event, 'Cache-Control', 'public, max-age=3600, s-maxage=3600');
+
+  return generateSitemap();
 });
