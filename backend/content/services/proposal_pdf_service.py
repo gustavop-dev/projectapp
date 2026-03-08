@@ -260,7 +260,10 @@ def _safe(data, key, default=''):
     """Safely get a key from a dict, returning default if missing."""
     if not isinstance(data, dict):
         return default
-    return data.get(key, default) or default
+    val = data.get(key, default)
+    if val is None or val == '':
+        return default
+    return val
 
 
 # ─────────────────────────────────────────────────────────────
