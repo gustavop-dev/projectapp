@@ -2,10 +2,11 @@
 
 Covers: publish_scheduled_blog_posts periodic task.
 """
-import pytest
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
+from freezegun import freeze_time
 
 from content.models import BlogPost
 
@@ -29,6 +30,7 @@ def _run_publish_task():
 
 
 class TestPublishScheduledBlogPosts:
+    @freeze_time('2026-01-15 12:00:00')
     def test_publishes_post_with_past_published_at(self):
         """A draft post with published_at in the past gets published."""
         post = BlogPost.objects.create(
@@ -40,6 +42,7 @@ class TestPublishScheduledBlogPosts:
         post.refresh_from_db()
         assert post.is_published is True
 
+    @freeze_time('2026-01-15 12:00:00')
     def test_does_not_publish_post_with_future_published_at(self):
         """A draft post with published_at in the future stays as draft."""
         post = BlogPost.objects.create(
@@ -51,6 +54,7 @@ class TestPublishScheduledBlogPosts:
         post.refresh_from_db()
         assert post.is_published is False
 
+    @freeze_time('2026-01-15 12:00:00')
     def test_does_not_affect_already_published_posts(self):
         """Already published posts are not re-processed."""
         post = BlogPost.objects.create(
@@ -73,6 +77,7 @@ class TestPublishScheduledBlogPosts:
         post.refresh_from_db()
         assert post.is_published is False
 
+    @freeze_time('2026-01-15 12:00:00')
     def test_publishes_multiple_scheduled_posts(self):
         """Multiple scheduled posts with past dates are all published."""
         posts = []

@@ -941,4 +941,25 @@ describe('useProposalStore', () => {
       expect(store.isLoading).toBe(false);
     });
   });
+
+  describe('fetchClients', () => {
+    it('returns success with data on resolved request', async () => {
+      const clients = [{ client_name: 'Acme', total_proposals: 2 }];
+      get_request.mockResolvedValue({ data: clients });
+
+      const result = await store.fetchClients();
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(clients);
+      expect(get_request).toHaveBeenCalledWith('proposals/clients/');
+    });
+
+    it('returns success false on rejected request', async () => {
+      get_request.mockRejectedValue(new Error('Network error'));
+
+      const result = await store.fetchClients();
+
+      expect(result.success).toBe(false);
+    });
+  });
 });

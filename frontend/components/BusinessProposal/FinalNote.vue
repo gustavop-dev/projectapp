@@ -50,6 +50,63 @@
         </div>
       </div>
 
+      <!-- Next Steps (merged from next_steps section) -->
+      <template v-if="nextSteps && nextSteps.length">
+        <div data-animate="fade-up" class="mt-16 mb-8 text-center" v-if="nextStepsIntro">
+          <p class="text-xl sm:text-2xl text-esmerald/80 leading-relaxed font-light">
+            {{ nextStepsIntro }}
+          </p>
+        </div>
+
+        <div data-animate="fade-up-stagger" class="grid md:grid-cols-3 gap-4 sm:gap-8 mb-12">
+          <div v-for="(step, sIdx) in nextSteps" :key="sIdx"
+               class="step-card bg-esmerald/5 p-5 sm:p-8 rounded-2xl border-2 border-esmerald/10 hover:border-esmerald/30 transition-all text-center">
+            <div class="step-number w-12 h-12 sm:w-16 sm:h-16 bg-esmerald text-lemon rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold mx-auto mb-4 sm:mb-6 shadow-lg">
+              {{ sIdx + 1 }}
+            </div>
+            <h3 class="text-xl font-bold text-esmerald mb-3">{{ step.title }}</h3>
+            <p class="text-esmerald/70 font-light leading-relaxed">{{ step.description }}</p>
+          </div>
+        </div>
+
+        <div v-if="ctaMessage" data-animate="fade-up" class="bg-esmerald p-5 sm:p-8 md:p-12 rounded-3xl text-white text-center mb-12 shadow-2xl">
+          <h3 class="text-2xl sm:text-3xl md:text-4xl font-bold text-lemon mb-4">¿Listo para Comenzar?</h3>
+          <p class="text-base sm:text-xl text-esmerald-light/80 mb-6 sm:mb-8 max-w-2xl mx-auto">
+            {{ ctaMessage }}
+          </p>
+          <div class="cta-buttons flex flex-col md:flex-row gap-4 justify-center">
+            <a v-if="primaryCTA?.link" :href="primaryCTA.link" target="_blank"
+               class="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 bg-lemon text-esmerald rounded-xl font-bold text-base sm:text-lg hover:bg-lemon/90 transition-all shadow-lg hover:shadow-xl">
+              <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+              </svg>
+              {{ primaryCTA.text }}
+            </a>
+            <button v-if="secondaryCTA?.text" type="button"
+               data-cal-link="projectapp/discovery-call-projectapp"
+               data-cal-namespace="discovery-call-projectapp"
+               data-cal-config='{"layout":"month_view","useSlotsViewOnSmallScreen":"true"}'
+               class="inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 bg-esmerald-dark text-esmerald-light rounded-xl font-bold text-base sm:text-lg hover:bg-esmerald-dark/80 transition-all cursor-pointer">
+              <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              {{ secondaryCTA.text }}
+            </button>
+          </div>
+        </div>
+
+        <div v-if="contactMethods?.length" data-animate="fade-up-stagger" class="grid md:grid-cols-3 gap-6 mb-12">
+          <div v-for="(contact, cIdx) in contactMethods" :key="cIdx"
+               class="contact-card bg-esmerald/5 p-4 sm:p-6 rounded-xl text-center border border-esmerald/10 hover:border-esmerald/20 transition-colors">
+            <div class="text-4xl mb-3">{{ contact.icon }}</div>
+            <h4 class="font-bold text-esmerald mb-2">{{ contact.title }}</h4>
+            <a :href="contact.link" target="_blank" class="text-green-light hover:text-esmerald font-medium transition-colors">
+              {{ contact.value }}
+            </a>
+          </div>
+        </div>
+      </template>
+
     </div>
   </section>
 </template>
@@ -121,6 +178,30 @@ const props = defineProps({
   thankYouMessage: {
     type: String,
     default: ''
+  },
+  nextSteps: {
+    type: Array,
+    default: () => []
+  },
+  nextStepsIntro: {
+    type: String,
+    default: ''
+  },
+  ctaMessage: {
+    type: String,
+    default: ''
+  },
+  primaryCTA: {
+    type: Object,
+    default: () => ({})
+  },
+  secondaryCTA: {
+    type: Object,
+    default: () => ({})
+  },
+  contactMethods: {
+    type: Array,
+    default: () => []
   }
 });
 </script>
@@ -136,5 +217,38 @@ const props = defineProps({
 
 .message-text p {
   text-align: justify;
+}
+
+.step-card {
+  transition: all 0.3s ease;
+}
+
+.step-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(16, 185, 129, 0.2);
+}
+
+.step-number {
+  transition: transform 0.3s ease;
+}
+
+.step-card:hover .step-number {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.contact-card {
+  transition: all 0.3s ease;
+}
+
+.contact-card:hover {
+  transform: scale(1.05);
+}
+
+.cta-buttons a {
+  transition: all 0.3s ease;
+}
+
+.cta-buttons a:hover {
+  transform: translateY(-2px);
 }
 </style>

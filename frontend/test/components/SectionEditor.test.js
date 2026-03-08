@@ -101,6 +101,23 @@ const functionalRequirementsJson = {
   ],
 };
 
+const functionalRequirementsJsonWithPrice = {
+  index: '7',
+  title: 'Requerimientos',
+  intro: 'Detalle.',
+  groups: [
+    {
+      id: 'views', icon: '🖥️', title: 'Vistas', description: 'Pantallas.',
+      items: [
+        { icon: '🏠', name: 'Home', description: 'Landing.', price: 500000 },
+        { icon: '📧', name: 'Contacto', description: 'Form.', price: null },
+        { icon: '📜', name: 'Términos', description: 'Políticas.' },
+      ],
+    },
+  ],
+  additionalModules: [],
+};
+
 const functionalRequirementsJsonWithPaste = {
   index: '7',
   title: 'Requerimientos',
@@ -369,6 +386,21 @@ describe('buildFormFromJson', () => {
       expect(form.groups[0]._pasteMode).toBe(false);
       expect(form.groups[0]._pasteText).toBe('');
     });
+
+    it('preserves price field on items when present', () => {
+      const form = buildFormFromJson(functionalRequirementsJsonWithPrice, 'functional_requirements');
+      expect(form.groups[0].items[0].price).toBe(500000);
+    });
+
+    it('defaults price to null when missing from item', () => {
+      const form = buildFormFromJson(functionalRequirementsJsonWithPrice, 'functional_requirements');
+      expect(form.groups[0].items[2].price).toBeNull();
+    });
+
+    it('preserves explicit null price', () => {
+      const form = buildFormFromJson(functionalRequirementsJsonWithPrice, 'functional_requirements');
+      expect(form.groups[0].items[1].price).toBeNull();
+    });
   });
 
   describe('timeline', () => {
@@ -530,6 +562,19 @@ describe('formToJson', () => {
       expect(json.groups[0]).not.toHaveProperty('_pasteMode');
       expect(json.groups[0]).not.toHaveProperty('_pasteText');
       expect(json.groups[0]).not.toHaveProperty('_collapsed');
+    });
+
+    it('includes price in serialized items when value is set', () => {
+      const form = buildFormFromJson(functionalRequirementsJsonWithPrice, 'functional_requirements');
+      const json = formToJson(form, 'functional_requirements');
+      expect(json.groups[0].items[0].price).toBe(500000);
+    });
+
+    it('omits price key from serialized items when null', () => {
+      const form = buildFormFromJson(functionalRequirementsJsonWithPrice, 'functional_requirements');
+      const json = formToJson(form, 'functional_requirements');
+      expect(json.groups[0].items[1]).not.toHaveProperty('price');
+      expect(json.groups[0].items[2]).not.toHaveProperty('price');
     });
   });
 

@@ -104,7 +104,7 @@ describe('useBlogStore', () => {
 
       const result = await store.fetchPosts('en');
 
-      expect(get_request).toHaveBeenCalledWith('blog/?lang=en');
+      expect(get_request).toHaveBeenCalledWith('blog/?lang=en&page=1&page_size=6');
       expect(store.posts).toEqual([{ id: 1 }]);
       expect(result.success).toBe(true);
     });
@@ -114,7 +114,7 @@ describe('useBlogStore', () => {
 
       await store.fetchPosts();
 
-      expect(get_request).toHaveBeenCalledWith('blog/?lang=es');
+      expect(get_request).toHaveBeenCalledWith('blog/?lang=es&page=1&page_size=6');
     });
 
     it('handles error and sets error state', async () => {
@@ -386,6 +386,28 @@ describe('useBlogStore', () => {
 
       expect(result.success).toBe(false);
       expect(store.error).toBe('upload_failed');
+    });
+
+    it('sends empty csrf token when csrftoken cookie is absent', async () => {
+      const responseData = { id: 1, cover_image: '/media/cover.jpg' };
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(responseData),
+      });
+      Object.defineProperty(document, 'cookie', {
+        value: 'other=value',
+        writable: true,
+      });
+      const file = new File(['img'], 'cover.jpg', { type: 'image/jpeg' });
+
+      await store.uploadCoverImage(1, file);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/blog/admin/1/upload-cover/',
+        expect.objectContaining({
+          headers: { 'X-CSRFToken': '' },
+        }),
+      );
     });
 
     it('duplicatePost sends POST and prepends to list', async () => {

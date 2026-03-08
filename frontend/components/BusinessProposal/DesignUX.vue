@@ -14,7 +14,7 @@
         <div class="grid lg:grid-cols-12 gap-10 items-start">
           <div data-animate="fade-up" class="lg:col-span-8 space-y-6">
             <p
-              v-for="(paragraph, idx) in content.paragraphs"
+              v-for="(paragraph, idx) in content.paragraphs?.slice(0, 2)"
               :key="idx"
               class="text-esmerald/80 font-light leading-relaxed text-lg md:text-xl"
               v-html="linkify(paragraph)"

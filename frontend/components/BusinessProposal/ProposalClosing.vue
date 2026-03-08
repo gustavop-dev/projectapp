@@ -362,7 +362,7 @@ const canRespond = computed(() => {
 });
 
 const hasActiveDiscount = computed(() => {
-  return props.proposal?.discount_percent > 0 && props.proposal?.discounted_investment;
+  return props.proposal?.discount_percent > 0 && props.proposal?.discounted_investment && daysRemaining.value !== null && daysRemaining.value <= 5;
 });
 
 function formatCurrency(value) {

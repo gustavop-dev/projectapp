@@ -558,3 +558,31 @@ class TestSendScheduledFollowup:
     def test_returns_false_on_exception(self, mock_render, email_proposal):
         result = ProposalEmailService.send_scheduled_followup(email_proposal)
         assert result is False
+
+
+class TestSendStakeholderDetectedNotification:
+    """Tests for send_stakeholder_detected_notification."""
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_notification_successfully(self, mock_render, mock_email_cls, email_proposal):
+        """Stakeholder notification sends email and returns True."""
+        mock_render.return_value = '<html>Stakeholder</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_stakeholder_detected_notification(
+            email_proposal, 3
+        )
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        assert mock_render.call_count == 2
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        """Returns False when template rendering raises an exception."""
+        result = ProposalEmailService.send_stakeholder_detected_notification(
+            email_proposal, 2
+        )
+        assert result is False

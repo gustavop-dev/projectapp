@@ -16,6 +16,11 @@ const jsonTemplate = {
   title_es: 'Plantilla', title_en: 'Template',
   content_json_es: { intro: 'I', sections: [{ heading: 'H' }] },
   content_json_en: { intro: 'I', sections: [{ heading: 'H' }] },
+  _available_categories: [
+    { slug: 'ai', label: 'AI' },
+    { slug: 'design', label: 'Design' },
+    { slug: 'technology', label: 'Technology' },
+  ],
 };
 
 function setupMock(page, { createResponse = createdPost } = {}) {

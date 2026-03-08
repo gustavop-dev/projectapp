@@ -93,7 +93,7 @@
     "result": "Dos sitios web que no solo se vean impecables, sino que eleven la percepción de marca, generen confianza en un público exigente y conviertan más visitantes en oportunidades reales de asesoría y venta."
   },
   "designUX": {
-    "index": "04",
+    "index": "06",
     "title": "Diseño visual y experiencia de usuario",
     "paragraphs": [
       "La propuesta visual será concebida bajo una lógica premium, limpia y cuidadosamente editorial. En joyería de alto valor, el diseño no es un detalle decorativo: es parte de la percepción de legitimidad, exclusividad y confianza. Por eso, cada sitio será diseñado a medida, evitando estructuras genéricas o sensaciones de plantilla.",
@@ -111,7 +111,7 @@
     "objective": "Lograr que ambas webs transmitan exclusividad, confianza y alto valor percibido desde la primera impresión, alineando la experiencia digital con la categoría real del negocio."
   },
   "creativeSupport": {
-    "index": "05",
+    "index": "07",
     "title": "Acompañamiento creativo personalizado",
     "paragraphs": [
       "Durante todo el proceso, Denisse y su equipo contarán con un acompañamiento cercano, estratégico y creativo por parte de Project App. No se tratará únicamente de ejecutar pantallas, sino de construir una presencia digital con intención, criterio visual y alineación comercial.",
@@ -456,7 +456,7 @@
     ]
   },
   "timeline": {
-    "index": "08",
+    "index": "05",
     "title": "Cronograma del Proyecto",
     "introText": "Este cronograma presenta una ruta realista para diseñar, desarrollar, probar y desplegar el rediseño de ambos sitios web con una lógica de calidad, validación y salida controlada.",
     "totalDuration": "Por definir según alcance final",
@@ -539,7 +539,7 @@
     ]
   },
   "investment": {
-    "index": "09",
+    "index": "04",
     "title": "Inversión y Formas de Pago",
     "introText": "Inversión total del proyecto de rediseño para ambos sitios web:",
     "totalInvestment": "$5.400.000",
@@ -580,6 +580,7 @@
       { "name": "Transferencia", "icon": "🏦" },
       { "name": "Tarjeta", "icon": "💳" }
     ],
+    "modules": [],
     "valueReasons": [
       {
         "title": "Percepción premium",
@@ -677,5 +678,30 @@
     ],
     "validityMessage": "Esta propuesta conceptual y estratégica es válida por 30 días calendario a partir de su fecha de presentación. La inversión final quedará sujeta a validación del alcance definitivo.",
     "thankYouMessage": "Agradecemos la oportunidad de presentar esta propuesta. Nos entusiasma la posibilidad de acompañar a estas dos marcas en un proceso de evolución digital mucho más alineado con su verdadero nivel."
+  },
+  "_meta": {
+    "version": "2.0",
+    "description": "Proposal JSON template for Project App. Sections follow PAS order: greeting → executive_summary → context_diagnostic → conversion_strategy → investment → timeline → design_ux → creative_support → functional_requirements → development_stages → final_note → next_steps.",
+    "sectionOrder": [
+      "greeting (0)",
+      "executive_summary (1)",
+      "context_diagnostic (2)",
+      "conversion_strategy (3)",
+      "investment (4)",
+      "timeline (5)",
+      "design_ux (6)",
+      "creative_support (7)",
+      "functional_requirements (8)",
+      "development_stages (9)",
+      "final_note (10) — merged with next_steps in web view",
+      "next_steps (11) — hidden in web, content merged into final_note"
+    ],
+    "guidelines": {
+      "narrativeSections": "Max 2 paragraphs + 1 sidebar list on web. PDF renders all content.",
+      "functionalRequirements": "Shown as clickable cards on web with detail modals. PDF renders all groups fully.",
+      "investment": "modules[] array enables interactive pricing calculator on client side. Prices only visible in calculator modal, not in FR detail modals.",
+      "hosting": "Tech specs collapsed by default on web. Renewal note (SMLMV) hidden on web, visible in PDF.",
+      "discountBadge": "Only shown when daysRemaining <= 5."
+    }
   }
 }

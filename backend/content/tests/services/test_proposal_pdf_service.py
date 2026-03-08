@@ -882,6 +882,134 @@ class TestGenerate:
         mock_cover.exists.assert_called()
         mock_back.exists.assert_called()
 
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_selected_modules_passed_to_investment_renderer(
+        self, mock_back, mock_cover, proposal,
+    ):
+        """selected_modules list is forwarded through ps dict to _render_investment."""
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='investment',
+            title='Inversión',
+            order=0,
+            is_enabled=True,
+            content_json={
+                'index': '4', 'title': 'Inversión',
+                'introText': 'Total:',
+                'totalInvestment': '$5,000,000', 'currency': 'COP',
+                'whatsIncluded': [],
+                'paymentOptions': [],
+                'hostingPlan': {'title': 'Cloud', 'description': 'Included.'},
+                'modules': [
+                    {'id': 'web', 'name': 'Sitio Web', 'price': 3000000, 'included': True},
+                    {'id': 'seo', 'name': 'SEO', 'price': 500000, 'included': False},
+                ],
+                'valueReasons': [],
+            },
+        )
+
+        result = ProposalPdfService.generate(
+            proposal, selected_modules=['web'],
+        )
+
+        assert result is not None
+        assert isinstance(result, bytes)
+        assert result[:5] == b'%PDF-'
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_selected_modules_none_renders_all(
+        self, mock_back, mock_cover, proposal,
+    ):
+        """When selected_modules is None, all modules are rendered normally."""
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='investment',
+            title='Inversión',
+            order=0,
+            is_enabled=True,
+            content_json={
+                'index': '4', 'title': 'Inversión',
+                'introText': 'Total:',
+                'totalInvestment': '$5,000,000', 'currency': 'COP',
+                'whatsIncluded': [],
+                'paymentOptions': [],
+                'hostingPlan': {'title': 'Cloud', 'description': 'Included.'},
+                'modules': [
+                    {'id': 'web', 'name': 'Sitio Web', 'price': 3000000, 'included': True},
+                    {'id': 'seo', 'name': 'SEO', 'price': 500000, 'included': False},
+                ],
+                'valueReasons': [],
+            },
+        )
+
+        result = ProposalPdfService.generate(
+            proposal, selected_modules=None,
+        )
+
+        assert result is not None
+        assert isinstance(result, bytes)
+        assert result[:5] == b'%PDF-'
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_selected_modules_empty_list_renders_without_error(
+        self, mock_back, mock_cover, proposal,
+    ):
+        """Empty selected_modules list produces valid PDF without errors."""
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='investment',
+            title='Inversión',
+            order=0,
+            is_enabled=True,
+            content_json={
+                'index': '4', 'title': 'Inversión',
+                'introText': 'Total:',
+                'totalInvestment': '$5,000,000', 'currency': 'COP',
+                'whatsIncluded': [],
+                'paymentOptions': [],
+                'hostingPlan': {'title': 'Cloud', 'description': 'Included.'},
+                'modules': [
+                    {'id': 'web', 'name': 'Sitio Web', 'price': 3000000, 'included': True},
+                ],
+                'valueReasons': [],
+            },
+        )
+
+        result = ProposalPdfService.generate(
+            proposal, selected_modules=[],
+        )
+
+        assert result is not None
+        assert isinstance(result, bytes)
+        assert result[:5] == b'%PDF-'
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
+
 
 # ── _merge_with_covers tests ─────────────────────────────────
 

@@ -472,5 +472,15 @@ describe('useProposalTracking', () => {
       expect(sectionLog.value[0].section_type).toBe('');
       expect(sectionLog.value[0].section_title).toBe('');
     });
+
+    it('does nothing when startSectionTimer receives null panel', () => {
+      const { proposalUuid, currentPanel } = createRefs();
+      const { sectionLog } = useProposalTracking(proposalUuid, currentPanel);
+
+      mountedCallbacks[0]();
+      watchCallbacks[0].cb(null, null);
+
+      expect(sectionLog.value).toHaveLength(0);
+    });
   });
 });

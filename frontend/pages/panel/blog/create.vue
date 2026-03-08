@@ -68,15 +68,15 @@
       <!-- Metadata fields -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-          <select v-model="form.category" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white">
+          <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+          <select id="category" v-model="form.category" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white">
             <option value="">Sin categoría</option>
             <option v-for="cat in blogStore.availableCategories" :key="cat.slug" :value="cat.slug">{{ cat.label }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Tiempo lectura (min)</label>
-          <input v-model.number="form.read_time_minutes" type="number" min="0" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+          <label for="read_time_minutes" class="block text-sm font-medium text-gray-700 mb-1">Tiempo lectura (min)</label>
+          <input id="read_time_minutes" v-model.number="form.read_time_minutes" type="number" min="0" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
         </div>
         <div class="flex items-end">
           <label class="relative inline-flex items-center cursor-pointer gap-3">

@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 from freezegun import freeze_time
 
 from content.models import (
@@ -1023,3 +1024,265 @@ class TestRespondReengagement:
         )
         sent_proposal.refresh_from_db()
         assert sent_proposal.responded_at is not None
+
+
+# ---------------------------------------------------------------------------
+# Dashboard KPIs (extended)
+# ---------------------------------------------------------------------------
+
+class TestProposalDashboardExtended:
+    """Extended tests for the proposal_dashboard admin endpoint."""
+
+    def test_returns_401_for_unauthenticated(self, api_client):
+        """Unauthenticated users cannot access the dashboard."""
+        response = api_client.get(reverse('proposal-dashboard'))
+        assert response.status_code in (401, 403)
+
+    def test_returns_200_with_empty_db(self, admin_client):
+        """Dashboard returns zeroed KPIs when no proposals exist."""
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        assert response.data['total_proposals'] == 0
+        assert response.data['conversion_rate'] == 0
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_counts_by_status(self, admin_client, sent_proposal, rejected_proposal):
+        """Dashboard returns correct counts per status."""
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        assert response.data['by_status']['sent'] == 1
+        assert response.data['by_status']['rejected'] == 1
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_calculates_time_to_first_view(self, admin_client, viewed_proposal):
+        """Dashboard calculates avg time-to-first-view when data exists."""
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        assert response.data['avg_time_to_first_view_hours'] is not None
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_calculates_conversion_rate(self, admin_client, db):
+        """Dashboard calculates conversion rate from terminal proposals."""
+        BusinessProposal.objects.create(
+            title='Accepted', client_name='A', status='accepted',
+            total_investment=1000,
+        )
+        BusinessProposal.objects.create(
+            title='Rejected', client_name='B', status='rejected',
+            total_investment=1000,
+        )
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        assert response.data['conversion_rate'] == 50.0
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_monthly_trend(self, admin_client, sent_proposal):
+        """Dashboard includes monthly_trend array."""
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        assert isinstance(response.data['monthly_trend'], list)
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_discount_close_rates(self, admin_client, db):
+        """Dashboard returns discount vs no-discount close rates."""
+        BusinessProposal.objects.create(
+            title='Disc', client_name='D', status='accepted',
+            total_investment=1000, discount_percent=15,
+        )
+        BusinessProposal.objects.create(
+            title='NoDisc', client_name='N', status='rejected',
+            total_investment=1000, discount_percent=0,
+        )
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        assert response.data['discount_close_rate'] == 100.0
+        assert response.data['no_discount_close_rate'] == 0.0
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_top_dropoff_section(self, admin_client, sent_proposal):
+        """Dashboard returns top_dropoff_section when tracking data exists."""
+        event = ProposalViewEvent.objects.create(
+            proposal=sent_proposal, session_id='s1',
+        )
+        ProposalSectionView.objects.create(
+            view_event=event, section_type='greeting',
+            section_title='Saludo', time_spent_seconds=10,
+            entered_at=timezone.now(),
+        )
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        # top_dropoff_section may be present or None depending on data
+        assert 'top_dropoff_section' in response.data
+
+
+# ---------------------------------------------------------------------------
+# CSV Export
+# ---------------------------------------------------------------------------
+
+class TestExportAnalyticsCsv:
+    """Tests for the export_proposal_analytics_csv admin endpoint."""
+
+    def _url(self, proposal_id):
+        return reverse('proposal-analytics-csv', kwargs={'proposal_id': proposal_id})
+
+    def test_returns_401_for_unauthenticated(self, api_client, proposal):
+        """Unauthenticated users cannot export CSV."""
+        response = api_client.get(self._url(proposal.id))
+        assert response.status_code in (401, 403)
+
+    def test_returns_404_for_nonexistent_proposal(self, admin_client):
+        """Exporting CSV for a nonexistent proposal returns 404."""
+        response = admin_client.get(self._url(99999))
+        assert response.status_code == 404
+
+    def test_returns_csv_with_correct_headers(self, admin_client, proposal):
+        """CSV export returns text/csv content type with attachment disposition."""
+        response = admin_client.get(self._url(proposal.id))
+        assert response.status_code == 200
+        assert 'text/csv' in response['Content-Type']
+        assert 'attachment' in response['Content-Disposition']
+
+    def test_csv_contains_section_and_session_headers(self, admin_client, proposal):
+        """CSV body includes section engagement and session history sections."""
+        response = admin_client.get(self._url(proposal.id))
+        content = response.content.decode()
+        assert 'SECTION ENGAGEMENT' in content
+        assert 'SESSION HISTORY' in content
+        assert 'CHANGE LOG' in content
+
+
+# ---------------------------------------------------------------------------
+# Mini-CRM: list_clients
+# ---------------------------------------------------------------------------
+
+class TestListClients:
+    """Tests for the list_clients admin endpoint."""
+
+    def test_returns_401_for_unauthenticated(self, api_client):
+        """Unauthenticated users cannot access the clients list."""
+        response = api_client.get(reverse('list-clients'))
+        assert response.status_code in (401, 403)
+
+    def test_returns_200_with_empty_db(self, admin_client):
+        """Returns empty list when no proposals exist."""
+        response = admin_client.get(reverse('list-clients'))
+        assert response.status_code == 200
+        assert response.data == []
+
+    def test_groups_proposals_by_client_email(self, admin_client, db):
+        """Proposals with the same client_email are grouped together."""
+        BusinessProposal.objects.create(
+            title='P1', client_name='Client A', client_email='a@test.com',
+            total_investment=1000,
+        )
+        BusinessProposal.objects.create(
+            title='P2', client_name='Client A', client_email='a@test.com',
+            total_investment=2000,
+        )
+        response = admin_client.get(reverse('list-clients'))
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['total_proposals'] == 2
+
+    def test_falls_back_to_client_name_when_no_email(self, admin_client, db):
+        """Groups by client_name when client_email is blank."""
+        BusinessProposal.objects.create(
+            title='P1', client_name='No Email Client', client_email='',
+            total_investment=1000,
+        )
+        response = admin_client.get(reverse('list-clients'))
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['client_name'] == 'No Email Client'
+
+
+# ---------------------------------------------------------------------------
+# Analytics: funnel + comparison (extended)
+# ---------------------------------------------------------------------------
+
+class TestRetrieveProposalAnalyticsExtended:
+    """Extended tests for retrieve_proposal_analytics including funnel and comparison."""
+
+    def _url(self, proposal_id):
+        return reverse('proposal-analytics', kwargs={'proposal_id': proposal_id})
+
+    def test_returns_401_for_unauthenticated(self, api_client, proposal):
+        """Unauthenticated users cannot access analytics."""
+        response = api_client.get(self._url(proposal.id))
+        assert response.status_code in (401, 403)
+
+    def test_returns_200_with_basic_data(self, admin_client, sent_proposal):
+        """Analytics endpoint returns 200 with expected top-level keys."""
+        response = admin_client.get(self._url(sent_proposal.id))
+        assert response.status_code == 200
+        for key in ('total_views', 'unique_sessions', 'sections',
+                     'skipped_sections', 'device_breakdown', 'sessions',
+                     'funnel', 'comparison', 'share_links'):
+            assert key in response.data
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_funnel_includes_dropoff_percentages(self, admin_client, sent_proposal):
+        """Funnel data contains drop-off % for each enabled section."""
+        ProposalSection.objects.create(
+            proposal=sent_proposal, section_type='greeting',
+            title='Saludo', order=0, is_enabled=True,
+        )
+        event = ProposalViewEvent.objects.create(
+            proposal=sent_proposal, session_id='s1',
+        )
+        ProposalSectionView.objects.create(
+            view_event=event, section_type='greeting',
+            section_title='Saludo', time_spent_seconds=10,
+            entered_at=timezone.now(),
+        )
+        response = admin_client.get(self._url(sent_proposal.id))
+        assert response.status_code == 200
+        assert len(response.data['funnel']) >= 1
+        assert 'drop_off_percent' in response.data['funnel'][0]
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_comparison_includes_global_averages(self, admin_client, viewed_proposal):
+        """Comparison block includes avg_time_to_first_view_hours."""
+        response = admin_client.get(self._url(viewed_proposal.id))
+        assert response.status_code == 200
+        comp = response.data['comparison']
+        assert 'avg_time_to_first_view_hours' in comp
+        assert 'avg_time_to_response_hours' in comp
+        assert 'avg_views' in comp
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_device_breakdown_counts(self, admin_client, sent_proposal):
+        """Device breakdown counts mobile, desktop, tablet from user_agent."""
+        ProposalViewEvent.objects.create(
+            proposal=sent_proposal, session_id='s-mobile',
+            user_agent='Mozilla/5.0 Mobile',
+        )
+        ProposalViewEvent.objects.create(
+            proposal=sent_proposal, session_id='s-tablet',
+            user_agent='Mozilla/5.0 iPad Tablet',
+        )
+        ProposalViewEvent.objects.create(
+            proposal=sent_proposal, session_id='s-desktop',
+            user_agent='Mozilla/5.0 Chrome/120',
+        )
+        response = admin_client.get(self._url(sent_proposal.id))
+        assert response.status_code == 200
+        devices = response.data['device_breakdown']
+        assert devices['mobile'] == 1
+        assert devices['tablet'] == 1
+        assert devices['desktop'] == 1
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_time_to_response_calculated(self, admin_client, db):
+        """time_to_response_hours is calculated when responded_at exists."""
+        from django.utils import timezone as tz
+        proposal = BusinessProposal.objects.create(
+            title='Responded', client_name='R', status='accepted',
+            total_investment=1000,
+            sent_at=tz.now() - tz.timedelta(hours=10),
+            first_viewed_at=tz.now() - tz.timedelta(hours=5),
+            responded_at=tz.now(),
+        )
+        response = admin_client.get(self._url(proposal.id))
+        assert response.status_code == 200
+        assert response.data['time_to_response_hours'] == 5.0

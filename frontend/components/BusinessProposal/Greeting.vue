@@ -43,7 +43,7 @@ const props = defineProps({
 }
 
 .main-title {
-  font-size: clamp(3rem, 8vw, 8rem);
+  font-size: clamp(2rem, 6vw, 5rem);
   letter-spacing: -0.01em;
 }
 

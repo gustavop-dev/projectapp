@@ -309,4 +309,28 @@ describe('useSectionAnimations', () => {
       jest.useRealTimers();
     });
   });
+
+  describe('sort fallback', () => {
+    it('sorts by left position when top positions are equal', async () => {
+      const { ref } = jest.requireActual('vue');
+      const elA = document.createElement('div');
+      elA.setAttribute('data-animate', 'fade-up');
+      elA.getBoundingClientRect = () => ({ top: 100, left: 200 });
+      const elB = document.createElement('div');
+      elB.setAttribute('data-animate', 'fade-up');
+      elB.getBoundingClientRect = () => ({ top: 100, left: 50 });
+      const mockEl = {
+        querySelectorAll: jest.fn(() => [elA, elB]),
+      };
+      const sectionRef = ref(mockEl);
+      useSectionAnimations(sectionRef);
+
+      watchCallbacks[0].cb({ scrollTrigger: {} });
+      await flushPromises();
+
+      const setArgs = mockGsap.set.mock.calls[0][0];
+      expect(setArgs[0]).toBe(elB);
+      expect(setArgs[1]).toBe(elA);
+    });
+  });
 });

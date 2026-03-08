@@ -292,7 +292,7 @@ class TestAdminDuplicateBlogPost:
         assert response.status_code in (401, 403)
 
     def test_duplicates_post_returns_201(self, admin_client, blog_post_with_json):
-        """Duplicating creates a new draft post with '(copia)' suffix and reset fields."""
+        """Duplicating creates a new post with '(copia)' suffix."""
         url = reverse('duplicate-blog-post', kwargs={'post_id': blog_post_with_json.id})
         response = admin_client.post(url)
         assert response.status_code == 201
@@ -300,6 +300,13 @@ class TestAdminDuplicateBlogPost:
         new_post = BlogPost.objects.exclude(pk=blog_post_with_json.pk).first()
         assert '(copia)' in new_post.title_es
         assert '(copy)' in new_post.title_en
+
+    def test_duplicated_post_resets_publish_fields(self, admin_client, blog_post_with_json):
+        """Duplicated post is unpublished with reset featured flag and unique slug."""
+        url = reverse('duplicate-blog-post', kwargs={'post_id': blog_post_with_json.id})
+        response = admin_client.post(url)
+        assert response.status_code == 201
+        new_post = BlogPost.objects.exclude(pk=blog_post_with_json.pk).first()
         assert new_post.is_published is False
         assert new_post.published_at is None
         assert new_post.is_featured is False
@@ -353,3 +360,116 @@ class TestAdminUpdateNewFields:
             url, {'content_json_es': {'missing_intro': True}}, format='json'
         )
         assert response.status_code == 400
+
+
+class TestServeSitemapXml:
+    """Tests for the serve_sitemap_xml view (dynamic XML sitemap)."""
+
+    def test_returns_xml_content_type(self, client):
+        """Sitemap endpoint returns application/xml content type."""
+        response = client.get('/sitemap.xml')
+        assert response.status_code == 200
+        assert 'application/xml' in response['Content-Type']
+
+    def test_includes_static_pages(self, client):
+        """Sitemap XML contains at least one static page entry."""
+        response = client.get('/sitemap.xml')
+        content = response.content.decode()
+        assert '<urlset' in content
+        assert 'https://projectapp.co/en-us' in content
+
+    def test_includes_published_blog_posts(self, client, blog_post):
+        """Sitemap XML includes published blog post URLs with lastmod."""
+        response = client.get('/sitemap.xml')
+        content = response.content.decode()
+        assert f'/blog/{blog_post.slug}' in content
+        assert '<lastmod>' in content
+
+    def test_excludes_draft_blog_posts(self, client, draft_blog_post):
+        """Sitemap XML excludes unpublished blog posts."""
+        response = client.get('/sitemap.xml')
+        content = response.content.decode()
+        assert draft_blog_post.slug not in content
+
+    def test_handles_post_without_updated_at(self, client, db):
+        """Sitemap omits lastmod when updated_at is None."""
+        post = BlogPost.objects.create(
+            title_es='Sin fecha', title_en='No date',
+            excerpt_es='E', excerpt_en='E',
+            is_published=True, updated_at=None,
+        )
+        response = client.get('/sitemap.xml')
+        content = response.content.decode()
+        assert f'/blog/{post.slug}' in content
+
+
+class TestBlogListPagination:
+    """Tests for list_blog_posts pagination edge cases."""
+
+    def test_invalid_page_param_defaults_to_one(self, api_client, blog_post):
+        """Non-numeric page param falls back to page=1."""
+        response = api_client.get(reverse('list-blog-posts'), {'page': 'abc'})
+        assert response.status_code == 200
+        assert response.data['page'] == 1
+
+    def test_invalid_page_size_defaults_to_six(self, api_client, blog_post):
+        """Non-numeric page_size param falls back to 6."""
+        response = api_client.get(
+            reverse('list-blog-posts'), {'page_size': 'xyz'}
+        )
+        assert response.status_code == 200
+        assert response.data['page_size'] == 6
+
+    def test_page_size_clamped_to_max_fifty(self, api_client, blog_post):
+        """page_size values above 50 are clamped to 50."""
+        response = api_client.get(
+            reverse('list-blog-posts'), {'page_size': '100'}
+        )
+        assert response.status_code == 200
+        assert response.data['page_size'] == 50
+
+
+class TestBlogSitemapData:
+    """Tests for the blog_sitemap_data lightweight endpoint."""
+
+    def test_returns_published_slugs(self, api_client, blog_post, draft_blog_post):
+        """Returns only published posts with slug and updated_at."""
+        response = api_client.get(reverse('blog-sitemap-data'))
+        assert response.status_code == 200
+        slugs = [item['slug'] for item in response.data]
+        assert blog_post.slug in slugs
+        assert draft_blog_post.slug not in slugs
+
+
+class TestUploadBlogCoverImage:
+    """Tests for the upload_blog_cover_image admin endpoint."""
+
+    def test_returns_401_for_unauthenticated(self, api_client, blog_post):
+        """Unauthenticated users cannot upload a cover image."""
+        url = reverse('upload-blog-cover-image', kwargs={'post_id': blog_post.id})
+        response = api_client.post(url)
+        assert response.status_code in (401, 403)
+
+    def test_returns_400_when_no_file_provided(self, admin_client, blog_post):
+        """Returns 400 when no cover_image file is in the request."""
+        url = reverse('upload-blog-cover-image', kwargs={'post_id': blog_post.id})
+        response = admin_client.post(url, {}, format='multipart')
+        assert response.status_code == 400
+        assert 'cover_image' in response.data
+
+    def test_uploads_file_returns_200(self, admin_client, blog_post):
+        """Uploading a valid image file returns 200 with updated post data."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        image_file = SimpleUploadedFile(
+            'cover.jpg', b'\xff\xd8\xff\xe0' + b'\x00' * 100,
+            content_type='image/jpeg',
+        )
+        url = reverse('upload-blog-cover-image', kwargs={'post_id': blog_post.id})
+        response = admin_client.post(url, {'cover_image': image_file}, format='multipart')
+        assert response.status_code == 200
+
+    def test_returns_404_for_nonexistent_post(self, admin_client):
+        """Uploading to a nonexistent post returns 404."""
+        url = reverse('upload-blog-cover-image', kwargs={'post_id': 99999})
+        response = admin_client.post(url, {}, format='multipart')
+        assert response.status_code == 404

@@ -21,8 +21,10 @@
       <div data-animate="fade-up" class="pricing-card bg-esmerald p-5 sm:p-8 md:p-12 rounded-3xl text-white mb-12 shadow-2xl">
         <div class="text-center mb-8">
           <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-green-light">{{ t.totalInvestment }}</div>
-          <div class="text-4xl sm:text-6xl md:text-7xl font-bold mb-2 text-lemon">{{ totalInvestment }}</div>
+          <div v-if="customTotal !== null" class="text-4xl sm:text-6xl md:text-7xl font-bold mb-2 text-lemon">{{ formatCurrency(customTotal) }}</div>
+          <div v-else class="text-4xl sm:text-6xl md:text-7xl font-bold mb-2 text-lemon">{{ totalInvestment }}</div>
           <div class="text-green-light">{{ currency }}</div>
+          <p v-if="customTotal !== null" class="text-xs text-green-light/70 mt-2">{{ t.customized }}</p>
         </div>
         
         <div class="grid md:grid-cols-3 gap-6 mt-8">
@@ -33,6 +35,14 @@
             <div class="text-sm text-esmerald-light/70">{{ item.description }}</div>
           </div>
         </div>
+        <!-- Customize investment button -->
+        <button
+          v-if="modules && modules.length"
+          class="mt-4 mx-auto block px-6 py-3 bg-lemon text-esmerald rounded-xl font-bold text-sm hover:bg-lemon/90 transition-all shadow-lg"
+          @click="calculatorOpen = true"
+        >
+          🧮 {{ t.customizeBtn }}
+        </button>
       </div>
 
       <!-- Discount banner -->
@@ -82,24 +92,6 @@
           </div>
         </div>
 
-        <div v-if="filteredSpecs.length" class="grid md:grid-cols-2 gap-4 pl-0 sm:pl-16">
-          <div
-            v-for="(spec, idx) in filteredSpecs"
-            :key="idx"
-            class="bg-esmerald/5 p-5 rounded-xl border border-esmerald/10"
-          >
-            <div class="flex items-start">
-              <div class="w-9 h-9 rounded-lg bg-esmerald-light/60 border border-esmerald/10 flex items-center justify-center mr-3 flex-shrink-0">
-                <span class="text-lg">{{ spec.icon }}</span>
-              </div>
-              <div>
-                <div class="font-bold text-esmerald">{{ spec.label }}</div>
-                <div class="text-sm text-esmerald/70">{{ spec.value }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div v-if="hostingPlan.monthlyPrice || hostingPlan.annualPrice" class="mt-6 pl-0 sm:pl-16">
           <div class="grid md:grid-cols-2 gap-4">
             <div v-if="hostingPlan.monthlyPrice" class="bg-esmerald-light/60 border border-esmerald/10 rounded-xl p-5">
@@ -115,15 +107,36 @@
           </div>
         </div>
 
-        <div v-if="hostingPlan.renewalNote" class="mt-6 pl-0 sm:pl-16">
-          <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-5">
-            <div class="flex items-start gap-3">
-              <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-              </svg>
-              <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{{ hostingPlan.renewalNote }}</p>
+        <!-- Collapsible tech specs -->
+        <div v-if="filteredSpecs.length" class="mt-6 pl-0 sm:pl-16">
+          <button
+            class="flex items-center gap-2 text-sm font-medium text-esmerald/60 hover:text-esmerald transition-colors mb-4"
+            @click="specsOpen = !specsOpen"
+          >
+            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-90': specsOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            {{ t.viewTechSpecs }}
+          </button>
+          <Transition name="collapse">
+            <div v-if="specsOpen" class="grid md:grid-cols-2 gap-4">
+              <div
+                v-for="(spec, idx) in filteredSpecs"
+                :key="idx"
+                class="bg-esmerald/5 p-5 rounded-xl border border-esmerald/10"
+              >
+                <div class="flex items-start">
+                  <div class="w-9 h-9 rounded-lg bg-esmerald-light/60 border border-esmerald/10 flex items-center justify-center mr-3 flex-shrink-0">
+                    <span class="text-lg">{{ spec.icon }}</span>
+                  </div>
+                  <div>
+                    <div class="font-bold text-esmerald">{{ spec.label }}</div>
+                    <div class="text-sm text-esmerald/70">{{ spec.value }}</div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          </Transition>
         </div>
       </div>
 
@@ -144,16 +157,31 @@
         </div>
       </div>
     </div>
+
+    <InvestmentCalculatorModal
+      :visible="calculatorOpen"
+      :modules="modules"
+      :currency="currency"
+      :proposalUuid="proposalUuid"
+      :language="language"
+      @close="calculatorOpen = false"
+      @update:selection="onSelectionUpdate"
+    />
   </section>
 </template>
 
 <script setup>
-import { ref, computed, toRef } from 'vue';
+import { ref, computed, toRef, onMounted } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
 import { useExpirationTimer } from '~/composables/useExpirationTimer';
+import InvestmentCalculatorModal from './InvestmentCalculatorModal.vue';
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
+
+const specsOpen = ref(false);
+const calculatorOpen = ref(false);
+const customTotal = ref(null);
 
 const props = defineProps({
   language: {
@@ -240,8 +268,35 @@ const props = defineProps({
   expiresAt: {
     type: String,
     default: ''
+  },
+  modules: {
+    type: Array,
+    default: () => []
+  },
+  proposalUuid: {
+    type: String,
+    default: ''
   }
 });
+
+onMounted(() => {
+  if (props.proposalUuid && props.modules?.length) {
+    try {
+      const raw = localStorage.getItem(`proposal-${props.proposalUuid}-modules`);
+      if (raw) {
+        const selectedIds = JSON.parse(raw);
+        const total = props.modules
+          .filter(m => selectedIds.includes(m.id))
+          .reduce((sum, m) => sum + (m.price || 0), 0);
+        customTotal.value = total;
+      }
+    } catch (_e) { /* ignore */ }
+  }
+});
+
+function onSelectionUpdate({ total }) {
+  customTotal.value = total;
+}
 
 const { daysRemaining, urgencyLevel } = useExpirationTimer(toRef(props, 'expiresAt'));
 
@@ -257,6 +312,9 @@ const i18n = {
     specialPrice: 'Precio especial',
     annualPayment: 'Pago anual único',
     whyWorthIt: '¿Por Qué Esta Inversión Vale la Pena?',
+    viewTechSpecs: 'Ver especificaciones técnicas',
+    customizeBtn: 'Personalizar tu inversión',
+    customized: 'Precio personalizado según tu selección',
   },
   en: {
     totalInvestment: 'Total Investment',
@@ -269,13 +327,16 @@ const i18n = {
     specialPrice: 'Special price',
     annualPayment: 'Annual payment',
     whyWorthIt: 'Why Is This Investment Worth It?',
+    viewTechSpecs: 'View technical specs',
+    customizeBtn: 'Customize your investment',
+    customized: 'Custom price based on your selection',
   },
 };
 
 const t = computed(() => i18n[props.language] || i18n.es);
 
 const hasActiveDiscount = computed(() => {
-  return props.discountPercent > 0 && props.discountedInvestment && !['expired'].includes(urgencyLevel.value);
+  return props.discountPercent > 0 && props.discountedInvestment && daysRemaining.value !== null && daysRemaining.value <= 5;
 });
 
 function formatCurrency(value) {
@@ -311,5 +372,23 @@ const normalizedReasons = computed(() => {
 
 .value-reason:hover {
   transform: translateX(8px);
+}
+
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.collapse-enter-from,
+.collapse-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+.collapse-enter-to,
+.collapse-leave-from {
+  opacity: 1;
+  max-height: 600px;
 }
 </style>

@@ -104,8 +104,17 @@ def download_proposal_pdf(request, proposal_uuid):
             status=status.HTTP_410_GONE,
         )
 
+    selected_modules_param = request.query_params.get('selected_modules', '')
+    selected_modules = (
+        [m.strip() for m in selected_modules_param.split(',') if m.strip()]
+        if selected_modules_param
+        else None
+    )
+
     from content.services.proposal_pdf_service import ProposalPdfService
-    pdf_bytes = ProposalPdfService.generate(proposal)
+    pdf_bytes = ProposalPdfService.generate(
+        proposal, selected_modules=selected_modules
+    )
 
     if not pdf_bytes:
         return Response(

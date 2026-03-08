@@ -18,6 +18,7 @@ from pathlib import Path
 from django.conf import settings
 from pypdf import PdfReader, PdfWriter
 from reportlab.lib import colors
+from reportlab.lib.colors import HexColor
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -1164,6 +1165,59 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         c.drawCentredString(MARGIN_L + box_w / 2, box_y + 7, label)
         y = box_y - 8
 
+    # ── Interactive Modules (if present) ──────────────────────────
+    modules = _safe(data, 'modules', [])
+    selected_ids = ps.get('selected_modules') if ps else None
+    if modules:
+        y -= 14
+        if ps:
+            y = _check_y(c, y, ps, need=60)
+        c.setFont(_font('bold'), 12)
+        c.setFillColor(ESMERALD)
+        c.drawString(MARGIN_L, y, 'Módulos del Proyecto')
+        y -= 18
+        for mod in modules:
+            mod_id = _safe(mod, 'id')
+            mod_name = _strip_emoji(_safe(mod, 'name'))
+            mod_price = _safe(mod, 'price', 0)
+            is_selected = (
+                selected_ids is None  # no filter = show all as included
+                or mod_id in (selected_ids or [])
+            )
+            if ps:
+                y = _check_y(c, y, ps, need=20)
+            # Row background
+            bg = ESMERALD_LIGHT if is_selected else HexColor('#F3F4F6')
+            c.setFillColor(bg)
+            c.roundRect(MARGIN_L, y - 6, CONTENT_W, 18, 4, fill=1, stroke=0)
+            # Check / X icon + name
+            icon = '✓' if is_selected else '✗'
+            c.setFont(_font('regular'), 8)
+            c.setFillColor(ESMERALD if is_selected else HexColor('#9CA3AF'))
+            c.drawString(MARGIN_L + 8, y - 2, f'{icon}  {mod_name}')
+            # Price on the right
+            if mod_price:
+                price_str = f'${mod_price:,.0f}'
+                c.setFont(_font('bold'), 8)
+                c.drawRightString(MARGIN_L + CONTENT_W - 8, y - 2, price_str)
+            y -= 22
+
+        # Dynamic total if modules were selected
+        if selected_ids is not None:
+            dynamic_total = sum(
+                _safe(m, 'price', 0) for m in modules
+                if _safe(m, 'id') in selected_ids
+            )
+            if ps:
+                y = _check_y(c, y, ps, need=24)
+            c.setFont(_font('bold'), 10)
+            c.setFillColor(ESMERALD)
+            c.drawRightString(
+                MARGIN_L + CONTENT_W - 8, y,
+                f'Total personalizado: ${dynamic_total:,.0f} {currency or ""}'
+            )
+            y -= 20
+
     # ── Hosting plan (detailed specs + pricing) ───────────────────
     hosting = _safe(data, 'hostingPlan', {})
     h_title = _safe(hosting, 'title')
@@ -1639,7 +1693,7 @@ class ProposalPdfService:
     """
 
     @classmethod
-    def generate(cls, proposal):
+    def generate(cls, proposal, selected_modules=None):
         """
         Build a multi-page portrait-A4 PDF from the proposal's
         enabled sections and return the raw bytes.
@@ -1650,6 +1704,7 @@ class ProposalPdfService:
 
         Args:
             proposal: BusinessProposal instance with related sections.
+            selected_modules: Optional list of module IDs for dynamic pricing.
 
         Returns:
             bytes: The PDF content, or None on failure.
@@ -1671,6 +1726,7 @@ class ProposalPdfService:
             ps = {
                 'num': 1,
                 'client': proposal.client_name,
+                'selected_modules': selected_modules,
             }
 
             # Start first page

@@ -625,3 +625,137 @@ class TestSendScheduledFollowupTask:
         tasks_module.send_scheduled_followup.call_local(proposal.id)
 
         assert mock_send.call_count == 0
+
+
+class TestCheckEngagementFollowupsExceptionPaths:
+    """Tests for exception handling in check_engagement_followups."""
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_abandonment_followup',
+        side_effect=Exception('SMTP error'),
+    )
+    def test_abandonment_exception_is_caught(self, mock_send):
+        """Exception in send_abandonment_followup is caught and logged, not raised."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Abandon Err',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            first_viewed_at=now - timedelta(hours=5),
+        )
+        ve = ProposalViewEvent.objects.create(
+            proposal=proposal, session_id='sess-err',
+        )
+        ProposalSectionView.objects.create(
+            view_event=ve, section_type='greeting',
+            time_spent_seconds=10, entered_at=now - timedelta(hours=5),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_engagement_followups.call_local()
+
+        mock_send.assert_called_once()
+        proposal.refresh_from_db()
+        assert proposal.abandonment_email_sent_at is None
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_investment_interest_followup',
+        side_effect=Exception('SMTP error'),
+    )
+    def test_investment_interest_exception_is_caught(self, mock_send):
+        """Exception in send_investment_interest_followup is caught and logged, not raised."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Interest Err',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            first_viewed_at=now - timedelta(hours=5),
+        )
+        ve = ProposalViewEvent.objects.create(
+            proposal=proposal, session_id='sess-err2',
+        )
+        ProposalViewEvent.objects.filter(pk=ve.pk).update(
+            viewed_at=now - timedelta(hours=3),
+        )
+        ProposalSectionView.objects.create(
+            view_event=ve, section_type='investment',
+            time_spent_seconds=90, entered_at=now - timedelta(hours=3),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_engagement_followups.call_local()
+
+        mock_send.assert_called_once()
+        proposal.refresh_from_db()
+        assert proposal.investment_interest_email_sent_at is None
+
+
+class TestNotifyFirstViewTask:
+    """Tests for the notify_first_view Huey task."""
+
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_first_view_notification',
+        return_value=True,
+    )
+    def test_sends_notification_for_valid_proposal(self, mock_send):
+        """Task sends first-view notification for an existing proposal."""
+        proposal = BusinessProposal.objects.create(
+            title='First View',
+            client_name='Client',
+            client_email='client@test.com',
+            status='sent',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.notify_first_view.call_local(proposal.id)
+
+        mock_send.assert_called_once()
+        assert mock_send.call_args[0][0].pk == proposal.pk
+
+    def test_skips_when_proposal_not_found(self):
+        """Task returns early when proposal ID does not exist."""
+        import content.tasks as tasks_module
+        result = tasks_module.notify_first_view.call_local(99999)
+        assert result is None
+
+
+class TestPublishScheduledBlogPostsTask:
+    """Tests for the publish_scheduled_blog_posts periodic task."""
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_publishes_scheduled_posts(self):
+        """Posts with published_at in the past and is_published=False get published."""
+        from content.models import BlogPost
+        post = BlogPost.objects.create(
+            title_es='Programado', title_en='Scheduled',
+            excerpt_es='E', excerpt_en='E',
+            is_published=False,
+            published_at=timezone.now() - timedelta(hours=1),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.publish_scheduled_blog_posts.call_local()
+
+        post.refresh_from_db()
+        assert post.is_published is True
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_does_not_publish_future_posts(self):
+        """Posts with published_at in the future remain unpublished."""
+        from content.models import BlogPost
+        post = BlogPost.objects.create(
+            title_es='Futuro', title_en='Future',
+            excerpt_es='E', excerpt_en='E',
+            is_published=False,
+            published_at=timezone.now() + timedelta(hours=1),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.publish_scheduled_blog_posts.call_local()
+
+        post.refresh_from_db()
+        assert post.is_published is False

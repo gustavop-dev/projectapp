@@ -39,7 +39,19 @@ async function downloadPdf() {
     const uuid = proposalStore.currentProposal?.uuid;
     if (!uuid) return;
 
-    const response = await fetch(`/api/proposals/${uuid}/pdf/`);
+    // Read selected modules from localStorage if available
+    let pdfUrl = `/api/proposals/${uuid}/pdf/`;
+    try {
+      const raw = localStorage.getItem(`proposal-${uuid}-modules`);
+      if (raw) {
+        const selectedIds = JSON.parse(raw);
+        if (Array.isArray(selectedIds) && selectedIds.length) {
+          pdfUrl += `?selected_modules=${encodeURIComponent(selectedIds.join(','))}`;
+        }
+      }
+    } catch (_e) { /* ignore */ }
+
+    const response = await fetch(pdfUrl);
     if (!response.ok) {
       throw new Error(`PDF request failed: ${response.status}`);
     }

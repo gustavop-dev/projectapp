@@ -173,43 +173,13 @@ const sectionComponentMap = {
 const proposal = computed(() => proposalStore.currentProposal);
 const enabledSections = computed(() => proposalStore.enabledSections);
 
-// Expand functional_requirements into intro + individual group panels
+// Build display panels: skip next_steps (merged into final_note), no FR sub-panels
 const displayPanels = computed(() => {
   const panels = [];
   for (const section of enabledSections.value) {
-    if (section.section_type === 'functional_requirements') {
-      // 1) Intro panel (overview)
-      panels.push(section);
-      // 2) One panel per group
-      const content = section.content_json || {};
-      let groups = content.groups || [];
-      if (!groups.length) {
-        const legacyGroups = proposal.value?.requirement_groups || [];
-        groups = legacyGroups.map((g) => ({
-          id: g.group_id,
-          icon: g.title?.trim().split(' ')[0] || '🧩',
-          title: g.title?.trim().split(' ').slice(1).join(' ') || g.title,
-          description: g.description,
-          items: (g.items || []).map((item) => ({
-            icon: item.icon, name: item.name, description: item.description,
-          })),
-        }));
-      }
-      const additional = content.additionalModules || [];
-      const allGroups = [...groups, ...additional].filter(g => g && (g.title || g.items?.length));
-      const parentIndex = content.index || '7';
-      allGroups.forEach((group, gIdx) => {
-        panels.push({
-          id: `${section.id}_group_${gIdx}`,
-          section_type: 'functional_requirements_group',
-          title: `${group.icon || '🧩'} ${group.title}`,
-          _group: group,
-          _subIndex: `${parentIndex}.${gIdx + 1}`,
-        });
-      });
-    } else {
-      panels.push(section);
-    }
+    // Skip next_steps — its content is merged into final_note
+    if (section.section_type === 'next_steps') continue;
+    panels.push(section);
   }
 
   // Add closing panel (validity, thank-you, accept/reject) after all sections
@@ -315,13 +285,6 @@ function getSectionProps(section) {
     return { content };
   }
 
-  if (section.section_type === 'functional_requirements_group') {
-    return {
-      group: section._group,
-      subIndex: section._subIndex,
-    };
-  }
-
   if (section.section_type === 'functional_requirements') {
     // Use groups from content_json; fall back to legacy requirement_groups from proposal
     let groups = content.groups || [];
@@ -356,39 +319,44 @@ function getSectionProps(section) {
       discountPercent: proposal.value?.discount_percent || 0,
       discountedInvestment: proposal.value?.discounted_investment || '',
       expiresAt: proposal.value?.expires_at || '',
+      modules: content.modules || [],
+      proposalUuid: proposal.value?.uuid || '',
     };
   }
 
-  // For development_stages, timeline, final_note, next_steps
+  // For final_note: merge next_steps data as additional props
+  if (section.section_type === 'final_note') {
+    const nextStepsSection = enabledSections.value.find(s => s.section_type === 'next_steps');
+    const nsContent = nextStepsSection?.content_json || {};
+    return {
+      ...content,
+      nextSteps: nsContent.steps || [],
+      nextStepsIntro: nsContent.introMessage || '',
+      ctaMessage: nsContent.ctaMessage || '',
+      primaryCTA: nsContent.primaryCTA || {},
+      secondaryCTA: nsContent.secondaryCTA || {},
+      contactMethods: nsContent.contactMethods || [],
+    };
+  }
+
+  // For development_stages, timeline, etc.
   // Spread content_json as individual props
   return content;
 }
 
 function isPastePanel(panel) {
-  if (panel.section_type === 'functional_requirements_group') {
-    return panel._group?._editMode === 'paste' && panel._group?.rawText;
-  }
   return panel.content_json?._editMode === 'paste' && panel.content_json?.rawText;
 }
 
 function getPastePanelTitle(panel) {
-  if (panel.section_type === 'functional_requirements_group') {
-    return panel._group?.title || panel.title;
-  }
   return panel.content_json?.title || panel.title;
 }
 
 function getPastePanelIndex(panel) {
-  if (panel.section_type === 'functional_requirements_group') {
-    return panel._subIndex || '';
-  }
   return panel.content_json?.index || '';
 }
 
 function getPastePanelRawText(panel) {
-  if (panel.section_type === 'functional_requirements_group') {
-    return panel._group?.rawText || '';
-  }
   return panel.content_json?.rawText || '';
 }
 

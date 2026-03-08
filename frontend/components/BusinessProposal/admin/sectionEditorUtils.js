@@ -54,12 +54,12 @@ export function buildFormFromJson(json, type, proposalData) {
         groups: (j.groups || []).map(g => ({
           id: g.id || '', icon: g.icon || '', title: g.title || '',
           description: g.description || '',
-          items: (g.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '' })),
+          items: (g.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '', price: i.price ?? null })),
           _pasteMode: g._editMode === 'paste', _pasteText: g.rawText || '', _collapsed: true,
         })),
         additionalModules: (j.additionalModules || []).map(m => ({
           icon: m.icon || '', title: m.title || '', description: m.description || '',
-          items: (m.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '' })),
+          items: (m.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '', price: i.price ?? null })),
           _pasteMode: m._editMode === 'paste', _pasteText: m.rawText || '', _collapsed: true,
         })),
       };
@@ -79,6 +79,7 @@ export function buildFormFromJson(json, type, proposalData) {
           annualPrice: hp.annualPrice || '', annualLabel: hp.annualLabel || '',
           renewalNote: hp.renewalNote || '', coverageNote: hp.coverageNote || '',
         },
+        modules: (j.modules || []).map(m => ({ id: m.id || '', name: m.name || '', price: m.price ?? 0, included: m.included !== false })),
         paymentMethods: arrToText(j.paymentMethods), valueReasons: arrToText(j.valueReasons),
       };
     }
@@ -118,7 +119,7 @@ export function formToJson(formData, type) {
       const cleanGroup = (g) => {
         const out = {
           id: g.id, icon: g.icon, title: g.title, description: g.description,
-          items: (g.items || []).map(i => ({ icon: i.icon, name: i.name, description: i.description })),
+          items: (g.items || []).map(i => ({ icon: i.icon, name: i.name, description: i.description, ...(i.price != null ? { price: i.price } : {}) })),
         };
         if (g._pasteMode) {
           out._editMode = 'paste';
@@ -149,6 +150,7 @@ export function formToJson(formData, type) {
           annualPrice: hp.annualPrice, annualLabel: hp.annualLabel,
           renewalNote: hp.renewalNote || '', coverageNote: hp.coverageNote || '',
         },
+        modules: (f.modules || []).map(m => ({ id: m.id, name: m.name, price: m.price ?? 0, included: m.included !== false })),
         paymentMethods: textToArr(f.paymentMethods), valueReasons: textToArr(f.valueReasons),
       };
     }

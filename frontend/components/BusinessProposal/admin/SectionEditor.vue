@@ -305,6 +305,39 @@
         <FieldTextarea v-model="form.paymentMethods" label="Métodos de pago" help="Uno por línea" :rows="3" />
         <FieldTextarea v-model="form.valueReasons" label="Razones de valor" help="Una por línea" :rows="3" />
 
+        <!-- Interactive Modules (Cotizador) -->
+        <div class="mt-4 border border-gray-200 rounded-xl overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+               @click="modulesCollapsed = !modulesCollapsed">
+            <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': !modulesCollapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+              🧮 Módulos Interactivos (Cotizador)
+            </h4>
+            <span class="text-xs text-gray-400">{{ (form.modules || []).length }} módulos</span>
+          </div>
+          <div v-show="!modulesCollapsed" class="p-4 space-y-3">
+            <p class="text-xs text-gray-500 mb-2">Define los módulos que el cliente podrá activar/desactivar en el cotizador interactivo.</p>
+            <div v-for="(mod, mIdx) in form.modules" :key="mIdx" class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[10px] text-gray-400">Módulo {{ mIdx + 1 }}</span>
+                <button type="button" class="text-[10px] text-red-500" @click="form.modules.splice(mIdx, 1)">Eliminar</button>
+              </div>
+              <div class="grid grid-cols-[120px_1fr_120px] gap-2 mb-1">
+                <FieldInput v-model="mod.id" label="ID" placeholder="modulo-1" />
+                <FieldInput v-model="mod.name" label="Nombre" placeholder="Sitio Web Principal" />
+                <FieldInput v-model.number="mod.price" label="Precio" type="number" placeholder="0" />
+              </div>
+              <label class="flex items-center gap-2 mt-1">
+                <input type="checkbox" v-model="mod.included" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                <span class="text-xs text-gray-600">Incluido por defecto</span>
+              </label>
+            </div>
+            <button type="button" class="text-xs text-emerald-600 font-medium" @click="(form.modules = form.modules || []).push({ id: '', name: '', price: 0, included: true })">+ Agregar módulo</button>
+          </div>
+        </div>
+
         <!-- Hosting Plan -->
         <div class="mt-4 border border-gray-200 rounded-xl overflow-hidden">
           <div class="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
@@ -527,11 +560,14 @@
                       <EmojiIconField v-model="item.icon" label="Icono" placeholder="🏠" />
                       <FieldInput v-model="item.name" label="Nombre" />
                     </div>
-                    <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
+                    <div class="grid grid-cols-[1fr_120px] gap-2">
+                      <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
+                      <FieldInput v-model.number="item.price" label="Precio" type="number" placeholder="0" />
+                    </div>
                   </div>
                 </template>
               </draggable>
-              <button type="button" class="text-xs text-emerald-600 font-medium" @click="group.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
+              <button type="button" class="text-xs text-emerald-600 font-medium" @click="group.items.push({ icon: '', name: '', description: '', price: null })">+ Agregar elemento</button>
             </div>
           </div>
         </div>
@@ -751,6 +787,7 @@ const previewSection = computed(() => {
 const savedMsg = ref('');
 const showRawJson = ref(false);
 const hostingCollapsed = ref(true);
+const modulesCollapsed = ref(true);
 const initialContent = props.section.content_json || {};
 const pasteMode = ref(initialContent._editMode === 'paste');
 const pasteText = ref(initialContent.rawText || '');

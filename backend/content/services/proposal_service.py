@@ -120,12 +120,132 @@ DEFAULT_SECTIONS = [
         },
     },
     {
-        'section_type': 'design_ux',
-        'title': '🎨 Diseño Visual y Experiencia de Usuario',
+        'section_type': 'investment',
+        'title': '💰 Inversión y Formas de Pago',
         'order': 4,
         'is_wide_panel': False,
         'content_json': {
             'index': '4',
+            'title': 'Inversión y Formas de Pago',
+            'introText': 'La inversión total para este proyecto es:',
+            'totalInvestment': '',
+            'currency': 'COP',
+            'whatsIncluded': [
+                {'icon': '🎨', 'title': 'Diseño', 'description': 'UX/UI enfocado en conversión'},
+                {'icon': '⚙️', 'title': 'Desarrollo', 'description': 'Implementación completa del proyecto'},
+                {'icon': '☁️', 'title': 'Hosting', 'description': 'Plan Cloud 1 disponible'},
+            ],
+            'paymentOptions': [
+                {'label': '40% al firmar el contrato ✍️', 'description': ''},
+                {'label': '30% al aprobar el diseño final ✅', 'description': ''},
+                {'label': '30% al desplegar el sitio web 🚀', 'description': ''},
+            ],
+            'hostingPlan': {
+                'title': 'Hosting, Mantenimiento y Soporte',
+                'description': 'Infraestructura optimizada para proyectos de alto rendimiento y disponibilidad:',
+                'specs': [
+                    {'icon': '🧠', 'label': 'vCPU', 'value': '1 núcleo de vCPU'},
+                    {'icon': '🧮', 'label': 'RAM', 'value': '1 GB de RAM dedicada'},
+                    {'icon': '💾', 'label': 'Almacenamiento', 'value': '2 GB de almacenamiento NVMe'},
+                    {'icon': '🌐', 'label': 'Ancho de banda', 'value': '600 GB mensual'},
+                    {'icon': '📍', 'label': 'Centros de datos', 'value': 'EE.UU., Brasil, Francia, Lituania e India'},
+                    {'icon': '🧬', 'label': 'Compatibilidad', 'value': 'Linux (Ubuntu)'},
+                ],
+                'monthlyPrice': '$49.999 COP',
+                'monthlyLabel': 'por mes',
+                'annualPrice': '$680.000 COP',
+                'annualLabel': 'Hosting anual — Año 1',
+                'renewalNote': (
+                    'Renovaciones a partir del segundo año: el costo se ajusta anualmente '
+                    'con base en el SMLMV (Salario Mínimo Legal Mensual Vigente) del año '
+                    'de renovación, aplicando la siguiente fórmula:\n\n'
+                    'Costo de renovación = Costo del año anterior + '
+                    '(5% × SMLMV del año de renovación)\n\n'
+                    'Por ejemplo, si el SMLMV del año de renovación fuera $1,300,000 COP, '
+                    'el incremento sería de $65,000 COP, llevando el costo a $745,000 COP '
+                    'para ese año.'
+                ),
+                'coverageNote': (
+                    'El costo de hosting cubre tres componentes: el mantenimiento técnico '
+                    'de la plataforma (actualizaciones de seguridad, parches y optimización '
+                    'de base de datos), el soporte ante incidencias o bugs, y los recursos '
+                    'computacionales necesarios para que todo funcione (servidor, '
+                    'almacenamiento, ancho de banda y certificados SSL).'
+                ),
+            },
+            'paymentMethods': [
+                'Transferencia bancaria',
+                'Nequi / Daviplata',
+            ],
+            'modules': [],
+            'valueReasons': [
+                'Diseño hecho a medida',
+                'Código optimizado',
+                'Soporte post-lanzamiento',
+            ],
+        },
+    },
+    {
+        'section_type': 'timeline',
+        'title': '⏳ Cronograma del Proyecto',
+        'order': 5,
+        'is_wide_panel': True,
+        'content_json': {
+            'index': '5',
+            'title': 'Cronograma del Proyecto',
+            'introText': 'El proyecto se desarrollará en las siguientes fases:',
+            'totalDuration': 'Aproximadamente 1 mes',
+            'phases': [
+                {
+                    'title': '🎨 Diseño',
+                    'duration': '1 semana',
+                    'weeks': 'Semana 1',
+                    'circleColor': 'bg-purple-600',
+                    'statusColor': 'bg-purple-100 text-purple-700',
+                    'description': 'Diseño visual personalizado en Figma, revisiones y ajustes.',
+                    'tasks': ['Moodboard y paleta de colores', 'Diseño UI en alta fidelidad', 'Revisiones con el cliente'],
+                    'milestone': 'Diseño aprobado',
+                },
+                {
+                    'title': '💻 Desarrollo',
+                    'duration': '2 semanas',
+                    'weeks': 'Semanas 2-3',
+                    'circleColor': 'bg-green-600',
+                    'statusColor': 'bg-green-100 text-green-700',
+                    'description': 'Codificación nativa, integración de pasarelas y correos.',
+                    'tasks': ['Frontend responsivo', 'Backend y base de datos', 'Integraciones'],
+                    'milestone': 'MVP funcional',
+                },
+                {
+                    'title': '🚀 QA y Lanzamiento',
+                    'duration': '3 días',
+                    'weeks': 'Semana 4',
+                    'circleColor': 'bg-orange-600',
+                    'statusColor': 'bg-orange-100 text-orange-700',
+                    'description': 'Pruebas finales, ajustes y publicación.',
+                    'tasks': ['Pruebas en múltiples navegadores', 'Ajustes finales', 'Despliegue a producción'],
+                    'milestone': 'Sitio en producción',
+                },
+                {
+                    'title': '📦 Entrega y despliegue',
+                    'duration': '3 días',
+                    'weeks': 'Semana 4',
+                    'circleColor': 'bg-pink-600',
+                    'statusColor': 'bg-pink-100 text-pink-700',
+                    'description': 'Configuración del dominio, entrega de documentación y cierre.',
+                    'tasks': ['Configuración de dominio y SSL', 'Entrega de documentación', 'Capacitación al cliente'],
+                    'milestone': 'Entrega final 💫',
+                },
+            ],
+        },
+    },
+    {
+        'section_type': 'design_ux',
+        'title': '🎨 Diseño Visual y Experiencia de Usuario',
+        'order': 6,
+        'is_wide_panel': False,
+        'content_json': {
+            'index': '6',
             'title': 'Diseño Visual y Experiencia de Usuario',
             'paragraphs': [
                 'El desarrollo web será concebido como una experiencia digital profesional.',
@@ -147,10 +267,10 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'creative_support',
         'title': '🤝 Acompañamiento Creativo Personalizado',
-        'order': 5,
+        'order': 7,
         'is_wide_panel': False,
         'content_json': {
-            'index': '5',
+            'index': '7',
             'title': 'Acompañamiento Creativo Personalizado',
             'paragraphs': [
                 'Durante todo el proceso, el cliente contará con el acompañamiento cercano de nuestro equipo.',
@@ -170,62 +290,12 @@ DEFAULT_SECTIONS = [
         },
     },
     {
-        'section_type': 'development_stages',
-        'title': '📌 Etapas de Contratación y Desarrollo',
-        'order': 6,
-        'is_wide_panel': True,
-        'content_json': {
-            'index': '6',
-            'title': 'Etapas de contratación y desarrollo',
-            'intro': 'Nuestro proceso está diseñado para ofrecer claridad, confianza y acompañamiento en cada fase 🧭:',
-            'currentLabel': 'Actual',
-            'stages': [
-                {
-                    'icon': '✉️',
-                    'title': 'Propuesta Comercial',
-                    'description': 'Presentación formal de la propuesta técnica y económica (etapa actual).',
-                    'current': True,
-                },
-                {
-                    'icon': '🧾',
-                    'title': 'Borrador de Contrato',
-                    'description': 'Envío del documento que establece los términos, condiciones y compromisos.',
-                },
-                {
-                    'icon': '✍️',
-                    'title': 'Formalización del Contrato',
-                    'description': 'Firma del acuerdo y confirmación del inicio oficial del proyecto.',
-                },
-                {
-                    'icon': '🎨',
-                    'title': 'Etapa de Diseño',
-                    'description': 'Creación del prototipo visual en Figma con reuniones de revisión.',
-                },
-                {
-                    'icon': '💻',
-                    'title': 'Etapa de Desarrollo',
-                    'description': 'Implementación del diseño en código nativo, optimizado para la mejor experiencia.',
-                },
-                {
-                    'icon': '🚀',
-                    'title': 'Despliegue del Proyecto',
-                    'description': 'Publicación del sitio web en producción y revisión final.',
-                },
-                {
-                    'icon': '💖',
-                    'title': 'Entrega Final',
-                    'description': 'Sitio en línea y validado, cierre del ciclo de transformación digital.',
-                },
-            ],
-        },
-    },
-    {
         'section_type': 'functional_requirements',
         'title': '🧩 Requerimientos Funcionales del Proyecto',
-        'order': 7,
+        'order': 8,
         'is_wide_panel': True,
         'content_json': {
-            'index': '7',
+            'index': '8',
             'title': 'Requerimientos Funcionales del Proyecto',
             'intro': 'A continuación se detallan los requerimientos funcionales del proyecto.',
             'groups': [
@@ -321,132 +391,63 @@ DEFAULT_SECTIONS = [
         },
     },
     {
-        'section_type': 'timeline',
-        'title': '⏳ Cronograma del Proyecto',
-        'order': 8,
+        'section_type': 'development_stages',
+        'title': '📌 Etapas de Contratación y Desarrollo',
+        'order': 9,
         'is_wide_panel': True,
         'content_json': {
-            'index': '8',
-            'title': 'Cronograma del Proyecto',
-            'introText': 'El proyecto se desarrollará en las siguientes fases:',
-            'totalDuration': 'Aproximadamente 1 mes',
-            'phases': [
-                {
-                    'title': '🎨 Diseño',
-                    'duration': '1 semana',
-                    'weeks': 'Semana 1',
-                    'circleColor': 'bg-purple-600',
-                    'statusColor': 'bg-purple-100 text-purple-700',
-                    'description': 'Diseño visual personalizado en Figma, revisiones y ajustes.',
-                    'tasks': ['Moodboard y paleta de colores', 'Diseño UI en alta fidelidad', 'Revisiones con el cliente'],
-                    'milestone': 'Diseño aprobado',
-                },
-                {
-                    'title': '💻 Desarrollo',
-                    'duration': '2 semanas',
-                    'weeks': 'Semanas 2-3',
-                    'circleColor': 'bg-green-600',
-                    'statusColor': 'bg-green-100 text-green-700',
-                    'description': 'Codificación nativa, integración de pasarelas y correos.',
-                    'tasks': ['Frontend responsivo', 'Backend y base de datos', 'Integraciones'],
-                    'milestone': 'MVP funcional',
-                },
-                {
-                    'title': '🚀 QA y Lanzamiento',
-                    'duration': '3 días',
-                    'weeks': 'Semana 4',
-                    'circleColor': 'bg-orange-600',
-                    'statusColor': 'bg-orange-100 text-orange-700',
-                    'description': 'Pruebas finales, ajustes y publicación.',
-                    'tasks': ['Pruebas en múltiples navegadores', 'Ajustes finales', 'Despliegue a producción'],
-                    'milestone': 'Sitio en producción',
-                },
-                {
-                    'title': '📦 Entrega y despliegue',
-                    'duration': '3 días',
-                    'weeks': 'Semana 4',
-                    'circleColor': 'bg-pink-600',
-                    'statusColor': 'bg-pink-100 text-pink-700',
-                    'description': 'Configuración del dominio, entrega de documentación y cierre.',
-                    'tasks': ['Configuración de dominio y SSL', 'Entrega de documentación', 'Capacitación al cliente'],
-                    'milestone': 'Entrega final 💫',
-                },
-            ],
-        },
-    },
-    {
-        'section_type': 'investment',
-        'title': '💰 Inversión y Formas de Pago',
-        'order': 9,
-        'is_wide_panel': False,
-        'content_json': {
             'index': '9',
-            'title': 'Inversión y Formas de Pago',
-            'introText': 'La inversión total para este proyecto es:',
-            'totalInvestment': '',
-            'currency': 'COP',
-            'whatsIncluded': [
-                {'icon': '🎨', 'title': 'Diseño', 'description': 'UX/UI enfocado en conversión'},
-                {'icon': '⚙️', 'title': 'Desarrollo', 'description': 'Implementación completa del proyecto'},
-                {'icon': '☁️', 'title': 'Hosting', 'description': 'Plan Cloud 1 disponible'},
-            ],
-            'paymentOptions': [
-                {'label': '40% al firmar el contrato ✍️', 'description': ''},
-                {'label': '30% al aprobar el diseño final ✅', 'description': ''},
-                {'label': '30% al desplegar el sitio web 🚀', 'description': ''},
-            ],
-            'hostingPlan': {
-                'title': 'Hosting, Mantenimiento y Soporte',
-                'description': 'Infraestructura optimizada para proyectos de alto rendimiento y disponibilidad:',
-                'specs': [
-                    {'icon': '🧠', 'label': 'vCPU', 'value': '1 núcleo de vCPU'},
-                    {'icon': '🧮', 'label': 'RAM', 'value': '1 GB de RAM dedicada'},
-                    {'icon': '💾', 'label': 'Almacenamiento', 'value': '2 GB de almacenamiento NVMe'},
-                    {'icon': '🌐', 'label': 'Ancho de banda', 'value': '600 GB mensual'},
-                    {'icon': '📍', 'label': 'Centros de datos', 'value': 'EE.UU., Brasil, Francia, Lituania e India'},
-                    {'icon': '🧬', 'label': 'Compatibilidad', 'value': 'Linux (Ubuntu)'},
-                ],
-                'monthlyPrice': '$49.999 COP',
-                'monthlyLabel': 'por mes',
-                'annualPrice': '$680.000 COP',
-                'annualLabel': 'Hosting anual — Año 1',
-                'renewalNote': (
-                    'Renovaciones a partir del segundo año: el costo se ajusta anualmente '
-                    'con base en el SMLMV (Salario Mínimo Legal Mensual Vigente) del año '
-                    'de renovación, aplicando la siguiente fórmula:\n\n'
-                    'Costo de renovación = Costo del año anterior + '
-                    '(5% × SMLMV del año de renovación)\n\n'
-                    'Por ejemplo, si el SMLMV del año de renovación fuera $1,300,000 COP, '
-                    'el incremento sería de $65,000 COP, llevando el costo a $745,000 COP '
-                    'para ese año.'
-                ),
-                'coverageNote': (
-                    'El costo de hosting cubre tres componentes: el mantenimiento técnico '
-                    'de la plataforma (actualizaciones de seguridad, parches y optimización '
-                    'de base de datos), el soporte ante incidencias o bugs, y los recursos '
-                    'computacionales necesarios para que todo funcione (servidor, '
-                    'almacenamiento, ancho de banda y certificados SSL).'
-                ),
-            },
-            'paymentMethods': [
-                'Transferencia bancaria',
-                'Nequi / Daviplata',
-            ],
-            'valueReasons': [
-                'Diseño hecho a medida',
-                'Código optimizado',
-                'Soporte post-lanzamiento',
+            'title': 'Etapas de contratación y desarrollo',
+            'intro': 'Nuestro proceso está diseñado para ofrecer claridad, confianza y acompañamiento en cada fase 🧭:',
+            'currentLabel': 'Actual',
+            'stages': [
+                {
+                    'icon': '✉️',
+                    'title': 'Propuesta Comercial',
+                    'description': 'Presentación formal de la propuesta técnica y económica (etapa actual).',
+                    'current': True,
+                },
+                {
+                    'icon': '🧾',
+                    'title': 'Borrador de Contrato',
+                    'description': 'Envío del documento que establece los términos, condiciones y compromisos.',
+                },
+                {
+                    'icon': '✍️',
+                    'title': 'Formalización del Contrato',
+                    'description': 'Firma del acuerdo y confirmación del inicio oficial del proyecto.',
+                },
+                {
+                    'icon': '🎨',
+                    'title': 'Etapa de Diseño',
+                    'description': 'Creación del prototipo visual en Figma con reuniones de revisión.',
+                },
+                {
+                    'icon': '💻',
+                    'title': 'Etapa de Desarrollo',
+                    'description': 'Implementación del diseño en código nativo, optimizado para la mejor experiencia.',
+                },
+                {
+                    'icon': '🚀',
+                    'title': 'Despliegue del Proyecto',
+                    'description': 'Publicación del sitio web en producción y revisión final.',
+                },
+                {
+                    'icon': '💖',
+                    'title': 'Entrega Final',
+                    'description': 'Sitio en línea y validado, cierre del ciclo de transformación digital.',
+                },
             ],
         },
     },
     {
         'section_type': 'final_note',
-        'title': '📝 Nota Final',
+        'title': '📝 Nota Final y Próximos Pasos',
         'order': 10,
         'is_wide_panel': False,
         'content_json': {
             'index': '10',
-            'title': 'Nota Final',
+            'title': 'Nota Final y Próximos Pasos',
             'message': (
                 'Creemos firmemente que esta propuesta representa una oportunidad excepcional '
                 'para transformar tu presencia digital y alcanzar tus objetivos de negocio.'
@@ -654,12 +655,115 @@ DEFAULT_SECTIONS_EN = [
         },
     },
     {
-        'section_type': 'design_ux',
-        'title': '🎨 Visual Design & User Experience',
+        'section_type': 'investment',
+        'title': '� Investment & Payment Options',
         'order': 4,
         'is_wide_panel': False,
         'content_json': {
             'index': '4',
+            'title': 'Investment & Payment Options',
+            'introText': 'The total investment for this project is:',
+            'totalInvestment': '',
+            'currency': 'USD',
+            'whatsIncluded': [
+                {'icon': '🎨', 'title': 'Design', 'description': 'UX/UI focused on conversion'},
+                {'icon': '⚙️', 'title': 'Development', 'description': 'Full project implementation'},
+                {'icon': '☁️', 'title': 'Hosting', 'description': 'Cloud 1 plan available'},
+            ],
+            'paymentOptions': [
+                {'label': '40% upon signing the contract ✍️', 'description': ''},
+                {'label': '30% upon final design approval ✅', 'description': ''},
+                {'label': '30% upon site deployment 🚀', 'description': ''},
+            ],
+            'hostingPlan': {
+                'title': 'Included Hosting – Cloud 1',
+                'description': 'Optimized infrastructure for high-performance and availability:',
+                'specs': [
+                    {'icon': '🧠', 'label': 'vCPU', 'value': '1 vCPU core'},
+                    {'icon': '🧮', 'label': 'RAM', 'value': '1 GB dedicated RAM'},
+                    {'icon': '💾', 'label': 'Storage', 'value': '2 GB NVMe storage'},
+                    {'icon': '🌐', 'label': 'Bandwidth', 'value': '600 GB monthly'},
+                    {'icon': '📍', 'label': 'Data centers', 'value': 'US, Brazil, France, Lithuania & India'},
+                    {'icon': '🧬', 'label': 'Compatibility', 'value': 'Linux (Ubuntu)'},
+                ],
+                'monthlyPrice': '$4.99 USD',
+                'monthlyLabel': 'per month',
+                'annualPrice': '$59.88 USD',
+                'annualLabel': 'annual payment',
+            },
+            'paymentMethods': [
+                'Bank transfer',
+                'Credit/Debit card',
+            ],
+            'modules': [],
+            'valueReasons': [
+                'Custom-made design',
+                'Optimized code',
+                'Post-launch support',
+            ],
+        },
+    },
+    {
+        'section_type': 'timeline',
+        'title': '⏳ Project Timeline',
+        'order': 5,
+        'is_wide_panel': True,
+        'content_json': {
+            'index': '5',
+            'title': 'Project Timeline',
+            'introText': 'The project will be developed in the following phases:',
+            'totalDuration': 'Approximately 1 month',
+            'phases': [
+                {
+                    'title': '🎨 Design',
+                    'duration': '1 week',
+                    'weeks': 'Week 1',
+                    'circleColor': 'bg-purple-600',
+                    'statusColor': 'bg-purple-100 text-purple-700',
+                    'description': 'Custom visual design in Figma, reviews and adjustments.',
+                    'tasks': ['Moodboard and color palette', 'High-fidelity UI design', 'Client reviews'],
+                    'milestone': 'Design approved',
+                },
+                {
+                    'title': '💻 Development',
+                    'duration': '2 weeks',
+                    'weeks': 'Weeks 2-3',
+                    'circleColor': 'bg-green-600',
+                    'statusColor': 'bg-green-100 text-green-700',
+                    'description': 'Native coding, payment gateway and email integration.',
+                    'tasks': ['Responsive frontend', 'Backend and database', 'Integrations'],
+                    'milestone': 'Functional MVP',
+                },
+                {
+                    'title': '🚀 QA & Launch',
+                    'duration': '3 days',
+                    'weeks': 'Week 4',
+                    'circleColor': 'bg-orange-600',
+                    'statusColor': 'bg-orange-100 text-orange-700',
+                    'description': 'Final testing, adjustments, and publication.',
+                    'tasks': ['Cross-browser testing', 'Final adjustments', 'Production deploy'],
+                    'milestone': 'Site in production',
+                },
+                {
+                    'title': '📦 Delivery & Deployment',
+                    'duration': '3 days',
+                    'weeks': 'Week 4',
+                    'circleColor': 'bg-pink-600',
+                    'statusColor': 'bg-pink-100 text-pink-700',
+                    'description': 'Domain setup, documentation delivery, and closure.',
+                    'tasks': ['Domain and SSL setup', 'Documentation delivery', 'Client training'],
+                    'milestone': 'Final delivery 💫',
+                },
+            ],
+        },
+    },
+    {
+        'section_type': 'design_ux',
+        'title': '🎨 Visual Design & User Experience',
+        'order': 6,
+        'is_wide_panel': False,
+        'content_json': {
+            'index': '6',
             'title': 'Visual Design & User Experience',
             'paragraphs': [
                 'The web development will be conceived as a professional digital experience.',
@@ -681,10 +785,10 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'creative_support',
         'title': '🤝 Personalized Creative Support',
-        'order': 5,
+        'order': 7,
         'is_wide_panel': False,
         'content_json': {
-            'index': '5',
+            'index': '7',
             'title': 'Personalized Creative Support',
             'paragraphs': [
                 'Throughout the process, the client will have close support from our team.',
@@ -704,57 +808,12 @@ DEFAULT_SECTIONS_EN = [
         },
     },
     {
-        'section_type': 'development_stages',
-        'title': '📌 Contracting & Development Stages',
-        'order': 6,
-        'is_wide_panel': True,
-        'content_json': {
-            'index': '6',
-            'title': 'Contracting & Development Stages',
-            'intro': 'Our process is designed to offer clarity, trust, and support at every stage 🧭:',
-            'currentLabel': 'Current',
-            'stages': [
-                {
-                    'icon': '✉️',
-                    'title': 'Commercial Proposal',
-                    'description': 'Formal presentation of the technical and economic proposal (current stage).',
-                    'current': True,
-                },
-                {
-                    'icon': '✍️',
-                    'title': 'Contract Signing',
-                    'description': 'Agreement on scope, timeline, and conditions.',
-                },
-                {
-                    'icon': '🎨',
-                    'title': 'Design & Creative Review',
-                    'description': 'Custom visual design in Figma with reviews and adjustments.',
-                },
-                {
-                    'icon': '💻',
-                    'title': 'Native Development',
-                    'description': 'Custom coding, payment gateway and email integration.',
-                },
-                {
-                    'icon': '🚀',
-                    'title': 'Launch & Deployment',
-                    'description': 'QA, production deployment, and domain setup.',
-                },
-                {
-                    'icon': '💖',
-                    'title': 'Final Delivery',
-                    'description': 'Site online and validated, closing the digital transformation cycle.',
-                },
-            ],
-        },
-    },
-    {
         'section_type': 'functional_requirements',
         'title': '🧩 Functional Requirements',
-        'order': 7,
+        'order': 8,
         'is_wide_panel': True,
         'content_json': {
-            'index': '7',
+            'index': '8',
             'title': 'Functional Requirements',
             'intro': 'Below are the functional requirements for the project.',
             'groups': [
@@ -850,115 +909,58 @@ DEFAULT_SECTIONS_EN = [
         },
     },
     {
-        'section_type': 'timeline',
-        'title': '⏳ Project Timeline',
-        'order': 8,
+        'section_type': 'development_stages',
+        'title': '📌 Contracting & Development Stages',
+        'order': 9,
         'is_wide_panel': True,
         'content_json': {
-            'index': '8',
-            'title': 'Project Timeline',
-            'introText': 'The project will be developed in the following phases:',
-            'totalDuration': 'Approximately 1 month',
-            'phases': [
-                {
-                    'title': '🎨 Design',
-                    'duration': '1 week',
-                    'weeks': 'Week 1',
-                    'circleColor': 'bg-purple-600',
-                    'statusColor': 'bg-purple-100 text-purple-700',
-                    'description': 'Custom visual design in Figma, reviews and adjustments.',
-                    'tasks': ['Moodboard and color palette', 'High-fidelity UI design', 'Client reviews'],
-                    'milestone': 'Design approved',
-                },
-                {
-                    'title': '💻 Development',
-                    'duration': '2 weeks',
-                    'weeks': 'Weeks 2-3',
-                    'circleColor': 'bg-green-600',
-                    'statusColor': 'bg-green-100 text-green-700',
-                    'description': 'Native coding, payment gateway and email integration.',
-                    'tasks': ['Responsive frontend', 'Backend and database', 'Integrations'],
-                    'milestone': 'Functional MVP',
-                },
-                {
-                    'title': '🚀 QA & Launch',
-                    'duration': '3 days',
-                    'weeks': 'Week 4',
-                    'circleColor': 'bg-orange-600',
-                    'statusColor': 'bg-orange-100 text-orange-700',
-                    'description': 'Final testing, adjustments, and publication.',
-                    'tasks': ['Cross-browser testing', 'Final adjustments', 'Production deploy'],
-                    'milestone': 'Site in production',
-                },
-                {
-                    'title': '📦 Delivery & Deployment',
-                    'duration': '3 days',
-                    'weeks': 'Week 4',
-                    'circleColor': 'bg-pink-600',
-                    'statusColor': 'bg-pink-100 text-pink-700',
-                    'description': 'Domain setup, documentation delivery, and closure.',
-                    'tasks': ['Domain and SSL setup', 'Documentation delivery', 'Client training'],
-                    'milestone': 'Final delivery 💫',
-                },
-            ],
-        },
-    },
-    {
-        'section_type': 'investment',
-        'title': '💰 Investment & Payment Options',
-        'order': 9,
-        'is_wide_panel': False,
-        'content_json': {
             'index': '9',
-            'title': 'Investment & Payment Options',
-            'introText': 'The total investment for this project is:',
-            'totalInvestment': '',
-            'currency': 'USD',
-            'whatsIncluded': [
-                {'icon': '🎨', 'title': 'Design', 'description': 'UX/UI focused on conversion'},
-                {'icon': '⚙️', 'title': 'Development', 'description': 'Full project implementation'},
-                {'icon': '☁️', 'title': 'Hosting', 'description': 'Cloud 1 plan available'},
-            ],
-            'paymentOptions': [
-                {'label': '40% upon signing the contract ✍️', 'description': ''},
-                {'label': '30% upon final design approval ✅', 'description': ''},
-                {'label': '30% upon site deployment 🚀', 'description': ''},
-            ],
-            'hostingPlan': {
-                'title': 'Included Hosting – Cloud 1',
-                'description': 'Optimized infrastructure for high-performance and availability:',
-                'specs': [
-                    {'icon': '🧠', 'label': 'vCPU', 'value': '1 vCPU core'},
-                    {'icon': '🧮', 'label': 'RAM', 'value': '1 GB dedicated RAM'},
-                    {'icon': '💾', 'label': 'Storage', 'value': '2 GB NVMe storage'},
-                    {'icon': '🌐', 'label': 'Bandwidth', 'value': '600 GB monthly'},
-                    {'icon': '📍', 'label': 'Data centers', 'value': 'US, Brazil, France, Lithuania & India'},
-                    {'icon': '🧬', 'label': 'Compatibility', 'value': 'Linux (Ubuntu)'},
-                ],
-                'monthlyPrice': '$4.99 USD',
-                'monthlyLabel': 'per month',
-                'annualPrice': '$59.88 USD',
-                'annualLabel': 'annual payment',
-            },
-            'paymentMethods': [
-                'Bank transfer',
-                'Credit/Debit card',
-            ],
-            'valueReasons': [
-                'Custom-made design',
-                'Optimized code',
-                'Post-launch support',
+            'title': 'Contracting & Development Stages',
+            'intro': 'Our process is designed to offer clarity, trust, and support at every stage 🧭:',
+            'currentLabel': 'Current',
+            'stages': [
+                {
+                    'icon': '✉️',
+                    'title': 'Commercial Proposal',
+                    'description': 'Formal presentation of the technical and economic proposal (current stage).',
+                    'current': True,
+                },
+                {
+                    'icon': '✍️',
+                    'title': 'Contract Signing',
+                    'description': 'Agreement on scope, timeline, and conditions.',
+                },
+                {
+                    'icon': '🎨',
+                    'title': 'Design & Creative Review',
+                    'description': 'Custom visual design in Figma with reviews and adjustments.',
+                },
+                {
+                    'icon': '�',
+                    'title': 'Native Development',
+                    'description': 'Custom coding, payment gateway and email integration.',
+                },
+                {
+                    'icon': '🚀',
+                    'title': 'Launch & Deployment',
+                    'description': 'QA, production deployment, and domain setup.',
+                },
+                {
+                    'icon': '�',
+                    'title': 'Final Delivery',
+                    'description': 'Site online and validated, closing the digital transformation cycle.',
+                },
             ],
         },
     },
     {
         'section_type': 'final_note',
-        'title': '📝 Final Note',
+        'title': '📝 Final Note & Next Steps',
         'order': 10,
         'is_wide_panel': False,
         'content_json': {
             'index': '10',
-            'title': 'Final Note',
+            'title': 'Final Note & Next Steps',
             'message': (
                 'We firmly believe this proposal represents an exceptional opportunity '
                 'to transform your digital presence and achieve your business goals.'
