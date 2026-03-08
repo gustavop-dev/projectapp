@@ -305,23 +305,6 @@ def get_blog_json_template(request):
         'meta_keywords_es': '',
         'meta_keywords_en': '',
         '_available_categories': AVAILABLE_CATEGORIES,
-        '_available_authors': [
-            {'slug': slug, 'label': label}
-            for slug, label in BlogPost.AUTHOR_CHOICES
-        ],
-        '_block_instructions': {
-            'content': 'Texto de párrafo para la sección. String simple.',
-            'list': 'Array de strings. Se renderiza como lista con íconos de check.',
-            'subsections': 'Array de {title, description}. Se renderiza como tarjetas.',
-            'timeline': 'Array de {step, description}. Se renderiza como pasos numerados verticales.',
-            'examples': 'Array de strings. Se renderiza como grid de tarjetas de ejemplo.',
-            'image': '{url, alt, credit, credit_url}. Imagen inline con crédito del autor (ej. Unsplash).',
-            'quote': '{text, author}. Cita destacada con borde lemon.',
-            'callout': '{type, title, text}. Caja resaltada. type: tip | warning | info | note.',
-            'video': '{url, title}. Embed de YouTube o Vimeo. Pegar URL normal del video.',
-            'key_takeaways': 'Array de strings. Caja de resumen numerada con ícono 💡. Los motores de IA extraen esto.',
-            'faq': 'Array de {question, answer}. Preguntas frecuentes con acordeón. Genera FAQ Schema para Google.',
-        },
     }
     return Response(template, status=status.HTTP_200_OK)
 
