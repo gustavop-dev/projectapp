@@ -255,7 +255,7 @@ const configurableRequirementItems = computed(() => {
           groupTitle: group.title,
           price: item.price ?? 0,
           included: true,
-          is_required: item.is_required !== false,
+          is_required: item.is_required === true,
           _source: 'functional_requirements',
         });
       }

@@ -142,7 +142,7 @@ watch(() => props.visible, (val) => {
     } catch (_e) { /* ignore */ }
 
     localModules.value = props.modules.map(m => {
-      const locked = m.is_required !== false;
+      const locked = m.is_required === true;
       return {
         ...m,
         selected: locked ? true : (saved ? saved.includes(m.id) : true),

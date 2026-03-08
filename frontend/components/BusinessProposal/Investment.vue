@@ -304,7 +304,7 @@ onMounted(() => {
         const base = parseInvestment(props.totalInvestment);
         const deselectedSum = props.modules
           .filter(m => {
-            const locked = m.is_required !== false;
+            const locked = m.is_required === true;
             return !locked && !selectedIds.includes(m.id);
           })
           .reduce((sum, m) => sum + (m.price || 0), 0);
