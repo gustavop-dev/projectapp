@@ -47,19 +47,6 @@
         </button>
       </div>
 
-      <!-- Sticky customize button (visible while scrolling through section) -->
-      <div
-        v-if="modules && modules.length"
-        class="sticky bottom-6 z-30 flex justify-center pointer-events-none mt-[-3rem]"
-      >
-        <button
-          class="pointer-events-auto px-6 py-3 bg-lemon text-esmerald rounded-xl font-bold text-sm hover:bg-lemon/90 transition-all shadow-lg shadow-lemon/30"
-          @click="calculatorOpen = true"
-        >
-          🧮 {{ t.customizeBtn }}
-        </button>
-      </div>
-
       <!-- Discount banner -->
       <div v-if="hasActiveDiscount" data-animate="fade-up" class="discount-banner mb-12 relative overflow-hidden bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-5 sm:p-8">
         <div class="absolute top-0 right-0 bg-amber-500 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl">
@@ -332,6 +319,23 @@ onMounted(() => {
       btnPulse.value = true;
       setTimeout(() => { btnPulse.value = false; }, 4000);
     }, 1500);
+    setTimeout(() => {
+      const el = customizeBtnRef.value;
+      if (!el) return;
+      const targetY = el.getBoundingClientRect().top + window.scrollY - window.innerHeight / 2;
+      const startY = window.scrollY;
+      const diff = targetY - startY;
+      const duration = 1500;
+      let startTime = null;
+      function step(ts) {
+        if (!startTime) startTime = ts;
+        const progress = Math.min((ts - startTime) / duration, 1);
+        const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+        window.scrollTo(0, startY + diff * ease);
+        if (progress < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }, 2000);
   }
 });
 
