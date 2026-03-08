@@ -144,6 +144,16 @@ def _strip_emoji(text):
     return _EMOJI_RE.sub('', str(text)).strip()
 
 
+def _format_cop(value):
+    """Format a number as Colombian currency: $1.490.000 (dots as thousands)."""
+    try:
+        num = int(value)
+    except (TypeError, ValueError):
+        return str(value)
+    formatted = f'{num:,}'.replace(',', '.')
+    return f'${formatted}'
+
+
 _URL_RE = re.compile(r'(https?://[^\s),]+)')
 _BARE_DOMAIN_RE = re.compile(
     r'(?<![/\w@])'
@@ -1105,6 +1115,24 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
     currency = _safe(data, 'currency')
     options = _safe(data, 'paymentOptions', [])
 
+    # ── Pre-calculate adjusted total (needed for payment options too) ──
+    selected_ids = ps.get('selected_modules') if ps else None
+    adjusted = None
+    base_num = int(re.sub(r'[^\d]', '', str(total)) or '0') if total else 0
+    display_total = total or ''
+    if total and selected_ids is not None:
+        all_mods = _safe(data, 'modules', [])
+        fr_items = ps.get('_fr_items', []) if ps else []
+        deselected_sum = sum(
+            _safe(m, 'price', 0) for m in all_mods
+            if _safe(m, 'id') not in selected_ids
+        ) + sum(
+            it.get('price', 0) for it in fr_items
+            if it.get('id') not in selected_ids
+        )
+        adjusted = base_num - deselected_sum
+        display_total = _format_cop(adjusted)
+
     # Intro text — full width, brief
     if intro:
         y = _draw_paragraphs(c, y, [intro], ps=ps)
@@ -1136,9 +1164,23 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             c.setFont(_font('regular'), 8)
             c.setFillColor(ESMERALD_80)
             c.drawString(MARGIN_L + 8, left_y - 2, label)
-            # Amount pill on right edge of column
-            if desc:
-                _draw_pill(c, MARGIN_L + left_w - 80, left_y - 2, desc,
+            # Amount pill on right edge of column — recalculate if total changed
+            pill_desc = desc
+            if adjusted is not None and base_num > 0 and desc:
+                desc_num = int(re.sub(r'[^\d]', '', str(desc)) or '0')
+                if desc_num > 0:
+                    ratio = adjusted / base_num
+                    new_amount = round(desc_num * ratio)
+                    pill_desc = re.sub(
+                        r'[\$]?[\d.,]+',
+                        _format_cop(new_amount).lstrip('$'),
+                        _strip_emoji(desc),
+                        count=1,
+                    )
+                    if not pill_desc.startswith('$'):
+                        pill_desc = '$' + pill_desc
+            if pill_desc:
+                _draw_pill(c, MARGIN_L + left_w - 80, left_y - 2, pill_desc,
                            bg_color=ESMERALD, text_color=WHITE, font_size=7)
             left_y -= 22
 
@@ -1158,22 +1200,6 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
 
     # ── Compact Inversión Total ──────────────────────────────────
     if total:
-        selected_ids = ps.get('selected_modules') if ps else None
-        display_total = total
-        if selected_ids is not None:
-            # Recalculate: base - deselected (investment modules + FR items)
-            base_num = int(re.sub(r'[^\d]', '', str(total)) or '0')
-            all_mods = _safe(data, 'modules', [])
-            fr_items = ps.get('_fr_items', []) if ps else []
-            deselected_sum = sum(
-                _safe(m, 'price', 0) for m in all_mods
-                if _safe(m, 'id') not in selected_ids
-            ) + sum(
-                it.get('price', 0) for it in fr_items
-                if it.get('id') not in selected_ids
-            )
-            adjusted = base_num - deselected_sum
-            display_total = f'${adjusted:,.0f}'
         if ps:
             y = _check_y(c, y, ps, need=28)
         box_h = 24
@@ -1216,7 +1242,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             c.setFillColor(ESMERALD)
             c.drawString(MARGIN_L + 8, y - 2, f'✓  {mod_name}')
             if mod_price:
-                price_str = f'${mod_price:,.0f}'
+                price_str = _format_cop(mod_price)
                 c.setFont(_font('bold'), 8)
                 c.drawRightString(MARGIN_L + CONTENT_W - 8, y - 2, price_str)
             y -= 22
