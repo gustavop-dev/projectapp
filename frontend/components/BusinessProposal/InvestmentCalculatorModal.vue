@@ -55,7 +55,7 @@
                   </div>
                 </div>
                 <span class="font-bold text-sm" :class="mod.selected ? 'text-esmerald' : 'text-gray-400'">
-                  {{ mod._showPrice ? formatPrice(mod.price) : t.included }}
+                  {{ mod.price ? formatPrice(mod.price) : t.included }}
                 </span>
               </div>
             </div>
@@ -105,7 +105,7 @@ const i18n = {
     title: 'Personaliza tu inversión',
     subtitle: 'Selecciona los módulos que necesitas',
     selectedModules: 'Módulos seleccionados:',
-    estimatedTotal: 'Total estimado',
+    estimatedTotal: 'Total inversión',
     confirm: 'Confirmar selección',
     included: 'Incluido',
     required: 'obligatorio',
@@ -114,7 +114,7 @@ const i18n = {
     title: 'Customize your investment',
     subtitle: 'Select the modules you need',
     selectedModules: 'Selected modules:',
-    estimatedTotal: 'Estimated total',
+    estimatedTotal: 'Total investment',
     confirm: 'Confirm selection',
     included: 'Included',
     required: 'required',
@@ -140,7 +140,6 @@ watch(() => props.visible, (val) => {
         ...m,
         selected: locked ? true : (saved ? saved.includes(m.id) : m.included !== false),
         _locked: locked,
-        _showPrice: !!m.show_price,
       };
     });
   }

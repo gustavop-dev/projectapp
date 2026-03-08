@@ -38,7 +38,9 @@
         <!-- Customize investment button -->
         <button
           v-if="modules && modules.length"
+          ref="customizeBtnRef"
           class="mt-4 mx-auto block px-6 py-3 bg-lemon text-esmerald rounded-xl font-bold text-sm hover:bg-lemon/90 transition-all shadow-lg"
+          :class="{ 'btn-pulse': btnPulse }"
           @click="calculatorOpen = true"
         >
           🧮 {{ t.customizeBtn }}
@@ -187,6 +189,8 @@ useSectionAnimations(sectionRef);
 const specsOpen = ref(false);
 const calculatorOpen = ref(false);
 const customTotal = ref(null);
+const customizeBtnRef = ref(null);
+const btnPulse = ref(false);
 
 const props = defineProps({
   language: {
@@ -300,6 +304,12 @@ onMounted(() => {
       }
     } catch (_e) { /* ignore */ }
   }
+  if (props.modules?.length) {
+    setTimeout(() => {
+      btnPulse.value = true;
+      setTimeout(() => { btnPulse.value = false; }, 4000);
+    }, 1500);
+  }
 });
 
 function onSelectionUpdate({ total }) {
@@ -408,5 +418,18 @@ const normalizedReasons = computed(() => {
 .collapse-leave-from {
   opacity: 1;
   max-height: 600px;
+}
+
+.btn-pulse {
+  animation: btnDoublePulse 3.6s ease-in-out;
+}
+
+@keyframes btnDoublePulse {
+  0%   { box-shadow: 0 0 0 0 rgba(225, 255, 0, 0.4); }
+  10%  { box-shadow: 0 0 16px 6px rgba(225, 255, 0, 0.35); }
+  24%  { box-shadow: 0 0 0 0 rgba(225, 255, 0, 0); }
+  38%  { box-shadow: 0 0 16px 6px rgba(225, 255, 0, 0.35); }
+  54%  { box-shadow: 0 0 0 0 rgba(225, 255, 0, 0); }
+  100% { box-shadow: none; }
 }
 </style>

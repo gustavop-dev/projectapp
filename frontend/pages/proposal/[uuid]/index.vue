@@ -183,16 +183,19 @@ const displayPanels = computed(() => {
   }
 
   // Add closing panel (validity, thank-you, accept/reject) after all sections
-  const finalNote = enabledSections.value.find(s => s.section_type === 'final_note');
-  const fnContent = finalNote?.content_json || {};
-  panels.push({
-    id: 'proposal_closing',
-    section_type: 'proposal_closing',
-    title: '🤝 Próximos pasos',
-    _validityMessage: fnContent.validityMessage || '',
-    _thankYouMessage: fnContent.thankYouMessage || '',
-    _expiresAt: proposal.value?.expires_at || '',
-  });
+  // Only add when sections are loaded to prevent marking it as visited on first render
+  if (enabledSections.value.length > 0) {
+    const finalNote = enabledSections.value.find(s => s.section_type === 'final_note');
+    const fnContent = finalNote?.content_json || {};
+    panels.push({
+      id: 'proposal_closing',
+      section_type: 'proposal_closing',
+      title: '🤝 Próximos pasos',
+      _validityMessage: fnContent.validityMessage || '',
+      _thankYouMessage: fnContent.thankYouMessage || '',
+      _expiresAt: proposal.value?.expires_at || '',
+    });
+  }
 
   return panels;
 });
@@ -252,7 +255,6 @@ const configurableRequirementItems = computed(() => {
           groupTitle: group.title,
           price: item.price ?? 0,
           included: true,
-          show_price: !!item.show_price,
           is_required: item.is_required !== false,
           removable: !!item.removable,
           _source: 'functional_requirements',
