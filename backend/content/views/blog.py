@@ -1,6 +1,8 @@
 import copy as _copy
 import logging
+from xml.sax.saxutils import escape as xml_escape
 
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes, permission_classes
@@ -19,6 +21,82 @@ from content.serializers.blog import (
     AVAILABLE_CATEGORIES,
     BLOG_JSON_TEMPLATE,
 )
+
+
+BASE_URL = 'https://projectapp.co'
+
+STATIC_SITEMAP_PAGES = [
+    ('/en-us', '/es-co', 'weekly', '1.0'),
+    ('/es-co', '/en-us', 'weekly', '1.0'),
+    ('/en-us/landing-web-design', '/es-co/landing-web-design', 'weekly', '0.9'),
+    ('/es-co/landing-web-design', '/en-us/landing-web-design', 'weekly', '0.9'),
+    ('/en-us/about-us', '/es-co/about-us', 'monthly', '0.9'),
+    ('/es-co/about-us', '/en-us/about-us', 'monthly', '0.9'),
+    ('/en-us/web-designs', '/es-co/web-designs', 'weekly', '0.9'),
+    ('/es-co/web-designs', '/en-us/web-designs', 'weekly', '0.9'),
+    ('/en-us/portfolio-works', '/es-co/portfolio-works', 'weekly', '0.9'),
+    ('/es-co/portfolio-works', '/en-us/portfolio-works', 'weekly', '0.9'),
+    ('/en-us/custom-software', '/es-co/custom-software', 'monthly', '0.9'),
+    ('/es-co/custom-software', '/en-us/custom-software', 'monthly', '0.9'),
+    ('/en-us/3d-animations', '/es-co/3d-animations', 'weekly', '0.8'),
+    ('/es-co/3d-animations', '/en-us/3d-animations', 'weekly', '0.8'),
+    ('/en-us/e-commerce-prices', '/es-co/e-commerce-prices', 'monthly', '0.7'),
+    ('/es-co/e-commerce-prices', '/en-us/e-commerce-prices', 'monthly', '0.7'),
+    ('/en-us/hosting', '/es-co/hosting', 'monthly', '0.7'),
+    ('/es-co/hosting', '/en-us/hosting', 'monthly', '0.7'),
+    ('/en-us/contact', '/es-co/contact', 'monthly', '0.6'),
+    ('/es-co/contact', '/en-us/contact', 'monthly', '0.6'),
+]
+
+
+def serve_sitemap_xml(request):
+    """Serve a dynamic sitemap.xml combining static pages and published blog posts."""
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+        '        xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+        '',
+    ]
+
+    for path, alt, changefreq, priority in STATIC_SITEMAP_PAGES:
+        hl_self = 'en-us' if path.startswith('/en-us') else 'es-co'
+        hl_alt = 'es-co' if hl_self == 'en-us' else 'en-us'
+        lines.append('  <url>')
+        lines.append(f'    <loc>{BASE_URL}{xml_escape(path)}</loc>')
+        lines.append(f'    <xhtml:link rel="alternate" hreflang="{hl_self}" href="{BASE_URL}{xml_escape(path)}" />')
+        lines.append(f'    <xhtml:link rel="alternate" hreflang="{hl_alt}" href="{BASE_URL}{xml_escape(alt)}" />')
+        lines.append(f'    <changefreq>{changefreq}</changefreq>')
+        lines.append(f'    <priority>{priority}</priority>')
+        lines.append('  </url>')
+
+    lines.append('')
+    lines.append('  <!-- Blog -->')
+    lines.append('  <url>')
+    lines.append(f'    <loc>{BASE_URL}/blog</loc>')
+    lines.append('    <changefreq>daily</changefreq>')
+    lines.append('    <priority>0.8</priority>')
+    lines.append('  </url>')
+
+    posts = BlogPost.objects.filter(is_published=True).values('slug', 'updated_at')
+    for post in posts:
+        lastmod = post['updated_at'].strftime('%Y-%m-%d') if post['updated_at'] else ''
+        lines.append('  <url>')
+        lines.append(f'    <loc>{BASE_URL}/blog/{xml_escape(post["slug"])}</loc>')
+        if lastmod:
+            lines.append(f'    <lastmod>{lastmod}</lastmod>')
+        lines.append('    <changefreq>weekly</changefreq>')
+        lines.append('    <priority>0.7</priority>')
+        lines.append('  </url>')
+
+    lines.append('')
+    lines.append('</urlset>')
+    lines.append('')
+
+    xml = '\n'.join(lines)
+    response = HttpResponse(xml, content_type='application/xml; charset=utf-8')
+    response['Cache-Control'] = 'public, max-age=3600, s-maxage=3600'
+    return response
+
 
 logger = logging.getLogger(__name__)
 

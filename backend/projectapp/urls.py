@@ -5,6 +5,7 @@ from content.admin import admin_site
 from django.conf.urls.static import static
 
 from .views import serve_nuxt
+from content.views.blog import serve_sitemap_xml
 
 
 def health_check(request):
@@ -15,6 +16,7 @@ urlpatterns = [
     path('api/health/', health_check, name='health-check'),
     path('admin/', admin_site.urls),
     path('api/', include('content.urls')),
+    path('sitemap.xml', serve_sitemap_xml, name='sitemap-xml'),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
