@@ -37,6 +37,7 @@ class BlogPostListSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'title', 'slug', 'cover_image',
             'excerpt', 'category', 'read_time_minutes', 'is_featured',
+            'author',
             'is_published', 'published_at', 'created_at',
         )
 
@@ -65,13 +66,17 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
     meta_description = serializers.SerializerMethodField()
     cover_image = serializers.SerializerMethodField()
 
+    meta_keywords = serializers.SerializerMethodField()
+
     class Meta:
         model = BlogPost
         fields = (
             'id', 'title', 'slug', 'cover_image',
+            'cover_image_credit', 'cover_image_credit_url',
             'excerpt', 'content', 'content_json', 'sources',
             'category', 'read_time_minutes', 'is_featured',
-            'meta_title', 'meta_description',
+            'author',
+            'meta_title', 'meta_description', 'meta_keywords',
             'is_published', 'published_at',
             'created_at', 'updated_at',
         )
@@ -99,6 +104,10 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
     def get_meta_description(self, obj):
         lang = _get_lang(self)
         return getattr(obj, f'meta_description_{lang}')
+
+    def get_meta_keywords(self, obj):
+        lang = _get_lang(self)
+        return getattr(obj, f'meta_keywords_{lang}')
 
     def get_cover_image(self, obj):
         return _get_cover_image_display(obj)
@@ -139,12 +148,15 @@ class BlogPostAdminDetailSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'title_es', 'title_en', 'slug', 'cover_image',
             'cover_image_url', 'cover_image_display',
+            'cover_image_credit', 'cover_image_credit_url',
             'excerpt_es', 'excerpt_en',
             'content_es', 'content_en',
             'content_json_es', 'content_json_en',
             'sources', 'category', 'read_time_minutes', 'is_featured',
+            'author',
             'meta_title_es', 'meta_title_en',
             'meta_description_es', 'meta_description_en',
+            'meta_keywords_es', 'meta_keywords_en',
             'is_published', 'published_at',
             'created_at', 'updated_at',
         )
@@ -163,12 +175,15 @@ class BlogPostCreateUpdateSerializer(serializers.ModelSerializer):
         fields = (
             'title_es', 'title_en', 'slug', 'cover_image',
             'cover_image_url',
+            'cover_image_credit', 'cover_image_credit_url',
             'excerpt_es', 'excerpt_en',
             'content_es', 'content_en',
             'content_json_es', 'content_json_en',
             'sources', 'category', 'read_time_minutes', 'is_featured',
+            'author',
             'meta_title_es', 'meta_title_en',
             'meta_description_es', 'meta_description_en',
+            'meta_keywords_es', 'meta_keywords_en',
             'is_published', 'published_at',
         )
         extra_kwargs = {
@@ -185,6 +200,11 @@ class BlogPostCreateUpdateSerializer(serializers.ModelSerializer):
             'meta_title_en': {'required': False},
             'meta_description_es': {'required': False},
             'meta_description_en': {'required': False},
+            'meta_keywords_es': {'required': False},
+            'meta_keywords_en': {'required': False},
+            'cover_image_credit': {'required': False},
+            'cover_image_credit_url': {'required': False},
+            'author': {'required': False},
         }
 
     def validate_sources(self, value):
@@ -215,7 +235,10 @@ class BlogPostCreateUpdateSerializer(serializers.ModelSerializer):
 # JSON content validation helper
 # ---------------------------------------------------------------------------
 
-ALLOWED_SECTION_KEYS = {'heading', 'content', 'list', 'subsections', 'timeline', 'examples'}
+ALLOWED_SECTION_KEYS = {
+    'heading', 'content', 'list', 'subsections', 'timeline', 'examples',
+    'image', 'quote', 'callout', 'video', 'key_takeaways', 'faq',
+}
 
 
 def _validate_content_json(value):
@@ -263,6 +286,24 @@ BLOG_JSON_TEMPLATE = {
             ],
         },
         {
+            'heading': 'Section with Image',
+            'content': 'Content that accompanies the image.',
+            'image': {
+                'url': 'https://images.unsplash.com/photo-example',
+                'alt': 'Descriptive alt text for the image.',
+                'credit': 'Photo by John Doe on Unsplash',
+                'credit_url': 'https://unsplash.com/@johndoe',
+            },
+        },
+        {
+            'heading': 'Section with Quote',
+            'content': 'Context around the quote.',
+            'quote': {
+                'text': 'The best way to predict the future is to invent it.',
+                'author': 'Alan Kay',
+            },
+        },
+        {
             'heading': 'Process / Timeline',
             'content': 'How the process works:',
             'timeline': [
@@ -274,6 +315,44 @@ BLOG_JSON_TEMPLATE = {
             'heading': 'Examples',
             'content': 'Real-world use cases:',
             'examples': ['Example one', 'Example two'],
+        },
+        {
+            'heading': 'Important Note',
+            'content': 'Additional context around the callout.',
+            'callout': {
+                'type': 'tip',
+                'title': 'Pro Tip',
+                'text': 'Callout body text. Type can be: tip, warning, info, or note.',
+            },
+        },
+        {
+            'heading': 'Watch the Demo',
+            'content': 'See it in action:',
+            'video': {
+                'url': 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                'title': 'Demo video title for accessibility.',
+            },
+        },
+        {
+            'heading': 'Key Takeaways',
+            'key_takeaways': [
+                'First key insight or learning from the article.',
+                'Second key insight summarised in one sentence.',
+                'Third takeaway the reader should remember.',
+            ],
+        },
+        {
+            'heading': 'Frequently Asked Questions',
+            'faq': [
+                {
+                    'question': 'What is the main benefit?',
+                    'answer': 'The main benefit is improved efficiency and lower costs.',
+                },
+                {
+                    'question': 'How long does implementation take?',
+                    'answer': 'Typical implementation takes 2-4 weeks depending on complexity.',
+                },
+            ],
         },
     ],
     'conclusion': 'Concluding paragraph summarising the article.',
@@ -305,10 +384,15 @@ class BlogPostFromJSONSerializer(serializers.Serializer):
     read_time_minutes = serializers.IntegerField(required=False, default=0)
     is_featured = serializers.BooleanField(required=False, default=False)
     is_published = serializers.BooleanField(required=False, default=False)
+    author = serializers.CharField(max_length=50, required=False, default='projectapp-team', allow_blank=True)
     meta_title_es = serializers.CharField(max_length=255, required=False, default='', allow_blank=True)
     meta_title_en = serializers.CharField(max_length=255, required=False, default='', allow_blank=True)
     meta_description_es = serializers.CharField(required=False, default='', allow_blank=True)
     meta_description_en = serializers.CharField(required=False, default='', allow_blank=True)
+    meta_keywords_es = serializers.CharField(max_length=500, required=False, default='', allow_blank=True)
+    meta_keywords_en = serializers.CharField(max_length=500, required=False, default='', allow_blank=True)
+    cover_image_credit = serializers.CharField(max_length=255, required=False, default='', allow_blank=True)
+    cover_image_credit_url = serializers.CharField(required=False, default='', allow_blank=True)
 
     def validate_content_json_es(self, value):
         return _validate_content_json(value)

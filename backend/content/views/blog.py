@@ -155,10 +155,15 @@ def create_blog_post_from_json(request):
         read_time_minutes=data.get('read_time_minutes', 0),
         is_featured=data.get('is_featured', False),
         is_published=data.get('is_published', False),
+        author=data.get('author', 'projectapp-team'),
         meta_title_es=data.get('meta_title_es', ''),
         meta_title_en=data.get('meta_title_en', ''),
         meta_description_es=data.get('meta_description_es', ''),
         meta_description_en=data.get('meta_description_en', ''),
+        meta_keywords_es=data.get('meta_keywords_es', ''),
+        meta_keywords_en=data.get('meta_keywords_en', ''),
+        cover_image_credit=data.get('cover_image_credit', ''),
+        cover_image_credit_url=data.get('cover_image_credit_url', ''),
     )
 
     detail = BlogPostAdminDetailSerializer(post)
@@ -177,8 +182,12 @@ def get_blog_json_template(request):
         'title_en': 'Article title in English',
         'excerpt_es': 'Resumen corto en español (1-2 oraciones).',
         'excerpt_en': 'Short summary in English (1-2 sentences).',
+        'author': 'projectapp-team',
         'content_json_es': _copy.deepcopy(BLOG_JSON_TEMPLATE),
         'content_json_en': _copy.deepcopy(BLOG_JSON_TEMPLATE),
+        'cover_image_url': '',
+        'cover_image_credit': '',
+        'cover_image_credit_url': '',
         'sources': [
             {'name': 'Source Name', 'url': 'https://example.com'},
         ],
@@ -190,9 +199,39 @@ def get_blog_json_template(request):
         'meta_title_en': '',
         'meta_description_es': '',
         'meta_description_en': '',
+        'meta_keywords_es': '',
+        'meta_keywords_en': '',
         '_available_categories': AVAILABLE_CATEGORIES,
+        '_available_authors': [
+            {'slug': slug, 'label': label}
+            for slug, label in BlogPost.AUTHOR_CHOICES
+        ],
+        '_block_instructions': {
+            'content': 'Texto de párrafo para la sección. String simple.',
+            'list': 'Array de strings. Se renderiza como lista con íconos de check.',
+            'subsections': 'Array de {title, description}. Se renderiza como tarjetas.',
+            'timeline': 'Array de {step, description}. Se renderiza como pasos numerados verticales.',
+            'examples': 'Array de strings. Se renderiza como grid de tarjetas de ejemplo.',
+            'image': '{url, alt, credit, credit_url}. Imagen inline con crédito del autor (ej. Unsplash).',
+            'quote': '{text, author}. Cita destacada con borde lemon.',
+            'callout': '{type, title, text}. Caja resaltada. type: tip | warning | info | note.',
+            'video': '{url, title}. Embed de YouTube o Vimeo. Pegar URL normal del video.',
+            'key_takeaways': 'Array de strings. Caja de resumen numerada con ícono 💡. Los motores de IA extraen esto.',
+            'faq': 'Array de {question, answer}. Preguntas frecuentes con acordeón. Genera FAQ Schema para Google.',
+        },
     }
     return Response(template, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def blog_sitemap_data(request):
+    """
+    Return a lightweight list of published blog posts for dynamic sitemap generation.
+    Each entry contains slug and updated_at.
+    """
+    qs = BlogPost.objects.filter(is_published=True).values('slug', 'updated_at')
+    return Response(list(qs), status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])

@@ -19,6 +19,12 @@ class BlogPost(models.Model):
       falls back to HTML via v-html.
     """
 
+    AUTHOR_CHOICES = [
+        ('projectapp-team', 'Project App Team'),
+        ('gustavo-perez', 'Gustavo Pérez — CEO'),
+        ('carlos-blanco', 'Carlos Blanco — CFO'),
+    ]
+
     CATEGORY_CHOICES = [
         ('technology', 'Technology'),
         ('design', 'Design'),
@@ -46,6 +52,14 @@ class BlogPost(models.Model):
     cover_image_url = models.URLField(
         max_length=500, blank=True, default='',
         help_text='External URL for cover image (used when no file is uploaded).',
+    )
+    cover_image_credit = models.CharField(
+        max_length=255, blank=True, default='',
+        help_text='Attribution text for the cover image (e.g. "Photo by John Doe on Unsplash").',
+    )
+    cover_image_credit_url = models.URLField(
+        max_length=500, blank=True, default='',
+        help_text='URL to the photographer profile or image source page.',
     )
     excerpt_es = models.TextField(
         help_text='Resumen corto en español (1-2 oraciones).'
@@ -86,6 +100,11 @@ class BlogPost(models.Model):
         default=False,
         help_text='Pin this post as the featured/hero post on the blog listing.'
     )
+    author = models.CharField(
+        max_length=50, blank=True, default='projectapp-team',
+        choices=AUTHOR_CHOICES,
+        help_text='Author profile slug (projectapp-team, gustavo-perez, carlos-blanco).',
+    )
 
     meta_title_es = models.CharField(
         max_length=255, blank=True, default='',
@@ -102,6 +121,14 @@ class BlogPost(models.Model):
     meta_description_en = models.TextField(
         blank=True, default='',
         help_text='SEO meta description in English.'
+    )
+    meta_keywords_es = models.CharField(
+        max_length=500, blank=True, default='',
+        help_text='Comma-separated SEO keywords in Spanish.',
+    )
+    meta_keywords_en = models.CharField(
+        max_length=500, blank=True, default='',
+        help_text='Comma-separated SEO keywords in English.',
     )
 
     is_published = models.BooleanField(default=False)

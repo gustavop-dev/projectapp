@@ -282,6 +282,8 @@ const form = reactive({
   content_es: '',
   content_en: '',
   cover_image_url: '',
+  cover_image_credit: '',
+  cover_image_credit_url: '',
   sources: [],
   category: '',
   read_time_minutes: 0,
@@ -420,6 +422,10 @@ async function handleJsonSubmit() {
     meta_title_en: p.meta_title_en || '',
     meta_description_es: p.meta_description_es || '',
     meta_description_en: p.meta_description_en || '',
+    meta_keywords_es: p.meta_keywords_es || '',
+    meta_keywords_en: p.meta_keywords_en || '',
+    cover_image_credit: p.cover_image_credit || '',
+    cover_image_credit_url: p.cover_image_credit_url || '',
   };
 
   if (jsonPublishMode.value === 'now') {

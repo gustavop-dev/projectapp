@@ -6,7 +6,7 @@
     </header>
 
     <!-- Hero Section -->
-    <section class="relative pt-32 sm:pt-40 pb-16 sm:pb-20 px-4 sm:px-6 overflow-hidden" aria-labelledby="blog-title">
+    <section ref="heroSection" class="relative pt-32 sm:pt-40 pb-16 sm:pb-20 px-4 sm:px-6 overflow-hidden" aria-labelledby="blog-title">
       <!-- Subtle decorative circles -->
       <div class="absolute top-20 -left-32 w-96 h-96 bg-esmerald/5 rounded-full blur-3xl" />
       <div class="absolute top-40 -right-32 w-80 h-80 bg-lemon/10 rounded-full blur-3xl" />
@@ -42,7 +42,7 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0 sm:flex-wrap sm:justify-center sm:overflow-visible scrollbar-hide">
+          <div ref="filtersRow" class="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0 sm:flex-wrap sm:justify-center sm:overflow-visible scrollbar-hide">
             <button
               :class="[
                 'flex-shrink-0 px-4 sm:px-6 py-2.5 sm:py-3 rounded-full transition-all hover:scale-105 border-2 text-sm sm:text-base whitespace-nowrap',
@@ -92,6 +92,7 @@
           <!-- Featured Post (full-width hero with gradient overlay) -->
           <article
             v-if="featured && selectedCategory === '' && !searchQuery"
+            ref="featuredCard"
             class="mb-20 group cursor-pointer"
             @click="navigateTo(`/blog/${featured.slug}`)"
             itemscope
@@ -198,7 +199,7 @@
           </div>
 
           <!-- Desktop grid -->
-          <div class="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 pb-20">
+          <div ref="postsGrid" class="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 pb-20">
             <article
               v-for="post in filteredPosts"
               :key="post.id"
@@ -271,7 +272,7 @@
     </main>
 
     <!-- CTA Section -->
-    <section class="py-14 sm:py-20 px-4 sm:px-6 bg-esmerald">
+    <section ref="ctaSection" class="py-14 sm:py-20 px-4 sm:px-6 bg-esmerald">
       <div class="max-w-4xl mx-auto text-center">
         <h2 class="text-3xl sm:text-4xl md:text-5xl font-light mb-6 tracking-tight text-white">
           {{ isEnglish ? 'Have a Project in Mind?' : '¿Tienes un Proyecto en Mente?' }}
@@ -301,11 +302,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import Navbar from '~/components/layouts/Navbar.vue';
 import ContactSection from '~/views-legacy/partials/ContactSection.vue';
 import FooterSection from '~/views-legacy/partials/FooterSection.vue';
 import { useBlogStore } from '~/stores/blog';
+import { fadeUp, staggerFadeUp } from '~/animations';
 
 const { locale } = useI18n();
 const blogStore = useBlogStore();
@@ -376,9 +378,39 @@ function formatCategory(cat) {
   return cat;
 }
 
+const heroSection = ref(null);
+const filtersRow = ref(null);
+const featuredCard = ref(null);
+const postsGrid = ref(null);
+const ctaSection = ref(null);
+
+function runHeroAnimations() {
+  if (heroSection.value) {
+    const title = heroSection.value.querySelector('#blog-title');
+    const subtitle = heroSection.value.querySelector('p');
+    if (title) fadeUp(title, { delay: 0.1 });
+    if (subtitle) fadeUp(subtitle, { delay: 0.25 });
+  }
+  if (filtersRow.value) fadeUp(filtersRow.value, { delay: 0.4 });
+}
+
+function runPostAnimations() {
+  nextTick(() => {
+    if (featuredCard.value) fadeUp(featuredCard.value, { delay: 0.1 });
+    if (postsGrid.value) {
+      const cards = postsGrid.value.querySelectorAll('article');
+      if (cards.length) staggerFadeUp(Array.from(cards), { delay: 0.15 });
+    }
+  });
+}
+
 onMounted(() => {
   blogStore.fetchPosts(blogLang.value);
+  runHeroAnimations();
+  if (ctaSection.value) fadeUp(ctaSection.value, { scrollTrigger: { trigger: ctaSection.value } });
 });
+
+watch(posts, () => { runPostAnimations(); });
 
 function formatDate(dateStr) {
   if (!dateStr) return '';

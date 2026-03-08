@@ -19,7 +19,7 @@ from content.views.proposal import (
     list_clients,
 )
 from content.views.blog import (
-    list_blog_posts, retrieve_blog_post,
+    list_blog_posts, retrieve_blog_post, blog_sitemap_data,
     list_admin_blog_posts, create_blog_post, create_blog_post_from_json,
     get_blog_json_template,
     retrieve_admin_blog_post, update_blog_post, delete_blog_post,
@@ -82,5 +82,6 @@ urlpatterns = [
 
     # Blog — public
     path('blog/', list_blog_posts, name='list-blog-posts'),
+    path('blog/sitemap-data/', blog_sitemap_data, name='blog-sitemap-data'),
     path('blog/<slug:slug>/', retrieve_blog_post, name='retrieve-blog-post'),
 ]

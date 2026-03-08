@@ -50,7 +50,7 @@
     <template v-else-if="post">
       <article>
         <!-- Article Header -->
-        <header class="px-4 sm:px-6 pb-8 sm:pb-12">
+        <header ref="articleHeader" class="px-4 sm:px-6 pb-8 sm:pb-12">
           <div class="max-w-4xl mx-auto">
             <div class="flex flex-wrap items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
               <span v-if="post.category" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm bg-esmerald-light text-esmerald font-medium capitalize">
@@ -78,12 +78,14 @@
 
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-8 sm:pb-10 border-b border-gray-200/60">
               <div class="flex items-center gap-4">
-                <div class="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-esmerald-light flex items-center justify-center">
-                  <span class="text-lg sm:text-xl font-medium text-esmerald">P</span>
-                </div>
+                <img
+                  :src="authorProfile.image"
+                  :alt="authorProfile.name"
+                  class="w-11 h-11 sm:w-14 sm:h-14 rounded-full object-cover"
+                />
                 <div>
-                  <p class="text-sm sm:text-base font-medium text-esmerald mb-0.5 sm:mb-1">Project App</p>
-                  <p class="text-xs sm:text-sm text-green-light font-regular">{{ isEnglish ? 'Engineering Team' : 'Equipo de Ingeniería' }}</p>
+                  <p class="text-sm sm:text-base font-medium text-esmerald mb-0.5 sm:mb-1" itemprop="author">{{ authorProfile.name }}</p>
+                  <p class="text-xs sm:text-sm text-green-light font-regular">{{ isEnglish ? authorProfile.role_en : authorProfile.role_es }}</p>
                 </div>
               </div>
 
@@ -99,8 +101,8 @@
         </header>
 
         <!-- Featured Image -->
-        <div v-if="post.cover_image" class="px-4 sm:px-6 mb-10 sm:mb-16">
-          <div class="max-w-6xl mx-auto">
+        <div v-if="post.cover_image" ref="coverImageWrap" class="px-4 sm:px-6 mb-10 sm:mb-16">
+          <figure class="max-w-6xl mx-auto">
             <div class="relative aspect-[16/9] sm:aspect-[21/9] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
               <img
                 :src="post.cover_image"
@@ -110,7 +112,19 @@
                 itemprop="image"
               />
             </div>
-          </div>
+            <figcaption v-if="post.cover_image_credit" class="mt-3 text-center text-sm text-green-light/60 font-regular">
+              <a
+                v-if="post.cover_image_credit_url"
+                :href="post.cover_image_credit_url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="hover:text-esmerald transition-colors"
+              >
+                {{ post.cover_image_credit }}
+              </a>
+              <span v-else>{{ post.cover_image_credit }}</span>
+            </figcaption>
+          </figure>
         </div>
 
         <!-- Article Content -->
@@ -122,7 +136,7 @@
             />
 
             <!-- CTA inline -->
-            <div class="bg-white rounded-2xl p-6 sm:p-10 shadow-sm border border-gray-200/60 text-center mt-12">
+            <div ref="ctaInline" class="bg-white rounded-2xl p-6 sm:p-10 shadow-sm border border-gray-200/60 text-center mt-12">
               <h3 class="text-2xl sm:text-3xl font-light mb-3 sm:mb-4 text-esmerald">
                 {{ isEnglish ? 'Did This Article Inspire You?' : '¿Te Inspiró Este Artículo?' }}
               </h3>
@@ -249,13 +263,35 @@
 </template>
 
 <script setup>
-import { computed, onMounted, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import Navbar from '~/components/layouts/Navbar.vue';
 import ContactSection from '~/views-legacy/partials/ContactSection.vue';
 import FooterSection from '~/views-legacy/partials/FooterSection.vue';
 import BlogContentRenderer from '~/components/blog/BlogContentRenderer.vue';
 import ReadingProgressBar from '~/components/blog/ReadingProgressBar.vue';
 import { useBlogStore } from '~/stores/blog';
+import { fadeUp } from '~/animations';
+
+const AUTHOR_PROFILES = {
+  'projectapp-team': {
+    name: 'Project App',
+    role_es: 'Equipo de Ingeniería',
+    role_en: 'Engineering Team',
+    image: '/img/authors/projectapp-team.webp',
+  },
+  'gustavo-perez': {
+    name: 'Gustavo Pérez',
+    role_es: 'CEO — Project App',
+    role_en: 'CEO — Project App',
+    image: '/img/authors/gustavo-perez.webp',
+  },
+  'carlos-blanco': {
+    name: 'Carlos Blanco',
+    role_es: 'CFO — Project App',
+    role_en: 'CFO — Project App',
+    image: '/img/authors/carlos-blanco.webp',
+  },
+};
 
 const route = useRoute();
 const { locale } = useI18n();
@@ -263,6 +299,11 @@ const blogStore = useBlogStore();
 const post = computed(() => blogStore.currentPost);
 const isEnglish = computed(() => locale.value.startsWith('en'));
 const blogLang = computed(() => isEnglish.value ? 'en' : 'es');
+
+const authorProfile = computed(() => {
+  const slug = post.value?.author || 'projectapp-team';
+  return AUTHOR_PROFILES[slug] || AUTHOR_PROFILES['projectapp-team'];
+});
 
 const relatedPosts = computed(() => {
   if (!post.value || !blogStore.posts.length) return [];
@@ -301,6 +342,7 @@ useHead({
     { property: 'og:image', content: computed(() => post.value?.cover_image || '') },
     { property: 'og:type', content: 'article' },
     { property: 'article:published_time', content: computed(() => post.value?.published_at || '') },
+    { name: 'keywords', content: computed(() => post.value?.meta_keywords || '') },
   ],
   link: [
     { rel: 'canonical', href: computed(() => `https://projectapp.co/blog/${route.params.slug}`) },
@@ -333,11 +375,27 @@ function formatCategory(cat) {
   return cat;
 }
 
+const articleHeader = ref(null);
+const coverImageWrap = ref(null);
+const ctaInline = ref(null);
+
+function runArticleAnimations() {
+  nextTick(() => {
+    if (articleHeader.value) {
+      const children = articleHeader.value.querySelectorAll('h1, p, .flex');
+      children.forEach((el, i) => fadeUp(el, { delay: 0.1 + i * 0.12 }));
+    }
+    if (coverImageWrap.value) fadeUp(coverImageWrap.value, { delay: 0.3 });
+    if (ctaInline.value) fadeUp(ctaInline.value, { scrollTrigger: { trigger: ctaInline.value } });
+  });
+}
+
 onMounted(async () => {
   await blogStore.fetchPost(route.params.slug, blogLang.value);
   if (!blogStore.posts.length) {
     blogStore.fetchPosts(blogLang.value);
   }
+  runArticleAnimations();
 });
 
 watch(() => route.params.slug, (newSlug) => {

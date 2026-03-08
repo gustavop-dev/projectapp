@@ -45,12 +45,20 @@
         </div>
 
         <!-- Metadata row -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
             <select v-model="form.category" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white">
               <option value="">Sin categoría</option>
               <option v-for="cat in blogStore.availableCategories" :key="cat.slug" :value="cat.slug">{{ cat.label }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Autor</label>
+            <select v-model="form.author" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white">
+              <option value="projectapp-team">Project App Team</option>
+              <option value="gustavo-perez">Gustavo Pérez — CEO</option>
+              <option value="carlos-blanco">Carlos Blanco — CFO</option>
             </select>
           </div>
           <div>
@@ -109,32 +117,41 @@
           </div>
         </fieldset>
 
-        <!-- SEO Section (collapsible) -->
-        <details class="border border-gray-200 rounded-xl">
-          <summary class="text-sm font-medium text-gray-700 px-5 py-4 cursor-pointer select-none">SEO (opcional)</summary>
-          <div class="px-5 pb-6 space-y-6">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Meta título (ES)</label>
-                <input v-model="form.meta_title_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Título SEO en español (60 caracteres recomendado)" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Meta title (EN)</label>
-                <input v-model="form.meta_title_en" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="SEO title in English (60 characters recommended)" />
-              </div>
+        <!-- SEO Section -->
+        <fieldset class="border border-gray-200 rounded-xl p-5 space-y-6">
+          <legend class="text-sm font-medium text-gray-700 px-2">SEO</legend>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Meta título (ES)</label>
+              <input v-model="form.meta_title_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Título SEO en español (60 caracteres recomendado)" />
             </div>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Meta descripción (ES)</label>
-                <textarea v-model="form.meta_description_es" rows="4" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Descripción SEO en español (150-160 caracteres recomendado)" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Meta description (EN)</label>
-                <textarea v-model="form.meta_description_en" rows="4" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="SEO description in English (150-160 characters recommended)" />
-              </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Meta title (EN)</label>
+              <input v-model="form.meta_title_en" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="SEO title in English (60 characters recommended)" />
             </div>
           </div>
-        </details>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Meta descripción (ES)</label>
+              <textarea v-model="form.meta_description_es" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Descripción SEO en español (150-160 caracteres recomendado)" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Meta description (EN)</label>
+              <textarea v-model="form.meta_description_en" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="SEO description in English (150-160 characters recommended)" />
+            </div>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Keywords (ES)</label>
+              <input v-model="form.meta_keywords_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="cortinas inteligentes, automatización hogar, domotica" />
+              <p class="text-xs text-gray-400 mt-1">Separadas por coma. Palabras clave objetivo para SEO.</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Keywords (EN)</label>
+              <input v-model="form.meta_keywords_en" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="smart blinds, home automation, domotics" />
+            </div>
+          </div>
+        </fieldset>
 
         <!-- Cover image -->
         <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
@@ -171,6 +188,18 @@
           <div v-if="coverImagePreview" class="mt-2 rounded-xl overflow-hidden border border-gray-200 max-w-md">
             <img :src="coverImagePreview" alt="Preview" class="w-full h-auto" @error="imgError = true" />
             <p v-if="imgError" class="text-xs text-red-400 p-2">No se pudo cargar la imagen.</p>
+          </div>
+
+          <!-- Credit -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Crédito de imagen</label>
+              <input v-model="form.cover_image_credit" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Foto de John Doe en Unsplash" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">URL del crédito</label>
+              <input v-model="form.cover_image_credit_url" type="url" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://unsplash.com/@johndoe" />
+            </div>
           </div>
         </fieldset>
 
@@ -352,6 +381,7 @@ const form = reactive({
   cover_image_url: '',
   sources: [],
   category: '',
+  author: 'projectapp-team',
   read_time_minutes: 0,
   is_featured: false,
   is_published: false,
@@ -359,6 +389,10 @@ const form = reactive({
   meta_title_en: '',
   meta_description_es: '',
   meta_description_en: '',
+  meta_keywords_es: '',
+  meta_keywords_en: '',
+  cover_image_credit: '',
+  cover_image_credit_url: '',
 });
 
 onMounted(async () => {
@@ -405,10 +439,15 @@ function populateForm(data) {
   form.read_time_minutes = data.read_time_minutes || 0;
   form.is_featured = data.is_featured || false;
   form.is_published = data.is_published || false;
+  form.author = data.author || 'projectapp-team';
   form.meta_title_es = data.meta_title_es || '';
   form.meta_title_en = data.meta_title_en || '';
   form.meta_description_es = data.meta_description_es || '';
   form.meta_description_en = data.meta_description_en || '';
+  form.meta_keywords_es = data.meta_keywords_es || '';
+  form.meta_keywords_en = data.meta_keywords_en || '';
+  form.cover_image_credit = data.cover_image_credit || '';
+  form.cover_image_credit_url = data.cover_image_credit_url || '';
 
   if (data.is_published) {
     publishMode.value = 'now';
@@ -478,10 +517,15 @@ async function handleSubmit() {
     category: form.category,
     read_time_minutes: form.read_time_minutes,
     is_featured: form.is_featured,
+    author: form.author,
     meta_title_es: form.meta_title_es,
     meta_title_en: form.meta_title_en,
     meta_description_es: form.meta_description_es,
     meta_description_en: form.meta_description_en,
+    meta_keywords_es: form.meta_keywords_es,
+    meta_keywords_en: form.meta_keywords_en,
+    cover_image_credit: form.cover_image_credit,
+    cover_image_credit_url: form.cover_image_credit_url,
   };
 
   if (publishMode.value === 'now') {

@@ -63,6 +63,111 @@
           <p class="text-base font-regular text-esmerald leading-relaxed">{{ example }}</p>
         </div>
       </div>
+
+      <!-- Inline image with credit -->
+      <figure v-if="section.image && section.image.url" class="my-8">
+        <div class="rounded-2xl overflow-hidden shadow-lg">
+          <img
+            :src="section.image.url"
+            :alt="section.image.alt || section.heading"
+            class="w-full h-auto object-cover"
+            loading="lazy"
+          />
+        </div>
+        <figcaption v-if="section.image.credit" class="mt-3 text-center text-sm text-green-light/70 font-regular">
+          <a
+            v-if="section.image.credit_url"
+            :href="section.image.credit_url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="hover:text-esmerald transition-colors"
+          >
+            {{ section.image.credit }}
+          </a>
+          <span v-else>{{ section.image.credit }}</span>
+        </figcaption>
+      </figure>
+
+      <!-- Quote -->
+      <blockquote v-if="section.quote && section.quote.text" class="my-8 pl-6 border-l-4 border-lemon">
+        <p class="text-xl italic text-esmerald leading-relaxed font-regular mb-3">
+          "{{ section.quote.text }}"
+        </p>
+        <cite v-if="section.quote.author" class="text-sm text-green-light font-regular not-italic">
+          — {{ section.quote.author }}
+        </cite>
+      </blockquote>
+
+      <!-- Callout (tip / warning / info / note) -->
+      <div
+        v-if="section.callout && section.callout.text"
+        class="my-8 rounded-2xl p-5 sm:p-8 border"
+        :class="calloutClasses(section.callout.type)"
+      >
+        <div class="flex items-start gap-3">
+          <span class="text-xl flex-shrink-0 mt-0.5" aria-hidden="true">{{ calloutIcon(section.callout.type) }}</span>
+          <div>
+            <p v-if="section.callout.title" class="font-medium mb-2 text-esmerald text-lg">{{ section.callout.title }}</p>
+            <p class="text-base text-green-light leading-relaxed font-regular">{{ section.callout.text }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video (YouTube / Vimeo embed) -->
+      <div v-if="section.video && section.video.url" class="my-8">
+        <div class="relative aspect-video rounded-2xl overflow-hidden shadow-lg bg-gray-900">
+          <iframe
+            :src="videoEmbedUrl(section.video.url)"
+            :title="section.video.title || section.heading"
+            class="absolute inset-0 w-full h-full"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+            loading="lazy"
+          />
+        </div>
+      </div>
+
+      <!-- Key Takeaways (summary box — AI engines love structured summaries) -->
+      <div v-if="section.key_takeaways && section.key_takeaways.length" class="my-8 bg-lemon/10 border-2 border-lemon/30 rounded-2xl p-5 sm:p-8">
+        <div class="flex items-center gap-2 mb-5">
+          <span class="text-xl" aria-hidden="true">💡</span>
+          <h3 class="text-lg font-medium text-esmerald">{{ section.heading }}</h3>
+        </div>
+        <ul class="space-y-3">
+          <li v-for="(takeaway, i) in section.key_takeaways" :key="i" class="flex items-start gap-3">
+            <span class="w-6 h-6 rounded-full bg-esmerald text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{{ i + 1 }}</span>
+            <span class="text-base text-green-light leading-relaxed font-regular">{{ takeaway }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- FAQ (Q&A pairs — maps to Google FAQ Schema) -->
+      <div
+        v-if="section.faq && section.faq.length"
+        class="my-8 space-y-4"
+        itemscope
+        itemtype="https://schema.org/FAQPage"
+      >
+        <div
+          v-for="(item, i) in section.faq"
+          :key="i"
+          class="bg-white rounded-2xl border border-gray-200/60 overflow-hidden"
+          itemscope
+          itemprop="mainEntity"
+          itemtype="https://schema.org/Question"
+        >
+          <details class="group">
+            <summary class="flex items-center justify-between gap-4 px-5 sm:px-8 py-5 cursor-pointer select-none hover:bg-esmerald-light/40 transition-colors">
+              <span class="text-base sm:text-lg font-medium text-esmerald leading-snug" itemprop="name">{{ item.question }}</span>
+              <svg class="w-5 h-5 text-green-light flex-shrink-0 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+            </summary>
+            <div class="px-5 sm:px-8 pb-5 sm:pb-8" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+              <p class="text-base text-green-light leading-relaxed font-regular" itemprop="text">{{ item.answer }}</p>
+            </div>
+          </details>
+        </div>
+      </div>
     </div>
 
     <!-- Conclusion -->
@@ -100,6 +205,32 @@ const hasJsonContent = computed(() => {
     && props.contentJson.intro
     && Array.isArray(props.contentJson.sections);
 });
+
+function calloutClasses(type) {
+  const map = {
+    tip: 'bg-emerald-50/60 border-emerald-200/60',
+    warning: 'bg-amber-50/60 border-amber-200/60',
+    info: 'bg-blue-50/60 border-blue-200/60',
+    note: 'bg-gray-50/60 border-gray-200/60',
+  };
+  return map[type] || map.note;
+}
+
+function calloutIcon(type) {
+  const map = { tip: '💡', warning: '⚠️', info: 'ℹ️', note: '📌' };
+  return map[type] || map.note;
+}
+
+function videoEmbedUrl(url) {
+  if (!url) return '';
+  // YouTube
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+  // Vimeo
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+  return url;
+}
 </script>
 
 <style scoped>
