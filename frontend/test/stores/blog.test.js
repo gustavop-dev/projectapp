@@ -388,6 +388,58 @@ describe('useBlogStore', () => {
       expect(store.error).toBe('upload_failed');
     });
 
+    it('duplicatePost sends POST and prepends to list', async () => {
+      const duplicated = { id: 99, title_es: 'Post (copia)' };
+      create_request.mockResolvedValue({ data: duplicated });
+      store.posts = [{ id: 1 }];
+
+      const result = await store.duplicatePost(1);
+
+      expect(create_request).toHaveBeenCalledWith('blog/admin/1/duplicate/', {});
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(duplicated);
+      expect(store.posts[0]).toEqual(duplicated);
+      expect(store.posts).toHaveLength(2);
+    });
+
+    it('duplicatePost handles error', async () => {
+      create_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.duplicatePost(1);
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('duplicate_failed');
+      expect(store.isUpdating).toBe(false);
+    });
+
+    it('fetchCategories fetches and stores available categories', async () => {
+      const cats = [{ slug: 'ai', label: 'AI' }, { slug: 'design', label: 'Design' }];
+      get_request.mockResolvedValue({ data: { _available_categories: cats } });
+
+      const result = await store.fetchCategories();
+
+      expect(get_request).toHaveBeenCalledWith('blog/admin/json-template/');
+      expect(result.success).toBe(true);
+      expect(store.availableCategories).toEqual(cats);
+    });
+
+    it('fetchCategories defaults to empty array when key missing', async () => {
+      get_request.mockResolvedValue({ data: {} });
+
+      const result = await store.fetchCategories();
+
+      expect(result.success).toBe(true);
+      expect(store.availableCategories).toEqual([]);
+    });
+
+    it('fetchCategories handles error', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.fetchCategories();
+
+      expect(result.success).toBe(false);
+    });
+
     it('downloadJSONTemplate returns template data', async () => {
       const templateData = { title_es: 'Template', content_json_es: { intro: 'I' } };
       get_request.mockResolvedValue({ data: templateData });
