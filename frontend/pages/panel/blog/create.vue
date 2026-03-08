@@ -219,6 +219,28 @@
             </div>
           </div>
 
+          <!-- Publishing options -->
+          <fieldset class="border border-gray-200 rounded-xl p-4 space-y-3">
+            <legend class="text-xs font-medium text-gray-600 px-2">Publicación</legend>
+            <div class="flex flex-col gap-2">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input v-model="jsonPublishMode" type="radio" value="draft" name="jsonPublishMode" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
+                <span class="text-sm text-gray-700">Borrador</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input v-model="jsonPublishMode" type="radio" value="now" name="jsonPublishMode" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
+                <span class="text-sm text-gray-700">Publicar ahora</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer">
+                <input v-model="jsonPublishMode" type="radio" value="schedule" name="jsonPublishMode" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
+                <span class="text-sm text-gray-700">Programar publicación</span>
+              </label>
+              <div v-if="jsonPublishMode === 'schedule'" class="ml-7">
+                <input v-model="jsonScheduledDate" type="datetime-local" class="px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+              </div>
+            </div>
+          </fieldset>
+
           <div v-if="errorMsg" class="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl">{{ errorMsg }}</div>
 
           <div class="flex flex-wrap items-center gap-4 pt-2">
@@ -264,7 +286,6 @@ const form = reactive({
   category: '',
   read_time_minutes: 0,
   is_featured: false,
-  is_published: false,
 });
 
 function addSource() { form.sources.push({ name: '', url: '' }); }
@@ -317,8 +338,9 @@ const jsonMeta = reactive({
   category: '',
   read_time_minutes: 8,
   is_featured: false,
-  is_published: false,
 });
+const jsonPublishMode = ref('draft');
+const jsonScheduledDate = ref('');
 
 function parseJson() {
   jsonError.value = '';
@@ -394,12 +416,20 @@ async function handleJsonSubmit() {
     category: jsonMeta.category,
     read_time_minutes: jsonMeta.read_time_minutes,
     is_featured: jsonMeta.is_featured,
-    is_published: jsonMeta.is_published || false,
     meta_title_es: p.meta_title_es || '',
     meta_title_en: p.meta_title_en || '',
     meta_description_es: p.meta_description_es || '',
     meta_description_en: p.meta_description_en || '',
   };
+
+  if (jsonPublishMode.value === 'now') {
+    payload.is_published = true;
+  } else if (jsonPublishMode.value === 'schedule') {
+    payload.is_published = false;
+    payload.published_at = jsonScheduledDate.value ? new Date(jsonScheduledDate.value).toISOString() : null;
+  } else {
+    payload.is_published = false;
+  }
 
   const result = await blogStore.createPostFromJSON(payload);
   if (result.success) {

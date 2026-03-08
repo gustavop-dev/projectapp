@@ -486,6 +486,7 @@ async function handleSubmit() {
 
   if (publishMode.value === 'now') {
     payload.is_published = true;
+    payload.published_at = null;
   } else if (publishMode.value === 'schedule') {
     payload.is_published = false;
     payload.published_at = scheduledDate.value ? new Date(scheduledDate.value).toISOString() : null;

@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed top-0 left-0 w-full z-50 pointer-events-none">
+  <div class="fixed top-0 left-0 w-full z-[60] pointer-events-none">
     <div
       class="h-[3px] bg-gradient-to-r from-emerald-500 to-emerald-400 transition-[width] duration-150 ease-out"
       :style="{ width: `${progress}%` }"
@@ -10,7 +10,7 @@
       v-if="remainingMinutes > 0 && progress > 5 && progress < 95"
       class="fixed top-4 right-4 z-40 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm shadow-sm border border-gray-200/60 text-xs text-gray-500 pointer-events-none"
     >
-      ~{{ remainingMinutes }} min restantes
+      ~{{ remainingMinutes }} min {{ lang === 'en' ? 'remaining' : 'restantes' }}
     </div>
   </Transition>
 </template>
@@ -20,6 +20,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
   readTimeMinutes: { type: Number, default: 0 },
+  lang: { type: String, default: 'es' },
 });
 
 const progress = ref(0);

@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-esmerald-light" itemscope itemtype="https://schema.org/BlogPosting">
     <!-- Reading progress bar + time remaining -->
-    <ReadingProgressBar v-if="post" :read-time-minutes="post.read_time_minutes || 0" />
+    <ReadingProgressBar v-if="post" :read-time-minutes="post.read_time_minutes || 0" :lang="blogLang" />
 
     <!-- Navbar -->
     <header class="fixed top-0 left-0 w-full z-50">
