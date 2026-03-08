@@ -871,11 +871,16 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
         grp_items = _safe(grp, 'items', [])
         if sel_ids is not None and grp_items:
             grp_key = (_safe(grp, 'id') or _safe(grp, 'title') or '')
-            grp_items = [
-                it for it in grp_items
-                if re.sub(r'\s+', '-', f'fr-{grp_key}-{_safe(it, "name") or ""}').lower()
-                in sel_ids
-            ]
+            kept = []
+            for it in grp_items:
+                configurable = _safe(it, 'price') or _safe(it, 'is_required') is False
+                if not configurable:
+                    kept.append(it)
+                else:
+                    fr_id = re.sub(r'\s+', '-', f'fr-{grp_key}-{_safe(it, "name") or ""}').lower()
+                    if fr_id in sel_ids:
+                        kept.append(it)
+            grp_items = kept
         if grp_items:
             tw = c.stringWidth(grp_title, _font('bold'), 10)
             _draw_pill(c, card_x + 10 + tw + 6, card_y - 10,
@@ -1851,15 +1856,19 @@ class ProposalPdfService:
                                 and _safe(grp, 'rawText')
                             )
                             items = _safe(grp, 'items', [])
-                            # Filter out deselected FR items
+                            # Filter out deselected configurable FR items only
                             if sel_ids is not None and items:
                                 grp_key = (_safe(grp, 'id') or _safe(grp, 'title') or '')
                                 filtered = []
                                 for it in items:
-                                    it_name = _safe(it, 'name') or ''
-                                    fr_id = re.sub(r'\s+', '-', f'fr-{grp_key}-{it_name}').lower()
-                                    if fr_id in sel_ids:
+                                    configurable = _safe(it, 'price') or _safe(it, 'is_required') is False
+                                    if not configurable:
                                         filtered.append(it)
+                                    else:
+                                        it_name = _safe(it, 'name') or ''
+                                        fr_id = re.sub(r'\s+', '-', f'fr-{grp_key}-{it_name}').lower()
+                                        if fr_id in sel_ids:
+                                            filtered.append(it)
                                 items = filtered
                                 grp = dict(grp, items=items)
                             if not items and not grp_paste:
