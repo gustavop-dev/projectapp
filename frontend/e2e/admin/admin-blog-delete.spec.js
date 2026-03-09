@@ -31,6 +31,7 @@ test.describe('Admin Blog Delete', () => {
     await page.goto('/panel/blog');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Post a Borrar')).toBeVisible();
+    const table = page.locator('table');
+    await expect(table.getByText('Post a Borrar')).toBeVisible();
   });
 });

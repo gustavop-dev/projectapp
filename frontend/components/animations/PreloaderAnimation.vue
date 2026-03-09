@@ -822,8 +822,13 @@ onMounted(() => {
   // Set initial positions
   updatePositions();
   
-  // Only start the animation when images are loaded
-  // This is now handled in checkImagesLoaded
+  // Safety fallback: force animation start if images haven't loaded after 4s
+  setTimeout(() => {
+    if (!animationStarted.value && props.active) {
+      imagesLoaded.value = true
+      animatePreloader()
+    }
+  }, 4000)
   
   // Add resize event
   window.addEventListener('resize', handleResize, { passive: true })

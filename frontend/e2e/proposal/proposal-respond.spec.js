@@ -19,7 +19,16 @@ const mockSentProposal = {
   language: 'es',
   total_investment: '5000000',
   currency: 'COP',
-  sections: [],
+  sections: [
+    {
+      id: 1,
+      section_type: 'greeting',
+      title: '👋 Bienvenido',
+      order: 0,
+      is_enabled: true,
+      content_json: { clientName: 'Test Client', inspirationalQuote: '' },
+    },
+  ],
   requirement_groups: [],
 };
 
@@ -32,16 +41,26 @@ async function openClosingPanel(page) {
   await page.goto(`/proposal/${MOCK_UUID}`);
   await page.waitForLoadState('networkidle');
 
-  // Navigate through all panels to reach the closing panel
+  // Wait for proposal content to render (preloader may delay)
   const nextBtn = page.getByTestId('nav-next');
+  // Navigate through all panels to reach the closing panel
   let safetyLimit = 10;
-  while (await nextBtn.isVisible() && safetyLimit-- > 0) {
+  while (safetyLimit-- > 0) {
+    const isVisible = await nextBtn.isVisible().catch(() => false);
+    if (!isVisible) break;
     await nextBtn.click();
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible();
   }
 }
 
 test.describe('Proposal Respond', () => {
+  test.beforeEach(async ({ page }) => {
+    // Skip onboarding overlay so buttons are clickable
+    await page.addInitScript(() => {
+      localStorage.setItem('proposal_onboarding_seen', 'true');
+    });
+  });
+
   test('accept button opens confirmation modal', {
     tag: [...PROPOSAL_RESPOND, '@role:guest'],
   }, async ({ page }) => {
@@ -104,12 +123,12 @@ test.describe('Proposal Respond', () => {
     await openClosingPanel(page);
 
     // Reject button should be visible
-    const rejectBtn = page.getByRole('button', { name: /Rechazar propuesta/i });
+    const rejectBtn = page.getByRole('button', { name: /No me interesa por ahora/i });
     await expect(rejectBtn).toBeVisible();
 
     // Click reject opens modal
     await rejectBtn.click();
-    await expect(page.getByText('Lamentamos que no sea el momento')).toBeVisible();
+    await expect(page.getByText(/Lamentamos que no sea el momento/i)).toBeVisible();
   });
 
   test('accept and reject buttons are hidden after proposal is accepted', {

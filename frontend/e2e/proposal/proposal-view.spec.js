@@ -59,6 +59,13 @@ function buildMockHandler(proposal) {
 }
 
 test.describe('Proposal View', () => {
+  test.beforeEach(async ({ page }) => {
+    // Skip onboarding overlay so nav buttons are clickable
+    await page.addInitScript(() => {
+      localStorage.setItem('proposal_onboarding_seen', 'true');
+    });
+  });
+
   test('renders proposal greeting section on first load', {
     tag: [...PROPOSAL_VIEW, '@role:guest'],
   }, async ({ page }) => {

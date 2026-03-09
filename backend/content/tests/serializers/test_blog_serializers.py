@@ -272,3 +272,63 @@ class TestBlogPostFromJSONSerializer:
         }
         serializer = BlogPostFromJSONSerializer(data=payload)
         assert serializer.is_valid(), serializer.errors
+
+    def test_content_json_en_valid_non_empty(self):
+        """Non-empty content_json_en is validated through _validate_content_json."""
+        payload = {
+            'title_es': 'T', 'title_en': 'T',
+            'excerpt_es': 'E', 'excerpt_en': 'E',
+            'content_json_es': {'intro': 'I', 'sections': []},
+            'content_json_en': {'intro': 'EN Intro', 'sections': [{'heading': 'H'}]},
+        }
+        serializer = BlogPostFromJSONSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+
+    def test_content_json_en_invalid_non_empty_rejected(self):
+        """Non-empty content_json_en missing required keys is rejected."""
+        payload = {
+            'title_es': 'T', 'title_en': 'T',
+            'excerpt_es': 'E', 'excerpt_en': 'E',
+            'content_json_es': {'intro': 'I', 'sections': []},
+            'content_json_en': {'no_intro': True},
+        }
+        serializer = BlogPostFromJSONSerializer(data=payload)
+        assert not serializer.is_valid()
+        assert 'content_json_en' in serializer.errors
+
+    def test_sources_non_dict_item_rejected(self):
+        """Non-dict items in sources list are rejected."""
+        payload = {
+            'title_es': 'T', 'title_en': 'T',
+            'excerpt_es': 'E', 'excerpt_en': 'E',
+            'content_json_es': {'intro': 'I', 'sections': []},
+            'sources': ['not a dict'],
+        }
+        serializer = BlogPostFromJSONSerializer(data=payload)
+        assert not serializer.is_valid()
+        assert 'sources' in serializer.errors
+
+
+class TestCreateUpdateContentJsonEn:
+    def test_validate_content_json_en_with_valid_data(self):
+        """BlogPostCreateUpdateSerializer validates content_json_en field."""
+        payload = {
+            'title_es': 'T', 'title_en': 'T',
+            'excerpt_es': 'E', 'excerpt_en': 'E',
+            'content_es': 'C', 'content_en': 'C',
+            'content_json_en': {'intro': 'EN Intro', 'sections': [{'heading': 'H'}]},
+        }
+        serializer = BlogPostCreateUpdateSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+
+    def test_validate_content_json_en_invalid_rejected(self):
+        """BlogPostCreateUpdateSerializer rejects invalid content_json_en."""
+        payload = {
+            'title_es': 'T', 'title_en': 'T',
+            'excerpt_es': 'E', 'excerpt_en': 'E',
+            'content_es': 'C', 'content_en': 'C',
+            'content_json_en': {'no_intro': True},
+        }
+        serializer = BlogPostCreateUpdateSerializer(data=payload)
+        assert not serializer.is_valid()
+        assert 'content_json_en' in serializer.errors

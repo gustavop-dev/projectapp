@@ -73,6 +73,12 @@ function buildMockHandler() {
 }
 
 test.describe('Proposal View Navigation', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('proposal_onboarding_seen', 'true');
+    });
+  });
+
   test('ProposalIndex toggle button is visible on load', {
     tag: [...PROPOSAL_VIEW, '@role:guest'],
   }, async ({ page }) => {

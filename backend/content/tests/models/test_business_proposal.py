@@ -6,9 +6,16 @@ days_remaining property, public_url property, and __str__.
 import datetime
 
 import pytest
+from django.utils import timezone
 from freezegun import freeze_time
 
-from content.models import BusinessProposal
+from content.models import (
+    BusinessProposal,
+    ProposalChangeLog,
+    ProposalSectionView,
+    ProposalShareLink,
+    ProposalViewEvent,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -137,3 +144,58 @@ class TestBusinessProposalStatusChoices:
             status=status,
         )
         assert prop.status == status
+
+
+class TestProposalChangeLogStr:
+    def test_str_contains_client_and_change_type(self, proposal):
+        log = ProposalChangeLog.objects.create(
+            proposal=proposal, change_type='status_changed',
+            field_name='status', old_value='draft', new_value='sent',
+        )
+        result = str(log)
+        assert proposal.client_name in result
+        assert 'status_changed' in result
+
+
+class TestProposalSectionViewStr:
+    @freeze_time('2026-03-01 12:00:00')
+    def test_str_contains_client_and_section_type(self, proposal):
+        event = ProposalViewEvent.objects.create(
+            proposal=proposal, session_id='str-test',
+        )
+        sv = ProposalSectionView.objects.create(
+            view_event=event, section_type='greeting',
+            section_title='Saludo', time_spent_seconds=5.0,
+            entered_at=timezone.now(),
+        )
+        result = str(sv)
+        assert proposal.client_name in result
+        assert 'greeting' in result
+
+
+class TestProposalViewEventStr:
+    def test_str_contains_client_and_session_id(self, proposal):
+        event = ProposalViewEvent.objects.create(
+            proposal=proposal, session_id='abcdefgh-1234',
+        )
+        result = str(event)
+        assert proposal.client_name in result
+        assert 'abcdefgh' in result
+
+
+class TestProposalShareLinkStr:
+    def test_str_contains_client_and_recipient(self, proposal):
+        link = ProposalShareLink.objects.create(
+            proposal=proposal, shared_by_name='Alice',
+            recipient_name='Bob',
+        )
+        result = str(link)
+        assert proposal.client_name in result
+        assert 'Bob' in result
+
+    def test_str_shows_pending_when_no_recipient(self, proposal):
+        link = ProposalShareLink.objects.create(
+            proposal=proposal, shared_by_name='Alice',
+        )
+        result = str(link)
+        assert 'pending' in result

@@ -38,8 +38,9 @@
       <div class="space-y-6">
         <!-- Title -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Título</label>
+          <label for="create-title" class="block text-sm font-medium text-gray-700 mb-1">Título</label>
           <input
+            id="create-title"
             v-model="form.title"
             type="text"
             required
@@ -51,8 +52,9 @@
 
         <!-- Client name -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del cliente</label>
+          <label for="create-client-name" class="block text-sm font-medium text-gray-700 mb-1">Nombre del cliente</label>
           <input
+            id="create-client-name"
             v-model="form.client_name"
             type="text"
             required
@@ -64,8 +66,9 @@
 
         <!-- Client email -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Email del cliente</label>
+          <label for="create-client-email" class="block text-sm font-medium text-gray-700 mb-1">Email del cliente</label>
           <input
+            id="create-client-email"
             v-model="form.client_email"
             type="email"
             placeholder="maria@example.com"

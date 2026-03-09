@@ -31,18 +31,27 @@ from content.services.proposal_pdf_service import (
     SECTION_RENDERERS,
     ProposalPdfService,
     _clean_inline_bold,
+    _clean_url_display,
     _draw_banner_box,
     _draw_bullet_list,
     _draw_footer,
     _draw_green_bar,
+    _draw_line_with_links,
     _draw_paragraphs,
     _draw_pill,
     _draw_section_header,
     _draw_sidebar_box,
     _draw_subtitle,
+    _font,
+    _format_cop,
     _parse_markdown_lines,
     _register_fonts,
+    _render_context_diagnostic,
+    _render_creative_support,
+    _render_design_ux,
+    _render_executive_summary,
     _render_raw_text,
+    _replace_urls_with_placeholders,
     _safe,
     _strip_emoji,
 )
@@ -1178,3 +1187,467 @@ class TestGenerateToFile:
 
         assert result is None
         mock_gen.assert_called_once_with(proposal)
+
+
+# ── _format_cop tests ────────────────────────────────────────
+
+class TestFormatCop:
+    def test_formats_integer_with_dots(self):
+        """Integer value is formatted as $X.XXX.XXX."""
+        assert _format_cop(5000000) == '$5.000.000'
+
+    def test_formats_string_integer(self):
+        """String-numeric value is formatted correctly."""
+        assert _format_cop('1490000') == '$1.490.000'
+
+    def test_returns_string_for_non_numeric(self):
+        """Non-numeric input is returned as-is string."""
+        assert _format_cop('N/A') == 'N/A'
+
+    def test_returns_string_for_none(self):
+        """None input returns 'None' string."""
+        assert _format_cop(None) == 'None'
+
+    def test_formats_zero(self):
+        """Zero formats to $0."""
+        assert _format_cop(0) == '$0'
+
+
+# ── _clean_url_display tests ─────────────────────────────────
+
+class TestCleanUrlDisplay:
+    def test_strips_scheme_from_https_url(self):
+        """HTTPS scheme is removed, returning domain + path."""
+        result = _clean_url_display('https://example.com/path')
+        assert result == 'example.com/path'
+
+    def test_strips_www_prefix(self):
+        """Www prefix is removed from display label."""
+        result = _clean_url_display('https://www.example.com')
+        assert result == 'example.com'
+
+    def test_handles_bare_domain(self):
+        """Bare domain without scheme gets https:// prepended internally."""
+        result = _clean_url_display('example.com')
+        assert result == 'example.com'
+
+    def test_strips_trailing_slash(self):
+        """Trailing slash on root path is removed."""
+        result = _clean_url_display('https://example.com/')
+        assert result == 'example.com'
+
+    def test_preserves_meaningful_path(self):
+        """Non-root path segments are preserved."""
+        result = _clean_url_display('https://docs.example.com/api/v2')
+        assert result == 'docs.example.com/api/v2'
+
+    def test_handles_invalid_url_gracefully(self):
+        """Malformed input returns the original string."""
+        result = _clean_url_display('')
+        assert isinstance(result, str)
+
+
+# ── _replace_urls_with_placeholders tests ─────────────────────
+
+class TestReplaceUrlsWithPlaceholders:
+    def test_replaces_full_url_with_display_label(self):
+        """Full https URL is replaced with domain+path label."""
+        text = 'Visit https://example.com/docs for details.'
+        result, links = _replace_urls_with_placeholders(text)
+        assert 'https://' not in result
+        assert len(links) >= 1
+        assert links[0][1] == 'https://example.com/docs'
+
+    def test_replaces_bare_domain(self):
+        """Bare domain like example.com is detected and replaced."""
+        text = 'See example.com for info.'
+        result, links = _replace_urls_with_placeholders(text)
+        assert len(links) >= 1
+        assert links[0][1].startswith('https://')
+
+    def test_no_urls_returns_empty_links(self):
+        """Text with no URLs returns empty links list."""
+        text = 'No URLs here.'
+        result, links = _replace_urls_with_placeholders(text)
+        assert result == text
+        assert links == []
+
+    def test_multiple_urls(self):
+        """Multiple URLs are all detected and replaced."""
+        text = 'Visit https://a.com/page and https://b.com/page today.'
+        result, links = _replace_urls_with_placeholders(text)
+        assert len(links) >= 2
+
+
+# ── _draw_line_with_links tests ──────────────────────────────
+
+class TestDrawLineWithLinks:
+    def test_draws_plain_text_without_error(self, pdf_canvas):
+        """Plain text line draws without raising."""
+        _register_fonts()
+        ops_before = len(pdf_canvas._code)
+        _draw_line_with_links(
+            pdf_canvas, 50, 500, 'Hello world',
+            _font('regular'), 10, ESMERALD,
+        )
+        assert len(pdf_canvas._code) > ops_before
+
+    def test_draws_text_with_link(self, pdf_canvas):
+        """Text containing a domain renders with link styling."""
+        _register_fonts()
+        ops_before = len(pdf_canvas._code)
+        _draw_line_with_links(
+            pdf_canvas, 50, 500, 'Visit example.com today',
+            _font('regular'), 10, ESMERALD,
+        )
+        assert len(pdf_canvas._code) > ops_before
+
+    def test_draws_full_url_as_link(self, pdf_canvas):
+        """Full URL in text renders with clickable link."""
+        _register_fonts()
+        ops_before = len(pdf_canvas._code)
+        _draw_line_with_links(
+            pdf_canvas, 50, 500, 'See https://example.com/path here',
+            _font('regular'), 10, ESMERALD,
+        )
+        assert len(pdf_canvas._code) > ops_before
+
+
+# ── _font fallback tests ────────────────────────────────────
+
+class TestFontFallback:
+    def test_returns_string_for_regular(self):
+        """Regular style returns a valid font name string."""
+        result = _font('regular')
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    def test_returns_string_for_unknown_style(self):
+        """Unknown style falls back to Ubuntu/Helvetica."""
+        result = _font('nonexistent_style')
+        assert isinstance(result, str)
+
+    def test_returns_fallback_for_bold(self):
+        """Bold style returns a valid font name."""
+        result = _font('bold')
+        assert isinstance(result, str)
+
+
+# ── Section renderer edge cases (no-sidebar branches) ────────
+
+class TestSectionRendererEdgeCases:
+    @pytest.fixture
+    def proposal(self, db):
+        return BusinessProposal.objects.create(
+            title='Edge Case Proposal',
+            client_name='Test',
+            client_email='t@t.com',
+            language='es',
+            total_investment=Decimal('1000000'),
+            currency='COP',
+            status='sent',
+        )
+
+    def test_exec_summary_no_highlights_renders(self, pdf_canvas, proposal):
+        """Executive summary with empty highlights uses full-width paragraphs."""
+        data = {
+            'index': '1', 'title': 'Summary',
+            'paragraphs': ['Test paragraph.'],
+            'highlightsTitle': '', 'highlights': [],
+        }
+        y = _render_executive_summary(pdf_canvas, data, proposal)
+        assert isinstance(y, (int, float))
+
+    def test_context_diagnostic_no_issues_renders(self, pdf_canvas, proposal):
+        """Context diagnostic with no issues renders paragraphs and opportunity."""
+        data = {
+            'index': '2', 'title': 'Context',
+            'paragraphs': ['Analysis.'],
+            'issuesTitle': '', 'issues': [],
+            'opportunityTitle': 'Opportunity', 'opportunity': 'Growth potential.',
+        }
+        y = _render_context_diagnostic(pdf_canvas, data, proposal)
+        assert isinstance(y, (int, float))
+
+    def test_context_diagnostic_no_issues_no_opportunity(self, pdf_canvas, proposal):
+        """Context with neither issues nor opportunity renders just paragraphs."""
+        data = {
+            'index': '2', 'title': 'Context',
+            'paragraphs': ['Analysis.'],
+            'issuesTitle': '', 'issues': [],
+            'opportunityTitle': '', 'opportunity': '',
+        }
+        y = _render_context_diagnostic(pdf_canvas, data, proposal)
+        assert isinstance(y, (int, float))
+
+    def test_design_ux_no_focus_items_renders(self, pdf_canvas, proposal):
+        """Design UX with no focus items renders paragraphs and objective."""
+        data = {
+            'index': '4', 'title': 'Design',
+            'paragraphs': ['Modern design.'],
+            'focusTitle': '', 'focusItems': [],
+            'objectiveTitle': 'Objective', 'objective': 'Impact.',
+        }
+        y = _render_design_ux(pdf_canvas, data, proposal)
+        assert isinstance(y, (int, float))
+
+    def test_design_ux_no_focus_no_objective(self, pdf_canvas, proposal):
+        """Design UX with no focus items and no objective."""
+        data = {
+            'index': '4', 'title': 'Design',
+            'paragraphs': ['Modern design.'],
+            'focusTitle': '', 'focusItems': [],
+            'objectiveTitle': '', 'objective': '',
+        }
+        y = _render_design_ux(pdf_canvas, data, proposal)
+        assert isinstance(y, (int, float))
+
+    def test_creative_support_no_includes_renders(self, pdf_canvas, proposal):
+        """Creative support with no includes renders paragraphs and closing."""
+        data = {
+            'index': '5', 'title': 'Support',
+            'paragraphs': ['Guidance.'],
+            'includesTitle': '', 'includes': [],
+            'closing': 'We are here for you.',
+        }
+        y = _render_creative_support(pdf_canvas, data, proposal)
+        assert isinstance(y, (int, float))
+
+    def test_creative_support_no_includes_no_closing(self, pdf_canvas, proposal):
+        """Creative support with no includes and no closing."""
+        data = {
+            'index': '5', 'title': 'Support',
+            'paragraphs': ['Guidance.'],
+            'includesTitle': '', 'includes': [],
+            'closing': '',
+        }
+        y = _render_creative_support(pdf_canvas, data, proposal)
+        assert isinstance(y, (int, float))
+
+    def test_exec_summary_low_y_no_sidebar(self, pdf_canvas, proposal):
+        """Executive summary starting at low y triggers no-sidebar branch."""
+        data = {
+            'index': '1', 'title': 'Summary',
+            'paragraphs': ['Short.'],
+            'highlightsTitle': 'Key', 'highlights': ['A', 'B'],
+        }
+        y = _render_executive_summary(pdf_canvas, data, proposal, y=MARGIN_B + 150)
+        assert isinstance(y, (int, float))
+
+    def test_context_diagnostic_low_y_no_sidebar(self, pdf_canvas, proposal):
+        """Context diagnostic starting at low y triggers no-sidebar branch."""
+        data = {
+            'index': '2', 'title': 'Context',
+            'paragraphs': ['Analysis.'],
+            'issuesTitle': 'Issues', 'issues': ['SEO'],
+            'opportunityTitle': 'Opportunity', 'opportunity': 'Growth.',
+        }
+        y = _render_context_diagnostic(pdf_canvas, data, proposal, y=MARGIN_B + 150)
+        assert isinstance(y, (int, float))
+
+    def test_creative_support_low_y_no_sidebar(self, pdf_canvas, proposal):
+        """Creative support starting at low y triggers no-sidebar branch."""
+        data = {
+            'index': '5', 'title': 'Support',
+            'paragraphs': ['Guidance.'],
+            'includesTitle': 'Includes', 'includes': ['Reviews'],
+            'closing': 'We are here.',
+        }
+        y = _render_creative_support(pdf_canvas, data, proposal, y=MARGIN_B + 150)
+        assert isinstance(y, (int, float))
+
+
+# ── Back cover merge test ────────────────────────────────────
+
+class TestBackCoverMerge(TestMergeWithCovers):
+    @patch('content.services.proposal_pdf_service.COVER_PDF')
+    @patch('content.services.proposal_pdf_service.BACK_COVER_PDF')
+    def test_adds_back_cover_when_exists(self, mock_back, mock_cover):
+        """When a back cover PDF exists, it is appended after content pages."""
+        back_bytes = self._make_pdf_bytes(1)
+        back_path = Path('/tmp/test_back_cover.pdf')
+        back_path.write_bytes(back_bytes)
+
+        mock_cover.exists.return_value = False
+        mock_back.exists.return_value = True
+        mock_back.__str__ = MagicMock(return_value=str(back_path))
+
+        content = self._make_pdf_bytes(2)
+        result = ProposalPdfService._merge_with_covers(content)
+
+        reader = PdfReader(io.BytesIO(result))
+        assert len(reader.pages) == 3  # 2 content + 1 back
+        mock_back.exists.assert_called()
+
+        back_path.unlink(missing_ok=True)
+
+    @patch('content.services.proposal_pdf_service.COVER_PDF')
+    @patch('content.services.proposal_pdf_service.BACK_COVER_PDF')
+    def test_corrupt_back_cover_skipped(self, mock_back, mock_cover):
+        """Corrupt back cover PDF is skipped gracefully."""
+        corrupt_path = Path('/tmp/test_corrupt_back.pdf')
+        corrupt_path.write_bytes(b'not a pdf')
+
+        mock_cover.exists.return_value = False
+        mock_back.exists.return_value = True
+        mock_back.__str__ = MagicMock(return_value=str(corrupt_path))
+
+        content = self._make_pdf_bytes(1)
+        result = ProposalPdfService._merge_with_covers(content)
+
+        reader = PdfReader(io.BytesIO(result))
+        assert len(reader.pages) == 1  # only content
+        mock_back.exists.assert_called()
+
+        corrupt_path.unlink(missing_ok=True)
+
+
+# ── Investment hosting edge cases ────────────────────────────
+
+class TestInvestmentHostingEdgeCases:
+    def test_investment_with_hosting_specs_and_pricing(self, pdf_canvas, proposal):
+        """Investment section with hosting specs grid and pricing renders."""
+        data = {
+            'index': '9', 'title': 'Investment',
+            'introText': 'Total:',
+            'totalInvestment': '$5,000,000', 'currency': 'COP',
+            'whatsIncluded': [{'title': 'Design', 'description': 'UX'}],
+            'paymentOptions': [{'label': '50%', 'description': '$2.5M'}],
+            'hostingPlan': {
+                'title': 'Cloud Pro',
+                'description': 'Full managed hosting.',
+                'specs': [
+                    {'label': 'Storage', 'value': '50 GB'},
+                    {'label': 'Bandwidth', 'value': 'Unlimited'},
+                    {'label': 'SSL', 'value': 'Included'},
+                ],
+                'monthlyPrice': '$150.000',
+                'monthlyLabel': 'por mes',
+                'annualPrice': '$1.500.000',
+                'annualLabel': 'pago anual',
+                'coverageNote': 'Hosting covers domain, SSL, and CDN.',
+            },
+            'valueReasons': ['Quality', 'Support'],
+        }
+        page_before = pdf_canvas.getPageNumber()
+        SECTION_RENDERERS['investment'](pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
+
+    def test_investment_with_monthly_price_only(self, pdf_canvas, proposal):
+        """Investment hosting with only monthly price renders."""
+        data = {
+            'index': '9', 'title': 'Investment',
+            'introText': 'Total:',
+            'totalInvestment': '$1,000,000', 'currency': 'COP',
+            'whatsIncluded': [],
+            'paymentOptions': [],
+            'hostingPlan': {
+                'title': 'Basic',
+                'description': 'Basic hosting.',
+                'monthlyPrice': '$50.000',
+                'annualPrice': '',
+            },
+            'valueReasons': [],
+        }
+        page_before = pdf_canvas.getPageNumber()
+        SECTION_RENDERERS['investment'](pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
+
+
+# ── Generate with FR items and selected_modules ──────────────
+
+class TestGenerateWithFRItems:
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_fr_items_filtered_by_selected_modules(
+        self, mock_back, mock_cover, proposal,
+    ):
+        """FR configurable items are filtered when selected_modules is provided."""
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='greeting',
+            title='Hi', order=0, is_enabled=True,
+            content_json={'clientName': 'Test', 'inspirationalQuote': ''},
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='Reqs', order=1, is_enabled=True,
+            content_json={
+                'index': '7', 'title': 'Requirements',
+                'intro': 'Details.',
+                'groups': [{
+                    'id': 'views', 'title': 'Views',
+                    'description': 'Pages.',
+                    'items': [
+                        {'name': 'Home', 'description': 'Landing.', 'is_required': True},
+                        {'name': 'Blog', 'description': 'Blog.', 'is_required': False, 'price': 500000},
+                    ],
+                }],
+                'additionalModules': [],
+            },
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='investment',
+            title='Inv', order=2, is_enabled=True,
+            content_json={
+                'index': '9', 'title': 'Investment',
+                'introText': 'Total:', 'totalInvestment': '$2,000,000',
+                'currency': 'COP', 'whatsIncluded': [], 'paymentOptions': [],
+                'hostingPlan': {}, 'valueReasons': [],
+            },
+        )
+
+        result = ProposalPdfService.generate(
+            proposal, selected_modules=['fr-views-blog'],
+        )
+
+        assert result is not None
+        assert result[:5] == b'%PDF-'
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_greeting_not_first_section_triggers_page_break(
+        self, mock_back, mock_cover, proposal,
+    ):
+        """Greeting section that isn't the first content triggers a page break."""
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='executive_summary',
+            title='Summary', order=0, is_enabled=True,
+            content_json={
+                'index': '1', 'title': 'Summary',
+                'paragraphs': ['P1.'], 'highlightsTitle': '',
+                'highlights': [],
+            },
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='greeting',
+            title='Hi', order=1, is_enabled=True,
+            content_json={'clientName': 'Test', 'inspirationalQuote': ''},
+        )
+
+        result = ProposalPdfService.generate(proposal)
+
+        assert result is not None
+        assert result[:5] == b'%PDF-'
+        reader = PdfReader(io.BytesIO(result))
+        assert len(reader.pages) >= 2
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()

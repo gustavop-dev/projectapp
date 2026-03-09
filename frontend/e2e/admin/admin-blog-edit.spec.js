@@ -40,9 +40,14 @@ const existingPost = {
 
 const updatedPost = { ...existingPost, title_es: 'Post Actualizado' };
 
+const categoriesMock = { _available_categories: [{ slug: 'technology', label: 'Tecnología' }, { slug: 'design', label: 'Diseño' }] };
+
 function setupMock(page) {
   return mockApi(page, async ({ apiPath, route }) => {
     if (apiPath === 'auth/check/') return authCheck;
+    if (apiPath === 'blog/admin/json-template/') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(categoriesMock) };
+    }
     if (apiPath === 'blog/admin/1/detail/') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(existingPost) };
     }
@@ -65,10 +70,10 @@ test.describe('Admin Blog Edit', () => {
     await page.goto('/panel/blog/1/edit');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByLabel('Título (ES)')).toHaveValue('Post Existente');
-    await expect(page.getByLabel('Title (EN)')).toHaveValue('Existing Post');
+    await expect(page.getByLabel('Título (ES)', { exact: true })).toHaveValue('Post Existente');
+    await expect(page.getByLabel('Title (EN)', { exact: true })).toHaveValue('Existing Post');
     await expect(page.getByLabel('Slug')).toHaveValue('post-existente');
-    await expect(page.getByLabel('Resumen (ES)')).toHaveValue('Extracto ES.');
+    await expect(page.getByLabel('Resumen (ES)', { exact: true })).toHaveValue('Extracto ES.');
     await expect(page.getByLabel('Categoría')).toHaveValue('technology');
   });
 
@@ -79,7 +84,7 @@ test.describe('Admin Blog Edit', () => {
     await page.goto('/panel/blog/1/edit');
     await page.waitForLoadState('networkidle');
 
-    await page.getByLabel('Título (ES)').fill('Post Actualizado');
+    await page.getByLabel('Título (ES)', { exact: true }).fill('Post Actualizado');
     await page.getByRole('button', { name: /Guardar Cambios/ }).click();
 
     await expect(page.getByText('Post actualizado correctamente')).toBeVisible();
@@ -99,16 +104,15 @@ test.describe('Admin Blog Edit', () => {
     await expect(page.getByText('Post actualizado correctamente')).toBeVisible();
   });
 
-  test('SEO section expands and shows meta fields', {
+  test('SEO section shows meta fields', {
     tag: [...ADMIN_BLOG_EDIT, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/blog/1/edit');
     await page.waitForLoadState('networkidle');
 
-    await page.locator('summary').filter({ hasText: 'SEO' }).click();
-
     await expect(page.getByLabel('Meta título (ES)')).toBeVisible();
+    await expect(page.getByLabel('Meta título (ES)')).toHaveValue('SEO Título ES');
   });
 
   test('view-in-blog link has correct href', {
@@ -130,8 +134,10 @@ test.describe('Admin Blog Edit', () => {
     await page.goto('/panel/blog/1/edit');
     await page.waitForLoadState('networkidle');
 
-    const jsonTextarea = page.locator('textarea').filter({ hasText: 'Intro ES' });
+    const jsonTextarea = page.getByPlaceholder('"intro"');
     await expect(jsonTextarea).toBeVisible();
+    const value = await jsonTextarea.inputValue();
+    expect(value).toContain('Intro ES');
   });
 
   test('shows sources from existing post', {

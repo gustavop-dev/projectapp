@@ -387,7 +387,7 @@ function runArticleAnimations() {
 
 onMounted(async () => {
   await blogStore.fetchPost(route.params.slug, blogLang.value);
-  if (!blogStore.posts.length) {
+  if (!blogStore.error && !blogStore.posts.length) {
     blogStore.fetchPosts(blogLang.value);
   }
   runArticleAnimations();
