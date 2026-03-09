@@ -251,8 +251,8 @@ class ProposalFromJSONSerializer(serializers.Serializer):
     client_phone = serializers.CharField(max_length=30, required=False, default='', allow_blank=True)
     project_type = serializers.CharField(max_length=20, required=False, default='', allow_blank=True)
     market_type = serializers.CharField(max_length=20, required=False, default='', allow_blank=True)
-    project_type_custom = serializers.CharField(max_length=100, required=False, default='')
-    market_type_custom = serializers.CharField(max_length=100, required=False, default='')
+    project_type_custom = serializers.CharField(max_length=100, required=False, default='', allow_blank=True)
+    market_type_custom = serializers.CharField(max_length=100, required=False, default='', allow_blank=True)
     language = serializers.ChoiceField(
         choices=BusinessProposal.Language.choices, default='es',
     )

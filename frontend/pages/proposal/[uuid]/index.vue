@@ -249,7 +249,7 @@ const displayPanels = computed(() => {
     panels.push({
       id: 'proposal_closing',
       section_type: 'proposal_closing',
-      title: '🤝 Próximos pasos',
+      title: pLang.value === 'es' ? '🤝 Próximos pasos' : '🤝 Next Steps',
       _validityMessage: fnContent.validityMessage || '',
       _thankYouMessage: fnContent.thankYouMessage || '',
       _expiresAt: proposal.value?.expires_at || '',

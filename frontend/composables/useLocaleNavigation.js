@@ -55,6 +55,7 @@ export function useLocaleNavigation() {
   const switchLocale = (targetLocale) => {
     const path = switchLocalePath(targetLocale);
     if (path) {
+      try { localStorage.setItem('preferred_locale', targetLocale); } catch {}
       router.push(path);
     }
   };
