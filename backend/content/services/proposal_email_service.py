@@ -922,3 +922,71 @@ class ProposalEmailService:
                 proposal.uuid,
             )
             return False
+
+    @classmethod
+    def send_seller_inactivity_escalation(cls, proposal, days_inactive):
+        """
+        Send an escalation email to the sales team when a proposal has had
+        no seller follow-up for >=5 days after the client viewed it.
+
+        Args:
+            proposal: BusinessProposal instance.
+            days_inactive: Number of days without seller activity.
+
+        Returns:
+            bool: True if the email was sent successfully.
+        """
+        frontend_base = getattr(
+            settings, 'FRONTEND_BASE_URL', 'http://localhost:3000'
+        )
+        edit_url = f'{frontend_base}/panel/proposals/{proposal.id}/edit'
+
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_title': proposal.title,
+            'total_investment': proposal.total_investment,
+            'currency': proposal.currency,
+            'days_inactive': days_inactive,
+            'edit_url': edit_url,
+            'proposal_uuid': str(proposal.uuid),
+            'status': proposal.status,
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/seller_inactivity_escalation.html', context
+            )
+            text_content = render_to_string(
+                'emails/seller_inactivity_escalation.txt', context
+            )
+
+            subject = (
+                f'\u26a0\ufe0f Propuesta sin seguimiento: '
+                f'{proposal.client_name} — {proposal.title}'
+            )
+
+            notification_email = getattr(
+                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[notification_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info(
+                'Sent seller inactivity escalation for proposal %s (%d days)',
+                proposal.uuid, days_inactive,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send seller inactivity escalation for proposal %s',
+                proposal.uuid,
+            )
+            return False

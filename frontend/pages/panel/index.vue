@@ -33,6 +33,18 @@
         </span>
       </div>
 
+      <!-- Pipeline Value card -->
+      <div v-if="kpis?.pipeline_value != null" class="mb-4">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm p-5 flex items-center justify-between">
+          <div>
+            <p class="text-xs text-emerald-600 uppercase tracking-wider font-medium mb-1">Pipeline activo</p>
+            <p class="text-3xl font-light text-emerald-700">${{ Number(kpis.pipeline_value).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}</p>
+            <p class="text-xs text-emerald-500 mt-1">{{ kpis.pipeline_count }} propuesta{{ kpis.pipeline_count !== 1 ? 's' : '' }} en curso (enviadas + vistas)</p>
+          </div>
+          <div class="text-5xl opacity-20">💰</div>
+        </div>
+      </div>
+
       <!-- Primary KPI cards -->
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
@@ -90,6 +102,7 @@
                 {{ kpis?.discount_close_rate != null ? kpis.discount_close_rate + '%' : '—' }}
               </div>
               <p class="text-xs text-gray-500">Con descuento</p>
+              <p v-if="kpis?.discount_analysis" class="text-[10px] text-gray-400 mt-0.5">n={{ kpis.discount_analysis.with_discount_count }}</p>
             </div>
             <div class="text-gray-200 text-2xl font-light pb-4">vs</div>
             <div class="flex-1 text-center">
@@ -97,6 +110,7 @@
                 {{ kpis?.no_discount_close_rate != null ? kpis.no_discount_close_rate + '%' : '—' }}
               </div>
               <p class="text-xs text-gray-500">Sin descuento</p>
+              <p v-if="kpis?.discount_analysis" class="text-[10px] text-gray-400 mt-0.5">n={{ kpis.discount_analysis.without_discount_count }}</p>
             </div>
           </div>
           <div v-if="discountDelta !== null" class="mt-3 text-center">
@@ -107,6 +121,13 @@
               {{ discountDelta > 0 ? '▲' : discountDelta < 0 ? '▼' : '=' }}
               {{ Math.abs(discountDelta) }}pp {{ discountDelta > 0 ? 'más con descuento' : discountDelta < 0 ? 'menos con descuento' : 'igual' }}
             </span>
+          </div>
+          <div v-if="kpis?.discount_analysis?.avg_discount_percent" class="mt-3 text-center text-xs text-gray-500">
+            Descuento promedio: <strong>{{ kpis.discount_analysis.avg_discount_percent }}%</strong>
+            <span v-if="kpis.discount_analysis.avg_discount_accepted"> · En aceptadas: <strong>{{ kpis.discount_analysis.avg_discount_accepted }}%</strong></span>
+          </div>
+          <div v-if="discountDelta !== null && discountDelta <= 0" class="mt-2 text-center">
+            <span class="text-[10px] text-amber-600 font-medium">⚠️ El descuento no está mejorando el cierre — evalúa si estás regalando margen</span>
           </div>
         </div>
 

@@ -1070,15 +1070,26 @@
 | `admin-portfolio-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-create.spec.js` |
 | `admin-portfolio-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-edit.spec.js` |
 | `admin-portfolio-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-delete.spec.js` |
+| `proposal-pre-expiration-discount-suggestion` | admin | system | P2 | ❌ Missing | — |
+| `admin-proposal-zombie-segment` | admin | admin | P2 | ❌ Missing | — |
+| `proposal-share-hint` | proposal | guest | P3 | ❌ Missing | — |
+| `proposal-countdown-realtime` | proposal | guest | P3 | ❌ Missing | — |
+| `admin-proposal-create-and-send` | admin | admin | P2 | ❌ Missing | — |
+| `admin-proposal-create-preview` | admin | admin | P2 | ❌ Missing | — |
+| `admin-seller-inactivity-escalation` | admin | system | P2 | ❌ Missing | — |
+| `admin-dashboard-pipeline-value` | admin | admin | P2 | ❌ Missing | — |
+| `proposal-rejection-optional-reason` | proposal | guest | P2 | ❌ Missing | — |
+| `proposal-calculator-timeline` | proposal | guest | P1 | ❌ Missing | — |
+| `admin-discount-analysis-enhanced` | admin | admin | P3 | ❌ Missing | — |
 
 ### Summary
 
-- **Total flows:** 53 (added admin-proposal-win-rate-dashboard, admin-proposal-engagement-score, admin-proposal-metrics-manual, proposal-welcome-back, proposal-process-methodology)
-- **P1 (Critical):** 15
-- **P2 (High):** 29
-- **P3 (Medium):** 9
-- **Covered (full):** 35 (66%)
-- **Missing:** 18 (34%) — proposal-view-onboarding, proposal-share, proposal-engagement-tracking, proposal-welcome-back, proposal-process-methodology, admin-proposal-create-from-json, admin-proposal-duplicate, admin-proposal-comment, admin-proposal-analytics, admin-proposal-dashboard, admin-proposal-win-rate-dashboard, admin-proposal-engagement-score, admin-proposal-metrics-manual, admin-mini-crm-clients, admin-blog-calendar, admin-proposal-manual-alerts
+- **Total flows:** 64 (added 11 new flows in v1.6.0)
+- **P1 (Critical):** 16
+- **P2 (High):** 37
+- **P3 (Medium):** 11
+- **Covered (full):** 35 (55%)
+- **Missing:** 29 (45%) — includes all new v1.6.0 flows plus previous uncovered flows
 
 ### Unit Test Coverage
 

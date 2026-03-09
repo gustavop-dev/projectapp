@@ -1,0 +1,15 @@
+⚠️ PROPUESTA SIN SEGUIMIENTO — {{ proposal_title }}
+
+La propuesta para {{ client_name }} lleva {{ days_inactive }} días sin actividad de seguimiento.
+El cliente ya revisó la propuesta — cada día sin contacto reduce las probabilidades de cierre.
+
+Detalles:
+- Propuesta: {{ proposal_title }}
+- Cliente: {{ client_name }}
+- Inversión: ${{ total_investment }} {{ currency }}
+- Estado: {{ status }} — {{ days_inactive }}d sin follow-up
+
+🚨 Toma acción ahora: {{ edit_url }}
+
+---
+Escalación automática — ProjectApp.co

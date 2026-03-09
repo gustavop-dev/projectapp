@@ -20,12 +20,40 @@
     <!-- Floating metrics manual -->
     <MetricsManual />
 
+    <!-- Zombie proposals segment -->
+    <div v-if="zombieAlerts.length" class="mb-4 bg-gray-800 border border-gray-700 rounded-xl p-4">
+      <div class="flex items-center justify-between mb-3 cursor-pointer" @click="zombieExpanded = !zombieExpanded">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🧟</span>
+          <h3 class="text-sm font-semibold text-gray-200">Propuestas zombie ({{ zombieAlerts.length }})</h3>
+        </div>
+        <span class="text-xs text-gray-400">{{ zombieExpanded ? '▲' : '▼' }}</span>
+      </div>
+      <div v-if="zombieExpanded" class="space-y-2">
+        <div
+          v-for="alert in zombieAlerts"
+          :key="`zombie-${alert.id}-${alert.alert_type}`"
+          class="flex items-center justify-between bg-gray-700/50 rounded-lg px-4 py-2.5 border border-gray-600 cursor-pointer hover:border-gray-500 transition-colors"
+          @click="router.push(`/panel/proposals/${alert.id}/edit`)"
+        >
+          <div class="flex items-center gap-3">
+            <span class="text-sm">{{ alert.alert_type === 'zombie_draft' ? '📝💀' : alert.alert_type === 'zombie_sent_stale' ? '📤💀' : '💀' }}</span>
+            <div>
+              <span class="text-sm font-medium text-gray-200">{{ alert.client_name }}</span>
+              <span class="text-xs text-gray-400 ml-2">{{ alert.title }}</span>
+            </div>
+          </div>
+          <span class="text-xs text-gray-400 font-medium">{{ alert.message }}</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Alerts panel -->
-    <div v-if="alerts.length || showAlertForm" class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
+    <div v-if="activeAlerts.length || showAlertForm" class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
           <span class="text-lg">⚠️</span>
-          <h3 class="text-sm font-semibold text-amber-800">Propuestas que necesitan atención ({{ alerts.length }})</h3>
+          <h3 class="text-sm font-semibold text-amber-800">Propuestas que necesitan atención ({{ activeAlerts.length }})</h3>
         </div>
         <button
           type="button"
@@ -80,7 +108,7 @@
 
       <div class="space-y-2">
         <div
-          v-for="alert in alerts"
+          v-for="alert in activeAlerts"
           :key="`${alert.id}-${alert.alert_type}-${alert.manual_alert_id || ''}`"
           class="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border border-amber-100 cursor-pointer hover:border-amber-300 transition-colors"
           @click="router.push(`/panel/proposals/${alert.id}/edit`)"
@@ -342,6 +370,15 @@ const sortKey = ref('created_at');
 const sortDir = ref('desc');
 const currentPage = ref(1);
 const pageSize = 15;
+const zombieExpanded = ref(false);
+
+const ZOMBIE_TYPES = ['zombie', 'zombie_draft', 'zombie_sent_stale'];
+const zombieAlerts = computed(() =>
+  alerts.value.filter(a => ZOMBIE_TYPES.includes(a.alert_type))
+);
+const activeAlerts = computed(() =>
+  alerts.value.filter(a => !ZOMBIE_TYPES.includes(a.alert_type))
+);
 
 function toggleSort(key) {
   if (sortKey.value === key) {
@@ -355,6 +392,10 @@ function toggleSort(key) {
 
 const filteredProposals = computed(() => {
   let list = [...proposals.value];
+  // Status filter (client-side fallback)
+  if (activeFilter.value) {
+    list = list.filter(p => p.status === activeFilter.value);
+  }
   // Search
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.trim().toLowerCase();
@@ -447,6 +488,7 @@ function alertIcon(type) {
     manual_reminder: '🔔', manual_followup: '📩', manual_call: '📞',
     manual_meeting: '🤝', manual_custom: '📝',
     seller_inactive: '🏷️', zombie: '💀', late_return: '🔄',
+    manual_discount_suggestion: '💰', discount_suggestion: '💰',
   };
   return map[type] || '⚠️';
 }

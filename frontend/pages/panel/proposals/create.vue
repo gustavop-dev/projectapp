@@ -243,10 +243,21 @@
           >
             {{ proposalStore.isUpdating ? 'Creando...' : 'Crear Propuesta' }}
           </button>
+          <button
+            v-if="canSendDirectly"
+            type="button"
+            :disabled="proposalStore.isUpdating"
+            class="px-5 sm:px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm
+                   hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
+            @click="handleCreateAndSend"
+          >
+            {{ proposalStore.isUpdating ? 'Creando...' : 'Crear y Enviar' }}
+          </button>
           <NuxtLink to="/panel/proposals" class="text-sm text-gray-500 hover:text-gray-700">
             Cancelar
           </NuxtLink>
         </div>
+        <p v-if="canSendDirectly" class="text-xs text-gray-400 mt-2">Envía directamente si los datos del cliente están completos.</p>
       </div>
     </form>
 
@@ -494,6 +505,41 @@
         </div>
       </form>
     </div>
+
+    <!-- Post-creation interstitial modal -->
+    <teleport to="body">
+      <div v-if="showPostCreateModal && createdProposal" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 sm:p-8 text-center">
+          <div class="text-5xl mb-4">✅</div>
+          <h3 class="text-xl font-bold text-gray-900 mb-2">Propuesta creada</h3>
+          <p class="text-sm text-gray-500 mb-6">{{ createdProposal.title }}</p>
+          <div class="flex flex-col gap-3">
+            <a
+              :href="'/proposal/' + createdProposal.uuid + '?preview=1'"
+              target="_blank"
+              class="w-full px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium text-sm hover:bg-gray-200 transition-colors inline-flex items-center justify-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+              Ver Preview
+            </a>
+            <button
+              v-if="canSendDirectly"
+              class="w-full px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors"
+              :disabled="proposalStore.isUpdating"
+              @click="handleSendCreated"
+            >
+              {{ proposalStore.isUpdating ? 'Enviando...' : 'Enviar al Cliente' }}
+            </button>
+            <button
+              class="w-full px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors"
+              @click="router.push(`/panel/proposals/${createdProposal.id}/edit`)"
+            >
+              Ir a Editar
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
   </div>
 </template>
 
@@ -507,6 +553,8 @@ const router = useRouter();
 const proposalStore = useProposalStore();
 const errorMsg = ref('');
 const mode = ref('manual');
+const createdProposal = ref(null);
+const showPostCreateModal = ref(false);
 
 // -------------------------------------------------------------------------
 // Shared helpers
@@ -552,6 +600,10 @@ const form = reactive({
   discount_percent: 0,
 });
 
+const canSendDirectly = computed(() => {
+  return !!(form.client_email && form.client_name && form.total_investment > 0);
+});
+
 async function handleSubmit() {
   errorMsg.value = '';
 
@@ -562,10 +614,34 @@ async function handleSubmit() {
 
   const result = await proposalStore.createProposal(payload);
   if (result.success) {
+    createdProposal.value = result.data;
+    showPostCreateModal.value = true;
+  } else {
+    errorMsg.value = formatError(result.errors);
+  }
+}
+
+async function handleCreateAndSend() {
+  errorMsg.value = '';
+
+  const payload = { ...form };
+  if (payload.expires_at) {
+    payload.expires_at = new Date(payload.expires_at).toISOString();
+  }
+
+  const result = await proposalStore.createProposal(payload);
+  if (result.success) {
+    await proposalStore.sendProposal(result.data.id);
     router.push(`/panel/proposals/${result.data.id}/edit`);
   } else {
     errorMsg.value = formatError(result.errors);
   }
+}
+
+async function handleSendCreated() {
+  if (!createdProposal.value?.id) return;
+  await proposalStore.sendProposal(createdProposal.value.id);
+  router.push(`/panel/proposals/${createdProposal.value.id}/edit`);
 }
 
 // -------------------------------------------------------------------------
@@ -723,7 +799,8 @@ async function handleJsonSubmit() {
 
   const result = await proposalStore.createProposalFromJSON(payload);
   if (result.success) {
-    router.push(`/panel/proposals/${result.data.id}/edit`);
+    createdProposal.value = result.data;
+    showPostCreateModal.value = true;
   } else {
     errorMsg.value = formatError(result.errors);
   }

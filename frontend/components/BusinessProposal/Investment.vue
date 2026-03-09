@@ -185,6 +185,7 @@
       :proposalUuid="proposalUuid"
       :language="language"
       :totalInvestment="totalInvestment"
+      :baseWeeks="baseWeeks"
       @close="calculatorOpen = false"
       @update:selection="onSelectionUpdate"
       @navigateToRequirements="$emit('navigateToRequirements'); calculatorOpen = false"
@@ -206,6 +207,7 @@ useSectionAnimations(sectionRef);
 const specsOpen = ref(false);
 const calculatorOpen = ref(false);
 const customTotal = ref(null);
+const customWeeks = ref(null);
 const customizeBtnRef = ref(null);
 const btnPulse = ref(false);
 
@@ -306,6 +308,10 @@ const props = defineProps({
   whatsappLink: {
     type: String,
     default: ''
+  },
+  baseWeeks: {
+    type: Number,
+    default: 0
   }
 });
 
@@ -359,8 +365,9 @@ onMounted(() => {
   }
 });
 
-function onSelectionUpdate({ total }) {
+function onSelectionUpdate({ total, weeks }) {
   customTotal.value = total;
+  if (weeks !== undefined) customWeeks.value = weeks;
 }
 
 const computedPaymentOptions = computed(() => {

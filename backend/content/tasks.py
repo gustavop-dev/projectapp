@@ -159,6 +159,54 @@ def send_rejection_reengagement(proposal_id):
         )
 
 
+@periodic_task(crontab(hour='8', minute='0'))
+def suggest_pre_expiration_discount():
+    """
+    Daily task: for proposals expiring within 5 days that were viewed but
+    not responded and have no discount, create a discount_suggestion alert
+    (if one doesn't already exist).
+    """
+    from datetime import timedelta
+
+    from content.models import BusinessProposal, ProposalAlert
+
+    now = timezone.now()
+    candidates = BusinessProposal.objects.filter(
+        status='viewed',
+        is_active=True,
+        discount_percent=0,
+        responded_at__isnull=True,
+        expires_at__isnull=False,
+        expires_at__gt=now,
+        expires_at__lte=now + timedelta(days=5),
+    )
+
+    created_count = 0
+    for proposal in candidates:
+        already_exists = ProposalAlert.objects.filter(
+            proposal=proposal,
+            alert_type='discount_suggestion',
+            is_dismissed=False,
+        ).exists()
+        if not already_exists:
+            days_left = (proposal.expires_at - now).days
+            ProposalAlert.objects.create(
+                proposal=proposal,
+                alert_type='discount_suggestion',
+                message=(
+                    f'Expira en {days_left}d, vista pero sin respuesta. '
+                    f'Considera activar descuento o re-enviar con nota personalizada.'
+                ),
+                alert_date=now,
+            )
+            created_count += 1
+
+    if created_count > 0:
+        logger.info(
+            'Created %d pre-expiration discount suggestions.', created_count
+        )
+
+
 @periodic_task(crontab(hour='0', minute='30'))
 def expire_stale_proposals():
     """
@@ -178,6 +226,68 @@ def expire_stale_proposals():
 
     if count > 0:
         logger.info('Expired %d stale proposals.', count)
+
+
+@periodic_task(crontab(hour='9', minute='0'))
+def escalate_seller_inactivity():
+    """
+    Daily task: if a proposal has had no seller activity for >=5 days
+    (sent/viewed, client has viewed), send an escalation email to the
+    sales team. Only sends once per proposal (tracked via ProposalChangeLog).
+    """
+    from datetime import timedelta
+
+    from content.models import BusinessProposal, ProposalChangeLog
+    from content.services.proposal_email_service import ProposalEmailService
+
+    now = timezone.now()
+    five_days_ago = now - timedelta(days=5)
+    seller_activity_types = {'call', 'meeting', 'followup', 'note'}
+
+    candidates = BusinessProposal.objects.filter(
+        status__in=['sent', 'viewed'],
+        is_active=True,
+        first_viewed_at__isnull=False,
+    )
+
+    escalated = 0
+    for p in candidates:
+        ref_date = p.last_activity_at or p.sent_at
+        if not ref_date or ref_date > five_days_ago:
+            continue
+
+        has_recent = ProposalChangeLog.objects.filter(
+            proposal=p,
+            change_type__in=seller_activity_types,
+            created_at__gte=five_days_ago,
+        ).exists()
+        if has_recent:
+            continue
+
+        already_escalated = ProposalChangeLog.objects.filter(
+            proposal=p,
+            change_type='seller_inactivity_escalation',
+        ).exists()
+        if already_escalated:
+            continue
+
+        days = (now - ref_date).days
+        try:
+            ProposalEmailService.send_seller_inactivity_escalation(p, days)
+            ProposalChangeLog.objects.create(
+                proposal=p,
+                change_type='seller_inactivity_escalation',
+                description=f'Seller inactivity escalation sent after {days} days.',
+            )
+            escalated += 1
+        except Exception:
+            logger.exception(
+                'Failed seller inactivity escalation for proposal %s',
+                p.uuid,
+            )
+
+    if escalated > 0:
+        logger.info('Escalated %d seller-inactive proposals.', escalated)
 
 
 @periodic_task(crontab(hour='*/2', minute='15'))

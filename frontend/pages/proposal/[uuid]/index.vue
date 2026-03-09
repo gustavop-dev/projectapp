@@ -413,6 +413,11 @@ function getSectionProps(section) {
   if (section.section_type === 'investment') {
     const investmentModules = (content.modules || []).map(m => ({ ...m, _source: 'investment' }));
     const allCalculatorItems = [...investmentModules, ...configurableRequirementItems.value];
+    // Extract baseWeeks from timeline section's totalDuration
+    const timelineSection = enabledSections.value.find(s => s.section_type === 'timeline');
+    const totalDuration = timelineSection?.content_json?.totalDuration || '';
+    const weeksMatch = totalDuration.match(/(\d+)\s*(semana|week)/i);
+    const baseWeeks = weeksMatch ? parseInt(weeksMatch[1], 10) : 0;
     return {
       ...content,
       language: proposal.value?.language || 'es',
@@ -422,6 +427,7 @@ function getSectionProps(section) {
       modules: allCalculatorItems,
       proposalUuid: proposal.value?.uuid || '',
       whatsappLink: extractedWhatsappLink.value,
+      baseWeeks,
     };
   }
 

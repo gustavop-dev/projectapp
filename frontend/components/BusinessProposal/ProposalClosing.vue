@@ -182,6 +182,7 @@
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t.reasonLabel }}</label>
+            <p class="text-xs text-gray-400 italic mb-2">{{ t.reasonNudge }}</p>
             <select v-model="rejectReason" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
               <option value="">{{ t.selectReason }}</option>
               <option v-for="reason in t.reasons" :key="reason" :value="reason">{{ reason }}</option>
@@ -195,7 +196,7 @@
         </div>
         <div class="flex gap-3 justify-end mt-6">
           <button class="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showRejectModal = false">{{ t.cancel }}</button>
-          <button class="px-5 py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors" :disabled="isSubmitting || !rejectReason" @click="confirmReject">
+          <button class="px-5 py-2 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors" :disabled="isSubmitting" @click="confirmReject">
             {{ isSubmitting ? t.sending : t.confirmReject }}
           </button>
         </div>
@@ -256,7 +257,8 @@ const i18nStrings = {
     rejected: 'Propuesta rechazada. Gracias por tu tiempo.',
     rejectTitle: 'Lamentamos que no sea el momento',
     rejectText: 'Tu opinión es muy importante para nosotros. ¿Podrías indicarnos el motivo?',
-    reasonLabel: 'Motivo',
+    reasonLabel: 'Motivo (opcional)',
+    reasonNudge: 'Nos ayudaría mucho saber por qué — tu respuesta es opcional y confidencial.',
     selectReason: 'Selecciona un motivo...',
     reasons: ['Presupuesto muy alto', 'Encontré otra opción', 'No es el momento', 'No cumple mis expectativas', 'Otros'],
     otherReason: 'Otros',
@@ -305,7 +307,8 @@ const i18nStrings = {
     rejected: 'Proposal declined. Thank you for your time.',
     rejectTitle: 'We\'re sorry it\'s not the right time',
     rejectText: 'Your feedback is very important to us. Could you let us know why?',
-    reasonLabel: 'Reason',
+    reasonLabel: 'Reason (optional)',
+    reasonNudge: 'It would really help us to know why — your answer is optional and confidential.',
     selectReason: 'Select a reason...',
     reasons: ['Budget too high', 'Found another option', 'Not the right time', 'Does not meet my expectations', 'Other'],
     otherReason: 'Other',
@@ -421,7 +424,7 @@ async function confirmAccept() {
 }
 
 async function confirmReject() {
-  if (!props.proposal?.uuid || !rejectReason.value) return;
+  if (!props.proposal?.uuid) return;
   isSubmitting.value = true;
   try {
     const result = await proposalStore.respondToProposal(

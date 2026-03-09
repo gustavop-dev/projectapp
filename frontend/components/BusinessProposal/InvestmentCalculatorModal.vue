@@ -90,6 +90,19 @@
                 <span class="text-xs text-gray-400 ml-1">{{ currency }}</span>
               </div>
             </div>
+            <!-- Dynamic timeline -->
+            <div v-if="baseWeeks > 0" class="flex items-center justify-between mb-4 px-3 py-2.5 rounded-xl" :class="timelineChanged ? 'bg-blue-50 border border-blue-200' : 'bg-gray-100'">
+              <div class="flex items-center gap-2">
+                <span class="text-sm">⏱</span>
+                <span class="text-sm text-gray-600">{{ t.estimatedDuration }}</span>
+              </div>
+              <div class="text-right">
+                <span class="text-lg font-bold" :class="timelineChanged ? 'text-blue-600' : 'text-esmerald'">{{ dynamicWeeks }} {{ t.weeks }}</span>
+                <span v-if="timelineChanged" class="block text-[11px] text-blue-500 font-medium">
+                  {{ t.reducedFrom }} {{ baseWeeks }} {{ t.to }} {{ dynamicWeeks }} {{ t.weeks }}
+                </span>
+              </div>
+            </div>
             <button
               class="w-full py-3 bg-esmerald text-lemon rounded-xl font-bold text-sm hover:bg-esmerald/90 transition-colors shadow-md"
               @click="confirmSelection"
@@ -113,6 +126,7 @@ const props = defineProps({
   proposalUuid: { type: String, default: '' },
   language: { type: String, default: 'es' },
   totalInvestment: { type: String, default: '' },
+  baseWeeks: { type: Number, default: 0 },
 });
 
 function parseInvestment(str) {
@@ -133,6 +147,10 @@ const i18n = {
     included: 'Incluido',
     required: 'obligatorio',
     viewRequirements: 'Ver detalle de requerimientos funcionales',
+    estimatedDuration: 'Duración estimada',
+    weeks: 'semanas',
+    reducedFrom: 'Se reduce de',
+    to: 'a',
   },
   en: {
     title: 'Customize your investment',
@@ -143,6 +161,10 @@ const i18n = {
     included: 'Included',
     required: 'required',
     viewRequirements: 'View functional requirements details',
+    estimatedDuration: 'Estimated duration',
+    weeks: 'weeks',
+    reducedFrom: 'Reduced from',
+    to: 'to',
   },
 };
 
@@ -205,6 +227,37 @@ const dynamicTotal = computed(() => {
   return baseTotalInvestment.value - deselectedSum;
 });
 
+// Dynamic timeline: week reduction based on deselected items
+// Rule: 1 module/integration removed = -1 week; every 3 views or 3 features removed = -1 week
+const weeksReduction = computed(() => {
+  const deselected = localModules.value.filter(m => !m.selected && !m._locked);
+  let reduction = 0;
+  let viewsRemoved = 0;
+  let featuresRemoved = 0;
+
+  for (const mod of deselected) {
+    if (mod._source === 'investment' || mod.groupId === 'integrations_api') {
+      reduction += 1;
+    } else if (mod.groupId === 'views') {
+      viewsRemoved += 1;
+    } else if (mod.groupId === 'features') {
+      featuresRemoved += 1;
+    }
+  }
+  reduction += Math.floor(viewsRemoved / 3);
+  reduction += Math.floor(featuresRemoved / 3);
+  return reduction;
+});
+
+const dynamicWeeks = computed(() => {
+  if (!props.baseWeeks) return 0;
+  return Math.max(1, props.baseWeeks - weeksReduction.value);
+});
+
+const timelineChanged = computed(() => {
+  return props.baseWeeks > 0 && dynamicWeeks.value !== props.baseWeeks;
+});
+
 function formatPrice(value) {
   if (!value && value !== 0) return '';
   return '$' + Number(value).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -221,7 +274,7 @@ function confirmSelection() {
   try {
     localStorage.setItem(storageKey, JSON.stringify(selectedIds));
   } catch (_e) { /* ignore */ }
-  emit('update:selection', { selectedIds, total: dynamicTotal.value });
+  emit('update:selection', { selectedIds, total: dynamicTotal.value, weeks: dynamicWeeks.value });
   emit('close');
 }
 </script>

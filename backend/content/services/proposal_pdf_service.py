@@ -1252,6 +1252,48 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         c.drawCentredString(MARGIN_L + box_w / 2, box_y + 7, label)
         y = box_y - 8
 
+    # ── Adjusted duration (when modules are deselected) ─────────
+    if selected_ids is not None and ps:
+        base_weeks = ps.get('base_weeks', 0)
+        if base_weeks > 0:
+            all_mods = _safe(data, 'modules', [])
+            fr_items = ps.get('_fr_items', []) if ps else []
+            deselected = [
+                m for m in all_mods
+                if _safe(m, 'id') not in selected_ids
+            ] + [
+                it for it in fr_items
+                if it.get('id') not in selected_ids
+            ]
+            reduction = 0
+            views_removed = 0
+            features_removed = 0
+            for m in deselected:
+                src = _safe(m, '_source') or m.get('_source', '')
+                gid = _safe(m, 'groupId') or m.get('groupId', '')
+                if src == 'investment' or gid == 'integrations_api':
+                    reduction += 1
+                elif gid == 'views':
+                    views_removed += 1
+                elif gid == 'features':
+                    features_removed += 1
+            reduction += views_removed // 3
+            reduction += features_removed // 3
+            adjusted_weeks = max(1, base_weeks - reduction)
+            if adjusted_weeks != base_weeks:
+                if ps:
+                    y = _check_y(c, y, ps, need=20)
+                c.setFont(_font('regular'), 9)
+                c.setFillColor(GRAY_500)
+                duration_text = (
+                    f'Duraci\u00f3n estimada: {adjusted_weeks} semanas'
+                    f' (reducido de {base_weeks})'
+                )
+                c.drawCentredString(
+                    MARGIN_L + CONTENT_W / 2, y, duration_text
+                )
+                y -= 16
+
     # ── Interactive Modules (if present) ──────────────────────────
     modules = _safe(data, 'modules', [])
     selected_ids = ps.get('selected_modules') if ps else None
@@ -1835,6 +1877,18 @@ class ProposalPdfService:
                             if _fprice or _safe(_it, 'is_required') is False:
                                 _fr_items.append({'id': _fid, 'price': _fprice})
             ps['_fr_items'] = _fr_items
+
+            # Extract base_weeks from timeline section for dynamic duration
+            base_weeks = 0
+            if selected_modules is not None:
+                for _sec in sections:
+                    if _sec.section_type == 'timeline':
+                        _td = (_sec.content_json or {}).get('totalDuration', '')
+                        _wm = re.search(r'(\d+)\s*(?:semana|week)', str(_td), re.IGNORECASE)
+                        if _wm:
+                            base_weeks = int(_wm.group(1))
+                        break
+            ps['base_weeks'] = base_weeks
 
             # Start first page
             _draw_header_bar(c)

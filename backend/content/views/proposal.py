@@ -1424,11 +1424,19 @@ def proposal_dashboard(request):
     Includes: total counts by status, conversion rate, avg time metrics,
     avg proposal value by status, top rejection reasons, monthly trend.
     """
-    from django.db.models import Avg, Count, Q
+    from django.db.models import Avg, Count, Q, Sum
     from django.db.models.functions import TruncMonth
 
     all_proposals = BusinessProposal.objects.all()
     total = all_proposals.count()
+
+    # Pipeline value: sum of total_investment for active sent + viewed proposals
+    pipeline_qs = all_proposals.filter(
+        status__in=['sent', 'viewed'], is_active=True,
+    )
+    pipeline_agg = pipeline_qs.aggregate(total=Sum('total_investment'))
+    pipeline_value = float(pipeline_agg['total'] or 0)
+    pipeline_count = pipeline_qs.count()
 
     # Counts by status
     by_status = {}
@@ -1549,8 +1557,34 @@ def proposal_dashboard(request):
         a = qs.filter(status='accepted').count()
         return round(a / t * 100, 1) if t > 0 else None
 
-    discount_close_rate = _close_rate(all_proposals.filter(discount_percent__gt=0))
-    no_discount_close_rate = _close_rate(all_proposals.filter(discount_percent=0))
+    with_discount_qs = all_proposals.filter(discount_percent__gt=0)
+    without_discount_qs = all_proposals.filter(discount_percent=0)
+    discount_close_rate = _close_rate(with_discount_qs)
+    no_discount_close_rate = _close_rate(without_discount_qs)
+
+    # Detailed discount analysis
+    avg_discount_all = with_discount_qs.aggregate(
+        avg=Avg('discount_percent')
+    )['avg']
+    avg_discount_accepted = with_discount_qs.filter(
+        status='accepted'
+    ).aggregate(avg=Avg('discount_percent'))['avg']
+    discount_analysis = {
+        'with_discount_count': with_discount_qs.filter(
+            status__in=['accepted', 'rejected', 'expired']
+        ).count(),
+        'with_discount_accepted': with_discount_qs.filter(
+            status='accepted'
+        ).count(),
+        'without_discount_count': without_discount_qs.filter(
+            status__in=['accepted', 'rejected', 'expired']
+        ).count(),
+        'without_discount_accepted': without_discount_qs.filter(
+            status='accepted'
+        ).count(),
+        'avg_discount_percent': round(float(avg_discount_all), 1) if avg_discount_all else None,
+        'avg_discount_accepted': round(float(avg_discount_accepted), 1) if avg_discount_accepted else None,
+    }
 
     # % viewed within 24 hours of sending
     within_24h = sum(
@@ -1645,6 +1679,8 @@ def proposal_dashboard(request):
         'total_proposals': total,
         'by_status': by_status,
         'conversion_rate': conversion_rate,
+        'pipeline_value': pipeline_value,
+        'pipeline_count': pipeline_count,
         'avg_time_to_first_view_hours': avg_ttfv,
         'avg_time_to_response_hours': avg_ttr,
         'avg_value_by_status': avg_value_by_status,
@@ -1654,6 +1690,7 @@ def proposal_dashboard(request):
         'pct_revisit': pct_revisit,
         'discount_close_rate': discount_close_rate,
         'no_discount_close_rate': no_discount_close_rate,
+        'discount_analysis': discount_analysis,
         'pct_viewed_within_24h': pct_viewed_within_24h,
         'top_dropoff_section': top_dropoff_section,
         'win_rate_by_project_type': win_rate_by_project_type,
@@ -2000,6 +2037,41 @@ def proposal_alerts(request):
                 'days_since': days,
                 'message': f'Propuesta zombie — sin vista ni actividad en {days} días.',
             })
+
+    # Zombie drafts: draft >5 days without edit
+    zombie_draft_qs = BusinessProposal.objects.filter(
+        status=BusinessProposal.Status.DRAFT,
+        is_active=True,
+        updated_at__lte=now - timedelta(days=5),
+    )
+    for p in zombie_draft_qs:
+        days = (now - p.updated_at).days
+        alerts.append({
+            'id': p.id, 'uuid': str(p.uuid),
+            'title': p.title, 'client_name': p.client_name,
+            'alert_type': 'zombie_draft',
+            'days_since': days,
+            'message': f'Borrador abandonado — sin edición en {days} días.',
+        })
+
+    # Zombie sent stale: sent >10 days, no views
+    zombie_sent_stale_qs = BusinessProposal.objects.filter(
+        status=BusinessProposal.Status.SENT,
+        is_active=True,
+        view_count=0,
+        first_viewed_at__isnull=True,
+        sent_at__isnull=False,
+        sent_at__lte=now - timedelta(days=10),
+    )
+    for p in zombie_sent_stale_qs:
+        days = (now - p.sent_at).days
+        alerts.append({
+            'id': p.id, 'uuid': str(p.uuid),
+            'title': p.title, 'client_name': p.client_name,
+            'alert_type': 'zombie_sent_stale',
+            'days_since': days,
+            'message': f'Enviada hace {days} días — nunca vista.',
+        })
 
     # Late return: client didn't visit for ≥5 days then came back in last 24h
     late_return_candidates = BusinessProposal.objects.filter(

@@ -23,6 +23,17 @@
       </svg>
     </button>
 
+    <!-- Share hint tooltip -->
+    <Transition name="fade-toast">
+      <div
+        v-if="showShareHint"
+        class="fixed bottom-[4.5rem] right-4 z-30 bg-gray-900 text-white text-xs font-medium px-3 py-2 rounded-xl shadow-lg max-w-[180px] text-center leading-snug"
+      >
+        {{ t.shareHint }}
+        <div class="absolute -top-1.5 right-5 w-3 h-3 bg-gray-900 rotate-45" />
+      </div>
+    </Transition>
+
     <!-- Share modal -->
     <teleport to="body">
       <div
@@ -120,7 +131,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 
 const props = defineProps({
   proposalUuid: { type: String, required: true },
@@ -143,6 +154,7 @@ const i18nStrings = {
     copy: 'Copiar',
     copied: '¡Copiado!',
     done: 'Listo',
+    shareHint: 'Comparte con tu equipo',
   },
   en: {
     shareTitle: 'Share proposal',
@@ -159,6 +171,7 @@ const i18nStrings = {
     copy: 'Copy',
     copied: 'Copied!',
     done: 'Done',
+    shareHint: 'Share with your team',
   },
 };
 
@@ -175,6 +188,20 @@ const copied = ref(false);
 const linkInput = ref(null);
 
 const quickCopied = ref(false);
+const showShareHint = ref(false);
+
+onMounted(() => {
+  const hintKey = `proposal-${props.proposalUuid}-share-hint-seen`;
+  try {
+    if (!localStorage.getItem(hintKey)) {
+      setTimeout(() => { showShareHint.value = true; }, 2000);
+      setTimeout(() => {
+        showShareHint.value = false;
+        localStorage.setItem(hintKey, '1');
+      }, 7000);
+    }
+  } catch (_e) { /* ignore */ }
+});
 
 const shareUrl = computed(() => {
   if (!shareResult.value?.uuid) return '';

@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 
 /**
  * Composable for countdown timer to proposal expiration.
@@ -10,10 +10,15 @@ export function useExpirationTimer(expiresAt) {
   const now = ref(new Date());
   let interval = null;
 
-  onMounted(() => {
+  function startInterval(ms) {
+    if (interval) clearInterval(interval);
     interval = setInterval(() => {
       now.value = new Date();
-    }, 60000);
+    }, ms);
+  }
+
+  onMounted(() => {
+    startInterval(60000);
   });
 
   onUnmounted(() => {
@@ -44,9 +49,27 @@ export function useExpirationTimer(expiresAt) {
     return Math.max(Math.floor(diffMs.value / (1000 * 60 * 60)), 0);
   });
 
+  const minutesRemaining = computed(() => {
+    if (diffMs.value === null) return null;
+    return Math.max(Math.floor(diffMs.value / (1000 * 60)), 0);
+  });
+
   const isExpired = computed(() => {
     if (diffMs.value === null) return false;
     return diffMs.value <= 0;
+  });
+
+  /**
+   * True when <48h remain — triggers real-time HH:MM display.
+   */
+  const isCountdownMode = computed(() => {
+    if (hoursRemaining.value === null) return false;
+    return !isExpired.value && hoursRemaining.value < 48;
+  });
+
+  // Switch to 1s interval when entering countdown mode (<48h)
+  watch(isCountdownMode, (active) => {
+    startInterval(active ? 1000 : 60000);
   });
 
   /**
@@ -66,21 +89,27 @@ export function useExpirationTimer(expiresAt) {
   });
 
   /**
-   * Human-readable countdown string, e.g. "2 días, 5 horas"
+   * Human-readable countdown string.
+   * When <48h: shows "HH:MM" (e.g. "23:45").
+   * Otherwise: "2 días", "5 horas", etc.
    */
   const formattedCountdown = computed(() => {
     if (isExpired.value) return 'Expirada';
     if (diffMs.value === null) return '';
 
     const totalHours = Math.floor(diffMs.value / (1000 * 60 * 60));
-    const days = Math.floor(totalHours / 24);
-    const hours = totalHours % 24;
 
+    // Real-time HH:MM when under 48 hours
+    if (totalHours < 48) {
+      const totalMinutes = Math.floor(diffMs.value / (1000 * 60));
+      const hrs = Math.floor(totalMinutes / 60);
+      const mins = totalMinutes % 60;
+      return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+    }
+
+    const days = Math.floor(totalHours / 24);
     if (days > 0) {
       return `${days} día${days !== 1 ? 's' : ''}`;
-    }
-    if (hours > 0) {
-      return `${hours} hora${hours !== 1 ? 's' : ''}`;
     }
     return 'Menos de 1 hora';
   });
@@ -88,7 +117,9 @@ export function useExpirationTimer(expiresAt) {
   return {
     daysRemaining,
     hoursRemaining,
+    minutesRemaining,
     isExpired,
+    isCountdownMode,
     urgencyLevel,
     formattedCountdown,
   };

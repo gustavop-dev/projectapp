@@ -171,6 +171,7 @@ class ProposalAlert(models.Model):
         ('call', 'Llamada'),
         ('meeting', 'Reunión'),
         ('custom', 'Personalizado'),
+        ('discount_suggestion', 'Sugerencia de descuento'),
     ]
 
     proposal = models.ForeignKey(
