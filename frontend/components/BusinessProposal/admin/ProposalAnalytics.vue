@@ -24,6 +24,21 @@
         </button>
       </div>
 
+      <!-- Engagement score -->
+      <div v-if="analytics.engagement_score != null" class="bg-white rounded-xl border shadow-sm p-5 flex items-center gap-5"
+        :class="analytics.engagement_score >= 70 ? 'border-emerald-200' : analytics.engagement_score >= 40 ? 'border-yellow-200' : 'border-red-200'">
+        <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white"
+          :class="analytics.engagement_score >= 70 ? 'bg-emerald-500' : analytics.engagement_score >= 40 ? 'bg-yellow-500' : 'bg-red-400'">
+          {{ analytics.engagement_score }}
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-gray-900">Engagement Score</p>
+          <p class="text-xs text-gray-500 mt-0.5">
+            {{ analytics.engagement_score >= 70 ? 'Alto engagement — prioridad de follow-up' : analytics.engagement_score >= 40 ? 'Engagement moderado' : 'Bajo engagement — necesita atención' }}
+          </p>
+        </div>
+      </div>
+
       <!-- Summary cards -->
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">

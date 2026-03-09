@@ -11,7 +11,7 @@
     <div v-else-if="loadError === 'not_found'" class="min-h-screen flex items-center justify-center">
       <div class="text-center">
         <h1 class="text-4xl font-light text-gray-400 mb-4">404</h1>
-        <p class="text-gray-500">Esta propuesta no fue encontrada.</p>
+        <p class="text-gray-500">{{ browserLang === 'es' ? 'Esta propuesta no fue encontrada.' : 'This proposal was not found.' }}</p>
       </div>
     </div>
 
@@ -28,8 +28,8 @@
     >
       <!-- Preview mode banner -->
       <div v-if="isPreviewMode" class="fixed top-0 left-0 right-0 z-[9999] bg-amber-500 text-white text-center py-2 text-xs font-semibold tracking-wide shadow-md">
-        👁 MODO PREVIEW — El cliente no ve este banner
-        <button class="ml-4 underline text-white/80 hover:text-white" @click="exitPreview">Volver al panel</button>
+        👁 {{ pLang === 'es' ? 'MODO PREVIEW — El cliente no ve este banner' : 'PREVIEW MODE — The client does not see this banner' }}
+        <button class="ml-4 underline text-white/80 hover:text-white" @click="exitPreview">{{ pLang === 'es' ? 'Volver al panel' : 'Back to panel' }}</button>
       </div>
 
       <!-- UX overlay elements -->
@@ -52,7 +52,7 @@
       />
 
       <!-- Onboarding tutorial tooltips -->
-      <ProposalOnboarding ref="onboardingRef" @complete="showReadingTimePopup" />
+      <ProposalOnboarding ref="onboardingRef" :language="pLang" @complete="showReadingTimePopup" />
 
       <!-- Sticky accept bar (all panels except greeting and closing) -->
       <ProposalResponseButtons
@@ -61,7 +61,43 @@
         :language="proposal?.language || 'es'"
         :whatsappLink="extractedWhatsappLink"
         :proposalTitle="proposal?.title || ''"
+        :currentSectionTitle="currentPanel?.title || ''"
       />
+
+      <!-- Welcome-back overlay -->
+      <Teleport to="body">
+        <Transition name="fade-popup">
+          <div v-if="welcomeBack" class="fixed inset-0 z-[10000] flex items-center justify-center p-6">
+            <div class="absolute inset-0 bg-white/60 backdrop-blur-[3px]" />
+            <div class="relative bg-white rounded-3xl shadow-2xl border border-gray-100 p-6 sm:p-8 max-w-sm w-full text-center">
+              <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                <span class="text-3xl">👋</span>
+              </div>
+              <h3 class="text-lg font-bold text-esmerald mb-2">
+                {{ pLang === 'es' ? 'Bienvenido de nuevo' : 'Welcome back' }}{{ welcomeBack.clientName ? ', ' + welcomeBack.clientName : '' }}.
+              </h3>
+              <p class="text-sm text-esmerald/70 font-light leading-relaxed mb-6">
+                {{ pLang === 'es' ? 'La última vez llegaste hasta' : 'Last time you reached' }} <strong>{{ welcomeBack.sectionTitle }}</strong>. {{ pLang === 'es' ? '¿Quieres continuar?' : 'Want to continue?' }}
+              </p>
+              <div class="flex flex-col gap-2">
+                <button
+                  class="w-full px-6 py-3 bg-esmerald text-lemon rounded-xl font-bold text-sm
+                         hover:bg-esmerald/90 transition-colors shadow-sm"
+                  @click="navigateTo(welcomeBack.sectionIndex); welcomeBack = null"
+                >
+                  {{ pLang === 'es' ? 'Continuar donde lo dejé' : 'Continue where I left off' }}
+                </button>
+                <button
+                  class="w-full px-6 py-3 text-gray-500 text-sm font-medium hover:text-gray-700 transition-colors"
+                  @click="welcomeBack = null"
+                >
+                  {{ pLang === 'es' ? 'Empezar desde el inicio' : 'Start from the beginning' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
 
       <!-- Reading time popup -->
       <Teleport to="body">
@@ -74,16 +110,16 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 class="text-lg font-bold text-esmerald mb-2">Tiempo de lectura: ~6 minutos</h3>
+              <h3 class="text-lg font-bold text-esmerald mb-2">{{ pLang === 'es' ? 'Tiempo de lectura: ~6 minutos' : 'Reading time: ~6 minutes' }}</h3>
               <p class="text-sm text-esmerald/70 font-light leading-relaxed mb-6">
-                Por favor lee el contenido de todas las secciones. Cada una aborda un punto importante y diferente de la propuesta.
+                {{ pLang === 'es' ? 'Por favor lee el contenido de todas las secciones. Cada una aborda un punto importante y diferente de la propuesta.' : 'Please read through all sections. Each one covers an important and different aspect of the proposal.' }}
               </p>
               <button
                 class="w-full px-6 py-3 bg-esmerald text-lemon rounded-xl font-bold text-sm
                        hover:bg-esmerald/90 transition-colors shadow-sm"
                 @click="readingPopupVisible = false"
               >
-                Entendido
+                {{ pLang === 'es' ? 'Entendido' : 'Got it' }}
               </button>
             </div>
           </div>
@@ -143,6 +179,7 @@ import {
   FinalNote,
   NextSteps,
   ProposalSummary,
+  ProcessMethodology,
 } from '~/components/BusinessProposal';
 import ProposalIndex from '~/components/BusinessProposal/ProposalIndex.vue';
 import SectionCounter from '~/components/BusinessProposal/SectionCounter.vue';
@@ -167,6 +204,12 @@ function exitPreview() {
   router.back();
 }
 
+const pLang = computed(() => proposal.value?.language || 'es');
+const browserLang = computed(() => {
+  if (import.meta.server) return 'en';
+  return (navigator.language || '').startsWith('es') ? 'es' : 'en';
+});
+
 const sectionComponentMap = {
   greeting: Greeting,
   executive_summary: ExecutiveSummary,
@@ -175,6 +218,7 @@ const sectionComponentMap = {
   design_ux: DesignUX,
   creative_support: CreativeSupport,
   development_stages: DevelopmentStages,
+  process_methodology: ProcessMethodology,
   functional_requirements: FunctionalRequirements,
   functional_requirements_group: FunctionalRequirementsGroup,
   timeline: Timeline,
@@ -229,6 +273,7 @@ const navBlinkPrev = ref(false);
 let blinkTimer = null;
 const onboardingRef = ref(null);
 const readingPopupVisible = ref(false);
+const welcomeBack = ref(null);
 
 // Current panel and neighbors
 const currentPanel = computed(() => displayPanels.value[currentIndex.value] || displayPanels.value[0]);
@@ -237,6 +282,17 @@ const currentPanel = computed(() => displayPanels.value[currentIndex.value] || d
 watch(currentPanel, (panel) => {
   if (panel?.id !== undefined) {
     visitedPanelIds.value = new Set([...visitedPanelIds.value, panel.id]);
+  }
+  // Persist progress for welcome-back
+  if (panel && proposal.value?.uuid && !isPreviewMode.value) {
+    try {
+      const key = `proposal-${proposal.value.uuid}-progress`;
+      localStorage.setItem(key, JSON.stringify({
+        sectionIndex: currentIndex.value,
+        sectionTitle: panel.title || '',
+        clientName: proposal.value.client_name || '',
+      }));
+    } catch (_e) { /* ignore */ }
   }
 }, { immediate: true });
 
@@ -520,6 +576,22 @@ const onAnimationComplete = () => {
   } catch (_e) { /* ignore */ }
   showContent.value = true;
   window.addEventListener('keydown', handleKeydown);
+
+  // Check for returning client (welcome-back)
+  if (!isPreviewMode.value && proposal.value?.uuid) {
+    try {
+      const key = `proposal-${proposal.value.uuid}-progress`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.sectionIndex > 0 && data.sectionIndex < totalSections.value) {
+          welcomeBack.value = data;
+          return; // Skip onboarding — show welcome-back instead
+        }
+      }
+    } catch (_e) { /* ignore */ }
+  }
+
   // Start onboarding tutorial after a short delay for elements to render
   nextTick(() => {
     onboardingRef.value?.start();

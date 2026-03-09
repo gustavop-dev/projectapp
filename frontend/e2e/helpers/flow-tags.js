@@ -63,6 +63,10 @@ export const ADMIN_PROPOSAL_ANALYTICS = ['@flow:admin-proposal-analytics', '@mod
 export const ADMIN_PROPOSAL_DASHBOARD = ['@flow:admin-proposal-dashboard', '@module:admin', '@priority:P2'];
 export const ADMIN_MINI_CRM_CLIENTS = ['@flow:admin-mini-crm-clients', '@module:admin', '@priority:P2'];
 
+// ── Admin (latest features) ──
+export const ADMIN_BLOG_CALENDAR = ['@flow:admin-blog-calendar', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_MANUAL_ALERTS = ['@flow:admin-proposal-manual-alerts', '@module:admin', '@priority:P2'];
+
 // ── Admin Portfolio ──
 export const ADMIN_PORTFOLIO_LIST = ['@flow:admin-portfolio-list', '@module:admin', '@priority:P2'];
 export const ADMIN_PORTFOLIO_CREATE = ['@flow:admin-portfolio-create', '@module:admin', '@priority:P2'];

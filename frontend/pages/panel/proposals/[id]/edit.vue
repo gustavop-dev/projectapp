@@ -326,6 +326,37 @@
         </div>
       </div>
     </template>
+
+    <!-- Pre-send checklist modal -->
+    <Teleport to="body">
+      <div v-if="showSendChecklist" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="showSendChecklist = false">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 sm:p-8">
+          <h3 class="text-lg font-bold text-gray-900 mb-1">Checklist pre-envío</h3>
+          <p class="text-sm text-gray-500 mb-5">Verifica que todo esté listo antes de enviar.</p>
+          <ul class="space-y-3 mb-6">
+            <li v-for="(item, idx) in sendChecklist" :key="idx" class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full flex items-center justify-center text-sm flex-shrink-0"
+                :class="item.pass ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-500'">
+                {{ item.pass ? '✓' : '✗' }}
+              </span>
+              <span class="text-sm" :class="item.pass ? 'text-gray-700' : 'text-red-600 font-medium'">{{ item.label }}</span>
+            </li>
+          </ul>
+          <div class="flex gap-3 justify-end">
+            <button class="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showSendChecklist = false">
+              Cancelar
+            </button>
+            <button
+              class="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              :disabled="!allChecksPassing"
+              @click="confirmSend"
+            >
+              Enviar al Cliente
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -421,8 +452,25 @@ async function handleUpdate() {
   }
 }
 
-async function handleSend() {
-  if (!confirm('¿Enviar esta propuesta al cliente? Se programarán recordatorios automáticos.')) return;
+const showSendChecklist = ref(false);
+const sendChecklist = computed(() => {
+  const checks = [
+    { label: 'Email del cliente configurado', pass: !!form.client_email?.trim() },
+    { label: 'Nombre del cliente', pass: !!form.client_name?.trim() },
+    { label: 'Inversión > $0', pass: Number(form.total_investment) > 0 },
+    { label: 'Fecha de expiración futura', pass: !!form.expires_at && new Date(form.expires_at) > new Date() },
+    { label: 'Al menos 1 sección habilitada', pass: allSections.value?.some(s => s.is_enabled) },
+  ];
+  return checks;
+});
+const allChecksPassing = computed(() => sendChecklist.value.every(c => c.pass));
+
+function handleSend() {
+  showSendChecklist.value = true;
+}
+
+async function confirmSend() {
+  showSendChecklist.value = false;
   const result = await proposalStore.sendProposal(proposal.value.id);
   if (result.success) {
     updateMsg.value = { type: 'success', text: 'Propuesta enviada al cliente.' };

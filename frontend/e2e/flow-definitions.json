@@ -338,6 +338,46 @@
       "priority": "P2",
       "description": "Delete an existing portfolio work.",
       "expectedSpecs": 1
+    },
+    "proposal-view-navigation": {
+      "name": "Proposal View Navigation",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P1",
+      "description": "Navigate between proposal sections using prev/next buttons and ProposalIndex panel.",
+      "expectedSpecs": 1
+    },
+    "proposal-view-onboarding": {
+      "name": "Proposal View Onboarding",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "First-visit tutorial overlay with step-by-step tooltips and reading time popup.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-create-from-json": {
+      "name": "Admin Proposal Create (JSON Import)",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Create a proposal by importing a pre-filled JSON payload with all 12 section content_json values.",
+      "expectedSpecs": 1
+    },
+    "admin-blog-calendar": {
+      "name": "Admin Blog Calendar",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Weekly calendar view showing scheduled, published, and draft blog posts.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-manual-alerts": {
+      "name": "Admin Proposal Manual Alerts",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Create, view, and dismiss manual seller alerts/reminders for proposals.",
+      "expectedSpecs": 1
     }
   }
 }

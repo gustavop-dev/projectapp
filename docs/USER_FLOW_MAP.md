@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 1.4.0
-> **Last updated:** 2026-03-09
+> **Version:** 1.5.0
+> **Last updated:** 2025-07-12
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -334,16 +334,16 @@
 - **Role:** guest (via shared UUID link)
 - **Priority:** P1
 - **Routes:** `/proposal/:uuid`
-- **Description:** Client responds to (accepts/rejects) a business proposal from the ProposalClosing panel.
+- **Description:** Client responds to (accepts/rejects) a business proposal from the ProposalClosing panel. Accept button has visual dominance (larger, glow, pulse animation). Acceptance triggers a confetti celebration animation via `canvas-confetti`.
 - **Steps:**
   1. User views the proposal and navigates to the closing panel.
-  2. Accept/reject buttons visible when `proposal.status` is `sent` or `viewed`.
+  2. Accept/reject buttons visible when `proposal.status` is `sent` or `viewed`. Accept button is visually dominant (larger, green glow, subtle pulse).
   3. User clicks "Acepto la propuesta" → confirmation modal opens.
   4. User confirms → API call to `POST /api/proposals/:uuid/respond/` with `decision: accepted`.
-  5. Success state: "¡Propuesta aceptada!" message renders.
+  5. Success state: confetti animation fires (canvas-confetti), bouncing 🎉 emoji, "¡Propuesta aceptada!" message renders.
 - **Branches:**
-  - [Branch A — Accept] Client clicks accept → confirm modal → API → success emoji + message.
-  - [Branch B — Reject] Client clicks "Rechazar propuesta" → reject modal (select reason + comment) → API → thank-you message.
+  - [Branch A — Accept] Client clicks accept → confirm modal → API → confetti animation + success message.
+  - [Branch B — Reject] Client clicks "Rechazar propuesta" → reject modal (select reason + comment) → API → smart recovery message.
   - [Branch C — Already responded] Buttons hidden, status message shown.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-respond.spec.js`
@@ -437,11 +437,13 @@
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/proposals/`
-- **Description:** View the list of all business proposals.
+- **Description:** View the list of all business proposals. Table includes heat score badge (1-10, color-coded), "días sin actividad" red badge for inactive proposals, WhatsApp quick-action in dropdown, and a floating metrics manual button.
 - **Steps:**
   1. Admin navigates to `/panel/proposals/`.
-  2. Proposals load from API (`GET /api/proposals/`).
-  3. Proposal table renders with status, client, dates.
+  2. Proposals load from API (`GET /api/proposals/`) with `heat_score` per proposal.
+  3. Proposal table renders with status, client, dates, 🔥 heat score column, and inactivity badges.
+  4. Actions dropdown includes "Enviar por WhatsApp" with pre-filled contextual message.
+  5. Floating "?" button opens the MetricsManual slide-over with searchable metric definitions.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-list.spec.js`
 
@@ -725,14 +727,16 @@
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P1
-- **Routes:** `/panel/proposals/`
-- **Description:** Send a proposal to a client via email.
+- **Routes:** `/panel/proposals/`, `/panel/proposals/:id/edit`
+- **Description:** Send a proposal to a client via email. On edit page, a visual pre-send checklist modal replaces the native `confirm()` dialog, validating: client email, client name, investment > $0, future expiration date, at least 1 enabled section.
 - **Steps:**
-  1. Admin views the proposal list or edit page.
-  2. Admin clicks "Send" on a proposal.
-  3. API call to `POST /api/proposals/:id/send/`.
-  4. Email is sent to the client with the proposal link.
-  5. Success feedback displays.
+  1. Admin views the proposal edit page.
+  2. Admin clicks "Enviar al Cliente".
+  3. Pre-send checklist modal opens showing pass/fail status for each item (✓/✗).
+  4. "Enviar al Cliente" button is disabled until all checks pass.
+  5. Admin clicks "Enviar al Cliente" in modal → API call to `POST /api/proposals/:id/send/`.
+  6. Email is sent to the client with the proposal link.
+  7. Success feedback displays.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-send.spec.js`
 
@@ -742,17 +746,93 @@
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/proposals/`
-- **Description:** Create, view, and dismiss manual seller alerts/reminders for proposals.
+- **Description:** Create, view, and dismiss manual seller alerts/reminders for proposals. Auto-alerts now include: seller_inactive (🏷️ no follow-up >3d), zombie (💀 sent >7d, no views, no activity), late_return (🔄 client returned after ≥5d gap).
 - **Steps:**
   1. Admin navigates to `/panel/proposals/`.
-  2. Alerts panel shows auto-alerts (not_viewed, not_responded, expiring_soon) merged with manual alerts from API (`GET /api/proposals/alerts/`).
-  3. Admin clicks "+ Crear recordatorio" to open the create alert form.
-  4. Admin selects a proposal, alert type (reminder/followup/call/meeting/custom), date, and message.
-  5. Admin submits → API call to `POST /api/proposals/alerts/create/`.
-  6. New alert appears in the panel with dismiss (✕) button.
-  7. Admin clicks ✕ → API call to `PATCH /api/proposals/alerts/:id/dismiss/` → alert removed from list.
+  2. Alerts panel shows auto-alerts (not_viewed, not_responded, expiring_soon, seller_inactive, zombie, late_return) merged with manual alerts from API (`GET /api/proposals/alerts/`).
+  3. Each alert type has a distinct icon (👁️‍🗨️, ⏳, 🔥, 🏷️, 💀, 🔄).
+  4. Admin clicks "+ Crear recordatorio" to open the create alert form.
+  5. Admin selects a proposal, alert type (reminder/followup/call/meeting/custom), date, and message.
+  6. Admin submits → API call to `POST /api/proposals/alerts/create/`.
+  7. New alert appears in the panel with dismiss (✕) button.
+  8. Admin clicks ✕ → API call to `PATCH /api/proposals/alerts/:id/dismiss/` → alert removed from list.
 - **Coverage:** ❌ Missing
 - **E2E Spec:** —
+
+### FLOW: `admin-proposal-win-rate-dashboard`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/`
+- **Description:** Dashboard displays win rate segmented by project type, market type, and combination. Backend computes accepted/(accepted+rejected+expired) per type.
+- **Steps:**
+  1. Admin opens the KPI Dashboard on the proposals page.
+  2. Dashboard loads data from `GET /api/proposals/dashboard/` including `win_rate_by_project_type`, `win_rate_by_market_type`, `win_rate_by_combination`.
+  3. Two side-by-side bar charts show win rates by project type and market type (best type highlighted).
+  4. Combination table shows project×market cross-tab for combos with ≥2 proposals.
+- **Coverage:** ❌ Missing
+
+### FLOW: `admin-proposal-engagement-score`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/:id/edit` (Analytics tab)
+- **Description:** ProposalAnalytics displays an engagement score (0-100) per proposal, computed from recent sessions, investment section time, unique stakeholders, response recency, and revisits.
+- **Steps:**
+  1. Admin opens the Analytics tab for a proposal.
+  2. Analytics loads from `GET /api/proposals/:id/analytics/` including `engagement_score`.
+  3. Engagement score card renders with color-coded level (green ≥70, yellow ≥40, red <40) and contextual recommendation text.
+- **Coverage:** ❌ Missing
+
+### FLOW: `admin-proposal-metrics-manual`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/proposals/`
+- **Description:** Floating "?" button opens a slide-over panel (MetricsManual component) with searchable definitions of all metrics: conversion rate, engagement score, heat score, time-to-first-view, win rate, zombie proposals, late returns, seller inactivity, etc.
+- **Steps:**
+  1. Admin clicks the floating "?" button (bottom-right corner).
+  2. MetricsManual slide-over opens with search bar and 16 metric definitions.
+  3. Admin types in search bar → results filter in real-time.
+  4. Each metric shows name, description, calculation method, and recommended action.
+  5. Admin clicks outside or ✕ to close.
+- **Coverage:** ❌ Missing
+
+### FLOW: `proposal-welcome-back`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** Returning client sees a welcome-back overlay with their name and last visited section. Progress is persisted in localStorage per proposal UUID.
+- **Steps:**
+  1. Client opens a proposal they've previously visited.
+  2. On animation complete, the system checks `localStorage` for saved progress (`proposal-{uuid}-progress`).
+  3. If progress exists (sectionIndex > 0), welcome-back overlay appears: "Bienvenido de nuevo, [name]. La última vez llegaste hasta [section]."
+  4. Client clicks "Continuar donde lo dejé" → navigates to saved section.
+  5. Client clicks "Empezar desde el inicio" → dismisses overlay.
+  6. Onboarding tutorial is skipped for returning visitors.
+- **Branches:**
+  - [Branch A — First visit] No saved progress → normal onboarding flow.
+  - [Branch B — Preview mode] Welcome-back is skipped in preview mode.
+- **Coverage:** ❌ Missing
+
+### FLOW: `proposal-process-methodology`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** New "Proceso y Metodología" section with a 5-step visual pipeline (Discovery → Diseño → Desarrollo → QA → Lanzamiento). Horizontal on desktop, vertical timeline on mobile. Each step shows icon, title, description, and optional "Tu aporte" client action tag.
+- **Steps:**
+  1. Client navigates to the Process & Methodology section.
+  2. Section renders with intro text and 5-step pipeline.
+  3. Active steps are highlighted with green styling.
+  4. Client action tags indicate what input the client provides at each stage.
+- **Coverage:** ❌ Missing
 
 ### FLOW: `admin-blog-list`
 
@@ -981,6 +1061,11 @@
 | `admin-blog-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-edit.spec.js` |
 | `admin-blog-delete` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-blog-delete.spec.js` |
 | `admin-proposal-manual-alerts` | admin | admin | P2 | ❌ Missing | — |
+| `admin-proposal-win-rate-dashboard` | admin | admin | P2 | ❌ Missing | — |
+| `admin-proposal-engagement-score` | admin | admin | P2 | ❌ Missing | — |
+| `admin-proposal-metrics-manual` | admin | admin | P3 | ❌ Missing | — |
+| `proposal-welcome-back` | proposal | guest | P2 | ❌ Missing | — |
+| `proposal-process-methodology` | proposal | guest | P2 | ❌ Missing | — |
 | `admin-portfolio-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-list.spec.js` |
 | `admin-portfolio-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-create.spec.js` |
 | `admin-portfolio-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-edit.spec.js` |
@@ -988,12 +1073,12 @@
 
 ### Summary
 
-- **Total flows:** 48 (added admin-blog-calendar, admin-proposal-manual-alerts)
+- **Total flows:** 53 (added admin-proposal-win-rate-dashboard, admin-proposal-engagement-score, admin-proposal-metrics-manual, proposal-welcome-back, proposal-process-methodology)
 - **P1 (Critical):** 15
-- **P2 (High):** 25
-- **P3 (Medium):** 8
-- **Covered (full):** 35 (73%)
-- **Missing:** 13 (27%) — proposal-view-onboarding, proposal-share, proposal-engagement-tracking, admin-proposal-create-from-json, admin-proposal-duplicate, admin-proposal-comment, admin-proposal-analytics, admin-proposal-dashboard, admin-mini-crm-clients, admin-blog-calendar, admin-proposal-manual-alerts
+- **P2 (High):** 29
+- **P3 (Medium):** 9
+- **Covered (full):** 35 (66%)
+- **Missing:** 18 (34%) — proposal-view-onboarding, proposal-share, proposal-engagement-tracking, proposal-welcome-back, proposal-process-methodology, admin-proposal-create-from-json, admin-proposal-duplicate, admin-proposal-comment, admin-proposal-analytics, admin-proposal-dashboard, admin-proposal-win-rate-dashboard, admin-proposal-engagement-score, admin-proposal-metrics-manual, admin-mini-crm-clients, admin-blog-calendar, admin-proposal-manual-alerts
 
 ### Unit Test Coverage
 

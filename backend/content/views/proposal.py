@@ -143,6 +143,7 @@ def list_proposals(request):
     """
     List all proposals with lightweight serializer.
     Supports ?status= query parameter for filtering.
+    Includes heat_score (1-10) for active non-draft proposals.
     """
     qs = BusinessProposal.objects.all()
     status_filter = request.query_params.get('status')
@@ -150,7 +151,17 @@ def list_proposals(request):
         qs = qs.filter(status=status_filter)
 
     serializer = ProposalListSerializer(qs, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    data = serializer.data
+
+    # Compute heat scores for non-draft active proposals
+    now = timezone.now()
+    for item in data:
+        if item['status'] in ('sent', 'viewed') and item['is_active']:
+            item['heat_score'] = _compute_heat_score_for_proposal(item['id'], now)
+        else:
+            item['heat_score'] = 0
+
+    return Response(data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
@@ -879,6 +890,120 @@ def track_proposal_engagement(request, proposal_uuid):
     return Response({'status': 'ok'}, status=status.HTTP_200_OK)
 
 
+def _compute_engagement_score(proposal, view_events, sections_data, unique_sessions):
+    """
+    Compute engagement score (0-100) for a proposal based on:
+    - Recent sessions (last 7 days): 0-25 pts
+    - Time on investment section / total time: 0-25 pts
+    - Number of unique stakeholders (IPs): 0-20 pts
+    - Inverse days-without-response: 0-15 pts
+    - Re-visits (sessions > 1): 0-15 pts
+    """
+    from datetime import timedelta
+    score = 0
+
+    # 1. Recent sessions (last 7 days) — max 25 pts
+    seven_days_ago = timezone.now() - timedelta(days=7)
+    recent_sessions = view_events.filter(viewed_at__gte=seven_days_ago).count()
+    score += min(25, recent_sessions * 8)
+
+    # 2. Time on investment section / total time — max 25 pts
+    total_time = sum(s.get('total_time_seconds', 0) for s in sections_data)
+    inv_time = sum(
+        s.get('total_time_seconds', 0)
+        for s in sections_data if s.get('section_type') == 'investment'
+    )
+    if total_time > 0:
+        inv_ratio = inv_time / total_time
+        score += min(25, round(inv_ratio * 100))
+
+    # 3. Unique stakeholders (IPs) — max 20 pts
+    unique_ips = view_events.exclude(
+        ip_address__isnull=True
+    ).exclude(ip_address='').values('ip_address').distinct().count()
+    score += min(20, unique_ips * 10)
+
+    # 4. Inverse days-without-response — max 15 pts
+    if proposal.status in ('sent', 'viewed') and proposal.first_viewed_at:
+        days_since = (timezone.now() - proposal.first_viewed_at).days
+        if days_since <= 1:
+            score += 15
+        elif days_since <= 3:
+            score += 10
+        elif days_since <= 7:
+            score += 5
+    elif proposal.status == 'accepted':
+        score += 15
+
+    # 5. Re-visits (sessions > 1) — max 15 pts
+    if unique_sessions > 1:
+        score += min(15, (unique_sessions - 1) * 5)
+
+    return min(100, score)
+
+
+def _compute_heat_score_for_proposal(proposal_id, now=None):
+    """
+    Compute heat score (1-10) for a single proposal for the list view.
+    Lightweight version of engagement score.
+    """
+    from datetime import timedelta
+    if now is None:
+        now = timezone.now()
+
+    score = 0
+    seven_days_ago = now - timedelta(days=7)
+
+    # Recent sessions (7d) — max 3 pts
+    recent = (
+        ProposalViewEvent.objects
+        .filter(proposal_id=proposal_id, viewed_at__gte=seven_days_ago)
+        .count()
+    )
+    score += min(3, recent)
+
+    # Time on investment section — max 2 pts
+    from django.db.models import Sum
+    inv_time = (
+        ProposalSectionView.objects
+        .filter(
+            view_event__proposal_id=proposal_id,
+            section_type='investment',
+        )
+        .aggregate(t=Sum('time_spent_seconds'))
+    )['t'] or 0
+    if inv_time >= 60:
+        score += 2
+    elif inv_time >= 15:
+        score += 1
+
+    # Unique IPs — max 2 pts
+    unique_ips = (
+        ProposalViewEvent.objects
+        .filter(proposal_id=proposal_id)
+        .exclude(ip_address__isnull=True).exclude(ip_address='')
+        .values('ip_address').distinct().count()
+    )
+    score += min(2, unique_ips)
+
+    # Total views — max 2 pts
+    from content.models import BusinessProposal as _BP
+    try:
+        p = _BP.objects.values('view_count', 'first_viewed_at').get(pk=proposal_id)
+    except _BP.DoesNotExist:
+        return 1
+    if p['view_count'] >= 5:
+        score += 2
+    elif p['view_count'] >= 2:
+        score += 1
+
+    # Recency of last view — max 1 pt
+    if p['first_viewed_at'] and (now - p['first_viewed_at']).days <= 3:
+        score += 1
+
+    return max(1, min(10, score))
+
+
 def _get_client_ip(request):
     """Extract client IP from request, checking X-Forwarded-For first."""
     xff = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -1250,6 +1375,11 @@ def retrieve_proposal_analytics(request, proposal_id):
         proposal.share_links.all(), many=True
     ).data
 
+    # --- Engagement score (0-100) ---
+    engagement_score = _compute_engagement_score(
+        proposal, view_events, sections_data, unique_sessions,
+    )
+
     return Response({
         'total_views': total_views,
         'unique_sessions': unique_sessions,
@@ -1271,6 +1401,7 @@ def retrieve_proposal_analytics(request, proposal_id):
         'funnel': funnel_data,
         'comparison': comparison,
         'share_links': share_links,
+        'engagement_score': engagement_score,
     }, status=status.HTTP_200_OK)
 
 
@@ -1453,6 +1584,57 @@ def proposal_dashboard(request):
                 'dropoff_percent': dropoff_by_section[top_sec],
             }
 
+    # --- Win rate by project_type ---
+    def _win_rate_breakdown(field_name):
+        results = []
+        values = (
+            all_proposals
+            .filter(**{f'{field_name}__gt': ''})
+            .values(field_name)
+            .annotate(
+                total=Count('id', filter=Q(status__in=['accepted', 'rejected', 'expired'])),
+                accepted=Count('id', filter=Q(status='accepted')),
+            )
+            .order_by(f'-accepted')
+        )
+        for row in values:
+            t = row['total']
+            a = row['accepted']
+            rate = round(a / t * 100, 1) if t > 0 else 0
+            results.append({
+                'type': row[field_name],
+                'accepted': a,
+                'total': t,
+                'win_rate': rate,
+            })
+        return results
+
+    win_rate_by_project_type = _win_rate_breakdown('project_type')
+    win_rate_by_market_type = _win_rate_breakdown('market_type')
+
+    # Win rate by combination (only combos with ≥2 terminal proposals)
+    combo_qs = (
+        all_proposals
+        .filter(project_type__gt='', market_type__gt='')
+        .values('project_type', 'market_type')
+        .annotate(
+            total=Count('id', filter=Q(status__in=['accepted', 'rejected', 'expired'])),
+            accepted=Count('id', filter=Q(status='accepted')),
+        )
+        .filter(total__gte=2)
+        .order_by('-accepted')
+    )
+    win_rate_by_combination = [
+        {
+            'project_type': row['project_type'],
+            'market_type': row['market_type'],
+            'accepted': row['accepted'],
+            'total': row['total'],
+            'win_rate': round(row['accepted'] / row['total'] * 100, 1) if row['total'] > 0 else 0,
+        }
+        for row in combo_qs
+    ]
+
     return Response({
         'total_proposals': total,
         'by_status': by_status,
@@ -1468,6 +1650,9 @@ def proposal_dashboard(request):
         'no_discount_close_rate': no_discount_close_rate,
         'pct_viewed_within_24h': pct_viewed_within_24h,
         'top_dropoff_section': top_dropoff_section,
+        'win_rate_by_project_type': win_rate_by_project_type,
+        'win_rate_by_market_type': win_rate_by_market_type,
+        'win_rate_by_combination': win_rate_by_combination,
     }, status=status.HTTP_200_OK)
 
 
@@ -1758,6 +1943,82 @@ def proposal_alerts(request):
             'days_remaining': days_left,
             'message': f'Expira en {days_left} día{"s" if days_left != 1 else ""}.',
         })
+
+    # Seller inactivity: sent/viewed, client has viewed, but seller has no
+    # activity logged in >3 days
+    seller_inactive_qs = BusinessProposal.objects.filter(
+        status__in=[BusinessProposal.Status.SENT, BusinessProposal.Status.VIEWED],
+        is_active=True,
+        first_viewed_at__isnull=False,
+    )
+    seller_activity_types = {'call', 'meeting', 'followup', 'note'}
+    for p in seller_inactive_qs:
+        ref_date = p.last_activity_at or p.sent_at
+        if ref_date and (now - ref_date).days >= 3:
+            # Check there's no recent seller activity
+            has_recent = ProposalChangeLog.objects.filter(
+                proposal=p,
+                change_type__in=seller_activity_types,
+                created_at__gte=now - timedelta(days=3),
+            ).exists()
+            if not has_recent:
+                days = (now - ref_date).days
+                alerts.append({
+                    'id': p.id, 'uuid': str(p.uuid),
+                    'title': p.title, 'client_name': p.client_name,
+                    'alert_type': 'seller_inactive',
+                    'days_since': days,
+                    'message': f'Sin follow-up del vendedor hace {days} días.',
+                })
+
+    # Zombie proposals: sent >7 days ago, no views, no seller activity
+    zombie_qs = BusinessProposal.objects.filter(
+        status=BusinessProposal.Status.SENT,
+        is_active=True,
+        view_count=0,
+        first_viewed_at__isnull=True,
+        sent_at__isnull=False,
+        sent_at__lte=now - timedelta(days=7),
+    )
+    for p in zombie_qs:
+        has_activity = ProposalChangeLog.objects.filter(
+            proposal=p,
+            change_type__in=seller_activity_types,
+        ).exists()
+        if not has_activity:
+            days = (now - p.sent_at).days
+            alerts.append({
+                'id': p.id, 'uuid': str(p.uuid),
+                'title': p.title, 'client_name': p.client_name,
+                'alert_type': 'zombie',
+                'days_since': days,
+                'message': f'Propuesta zombie — sin vista ni actividad en {days} días.',
+            })
+
+    # Late return: client didn't visit for ≥5 days then came back in last 24h
+    late_return_candidates = BusinessProposal.objects.filter(
+        status__in=[BusinessProposal.Status.SENT, BusinessProposal.Status.VIEWED],
+        is_active=True,
+    )
+    for p in late_return_candidates:
+        events = list(
+            ProposalViewEvent.objects
+            .filter(proposal=p)
+            .order_by('-viewed_at')
+            .values_list('viewed_at', flat=True)[:2]
+        )
+        if len(events) >= 2:
+            latest, previous = events[0], events[1]
+            gap_days = (latest - previous).days
+            recency_hours = (now - latest).total_seconds() / 3600
+            if gap_days >= 5 and recency_hours <= 24:
+                alerts.append({
+                    'id': p.id, 'uuid': str(p.uuid),
+                    'title': p.title, 'client_name': p.client_name,
+                    'alert_type': 'late_return',
+                    'days_since': gap_days,
+                    'message': f'El cliente volvió después de {gap_days} días — posible comparación con competencia.',
+                })
 
     # Manual alerts (not dismissed, alert_date <= now)
     manual_qs = ProposalAlert.objects.filter(

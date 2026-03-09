@@ -194,6 +194,17 @@ class TestProposalFromJSONSerializer:
         assert serializer.is_valid(), serializer.errors
         assert '_meta' not in serializer.validated_data['sections']
 
+    def test_blank_optional_metadata_fields_are_valid(self):
+        """Regression: blank client_email/phone/project_type/market_type must not fail."""
+        payload = self._valid_payload(
+            client_email='',
+            client_phone='',
+            project_type='',
+            market_type='',
+        )
+        serializer = ProposalFromJSONSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+
     def test_full_payload_with_multiple_sections_is_valid(self):
         payload = self._valid_payload()
         payload['sections'].update({

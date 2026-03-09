@@ -52,15 +52,27 @@ export const useLanguageStore = defineStore("language", {
     },
 
     /**
-     * Initialize language to default (en-us).
+     * Detect browser language and set locale accordingly.
      * 
-     * Always defaults to English (en-us). Language can only be changed manually by the user.
+     * Uses navigator.language to detect if user speaks Spanish → es-co,
+     * otherwise defaults to en-us. Respects stored preference if available.
      */
     async detectBrowserLanguageAndRegion() {
-      // Always default to English (en-us)
-      const locale = 'en-us';
+      // Check stored preference first
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('preferred_locale');
+        if (stored && (stored === 'es-co' || stored === 'en-us')) {
+          this.setCurrentLocale(stored);
+          await this.loadMessages(stored.split('-')[0]);
+          return;
+        }
+      }
+      // Detect from browser
+      const browserLang = (typeof navigator !== 'undefined' && navigator.language) || '';
+      const isSpanish = browserLang.toLowerCase().startsWith('es');
+      const locale = isSpanish ? 'es-co' : 'en-us';
       this.setCurrentLocale(locale);
-      await this.loadMessages('en');
+      await this.loadMessages(isSpanish ? 'es' : 'en');
     },
 
     /**

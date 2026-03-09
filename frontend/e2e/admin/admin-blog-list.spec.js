@@ -15,6 +15,15 @@ const mockPosts = [
   { id: 2, title_es: 'Borrador', title_en: 'Draft', slug: 'borrador', is_published: false, category: 'design', read_time_minutes: 5, is_featured: false, published_at: null, created_at: '2026-02-28T10:00:00Z' },
 ];
 
+const paginatedResponse = { results: mockPosts, count: 2, page: 1, page_size: 15, total_pages: 1 };
+const multiPageResponse = {
+  results: mockPosts,
+  count: 20,
+  page: 1,
+  page_size: 2,
+  total_pages: 10,
+};
+
 test.describe('Admin Blog List', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, { token: 'e2e-token', userAuth: { id: 8700, role: 'admin', is_staff: true } });
@@ -25,7 +34,7 @@ test.describe('Admin Blog List', () => {
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
-      if (apiPath === 'blog/admin/') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockPosts) };
+      if (apiPath.startsWith('blog/admin/')) return { status: 200, contentType: 'application/json', body: JSON.stringify(paginatedResponse) };
       return null;
     });
     await page.goto('/panel/blog');
@@ -34,5 +43,37 @@ test.describe('Admin Blog List', () => {
     const table = page.locator('table');
     await expect(table.getByRole('link', { name: 'Post Publicado' })).toBeVisible();
     await expect(table.getByRole('link', { name: 'Borrador' })).toBeVisible();
+  });
+
+  test('shows pagination controls when total pages exceeds 1', {
+    tag: [...ADMIN_BLOG_LIST, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath.startsWith('blog/admin/')) return { status: 200, contentType: 'application/json', body: JSON.stringify(multiPageResponse) };
+      return null;
+    });
+    await page.goto('/panel/blog');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.getByText('20 posts')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Anterior/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Siguiente/ })).toBeVisible();
+  });
+
+  test('calendar link navigates to calendar page', {
+    tag: [...ADMIN_BLOG_LIST, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath.startsWith('blog/admin/')) return { status: 200, contentType: 'application/json', body: JSON.stringify(paginatedResponse) };
+      return null;
+    });
+    await page.goto('/panel/blog');
+    await page.waitForLoadState('networkidle');
+
+    const calendarLink = page.getByRole('link', { name: 'Calendario' });
+    await expect(calendarLink).toBeVisible();
+    await expect(calendarLink).toHaveAttribute('href', /\/panel\/blog\/calendar/);
   });
 });

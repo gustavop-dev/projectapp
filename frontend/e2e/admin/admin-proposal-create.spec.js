@@ -7,7 +7,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_PROPOSAL_CREATE } from '../helpers/flow-tags.js';
+import { ADMIN_PROPOSAL_CREATE, ADMIN_PROPOSAL_CREATE_FROM_JSON } from '../helpers/flow-tags.js';
 
 const NEW_PROPOSAL_ID = 99;
 
@@ -118,10 +118,145 @@ test.describe('Admin Proposal Create', () => {
 
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
     await page.getByLabel('Nombre del cliente').fill('Carlos López');
-    await page.getByRole('button', { name: /Crear Propuesta/i }).click();
+    await page.getByLabel('Email del cliente').fill('carlos@test.com');
 
-    // Should redirect to edit page
-    await page.waitForURL(/\/panel\/proposals\/\d+\/edit/, { timeout: 5000 });
-    expect(page.url()).toContain(`/panel/proposals/${NEW_PROPOSAL_ID}/edit`);
+    // Submit and wait for API response before expecting redirect
+    const [response] = await Promise.all([
+      page.waitForResponse(r => r.url().includes('proposals/create/')),
+      page.getByRole('button', { name: /Crear Propuesta/i }).click(),
+    ]);
+    await response.finished();
+
+    // Should redirect to edit page (auto-retrying assertion for SPA navigation)
+    await expect(page).toHaveURL(/\/panel\/proposals\/\d+\/edit/, { timeout: 10000 });
+  });
+
+  test('selecting "Otro" project type shows custom text input', {
+    tag: [...ADMIN_PROPOSAL_CREATE, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      return null;
+    });
+    await page.goto('/panel/proposals/create');
+    await page.waitForLoadState('networkidle');
+
+    const customInput = page.getByPlaceholder('Especificar tipo de proyecto...');
+    await expect(customInput).not.toBeVisible();
+
+    await page.locator('select').filter({ hasText: 'Sin definir' }).first().selectOption('other');
+    await expect(customInput).toBeVisible();
+  });
+});
+
+test.describe('Admin Proposal Create from JSON', () => {
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-admin-token',
+      userAuth: { id: 8100, role: 'admin', is_staff: true },
+    });
+  });
+
+  const validJson = JSON.stringify({
+    general: { clientName: 'Ana Martínez' },
+    executiveSummary: { paragraphs: ['Resumen ejecutivo.'] },
+  });
+
+  const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+
+  test('pasting valid JSON shows preview with client name and section count', {
+    tag: [...ADMIN_PROPOSAL_CREATE_FROM_JSON, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      return null;
+    });
+    await page.goto('/panel/proposals/create');
+    await page.waitForLoadState('networkidle');
+
+    await page.getByRole('button', { name: 'Importar JSON' }).click();
+    const textarea = page.getByPlaceholder(/general/);
+    await textarea.fill(validJson);
+    await textarea.dispatchEvent('input');
+
+    await expect(page.getByText('Ana Martínez')).toBeVisible();
+    await expect(page.getByText('Datos de la propuesta')).toBeVisible();
+  });
+
+  test('pasting JSON without general key shows validation error', {
+    tag: [...ADMIN_PROPOSAL_CREATE_FROM_JSON, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      return null;
+    });
+    await page.goto('/panel/proposals/create');
+    await page.waitForLoadState('networkidle');
+
+    await page.getByRole('button', { name: 'Importar JSON' }).click();
+    const textarea = page.getByPlaceholder(/general/);
+    await textarea.fill(JSON.stringify({ executiveSummary: {} }));
+    await textarea.dispatchEvent('input');
+
+    await expect(page.getByText(/general.*clientName/i)).toBeVisible();
+  });
+
+  test('pasting invalid JSON shows syntax error', {
+    tag: [...ADMIN_PROPOSAL_CREATE_FROM_JSON, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      return null;
+    });
+    await page.goto('/panel/proposals/create');
+    await page.waitForLoadState('networkidle');
+
+    await page.getByRole('button', { name: 'Importar JSON' }).click();
+    const textarea = page.getByPlaceholder(/general/);
+    await textarea.fill('{ invalid json }');
+    await textarea.dispatchEvent('input');
+
+    await expect(page.getByText('JSON inválido')).toBeVisible();
+  });
+
+  test('submitting valid JSON creates proposal and redirects to edit page', {
+    tag: [...ADMIN_PROPOSAL_CREATE_FROM_JSON, '@role:admin'],
+  }, async ({ page }) => {
+    let capturedPayload = null;
+
+    await mockApi(page, async ({ route, apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'proposals/create-from-json/') {
+        capturedPayload = route.request().postDataJSON();
+        return { status: 201, contentType: 'application/json', body: JSON.stringify(mockCreatedProposal) };
+      }
+      if (apiPath === `proposals/${NEW_PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockCreatedProposal) };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/proposals/create');
+    await page.waitForLoadState('networkidle');
+
+    await page.getByRole('button', { name: 'Importar JSON' }).click();
+    const textarea = page.getByPlaceholder(/general/);
+    await textarea.fill(validJson);
+    await textarea.dispatchEvent('input');
+
+    await expect(page.getByText('Datos de la propuesta')).toBeVisible();
+
+    const [response] = await Promise.all([
+      page.waitForResponse(r => r.url().includes('proposals/create-from-json/')),
+      page.getByRole('button', { name: /Crear desde JSON/i }).click(),
+    ]);
+    await response.finished();
+
+    expect(capturedPayload).not.toBeNull();
+    expect(capturedPayload.client_name).toBe('Ana Martínez');
+    expect(capturedPayload.sections).toBeDefined();
+    expect(capturedPayload.sections.general).toBeDefined();
+
+    await expect(page).toHaveURL(/\/panel\/proposals\/\d+\/edit/, { timeout: 10000 });
   });
 });

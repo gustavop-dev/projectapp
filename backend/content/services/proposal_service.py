@@ -504,12 +504,56 @@ DEFAULT_SECTIONS = [
         },
     },
     {
-        'section_type': 'proposal_summary',
-        'title': '📋 Resumen de la Propuesta',
+        'section_type': 'process_methodology',
+        'title': '⚙️ Proceso y Metodología',
         'order': 10,
         'is_wide_panel': False,
         'content_json': {
             'index': '10',
+            'title': 'Proceso y Metodología',
+            'intro': 'Trabajamos con un proceso estructurado que garantiza transparencia, calidad y entrega a tiempo en cada etapa del proyecto.',
+            'activeStep': 0,
+            'steps': [
+                {
+                    'icon': '🔍',
+                    'title': 'Discovery',
+                    'description': 'Investigamos tu negocio, competidores y usuarios para definir la estrategia ideal.',
+                    'clientAction': 'Tu aporte: briefing inicial',
+                },
+                {
+                    'icon': '🎨',
+                    'title': 'Diseño UX/UI',
+                    'description': 'Creamos prototipos interactivos en Figma con iteraciones hasta la aprobación visual.',
+                    'clientAction': 'Tu aporte: feedback de diseño',
+                },
+                {
+                    'icon': '💻',
+                    'title': 'Desarrollo',
+                    'description': 'Implementamos con código limpio, arquitectura escalable y las mejores prácticas.',
+                    'clientAction': '',
+                },
+                {
+                    'icon': '🧪',
+                    'title': 'QA y Testing',
+                    'description': 'Pruebas exhaustivas de funcionalidad, rendimiento, seguridad y compatibilidad.',
+                    'clientAction': 'Tu aporte: pruebas de aceptación',
+                },
+                {
+                    'icon': '🚀',
+                    'title': 'Lanzamiento',
+                    'description': 'Despliegue en producción, monitoreo post-lanzamiento y capacitación del equipo.',
+                    'clientAction': '',
+                },
+            ],
+        },
+    },
+    {
+        'section_type': 'proposal_summary',
+        'title': '📋 Resumen de la Propuesta',
+        'order': 11,
+        'is_wide_panel': False,
+        'content_json': {
+            'index': '11',
             'title': 'Resumen de la Propuesta',
             'subtitle': 'Los datos clave de esta propuesta en un vistazo:',
             'cards': [
@@ -555,10 +599,10 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'final_note',
         'title': '📝 Nuestro compromiso contigo',
-        'order': 11,
+        'order': 12,
         'is_wide_panel': False,
         'content_json': {
-            'index': '11',
+            'index': '12',
             'title': 'Nota Final y Próximos Pasos',
             'message': (
                 'Creemos firmemente que esta propuesta representa una oportunidad excepcional '
@@ -1130,12 +1174,56 @@ DEFAULT_SECTIONS_EN = [
         },
     },
     {
-        'section_type': 'proposal_summary',
-        'title': '📋 Proposal Summary',
+        'section_type': 'process_methodology',
+        'title': '⚙️ Process & Methodology',
         'order': 10,
         'is_wide_panel': False,
         'content_json': {
             'index': '10',
+            'title': 'Process & Methodology',
+            'intro': 'We work with a structured process that ensures transparency, quality, and on-time delivery at every stage.',
+            'activeStep': 0,
+            'steps': [
+                {
+                    'icon': '🔍',
+                    'title': 'Discovery',
+                    'description': 'We research your business, competitors, and users to define the ideal strategy.',
+                    'clientAction': 'Your input: initial briefing',
+                },
+                {
+                    'icon': '🎨',
+                    'title': 'UX/UI Design',
+                    'description': 'We create interactive prototypes in Figma with iterations until visual approval.',
+                    'clientAction': 'Your input: design feedback',
+                },
+                {
+                    'icon': '💻',
+                    'title': 'Development',
+                    'description': 'We implement with clean code, scalable architecture, and best practices.',
+                    'clientAction': '',
+                },
+                {
+                    'icon': '🧪',
+                    'title': 'QA & Testing',
+                    'description': 'Thorough testing of functionality, performance, security, and compatibility.',
+                    'clientAction': 'Your input: acceptance testing',
+                },
+                {
+                    'icon': '🚀',
+                    'title': 'Launch',
+                    'description': 'Production deployment, post-launch monitoring, and team training.',
+                    'clientAction': '',
+                },
+            ],
+        },
+    },
+    {
+        'section_type': 'proposal_summary',
+        'title': '📋 Proposal Summary',
+        'order': 11,
+        'is_wide_panel': False,
+        'content_json': {
+            'index': '11',
             'title': 'Proposal Summary',
             'subtitle': 'Key details of this proposal at a glance:',
             'cards': [
@@ -1181,7 +1269,7 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'final_note',
         'title': '📝 Final Note & Next Steps',
-        'order': 11,
+        'order': 12,
         'is_wide_panel': False,
         'content_json': {
             'index': '11',

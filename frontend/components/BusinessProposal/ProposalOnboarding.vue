@@ -71,7 +71,7 @@
               class="text-xs text-gray-400 hover:text-gray-600 transition-colors pointer-events-auto"
               @click="dismiss"
             >
-              Omitir
+              {{ btnLabels.skip }}
             </button>
             <div class="flex items-center gap-2">
               <button
@@ -79,14 +79,14 @@
                 class="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 transition-colors pointer-events-auto"
                 @click="prev"
               >
-                Atrás
+                {{ btnLabels.back }}
               </button>
               <button
                 class="px-4 py-1.5 text-xs font-medium text-white bg-emerald-600 rounded-lg
                        hover:bg-emerald-700 transition-colors shadow-sm pointer-events-auto"
                 @click="next"
               >
-                {{ isLastStep ? 'Entendido' : 'Siguiente' }}
+                {{ isLastStep ? btnLabels.done : btnLabels.next }}
               </button>
             </div>
           </div>
@@ -106,6 +106,10 @@ const GAP = 14;
 const ARROW_SIZE = 6;
 const VIEWPORT_PAD = 12;
 
+const props = defineProps({
+  language: { type: String, default: 'es' },
+});
+
 const emit = defineEmits(['complete']);
 
 const visible = ref(false);
@@ -118,43 +122,32 @@ const cloneStyle = ref({});
 const tooltipStyle = ref({});
 const arrowComputedStyle = ref({});
 
-const steps = [
-  {
-    target: '.index-toggle',
-    title: 'Índice de secciones',
-    description: 'Abre el índice para navegar entre las secciones de la propuesta. Puedes saltar directamente a cualquier parte.',
-    prefer: 'right',
-  },
-  {
-    target: '.nav-side--right',
-    title: 'Navegar entre secciones',
-    description: 'Usa las flechas laterales para avanzar o retroceder. También puedes usar las flechas del teclado o deslizar en móvil.',
-    prefer: 'left',
-  },
-  {
-    target: '.section-counter',
-    title: 'Progreso',
-    description: 'Aquí puedes ver en qué sección estás y cuántas hay en total.',
-    prefer: 'bottom',
-  },
-  {
-    target: '.expiration-badge',
-    title: 'Vigencia de la propuesta',
-    description: 'Esta propuesta tiene fecha de expiración. Aquí verás el tiempo restante para revisarla y tomar una decisión.',
-    prefer: 'bottom',
-    optional: true,
-  },
-  {
-    target: '.pdf-download',
-    title: 'Descargar como PDF',
-    description: 'Puedes descargar toda la propuesta en formato PDF para revisarla offline o compartirla con tu equipo.',
-    prefer: 'top',
-  },
-];
+const stepsI18n = {
+  es: [
+    { target: '.index-toggle', title: 'Índice de secciones', description: 'Abre el índice para navegar entre las secciones de la propuesta. Puedes saltar directamente a cualquier parte.', prefer: 'right' },
+    { target: '.nav-side--right', title: 'Navegar entre secciones', description: 'Usa las flechas laterales para avanzar o retroceder. También puedes usar las flechas del teclado o deslizar en móvil.', prefer: 'left' },
+    { target: '.section-counter', title: 'Progreso', description: 'Aquí puedes ver en qué sección estás y cuántas hay en total.', prefer: 'bottom' },
+    { target: '.expiration-badge', title: 'Vigencia de la propuesta', description: 'Esta propuesta tiene fecha de expiración. Aquí verás el tiempo restante para revisarla y tomar una decisión.', prefer: 'bottom', optional: true },
+    { target: '.pdf-download', title: 'Descargar como PDF', description: 'Puedes descargar toda la propuesta en formato PDF para revisarla offline o compartirla con tu equipo.', prefer: 'top' },
+  ],
+  en: [
+    { target: '.index-toggle', title: 'Section Index', description: 'Open the index to navigate between proposal sections. You can jump directly to any part.', prefer: 'right' },
+    { target: '.nav-side--right', title: 'Navigate Sections', description: 'Use the side arrows to go forward or back. You can also use keyboard arrows or swipe on mobile.', prefer: 'left' },
+    { target: '.section-counter', title: 'Progress', description: 'See which section you are on and how many there are in total.', prefer: 'bottom' },
+    { target: '.expiration-badge', title: 'Proposal Validity', description: 'This proposal has an expiration date. Here you can see the remaining time to review and decide.', prefer: 'bottom', optional: true },
+    { target: '.pdf-download', title: 'Download as PDF', description: 'Download the entire proposal as a PDF to review offline or share with your team.', prefer: 'top' },
+  ],
+};
+const steps = computed(() => stepsI18n[props.language] || stepsI18n.es);
+
+const btnLabels = computed(() => props.language === 'en'
+  ? { skip: 'Skip', back: 'Back', next: 'Next', done: 'Got it' }
+  : { skip: 'Omitir', back: 'Atrás', next: 'Siguiente', done: 'Entendido' }
+);
 
 const activeSteps = ref([]);
 const totalSteps = computed(() => activeSteps.value.length);
-const currentStepData = computed(() => activeSteps.value[currentStep.value] || steps[0]);
+const currentStepData = computed(() => activeSteps.value[currentStep.value] || steps.value[0]);
 const isLastStep = computed(() => currentStep.value === activeSteps.value.length - 1);
 
 const spotlightStyle = computed(() => {
@@ -325,7 +318,7 @@ function start() {
 
   setTimeout(() => {
     // Compute active steps at runtime (some elements may not exist)
-    activeSteps.value = steps.filter((s) => !s.optional || document.querySelector(s.target));
+    activeSteps.value = steps.value.filter((s) => !s.optional || document.querySelector(s.target));
     if (!activeSteps.value.length) return;
     currentStep.value = 0;
     visible.value = true;

@@ -383,6 +383,53 @@
             </div>
           </div>
 
+          <!-- Project type / Market type -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Tipo de proyecto</label>
+              <select v-model="jsonForm.project_type"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+                <option value="">— Sin definir —</option>
+                <option value="website">Sitio Web</option>
+                <option value="ecommerce">E-commerce</option>
+                <option value="webapp">Aplicación Web</option>
+                <option value="landing">Landing Page</option>
+                <option value="redesign">Rediseño</option>
+                <option value="other">Otro</option>
+              </select>
+              <input
+                v-if="jsonForm.project_type === 'other'"
+                v-model="jsonForm.project_type_custom"
+                type="text"
+                placeholder="Especificar tipo de proyecto..."
+                class="mt-2 w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Tipo de mercado</label>
+              <select v-model="jsonForm.market_type"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+                <option value="">— Sin definir —</option>
+                <option value="b2b">B2B</option>
+                <option value="b2c">B2C</option>
+                <option value="saas">SaaS</option>
+                <option value="retail">Retail</option>
+                <option value="services">Servicios profesionales</option>
+                <option value="health">Salud</option>
+                <option value="education">Educación</option>
+                <option value="real_estate">Inmobiliaria</option>
+                <option value="other">Otro</option>
+              </select>
+              <input
+                v-if="jsonForm.market_type === 'other'"
+                v-model="jsonForm.market_type_custom"
+                type="text"
+                placeholder="Especificar tipo de mercado..."
+                class="mt-2 w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+            </div>
+          </div>
+
           <!-- Expires at -->
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Fecha de expiración</label>
@@ -594,6 +641,20 @@ function parseJson() {
   jsonForm.title = `Propuesta — ${clientName}`;
   jsonForm.total_investment = parseInvestmentString(parsed.investment?.totalInvestment);
   jsonForm.currency = parsed.investment?.currency || 'COP';
+
+  // Auto-populate from _meta.optional_metadata if present
+  const meta = parsed._meta?.optional_metadata || {};
+  if (meta.client_email) jsonForm.client_email = meta.client_email;
+  if (meta.client_phone) jsonForm.client_phone = meta.client_phone;
+  if (meta.project_type) jsonForm.project_type = meta.project_type;
+  if (meta.market_type) jsonForm.market_type = meta.market_type;
+  if (meta.language) jsonForm.language = meta.language;
+  if (meta.expires_at) {
+    const d = new Date(meta.expires_at);
+    if (!isNaN(d.getTime())) {
+      jsonForm.expires_at = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+  }
 }
 
 function handleFileUpload(event) {
@@ -648,6 +709,8 @@ async function handleJsonSubmit() {
     client_phone: jsonForm.client_phone || '',
     project_type: jsonForm.project_type || '',
     market_type: jsonForm.market_type || '',
+    project_type_custom: jsonForm.project_type_custom || '',
+    market_type_custom: jsonForm.market_type_custom || '',
     language: jsonForm.language,
     total_investment: jsonForm.total_investment || 0,
     currency: jsonForm.currency,

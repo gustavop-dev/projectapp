@@ -217,7 +217,7 @@ class TestAdminCreateProposal:
             reverse('create-proposal'), payload, format='json'
         )
         assert response.status_code == 201
-        assert len(response.data['sections']) == 13
+        assert len(response.data['sections']) == 14
 
     def test_auto_fills_investment_section_from_proposal_data(self, admin_client):
         """Investment section auto-fills totalInvestment, currency, and paymentOptions."""
@@ -400,7 +400,7 @@ class TestCreateProposalFromJSON:
         url = reverse('create-proposal-from-json')
         response = admin_client.post(url, self._minimal_payload(), format='json')
         assert response.status_code == 201
-        assert len(response.data['sections']) == 13
+        assert len(response.data['sections']) == 14
 
     def test_greeting_section_has_client_name(self, admin_client):
         url = reverse('create-proposal-from-json')

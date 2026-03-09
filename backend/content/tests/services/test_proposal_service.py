@@ -17,15 +17,15 @@ pytestmark = pytest.mark.django_db
 
 
 class TestGetDefaultSections:
-    def test_returns_13_sections_for_es(self):
-        """Verify ES defaults include all 13 section types (greeting through next_steps)."""
+    def test_returns_14_sections_for_es(self):
+        """Verify ES defaults include all 14 section types (greeting through next_steps)."""
         sections = ProposalService.get_default_sections('es')
-        assert len(sections) == 13
+        assert len(sections) == 14
 
-    def test_returns_13_sections_for_en(self):
-        """Verify EN defaults include all 13 section types (greeting through next_steps)."""
+    def test_returns_14_sections_for_en(self):
+        """Verify EN defaults include all 14 section types (greeting through next_steps)."""
         sections = ProposalService.get_default_sections('en')
-        assert len(sections) == 13
+        assert len(sections) == 14
 
     def test_all_sections_have_required_keys(self):
         sections = ProposalService.get_default_sections('es')
@@ -41,12 +41,13 @@ class TestGetDefaultSections:
         orders = [s['order'] for s in sections]
         assert orders == sorted(orders)
 
-    def test_section_types_cover_all_13_types(self):
-        """Verify all 13 section types are present in the ES defaults."""
+    def test_section_types_cover_all_14_types(self):
+        """Verify all 14 section types are present in the ES defaults."""
         expected_types = {
             'greeting', 'executive_summary', 'context_diagnostic',
             'conversion_strategy', 'design_ux', 'creative_support',
-            'development_stages', 'functional_requirements',
+            'development_stages', 'process_methodology',
+            'functional_requirements',
             'timeline', 'investment', 'proposal_summary',
             'final_note', 'next_steps',
         }
@@ -129,9 +130,9 @@ class TestGetDefaultSections:
         assert len(current_stages) == 1
 
     def test_defaults_to_es_for_unknown_language(self):
-        """Unknown language code falls back to Spanish defaults (13 sections)."""
+        """Unknown language code falls back to Spanish defaults (14 sections)."""
         sections = ProposalService.get_default_sections('fr')
-        assert len(sections) == 13
+        assert len(sections) == 14
 
 
 class TestSendProposal:

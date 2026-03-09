@@ -70,14 +70,28 @@ const props = defineProps({
   language: { type: String, default: 'es' },
   whatsappLink: { type: String, default: '' },
   proposalTitle: { type: String, default: '' },
+  currentSectionTitle: { type: String, default: '' },
 });
 
 const whatsappUrl = computed(() => {
   if (props.whatsappLink) return props.whatsappLink;
   if (!props.proposalTitle) return '';
-  const msg = encodeURIComponent(
-    `Hola, estoy revisando la propuesta "${props.proposalTitle}" y tengo algunas preguntas...`
-  );
+  let msg;
+  if (props.language === 'en') {
+    const sectionPart = props.currentSectionTitle
+      ? ` and I have a question about "${props.currentSectionTitle}".`
+      : ' and I have some questions...';
+    msg = encodeURIComponent(
+      `Hi, I'm reviewing the proposal "${props.proposalTitle}"${sectionPart}`
+    );
+  } else {
+    const sectionPart = props.currentSectionTitle
+      ? ` y tengo una pregunta sobre "${props.currentSectionTitle}".`
+      : ' y tengo algunas preguntas...';
+    msg = encodeURIComponent(
+      `Hola, estoy revisando la propuesta "${props.proposalTitle}"${sectionPart}`
+    );
+  }
   return `https://wa.me/573238122373?text=${msg}`;
 });
 

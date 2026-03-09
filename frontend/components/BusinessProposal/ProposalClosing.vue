@@ -33,8 +33,9 @@
       <!-- Accept / Reject buttons -->
       <div v-if="canRespond && !submitted" data-animate="fade-up" class="flex flex-col items-center gap-3 pt-2">
         <button
-          class="px-8 sm:px-12 py-4 bg-emerald-600 text-white rounded-xl font-medium text-base sm:text-lg
-                 hover:bg-emerald-700 transition-colors shadow-lg flex items-center gap-2"
+          class="px-10 sm:px-16 py-5 bg-emerald-600 text-white rounded-2xl font-bold text-lg sm:text-xl
+                 hover:bg-emerald-700 transition-all shadow-[0_0_30px_rgba(16,185,129,0.3)]
+                 hover:shadow-[0_0_40px_rgba(16,185,129,0.45)] flex items-center gap-2.5 accept-pulse"
           :disabled="isSubmitting"
           @click="showAcceptConfirm = true"
         >
@@ -72,7 +73,7 @@
 
       <!-- Success messages -->
       <div v-if="submitted || proposal?.status === 'accepted'" data-animate="fade-up" class="py-4">
-        <div class="text-5xl mb-3">🎉</div>
+        <div class="text-5xl mb-3 celebration-bounce">🎉</div>
         <p class="text-xl font-bold text-emerald-600">{{ t.accepted }}</p>
         <p class="text-gray-500 mt-2">{{ t.acceptedSub }}</p>
       </div>
@@ -204,9 +205,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, toRef } from 'vue';
+import { ref, computed, onMounted, toRef, nextTick } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
 import { useExpirationTimer } from '~/composables/useExpirationTimer';
+import confetti from 'canvas-confetti';
 
 const sectionRef = ref(null);
 const validityRef = ref(null);
@@ -225,9 +227,9 @@ const whatsappTalkUrl = computed(() => {
   if (props.whatsappLink) return props.whatsappLink;
   const title = props.proposal?.title || '';
   if (!title) return '';
-  const msg = encodeURIComponent(
-    `Hola, estoy revisando la propuesta "${title}" y me gustaría hablar antes de tomar una decisión.`
-  );
+  const msg = props.language === 'en'
+    ? encodeURIComponent(`Hi, I'm reviewing the proposal "${title}" and I'd like to talk before making a decision.`)
+    : encodeURIComponent(`Hola, estoy revisando la propuesta "${title}" y me gustaría hablar antes de tomar una decisión.`);
   return `https://wa.me/573238122373?text=${msg}`;
 });
 
@@ -390,9 +392,18 @@ const isScheduling = ref(false);
 
 const whatsappRecoveryLink = computed(() => {
   const title = props.proposal?.title || '';
-  const msg = encodeURIComponent(`Hola, estoy revisando la propuesta "${title}" y me gustaría conversar sobre opciones.`);
+  const msg = props.language === 'en'
+    ? encodeURIComponent(`Hi, I'm reviewing the proposal "${title}" and I'd like to discuss options.`)
+    : encodeURIComponent(`Hola, estoy revisando la propuesta "${title}" y me gustaría conversar sobre opciones.`);
   return `https://wa.me/573238122373?text=${msg}`;
 });
+
+function fireConfetti() {
+  const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10000 };
+  confetti({ ...defaults, particleCount: 80, origin: { x: 0.5, y: 0.5 } });
+  setTimeout(() => confetti({ ...defaults, particleCount: 50, origin: { x: 0.3, y: 0.6 } }), 250);
+  setTimeout(() => confetti({ ...defaults, particleCount: 50, origin: { x: 0.7, y: 0.6 } }), 400);
+}
 
 async function confirmAccept() {
   if (!props.proposal?.uuid) return;
@@ -402,6 +413,7 @@ async function confirmAccept() {
     if (result.success) {
       submitted.value = true;
       showAcceptConfirm.value = false;
+      nextTick(() => fireConfetti());
     }
   } finally {
     isSubmitting.value = false;
@@ -463,5 +475,25 @@ async function scheduleReminder() {
   38%  { box-shadow: 0 0 14px 5px rgba(234, 179, 8, 0.22); }
   54%  { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
   100% { box-shadow: none; }
+}
+
+.accept-pulse {
+  animation: acceptPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes acceptPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+.celebration-bounce {
+  animation: celebrationBounce 0.8s ease-out;
+}
+
+@keyframes celebrationBounce {
+  0%   { transform: scale(0.3); opacity: 0; }
+  50%  { transform: scale(1.2); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
 }
 </style>

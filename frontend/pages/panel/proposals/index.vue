@@ -17,6 +17,9 @@
     <!-- KPI Dashboard -->
     <ProposalDashboard />
 
+    <!-- Floating metrics manual -->
+    <MetricsManual />
+
     <!-- Alerts panel -->
     <div v-if="alerts.length || showAlertForm" class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
       <div class="flex items-center justify-between mb-3">
@@ -166,6 +169,7 @@
               Última actividad <span v-if="sortKey === 'last_activity_at'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
             </th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Vistas</th>
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center" title="Score de calor (1-10)">🔥</th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
           </tr>
         </thead>
@@ -200,8 +204,17 @@
                 <span class="text-[10px] text-gray-300 ml-1">(creada)</span>
               </template>
               <span v-else class="text-gray-300">—</span>
+              <span v-if="isInactive(p)" class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700">
+                {{ inactiveDays(p) }}d sin actividad
+              </span>
             </td>
             <td class="px-6 py-4 text-sm text-gray-600 tabular-nums">{{ p.view_count }}</td>
+            <td class="px-6 py-4 text-center">
+              <span v-if="p.heat_score > 0" class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white" :class="heatScoreColor(p.heat_score)">
+                {{ p.heat_score }}
+              </span>
+              <span v-else class="text-gray-300 text-xs">—</span>
+            </td>
             <td class="px-6 py-4">
               <div class="relative">
                 <button
@@ -258,6 +271,14 @@
                     {{ copiedId === p.id ? '¡Copiado!' : 'Copiar enlace' }}
                   </button>
                   <a
+                    :href="buildWhatsAppUrl(p)"
+                    target="_blank"
+                    class="block px-4 py-2 text-sm text-green-600 hover:bg-green-50 transition-colors"
+                    @click.stop
+                  >
+                    Enviar por WhatsApp
+                  </a>
+                  <a
                     :href="'/proposal/' + p.uuid + '?preview=1'"
                     target="_blank"
                     class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -299,6 +320,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import ProposalDashboard from '~/components/BusinessProposal/admin/ProposalDashboard.vue';
+import MetricsManual from '~/components/BusinessProposal/admin/MetricsManual.vue';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -424,6 +446,7 @@ function alertIcon(type) {
     not_viewed: '👁️‍🗨️', not_responded: '⏳', expiring_soon: '🔥',
     manual_reminder: '🔔', manual_followup: '📩', manual_call: '📞',
     manual_meeting: '🤝', manual_custom: '📝',
+    seller_inactive: '🏷️', zombie: '💀', late_return: '🔄',
   };
   return map[type] || '⚠️';
 }
@@ -513,5 +536,36 @@ function statusClass(status) {
     expired: 'bg-yellow-50 text-yellow-700',
   };
   return map[status] || 'bg-gray-100 text-gray-600';
+}
+
+function isInactive(p) {
+  if (!['sent', 'viewed'].includes(p.status)) return false;
+  const ref = p.last_activity_at || p.sent_at || p.created_at;
+  if (!ref) return false;
+  return (Date.now() - new Date(ref).getTime()) / 86400000 >= 3;
+}
+
+function inactiveDays(p) {
+  const ref = p.last_activity_at || p.sent_at || p.created_at;
+  if (!ref) return 0;
+  return Math.floor((Date.now() - new Date(ref).getTime()) / 86400000);
+}
+
+function heatScoreColor(score) {
+  if (score >= 8) return 'bg-red-500';
+  if (score >= 5) return 'bg-orange-400';
+  if (score >= 2) return 'bg-yellow-400 text-gray-800';
+  return 'bg-gray-300 text-gray-700';
+}
+
+function buildWhatsAppUrl(p) {
+  const url = `${window.location.origin}/proposal/${p.uuid}`;
+  const phone = (p.client_phone || '').replace(/\D/g, '');
+  const msg = encodeURIComponent(
+    `Hola ${p.client_name}, te comparto la propuesta "${p.title}": ${url}\n\n¿Tienes alguna pregunta?`
+  );
+  return phone
+    ? `https://wa.me/${phone}?text=${msg}`
+    : `https://wa.me/?text=${msg}`;
 }
 </script>

@@ -294,6 +294,52 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     expect(last.body.content_json.highlights).toEqual([]);
   });
 
+  test('investment: save blocked when optional module has no price', {
+    tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
+  }, async ({ page }) => {
+    // Build a proposal with an investment section that has an optional module without price
+    const proposalWithInvestment = JSON.parse(JSON.stringify(mockProposal));
+    proposalWithInvestment.sections[9].content_json = {
+      index: '9', title: 'Inversión', introText: '', totalInvestment: '5000000', currency: 'COP',
+      modules: [
+        { id: 'mod1', name: 'Módulo Base', price: 3000000, included: true, is_required: true },
+        { id: 'mod2', name: 'Módulo Premium', price: 0, included: true, is_required: false },
+      ],
+      whatsIncluded: [], paymentOptions: [], paymentMethods: [], valueReasons: [],
+    };
+
+    const captured = [];
+    await mockApi(page, async ({ route, apiPath }) => {
+      if (apiPath === 'auth/check/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) return { status: 200, contentType: 'application/json', body: JSON.stringify(proposalWithInvestment) };
+      const sectionMatch = apiPath.match(/^proposals\/sections\/(\d+)\/update\/$/);
+      if (sectionMatch) {
+        captured.push({ sectionId: parseInt(sectionMatch[1]), body: route.request().postDataJSON() });
+        const section = proposalWithInvestment.sections.find(s => s.id === parseInt(sectionMatch[1]));
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...section }) };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: 'Secciones' }).click();
+
+    const sectionHeader = page.getByText('💰 Inversión', { exact: false }).first();
+    await sectionHeader.click();
+    await page.getByTestId('section-editor').waitFor({ state: 'visible' });
+
+    const editor = page.getByTestId('section-editor');
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+
+    // Save should be blocked — validation error shown
+    await expect(editor.getByText('No se puede guardar')).toBeVisible();
+    await expect(editor.getByText('Módulo Premium')).toBeVisible();
+
+    // No API call should have been made
+    expect(captured.length).toBe(0);
+  });
+
   test('form mode payload never includes rawText', {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
   }, async ({ page }) => {
