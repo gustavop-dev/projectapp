@@ -65,5 +65,10 @@ backend/static/frontend/
 # Coverage
 htmlcov/
 
+# Root-level npm artifacts (frontend lives in frontend/)
+/node_modules/
+/package.json
+/package-lock.json
+
 # Windsurf
 .windsurf/plans/
