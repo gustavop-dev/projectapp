@@ -10,7 +10,7 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
-from content.models import BlogPost
+from content.models import BlogPost, PortfolioWork
 from content.serializers.blog import (
     BlogPostAdminDetailSerializer,
     BlogPostAdminListSerializer,
@@ -32,25 +32,15 @@ STATIC_SITEMAP_PAGES = [
     ('/es-co/landing-web-design', '/en-us/landing-web-design', 'weekly', '0.9'),
     ('/en-us/about-us', '/es-co/about-us', 'monthly', '0.9'),
     ('/es-co/about-us', '/en-us/about-us', 'monthly', '0.9'),
-    ('/en-us/web-designs', '/es-co/web-designs', 'weekly', '0.9'),
-    ('/es-co/web-designs', '/en-us/web-designs', 'weekly', '0.9'),
     ('/en-us/portfolio-works', '/es-co/portfolio-works', 'weekly', '0.9'),
     ('/es-co/portfolio-works', '/en-us/portfolio-works', 'weekly', '0.9'),
-    ('/en-us/custom-software', '/es-co/custom-software', 'monthly', '0.9'),
-    ('/es-co/custom-software', '/en-us/custom-software', 'monthly', '0.9'),
-    ('/en-us/3d-animations', '/es-co/3d-animations', 'weekly', '0.8'),
-    ('/es-co/3d-animations', '/en-us/3d-animations', 'weekly', '0.8'),
-    ('/en-us/e-commerce-prices', '/es-co/e-commerce-prices', 'monthly', '0.7'),
-    ('/es-co/e-commerce-prices', '/en-us/e-commerce-prices', 'monthly', '0.7'),
-    ('/en-us/hosting', '/es-co/hosting', 'monthly', '0.7'),
-    ('/es-co/hosting', '/en-us/hosting', 'monthly', '0.7'),
     ('/en-us/contact', '/es-co/contact', 'monthly', '0.6'),
     ('/es-co/contact', '/en-us/contact', 'monthly', '0.6'),
 ]
 
 
 def serve_sitemap_xml(request):
-    """Serve a dynamic sitemap.xml combining static pages and published blog posts."""
+    """Serve a dynamic sitemap.xml combining static pages, blog posts and portfolio works."""
     lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
@@ -58,6 +48,7 @@ def serve_sitemap_xml(request):
         '',
     ]
 
+    # Static bilingual pages
     for path, alt, changefreq, priority in STATIC_SITEMAP_PAGES:
         hl_self = 'en-us' if path.startswith('/en-us') else 'es-co'
         hl_alt = 'es-co' if hl_self == 'en-us' else 'en-us'
@@ -69,6 +60,7 @@ def serve_sitemap_xml(request):
         lines.append(f'    <priority>{priority}</priority>')
         lines.append('  </url>')
 
+    # Blog index
     lines.append('')
     lines.append('  <!-- Blog -->')
     lines.append('  <url>')
@@ -77,16 +69,48 @@ def serve_sitemap_xml(request):
     lines.append('    <priority>0.8</priority>')
     lines.append('  </url>')
 
+    # Blog posts (dynamic)
     posts = BlogPost.objects.filter(is_published=True).values('slug', 'updated_at')
-    for post in posts:
-        lastmod = post['updated_at'].strftime('%Y-%m-%d') if post['updated_at'] else ''
-        lines.append('  <url>')
-        lines.append(f'    <loc>{BASE_URL}/blog/{xml_escape(post["slug"])}</loc>')
-        if lastmod:
-            lines.append(f'    <lastmod>{lastmod}</lastmod>')
-        lines.append('    <changefreq>weekly</changefreq>')
-        lines.append('    <priority>0.7</priority>')
-        lines.append('  </url>')
+    if posts.exists():
+        lines.append('')
+        lines.append('  <!-- Blog Posts -->')
+        for post in posts:
+            lastmod = post['updated_at'].strftime('%Y-%m-%d') if post['updated_at'] else ''
+            lines.append('  <url>')
+            lines.append(f'    <loc>{BASE_URL}/blog/{xml_escape(post["slug"])}</loc>')
+            if lastmod:
+                lines.append(f'    <lastmod>{lastmod}</lastmod>')
+            lines.append('    <changefreq>weekly</changefreq>')
+            lines.append('    <priority>0.7</priority>')
+            lines.append('  </url>')
+
+    # Portfolio works (dynamic, bilingual)
+    works = PortfolioWork.objects.filter(is_published=True).values('slug', 'updated_at')
+    if works.exists():
+        lines.append('')
+        lines.append('  <!-- Portfolio Works -->')
+        for work in works:
+            lastmod = work['updated_at'].strftime('%Y-%m-%d') if work['updated_at'] else ''
+            en_url = f'{BASE_URL}/en-us/portfolio-works/{xml_escape(work["slug"])}'
+            es_url = f'{BASE_URL}/es-co/portfolio-works/{xml_escape(work["slug"])}'
+            lines.append('  <url>')
+            lines.append(f'    <loc>{en_url}</loc>')
+            lines.append(f'    <xhtml:link rel="alternate" hreflang="en-us" href="{en_url}" />')
+            lines.append(f'    <xhtml:link rel="alternate" hreflang="es-co" href="{es_url}" />')
+            if lastmod:
+                lines.append(f'    <lastmod>{lastmod}</lastmod>')
+            lines.append('    <changefreq>weekly</changefreq>')
+            lines.append('    <priority>0.8</priority>')
+            lines.append('  </url>')
+            lines.append('  <url>')
+            lines.append(f'    <loc>{es_url}</loc>')
+            lines.append(f'    <xhtml:link rel="alternate" hreflang="en-us" href="{en_url}" />')
+            lines.append(f'    <xhtml:link rel="alternate" hreflang="es-co" href="{es_url}" />')
+            if lastmod:
+                lines.append(f'    <lastmod>{lastmod}</lastmod>')
+            lines.append('    <changefreq>weekly</changefreq>')
+            lines.append('    <priority>0.8</priority>')
+            lines.append('  </url>')
 
     lines.append('')
     lines.append('</urlset>')
@@ -94,7 +118,7 @@ def serve_sitemap_xml(request):
 
     xml = '\n'.join(lines)
     response = HttpResponse(xml, content_type='application/xml; charset=utf-8')
-    response['Cache-Control'] = 'public, max-age=3600, s-maxage=3600'
+    response['Cache-Control'] = 'public, max-age=300, s-maxage=300'
     return response
 
 

@@ -403,6 +403,30 @@ class TestServeSitemapXml:
         assert f'/blog/{post.slug}' in content
 
 
+    def test_includes_published_portfolio_works(self, client, published_portfolio_work):
+        """Sitemap XML includes published portfolio work URLs with hreflang alternates."""
+        response = client.get('/sitemap.xml')
+        content = response.content.decode()
+        assert f'/en-us/portfolio-works/{published_portfolio_work.slug}' in content
+        assert f'/es-co/portfolio-works/{published_portfolio_work.slug}' in content
+
+    def test_excludes_draft_portfolio_works(self, client, draft_portfolio_work):
+        """Sitemap XML excludes unpublished portfolio works."""
+        response = client.get('/sitemap.xml')
+        content = response.content.decode()
+        assert draft_portfolio_work.slug not in content
+
+    def test_excludes_archived_pages(self, client):
+        """Sitemap XML does not include archived pages (web-designs, hosting, etc.)."""
+        response = client.get('/sitemap.xml')
+        content = response.content.decode()
+        assert '/web-designs' not in content
+        assert '/custom-software' not in content
+        assert '/3d-animations' not in content
+        assert '/e-commerce-prices' not in content
+        assert '/hosting' not in content
+
+
 class TestBlogListPagination:
     """Tests for list_blog_posts pagination edge cases."""
 
