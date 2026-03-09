@@ -21,7 +21,7 @@
       <div data-animate="fade-up" class="pricing-card bg-esmerald p-5 sm:p-8 md:p-12 rounded-3xl text-white mb-12 shadow-2xl">
         <div class="text-center mb-8">
           <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-green-light">{{ t.totalInvestment }}</div>
-          <div v-if="customTotal !== null" class="text-4xl sm:text-6xl md:text-7xl font-bold mb-2 text-lemon">{{ formatCurrency(customTotal) }}</div>
+          <div v-if="customTotal !== null" class="text-4xl sm:text-6xl md:text-7xl font-bold mb-2 text-lemon">{{ formatCurrency(displayTotal) }}</div>
           <div v-else class="text-4xl sm:text-6xl md:text-7xl font-bold mb-2 text-lemon">{{ totalInvestment }}</div>
           <div class="text-green-light">{{ currency }}</div>
           <p v-if="customTotal !== null" class="text-xs text-green-light/70 mt-2">{{ t.customized }}</p>
@@ -186,6 +186,7 @@
       :language="language"
       :totalInvestment="totalInvestment"
       :baseWeeks="baseWeeks"
+      :sentAt="sentAt"
       @close="calculatorOpen = false"
       @update:selection="onSelectionUpdate"
       @navigateToRequirements="$emit('navigateToRequirements'); calculatorOpen = false"
@@ -197,6 +198,7 @@
 import { ref, computed, toRef, onMounted } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
 import { useExpirationTimer } from '~/composables/useExpirationTimer';
+import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import InvestmentCalculatorModal from './InvestmentCalculatorModal.vue';
 
 defineEmits(['navigateToRequirements']);
@@ -208,6 +210,8 @@ const specsOpen = ref(false);
 const calculatorOpen = ref(false);
 const customTotal = ref(null);
 const customWeeks = ref(null);
+const animatedCustomTotal = computed(() => customTotal.value ?? 0);
+const { animated: displayTotal } = useAnimatedNumber(animatedCustomTotal, 500);
 const customizeBtnRef = ref(null);
 const btnPulse = ref(false);
 
@@ -312,6 +316,10 @@ const props = defineProps({
   baseWeeks: {
     type: Number,
     default: 0
+  },
+  sentAt: {
+    type: String,
+    default: ''
   }
 });
 

@@ -78,6 +78,26 @@
               </span>
             </div>
           </div>
+          <div>
+            <span class="text-gray-400 text-xs">Automatizaciones</span>
+            <div class="flex items-center gap-2 mt-1">
+              <button
+                type="button"
+                class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                :class="form.automations_paused ? 'bg-amber-500' : 'bg-emerald-600'"
+                @click="toggleAutomationsPaused"
+              >
+                <span
+                  class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                  :class="form.automations_paused ? 'translate-x-4' : 'translate-x-0'"
+                />
+              </button>
+              <span class="text-xs" :class="form.automations_paused ? 'text-amber-600' : 'text-emerald-600'">
+                {{ form.automations_paused ? '⏸ Pausadas' : 'Activas' }}
+              </span>
+            </div>
+            <p class="text-[10px] text-gray-400 mt-1">Pausar emails automáticos (recordatorio, urgencia, inactividad).</p>
+          </div>
         </div>
 
         <!-- Editable form -->
@@ -324,6 +344,31 @@
             </div>
           </div>
         </div>
+
+        <!-- Sticky send bar for sections tab -->
+        <div v-if="proposal.client_email" class="sticky bottom-0 mt-4 bg-white/95 backdrop-blur-sm border border-gray-100 rounded-xl shadow-lg px-5 py-3 flex items-center justify-between gap-3 z-10">
+          <div class="flex items-center gap-2 text-xs text-gray-500">
+            <a :href="'/proposal/' + proposal.uuid + '?preview=1'" target="_blank" class="text-emerald-600 hover:underline">Preview →</a>
+          </div>
+          <div class="flex items-center gap-3">
+            <button
+              v-if="proposal.status === 'draft'"
+              type="button"
+              class="px-5 py-2 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
+              @click="handleSend"
+            >
+              📤 Enviar al Cliente
+            </button>
+            <button
+              v-else-if="['sent', 'viewed'].includes(proposal.status)"
+              type="button"
+              class="px-5 py-2 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
+              @click="handleResend"
+            >
+              🔄 Re-enviar al Cliente
+            </button>
+          </div>
+        </div>
       </div>
     </template>
 
@@ -402,6 +447,7 @@ const form = reactive({
   reminder_days: 10,
   urgency_reminder_days: 15,
   discount_percent: 0,
+  automations_paused: false,
 });
 
 onMounted(async () => {
@@ -426,9 +472,23 @@ onMounted(async () => {
       reminder_days: proposal.value.reminder_days,
       urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
       discount_percent: proposal.value.discount_percent ?? 0,
+      automations_paused: proposal.value.automations_paused ?? false,
     });
   }
 });
+
+async function toggleAutomationsPaused() {
+  form.automations_paused = !form.automations_paused;
+  const result = await proposalStore.updateProposal(proposal.value.id, {
+    automations_paused: form.automations_paused,
+  });
+  if (result.success) {
+    updateMsg.value = { type: 'success', text: form.automations_paused ? 'Automatizaciones pausadas.' : 'Automatizaciones reactivadas.' };
+  } else {
+    form.automations_paused = !form.automations_paused;
+    updateMsg.value = { type: 'error', text: 'Error al cambiar automatizaciones.' };
+  }
+}
 
 async function handleUpdate() {
   updateMsg.value = null;

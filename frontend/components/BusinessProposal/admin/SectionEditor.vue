@@ -323,9 +323,19 @@
                   <input type="checkbox" v-model="mod.is_required" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                   <span class="text-xs text-gray-600">Obligatorio</span>
                 </label>
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" v-model="mod.is_free" class="rounded border-gray-300 text-amber-500 focus:ring-amber-400" />
+                  <span class="text-xs text-amber-700">🎁 Gratis</span>
+                </label>
+              </div>
+              <div v-if="mod.is_free" class="mt-2 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <span class="text-xs text-amber-700">Vigencia:</span>
+                <input v-model.number="mod.free_days" type="number" min="1" max="90" placeholder="7"
+                  class="w-20 px-2 py-1 border border-amber-300 rounded-lg text-xs focus:ring-1 focus:ring-amber-400 outline-none" />
+                <span class="text-xs text-amber-600">días desde envío</span>
               </div>
             </div>
-            <button type="button" class="text-xs text-emerald-600 font-medium" @click="(form.modules = form.modules || []).push({ id: '', name: '', price: 0, included: true, is_required: true })">+ Agregar módulo</button>
+            <button type="button" class="text-xs text-emerald-600 font-medium" @click="(form.modules = form.modules || []).push({ id: '', name: '', price: 0, included: true, is_required: true, is_free: false, free_days: 7 })">+ Agregar módulo</button>
           </div>
         </div>
 
@@ -594,11 +604,21 @@
                       <FieldInput v-model.number="item.price" label="Precio" type="number" placeholder="0" />
                     </div>
                     <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
-                    <div class="grid grid-cols-2 gap-x-3 gap-y-1 mt-2">
+                    <div class="grid grid-cols-3 gap-x-3 gap-y-1 mt-2">
                       <label class="flex items-center gap-1.5">
                         <input type="checkbox" v-model="item.is_required" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                         <span class="text-[10px] text-gray-500">Obligatorio</span>
                       </label>
+                      <label class="flex items-center gap-1.5">
+                        <input type="checkbox" v-model="item.is_free" class="rounded border-gray-300 text-amber-500 focus:ring-amber-400" />
+                        <span class="text-[10px] text-amber-700">🎁 Gratis</span>
+                      </label>
+                    </div>
+                    <div v-if="item.is_free" class="mt-1 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+                      <span class="text-[10px] text-amber-700">Vigencia:</span>
+                      <input v-model.number="item.free_days" type="number" min="1" max="90" placeholder="7"
+                        class="w-16 px-2 py-1 border border-amber-300 rounded-lg text-[10px] focus:ring-1 focus:ring-amber-400 outline-none" />
+                      <span class="text-[10px] text-amber-600">días desde envío</span>
                     </div>
                     <p v-if="!item.is_required && !item.price" class="text-[10px] text-amber-600 mt-1">⚠ Elemento opcional sin precio — el cliente no podrá calcular su inversión personalizada.</p>
                   </div>

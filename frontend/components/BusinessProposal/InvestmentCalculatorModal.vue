@@ -39,9 +39,9 @@
                   ]"
                   @click="toggleModule(mod)"
                 >
-                  <div class="flex items-center gap-3">
+                  <div class="flex items-center gap-3 flex-1 min-w-0">
                     <div
-                      class="w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors"
+                      class="w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors flex-shrink-0"
                       :class="mod.selected
                         ? 'bg-esmerald border-esmerald text-white'
                         : 'border-gray-300 bg-white'"
@@ -50,14 +50,18 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <div>
+                    <div class="min-w-0">
                       <span class="font-medium" :class="mod.selected ? 'text-esmerald' : 'text-gray-500'">
                         {{ mod.name }}
                       </span>
                       <span v-if="mod._locked" class="ml-2 text-[10px] text-esmerald/50 font-medium uppercase">{{ t.required }}</span>
+                      <span v-if="mod._freeActive" class="ml-2 text-[10px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded-full">🎁 {{ t.freeLabel }}</span>
+                      <p v-if="!mod.selected && !mod._locked" class="text-[11px] text-amber-600 leading-snug mt-0.5">
+                        ⚠ {{ impactMessage(mod) }}
+                      </p>
                     </div>
                   </div>
-                  <span class="font-bold text-sm" :class="mod.selected ? 'text-esmerald' : 'text-gray-400'">
+                  <span class="font-bold text-sm flex-shrink-0" :class="mod.selected ? 'text-esmerald' : 'text-gray-400'">
                     {{ mod.price ? formatPrice(mod.price) : t.included }}
                   </span>
                 </div>
@@ -86,7 +90,7 @@
               </div>
               <div class="text-right">
                 <span class="text-sm text-gray-500 block">{{ t.estimatedTotal }}</span>
-                <span class="text-2xl font-bold text-esmerald">{{ formatPrice(dynamicTotal) }}</span>
+                <span class="text-2xl font-bold text-esmerald">{{ formatPrice(animatedTotal) }}</span>
                 <span class="text-xs text-gray-400 ml-1">{{ currency }}</span>
               </div>
             </div>
@@ -118,6 +122,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -127,6 +132,7 @@ const props = defineProps({
   language: { type: String, default: 'es' },
   totalInvestment: { type: String, default: '' },
   baseWeeks: { type: Number, default: 0 },
+  sentAt: { type: String, default: '' },
 });
 
 function parseInvestment(str) {
@@ -151,6 +157,13 @@ const i18n = {
     weeks: 'semanas',
     reducedFrom: 'Se reduce de',
     to: 'a',
+    impactModule: 'Sin este módulo, tu proyecto tendrá menos cobertura en esta área.',
+    impactView: 'Esta vista no estará disponible en la versión final.',
+    impactFeature: 'Esta funcionalidad no se incluirá en el alcance.',
+    impactIntegration: 'Esta integración no estará conectada al sistema.',
+    impactGeneric: 'Este componente no se incluirá en el proyecto.',
+    impactWeeks: 'Se reduce ~1 semana del cronograma.',
+    freeLabel: 'Gratis',
   },
   en: {
     title: 'Customize your investment',
@@ -165,6 +178,13 @@ const i18n = {
     weeks: 'weeks',
     reducedFrom: 'Reduced from',
     to: 'to',
+    impactModule: 'Without this module, your project will have less coverage in this area.',
+    impactView: 'This view will not be available in the final version.',
+    impactFeature: 'This feature will not be included in the scope.',
+    impactIntegration: 'This integration will not be connected to the system.',
+    impactGeneric: 'This component will not be included in the project.',
+    impactWeeks: 'Reduces ~1 week from the timeline.',
+    freeLabel: 'Free',
   },
 };
 
@@ -181,12 +201,21 @@ watch(() => props.visible, (val) => {
       if (raw) saved = JSON.parse(raw);
     } catch (_e) { /* ignore */ }
 
+    const now = new Date();
     localModules.value = props.modules.map(m => {
       const locked = m.is_required === true;
+      // Compute free promotion status
+      let freeActive = false;
+      if (m.is_free && m.free_days && props.sentAt) {
+        const sentDate = new Date(props.sentAt);
+        const expiresAt = new Date(sentDate.getTime() + m.free_days * 86400000);
+        freeActive = now < expiresAt;
+      }
       return {
         ...m,
         selected: locked ? true : (saved ? saved.includes(m.id) : true),
         _locked: locked,
+        _freeActive: freeActive,
       };
     });
   }
@@ -224,8 +253,13 @@ const dynamicTotal = computed(() => {
   const deselectedSum = localModules.value
     .filter(m => !m.selected)
     .reduce((sum, m) => sum + (m.price || 0), 0);
-  return baseTotalInvestment.value - deselectedSum;
+  const freeSum = localModules.value
+    .filter(m => m.selected && m._freeActive && m.price)
+    .reduce((sum, m) => sum + (m.price || 0), 0);
+  return baseTotalInvestment.value - deselectedSum - freeSum;
 });
+
+const { animated: animatedTotal } = useAnimatedNumber(dynamicTotal, 500);
 
 // Dynamic timeline: week reduction based on deselected items
 // Rule: 1 module/integration removed = -1 week; every 3 views or 3 features removed = -1 week
@@ -261,6 +295,27 @@ const timelineChanged = computed(() => {
 function formatPrice(value) {
   if (!value && value !== 0) return '';
   return '$' + Number(value).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function impactMessage(mod) {
+  const groupId = mod.groupId || '';
+  const source = mod._source || '';
+  let msg = '';
+  if (source === 'investment') {
+    msg = t.value.impactModule;
+  } else if (groupId === 'views') {
+    msg = t.value.impactView;
+  } else if (groupId === 'features') {
+    msg = t.value.impactFeature;
+  } else if (groupId === 'integrations_api') {
+    msg = t.value.impactIntegration;
+  } else {
+    msg = t.value.impactGeneric;
+  }
+  if (source === 'investment' || groupId === 'integrations_api') {
+    msg += ' ' + t.value.impactWeeks;
+  }
+  return msg;
 }
 
 function toggleModule(mod) {

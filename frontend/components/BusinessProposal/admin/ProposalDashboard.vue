@@ -23,7 +23,7 @@
 
         <template v-else-if="data">
           <!-- KPI summary cards -->
-          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
               <p class="text-xs text-gray-400 uppercase tracking-wider">Total propuestas</p>
               <p class="text-3xl font-light text-gray-900 mt-1">{{ data.total_proposals }}</p>
@@ -31,6 +31,13 @@
             <div class="bg-white rounded-xl border border-emerald-100 shadow-sm p-4">
               <p class="text-xs text-emerald-600 uppercase tracking-wider">Tasa conversión</p>
               <p class="text-3xl font-light text-emerald-700 mt-1">{{ data.conversion_rate }}%</p>
+            </div>
+            <div class="bg-white rounded-xl border border-blue-100 shadow-sm p-4">
+              <p class="text-xs text-blue-600 uppercase tracking-wider">Tasa revisita</p>
+              <p class="text-2xl font-light text-blue-700 mt-1">
+                {{ data.pct_revisit != null ? data.pct_revisit + '%' : '—' }}
+              </p>
+              <p class="text-[10px] text-gray-400 mt-0.5">Clientes que volvieron</p>
             </div>
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
               <p class="text-xs text-gray-400 uppercase tracking-wider">Avg tiempo 1ra vista</p>

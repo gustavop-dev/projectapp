@@ -10,7 +10,7 @@
     <!-- Floating share button: click = copy link, long-press = open modal -->
     <button
       data-testid="share-proposal-btn"
-      class="fixed bottom-[8.5rem] right-4 z-40 w-12 h-12 bg-white border border-gray-200
+      class="share-btn fixed bottom-[8.5rem] right-4 z-40 w-12 h-12 bg-white border border-gray-200
              rounded-full shadow-lg flex items-center justify-center
              hover:bg-gray-50 transition-colors group"
       :title="t.shareTitle"

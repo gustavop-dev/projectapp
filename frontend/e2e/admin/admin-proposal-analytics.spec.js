@@ -7,7 +7,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_PROPOSAL_ANALYTICS } from '../helpers/flow-tags.js';
+import { ADMIN_PROPOSAL_ANALYTICS, ADMIN_PROPOSAL_ENGAGEMENT_SCORE } from '../helpers/flow-tags.js';
 
 const PROPOSAL_ID = 1;
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
@@ -119,5 +119,42 @@ test.describe('Admin Proposal Analytics', () => {
 
     await page.getByRole('button', { name: 'Analytics' }).click();
     await expect(page.getByRole('button', { name: 'Exportar CSV' })).toBeVisible({ timeout: 15000 });
+  });
+
+  test('analytics tab renders engagement score with color-coded level', {
+    tag: [...ADMIN_PROPOSAL_ENGAGEMENT_SCORE, '@role:admin'],
+  }, async ({ page }) => {
+    const analyticsWithScore = { ...mockAnalytics, engagement_score: 75 };
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
+      if (apiPath === `proposals/${PROPOSAL_ID}/analytics/`) return { status: 200, contentType: 'application/json', body: JSON.stringify(analyticsWithScore) };
+      return null;
+    });
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.waitForLoadState('networkidle');
+
+    await page.getByRole('button', { name: 'Analytics' }).click();
+    await expect(page.getByText('Engagement Score')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('75')).toBeVisible();
+    await expect(page.getByText(/Alto engagement/)).toBeVisible();
+  });
+
+  test('engagement score shows low engagement warning when score is below 40', {
+    tag: [...ADMIN_PROPOSAL_ENGAGEMENT_SCORE, '@role:admin'],
+  }, async ({ page }) => {
+    const analyticsLowScore = { ...mockAnalytics, engagement_score: 20 };
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
+      if (apiPath === `proposals/${PROPOSAL_ID}/analytics/`) return { status: 200, contentType: 'application/json', body: JSON.stringify(analyticsLowScore) };
+      return null;
+    });
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.waitForLoadState('networkidle');
+
+    await page.getByRole('button', { name: 'Analytics' }).click();
+    await expect(page.getByText('Engagement Score')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/Bajo engagement/)).toBeVisible();
   });
 });

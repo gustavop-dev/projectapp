@@ -90,28 +90,40 @@ const i18n = {
     modulesTitle: 'Módulos del proyecto',
     modulesDesc: 'Componentes técnicos que conforman tu solución personalizada.',
     modulesCustomized: 'Personalizado — ajustado a tus necesidades.',
-    paymentTitle: 'Formas de pago',
-    paymentDesc: 'Opciones flexibles de pago para tu inversión.',
+    paymentTitle: 'Pago por valor entregado',
+    paymentDesc: 'Cada pago corresponde a un hito de valor tangible que recibes — pagas en la medida que ves resultados.',
     discountTitle: 'Descuento especial',
     discountDesc: 'Precio preferencial disponible por tiempo limitado.',
-    guaranteeTitle: 'Garantía post-lanzamiento',
-    guaranteeDesc: 'Soporte técnico, corrección de bugs y mantenimiento incluido.',
     modules: 'módulos',
-    options: 'opciones de pago',
+    milestones: 'hitos de pago',
+    designerTitle: 'Diseñador dedicado',
+    designerDesc: 'Un profesional creativo asignado a tu proyecto para diseñar cada detalle de tu experiencia digital.',
+    analyticsTitle: 'Reportes y analítica',
+    analyticsDesc: 'Acceso a un dashboard con reportes periódicos sobre el rendimiento y tráfico de tu sitio para tomar decisiones informadas.',
+    bestPracticesTitle: 'Estándares de la industria',
+    bestPracticesDesc: 'Desarrollo con las mejores prácticas de la industria en seguridad, rendimiento y calidad de código.',
+    guaranteeTitle: 'Soporte post-lanzamiento',
+    guaranteeDesc: 'Acompañamiento técnico después de la entrega para asegurar que todo funcione correctamente y resolver cualquier ajuste.',
   },
   en: {
     customized: 'Customized investment based on your selection.',
     modulesTitle: 'Project modules',
     modulesDesc: 'Technical components that make up your custom solution.',
     modulesCustomized: 'Customized — tailored to your needs.',
-    paymentTitle: 'Payment options',
-    paymentDesc: 'Flexible payment options for your investment.',
+    paymentTitle: 'Pay as Value is Delivered',
+    paymentDesc: 'Each payment corresponds to a tangible value milestone — you pay as you see real progress and results.',
     discountTitle: 'Special discount',
     discountDesc: 'Preferential pricing available for a limited time.',
-    guaranteeTitle: 'Post-launch guarantee',
-    guaranteeDesc: 'Technical support, bug fixes, and maintenance included.',
     modules: 'modules',
-    options: 'payment options',
+    milestones: 'payment milestones',
+    designerTitle: 'Dedicated Designer',
+    designerDesc: 'A creative professional assigned to your project to craft every detail of your digital experience.',
+    analyticsTitle: 'Reports & Analytics',
+    analyticsDesc: 'Access to a dashboard with periodic reports on your site\'s performance and traffic to make informed decisions.',
+    bestPracticesTitle: 'Industry Standards',
+    bestPracticesDesc: 'Development following industry best practices in security, performance, and code quality.',
+    guaranteeTitle: 'Post-Launch Support',
+    guaranteeDesc: 'Technical support after delivery to ensure everything works correctly and handle any adjustments.',
   },
 };
 
@@ -162,7 +174,7 @@ const resolvedCards = computed(() => {
     resolved.push({
       icon: '💳',
       title: t.value.paymentTitle,
-      value: `${props.paymentOptions.length} ${t.value.options}`,
+      value: `${props.paymentOptions.length} ${t.value.milestones}`,
       description: t.value.paymentDesc,
     });
   }
@@ -176,7 +188,34 @@ const resolvedCards = computed(() => {
     });
   }
 
-  if (!existingSources.has('guarantee')) {
+  if (!existingSources.has('dedicated_designer')) {
+    resolved.push({
+      icon: '🎨',
+      title: t.value.designerTitle,
+      value: '',
+      description: t.value.designerDesc,
+    });
+  }
+
+  if (!existingSources.has('analytics_dashboard')) {
+    resolved.push({
+      icon: '📊',
+      title: t.value.analyticsTitle,
+      value: '',
+      description: t.value.analyticsDesc,
+    });
+  }
+
+  if (!existingSources.has('best_practices')) {
+    resolved.push({
+      icon: '⚡',
+      title: t.value.bestPracticesTitle,
+      value: '',
+      description: t.value.bestPracticesDesc,
+    });
+  }
+
+  if (!existingSources.has('post_launch_support')) {
     resolved.push({
       icon: '🛡️',
       title: t.value.guaranteeTitle,

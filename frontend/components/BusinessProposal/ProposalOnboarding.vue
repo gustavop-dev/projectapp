@@ -128,6 +128,7 @@ const stepsI18n = {
     { target: '.nav-side--right', title: 'Navegar entre secciones', description: 'Usa las flechas laterales para avanzar o retroceder. También puedes usar las flechas del teclado o deslizar en móvil.', prefer: 'left' },
     { target: '.section-counter', title: 'Progreso', description: 'Aquí puedes ver en qué sección estás y cuántas hay en total.', prefer: 'bottom' },
     { target: '.expiration-badge', title: 'Vigencia de la propuesta', description: 'Esta propuesta tiene fecha de expiración. Aquí verás el tiempo restante para revisarla y tomar una decisión.', prefer: 'bottom', optional: true },
+    { target: '.share-btn', title: 'Compartir propuesta', description: 'Comparte el enlace de esta propuesta con tu equipo o socios para que puedan revisarla juntos.', prefer: 'top' },
     { target: '.pdf-download', title: 'Descargar como PDF', description: 'Puedes descargar toda la propuesta en formato PDF para revisarla offline o compartirla con tu equipo.', prefer: 'top' },
   ],
   en: [
@@ -135,6 +136,7 @@ const stepsI18n = {
     { target: '.nav-side--right', title: 'Navigate Sections', description: 'Use the side arrows to go forward or back. You can also use keyboard arrows or swipe on mobile.', prefer: 'left' },
     { target: '.section-counter', title: 'Progress', description: 'See which section you are on and how many there are in total.', prefer: 'bottom' },
     { target: '.expiration-badge', title: 'Proposal Validity', description: 'This proposal has an expiration date. Here you can see the remaining time to review and decide.', prefer: 'bottom', optional: true },
+    { target: '.share-btn', title: 'Share Proposal', description: 'Share the proposal link with your team or partners so they can review it together.', prefer: 'top' },
     { target: '.pdf-download', title: 'Download as PDF', description: 'Download the entire proposal as a PDF to review offline or share with your team.', prefer: 'top' },
   ],
 };

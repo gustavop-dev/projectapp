@@ -858,14 +858,28 @@ def track_proposal_engagement(request, proposal_uuid):
             )
 
     # --- Smart follow-up alert ---
-    # Trigger if: ≥3 unique sessions AND alert not already sent
+    # Trigger if: ≥3 unique sessions AND 3+ day gap between first and latest view
     if not proposal.revisit_alert_sent_at and proposal.status in ('sent', 'viewed'):
         unique_sessions = (
             ProposalViewEvent.objects
             .filter(proposal=proposal)
             .values('session_id').distinct().count()
         )
-        if unique_sessions >= 3:
+        # Check temporal gap: latest view must be ≥3 days after first view
+        from datetime import timedelta
+        first_view = proposal.first_viewed_at
+        latest_event = (
+            ProposalViewEvent.objects
+            .filter(proposal=proposal)
+            .order_by('-viewed_at')
+            .values_list('viewed_at', flat=True)
+            .first()
+        )
+        has_temporal_gap = (
+            first_view and latest_event
+            and (latest_event - first_view) >= timedelta(days=3)
+        )
+        if unique_sessions >= 3 and has_temporal_gap:
             # Find top section by total time across all sessions
             from django.db.models import Sum
             top = (

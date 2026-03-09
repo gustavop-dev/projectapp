@@ -330,7 +330,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import ProposalDashboard from '~/components/BusinessProposal/admin/ProposalDashboard.vue';
 import MetricsManual from '~/components/BusinessProposal/admin/MetricsManual.vue';
 
@@ -339,7 +339,6 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const proposalStore = useProposalStore();
 const proposals = computed(() => proposalStore.proposals);
 const activeFilter = ref('');
-const openDropdownId = ref(null);
 const actionsModalProposal = ref(null);
 const copiedId = ref(null);
 const searchQuery = ref('');
@@ -429,15 +428,6 @@ function timeAgo(dateStr) {
   return d.toLocaleDateString();
 }
 
-function toggleDropdown(id) {
-  openDropdownId.value = openDropdownId.value === id ? null : id;
-}
-
-function closeDropdown(e) {
-  if (openDropdownId.value !== null) {
-    openDropdownId.value = null;
-  }
-}
 
 const proposalActions = computed(() => {
   const p = actionsModalProposal.value;
@@ -548,10 +538,6 @@ function navigateToProposal(id) {
   router.push(`/panel/proposals/${id}/edit`);
 }
 
-onUnmounted(() => {
-  document.removeEventListener('click', closeDropdown);
-});
-
 const statusOptions = [
   { value: '', label: 'Todas' },
   { value: 'draft', label: 'Borrador' },
@@ -566,7 +552,6 @@ const alerts = ref([]);
 
 onMounted(async () => {
   proposalStore.fetchProposals();
-  document.addEventListener('click', closeDropdown);
   const alertResult = await proposalStore.fetchAlerts();
   if (alertResult.success) alerts.value = alertResult.data || [];
 });
@@ -637,7 +622,6 @@ async function handleToggleActive(id, currentlyActive) {
 }
 
 async function handleDuplicate(id) {
-  openDropdownId.value = null;
   const result = await proposalStore.duplicateProposal(id);
   if (result.success) {
     router.push(`/panel/proposals/${result.data.id}/edit`);

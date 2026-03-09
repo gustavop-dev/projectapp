@@ -35,6 +35,13 @@ def send_proposal_reminder(proposal_id):
         logger.warning('Proposal %s not found for reminder task.', proposal_id)
         return
 
+    if proposal.automations_paused:
+        logger.info(
+            'Skipping reminder for proposal %s: automations paused',
+            proposal.uuid,
+        )
+        return
+
     if proposal.status not in ('sent', 'viewed'):
         logger.info(
             'Skipping reminder for proposal %s: status is %s',
@@ -77,6 +84,13 @@ def send_urgency_reminder(proposal_id):
         proposal = BusinessProposal.objects.get(pk=proposal_id)
     except BusinessProposal.DoesNotExist:
         logger.warning('Proposal %s not found for urgency task.', proposal_id)
+        return
+
+    if proposal.automations_paused:
+        logger.info(
+            'Skipping urgency for proposal %s: automations paused',
+            proposal.uuid,
+        )
         return
 
     if proposal.status not in ('sent', 'viewed'):
@@ -247,6 +261,7 @@ def escalate_seller_inactivity():
     candidates = BusinessProposal.objects.filter(
         status__in=['sent', 'viewed'],
         is_active=True,
+        automations_paused=False,
         first_viewed_at__isnull=False,
     )
 
@@ -318,6 +333,7 @@ def check_engagement_followups():
     abandonment_candidates = BusinessProposal.objects.filter(
         status='viewed',
         is_active=True,
+        automations_paused=False,
         client_email__gt='',
         abandonment_email_sent_at__isnull=True,
         first_viewed_at__isnull=False,
@@ -348,6 +364,7 @@ def check_engagement_followups():
     interest_candidates = BusinessProposal.objects.filter(
         status='viewed',
         is_active=True,
+        automations_paused=False,
         client_email__gt='',
         investment_interest_email_sent_at__isnull=True,
         first_viewed_at__isnull=False,

@@ -1070,26 +1070,26 @@
 | `admin-blog-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-edit.spec.js` |
 | `admin-blog-delete` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-blog-delete.spec.js` |
 | `admin-proposal-manual-alerts` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-manual-alerts.spec.js` |
-| `admin-proposal-win-rate-dashboard` | admin | admin | P2 | ❌ Missing | — |
-| `admin-proposal-engagement-score` | admin | admin | P2 | ❌ Missing | — |
-| `admin-proposal-metrics-manual` | admin | admin | P3 | ❌ Missing | — |
-| `proposal-welcome-back` | proposal | guest | P2 | ❌ Missing | — |
-| `proposal-process-methodology` | proposal | guest | P2 | ❌ Missing | — |
+| `admin-proposal-win-rate-dashboard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-win-rate.spec.js` |
+| `admin-proposal-engagement-score` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-analytics.spec.js` |
+| `admin-proposal-metrics-manual` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-metrics-manual.spec.js` |
+| `proposal-welcome-back` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-welcome-back.spec.js` |
+| `proposal-process-methodology` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-process-methodology.spec.js` |
 | `admin-portfolio-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-list.spec.js` |
 | `admin-portfolio-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-create.spec.js` |
 | `admin-portfolio-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-edit.spec.js` |
 | `admin-portfolio-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-delete.spec.js` |
 | `proposal-pre-expiration-discount-suggestion` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
-| `admin-proposal-zombie-segment` | admin | admin | P2 | ❌ Missing | — |
-| `proposal-share-hint` | proposal | guest | P3 | ❌ Missing | — |
-| `proposal-countdown-realtime` | proposal | guest | P3 | ❌ Missing | — |
-| `admin-proposal-create-and-send` | admin | admin | P2 | ❌ Missing | — |
-| `admin-proposal-create-preview` | admin | admin | P2 | ❌ Missing | — |
+| `admin-proposal-zombie-segment` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-zombie-segment.spec.js` |
+| `proposal-share-hint` | proposal | guest | P3 | ✅ Covered | `e2e/proposal/proposal-share-hint.spec.js` |
+| `proposal-countdown-realtime` | proposal | guest | P3 | ✅ Covered | `e2e/proposal/proposal-countdown-realtime.spec.js` |
+| `admin-proposal-create-and-send` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
+| `admin-proposal-create-preview` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-seller-inactivity-escalation` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
-| `admin-dashboard-pipeline-value` | admin | admin | P2 | ❌ Missing | — |
-| `proposal-rejection-optional-reason` | proposal | guest | P2 | ❌ Missing | — |
-| `proposal-calculator-timeline` | proposal | guest | P1 | ❌ Missing | — |
-| `admin-discount-analysis-enhanced` | admin | admin | P3 | ❌ Missing | — |
+| `admin-dashboard-pipeline-value` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
+| `proposal-rejection-optional-reason` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-rejection-optional.spec.js` |
+| `proposal-calculator-timeline` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-calculator-timeline.spec.js` |
+| `admin-discount-analysis-enhanced` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-discount-analysis.spec.js` |
 
 ### Summary
 
@@ -1097,9 +1097,9 @@
 - **P1 (Critical):** 16
 - **P2 (High):** 37
 - **P3 (Medium):** 11
-- **Covered (full):** 46 (72%)
+- **Covered (full):** 60 (94%)
 - **Backend-only:** 2 (3%) — periodic tasks covered by backend unit tests
-- **Missing:** 16 (25%) — v1.6.0 flows pending E2E specs
+- **Missing:** 2 (3%) — backend-only periodic tasks already covered by unit tests
 
 ### Unit Test Coverage
 

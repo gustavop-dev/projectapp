@@ -731,7 +731,13 @@ class TestTrackProposalEngagement:
 
     @patch('content.services.proposal_email_service.ProposalEmailService.send_revisit_alert', return_value=True)
     def test_sends_revisit_alert_after_3_sessions(self, mock_alert, api_client, sent_proposal):
-        """Revisit alert fires after 3 distinct session IDs track engagement."""
+        """Revisit alert fires after 3 distinct session IDs with 3+ day gap."""
+        from django.utils import timezone
+        from datetime import timedelta
+        # Set first_viewed_at to 4 days ago so temporal gap check passes
+        sent_proposal.first_viewed_at = timezone.now() - timedelta(days=4)
+        sent_proposal.save(update_fields=['first_viewed_at'])
+
         for i in range(3):
             payload = {
                 'session_id': f'sess-{i}',

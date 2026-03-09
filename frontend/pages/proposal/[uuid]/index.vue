@@ -50,41 +50,39 @@
         :proposalUuid="proposal.uuid"
         :language="proposal?.language || 'es'"
       />
+      <WhatsAppFloatingButton :whatsappLink="extractedWhatsappLink" />
 
       <!-- Onboarding tutorial tooltips -->
       <ProposalOnboarding ref="onboardingRef" :language="pLang" @complete="showReadingTimePopup" />
 
 
-      <!-- Welcome-back overlay -->
+      <!-- Welcome-back toast (non-blocking) -->
       <Teleport to="body">
         <Transition name="fade-popup">
-          <div v-if="welcomeBack" class="fixed inset-0 z-[10000] flex items-center justify-center p-6">
-            <div class="absolute inset-0 bg-white/60 backdrop-blur-[3px]" />
-            <div class="relative bg-white rounded-3xl shadow-2xl border border-gray-100 p-6 sm:p-8 max-w-sm w-full text-center">
-              <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-                <span class="text-3xl">👋</span>
+          <div v-if="welcomeBack" class="fixed bottom-6 right-6 z-[10000] max-w-xs w-full">
+            <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 relative">
+              <button
+                class="absolute top-3 right-3 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors text-xs"
+                @click="welcomeBack = null"
+              >✕</button>
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <span class="text-xl">👋</span>
+                </div>
+                <h3 class="text-sm font-bold text-esmerald leading-tight">
+                  {{ pLang === 'es' ? 'Bienvenido de nuevo' : 'Welcome back' }}{{ welcomeBack.clientName ? ', ' + welcomeBack.clientName : '' }}
+                </h3>
               </div>
-              <h3 class="text-lg font-bold text-esmerald mb-2">
-                {{ pLang === 'es' ? 'Bienvenido de nuevo' : 'Welcome back' }}{{ welcomeBack.clientName ? ', ' + welcomeBack.clientName : '' }}.
-              </h3>
-              <p class="text-sm text-esmerald/70 font-light leading-relaxed mb-6">
-                {{ pLang === 'es' ? 'La última vez llegaste hasta' : 'Last time you reached' }} <strong>{{ welcomeBack.sectionTitle }}</strong>. {{ pLang === 'es' ? '¿Quieres continuar?' : 'Want to continue?' }}
+              <p class="text-xs text-esmerald/70 font-light leading-relaxed mb-4">
+                {{ pLang === 'es' ? 'La última vez llegaste hasta' : 'Last time you reached' }} <strong>{{ welcomeBack.sectionTitle }}</strong>.
               </p>
-              <div class="flex flex-col gap-2">
-                <button
-                  class="w-full px-6 py-3 bg-esmerald text-lemon rounded-xl font-bold text-sm
-                         hover:bg-esmerald/90 transition-colors shadow-sm"
-                  @click="navigateTo(welcomeBack.sectionIndex); welcomeBack = null"
-                >
-                  {{ pLang === 'es' ? 'Continuar donde lo dejé' : 'Continue where I left off' }}
-                </button>
-                <button
-                  class="w-full px-6 py-3 text-gray-500 text-sm font-medium hover:text-gray-700 transition-colors"
-                  @click="welcomeBack = null"
-                >
-                  {{ pLang === 'es' ? 'Empezar desde el inicio' : 'Start from the beginning' }}
-                </button>
-              </div>
+              <button
+                class="w-full px-4 py-2.5 bg-esmerald text-lemon rounded-xl font-bold text-xs
+                       hover:bg-esmerald/90 transition-colors shadow-sm"
+                @click="navigateTo(welcomeBack.sectionIndex); welcomeBack = null"
+              >
+                {{ pLang === 'es' ? 'Continuar donde lo dejé' : 'Continue where I left off' }}
+              </button>
             </div>
           </div>
         </Transition>
@@ -182,6 +180,7 @@ import ProposalClosing from '~/components/BusinessProposal/ProposalClosing.vue';
 import SectionNavButtons from '~/components/BusinessProposal/SectionNavButtons.vue';
 import ProposalOnboarding from '~/components/BusinessProposal/ProposalOnboarding.vue';
 import ShareProposalButton from '~/components/BusinessProposal/ShareProposalButton.vue';
+import WhatsAppFloatingButton from '~/components/BusinessProposal/WhatsAppFloatingButton.vue';
 
 definePageMeta({ layout: false });
 
@@ -428,6 +427,7 @@ function getSectionProps(section) {
       proposalUuid: proposal.value?.uuid || '',
       whatsappLink: extractedWhatsappLink.value,
       baseWeeks,
+      sentAt: proposal.value?.sent_at || '',
     };
   }
 
