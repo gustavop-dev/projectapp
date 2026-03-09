@@ -1278,12 +1278,12 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                                  leading=13, ps=ps)
             y -= 6
 
-        # Specs grid — 2 columns of pill-style badges
+        # Specs grid — 2 columns of pill-style badges (2-line: label + value)
         specs = [s for s in _safe(hosting, 'specs', [])
                  if _safe(s, 'label') or _safe(s, 'value')]
         if specs:
             spec_col_w = (CONTENT_W - 14) / 2
-            spec_row_h = 28
+            spec_row_h = 38
             for si, spec in enumerate(specs):
                 col = si % 2
                 if col == 0 and ps:
@@ -1293,19 +1293,18 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 c.setFillColor(ESMERALD_LIGHT)
                 c.roundRect(sx, y - 18, spec_col_w, spec_row_h, 5,
                             fill=1, stroke=0)
-                # Vertical centre of badge
-                badge_mid_y = y - 18 + spec_row_h / 2
-                text_y = badge_mid_y - 3  # baseline offset
-                # Label (bold)
+                # Label (bold) — top line
                 spec_label = _strip_emoji(_safe(spec, 'label'))
+                label_y = y - 18 + spec_row_h - 12
                 c.setFont(_font('bold'), 8)
                 c.setFillColor(ESMERALD)
-                c.drawString(sx + 8, text_y, spec_label)
-                # Value (regular, right-aligned in badge)
+                c.drawString(sx + 8, label_y, spec_label)
+                # Value (regular) — second line below label
                 spec_value = _strip_emoji(_safe(spec, 'value'))
+                value_y = label_y - 13
                 c.setFont(_font('regular'), 7.5)
                 c.setFillColor(ESMERALD_80)
-                c.drawRightString(sx + spec_col_w - 8, text_y, spec_value)
+                c.drawString(sx + 8, value_y, spec_value)
                 # Move down after every 2nd column
                 if col == 1 or si == len(specs) - 1:
                     y -= spec_row_h + 4
@@ -1435,9 +1434,23 @@ def _render_final_note(c, data, proposal, ps=None, y=None):
             y -= 14
 
     # Validity period — eye-catching banner
-    validity = _safe(data, 'validityPeriod',
-                     'Esta propuesta tiene una vigencia de 30 d\u00edas '
-                     'calendario a partir de su fecha de env\u00edo.')
+    validity = _safe(data, 'validityMessage') or _safe(
+        data, 'validityPeriod',
+        'Esta propuesta tiene una vigencia de 30 d\u00edas '
+        'calendario a partir de su fecha de env\u00edo.',
+    )
+    # Replace hardcoded days with actual remaining days from expires_at
+    if validity and hasattr(proposal, 'expires_at') and proposal.expires_at:
+        from django.utils import timezone as _tz
+        _now = _tz.now()
+        _remaining = max((proposal.expires_at - _now).days, 0)
+        import re as _re
+        validity = _re.sub(
+            r'\d+\s*(d\u00edas|days|d\u00eda|day)',
+            f'{_remaining} d\u00edas' if _remaining != 1 else '1 d\u00eda',
+            str(validity),
+            count=1,
+        )
     if validity:
         y -= 12
         y = _draw_banner_box(c, MARGIN_L, y, CONTENT_W,

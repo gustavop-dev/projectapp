@@ -133,7 +133,7 @@ DEFAULT_SECTIONS = [
             'whatsIncluded': [
                 {'icon': '🎨', 'title': 'Diseño', 'description': 'UX/UI enfocado en conversión'},
                 {'icon': '⚙️', 'title': 'Desarrollo', 'description': 'Implementación completa del proyecto'},
-                {'icon': '☁️', 'title': 'Hosting', 'description': 'Plan Cloud 1 disponible'},
+                {'icon': '🚀', 'title': 'Despliegue y Entrega', 'description': 'Despliegue en producción y puesta en marcha'},
             ],
             'paymentOptions': [
                 {'label': '40% al firmar el contrato ✍️', 'description': ''},
@@ -188,10 +188,10 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'timeline',
         'title': '⏳ Cuándo lo tendrás listo',
-        'order': 5,
+        'order': 6,
         'is_wide_panel': True,
         'content_json': {
-            'index': '5',
+            'index': '6',
             'title': 'Cronograma del Proyecto',
             'introText': 'El proyecto se desarrollará en las siguientes fases:',
             'totalDuration': 'Aproximadamente 1 mes',
@@ -242,10 +242,10 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'design_ux',
         'title': '🎨 Una experiencia visual que enamora',
-        'order': 6,
+        'order': 7,
         'is_wide_panel': False,
         'content_json': {
-            'index': '6',
+            'index': '7',
             'title': 'Diseño Visual y Experiencia de Usuario',
             'paragraphs': [
                 'El desarrollo web será concebido como una experiencia digital profesional.',
@@ -267,10 +267,10 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'creative_support',
         'title': '🤝 Te acompañamos en cada paso',
-        'order': 7,
+        'order': 8,
         'is_wide_panel': False,
         'content_json': {
-            'index': '7',
+            'index': '8',
             'title': 'Acompañamiento Creativo Personalizado',
             'paragraphs': [
                 'Durante todo el proceso, el cliente contará con el acompañamiento cercano de nuestro equipo.',
@@ -292,10 +292,10 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'functional_requirements',
         'title': '🧩 Todo lo que incluye tu proyecto',
-        'order': 8,
+        'order': 9,
         'is_wide_panel': True,
         'content_json': {
-            'index': '8',
+            'index': '9',
             'title': 'Requerimientos Funcionales del Proyecto',
             'intro': 'A continuación se detallan los requerimientos funcionales del proyecto.',
             'groups': [
@@ -456,10 +456,10 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'development_stages',
         'title': '📌 Así avanzamos juntos',
-        'order': 9,
+        'order': 10,
         'is_wide_panel': True,
         'content_json': {
-            'index': '9',
+            'index': '10',
             'title': 'Etapas de contratación y desarrollo',
             'intro': 'Nuestro proceso está diseñado para ofrecer claridad, confianza y acompañamiento en cada fase 🧭:',
             'currentLabel': 'Actual',
@@ -506,10 +506,10 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'process_methodology',
         'title': '⚙️ Proceso y Metodología',
-        'order': 10,
+        'order': 5,
         'is_wide_panel': False,
         'content_json': {
-            'index': '10',
+            'index': '5',
             'title': 'Proceso y Metodología',
             'intro': 'Trabajamos con un proceso estructurado que garantiza transparencia, calidad y entrega a tiempo en cada etapa del proyecto.',
             'activeStep': 0,
@@ -584,7 +584,7 @@ DEFAULT_SECTIONS = [
                 {
                     'icon': '📅',
                     'title': 'Vigencia',
-                    'description': 'Esta propuesta es válida por 30 días a partir de su envío.',
+                    'description': 'Vigencia de la propuesta a partir de su envío.',
                     'source': 'expires_at',
                 },
                 {
@@ -824,7 +824,7 @@ DEFAULT_SECTIONS_EN = [
             'whatsIncluded': [
                 {'icon': '🎨', 'title': 'Design', 'description': 'UX/UI focused on conversion'},
                 {'icon': '⚙️', 'title': 'Development', 'description': 'Full project implementation'},
-                {'icon': '☁️', 'title': 'Hosting', 'description': 'Cloud 1 plan available'},
+                {'icon': '🚀', 'title': 'Deployment & Delivery', 'description': 'Production deployment and launch'},
             ],
             'paymentOptions': [
                 {'label': '40% upon signing the contract ✍️', 'description': ''},
@@ -862,10 +862,10 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'timeline',
         'title': '⏳ Project Timeline',
-        'order': 5,
+        'order': 6,
         'is_wide_panel': True,
         'content_json': {
-            'index': '5',
+            'index': '6',
             'title': 'Project Timeline',
             'introText': 'The project will be developed in the following phases:',
             'totalDuration': 'Approximately 1 month',
@@ -916,10 +916,10 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'design_ux',
         'title': '🎨 Visual Design & User Experience',
-        'order': 6,
+        'order': 7,
         'is_wide_panel': False,
         'content_json': {
-            'index': '6',
+            'index': '7',
             'title': 'Visual Design & User Experience',
             'paragraphs': [
                 'The web development will be conceived as a professional digital experience.',
@@ -941,10 +941,10 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'creative_support',
         'title': '🤝 Personalized Creative Support',
-        'order': 7,
+        'order': 8,
         'is_wide_panel': False,
         'content_json': {
-            'index': '7',
+            'index': '8',
             'title': 'Personalized Creative Support',
             'paragraphs': [
                 'Throughout the process, the client will have close support from our team.',
@@ -966,10 +966,10 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'functional_requirements',
         'title': '🧩 Functional Requirements',
-        'order': 8,
+        'order': 9,
         'is_wide_panel': True,
         'content_json': {
-            'index': '8',
+            'index': '9',
             'title': 'Functional Requirements',
             'intro': 'Below are the functional requirements for the project.',
             'groups': [
@@ -1131,10 +1131,10 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'development_stages',
         'title': '📌 Contracting & Development Stages',
-        'order': 9,
+        'order': 10,
         'is_wide_panel': True,
         'content_json': {
-            'index': '9',
+            'index': '10',
             'title': 'Contracting & Development Stages',
             'intro': 'Our process is designed to offer clarity, trust, and support at every stage 🧭:',
             'currentLabel': 'Current',
@@ -1176,10 +1176,10 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'process_methodology',
         'title': '⚙️ Process & Methodology',
-        'order': 10,
+        'order': 5,
         'is_wide_panel': False,
         'content_json': {
-            'index': '10',
+            'index': '5',
             'title': 'Process & Methodology',
             'intro': 'We work with a structured process that ensures transparency, quality, and on-time delivery at every stage.',
             'activeStep': 0,
@@ -1254,7 +1254,7 @@ DEFAULT_SECTIONS_EN = [
                 {
                     'icon': '📅',
                     'title': 'Validity',
-                    'description': 'This proposal is valid for 30 days from the date it was sent.',
+                    'description': 'Proposal validity from the date it was sent.',
                     'source': 'expires_at',
                 },
                 {
@@ -1417,6 +1417,7 @@ class ProposalService:
 
         proposal.save(update_fields=update_fields)
 
+        ProposalService._send_initial_email(proposal)
         ProposalService._schedule_email_tasks(proposal)
 
     @staticmethod
@@ -1445,7 +1446,22 @@ class ProposalService:
             'status', 'sent_at', 'reminder_sent_at', 'urgency_email_sent_at',
         ])
 
+        ProposalService._send_initial_email(proposal)
         ProposalService._schedule_email_tasks(proposal)
+
+    @staticmethod
+    def _send_initial_email(proposal):
+        """Send the proposal link email to the client."""
+        try:
+            from content.services.proposal_email_service import (
+                ProposalEmailService,
+            )
+            ProposalEmailService.send_proposal_to_client(proposal)
+        except Exception:
+            logger.exception(
+                'Failed to send initial email for proposal %s',
+                proposal.uuid,
+            )
 
     @staticmethod
     def _schedule_email_tasks(proposal):

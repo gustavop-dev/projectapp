@@ -24,6 +24,69 @@ class ProposalEmailService:
         )
 
     @classmethod
+    def send_proposal_to_client(cls, proposal):
+        """
+        Send the initial proposal email to the client with a link to view it.
+
+        Args:
+            proposal: BusinessProposal instance with client_email set.
+
+        Returns:
+            bool: True if the email was sent successfully.
+        """
+        if not proposal.client_email:
+            logger.warning(
+                'Cannot send proposal email for %s: no client_email',
+                proposal.uuid,
+            )
+            return False
+
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_url': proposal.public_url,
+            'days_remaining': proposal.days_remaining,
+            'expires_at': proposal.expires_at,
+            'total_investment': proposal.total_investment,
+            'currency': proposal.currency,
+            'title': proposal.title,
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_sent_client.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_sent_client.txt', context
+            )
+
+            subject = (
+                f'📋 {proposal.client_name}, tu propuesta está lista — '
+                f'Project App'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[proposal.client_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info(
+                'Sent proposal email for %s to %s',
+                proposal.uuid, proposal.client_email,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send proposal email for %s',
+                proposal.uuid,
+            )
+            return False
+
+    @classmethod
     def send_reminder(cls, proposal):
         """
         Send a reminder email about a pending proposal.

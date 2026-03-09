@@ -56,6 +56,7 @@ const resolvedCards = computed(() => {
   const cards = props.content?.cards || [];
   return cards.map(card => {
     let value = '';
+    let description = card.description;
     if (card.source === 'total_investment' && props.proposal?.total_investment) {
       value = `${formatCurrency(props.proposal.total_investment)} ${props.proposal.currency || 'COP'}`;
     } else if (card.source === 'timeline_duration' && props.timelineDuration) {
@@ -65,8 +66,13 @@ const resolvedCards = computed(() => {
       value = d.toLocaleDateString(props.language === 'en' ? 'en-US' : 'es-CO', {
         day: 'numeric', month: 'long', year: 'numeric',
       });
+      const now = new Date();
+      const daysLeft = Math.max(Math.floor((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)), 0);
+      description = props.language === 'en'
+        ? `This proposal is valid for ${daysLeft} day${daysLeft !== 1 ? 's' : ''} from today.`
+        : `Esta propuesta es válida por ${daysLeft} día${daysLeft !== 1 ? 's' : ''} a partir de hoy.`;
     }
-    return { ...card, value };
+    return { ...card, value, description };
   });
 });
 </script>
