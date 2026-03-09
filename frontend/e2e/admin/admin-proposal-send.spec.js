@@ -76,6 +76,9 @@ test.describe('Admin Proposal Send', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
     await page.waitForLoadState('networkidle');
 
+    // Accept the confirm() dialog that handleSend triggers
+    page.on('dialog', dialog => dialog.accept());
+
     // Click the send button — wait for the send API response
     const [sendResponse] = await Promise.all([
       page.waitForResponse(r => r.url().includes(`proposals/${PROPOSAL_ID}/send/`)),
@@ -101,8 +104,8 @@ test.describe('Admin Proposal Send', () => {
     await page.waitForLoadState('networkidle');
 
     // For sent proposals, re-send button appears instead of send
-    await expect(page.getByRole('button', { name: 'Re-enviar al Cliente' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Enviar al Cliente' })).not.toBeVisible();
+    await expect(page.getByRole('button', { name: 'Re-enviar al Cliente' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: 'Enviar al Cliente', exact: true })).toHaveCount(0);
   });
 
   test('"Enviar al Cliente" is hidden when client email is empty', {

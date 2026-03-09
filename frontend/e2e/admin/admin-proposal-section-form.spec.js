@@ -157,7 +157,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await page.getByRole('button', { name: 'Secciones' }).click();
 
     // Verify all section titles are visible
-    await expect(page.getByText('Greeting')).toBeVisible();
+    await expect(page.getByText('Greeting', { exact: true })).toBeVisible();
     await expect(page.getByText('🧾 Resumen ejecutivo')).toBeVisible();
     await expect(page.getByText('🧩 Contexto')).toBeVisible();
   });
@@ -217,8 +217,8 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     const editor = page.getByTestId('section-editor');
 
     await editor.getByLabel('Párrafos').fill('Contexto del proyecto.');
-    await editor.getByLabel('Problemas').fill('Falta de web\nSin presencia digital');
-    await editor.getByLabel('Oportunidad').fill('Crear plataforma de confianza.');
+    await editor.getByRole('textbox', { name: /^Problemas/ }).fill('Falta de web\nSin presencia digital');
+    await editor.getByRole('textbox', { name: 'Oportunidad', exact: true }).fill('Crear plataforma de confianza.');
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
     await expect(editor.getByText('✓ Guardado')).toBeVisible();

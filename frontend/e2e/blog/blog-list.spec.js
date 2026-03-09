@@ -68,11 +68,12 @@ test.describe('Blog Listing', () => {
     await page.goto('/blog');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('h1')).toContainText('Blog');
+    await expect(page.getByRole('heading', { name: 'Blog', level: 1 })).toBeVisible();
     await expect(page.getByText('AI Trends 2026')).toBeVisible();
-    await expect(page.getByText('Destacado')).toBeVisible();
-    await expect(page.getByText('Design Systems Guide')).toBeVisible();
-    await expect(page.getByText('Custom Software for SMBs')).toBeVisible();
+    await expect(page.getByText(/Featured/)).toBeVisible();
+    const grid = page.locator('.hidden.sm\\:grid');
+    await expect(grid.getByText('Design Systems Guide')).toBeVisible();
+    await expect(grid.getByText('Custom Software for SMBs')).toBeVisible();
   });
 
   test('filters posts by category', {
@@ -82,10 +83,11 @@ test.describe('Blog Listing', () => {
     await page.goto('/blog');
     await page.waitForLoadState('networkidle');
 
-    await page.getByRole('button', { name: /Design/i }).click();
+    await page.getByRole('button', { name: 'Design', exact: true }).click();
 
-    await expect(page.getByText('Design Systems Guide')).toBeVisible();
-    await expect(page.getByText('Custom Software for SMBs')).not.toBeVisible();
+    const grid = page.locator('.hidden.sm\\:grid');
+    await expect(grid.getByText('Design Systems Guide')).toBeVisible();
+    await expect(grid.getByText('Custom Software for SMBs')).not.toBeVisible();
   });
 
   test('searches posts by text', {
@@ -95,10 +97,11 @@ test.describe('Blog Listing', () => {
     await page.goto('/blog');
     await page.waitForLoadState('networkidle');
 
-    await page.getByPlaceholder('Buscar artículos...').fill('Design');
+    await page.getByPlaceholder('Search articles...').fill('Design');
 
-    await expect(page.getByText('Design Systems Guide')).toBeVisible();
-    await expect(page.getByText('Custom Software for SMBs')).not.toBeVisible();
+    const grid = page.locator('.hidden.sm\\:grid');
+    await expect(grid.getByText('Design Systems Guide')).toBeVisible();
+    await expect(grid.getByText('Custom Software for SMBs')).not.toBeVisible();
   });
 
   test('clears filters when clicking clear button', {
@@ -108,23 +111,24 @@ test.describe('Blog Listing', () => {
     await page.goto('/blog');
     await page.waitForLoadState('networkidle');
 
-    await page.getByPlaceholder('Buscar artículos...').fill('nonexistent-term');
+    await page.getByPlaceholder('Search articles...').fill('nonexistent-term');
 
-    await expect(page.getByText('No encontramos artículos')).toBeVisible();
-    await page.getByText('Limpiar filtros').click();
+    await expect(page.getByText('No articles match')).toBeVisible();
+    await page.getByText('Clear filters').click();
 
-    await expect(page.getByText('Design Systems Guide')).toBeVisible();
+    const grid = page.locator('.hidden.sm\\:grid');
+    await expect(grid.getByText('Design Systems Guide')).toBeVisible();
   });
 
-  test('renders with English locale', {
+  test('renders with Spanish locale', {
     tag: [...BLOG_LIST, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/en-us/blog');
+    await page.goto('/es-co/blog');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('h1')).toContainText('Blog');
-    await expect(page.getByText('Featured')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Blog', level: 1 })).toBeVisible();
+    await expect(page.getByText(/Destacado/)).toBeVisible();
   });
 
   test('shows empty state when no posts', {
@@ -139,7 +143,7 @@ test.describe('Blog Listing', () => {
     await page.goto('/blog');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('No hay artículos publicados aún')).toBeVisible();
+    await expect(page.getByText('No articles published yet')).toBeVisible();
   });
 
   test('navigates to post detail on card click', {
@@ -149,7 +153,8 @@ test.describe('Blog Listing', () => {
     await page.goto('/blog');
     await page.waitForLoadState('networkidle');
 
-    await page.getByText('Design Systems Guide').click();
+    const desktopGrid = page.locator('.hidden.sm\\:grid');
+    await desktopGrid.getByText('Design Systems Guide').click();
     await expect(page).toHaveURL(/\/blog\/design-systems-guide/);
   });
 });

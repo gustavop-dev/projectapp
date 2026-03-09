@@ -1286,3 +1286,323 @@ class TestRetrieveProposalAnalyticsExtended:
         response = admin_client.get(self._url(proposal.id))
         assert response.status_code == 200
         assert response.data['time_to_response_hours'] == 5.0
+
+
+# ---------------------------------------------------------------------------
+# Retrieve — inactive proposal (line 47)
+# ---------------------------------------------------------------------------
+
+class TestRetrieveInactiveProposal:
+    def test_returns_404_for_inactive_proposal(self, api_client, sent_proposal):
+        """Inactive proposals return 404 with error message."""
+        sent_proposal.is_active = False
+        sent_proposal.save(update_fields=['is_active'])
+        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.get(url)
+        assert response.status_code == 404
+        assert 'error' in response.data
+
+
+# ---------------------------------------------------------------------------
+# First view notification exception (lines 81-82)
+# ---------------------------------------------------------------------------
+
+class TestFirstViewNotificationException:
+    @patch('content.tasks.notify_first_view', side_effect=Exception('Queue down'))
+    def test_still_returns_200_when_notification_fails(self, mock_task, api_client, sent_proposal):
+        """Proposal retrieval succeeds even when first-view notification task raises."""
+        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.get(url)
+        assert response.status_code == 200
+        sent_proposal.refresh_from_db()
+        assert sent_proposal.first_viewed_at is not None
+
+
+# ---------------------------------------------------------------------------
+# Create from JSON — inspirationalQuote (line 280)
+# ---------------------------------------------------------------------------
+
+class TestCreateFromJsonInspirationalQuote:
+    def test_greeting_receives_inspirational_quote(self, admin_client):
+        """General inspirationalQuote is forwarded to the greeting section."""
+        payload = {
+            'title': 'Quote Test',
+            'client_name': 'Client',
+            'sections': {
+                'general': {
+                    'clientName': 'Client',
+                    'inspirationalQuote': 'Design is how it works.',
+                },
+            },
+        }
+        url = reverse('create-proposal-from-json')
+        response = admin_client.post(url, payload, format='json')
+        assert response.status_code == 201
+        greeting = next(
+            s for s in response.data['sections']
+            if s['section_type'] == 'greeting'
+        )
+        assert greeting['content_json']['inspirationalQuote'] == 'Design is how it works.'
+
+
+# ---------------------------------------------------------------------------
+# Rejection reengagement exception (lines 651-652)
+# ---------------------------------------------------------------------------
+
+class TestReengagementException:
+    @patch('content.tasks.send_rejection_reengagement.schedule', side_effect=Exception('Task error'))
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_response_notification')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_rejection_thank_you')
+    def test_still_returns_200_when_reengagement_fails(
+        self, mock_thank, mock_notify, mock_schedule, api_client, sent_proposal,
+    ):
+        """Rejection response succeeds even when reengagement scheduling raises."""
+        response = api_client.post(
+            reverse('respond-to-proposal', kwargs={'proposal_uuid': sent_proposal.uuid}),
+            {'action': 'rejected', 'reason': 'presupuesto muy alto'},
+            format='json',
+        )
+        assert response.status_code == 200
+        sent_proposal.refresh_from_db()
+        assert sent_proposal.status == 'rejected'
+        mock_schedule.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Stakeholder detection (lines 779-799)
+# ---------------------------------------------------------------------------
+
+class TestStakeholderDetection:
+    def _url(self, uuid):
+        return reverse('track-proposal-engagement', kwargs={'proposal_uuid': uuid})
+
+    @freeze_time('2026-03-01 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_stakeholder_detected_notification',
+        return_value=True,
+    )
+    def test_sends_stakeholder_alert_on_new_ip(self, mock_alert, api_client, sent_proposal):
+        """Stakeholder alert fires when a new IP is detected from a different session."""
+        sent_proposal.first_viewed_at = timezone.now()
+        sent_proposal.save(update_fields=['first_viewed_at'])
+        ProposalViewEvent.objects.create(
+            proposal=sent_proposal, session_id='s-original', ip_address='1.2.3.4',
+        )
+        payload = {
+            'session_id': 's-new-stakeholder',
+            'sections': [
+                {'section_type': 'greeting', 'section_title': 'Hi',
+                 'time_spent_seconds': 3, 'entered_at': '2026-03-01T10:00:00Z'},
+            ],
+        }
+        api_client.post(
+            self._url(sent_proposal.uuid), payload, format='json',
+            HTTP_X_FORWARDED_FOR='9.8.7.6',
+        )
+        mock_alert.assert_called_once()
+        sent_proposal.refresh_from_db()
+        assert sent_proposal.stakeholder_alert_sent_at is not None
+
+    @freeze_time('2026-03-01 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_stakeholder_detected_notification',
+        side_effect=Exception('Email error'),
+    )
+    def test_still_returns_200_when_stakeholder_alert_fails(self, mock_alert, api_client, sent_proposal):
+        """Engagement tracking succeeds even when stakeholder alert raises."""
+        sent_proposal.first_viewed_at = timezone.now()
+        sent_proposal.save(update_fields=['first_viewed_at'])
+        ProposalViewEvent.objects.create(
+            proposal=sent_proposal, session_id='s-original', ip_address='1.2.3.4',
+        )
+        payload = {
+            'session_id': 's-stakeholder-err',
+            'sections': [
+                {'section_type': 'greeting', 'section_title': 'Hi',
+                 'time_spent_seconds': 3, 'entered_at': '2026-03-01T10:00:00Z'},
+            ],
+        }
+        response = api_client.post(
+            self._url(sent_proposal.uuid), payload, format='json',
+            HTTP_X_FORWARDED_FOR='9.8.7.6',
+        )
+        assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# entered_at parse error fallback (lines 813-814)
+# ---------------------------------------------------------------------------
+
+class TestEngagementEnteredAtFallback:
+    def test_invalid_entered_at_string_falls_back_to_now(self, api_client, sent_proposal):
+        """Invalid entered_at string is replaced by timezone.now() instead of raising."""
+        payload = {
+            'session_id': 'sess-bad-date',
+            'sections': [
+                {'section_type': 'greeting', 'section_title': 'Hi',
+                 'time_spent_seconds': 2, 'entered_at': 'not-a-date'},
+            ],
+        }
+        url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.post(url, payload, format='json')
+        assert response.status_code == 200
+        assert ProposalSectionView.objects.filter(section_type='greeting').exists()
+
+    def test_numeric_entered_at_falls_back_to_now(self, api_client, sent_proposal):
+        """Numeric entered_at triggers TypeError which falls back to timezone.now()."""
+        payload = {
+            'session_id': 'sess-numeric-date',
+            'sections': [
+                {'section_type': 'investment', 'section_title': 'Inv',
+                 'time_spent_seconds': 3, 'entered_at': 12345},
+            ],
+        }
+        url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.post(url, payload, format='json')
+        assert response.status_code == 200
+        assert ProposalSectionView.objects.filter(section_type='investment').exists()
+
+
+# ---------------------------------------------------------------------------
+# Revisit alert exception (lines 868-869)
+# ---------------------------------------------------------------------------
+
+class TestRevisitAlertException:
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_revisit_alert',
+        side_effect=Exception('Email SMTP error'),
+    )
+    def test_still_returns_200_when_revisit_alert_fails(self, mock_alert, api_client, sent_proposal):
+        """Engagement tracking succeeds even when revisit alert raises."""
+        url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': sent_proposal.uuid})
+        for i in range(3):
+            payload = {
+                'session_id': f'sess-revisit-err-{i}',
+                'sections': [
+                    {'section_type': 'greeting', 'section_title': 'Hi',
+                     'time_spent_seconds': 5, 'entered_at': '2026-03-01T10:00:00Z'},
+                ],
+            }
+            response = api_client.post(url, payload, format='json')
+            assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# _get_client_ip with X-Forwarded-For (line 881)
+# ---------------------------------------------------------------------------
+
+class TestGetClientIpXForwardedFor:
+    def test_uses_x_forwarded_for_header(self, api_client, sent_proposal):
+        """X-Forwarded-For header is used to extract client IP."""
+        payload = {
+            'session_id': 'sess-xff',
+            'sections': [
+                {'section_type': 'greeting', 'section_title': 'Hi',
+                 'time_spent_seconds': 1, 'entered_at': '2026-03-01T10:00:00Z'},
+            ],
+        }
+        url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': sent_proposal.uuid})
+        api_client.post(url, payload, format='json', HTTP_X_FORWARDED_FOR='10.20.30.40, 1.2.3.4')
+        event = ProposalViewEvent.objects.get(session_id='sess-xff')
+        assert event.ip_address == '10.20.30.40'
+
+
+# ---------------------------------------------------------------------------
+# Analytics avg_views and avg_ttr (lines 1233, 1320-1324)
+# ---------------------------------------------------------------------------
+
+class TestAnalyticsAvgViewsAndTtr:
+    @freeze_time('2026-03-01 12:00:00')
+    def test_comparison_includes_avg_views(self, admin_client, db):
+        """Comparison block includes avg_views when viewed proposals exist."""
+        from django.utils import timezone as tz
+        BusinessProposal.objects.create(
+            title='V1', client_name='A', status='viewed',
+            total_investment=1000, view_count=5,
+        )
+        BusinessProposal.objects.create(
+            title='V2', client_name='B', status='viewed',
+            total_investment=2000, view_count=3,
+        )
+        p_target = BusinessProposal.objects.create(
+            title='Target', client_name='T', status='sent',
+            total_investment=3000,
+            sent_at=tz.now() - tz.timedelta(hours=2),
+            first_viewed_at=tz.now() - tz.timedelta(hours=1),
+        )
+        url = reverse('proposal-analytics', kwargs={'proposal_id': p_target.id})
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        assert response.data['comparison']['avg_views'] is not None
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_comparison_includes_avg_ttr(self, admin_client, db):
+        """Comparison block includes avg_time_to_response_hours when data exists."""
+        from django.utils import timezone as tz
+        BusinessProposal.objects.create(
+            title='Resp1', client_name='R', status='accepted',
+            total_investment=1000,
+            first_viewed_at=tz.now() - tz.timedelta(hours=10),
+            responded_at=tz.now() - tz.timedelta(hours=5),
+        )
+        p_target = BusinessProposal.objects.create(
+            title='Target', client_name='T', status='sent',
+            total_investment=3000,
+            sent_at=tz.now() - tz.timedelta(hours=2),
+            first_viewed_at=tz.now() - tz.timedelta(hours=1),
+        )
+        url = reverse('proposal-analytics', kwargs={'proposal_id': p_target.id})
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        assert response.data['comparison']['avg_time_to_response_hours'] is not None
+
+
+# ---------------------------------------------------------------------------
+# CSV export with tracking data (lines 1518-1541, 1555)
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Dashboard avg_ttr (lines 1320-1324)
+# ---------------------------------------------------------------------------
+
+class TestDashboardAvgTtr:
+    @freeze_time('2026-03-01 12:00:00')
+    def test_dashboard_calculates_avg_time_to_response(self, admin_client, db):
+        """Dashboard includes avg_time_to_response_hours when responded proposals exist."""
+        from django.utils import timezone as tz
+        BusinessProposal.objects.create(
+            title='Resp', client_name='R', status='accepted',
+            total_investment=1000,
+            first_viewed_at=tz.now() - tz.timedelta(hours=8),
+            responded_at=tz.now() - tz.timedelta(hours=2),
+        )
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        assert response.data['avg_time_to_response_hours'] is not None
+        assert response.data['avg_time_to_response_hours'] == 6.0
+
+
+class TestCsvExportWithTrackingData:
+    @freeze_time('2026-03-01 12:00:00')
+    def test_csv_includes_section_stats_and_session_data(self, admin_client, sent_proposal):
+        """CSV export includes section engagement data and session history rows."""
+        event = ProposalViewEvent.objects.create(
+            proposal=sent_proposal, session_id='csv-sess-1',
+            ip_address='1.2.3.4',
+        )
+        ProposalSectionView.objects.create(
+            view_event=event, section_type='greeting',
+            section_title='Saludo', time_spent_seconds=12.5,
+            entered_at=timezone.now(),
+        )
+        ProposalChangeLog.objects.create(
+            proposal=sent_proposal, change_type='status_changed',
+            field_name='status', old_value='draft', new_value='sent',
+        )
+        url = reverse('proposal-analytics-csv', kwargs={'proposal_id': sent_proposal.id})
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'greeting' in content
+        assert 'csv-sess-1' in content
+        assert 'status_changed' in content

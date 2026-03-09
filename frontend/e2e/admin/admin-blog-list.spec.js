@@ -31,7 +31,8 @@ test.describe('Admin Blog List', () => {
     await page.goto('/panel/blog');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Post Publicado')).toBeVisible();
-    await expect(page.getByText('Borrador')).toBeVisible();
+    const table = page.locator('table');
+    await expect(table.getByRole('link', { name: 'Post Publicado' })).toBeVisible();
+    await expect(table.getByRole('link', { name: 'Borrador' })).toBeVisible();
   });
 });

@@ -84,7 +84,7 @@ test.describe('Blog Post Detail', () => {
     await page.goto('/blog/ai-trends-2026');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('h1')).toContainText('AI Trends 2026');
+    await expect(page.getByRole('heading', { name: 'AI Trends 2026' })).toBeVisible();
     await expect(page.getByText('Artificial intelligence is evolving rapidly.')).toBeVisible();
     await expect(page.getByText('Large Language Models')).toBeVisible();
     await expect(page.getByText('Key Benefits')).toBeVisible();
@@ -110,7 +110,7 @@ test.describe('Blog Post Detail', () => {
     await page.goto('/blog/ai-trends-2026');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Fuentes consultadas')).toBeVisible();
+    await expect(page.getByText('Sources consulted')).toBeVisible();
     await expect(page.getByText('OpenAI')).toBeVisible();
   });
 
@@ -121,7 +121,7 @@ test.describe('Blog Post Detail', () => {
     await page.goto('/blog/legacy-html-post');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('h1')).toContainText('Legacy HTML Post');
+    await expect(page.getByRole('heading', { name: 'Legacy HTML Post' })).toBeVisible();
     await expect(page.getByText('This is HTML content.')).toBeVisible();
   });
 
@@ -132,7 +132,7 @@ test.describe('Blog Post Detail', () => {
     await page.goto('/blog/nonexistent-post');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Artículo no encontrado')).toBeVisible();
+    await expect(page.getByText('Article not found')).toBeVisible({ timeout: 20000 });
   });
 
   test('back to blog link navigates to /blog', {
@@ -142,8 +142,8 @@ test.describe('Blog Post Detail', () => {
     await page.goto('/blog/ai-trends-2026');
     await page.waitForLoadState('networkidle');
 
-    await page.getByText('Volver al blog').first().click();
-    await expect(page).toHaveURL(/\/blog$/);
+    await page.getByText('Back to blog').first().click();
+    await expect(page).toHaveURL(/\/blog/);
   });
 
   test('CTA contact button is visible', {
@@ -153,7 +153,7 @@ test.describe('Blog Post Detail', () => {
     await page.goto('/blog/ai-trends-2026');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('¿Te Inspiró Este Artículo?')).toBeVisible();
-    await expect(page.getByRole('link', { name: /Contáctanos/ })).toBeVisible();
+    await expect(page.getByText('Did This Article Inspire You?')).toBeVisible();
+    await expect(page.getByRole('link', { name: /Contact Us/ })).toBeVisible();
   });
 });

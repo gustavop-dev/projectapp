@@ -47,8 +47,8 @@
         <!-- Metadata row -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-            <select v-model="form.category" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white">
+            <label for="edit-category" class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+            <select id="edit-category" v-model="form.category" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white">
               <option value="">Sin categoría</option>
               <option v-for="cat in blogStore.availableCategories" :key="cat.slug" :value="cat.slug">{{ cat.label }}</option>
             </select>
@@ -62,8 +62,8 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Tiempo lectura (min)</label>
-            <input v-model.number="form.read_time_minutes" type="number" min="0" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+            <label for="edit-read-time" class="block text-sm font-medium text-gray-700 mb-1">Tiempo lectura (min)</label>
+            <input id="edit-read-time" v-model.number="form.read_time_minutes" type="number" min="0" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
           </div>
           <div class="flex items-end">
             <label class="relative inline-flex items-center cursor-pointer gap-3">
@@ -122,8 +122,8 @@
           <legend class="text-sm font-medium text-gray-700 px-2">SEO</legend>
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Meta título (ES)</label>
-              <input v-model="form.meta_title_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Título SEO en español (60 caracteres recomendado)" />
+              <label for="edit-meta-title-es" class="block text-sm font-medium text-gray-700 mb-1">Meta título (ES)</label>
+              <input id="edit-meta-title-es" v-model="form.meta_title_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Título SEO en español (60 caracteres recomendado)" />
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Meta title (EN)</label>
