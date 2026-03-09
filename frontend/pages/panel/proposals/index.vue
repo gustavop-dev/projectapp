@@ -244,87 +244,71 @@
               <span v-else class="text-gray-300 text-xs">—</span>
             </td>
             <td class="px-6 py-4">
-              <div class="relative">
-                <button
-                  class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
-                  @click.stop="toggleDropdown(p.id)"
-                >
-                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                  </svg>
-                </button>
-                <div
-                  v-if="openDropdownId === p.id"
-                  class="absolute right-0 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50"
-                  :class="rowIdx >= proposals.length - 2 ? 'bottom-full mb-1' : 'mt-1'"
-                >
-                  <NuxtLink
-                    :to="`/panel/proposals/${p.id}/edit`"
-                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    Editar
-                  </NuxtLink>
-                  <button
-                    v-if="p.status === 'draft'"
-                    class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
-                    @click="handleSend(p.id)"
-                  >
-                    Enviar
-                  </button>
-                  <button
-                    v-if="['sent', 'viewed'].includes(p.status)"
-                    class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
-                    @click="handleResend(p.id)"
-                  >
-                    Re-enviar
-                  </button>
-                  <button
-                    class="block w-full text-left px-4 py-2 text-sm transition-colors"
-                    :class="p.is_active ? 'text-yellow-600 hover:bg-yellow-50' : 'text-emerald-600 hover:bg-emerald-50'"
-                    @click="handleToggleActive(p.id, p.is_active)"
-                  >
-                    {{ p.is_active ? 'Desactivar' : 'Activar' }}
-                  </button>
-                  <button
-                    class="block w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 transition-colors"
-                    @click="handleDuplicate(p.id)"
-                  >
-                    Duplicar
-                  </button>
-                  <button
-                    class="block w-full text-left px-4 py-2 text-sm transition-colors"
-                    :class="copiedId === p.id ? 'text-emerald-600' : 'text-gray-700 hover:bg-gray-50'"
-                    @click="handleCopyLink(p)"
-                  >
-                    {{ copiedId === p.id ? '¡Copiado!' : 'Copiar enlace' }}
-                  </button>
-                  <a
-                    :href="buildWhatsAppUrl(p)"
-                    target="_blank"
-                    class="block px-4 py-2 text-sm text-green-600 hover:bg-green-50 transition-colors"
-                    @click.stop
-                  >
-                    Enviar por WhatsApp
-                  </a>
-                  <a
-                    :href="'/proposal/' + p.uuid + '?preview=1'"
-                    target="_blank"
-                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    Preview
-                  </a>
-                  <button
-                    class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                    @click="handleDelete(p.id)"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </div>
+              <button
+                class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+                @click.stop="actionsModalProposal = p"
+              >
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                </svg>
+              </button>
             </td>
           </tr>
         </tbody>
       </table>
+
+    <!-- Actions modal -->
+    <Teleport to="body">
+      <Transition name="fade-modal">
+        <div
+          v-if="actionsModalProposal"
+          class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          @click.self="actionsModalProposal = null"
+        >
+          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 class="text-base font-bold text-gray-900 truncate">{{ actionsModalProposal.title }}</h3>
+                <p class="text-xs text-gray-500 mt-0.5">{{ actionsModalProposal.client_name }}</p>
+              </div>
+              <button class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors" @click="actionsModalProposal = null">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <!-- Actions list -->
+            <div class="p-3 space-y-1 max-h-[60vh] overflow-y-auto">
+              <template v-for="action in proposalActions" :key="action.key">
+                <component
+                  :is="action.href ? 'a' : action.to ? 'NuxtLink' : 'button'"
+                  v-bind="action.href ? { href: action.href, target: '_blank', rel: 'noopener noreferrer' } : action.to ? { to: action.to } : {}"
+                  class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors group"
+                  :class="action.danger ? 'hover:bg-red-50' : 'hover:bg-gray-50'"
+                  @click="action.onClick ? action.onClick() : null"
+                >
+                  <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
+                    :class="action.danger ? 'bg-red-50 text-red-500' : action.bgClass || 'bg-gray-100'"
+                  >
+                    {{ action.icon }}
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <span class="text-sm font-medium block" :class="action.danger ? 'text-red-600' : action.textClass || 'text-gray-800'">{{ action.label }}</span>
+                  </div>
+                  <!-- Info tooltip -->
+                  <div class="relative flex-shrink-0 group/info">
+                    <span class="w-6 h-6 rounded-full bg-gray-100 group-hover/info:bg-emerald-50 flex items-center justify-center text-gray-400 group-hover/info:text-emerald-600 text-[11px] cursor-help transition-colors">?</span>
+                    <div class="absolute right-0 bottom-full mb-2 w-52 bg-gray-900 text-white text-xs rounded-xl px-3 py-2 shadow-lg opacity-0 pointer-events-none group-hover/info:opacity-100 group-hover/info:pointer-events-auto transition-opacity z-10 leading-relaxed">
+                      {{ action.info }}
+                      <div class="absolute -bottom-1 right-3 w-2 h-2 bg-gray-900 rotate-45" />
+                    </div>
+                  </div>
+                </component>
+              </template>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-gray-100">
@@ -356,6 +340,7 @@ const proposalStore = useProposalStore();
 const proposals = computed(() => proposalStore.proposals);
 const activeFilter = ref('');
 const openDropdownId = ref(null);
+const actionsModalProposal = ref(null);
 const copiedId = ref(null);
 const searchQuery = ref('');
 const showAlertForm = ref(false);
@@ -453,6 +438,110 @@ function closeDropdown(e) {
     openDropdownId.value = null;
   }
 }
+
+const proposalActions = computed(() => {
+  const p = actionsModalProposal.value;
+  if (!p) return [];
+  const actions = [];
+
+  actions.push({
+    key: 'edit',
+    icon: '✏️',
+    label: 'Editar propuesta',
+    info: 'Abre el editor para modificar secciones, precios y contenido de la propuesta.',
+    to: `/panel/proposals/${p.id}/edit`,
+    bgClass: 'bg-gray-100',
+    textClass: 'text-gray-800',
+    onClick: () => { actionsModalProposal.value = null; },
+  });
+
+  actions.push({
+    key: 'preview',
+    icon: '👁️',
+    label: 'Ver preview',
+    info: 'Abre la propuesta tal como la ve el cliente, sin registrar vistas.',
+    href: `/proposal/${p.uuid}?preview=1`,
+    bgClass: 'bg-purple-50 text-purple-600',
+    textClass: 'text-purple-700',
+  });
+
+  if (p.status === 'draft') {
+    actions.push({
+      key: 'send',
+      icon: '📤',
+      label: 'Enviar al cliente',
+      info: 'Envía un email al cliente con el enlace de la propuesta. Cambia el estado a "enviada".',
+      bgClass: 'bg-blue-50 text-blue-600',
+      textClass: 'text-blue-700',
+      onClick: () => { actionsModalProposal.value = null; handleSend(p.id); },
+    });
+  }
+
+  if (['sent', 'viewed'].includes(p.status)) {
+    actions.push({
+      key: 'resend',
+      icon: '🔄',
+      label: 'Re-enviar email',
+      info: 'Envía nuevamente el email al cliente. Mantiene la misma fecha de expiración.',
+      bgClass: 'bg-blue-50 text-blue-600',
+      textClass: 'text-blue-700',
+      onClick: () => { actionsModalProposal.value = null; handleResend(p.id); },
+    });
+  }
+
+  actions.push({
+    key: 'copy',
+    icon: copiedId.value === p.id ? '✅' : '🔗',
+    label: copiedId.value === p.id ? '¡Enlace copiado!' : 'Copiar enlace',
+    info: 'Copia el enlace público de la propuesta al portapapeles para compartir manualmente.',
+    bgClass: copiedId.value === p.id ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100',
+    textClass: copiedId.value === p.id ? 'text-emerald-600' : 'text-gray-800',
+    onClick: () => { handleCopyLink(p); },
+  });
+
+  actions.push({
+    key: 'whatsapp',
+    icon: '💬',
+    label: 'Enviar por WhatsApp',
+    info: 'Abre WhatsApp con un mensaje pre-escrito incluyendo el enlace de la propuesta.',
+    href: buildWhatsAppUrl(p),
+    bgClass: 'bg-green-50 text-green-600',
+    textClass: 'text-green-700',
+  });
+
+  actions.push({
+    key: 'duplicate',
+    icon: '📋',
+    label: 'Duplicar propuesta',
+    info: 'Crea una copia exacta de esta propuesta para reutilizar con otro cliente.',
+    bgClass: 'bg-indigo-50 text-indigo-600',
+    textClass: 'text-indigo-700',
+    onClick: () => { actionsModalProposal.value = null; handleDuplicate(p.id); },
+  });
+
+  actions.push({
+    key: 'toggle',
+    icon: p.is_active ? '⏸️' : '▶️',
+    label: p.is_active ? 'Desactivar' : 'Activar',
+    info: p.is_active
+      ? 'Desactiva la propuesta. El cliente no podrá acceder al enlace.'
+      : 'Reactiva la propuesta para que el cliente pueda verla nuevamente.',
+    bgClass: p.is_active ? 'bg-yellow-50 text-yellow-600' : 'bg-emerald-50 text-emerald-600',
+    textClass: p.is_active ? 'text-yellow-700' : 'text-emerald-700',
+    onClick: () => { actionsModalProposal.value = null; handleToggleActive(p.id, p.is_active); },
+  });
+
+  actions.push({
+    key: 'delete',
+    icon: '🗑️',
+    label: 'Eliminar',
+    info: 'Elimina permanentemente la propuesta. Esta acción no se puede deshacer.',
+    danger: true,
+    onClick: () => { actionsModalProposal.value = null; handleDelete(p.id); },
+  });
+
+  return actions;
+});
 
 const router = useRouter();
 function navigateToProposal(id) {
@@ -611,3 +700,14 @@ function buildWhatsAppUrl(p) {
     : `https://wa.me/?text=${msg}`;
 }
 </script>
+
+<style scoped>
+.fade-modal-enter-active,
+.fade-modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-modal-enter-from,
+.fade-modal-leave-to {
+  opacity: 0;
+}
+</style>

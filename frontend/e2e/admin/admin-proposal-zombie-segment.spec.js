@@ -65,9 +65,9 @@ test.describe('Admin Proposal Zombie Segment', () => {
     // Click to expand
     await page.getByText(/Propuestas zombie/).click();
 
-    // Zombie alert items should now be visible
-    await expect(page.getByText('Client A')).toBeVisible();
-    await expect(page.getByText('Client B')).toBeVisible();
+    // Zombie alert messages should now be visible
+    await expect(page.getByText('Draft >5 days')).toBeVisible();
+    await expect(page.getByText('Sent >10 days')).toBeVisible();
   });
 
   test('zombie section is hidden when no zombie alerts exist', {
