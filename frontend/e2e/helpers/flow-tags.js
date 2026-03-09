@@ -72,3 +72,19 @@ export const ADMIN_PORTFOLIO_LIST = ['@flow:admin-portfolio-list', '@module:admi
 export const ADMIN_PORTFOLIO_CREATE = ['@flow:admin-portfolio-create', '@module:admin', '@priority:P2'];
 export const ADMIN_PORTFOLIO_EDIT = ['@flow:admin-portfolio-edit', '@module:admin', '@priority:P2'];
 export const ADMIN_PORTFOLIO_DELETE = ['@flow:admin-portfolio-delete', '@module:admin', '@priority:P2'];
+
+// ── v1.6.0 features ──
+export const ADMIN_PROPOSAL_WIN_RATE_DASHBOARD = ['@flow:admin-proposal-win-rate-dashboard', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_ENGAGEMENT_SCORE = ['@flow:admin-proposal-engagement-score', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_METRICS_MANUAL = ['@flow:admin-proposal-metrics-manual', '@module:admin', '@priority:P3'];
+export const PROPOSAL_WELCOME_BACK = ['@flow:proposal-welcome-back', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_PROCESS_METHODOLOGY = ['@flow:proposal-process-methodology', '@module:proposal', '@priority:P2'];
+export const ADMIN_PROPOSAL_ZOMBIE_SEGMENT = ['@flow:admin-proposal-zombie-segment', '@module:admin', '@priority:P2'];
+export const PROPOSAL_SHARE_HINT = ['@flow:proposal-share-hint', '@module:proposal', '@priority:P3'];
+export const PROPOSAL_COUNTDOWN_REALTIME = ['@flow:proposal-countdown-realtime', '@module:proposal', '@priority:P3'];
+export const ADMIN_PROPOSAL_CREATE_AND_SEND = ['@flow:admin-proposal-create-and-send', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_CREATE_PREVIEW = ['@flow:admin-proposal-create-preview', '@module:admin', '@priority:P2'];
+export const ADMIN_DASHBOARD_PIPELINE_VALUE = ['@flow:admin-dashboard-pipeline-value', '@module:admin', '@priority:P2'];
+export const PROPOSAL_REJECTION_OPTIONAL_REASON = ['@flow:proposal-rejection-optional-reason', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_CALCULATOR_TIMELINE = ['@flow:proposal-calculator-timeline', '@module:proposal', '@priority:P1'];
+export const ADMIN_DISCOUNT_ANALYSIS_ENHANCED = ['@flow:admin-discount-analysis-enhanced', '@module:admin', '@priority:P3'];

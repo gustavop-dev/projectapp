@@ -7,7 +7,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_PROPOSAL_CREATE, ADMIN_PROPOSAL_CREATE_FROM_JSON } from '../helpers/flow-tags.js';
+import { ADMIN_PROPOSAL_CREATE, ADMIN_PROPOSAL_CREATE_FROM_JSON, ADMIN_PROPOSAL_CREATE_AND_SEND, ADMIN_PROPOSAL_CREATE_PREVIEW } from '../helpers/flow-tags.js';
 
 const NEW_PROPOSAL_ID = 99;
 
@@ -120,14 +120,18 @@ test.describe('Admin Proposal Create', () => {
     await page.getByLabel('Nombre del cliente').fill('Carlos López');
     await page.getByLabel('Email del cliente').fill('carlos@test.com');
 
-    // Submit and wait for API response before expecting redirect
+    // Submit and wait for API response
     const [response] = await Promise.all([
       page.waitForResponse(r => r.url().includes('proposals/create/')),
       page.getByRole('button', { name: /Crear Propuesta/i }).click(),
     ]);
     await response.finished();
 
-    // Should redirect to edit page (auto-retrying assertion for SPA navigation)
+    // Post-creation interstitial modal appears — click "Ir a Editar"
+    await expect(page.getByText('Propuesta creada')).toBeVisible({ timeout: 5000 });
+    await page.getByRole('button', { name: 'Ir a Editar' }).click();
+
+    // Should redirect to edit page
     await expect(page).toHaveURL(/\/panel\/proposals\/\d+\/edit/, { timeout: 10000 });
   });
 
@@ -257,6 +261,156 @@ test.describe('Admin Proposal Create from JSON', () => {
     expect(capturedPayload.sections).toBeDefined();
     expect(capturedPayload.sections.general).toBeDefined();
 
+    // Post-creation interstitial modal appears — click "Ir a Editar"
+    await expect(page.getByText('Propuesta creada')).toBeVisible({ timeout: 5000 });
+    await page.getByRole('button', { name: 'Ir a Editar' }).click();
+
     await expect(page).toHaveURL(/\/panel\/proposals\/\d+\/edit/, { timeout: 10000 });
+  });
+});
+
+test.describe('Admin Proposal Create & Send', () => {
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-admin-token',
+      userAuth: { id: 8100, role: 'admin', is_staff: true },
+    });
+  });
+
+  const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+
+  test('"Crear y Enviar" button appears when client data is complete', {
+    tag: [...ADMIN_PROPOSAL_CREATE_AND_SEND, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      return null;
+    });
+    await page.goto('/panel/proposals/create');
+    await page.waitForLoadState('networkidle');
+
+    // Button should not be visible initially
+    await expect(page.getByRole('button', { name: /Crear y Enviar/i })).not.toBeVisible();
+
+    // Fill required fields for direct send
+    await page.getByLabel('Título').fill('Propuesta Directa');
+    await page.getByLabel('Nombre del cliente').fill('Ana Test');
+    await page.getByLabel('Email del cliente').fill('ana@test.com');
+    await page.getByPlaceholder('3500000').fill('5000000');
+
+    // Button should now be visible
+    await expect(page.getByRole('button', { name: /Crear y Enviar/i })).toBeVisible();
+  });
+
+  test('"Crear y Enviar" creates proposal and sends it', {
+    tag: [...ADMIN_PROPOSAL_CREATE_AND_SEND, '@role:admin'],
+  }, async ({ page }) => {
+    let sendCalled = false;
+
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'proposals/create/') {
+        return { status: 201, contentType: 'application/json', body: JSON.stringify(mockCreatedProposal) };
+      }
+      if (apiPath === `proposals/${NEW_PROPOSAL_ID}/send/`) {
+        sendCalled = true;
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ success: true }) };
+      }
+      if (apiPath === `proposals/${NEW_PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockCreatedProposal) };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/proposals/create');
+    await page.waitForLoadState('networkidle');
+
+    await page.getByLabel('Título').fill('Nueva Propuesta Web');
+    await page.getByLabel('Nombre del cliente').fill('Carlos López');
+    await page.getByLabel('Email del cliente').fill('carlos@test.com');
+    await page.getByPlaceholder('3500000').fill('15000000');
+
+    const [response] = await Promise.all([
+      page.waitForResponse(r => r.url().includes('proposals/create/')),
+      page.getByRole('button', { name: /Crear y Enviar/i }).click(),
+    ]);
+    await response.finished();
+
+    // Post-creation modal appears with "Enviar al Cliente" option
+    await expect(page.getByText('Propuesta creada')).toBeVisible({ timeout: 5000 });
+  });
+});
+
+test.describe('Admin Proposal Create Preview', () => {
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-admin-token',
+      userAuth: { id: 8100, role: 'admin', is_staff: true },
+    });
+  });
+
+  const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+
+  test('post-creation modal shows three action options', {
+    tag: [...ADMIN_PROPOSAL_CREATE_PREVIEW, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'proposals/create/') {
+        return { status: 201, contentType: 'application/json', body: JSON.stringify(mockCreatedProposal) };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/proposals/create');
+    await page.waitForLoadState('networkidle');
+
+    await page.getByLabel('Título').fill('Nueva Propuesta Web');
+    await page.getByLabel('Nombre del cliente').fill('Carlos López');
+    await page.getByLabel('Email del cliente').fill('carlos@test.com');
+
+    const [response] = await Promise.all([
+      page.waitForResponse(r => r.url().includes('proposals/create/')),
+      page.getByRole('button', { name: /Crear Propuesta/i }).click(),
+    ]);
+    await response.finished();
+
+    // Modal should appear with title and proposal name
+    await expect(page.getByText('Propuesta creada')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Nueva Propuesta Web')).toBeVisible();
+
+    // Should show "Ver Preview" link and "Ir a Editar" button
+    await expect(page.getByText('Ver Preview')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Ir a Editar' })).toBeVisible();
+  });
+
+  test('post-creation modal shows "Enviar al Cliente" when client data is complete', {
+    tag: [...ADMIN_PROPOSAL_CREATE_PREVIEW, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'proposals/create/') {
+        return { status: 201, contentType: 'application/json', body: JSON.stringify(mockCreatedProposal) };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/proposals/create');
+    await page.waitForLoadState('networkidle');
+
+    await page.getByLabel('Título').fill('Nueva Propuesta Web');
+    await page.getByLabel('Nombre del cliente').fill('Carlos López');
+    await page.getByLabel('Email del cliente').fill('carlos@test.com');
+    await page.getByPlaceholder('3500000').fill('15000000');
+
+    const [response] = await Promise.all([
+      page.waitForResponse(r => r.url().includes('proposals/create/')),
+      page.getByRole('button', { name: /Crear Propuesta/i }).click(),
+    ]);
+    await response.finished();
+
+    await expect(page.getByText('Propuesta creada')).toBeVisible({ timeout: 5000 });
+    // "Enviar al Cliente" button visible when canSendDirectly
+    await expect(page.getByRole('button', { name: /Enviar al Cliente/i })).toBeVisible();
   });
 });

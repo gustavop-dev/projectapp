@@ -378,6 +378,136 @@
       "priority": "P2",
       "description": "Create, view, and dismiss manual seller alerts/reminders for proposals.",
       "expectedSpecs": 1
+    },
+    "admin-proposal-win-rate-dashboard": {
+      "name": "Admin Proposal Win Rate Dashboard",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Dashboard win rate segmented by project type, market type, and combination.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-engagement-score": {
+      "name": "Admin Proposal Engagement Score",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Engagement score (0-100) per proposal in analytics tab with color-coded level and recommendation.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-metrics-manual": {
+      "name": "Admin Proposal Metrics Manual",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P3",
+      "description": "Floating ? button opens slide-over with searchable metric definitions.",
+      "expectedSpecs": 1
+    },
+    "proposal-welcome-back": {
+      "name": "Proposal Welcome Back",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Returning client sees welcome-back overlay with name and last visited section.",
+      "expectedSpecs": 1
+    },
+    "proposal-process-methodology": {
+      "name": "Proposal Process & Methodology",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "5-step visual pipeline section (Discovery → Diseño → Desarrollo → QA → Lanzamiento).",
+      "expectedSpecs": 1
+    },
+    "proposal-pre-expiration-discount-suggestion": {
+      "name": "Pre-Expiration Discount Suggestion",
+      "module": "admin",
+      "roles": ["system"],
+      "priority": "P2",
+      "description": "Periodic task creates discount_suggestion alert for viewed proposals expiring within 5 days.",
+      "expectedSpecs": 0,
+      "knownGaps": ["Backend-only periodic task, covered by backend unit tests"]
+    },
+    "admin-proposal-zombie-segment": {
+      "name": "Admin Proposal Zombie Segment",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Dark-themed collapsible zombie alerts section for stale draft/sent proposals.",
+      "expectedSpecs": 1
+    },
+    "proposal-share-hint": {
+      "name": "Proposal Share Button Hint",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "Persistent tooltip below share button that auto-shows after 2s and auto-hides after 7s.",
+      "expectedSpecs": 1
+    },
+    "proposal-countdown-realtime": {
+      "name": "Proposal Countdown Realtime",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "HH:MM countdown timer when proposal expires within 48 hours.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-create-and-send": {
+      "name": "Admin Proposal Create & Send",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Create and send proposal in one step when client data is complete.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-create-preview": {
+      "name": "Admin Proposal Create Preview",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Post-creation interstitial modal with preview, send, and edit options.",
+      "expectedSpecs": 1
+    },
+    "admin-seller-inactivity-escalation": {
+      "name": "Admin Seller Inactivity Escalation",
+      "module": "admin",
+      "roles": ["system"],
+      "priority": "P2",
+      "description": "Periodic task sends escalation email for proposals with >=5 days no seller activity.",
+      "expectedSpecs": 0,
+      "knownGaps": ["Backend-only periodic task, covered by backend unit tests"]
+    },
+    "admin-dashboard-pipeline-value": {
+      "name": "Admin Dashboard Pipeline Value",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Pipeline Value KPI card showing sum of total_investment for active sent+viewed proposals.",
+      "expectedSpecs": 1
+    },
+    "proposal-rejection-optional-reason": {
+      "name": "Proposal Rejection Optional Reason",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Rejection reason is optional with nudge text encouraging feedback.",
+      "expectedSpecs": 1
+    },
+    "proposal-calculator-timeline": {
+      "name": "Proposal Calculator Dynamic Timeline",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P1",
+      "description": "Investment calculator shows dynamic timeline reduction based on deselected modules.",
+      "expectedSpecs": 1
+    },
+    "admin-discount-analysis-enhanced": {
+      "name": "Admin Discount Analysis Enhanced",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P3",
+      "description": "Enhanced discount card with sample sizes, avg discount %, and delta warning.",
+      "expectedSpecs": 1
     }
   }
 }

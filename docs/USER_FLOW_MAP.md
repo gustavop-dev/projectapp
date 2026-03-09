@@ -326,7 +326,8 @@
   6. User clicks "Entendido" to dismiss popup.
 - **Branches:**
   - [Branch A — Returning visitor] Onboarding is skipped if already seen (localStorage flag).
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-onboarding.spec.js`
 
 ### FLOW: `proposal-respond`
 
@@ -378,7 +379,8 @@
   5. Backend creates a ProposalShareLink record.
   6. Share notification email is sent to the recipient.
   7. Success feedback displays.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-share.spec.js`
 
 ### FLOW: `proposal-engagement-tracking`
 
@@ -395,7 +397,8 @@
   5. Backend creates/updates ProposalViewEvent and ProposalSectionView records.
   6. [Optional] If ≥3 unique sessions detected, a revisit alert email is sent to the admin.
   7. [Optional] If a new IP is detected, a stakeholder detection alert is sent.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-engagement-tracking.spec.js`
 
 ---
 
@@ -489,7 +492,8 @@
   - [Branch B — Past expires_at] Validation error on date.
   - [Branch C — Partial sections] Unspecified sections default to template defaults.
   - [Branch D — `_meta` key] Stripped from sections before saving.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-create.spec.js`
 
 ### FLOW: `admin-proposal-edit`
 
@@ -655,7 +659,8 @@
   3. API call to `POST /api/proposals/:id/duplicate/`.
   4. Backend creates a new proposal with status=draft, copying all sections and content.
   5. Admin is redirected to the new proposal's edit page.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-duplicate.spec.js`
 
 ### FLOW: `admin-proposal-comment`
 
@@ -670,7 +675,8 @@
   3. API call to `POST /api/proposals/:id/comment/`.
   4. Comment is saved and a changelog entry is created.
   5. Comment notification email is sent to the client.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-comment.spec.js`
 
 ### FLOW: `admin-proposal-analytics`
 
@@ -689,7 +695,8 @@
   7. Shared links table renders if any ProposalShareLinks exist.
   8. Activity timeline and session history display.
   9. [Optional] Admin clicks "Exportar CSV" to download analytics data.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-analytics.spec.js`
 
 ### FLOW: `admin-proposal-dashboard`
 
@@ -705,7 +712,8 @@
   4. Status distribution chart renders.
   5. Top rejection reasons list renders.
   6. Monthly trend data renders.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-dashboard.spec.js`
 
 ### FLOW: `admin-mini-crm-clients`
 
@@ -720,7 +728,8 @@
   3. Clients render with stats (total, accepted, rejected, pending proposals).
   4. Admin searches clients by name or email.
   5. Admin expands a client row to view individual proposals.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-mini-crm-clients.spec.js`
 
 ### FLOW: `admin-proposal-send`
 
@@ -756,8 +765,8 @@
   6. Admin submits → API call to `POST /api/proposals/alerts/create/`.
   7. New alert appears in the panel with dismiss (✕) button.
   8. Admin clicks ✕ → API call to `PATCH /api/proposals/alerts/:id/dismiss/` → alert removed from list.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-manual-alerts.spec.js`
 
 ### FLOW: `admin-proposal-win-rate-dashboard`
 
@@ -863,8 +872,8 @@
   3. Week grid renders Mon–Sun with posts color-coded: green (published), blue (scheduled), gray (draft).
   4. Admin uses ← / → arrows to navigate weeks, "Hoy" button to return to current week.
   5. Clicking a post card navigates to its edit page.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-blog-calendar.spec.js`
 
 ### FLOW: `admin-blog-create`
 
@@ -1031,16 +1040,16 @@
 | `blog-detail` | blog | guest | P2 | ✅ Covered | `e2e/blog/blog-detail.spec.js` |
 | `proposal-view` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view.spec.js` |
 | `proposal-view-navigation` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view-navigation.spec.js` |
-| `proposal-view-onboarding` | proposal | guest | P3 | ❌ Missing | — |
+| `proposal-view-onboarding` | proposal | guest | P3 | ✅ Covered | `e2e/proposal/proposal-onboarding.spec.js` |
 | `proposal-respond` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-respond.spec.js` |
 | `proposal-download-pdf` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-pdf.spec.js` |
-| `proposal-share` | proposal | guest | P2 | ❌ Missing | — |
-| `proposal-engagement-tracking` | proposal | guest | P2 | ❌ Missing | — |
+| `proposal-share` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-share.spec.js` |
+| `proposal-engagement-tracking` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-engagement-tracking.spec.js` |
 | `admin-login` | auth | admin | P1 | ✅ Covered | `e2e/auth/auth-admin-login.spec.js` |
 | `admin-dashboard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
 | `admin-proposal-list` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
 | `admin-proposal-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
-| `admin-proposal-create-from-json` | admin | admin | P1 | ❌ Missing | — |
+| `admin-proposal-create-from-json` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-proposal-edit` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-edit.spec.js` |
 | `admin-proposal-section-edit-form` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-section-form.spec.js` |
 | `admin-proposal-section-edit-paste` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-section-paste.spec.js` |
@@ -1048,19 +1057,19 @@
 | `admin-proposal-functional-requirements-form` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-requirements.spec.js` |
 | `admin-proposal-functional-requirements-paste` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-requirements.spec.js` |
 | `admin-proposal-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-delete.spec.js` |
-| `admin-proposal-duplicate` | admin | admin | P2 | ❌ Missing | — |
-| `admin-proposal-comment` | admin | admin | P3 | ❌ Missing | — |
-| `admin-proposal-analytics` | admin | admin | P2 | ❌ Missing | — |
-| `admin-proposal-dashboard` | admin | admin | P2 | ❌ Missing | — |
-| `admin-mini-crm-clients` | admin | admin | P2 | ❌ Missing | — |
+| `admin-proposal-duplicate` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-duplicate.spec.js` |
+| `admin-proposal-comment` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-comment.spec.js` |
+| `admin-proposal-analytics` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-analytics.spec.js` |
+| `admin-proposal-dashboard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-dashboard.spec.js` |
+| `admin-mini-crm-clients` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-proposal-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-send.spec.js` |
 | `admin-blog-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-list.spec.js` |
-| `admin-blog-calendar` | admin | admin | P2 | ❌ Missing | — |
+| `admin-blog-calendar` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-calendar.spec.js` |
 | `admin-blog-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-create.spec.js` |
 | `admin-blog-create-from-json` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-create.spec.js` |
 | `admin-blog-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-edit.spec.js` |
 | `admin-blog-delete` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-blog-delete.spec.js` |
-| `admin-proposal-manual-alerts` | admin | admin | P2 | ❌ Missing | — |
+| `admin-proposal-manual-alerts` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-manual-alerts.spec.js` |
 | `admin-proposal-win-rate-dashboard` | admin | admin | P2 | ❌ Missing | — |
 | `admin-proposal-engagement-score` | admin | admin | P2 | ❌ Missing | — |
 | `admin-proposal-metrics-manual` | admin | admin | P3 | ❌ Missing | — |
@@ -1070,13 +1079,13 @@
 | `admin-portfolio-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-create.spec.js` |
 | `admin-portfolio-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-edit.spec.js` |
 | `admin-portfolio-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-delete.spec.js` |
-| `proposal-pre-expiration-discount-suggestion` | admin | system | P2 | ❌ Missing | — |
+| `proposal-pre-expiration-discount-suggestion` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
 | `admin-proposal-zombie-segment` | admin | admin | P2 | ❌ Missing | — |
 | `proposal-share-hint` | proposal | guest | P3 | ❌ Missing | — |
 | `proposal-countdown-realtime` | proposal | guest | P3 | ❌ Missing | — |
 | `admin-proposal-create-and-send` | admin | admin | P2 | ❌ Missing | — |
 | `admin-proposal-create-preview` | admin | admin | P2 | ❌ Missing | — |
-| `admin-seller-inactivity-escalation` | admin | system | P2 | ❌ Missing | — |
+| `admin-seller-inactivity-escalation` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
 | `admin-dashboard-pipeline-value` | admin | admin | P2 | ❌ Missing | — |
 | `proposal-rejection-optional-reason` | proposal | guest | P2 | ❌ Missing | — |
 | `proposal-calculator-timeline` | proposal | guest | P1 | ❌ Missing | — |
@@ -1088,8 +1097,9 @@
 - **P1 (Critical):** 16
 - **P2 (High):** 37
 - **P3 (Medium):** 11
-- **Covered (full):** 35 (55%)
-- **Missing:** 29 (45%) — includes all new v1.6.0 flows plus previous uncovered flows
+- **Covered (full):** 46 (72%)
+- **Backend-only:** 2 (3%) — periodic tasks covered by backend unit tests
+- **Missing:** 16 (25%) — v1.6.0 flows pending E2E specs
 
 ### Unit Test Coverage
 

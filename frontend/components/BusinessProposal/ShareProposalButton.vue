@@ -2,7 +2,7 @@
   <div class="share-proposal">
     <!-- Quick-copy toast -->
     <Transition name="fade-toast">
-      <div v-if="quickCopied" class="fixed bottom-[5.5rem] right-4 z-40 bg-emerald-600 text-white text-xs font-medium px-4 py-2 rounded-xl shadow-lg whitespace-nowrap">
+      <div v-if="quickCopied" class="fixed bottom-[12.5rem] right-4 z-40 bg-emerald-600 text-white text-xs font-medium px-4 py-2 rounded-xl shadow-lg whitespace-nowrap">
         {{ t.copied }} ✅
       </div>
     </Transition>
@@ -10,7 +10,7 @@
     <!-- Floating share button: click = copy link, long-press = open modal -->
     <button
       data-testid="share-proposal-btn"
-      class="fixed bottom-20 right-4 z-30 w-11 h-11 bg-white border border-gray-200
+      class="fixed bottom-[8.5rem] right-4 z-40 w-12 h-12 bg-white border border-gray-200
              rounded-full shadow-lg flex items-center justify-center
              hover:bg-gray-50 transition-colors group"
       :title="t.shareTitle"
@@ -27,7 +27,7 @@
     <Transition name="fade-toast">
       <div
         v-if="showShareHint"
-        class="fixed bottom-[4.5rem] right-4 z-30 bg-gray-900 text-white text-xs font-medium px-3 py-2 rounded-xl shadow-lg max-w-[180px] text-center leading-snug"
+        class="fixed bottom-[12rem] right-4 z-40 bg-gray-900 text-white text-xs font-medium px-3 py-2 rounded-xl shadow-lg max-w-[180px] text-center leading-snug"
       >
         {{ t.shareHint }}
         <div class="absolute -top-1.5 right-5 w-3 h-3 bg-gray-900 rotate-45" />
