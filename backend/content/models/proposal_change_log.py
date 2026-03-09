@@ -21,6 +21,10 @@ class ProposalChangeLog(models.Model):
         DUPLICATED = 'duplicated', 'Duplicated'
         COMMENTED = 'commented', 'Commented'
         REENGAGEMENT = 'reengagement', 'Reengagement'
+        CALL = 'call', 'Call'
+        MEETING = 'meeting', 'Meeting'
+        FOLLOWUP = 'followup', 'Follow-up'
+        NOTE = 'note', 'Note'
 
     proposal = models.ForeignKey(
         'BusinessProposal',

@@ -1,0 +1,228 @@
+<template>
+  <div>
+    <div class="flex items-center justify-between mb-8">
+      <h1 class="text-2xl font-light text-gray-900">Calendario de Blog</h1>
+      <div class="flex items-center gap-3">
+        <NuxtLink
+          to="/panel/blog"
+          class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl
+                 font-medium text-sm hover:bg-gray-50 transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+          </svg>
+          Lista
+        </NuxtLink>
+        <NuxtLink
+          to="/panel/blog/create"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
+                 font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Nuevo Post
+        </NuxtLink>
+      </div>
+    </div>
+
+    <!-- Week navigation -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <button
+          type="button"
+          class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
+          @click="prevWeek"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div class="text-center">
+          <h2 class="text-sm font-semibold text-gray-900">{{ weekRangeLabel }}</h2>
+          <p class="text-xs text-gray-400 mt-0.5">Semana {{ weekNumber }}</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="px-3 py-1.5 text-xs font-medium text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors"
+            @click="goToToday"
+          >
+            Hoy
+          </button>
+          <button
+            type="button"
+            class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
+            @click="nextWeek"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div v-if="isLoading" class="flex justify-center py-12">
+        <div class="w-6 h-6 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+      </div>
+
+      <!-- Week grid -->
+      <div v-else class="grid grid-cols-7 divide-x divide-gray-100">
+        <div
+          v-for="day in weekDays"
+          :key="day.date"
+          class="min-h-[160px] p-3"
+          :class="{ 'bg-emerald-50/40': day.isToday }"
+        >
+          <!-- Day header -->
+          <div class="mb-2">
+            <p class="text-[10px] uppercase tracking-wider text-gray-400 font-medium">{{ day.dayName }}</p>
+            <p
+              class="text-sm font-semibold"
+              :class="day.isToday ? 'text-emerald-600' : 'text-gray-700'"
+            >
+              {{ day.dayNumber }}
+            </p>
+          </div>
+
+          <!-- Posts for this day -->
+          <div class="space-y-1.5">
+            <NuxtLink
+              v-for="post in day.posts"
+              :key="post.id"
+              :to="`/panel/blog/${post.id}/edit`"
+              class="block px-2 py-1.5 rounded-lg text-xs transition-colors cursor-pointer"
+              :class="postCardClass(post)"
+            >
+              <p class="font-medium truncate leading-tight">{{ post.title_es }}</p>
+              <p v-if="post.category" class="text-[10px] opacity-70 mt-0.5">{{ post.category }}</p>
+            </NuxtLink>
+          </div>
+
+          <!-- Empty state -->
+          <p v-if="day.posts.length === 0" class="text-[10px] text-gray-300 mt-3">Sin posts</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="flex items-center gap-6 text-xs text-gray-500">
+      <div class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded bg-emerald-100 border border-emerald-200 inline-block" />
+        Publicado
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded bg-blue-100 border border-blue-200 inline-block" />
+        Programado
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded bg-gray-100 border border-gray-200 inline-block" />
+        Borrador
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed, onMounted, ref, watch } from 'vue';
+import { useBlogStore } from '~/stores/blog';
+
+definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
+
+const blogStore = useBlogStore();
+const isLoading = ref(false);
+
+// Current week offset from today (0 = this week)
+const weekOffset = ref(0);
+
+function getMonday(d) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  date.setDate(diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+const currentMonday = computed(() => {
+  const today = new Date();
+  const monday = getMonday(today);
+  monday.setDate(monday.getDate() + weekOffset.value * 7);
+  return monday;
+});
+
+const currentSunday = computed(() => {
+  const sun = new Date(currentMonday.value);
+  sun.setDate(sun.getDate() + 6);
+  return sun;
+});
+
+const weekDays = computed(() => {
+  const days = [];
+  const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const today = new Date();
+  const todayStr = formatDateISO(today);
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(currentMonday.value);
+    d.setDate(d.getDate() + i);
+    const dateStr = formatDateISO(d);
+    const postsForDay = (blogStore.calendarPosts || []).filter(p => p.date === dateStr);
+
+    days.push({
+      date: dateStr,
+      dayName: dayNames[i],
+      dayNumber: d.getDate(),
+      isToday: dateStr === todayStr,
+      posts: postsForDay,
+    });
+  }
+  return days;
+});
+
+const weekRangeLabel = computed(() => {
+  const opts = { month: 'short', day: 'numeric' };
+  const start = currentMonday.value.toLocaleDateString('es-CO', opts);
+  const endOpts = { ...opts, year: 'numeric' };
+  const end = currentSunday.value.toLocaleDateString('es-CO', endOpts);
+  return `${start} — ${end}`;
+});
+
+const weekNumber = computed(() => {
+  const d = new Date(currentMonday.value);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+  const week1 = new Date(d.getFullYear(), 0, 4);
+  return 1 + Math.round(((d - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+});
+
+function formatDateISO(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function prevWeek() { weekOffset.value--; }
+function nextWeek() { weekOffset.value++; }
+function goToToday() { weekOffset.value = 0; }
+
+function postCardClass(post) {
+  if (post.calendar_status === 'published') return 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200';
+  if (post.calendar_status === 'scheduled') return 'bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-200';
+  return 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200';
+}
+
+async function fetchWeekData() {
+  isLoading.value = true;
+  const start = formatDateISO(currentMonday.value);
+  const end = formatDateISO(currentSunday.value);
+  await blogStore.fetchCalendarPosts(start, end);
+  isLoading.value = false;
+}
+
+watch(weekOffset, () => { fetchWeekData(); });
+
+onMounted(() => { fetchWeekData(); });
+</script>

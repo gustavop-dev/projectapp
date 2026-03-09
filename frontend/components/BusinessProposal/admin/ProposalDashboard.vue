@@ -138,7 +138,7 @@
 import { ref, watch } from 'vue';
 
 const proposalStore = useProposalStore();
-const isOpen = ref(false);
+const isOpen = ref(true);
 const loading = ref(false);
 const data = ref(null);
 let fetched = false;
@@ -156,7 +156,7 @@ async function fetchDashboard() {
 
 watch(isOpen, (val) => {
   if (val && !fetched) fetchDashboard();
-});
+}, { immediate: true });
 
 function formatNumber(n) {
   if (!n) return '0';

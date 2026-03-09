@@ -22,43 +22,59 @@
 
           <!-- Body -->
           <div class="overflow-y-auto px-6 py-6 flex-1">
-            <div class="space-y-3">
-              <div
-                v-for="mod in localModules"
-                :key="mod.id"
-                class="flex items-center justify-between p-4 rounded-xl border transition-all"
-                :class="[
-                  mod.selected
-                    ? 'bg-esmerald/5 border-esmerald/20'
-                    : 'bg-gray-50 border-gray-200',
-                  mod._locked ? 'opacity-80' : 'cursor-pointer hover:border-esmerald/40'
-                ]"
-                @click="toggleModule(mod)"
-              >
-                <div class="flex items-center gap-3">
-                  <div
-                    class="w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors"
-                    :class="mod.selected
-                      ? 'bg-esmerald border-esmerald text-white'
-                      : 'border-gray-300 bg-white'"
-                  >
-                    <svg v-if="mod.selected" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <div>
-                    <span class="font-medium" :class="mod.selected ? 'text-esmerald' : 'text-gray-500'">
-                      {{ mod.name }}
-                    </span>
-                    <span v-if="mod._locked" class="ml-2 text-[10px] text-esmerald/50 font-medium uppercase">{{ t.required }}</span>
-                    <div v-if="mod.groupTitle" class="text-[10px] text-gray-400 mt-0.5">{{ mod.groupTitle }}</div>
-                  </div>
-                </div>
-                <span class="font-bold text-sm" :class="mod.selected ? 'text-esmerald' : 'text-gray-400'">
-                  {{ mod.price ? formatPrice(mod.price) : t.included }}
-                </span>
+            <template v-for="(group, gKey) in groupedModules" :key="gKey">
+              <div class="mb-1 mt-4 first:mt-0">
+                <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">{{ group.label }}</h4>
               </div>
-            </div>
+              <div class="space-y-2 mb-4">
+                <div
+                  v-for="mod in group.items"
+                  :key="mod.id"
+                  class="flex items-center justify-between p-4 rounded-xl border transition-all"
+                  :class="[
+                    mod.selected
+                      ? 'bg-esmerald/5 border-esmerald/20'
+                      : 'bg-gray-50 border-gray-200',
+                    mod._locked ? 'opacity-80' : 'cursor-pointer hover:border-esmerald/40'
+                  ]"
+                  @click="toggleModule(mod)"
+                >
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors"
+                      :class="mod.selected
+                        ? 'bg-esmerald border-esmerald text-white'
+                        : 'border-gray-300 bg-white'"
+                    >
+                      <svg v-if="mod.selected" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <span class="font-medium" :class="mod.selected ? 'text-esmerald' : 'text-gray-500'">
+                        {{ mod.name }}
+                      </span>
+                      <span v-if="mod._locked" class="ml-2 text-[10px] text-esmerald/50 font-medium uppercase">{{ t.required }}</span>
+                    </div>
+                  </div>
+                  <span class="font-bold text-sm" :class="mod.selected ? 'text-esmerald' : 'text-gray-400'">
+                    {{ mod.price ? formatPrice(mod.price) : t.included }}
+                  </span>
+                </div>
+              </div>
+            </template>
+
+            <!-- Link to functional requirements -->
+            <button
+              type="button"
+              class="mt-2 text-xs text-esmerald/60 hover:text-esmerald transition-colors flex items-center gap-1"
+              @click="$emit('navigateToRequirements')"
+            >
+              📋 {{ t.viewRequirements }}
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
 
           <!-- Footer with total -->
@@ -105,7 +121,7 @@ function parseInvestment(str) {
   return parseInt(cleaned, 10) || 0;
 }
 
-const emit = defineEmits(['close', 'update:selection']);
+const emit = defineEmits(['close', 'update:selection', 'navigateToRequirements']);
 
 const i18n = {
   es: {
@@ -116,6 +132,7 @@ const i18n = {
     confirm: 'Confirmar selección',
     included: 'Incluido',
     required: 'obligatorio',
+    viewRequirements: 'Ver detalle de requerimientos funcionales',
   },
   en: {
     title: 'Customize your investment',
@@ -125,6 +142,7 @@ const i18n = {
     confirm: 'Confirm selection',
     included: 'Included',
     required: 'required',
+    viewRequirements: 'View functional requirements details',
   },
 };
 
@@ -153,6 +171,30 @@ watch(() => props.visible, (val) => {
 }, { immediate: true });
 
 const selectedCount = computed(() => localModules.value.filter(m => m.selected).length);
+
+const groupLabels = {
+  investment: { es: 'Módulos de inversión', en: 'Investment modules' },
+  views: { es: 'Vistas', en: 'Views' },
+  components: { es: 'Componentes', en: 'Components' },
+  features: { es: 'Funcionalidades', en: 'Features' },
+  integrations_api: { es: 'Integraciones', en: 'Integrations' },
+  admin_module: { es: 'Módulo administrativo', en: 'Admin module' },
+  analytics_dashboard: { es: 'Analítica', en: 'Analytics' },
+  _other: { es: 'Otros', en: 'Other' },
+};
+
+const groupedModules = computed(() => {
+  const groups = {};
+  for (const mod of localModules.value) {
+    const key = mod._source === 'investment' ? 'investment' : (mod.groupId || '_other');
+    if (!groups[key]) {
+      const labelObj = groupLabels[key] || groupLabels._other;
+      groups[key] = { label: labelObj[props.language] || labelObj.es, items: [] };
+    }
+    groups[key].items.push(mod);
+  }
+  return groups;
+});
 
 const baseTotalInvestment = computed(() => parseInvestment(props.totalInvestment));
 

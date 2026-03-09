@@ -17,6 +17,8 @@ export const useBlogStore = defineStore('blog', {
     currentPost: null,
     availableCategories: [],
     pagination: { count: 0, page: 1, pageSize: 6, totalPages: 1 },
+    adminPagination: { count: 0, page: 1, pageSize: 15, totalPages: 1 },
+    calendarPosts: [],
     isLoading: false,
     isUpdating: false,
     error: null,
@@ -121,13 +123,22 @@ export const useBlogStore = defineStore('blog', {
 
     /**
      * fetchAdminPosts: List all blog posts (including drafts) for admin.
+     * @param {number} page - Page number.
+     * @param {number} pageSize - Items per page.
      */
-    async fetchAdminPosts() {
+    async fetchAdminPosts(page = 1, pageSize = 15) {
       this.isLoading = true;
       this.error = null;
       try {
-        const response = await get_request('blog/admin/');
-        this.posts = response.data;
+        const response = await get_request(`blog/admin/?page=${page}&page_size=${pageSize}`);
+        const data = response.data;
+        this.posts = data.results || data;
+        this.adminPagination = {
+          count: data.count || this.posts.length,
+          page: data.page || 1,
+          pageSize: data.page_size || pageSize,
+          totalPages: data.total_pages || 1,
+        };
         return { success: true };
       } catch (error) {
         this.error = 'fetch_failed';
@@ -300,6 +311,22 @@ export const useBlogStore = defineStore('blog', {
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
+      }
+    },
+
+    /**
+     * fetchCalendarPosts: Fetch blog posts for calendar display within a date range.
+     * @param {string} start - YYYY-MM-DD start date.
+     * @param {string} end - YYYY-MM-DD end date.
+     */
+    async fetchCalendarPosts(start, end) {
+      try {
+        const response = await get_request(`blog/admin/calendar/?start=${start}&end=${end}`);
+        this.calendarPosts = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching calendar posts:', error);
+        return { success: false, data: [] };
       }
     },
 

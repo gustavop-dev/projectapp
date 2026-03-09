@@ -26,6 +26,12 @@
       @touchstart.passive="onTouchStart"
       @touchend.passive="onTouchEnd"
     >
+      <!-- Preview mode banner -->
+      <div v-if="isPreviewMode" class="fixed top-0 left-0 right-0 z-[9999] bg-amber-500 text-white text-center py-2 text-xs font-semibold tracking-wide shadow-md">
+        👁 MODO PREVIEW — El cliente no ve este banner
+        <button class="ml-4 underline text-white/80 hover:text-white" @click="exitPreview">Volver al panel</button>
+      </div>
+
       <!-- UX overlay elements -->
       <ProposalIndex
         :sections="displayPanels"
@@ -68,7 +74,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 class="text-lg font-bold text-esmerald mb-2">Tiempo de lectura: ~7 minutos</h3>
+              <h3 class="text-lg font-bold text-esmerald mb-2">Tiempo de lectura: ~6 minutos</h3>
               <p class="text-sm text-esmerald/70 font-light leading-relaxed mb-6">
                 Por favor lee el contenido de todas las secciones. Cada una aborda un punto importante y diferente de la propuesta.
               </p>
@@ -110,6 +116,7 @@
             v-else
             :is="sectionComponentMap[currentPanel.section_type]"
             v-bind="getSectionProps(currentPanel)"
+            @navigateToRequirements="handleNavigateToRequirements"
           />
         </div>
       </Transition>
@@ -135,6 +142,7 @@ import {
   Investment,
   FinalNote,
   NextSteps,
+  ProposalSummary,
 } from '~/components/BusinessProposal';
 import ProposalIndex from '~/components/BusinessProposal/ProposalIndex.vue';
 import SectionCounter from '~/components/BusinessProposal/SectionCounter.vue';
@@ -151,7 +159,13 @@ import ShareProposalButton from '~/components/BusinessProposal/ShareProposalButt
 definePageMeta({ layout: false });
 
 const route = useRoute();
+const router = useRouter();
 const proposalStore = useProposalStore();
+
+const isPreviewMode = computed(() => route.query.preview === '1' || route.query.preview === 'true');
+function exitPreview() {
+  router.back();
+}
 
 const sectionComponentMap = {
   greeting: Greeting,
@@ -167,6 +181,7 @@ const sectionComponentMap = {
   investment: Investment,
   final_note: FinalNote,
   next_steps: NextSteps,
+  proposal_summary: ProposalSummary,
   proposal_closing: ProposalClosing,
 };
 
@@ -360,6 +375,19 @@ function getSectionProps(section) {
       expiresAt: proposal.value?.expires_at || '',
       modules: allCalculatorItems,
       proposalUuid: proposal.value?.uuid || '',
+      whatsappLink: extractedWhatsappLink.value,
+    };
+  }
+
+  // For proposal_summary: inject proposal-level data
+  if (section.section_type === 'proposal_summary') {
+    const timelineSection = enabledSections.value.find(s => s.section_type === 'timeline');
+    const timelineDuration = timelineSection?.content_json?.totalDuration || '';
+    return {
+      content,
+      proposal: proposal.value,
+      timelineDuration,
+      language: proposal.value?.language || 'es',
     };
   }
 
@@ -429,6 +457,11 @@ function navigateTo(index) {
 
 function handleNavigate(index) {
   navigateTo(index);
+}
+
+function handleNavigateToRequirements() {
+  const idx = displayPanels.value.findIndex(p => p.section_type === 'functional_requirements');
+  if (idx !== -1) navigateTo(idx);
 }
 
 function goNext() {

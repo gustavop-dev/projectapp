@@ -77,6 +77,63 @@
           />
         </div>
 
+        <!-- Client phone -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono / WhatsApp</label>
+          <input
+            v-model="form.client_phone"
+            type="tel"
+            placeholder="+57 300 123 4567"
+            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+          />
+        </div>
+
+        <!-- Project type + Market type -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de proyecto</label>
+            <select v-model="form.project_type" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+              <option value="">— Sin definir —</option>
+              <option value="website">Sitio Web</option>
+              <option value="ecommerce">E-commerce</option>
+              <option value="webapp">Aplicación Web</option>
+              <option value="landing">Landing Page</option>
+              <option value="redesign">Rediseño</option>
+              <option value="other">Otro</option>
+            </select>
+            <input
+              v-if="form.project_type === 'other'"
+              v-model="form.project_type_custom"
+              type="text"
+              placeholder="Especificar tipo de proyecto..."
+              class="mt-2 w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de mercado</label>
+            <select v-model="form.market_type" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+              <option value="">— Sin definir —</option>
+              <option value="b2b">B2B</option>
+              <option value="b2c">B2C</option>
+              <option value="saas">SaaS</option>
+              <option value="retail">Retail</option>
+              <option value="services">Servicios profesionales</option>
+              <option value="health">Salud</option>
+              <option value="education">Educación</option>
+              <option value="real_estate">Inmobiliaria</option>
+              <option value="other">Otro</option>
+            </select>
+            <input
+              v-if="form.market_type === 'other'"
+              v-model="form.market_type_custom"
+              type="text"
+              placeholder="Especificar tipo de mercado..."
+              class="mt-2 w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            />
+          </div>
+        </div>
+
         <!-- Language -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Idioma de la propuesta</label>
@@ -132,7 +189,7 @@
         <!-- Reminder days -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Recordatorio (día)</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Recordatorio (días después de enviar)</label>
             <input
               v-model.number="form.reminder_days"
               type="number"
@@ -141,10 +198,10 @@
               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
                      focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
             />
-            <p class="text-xs text-gray-400 mt-1">Email recordatorio al cliente.</p>
+            <p class="text-xs text-gray-400 mt-1">Se enviará un email recordatorio al cliente X días después de enviar la propuesta.</p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Urgencia (día)</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Urgencia (días después de enviar)</label>
             <input
               v-model.number="form.urgency_reminder_days"
               type="number"
@@ -153,7 +210,7 @@
               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
                      focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
             />
-            <p class="text-xs text-gray-400 mt-1">Email de urgencia (con descuento si aplica).</p>
+            <p class="text-xs text-gray-400 mt-1">Se enviará un email de urgencia X días después de enviar (incluye descuento si % > 0).</p>
           </div>
         </div>
 
@@ -434,13 +491,18 @@ const form = reactive({
   title: '',
   client_name: '',
   client_email: '',
+  client_phone: '',
+  project_type: '',
+  market_type: '',
+  project_type_custom: '',
+  market_type_custom: '',
   language: 'es',
   total_investment: 0,
   currency: 'COP',
   expires_at: defaultExpiryStr,
   reminder_days: 10,
   urgency_reminder_days: 15,
-  discount_percent: 20,
+  discount_percent: 0,
 });
 
 async function handleSubmit() {
@@ -465,7 +527,7 @@ async function handleSubmit() {
 const EXPECTED_SECTION_KEYS = [
   'general', 'executiveSummary', 'contextDiagnostic', 'conversionStrategy',
   'designUX', 'creativeSupport', 'developmentStages', 'functionalRequirements',
-  'timeline', 'investment', 'finalNote', 'nextSteps',
+  'timeline', 'investment', 'proposalSummary', 'finalNote', 'nextSteps',
 ];
 
 const jsonRaw = ref('');
@@ -477,13 +539,18 @@ const isDownloading = ref(false);
 const jsonForm = reactive({
   title: '',
   client_email: '',
+  client_phone: '',
+  project_type: '',
+  market_type: '',
+  project_type_custom: '',
+  market_type_custom: '',
   language: 'es',
   total_investment: 0,
   currency: 'COP',
   expires_at: defaultExpiryStr,
   reminder_days: 10,
   urgency_reminder_days: 15,
-  discount_percent: 20,
+  discount_percent: 0,
 });
 
 const jsonPreview = computed(() => {
@@ -578,6 +645,9 @@ async function handleJsonSubmit() {
     title: jsonForm.title,
     client_name: jsonParsed.value.general.clientName,
     client_email: jsonForm.client_email || '',
+    client_phone: jsonForm.client_phone || '',
+    project_type: jsonForm.project_type || '',
+    market_type: jsonForm.market_type || '',
     language: jsonForm.language,
     total_investment: jsonForm.total_investment || 0,
     currency: jsonForm.currency,

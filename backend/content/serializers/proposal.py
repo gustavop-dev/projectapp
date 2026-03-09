@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from content.models import (
     BusinessProposal,
+    ProposalAlert,
     ProposalSection,
     ProposalRequirementGroup,
     ProposalRequirementItem,
@@ -61,10 +62,12 @@ class ProposalListSerializer(serializers.ModelSerializer):
     class Meta:
         model = BusinessProposal
         fields = (
-            'id', 'uuid', 'title', 'client_name', 'status',
+            'id', 'uuid', 'title', 'client_name', 'client_email', 'status',
             'total_investment', 'currency', 'expires_at',
             'view_count', 'created_at', 'days_remaining', 'is_expired',
-            'is_active', 'responded_at',
+            'is_active', 'responded_at', 'last_activity_at',
+            'project_type', 'market_type', 'client_phone',
+            'project_type_custom', 'market_type_custom',
         )
 
     def get_days_remaining(self, obj):
@@ -88,6 +91,8 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
     public_url = serializers.SerializerMethodField()
     discounted_investment = serializers.SerializerMethodField()
 
+    change_logs = serializers.SerializerMethodField()
+
     class Meta:
         model = BusinessProposal
         fields = (
@@ -95,9 +100,12 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
             'language', 'total_investment', 'currency', 'status', 'expires_at',
             'reminder_days', 'urgency_reminder_days', 'discount_percent',
             'is_active', 'reminder_sent_at', 'urgency_email_sent_at',
+            'project_type', 'market_type', 'client_phone',
+            'project_type_custom', 'market_type_custom',
+            'last_activity_at',
             'view_count', 'first_viewed_at', 'sent_at', 'responded_at',
             'created_at', 'updated_at',
-            'sections', 'requirement_groups',
+            'sections', 'requirement_groups', 'change_logs',
             'days_remaining', 'is_expired', 'public_url',
             'discounted_investment',
         )
@@ -123,6 +131,22 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
     def get_public_url(self, obj):
         return obj.public_url
 
+    def get_change_logs(self, obj):
+        """Return change logs only for admin requests."""
+        is_admin = self.context.get('is_admin', False)
+        if not is_admin:
+            return []
+        logs = obj.change_logs.all().order_by('-created_at')[:50]
+        return [
+            {
+                'id': log.id,
+                'change_type': log.change_type,
+                'description': log.description,
+                'created_at': log.created_at.isoformat(),
+            }
+            for log in logs
+        ]
+
     def get_discounted_investment(self, obj):
         """Return discounted price when discount_percent > 0."""
         if not obj.discount_percent or obj.discount_percent <= 0:
@@ -144,6 +168,8 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
             'language', 'total_investment', 'currency', 'status',
             'expires_at', 'reminder_days', 'urgency_reminder_days',
             'discount_percent', 'is_active',
+            'project_type', 'market_type', 'client_phone',
+            'project_type_custom', 'market_type_custom',
         )
 
     def validate_expires_at(self, value):
@@ -202,6 +228,7 @@ SECTION_KEY_MAP = {
     'functionalRequirements': 'functional_requirements',
     'timeline': 'timeline',
     'investment': 'investment',
+    'proposalSummary': 'proposal_summary',
     'finalNote': 'final_note',
     'nextSteps': 'next_steps',
 }
@@ -220,6 +247,11 @@ class ProposalFromJSONSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=255)
     client_name = serializers.CharField(max_length=255)
     client_email = serializers.EmailField(required=False, default='')
+    client_phone = serializers.CharField(max_length=30, required=False, default='')
+    project_type = serializers.CharField(max_length=20, required=False, default='')
+    market_type = serializers.CharField(max_length=20, required=False, default='')
+    project_type_custom = serializers.CharField(max_length=100, required=False, default='')
+    market_type_custom = serializers.CharField(max_length=100, required=False, default='')
     language = serializers.ChoiceField(
         choices=BusinessProposal.Language.choices, default='es',
     )
@@ -232,7 +264,7 @@ class ProposalFromJSONSerializer(serializers.Serializer):
     expires_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
     reminder_days = serializers.IntegerField(required=False, default=10)
     urgency_reminder_days = serializers.IntegerField(required=False, default=15)
-    discount_percent = serializers.IntegerField(required=False, default=20)
+    discount_percent = serializers.IntegerField(required=False, default=0)
     sections = serializers.DictField(child=serializers.DictField(), required=True)
 
     def validate_expires_at(self, value):
@@ -257,6 +289,22 @@ class ProposalFromJSONSerializer(serializers.Serializer):
         # Strip _meta helper key if present (template download artifact)
         value.pop('_meta', None)
         return value
+
+
+class ProposalAlertSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating and listing manual proposal alerts.
+    """
+    client_name = serializers.CharField(source='proposal.client_name', read_only=True)
+    proposal_title = serializers.CharField(source='proposal.title', read_only=True)
+
+    class Meta:
+        model = ProposalAlert
+        fields = (
+            'id', 'proposal', 'alert_type', 'message', 'alert_date',
+            'is_dismissed', 'created_at', 'client_name', 'proposal_title',
+        )
+        read_only_fields = ('id', 'created_at', 'client_name', 'proposal_title')
 
 
 class ProposalShareLinkSerializer(serializers.ModelSerializer):

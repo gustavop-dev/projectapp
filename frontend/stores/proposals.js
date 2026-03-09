@@ -521,6 +521,60 @@ export const useProposalStore = defineStore('proposals', {
     },
 
     /**
+     * logActivity: Manually log a seller activity on a proposal.
+     */
+    async logActivity(proposalId, payload) {
+      try {
+        const response = await create_request(`proposals/${proposalId}/log-activity/`, payload);
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error logging activity:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * fetchAlerts: Get proposals that need attention (not viewed, not responded, expiring).
+     */
+    async fetchAlerts() {
+      try {
+        const response = await get_request('proposals/alerts/');
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching alerts:', error);
+        return { success: false, data: [] };
+      }
+    },
+
+    /**
+     * createAlert: Create a manual alert/reminder for a proposal.
+     * @param {object} payload - { proposal, alert_type, message, alert_date }
+     */
+    async createAlert(payload) {
+      try {
+        const response = await create_request('proposals/alerts/create/', payload);
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error creating alert:', error);
+        return { success: false, errors: error.response?.data };
+      }
+    },
+
+    /**
+     * dismissAlert: Dismiss a manual alert by its ID.
+     * @param {number} alertId - The alert ID.
+     */
+    async dismissAlert(alertId) {
+      try {
+        await patch_request(`proposals/alerts/${alertId}/dismiss/`, {});
+        return { success: true };
+      } catch (error) {
+        console.error('Error dismissing alert:', error);
+        return { success: false };
+      }
+    },
+
+    /**
      * checkAdminAuth: Verify if the current session is an authenticated staff user.
      */
     async checkAdminAuth() {

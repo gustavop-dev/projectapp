@@ -1,13 +1,21 @@
 <template>
   <div class="share-proposal">
-    <!-- Floating share button -->
+    <!-- Quick-copy toast -->
+    <Transition name="fade-toast">
+      <div v-if="quickCopied" class="fixed bottom-[5.5rem] right-4 z-40 bg-emerald-600 text-white text-xs font-medium px-4 py-2 rounded-xl shadow-lg whitespace-nowrap">
+        {{ t.copied }} ✅
+      </div>
+    </Transition>
+
+    <!-- Floating share button: click = copy link, long-press = open modal -->
     <button
       data-testid="share-proposal-btn"
       class="fixed bottom-20 right-4 z-30 w-11 h-11 bg-white border border-gray-200
              rounded-full shadow-lg flex items-center justify-center
              hover:bg-gray-50 transition-colors group"
       :title="t.shareTitle"
-      @click="showModal = true"
+      @click="quickCopyLink"
+      @contextmenu.prevent="showModal = true"
     >
       <svg class="w-5 h-5 text-gray-500 group-hover:text-emerald-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -166,11 +174,23 @@ const shareResult = ref(null);
 const copied = ref(false);
 const linkInput = ref(null);
 
+const quickCopied = ref(false);
+
 const shareUrl = computed(() => {
   if (!shareResult.value?.uuid) return '';
   const base = window.location.origin;
   return `${base}/proposal/shared/${shareResult.value.uuid}`;
 });
+
+function quickCopyLink() {
+  const url = window.location.href;
+  navigator.clipboard.writeText(url).then(() => {
+    quickCopied.value = true;
+    setTimeout(() => { quickCopied.value = false; }, 2000);
+  });
+  // Track analytics
+  proposalStore.trackProposalEvent?.(props.proposalUuid, 'share_link_copied');
+}
 
 async function createShareLink() {
   if (!shareName.value.trim()) return;

@@ -17,19 +17,118 @@
     <!-- KPI Dashboard -->
     <ProposalDashboard />
 
-    <!-- Status filter -->
-    <div class="flex gap-2 mb-6 flex-wrap">
-      <button
-        v-for="opt in statusOptions"
-        :key="opt.value"
-        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border"
-        :class="activeFilter === opt.value
-          ? 'bg-emerald-600 text-white border-emerald-600'
-          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'"
-        @click="filterByStatus(opt.value)"
-      >
-        {{ opt.label }}
-      </button>
+    <!-- Alerts panel -->
+    <div v-if="alerts.length || showAlertForm" class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">⚠️</span>
+          <h3 class="text-sm font-semibold text-amber-800">Propuestas que necesitan atención ({{ alerts.length }})</h3>
+        </div>
+        <button
+          type="button"
+          class="text-xs text-amber-700 font-medium hover:text-amber-900 transition-colors"
+          @click="showAlertForm = !showAlertForm"
+        >
+          {{ showAlertForm ? 'Cancelar' : '+ Crear recordatorio' }}
+        </button>
+      </div>
+
+      <!-- Create alert form -->
+      <div v-if="showAlertForm" class="mb-4 bg-white rounded-lg border border-amber-100 p-4 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Propuesta</label>
+            <select v-model="newAlert.proposal" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-emerald-500">
+              <option value="">Seleccionar...</option>
+              <option v-for="p in proposalStore.proposals" :key="p.id" :value="p.id">{{ p.client_name }} — {{ p.title }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Tipo</label>
+            <select v-model="newAlert.alert_type" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-emerald-500">
+              <option value="reminder">Recordatorio</option>
+              <option value="followup">Seguimiento</option>
+              <option value="call">Llamada</option>
+              <option value="meeting">Reunión</option>
+              <option value="custom">Personalizado</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Fecha</label>
+            <input v-model="newAlert.alert_date" type="datetime-local" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-emerald-500" />
+          </div>
+        </div>
+        <div class="flex gap-3 items-end">
+          <div class="flex-1">
+            <label class="block text-xs text-gray-500 mb-1">Mensaje</label>
+            <input v-model="newAlert.message" type="text" placeholder="Ej: Llamar al cliente para seguimiento..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-emerald-500" />
+          </div>
+          <button
+            type="button"
+            :disabled="!newAlert.proposal || !newAlert.message"
+            class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
+            @click="handleCreateAlert"
+          >
+            Crear
+          </button>
+        </div>
+        <p v-if="alertError" class="text-xs text-red-500">{{ alertError }}</p>
+      </div>
+
+      <div class="space-y-2">
+        <div
+          v-for="alert in alerts"
+          :key="`${alert.id}-${alert.alert_type}-${alert.manual_alert_id || ''}`"
+          class="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border border-amber-100 cursor-pointer hover:border-amber-300 transition-colors"
+          @click="router.push(`/panel/proposals/${alert.id}/edit`)"
+        >
+          <div class="flex items-center gap-3">
+            <span class="text-sm">{{ alertIcon(alert.alert_type) }}</span>
+            <div>
+              <span class="text-sm font-medium text-gray-800">{{ alert.client_name }}</span>
+              <span class="text-xs text-gray-400 ml-2">{{ alert.title }}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-xs text-amber-700 font-medium">{{ alert.message }}</span>
+            <button
+              v-if="alert.manual_alert_id"
+              type="button"
+              class="text-xs text-gray-400 hover:text-red-500 transition-colors"
+              title="Descartar"
+              @click.stop="handleDismissAlert(alert.manual_alert_id)"
+            >✕</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search + Status filter -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-6">
+      <div class="relative flex-1 max-w-sm">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Buscar por título o cliente..."
+          class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+        />
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <button
+          v-for="opt in statusOptions"
+          :key="opt.value"
+          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border"
+          :class="activeFilter === opt.value
+            ? 'bg-emerald-600 text-white border-emerald-600'
+            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'"
+          @click="filterByStatus(opt.value)"
+        >
+          {{ opt.label }}
+        </button>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -50,20 +149,28 @@
 
     <!-- Table -->
     <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
-      <table class="w-full min-w-[700px]">
+      <table class="w-full min-w-[800px]">
         <thead>
           <tr class="border-b border-gray-100 text-left">
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-emerald-600" @click="toggleSort('title')">
+              Título <span v-if="sortKey === 'title'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-emerald-600" @click="toggleSort('client_name')">
+              Cliente <span v-if="sortKey === 'client_name'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+            </th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Inversión</th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Expira</th>
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-emerald-600" @click="toggleSort('total_investment')">
+              Inversión <span v-if="sortKey === 'total_investment'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-emerald-600" @click="toggleSort('last_activity_at')">
+              Última actividad <span v-if="sortKey === 'last_activity_at'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+            </th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Vistas</th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-50">
-          <tr v-for="(p, rowIdx) in proposals" :key="p.id" class="transition-colors cursor-pointer" :class="p.is_active ? 'hover:bg-gray-50' : 'bg-gray-50 opacity-60'" @click="navigateToProposal(p.id)">
+          <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="p.is_active ? 'hover:bg-gray-50' : 'bg-gray-50 opacity-60'" @click="navigateToProposal(p.id)">
             <td class="px-6 py-4">
               <NuxtLink
                 :to="`/panel/proposals/${p.id}/edit`"
@@ -72,7 +179,10 @@
                 {{ p.title }}
               </NuxtLink>
             </td>
-            <td class="px-6 py-4 text-sm text-gray-600">{{ p.client_name }}</td>
+            <td class="px-6 py-4">
+              <div class="text-sm text-gray-600">{{ p.client_name }}</div>
+              <div v-if="p.client_phone" class="text-[10px] text-gray-400">📱 {{ p.client_phone }}</div>
+            </td>
             <td class="px-6 py-4">
               <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(p.status)">
                 {{ p.status }}
@@ -82,12 +192,12 @@
               ${{ Number(p.total_investment).toLocaleString() }} {{ p.currency }}
             </td>
             <td class="px-6 py-4 text-sm text-gray-500">
-              <template v-if="p.expires_at">
-                {{ new Date(p.expires_at).toLocaleDateString() }}
-                <span v-if="p.is_expired" class="text-red-500 text-xs ml-1">(expirada)</span>
-                <span v-else-if="p.days_remaining !== null" class="text-xs text-gray-400 ml-1">
-                  ({{ p.days_remaining }}d)
-                </span>
+              <template v-if="p.last_activity_at">
+                {{ timeAgo(p.last_activity_at) }}
+              </template>
+              <template v-else-if="p.created_at">
+                {{ timeAgo(p.created_at) }}
+                <span class="text-[10px] text-gray-300 ml-1">(creada)</span>
               </template>
               <span v-else class="text-gray-300">—</span>
             </td>
@@ -148,7 +258,7 @@
                     {{ copiedId === p.id ? '¡Copiado!' : 'Copiar enlace' }}
                   </button>
                   <a
-                    :href="'/proposal/' + p.uuid"
+                    :href="'/proposal/' + p.uuid + '?preview=1'"
                     target="_blank"
                     class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   >
@@ -166,12 +276,28 @@
           </tr>
         </tbody>
       </table>
+
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-gray-100">
+        <span class="text-xs text-gray-400">{{ filteredProposals.length }} propuestas</span>
+        <div class="flex gap-1">
+          <button
+            v-for="page in totalPages"
+            :key="page"
+            class="w-8 h-8 rounded-lg text-xs font-medium transition-colors"
+            :class="currentPage === page ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:bg-gray-100'"
+            @click="currentPage = page"
+          >
+            {{ page }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import ProposalDashboard from '~/components/BusinessProposal/admin/ProposalDashboard.vue';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -181,6 +307,79 @@ const proposals = computed(() => proposalStore.proposals);
 const activeFilter = ref('');
 const openDropdownId = ref(null);
 const copiedId = ref(null);
+const searchQuery = ref('');
+const showAlertForm = ref(false);
+const alertError = ref('');
+const newAlert = reactive({
+  proposal: '',
+  alert_type: 'reminder',
+  message: '',
+  alert_date: '',
+});
+const sortKey = ref('created_at');
+const sortDir = ref('desc');
+const currentPage = ref(1);
+const pageSize = 15;
+
+function toggleSort(key) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortKey.value = key;
+    sortDir.value = 'desc';
+  }
+  currentPage.value = 1;
+}
+
+const filteredProposals = computed(() => {
+  let list = [...proposals.value];
+  // Search
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase();
+    list = list.filter(p =>
+      (p.title || '').toLowerCase().includes(q) ||
+      (p.client_name || '').toLowerCase().includes(q) ||
+      (p.client_email || '').toLowerCase().includes(q)
+    );
+  }
+  // Sort
+  list.sort((a, b) => {
+    let va = a[sortKey.value];
+    let vb = b[sortKey.value];
+    if (sortKey.value === 'total_investment') {
+      va = Number(va) || 0;
+      vb = Number(vb) || 0;
+    } else {
+      va = va || '';
+      vb = vb || '';
+    }
+    if (va < vb) return sortDir.value === 'asc' ? -1 : 1;
+    if (va > vb) return sortDir.value === 'asc' ? 1 : -1;
+    return 0;
+  });
+  return list;
+});
+
+const totalPages = computed(() => Math.ceil(filteredProposals.value.length / pageSize));
+const paginatedProposals = computed(() => {
+  const start = (currentPage.value - 1) * pageSize;
+  return filteredProposals.value.slice(start, start + pageSize);
+});
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const now = new Date();
+  const d = new Date(dateStr);
+  const diffMs = now - d;
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'ahora';
+  if (mins < 60) return `hace ${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `hace ${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `hace ${days}d`;
+  return d.toLocaleDateString();
+}
 
 function toggleDropdown(id) {
   openDropdownId.value = openDropdownId.value === id ? null : id;
@@ -211,10 +410,54 @@ const statusOptions = [
   { value: 'expired', label: 'Expiradas' },
 ];
 
-onMounted(() => {
+const alerts = ref([]);
+
+onMounted(async () => {
   proposalStore.fetchProposals();
   document.addEventListener('click', closeDropdown);
+  const alertResult = await proposalStore.fetchAlerts();
+  if (alertResult.success) alerts.value = alertResult.data || [];
 });
+
+function alertIcon(type) {
+  const map = {
+    not_viewed: '👁️‍🗨️', not_responded: '⏳', expiring_soon: '🔥',
+    manual_reminder: '🔔', manual_followup: '📩', manual_call: '📞',
+    manual_meeting: '🤝', manual_custom: '📝',
+  };
+  return map[type] || '⚠️';
+}
+
+async function handleCreateAlert() {
+  alertError.value = '';
+  const payload = {
+    proposal: newAlert.proposal,
+    alert_type: newAlert.alert_type,
+    message: newAlert.message,
+    alert_date: newAlert.alert_date
+      ? new Date(newAlert.alert_date).toISOString()
+      : new Date().toISOString(),
+  };
+  const result = await proposalStore.createAlert(payload);
+  if (result.success) {
+    showAlertForm.value = false;
+    newAlert.proposal = '';
+    newAlert.alert_type = 'reminder';
+    newAlert.message = '';
+    newAlert.alert_date = '';
+    const alertResult = await proposalStore.fetchAlerts();
+    if (alertResult.success) alerts.value = alertResult.data || [];
+  } else {
+    alertError.value = 'Error al crear el recordatorio.';
+  }
+}
+
+async function handleDismissAlert(alertId) {
+  const result = await proposalStore.dismissAlert(alertId);
+  if (result.success) {
+    alerts.value = alerts.value.filter(a => a.manual_alert_id !== alertId);
+  }
+}
 
 function filterByStatus(status) {
   activeFilter.value = status;

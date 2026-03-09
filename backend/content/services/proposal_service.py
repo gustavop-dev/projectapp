@@ -28,7 +28,7 @@ DEFAULT_SECTIONS = [
     },
     {
         'section_type': 'executive_summary',
-        'title': '🧾 Resumen ejecutivo',
+        'title': '🧾 Lo que vas a lograr',
         'order': 1,
         'is_wide_panel': False,
         'content_json': {
@@ -47,7 +47,7 @@ DEFAULT_SECTIONS = [
     },
     {
         'section_type': 'context_diagnostic',
-        'title': '🧩 Contexto y diagnóstico',
+        'title': '🧩 Tu situación actual y la oportunidad',
         'order': 2,
         'is_wide_panel': False,
         'content_json': {
@@ -69,7 +69,7 @@ DEFAULT_SECTIONS = [
     },
     {
         'section_type': 'conversion_strategy',
-        'title': '🚀 Enfoque propuesto y estrategia de conversión',
+        'title': '🚀 Cómo vamos a lograrlo',
         'order': 3,
         'is_wide_panel': False,
         'content_json': {
@@ -121,7 +121,7 @@ DEFAULT_SECTIONS = [
     },
     {
         'section_type': 'investment',
-        'title': '💰 Inversión y Formas de Pago',
+        'title': '💰 Tu inversión y cómo pagar',
         'order': 4,
         'is_wide_panel': False,
         'content_json': {
@@ -187,7 +187,7 @@ DEFAULT_SECTIONS = [
     },
     {
         'section_type': 'timeline',
-        'title': '⏳ Cronograma del Proyecto',
+        'title': '⏳ Cuándo lo tendrás listo',
         'order': 5,
         'is_wide_panel': True,
         'content_json': {
@@ -241,7 +241,7 @@ DEFAULT_SECTIONS = [
     },
     {
         'section_type': 'design_ux',
-        'title': '🎨 Diseño Visual y Experiencia de Usuario',
+        'title': '🎨 Una experiencia visual que enamora',
         'order': 6,
         'is_wide_panel': False,
         'content_json': {
@@ -266,7 +266,7 @@ DEFAULT_SECTIONS = [
     },
     {
         'section_type': 'creative_support',
-        'title': '🤝 Acompañamiento Creativo Personalizado',
+        'title': '🤝 Te acompañamos en cada paso',
         'order': 7,
         'is_wide_panel': False,
         'content_json': {
@@ -291,7 +291,7 @@ DEFAULT_SECTIONS = [
     },
     {
         'section_type': 'functional_requirements',
-        'title': '🧩 Requerimientos Funcionales del Proyecto',
+        'title': '🧩 Todo lo que incluye tu proyecto',
         'order': 8,
         'is_wide_panel': True,
         'content_json': {
@@ -386,13 +386,76 @@ DEFAULT_SECTIONS = [
                         {'icon': '❤️', 'name': 'Gestor de Favoritos', 'description': 'Gestión de listas de deseos o favoritos de usuarios.'},
                     ],
                 },
+                {
+                    'id': 'analytics_dashboard',
+                    'icon': '📊',
+                    'title': 'Módulo de Analítica',
+                    'description': (
+                        'Dashboard de reportes inteligentes y métricas en tiempo real para entender '
+                        'el comportamiento de los visitantes y tomar decisiones basadas en datos.'
+                    ),
+                    'items': [
+                        {
+                            'icon': '🔥',
+                            'name': 'Páginas y Productos Más Visitados',
+                            'description': (
+                                'Identifica qué secciones y productos generan más interés. '
+                                'Permite priorizar contenido, reorganizar el catálogo y potenciar '
+                                'lo que realmente atrae a tus visitantes.'
+                            ),
+                        },
+                        {
+                            'icon': '🔄',
+                            'name': 'Visitantes Nuevos vs Recurrentes',
+                            'description': (
+                                'Diferencia entre quienes llegan por primera vez y quienes regresan. '
+                                'Te ayuda a medir la fidelización y evaluar si tus estrategias de '
+                                'retención están funcionando.'
+                            ),
+                        },
+                        {
+                            'icon': '📱',
+                            'name': 'Dispositivos de tu Audiencia',
+                            'description': (
+                                'Conoce desde qué dispositivos navegan tus usuarios: móvil, tablet o escritorio. '
+                                'Esto permite optimizar la experiencia para el dispositivo más usado por tu público.'
+                            ),
+                        },
+                        {
+                            'icon': '🌍',
+                            'name': 'Origen Geográfico',
+                            'description': (
+                                'Visualiza de qué ciudades o países provienen tus visitantes. '
+                                'Ideal para enfocar campañas publicitarias y entender dónde está '
+                                'tu mercado real.'
+                            ),
+                        },
+                        {
+                            'icon': '🔗',
+                            'name': 'Fuentes de Tráfico',
+                            'description': (
+                                'Descubre cómo llegan los usuarios a tu sitio: búsqueda orgánica, '
+                                'redes sociales, enlaces directos o campañas pagadas. Permite invertir '
+                                'mejor tu presupuesto de marketing.'
+                            ),
+                        },
+                        {
+                            'icon': '📈',
+                            'name': 'Tendencia de Visitas',
+                            'description': (
+                                'Gráfico de evolución de visitas en el tiempo. Permite detectar picos, '
+                                'medir el impacto de campañas y entender patrones estacionales de tu audiencia.'
+                            ),
+                        },
+                    ],
+                },
             ],
             'additionalModules': [],
         },
     },
     {
         'section_type': 'development_stages',
-        'title': '📌 Etapas de Contratación y Desarrollo',
+        'title': '📌 Así avanzamos juntos',
         'order': 9,
         'is_wide_panel': True,
         'content_json': {
@@ -441,12 +504,61 @@ DEFAULT_SECTIONS = [
         },
     },
     {
-        'section_type': 'final_note',
-        'title': '📝 Nota Final y Próximos Pasos',
+        'section_type': 'proposal_summary',
+        'title': '📋 Resumen de la Propuesta',
         'order': 10,
         'is_wide_panel': False,
         'content_json': {
             'index': '10',
+            'title': 'Resumen de la Propuesta',
+            'subtitle': 'Los datos clave de esta propuesta en un vistazo:',
+            'cards': [
+                {
+                    'icon': '💰',
+                    'title': 'Inversión',
+                    'description': 'Monto total del proyecto según la propuesta económica.',
+                    'source': 'total_investment',
+                },
+                {
+                    'icon': '⏱️',
+                    'title': 'Tiempo Estimado',
+                    'description': 'Duración aproximada del proyecto desde el kickoff hasta la entrega.',
+                    'source': 'timeline_duration',
+                },
+                {
+                    'icon': '🛡️',
+                    'title': 'Garantía',
+                    'description': '1 año de garantía incluida sobre el desarrollo entregado.',
+                    'source': 'static',
+                },
+                {
+                    'icon': '🧑‍💻',
+                    'title': 'Soporte',
+                    'description': 'Equipo dedicado de diseño, desarrollo y soporte post-lanzamiento.',
+                    'source': 'static',
+                },
+                {
+                    'icon': '📅',
+                    'title': 'Vigencia',
+                    'description': 'Esta propuesta es válida por 30 días a partir de su envío.',
+                    'source': 'expires_at',
+                },
+                {
+                    'icon': '💬',
+                    'title': '¿Tienes dudas?',
+                    'description': 'Agenda una reunión de 15 minutos para resolverlas.',
+                    'source': 'cta',
+                },
+            ],
+        },
+    },
+    {
+        'section_type': 'final_note',
+        'title': '📝 Nuestro compromiso contigo',
+        'order': 11,
+        'is_wide_panel': False,
+        'content_json': {
+            'index': '11',
             'title': 'Nota Final y Próximos Pasos',
             'message': (
                 'Creemos firmemente que esta propuesta representa una oportunidad excepcional '
@@ -488,11 +600,11 @@ DEFAULT_SECTIONS = [
     },
     {
         'section_type': 'next_steps',
-        'title': '✅ Próximos pasos',
-        'order': 11,
+        'title': '✅ ¿Listo para empezar?',
+        'order': 12,
         'is_wide_panel': False,
         'content_json': {
-            'index': '11',
+            'index': '12',
             'title': 'Próximos pasos',
             'introMessage': (
                 'Estamos listos para comenzar este viaje juntos. '
@@ -904,6 +1016,70 @@ DEFAULT_SECTIONS_EN = [
                         {'icon': '❤️', 'name': 'Favorites Manager', 'description': 'User wishlists and favorites management.'},
                     ],
                 },
+                {
+                    'id': 'analytics_dashboard',
+                    'icon': '📊',
+                    'title': 'Analytics Module',
+                    'description': (
+                        'Smart reporting dashboard with real-time metrics to understand '
+                        'visitor behavior and make data-driven decisions.'
+                    ),
+                    'items': [
+                        {
+                            'icon': '🔥',
+                            'name': 'Most Visited Pages & Products',
+                            'description': (
+                                'Identify which sections and products generate the most interest. '
+                                'Prioritize content, reorganize your catalog, and boost '
+                                'what truly attracts your visitors.'
+                            ),
+                        },
+                        {
+                            'icon': '🔄',
+                            'name': 'New vs Returning Visitors',
+                            'description': (
+                                'Distinguish between first-time visitors and returning ones. '
+                                'Helps measure loyalty and evaluate whether your retention '
+                                'strategies are working.'
+                            ),
+                        },
+                        {
+                            'icon': '📱',
+                            'name': 'Audience Devices',
+                            'description': (
+                                'Know which devices your users browse from: mobile, tablet, or desktop. '
+                                'Optimize the experience for the device most used by your audience.'
+                            ),
+                        },
+                        {
+                            'icon': '🌍',
+                            'name': 'Geographic Origin',
+                            'description': (
+                                'See which cities or countries your visitors come from. '
+                                'Ideal for focusing ad campaigns and understanding where '
+                                'your real market is.'
+                            ),
+                        },
+                        {
+                            'icon': '🔗',
+                            'name': 'Traffic Sources',
+                            'description': (
+                                'Discover how users reach your site: organic search, '
+                                'social media, direct links, or paid campaigns. Invest '
+                                'your marketing budget more wisely.'
+                            ),
+                        },
+                        {
+                            'icon': '📈',
+                            'name': 'Visit Trends',
+                            'description': (
+                                'Visit evolution chart over time. Detect peaks, '
+                                'measure campaign impact, and understand seasonal patterns '
+                                'in your audience.'
+                            ),
+                        },
+                    ],
+                },
             ],
             'additionalModules': [],
         },
@@ -954,12 +1130,61 @@ DEFAULT_SECTIONS_EN = [
         },
     },
     {
-        'section_type': 'final_note',
-        'title': '📝 Final Note & Next Steps',
+        'section_type': 'proposal_summary',
+        'title': '📋 Proposal Summary',
         'order': 10,
         'is_wide_panel': False,
         'content_json': {
             'index': '10',
+            'title': 'Proposal Summary',
+            'subtitle': 'Key details of this proposal at a glance:',
+            'cards': [
+                {
+                    'icon': '💰',
+                    'title': 'Investment',
+                    'description': 'Total project amount as per the economic proposal.',
+                    'source': 'total_investment',
+                },
+                {
+                    'icon': '⏱️',
+                    'title': 'Estimated Time',
+                    'description': 'Approximate project duration from kickoff to delivery.',
+                    'source': 'timeline_duration',
+                },
+                {
+                    'icon': '🛡️',
+                    'title': 'Warranty',
+                    'description': '1-year warranty included on the delivered development.',
+                    'source': 'static',
+                },
+                {
+                    'icon': '🧑‍💻',
+                    'title': 'Support',
+                    'description': 'Dedicated team for design, development, and post-launch support.',
+                    'source': 'static',
+                },
+                {
+                    'icon': '📅',
+                    'title': 'Validity',
+                    'description': 'This proposal is valid for 30 days from the date it was sent.',
+                    'source': 'expires_at',
+                },
+                {
+                    'icon': '💬',
+                    'title': 'Have questions?',
+                    'description': 'Schedule a 15-minute meeting to resolve them.',
+                    'source': 'cta',
+                },
+            ],
+        },
+    },
+    {
+        'section_type': 'final_note',
+        'title': '📝 Final Note & Next Steps',
+        'order': 11,
+        'is_wide_panel': False,
+        'content_json': {
+            'index': '11',
             'title': 'Final Note & Next Steps',
             'message': (
                 'We firmly believe this proposal represents an exceptional opportunity '
@@ -1002,10 +1227,10 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'next_steps',
         'title': '✅ Closing & Next Steps',
-        'order': 11,
+        'order': 12,
         'is_wide_panel': False,
         'content_json': {
-            'index': '11',
+            'index': '12',
             'title': 'Closing & Next Steps',
             'introMessage': (
                 'We are ready to start this journey together. '

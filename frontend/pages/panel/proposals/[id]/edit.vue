@@ -98,6 +98,56 @@
               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
           </div>
           <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono / WhatsApp</label>
+            <input v-model="form.client_phone" type="tel" placeholder="+57 300 123 4567"
+              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de proyecto</label>
+              <select v-model="form.project_type"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+                <option value="">— Sin definir —</option>
+                <option value="website">Sitio Web</option>
+                <option value="ecommerce">E-commerce</option>
+                <option value="webapp">Aplicación Web</option>
+                <option value="landing">Landing Page</option>
+                <option value="redesign">Rediseño</option>
+                <option value="other">Otro</option>
+              </select>
+              <input
+                v-if="form.project_type === 'other'"
+                v-model="form.project_type_custom"
+                type="text"
+                placeholder="Especificar tipo de proyecto..."
+                class="mt-2 w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de mercado</label>
+              <select v-model="form.market_type"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+                <option value="">— Sin definir —</option>
+                <option value="b2b">B2B</option>
+                <option value="b2c">B2C</option>
+                <option value="saas">SaaS</option>
+                <option value="retail">Retail</option>
+                <option value="services">Servicios profesionales</option>
+                <option value="health">Salud</option>
+                <option value="education">Educación</option>
+                <option value="real_estate">Inmobiliaria</option>
+                <option value="other">Otro</option>
+              </select>
+              <input
+                v-if="form.market_type === 'other'"
+                v-model="form.market_type_custom"
+                type="text"
+                placeholder="Especificar tipo de mercado..."
+                class="mt-2 w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+            </div>
+          </div>
+          <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Idioma</label>
             <select v-model="form.language"
               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
@@ -128,16 +178,16 @@
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Recordatorio (día)</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Recordatorio (días después de enviar)</label>
               <input v-model.number="form.reminder_days" type="number" min="1" max="30"
                 class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-              <p class="text-xs text-gray-400 mt-1">Email recordatorio al cliente.</p>
+              <p class="text-xs text-gray-400 mt-1">Se enviará un email recordatorio al cliente X días después de enviar la propuesta.</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Urgencia (día)</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Urgencia (días después de enviar)</label>
               <input v-model.number="form.urgency_reminder_days" type="number" min="1" max="30"
                 class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-              <p class="text-xs text-gray-400 mt-1">Email de urgencia (con descuento si aplica).</p>
+              <p class="text-xs text-gray-400 mt-1">Se enviará un email de urgencia X días después de enviar (incluye descuento si % > 0).</p>
             </div>
           </div>
           <div>
@@ -172,12 +222,53 @@
             >
               Re-enviar al Cliente
             </button>
-            <a :href="'/proposal/' + proposal.uuid" target="_blank"
+            <a :href="'/proposal/' + proposal.uuid + '?preview=1'" target="_blank"
               class="text-sm text-gray-500 hover:text-emerald-600 transition-colors">
               Preview →
             </a>
           </div>
         </form>
+      </div>
+
+      <!-- Tab: Activity -->
+      <div v-show="activeTab === 'activity'">
+        <!-- Log activity form -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
+          <h3 class="text-sm font-semibold text-gray-700 mb-3">Registrar actividad</h3>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <select v-model="activityForm.change_type" class="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-1 focus:ring-emerald-500 outline-none sm:w-40">
+              <option value="call">📞 Llamada</option>
+              <option value="meeting">🤝 Reunión</option>
+              <option value="followup">📩 Seguimiento</option>
+              <option value="note">📝 Nota</option>
+            </select>
+            <input v-model="activityForm.description" type="text" placeholder="Descripción de la actividad..." class="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-1 focus:ring-emerald-500 outline-none" @keydown.enter.prevent="submitActivity" />
+            <button type="button" :disabled="!activityForm.description.trim() || isSubmittingActivity" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 whitespace-nowrap" @click="submitActivity">
+              {{ isSubmittingActivity ? 'Guardando...' : 'Agregar' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <h3 class="text-sm font-semibold text-gray-700 mb-4">Historial de actividad</h3>
+          <div v-if="!changeLogs.length" class="text-center py-8 text-sm text-gray-400">Sin actividad registrada.</div>
+          <div v-else class="relative pl-6 space-y-0">
+            <div class="absolute left-[9px] top-2 bottom-2 w-px bg-gray-200" />
+            <div v-for="log in changeLogs" :key="log.id" class="relative pb-5 last:pb-0">
+              <div class="absolute -left-6 top-1 w-[18px] h-[18px] rounded-full border-2 border-white shadow-sm flex items-center justify-center text-[10px]" :class="activityDotClass(log.change_type)">
+                {{ activityIcon(log.change_type) }}
+              </div>
+              <div class="ml-2">
+                <div class="flex items-baseline gap-2">
+                  <span class="text-xs font-semibold" :class="activityLabelClass(log.change_type)">{{ activityLabel(log.change_type) }}</span>
+                  <span class="text-[10px] text-gray-400">{{ formatLogDate(log.created_at) }}</span>
+                </div>
+                <p class="text-sm text-gray-600 mt-0.5">{{ log.description }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Tab: Analytics -->
@@ -257,6 +348,7 @@ const activeTab = ref('general');
 const tabs = [
   { id: 'general', label: 'General' },
   { id: 'sections', label: 'Secciones' },
+  { id: 'activity', label: 'Actividad' },
   { id: 'analytics', label: 'Analytics' },
 ];
 
@@ -267,13 +359,18 @@ const form = reactive({
   title: '',
   client_name: '',
   client_email: '',
+  client_phone: '',
+  project_type: '',
+  market_type: '',
+  project_type_custom: '',
+  market_type_custom: '',
   language: 'es',
   total_investment: 0,
   currency: 'COP',
   expires_at: '',
   reminder_days: 10,
   urgency_reminder_days: 15,
-  discount_percent: 20,
+  discount_percent: 0,
 });
 
 onMounted(async () => {
@@ -284,6 +381,11 @@ onMounted(async () => {
       title: proposal.value.title,
       client_name: proposal.value.client_name,
       client_email: proposal.value.client_email || '',
+      client_phone: proposal.value.client_phone || '',
+      project_type: proposal.value.project_type || '',
+      market_type: proposal.value.market_type || '',
+      project_type_custom: proposal.value.project_type_custom || '',
+      market_type_custom: proposal.value.market_type_custom || '',
       language: proposal.value.language || 'es',
       total_investment: Number(proposal.value.total_investment),
       currency: proposal.value.currency,
@@ -292,7 +394,7 @@ onMounted(async () => {
         : '',
       reminder_days: proposal.value.reminder_days,
       urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
-      discount_percent: proposal.value.discount_percent ?? 20,
+      discount_percent: proposal.value.discount_percent ?? 0,
     });
   }
 });
@@ -376,5 +478,55 @@ function statusClass(status) {
     expired: 'bg-yellow-50 text-yellow-700',
   };
   return map[status] || 'bg-gray-100 text-gray-600';
+}
+
+// --- Activity timeline ---
+const activityForm = reactive({ change_type: 'note', description: '' });
+const isSubmittingActivity = ref(false);
+const changeLogs = computed(() => proposal.value?.change_logs || []);
+
+async function submitActivity() {
+  if (!activityForm.description.trim() || isSubmittingActivity.value) return;
+  isSubmittingActivity.value = true;
+  try {
+    const result = await proposalStore.logActivity(proposal.value.id, {
+      change_type: activityForm.change_type,
+      description: activityForm.description.trim(),
+    });
+    if (result.success) {
+      activityForm.description = '';
+      await proposalStore.fetchProposal(proposal.value.id);
+    }
+  } finally {
+    isSubmittingActivity.value = false;
+  }
+}
+
+const activityMeta = {
+  created: { icon: '✨', label: 'Creada', dot: 'bg-gray-200', text: 'text-gray-500' },
+  updated: { icon: '✏️', label: 'Editada', dot: 'bg-gray-200', text: 'text-gray-500' },
+  sent: { icon: '📤', label: 'Enviada', dot: 'bg-blue-100', text: 'text-blue-600' },
+  viewed: { icon: '👁', label: 'Vista', dot: 'bg-green-100', text: 'text-green-600' },
+  accepted: { icon: '✅', label: 'Aceptada', dot: 'bg-emerald-100', text: 'text-emerald-600' },
+  rejected: { icon: '❌', label: 'Rechazada', dot: 'bg-red-100', text: 'text-red-600' },
+  resent: { icon: '🔁', label: 'Re-enviada', dot: 'bg-blue-100', text: 'text-blue-600' },
+  expired: { icon: '⏰', label: 'Expirada', dot: 'bg-yellow-100', text: 'text-yellow-600' },
+  duplicated: { icon: '📋', label: 'Duplicada', dot: 'bg-gray-200', text: 'text-gray-500' },
+  commented: { icon: '💬', label: 'Comentario', dot: 'bg-purple-100', text: 'text-purple-600' },
+  reengagement: { icon: '🔔', label: 'Reengagement', dot: 'bg-orange-100', text: 'text-orange-600' },
+  call: { icon: '📞', label: 'Llamada', dot: 'bg-sky-100', text: 'text-sky-600' },
+  meeting: { icon: '🤝', label: 'Reunión', dot: 'bg-indigo-100', text: 'text-indigo-600' },
+  followup: { icon: '📩', label: 'Seguimiento', dot: 'bg-amber-100', text: 'text-amber-600' },
+  note: { icon: '📝', label: 'Nota', dot: 'bg-gray-200', text: 'text-gray-600' },
+};
+function activityIcon(type) { return activityMeta[type]?.icon || '•'; }
+function activityLabel(type) { return activityMeta[type]?.label || type; }
+function activityDotClass(type) { return activityMeta[type]?.dot || 'bg-gray-200'; }
+function activityLabelClass(type) { return activityMeta[type]?.text || 'text-gray-500'; }
+
+function formatLogDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 </script>

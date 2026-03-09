@@ -20,7 +20,7 @@ from .model_3d import Model3D
 from .product import Item, Category, Product
 from .hosting import Hosting
 from .portfolio_works import PortfolioWork
-from .business_proposal import BusinessProposal
+from .business_proposal import BusinessProposal, ProposalAlert
 from .proposal_section import ProposalSection
 from .proposal_requirement_group import ProposalRequirementGroup
 from .proposal_requirement_item import ProposalRequirementItem

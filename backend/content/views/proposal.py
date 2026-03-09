@@ -9,11 +9,12 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
 from content.models import (
-    BusinessProposal, ProposalSection,
+    BusinessProposal, ProposalAlert, ProposalSection,
     ProposalViewEvent, ProposalSectionView,
     ProposalChangeLog, ProposalShareLink,
 )
 from content.serializers.proposal import (
+    ProposalAlertSerializer,
     ProposalCreateUpdateSerializer,
     ProposalDetailSerializer,
     ProposalFromJSONSerializer,
@@ -248,6 +249,9 @@ def create_proposal_from_json(request):
         title=data['title'],
         client_name=data['client_name'],
         client_email=data.get('client_email', ''),
+        client_phone=data.get('client_phone', ''),
+        project_type=data.get('project_type', ''),
+        market_type=data.get('market_type', ''),
         language=data.get('language', 'es'),
         total_investment=data.get('total_investment', 0),
         currency=data.get('currency', 'COP'),
@@ -343,7 +347,8 @@ def update_proposal(request, proposal_id):
     # Snapshot tracked fields before update
     tracked_fields = [
         'title', 'total_investment', 'currency', 'client_name',
-        'client_email', 'discount_percent', 'status', 'language',
+        'client_email', 'client_phone', 'discount_percent', 'status',
+        'language', 'project_type', 'market_type',
         'expires_at', 'reminder_days', 'urgency_reminder_days',
     ]
     old_values = {f: str(getattr(proposal, f, '')) for f in tracked_fields}
@@ -1643,3 +1648,157 @@ def list_clients(request):
     result.sort(key=lambda c: c['last_sent_at'] or '', reverse=True)
 
     return Response(result, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def log_activity(request, proposal_id):
+    """
+    Manually log a seller activity (call, meeting, follow-up, note) on a proposal.
+
+    Body:
+        change_type: one of 'call', 'meeting', 'followup', 'note'
+        description: free-text description of the activity
+    """
+    proposal = get_object_or_404(BusinessProposal, id=proposal_id)
+    change_type = request.data.get('change_type', '')
+    description = request.data.get('description', '')
+
+    allowed_types = ['call', 'meeting', 'followup', 'note']
+    if change_type not in allowed_types:
+        return Response(
+            {'error': f'change_type must be one of: {", ".join(allowed_types)}'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if not description.strip():
+        return Response(
+            {'error': 'description is required.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    log = ProposalChangeLog.objects.create(
+        proposal=proposal,
+        change_type=change_type,
+        description=description.strip(),
+    )
+    proposal.last_activity_at = timezone.now()
+    proposal.save(update_fields=['last_activity_at'])
+
+    return Response({
+        'id': log.id,
+        'change_type': log.change_type,
+        'description': log.description,
+        'created_at': log.created_at.isoformat(),
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def proposal_alerts(request):
+    """
+    Return proposals that need attention:
+    - Sent but not viewed after reminder_days
+    - Viewed but not responded after urgency_reminder_days
+    - Expiring within 3 days
+    """
+    now = timezone.now()
+    from datetime import timedelta
+
+    alerts = []
+
+    # Sent but not viewed — stale
+    stale = BusinessProposal.objects.filter(
+        status=BusinessProposal.Status.SENT,
+        is_active=True,
+        first_viewed_at__isnull=True,
+    )
+    for p in stale:
+        if p.sent_at and (now - p.sent_at).days >= p.reminder_days:
+            alerts.append({
+                'id': p.id, 'uuid': str(p.uuid),
+                'title': p.title, 'client_name': p.client_name,
+                'alert_type': 'not_viewed',
+                'days_since': (now - p.sent_at).days,
+                'message': f'Enviada hace {(now - p.sent_at).days} días, aún no abierta.',
+            })
+
+    # Viewed but not responded — urgency
+    viewed = BusinessProposal.objects.filter(
+        status=BusinessProposal.Status.VIEWED,
+        is_active=True,
+        responded_at__isnull=True,
+    )
+    for p in viewed:
+        if p.first_viewed_at and (now - p.first_viewed_at).days >= p.urgency_reminder_days:
+            alerts.append({
+                'id': p.id, 'uuid': str(p.uuid),
+                'title': p.title, 'client_name': p.client_name,
+                'alert_type': 'not_responded',
+                'days_since': (now - p.first_viewed_at).days,
+                'message': f'Vista hace {(now - p.first_viewed_at).days} días, sin respuesta.',
+            })
+
+    # Expiring soon (within 3 days)
+    expiring = BusinessProposal.objects.filter(
+        is_active=True,
+        expires_at__isnull=False,
+        expires_at__lte=now + timedelta(days=3),
+        expires_at__gt=now,
+    ).exclude(status__in=[
+        BusinessProposal.Status.ACCEPTED,
+        BusinessProposal.Status.REJECTED,
+        BusinessProposal.Status.EXPIRED,
+    ])
+    for p in expiring:
+        days_left = (p.expires_at - now).days
+        alerts.append({
+            'id': p.id, 'uuid': str(p.uuid),
+            'title': p.title, 'client_name': p.client_name,
+            'alert_type': 'expiring_soon',
+            'days_remaining': days_left,
+            'message': f'Expira en {days_left} día{"s" if days_left != 1 else ""}.',
+        })
+
+    # Manual alerts (not dismissed, alert_date <= now)
+    manual_qs = ProposalAlert.objects.filter(
+        is_dismissed=False,
+        alert_date__lte=now,
+    ).select_related('proposal')
+    for a in manual_qs:
+        alerts.append({
+            'id': a.proposal.id, 'uuid': str(a.proposal.uuid),
+            'title': a.proposal.title, 'client_name': a.proposal.client_name,
+            'alert_type': f'manual_{a.alert_type}',
+            'message': a.message,
+            'manual_alert_id': a.id,
+            'alert_date': a.alert_date.isoformat(),
+        })
+
+    return Response(alerts, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def create_proposal_alert(request):
+    """
+    Create a manual alert/reminder for a proposal.
+
+    Payload: { proposal, alert_type, message, alert_date }
+    """
+    serializer = ProposalAlertSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def dismiss_proposal_alert(request, alert_id):
+    """
+    Dismiss (hide) a manual alert by marking it as dismissed.
+    """
+    alert = get_object_or_404(ProposalAlert, pk=alert_id)
+    alert.is_dismissed = True
+    alert.save(update_fields=['is_dismissed'])
+    return Response({'status': 'dismissed'}, status=status.HTTP_200_OK)

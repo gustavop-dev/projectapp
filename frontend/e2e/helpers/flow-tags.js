@@ -14,11 +14,7 @@ export const LAYOUT_FOOTER_NAVIGATION = ['@flow:layout-footer-navigation', '@mod
 // ── Public ──
 export const PUBLIC_HOME = ['@flow:public-home', '@module:public', '@priority:P1'];
 export const PUBLIC_PORTFOLIO = ['@flow:public-portfolio', '@module:public', '@priority:P2'];
-export const PUBLIC_WEB_DESIGNS = ['@flow:public-web-designs', '@module:public', '@priority:P2'];
-export const PUBLIC_3D_ANIMATIONS = ['@flow:public-3d-animations', '@module:public', '@priority:P3'];
-export const PUBLIC_HOSTING = ['@flow:public-hosting', '@module:public', '@priority:P3'];
-export const PUBLIC_ECOMMERCE_PRICES = ['@flow:public-ecommerce-prices', '@module:public', '@priority:P3'];
-export const PUBLIC_CUSTOM_SOFTWARE = ['@flow:public-custom-software', '@module:public', '@priority:P3'];
+export const PUBLIC_PORTFOLIO_DETAIL = ['@flow:public-portfolio-detail', '@module:public', '@priority:P2'];
 export const PUBLIC_ABOUT_US = ['@flow:public-about-us', '@module:public', '@priority:P3'];
 export const PUBLIC_LANDING_WEB_DESIGN = ['@flow:public-landing-web-design', '@module:public', '@priority:P2'];
 export const PUBLIC_CONTACT_SUBMIT = ['@flow:public-contact-submit', '@module:public', '@priority:P1'];
@@ -66,3 +62,9 @@ export const ADMIN_PROPOSAL_COMMENT = ['@flow:admin-proposal-comment', '@module:
 export const ADMIN_PROPOSAL_ANALYTICS = ['@flow:admin-proposal-analytics', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_DASHBOARD = ['@flow:admin-proposal-dashboard', '@module:admin', '@priority:P2'];
 export const ADMIN_MINI_CRM_CLIENTS = ['@flow:admin-mini-crm-clients', '@module:admin', '@priority:P2'];
+
+// ── Admin Portfolio ──
+export const ADMIN_PORTFOLIO_LIST = ['@flow:admin-portfolio-list', '@module:admin', '@priority:P2'];
+export const ADMIN_PORTFOLIO_CREATE = ['@flow:admin-portfolio-create', '@module:admin', '@priority:P2'];
+export const ADMIN_PORTFOLIO_EDIT = ['@flow:admin-portfolio-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_PORTFOLIO_DELETE = ['@flow:admin-portfolio-delete', '@module:admin', '@priority:P2'];

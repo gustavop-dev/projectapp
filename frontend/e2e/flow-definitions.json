@@ -1,6 +1,6 @@
 {
-  "version": "2.2.0",
-  "lastUpdated": "2026-03-07",
+  "version": "2.3.0",
+  "lastUpdated": "2026-03-09",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -42,44 +42,12 @@
       "description": "Browse portfolio works and project showcases.",
       "expectedSpecs": 1
     },
-    "public-web-designs": {
-      "name": "Web Designs",
+    "public-portfolio-detail": {
+      "name": "Portfolio Case Study Detail",
       "module": "public",
       "roles": ["guest"],
       "priority": "P2",
-      "description": "Browse web design services and examples.",
-      "expectedSpecs": 1
-    },
-    "public-3d-animations": {
-      "name": "3D Animations",
-      "module": "public",
-      "roles": ["guest"],
-      "priority": "P3",
-      "description": "View 3D animation services and examples.",
-      "expectedSpecs": 1
-    },
-    "public-hosting": {
-      "name": "Hosting Plans",
-      "module": "public",
-      "roles": ["guest"],
-      "priority": "P3",
-      "description": "View hosting plans and pricing.",
-      "expectedSpecs": 1
-    },
-    "public-ecommerce-prices": {
-      "name": "E-Commerce Prices",
-      "module": "public",
-      "roles": ["guest"],
-      "priority": "P3",
-      "description": "View e-commerce development pricing.",
-      "expectedSpecs": 1
-    },
-    "public-custom-software": {
-      "name": "Custom Software",
-      "module": "public",
-      "roles": ["guest"],
-      "priority": "P3",
-      "description": "View custom software development services.",
+      "description": "View a single portfolio case study with cover image, content sections, share button, and back navigation.",
       "expectedSpecs": 1
     },
     "public-about-us": {
@@ -337,6 +305,38 @@
       "roles": ["admin"],
       "priority": "P2",
       "description": "View client list grouped by email with proposal history and search.",
+      "expectedSpecs": 1
+    },
+    "admin-portfolio-list": {
+      "name": "Admin Portfolio List",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "View the list of all portfolio works with status, edit/duplicate/delete actions.",
+      "expectedSpecs": 1
+    },
+    "admin-portfolio-create": {
+      "name": "Admin Portfolio Create",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Create a new portfolio work via manual form or JSON import.",
+      "expectedSpecs": 1
+    },
+    "admin-portfolio-edit": {
+      "name": "Admin Portfolio Edit",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Edit an existing portfolio work including bilingual fields, cover image, content JSON, and SEO.",
+      "expectedSpecs": 1
+    },
+    "admin-portfolio-delete": {
+      "name": "Admin Portfolio Delete",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Delete an existing portfolio work.",
       "expectedSpecs": 1
     }
   }

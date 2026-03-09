@@ -1,9 +1,11 @@
 import copy as _copy
 import logging
+import math
 from xml.sax.saxutils import escape as xml_escape
 
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django.utils.dateparse import parse_date
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import MultiPartParser
@@ -192,11 +194,29 @@ def retrieve_blog_post(request, slug):
 def list_admin_blog_posts(request):
     """
     List all blog posts (including drafts) for admin management.
+    Supports pagination via ?page=N&page_size=N query params.
     Returns all bilingual fields.
     """
     qs = BlogPost.objects.all()
-    serializer = BlogPostAdminListSerializer(qs, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+
+    page = int(request.query_params.get('page', 1))
+    page_size = int(request.query_params.get('page_size', 15))
+    page = max(1, page)
+    page_size = max(1, min(page_size, 100))
+
+    total = qs.count()
+    total_pages = max(1, math.ceil(total / page_size))
+    start = (page - 1) * page_size
+    end = start + page_size
+
+    serializer = BlogPostAdminListSerializer(qs[start:end], many=True)
+    return Response({
+        'results': serializer.data,
+        'count': total,
+        'page': page,
+        'page_size': page_size,
+        'total_pages': total_pages,
+    }, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -400,3 +420,83 @@ def upload_blog_cover_image(request, post_id):
 
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def blog_calendar(request):
+    """
+    Return blog posts within a date range for calendar display.
+
+    Query params:
+      - start: YYYY-MM-DD (required)
+      - end: YYYY-MM-DD (required)
+
+    Returns posts that have published_at within [start, end],
+    plus drafts created within that range.
+    """
+    start_str = request.query_params.get('start')
+    end_str = request.query_params.get('end')
+
+    if not start_str or not end_str:
+        return Response(
+            {'detail': 'start and end query params are required (YYYY-MM-DD).'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    start_date = parse_date(start_str)
+    end_date = parse_date(end_str)
+    if not start_date or not end_date:
+        return Response(
+            {'detail': 'Invalid date format. Use YYYY-MM-DD.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    from datetime import datetime, time
+    from django.utils import timezone as tz
+    start_dt = tz.make_aware(datetime.combine(start_date, time.min))
+    end_dt = tz.make_aware(datetime.combine(end_date, time.max))
+
+    # Published or scheduled posts with published_at in range
+    published_qs = BlogPost.objects.filter(
+        published_at__gte=start_dt,
+        published_at__lte=end_dt,
+    )
+    # Drafts (no published_at) created in range
+    draft_qs = BlogPost.objects.filter(
+        is_published=False,
+        published_at__isnull=True,
+        created_at__gte=start_dt,
+        created_at__lte=end_dt,
+    )
+
+    all_ids = set(published_qs.values_list('id', flat=True)) | set(
+        draft_qs.values_list('id', flat=True)
+    )
+    posts = BlogPost.objects.filter(id__in=all_ids)
+
+    data = []
+    for p in posts:
+        is_scheduled = (
+            not p.is_published
+            and p.published_at is not None
+            and p.published_at > tz.now()
+        )
+        cal_status = 'published' if p.is_published else ('scheduled' if is_scheduled else 'draft')
+        data.append({
+            'id': p.id,
+            'title_es': p.title_es,
+            'title_en': p.title_en,
+            'slug': p.slug,
+            'category': p.category,
+            'is_published': p.is_published,
+            'published_at': p.published_at.isoformat() if p.published_at else None,
+            'created_at': p.created_at.isoformat(),
+            'calendar_status': cal_status,
+            'date': (
+                p.published_at.strftime('%Y-%m-%d') if p.published_at
+                else p.created_at.strftime('%Y-%m-%d')
+            ),
+        })
+
+    return Response(data, status=status.HTTP_200_OK)

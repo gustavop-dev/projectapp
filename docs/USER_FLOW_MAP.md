@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 1.3.0
-> **Last updated:** 2026-03-07
+> **Version:** 1.4.0
+> **Last updated:** 2026-03-09
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -69,15 +69,16 @@
 - **Role:** guest/admin
 - **Priority:** P2
 - **Routes:** All pages
-- **Description:** Navigate between pages using the fixed top navbar.
+- **Description:** Navigate between pages using the glassmorphism pill navbar with sliding lemon indicator.
 - **Steps:**
-  1. User sees the fixed navbar at the top of the page.
-  2. User clicks a navigation link (Home, Services, Portfolio, Blog, Contact).
+  1. User sees the glassmorphism pill navbar fixed at the top of the page.
+  2. User clicks a navigation link (Home, About, Our work/Portfolio, Blog, Contact/WhatsApp).
   3. Page navigates to the selected route.
-  4. Navbar remains visible and highlights the active section.
+  4. Lemon pill indicator slides to highlight the active section.
 - **Branches:**
-  - [Branch A] User switches language via locale switcher → page reloads in selected locale (`/en-us/` or `/es-co/`).
-  - [Branch B] User clicks WhatsApp button → external link opens.
+  - [Branch A] User toggles language via EN/ES button → page reloads in selected locale (`/en-us/` or `/es-co/`).
+  - [Branch B] User clicks Contact (WhatsApp) → external link opens.
+  - [Branch C — Mobile] Hamburger menu opens with navigation links + WhatsApp CTA button.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/layout/layout-navbar.spec.js`
 
@@ -143,83 +144,43 @@
 - **Role:** guest
 - **Priority:** P2
 - **Routes:** `/portfolio-works`, `/en-us/portfolio-works`, `/es-co/portfolio-works`
-- **Description:** Browse portfolio works and project showcases.
+- **Description:** Browse portfolio works listing page (Awwwards-style) with hero section, animated gradient, and project cards linking to case study detail pages.
 - **Steps:**
   1. User navigates to the portfolio page.
-  2. Portfolio works load from API (`GET /api/portfolio_works/`).
-  3. Portfolio grid renders with project cards.
-  4. User views project details (images, descriptions).
+  2. Hero section renders with animated gradient background.
+  3. Portfolio works load from API (`GET /api/portfolio/`).
+  4. Project cards render with title, excerpt, cover image, and "View" link.
+  5. User clicks a project card.
+  6. Page navigates to `/portfolio-works/:slug`.
+- **Branches:**
+  - [Branch A] Empty state renders when no projects are published.
+  - [Branch B] Loading spinner renders while data is being fetched.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/public/public-pages.spec.js`
 
-### FLOW: `public-web-designs`
+### FLOW: `public-portfolio-detail`
 
 - **Module:** public
 - **Role:** guest
 - **Priority:** P2
-- **Routes:** `/web-designs`, `/en-us/web-designs`, `/es-co/web-designs`
-- **Description:** Browse web design services and examples.
+- **Routes:** `/portfolio-works/:slug`, `/en-us/portfolio-works/:slug`, `/es-co/portfolio-works/:slug`
+- **Description:** View a single portfolio case study (Awwwards-style) with cover image, content sections, share button, project URL link, and back navigation.
 - **Steps:**
-  1. User navigates to the web designs page.
-  2. Design data loads from API (`GET /api/designs/`).
-  3. Design showcase renders.
+  1. User clicks a project from the portfolio listing or navigates directly to `/portfolio-works/:slug`.
+  2. Case study data loads from API (`GET /api/portfolio/:slug/`).
+  3. Title, excerpt, cover image, and share button render.
+  4. Content sections render (JSON-structured content or HTML fallback).
+  5. Back link to `/portfolio-works` is visible.
+  6. [Optional] "Visit project" link renders if `project_url` exists.
+- **Branches:**
+  - [Branch A — Not found] 404 page renders with "Back to portfolio" link.
+  - [Branch B — Share] User clicks share button to share the case study.
 - **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/public/public-pages.spec.js`
+- **E2E Spec:** `e2e/public/public-portfolio-detail.spec.js`
 
-### FLOW: `public-3d-animations`
-
-- **Module:** public
-- **Role:** guest
-- **Priority:** P3
-- **Routes:** `/3d-animations`, `/en-us/3d-animations`, `/es-co/3d-animations`
-- **Description:** View 3D animation services and examples.
-- **Steps:**
-  1. User navigates to the 3D animations page.
-  2. 3D model data loads from API (`GET /api/models3d/`).
-  3. 3D animation showcase renders.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/public/public-pages.spec.js`
-
-### FLOW: `public-hosting`
-
-- **Module:** public
-- **Role:** guest
-- **Priority:** P3
-- **Routes:** `/hosting`, `/en-us/hosting`, `/es-co/hosting`
-- **Description:** View hosting plans and pricing.
-- **Steps:**
-  1. User navigates to the hosting page.
-  2. Hosting plans load from API (`GET /api/hostings/`).
-  3. Hosting plans render with pricing details.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/public/public-pages.spec.js`
-
-### FLOW: `public-ecommerce-prices`
-
-- **Module:** public
-- **Role:** guest
-- **Priority:** P3
-- **Routes:** `/e-commerce-prices`, `/en-us/e-commerce-prices`, `/es-co/e-commerce-prices`
-- **Description:** View e-commerce development pricing.
-- **Steps:**
-  1. User navigates to the e-commerce prices page.
-  2. Product/pricing data loads from API (`GET /api/products/`).
-  3. Pricing cards render.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/public/public-pages.spec.js`
-
-### FLOW: `public-custom-software`
-
-- **Module:** public
-- **Role:** guest
-- **Priority:** P3
-- **Routes:** `/custom-software`, `/en-us/custom-software`, `/es-co/custom-software`
-- **Description:** View custom software development services.
-- **Steps:**
-  1. User navigates to the custom software page.
-  2. Service information renders.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/public/public-pages.spec.js`
+> **Archived Flows:** The following pages were moved to `_archived/` and are no longer accessible via navigation:
+> `public-web-designs`, `public-3d-animations`, `public-hosting`, `public-ecommerce-prices`, `public-custom-software`.
+> They were previously covered by `e2e/public/public-pages.spec.js`.
 
 ### FLOW: `public-about-us`
 
@@ -775,19 +736,55 @@
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-send.spec.js`
 
+### FLOW: `admin-proposal-manual-alerts`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/`
+- **Description:** Create, view, and dismiss manual seller alerts/reminders for proposals.
+- **Steps:**
+  1. Admin navigates to `/panel/proposals/`.
+  2. Alerts panel shows auto-alerts (not_viewed, not_responded, expiring_soon) merged with manual alerts from API (`GET /api/proposals/alerts/`).
+  3. Admin clicks "+ Crear recordatorio" to open the create alert form.
+  4. Admin selects a proposal, alert type (reminder/followup/call/meeting/custom), date, and message.
+  5. Admin submits → API call to `POST /api/proposals/alerts/create/`.
+  6. New alert appears in the panel with dismiss (✕) button.
+  7. Admin clicks ✕ → API call to `PATCH /api/proposals/alerts/:id/dismiss/` → alert removed from list.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
 ### FLOW: `admin-blog-list`
 
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/blog/`
-- **Description:** View the list of all blog posts (admin view with both languages).
+- **Description:** View the paginated list of all blog posts (admin view with both languages).
 - **Steps:**
   1. Admin navigates to `/panel/blog/`.
-  2. Blog posts load from API (`GET /api/blog/admin/`).
+  2. Blog posts load from API (`GET /api/blog/admin/?page=1&page_size=15`).
   3. Blog table renders with title_es, title_en, status, dates.
+  4. Pagination controls appear if total pages > 1 (prev/next + page numbers).
+  5. "Calendario" button links to calendar view.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-blog-list.spec.js`
+
+### FLOW: `admin-blog-calendar`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/blog/calendar`
+- **Description:** Weekly calendar view showing scheduled, published, and draft blog posts.
+- **Steps:**
+  1. Admin navigates to `/panel/blog/calendar`.
+  2. Calendar loads current week posts from API (`GET /api/blog/admin/calendar/?start=YYYY-MM-DD&end=YYYY-MM-DD`).
+  3. Week grid renders Mon–Sun with posts color-coded: green (published), blue (scheduled), gray (draft).
+  4. Admin uses ← / → arrows to navigate weeks, "Hoy" button to return to current week.
+  5. Clicking a post card navigates to its edit page.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
 
 ### FLOW: `admin-blog-create`
 
@@ -858,7 +855,82 @@
   4. Admin submits.
   5. API call to `POST /api/blog/admin/create/` with structured content_json.
   6. On success, admin is redirected to blog list.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-blog-create.spec.js`
+
+### FLOW: `admin-portfolio-list`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/portfolio/`
+- **Description:** View the list of all portfolio works with status badges, edit/duplicate/delete actions.
+- **Steps:**
+  1. Admin navigates to `/panel/portfolio/`.
+  2. Portfolio works load from API (`GET /api/portfolio/admin/`).
+  3. Table renders with title, slug, status (published/draft/archived), dates.
+  4. Admin sees action links: edit, duplicate, delete.
+  5. "Nuevo Proyecto" button links to create page.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-portfolio-list.spec.js`
+
+### FLOW: `admin-portfolio-create`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/portfolio/create`
+- **Description:** Create a new portfolio work via manual form (bilingual fields, cover image, project URL, content JSON, SEO) or JSON import.
+- **Steps:**
+  1. Admin navigates to `/panel/portfolio/create`.
+  2. Page loads with Manual / Importar JSON tab toggle.
+  3. Manual tab is active by default — form renders with ES/EN fieldsets.
+  4. Admin fills title, tagline, project URL, cover image, content JSON, SEO fields.
+  5. Admin submits.
+  6. API call to `POST /api/portfolio/admin/create/`.
+  7. On success, admin is redirected to portfolio list.
+- **Branches:**
+  - [Branch A — JSON import] Admin switches to "Importar JSON" tab, pastes JSON, submits via `POST /api/portfolio/admin/create-from-json/`.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-portfolio-create.spec.js`
+
+### FLOW: `admin-portfolio-edit`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/portfolio/:id/edit`
+- **Description:** Edit an existing portfolio work including bilingual fields, cover image upload, content JSON, and SEO meta.
+- **Steps:**
+  1. Admin navigates to `/panel/portfolio/:id/edit`.
+  2. Portfolio work data loads from API (`GET /api/portfolio/admin/:id/detail/`).
+  3. Edit form renders pre-filled with current data.
+  4. Admin modifies content.
+  5. Admin saves changes.
+  6. API call to `PATCH /api/portfolio/admin/:id/update/`.
+  7. Success feedback displays.
+- **Branches:**
+  - [Branch A] Admin uploads a new cover image via `POST /api/portfolio/admin/:id/upload-cover/`.
+  - [Branch B] "Ver en público" link opens the public page in a new tab.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-portfolio-edit.spec.js`
+
+### FLOW: `admin-portfolio-delete`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/portfolio/`
+- **Description:** Delete an existing portfolio work.
+- **Steps:**
+  1. Admin views the portfolio list.
+  2. Admin clicks delete on a portfolio work.
+  3. Confirmation dialog appears.
+  4. Admin confirms deletion.
+  5. API call to `DELETE /api/portfolio/admin/:id/delete/`.
+  6. Portfolio work is removed from the list.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-portfolio-delete.spec.js`
 
 ---
 
@@ -871,11 +943,7 @@
 | `layout-footer-navigation` | layout | guest/admin | P3 | ✅ Covered | `e2e/layout/layout-footer.spec.js` |
 | `public-home` | public | guest | P1 | ✅ Covered | `e2e/public/public-home.spec.js` |
 | `public-portfolio` | public | guest | P2 | ✅ Covered | `e2e/public/public-pages.spec.js` |
-| `public-web-designs` | public | guest | P2 | ✅ Covered | `e2e/public/public-pages.spec.js` |
-| `public-3d-animations` | public | guest | P3 | ✅ Covered | `e2e/public/public-pages.spec.js` |
-| `public-hosting` | public | guest | P3 | ✅ Covered | `e2e/public/public-pages.spec.js` |
-| `public-ecommerce-prices` | public | guest | P3 | ✅ Covered | `e2e/public/public-pages.spec.js` |
-| `public-custom-software` | public | guest | P3 | ✅ Covered | `e2e/public/public-pages.spec.js` |
+| `public-portfolio-detail` | public | guest | P2 | ✅ Covered | `e2e/public/public-portfolio-detail.spec.js` |
 | `public-about-us` | public | guest | P3 | ✅ Covered | `e2e/public/public-pages.spec.js` |
 | `public-landing-web-design` | public | guest | P2 | ✅ Covered | `e2e/public/public-pages.spec.js` |
 | `public-contact-submit` | public | guest | P1 | ✅ Covered | `e2e/public/public-contact.spec.js` |
@@ -894,11 +962,11 @@
 | `admin-proposal-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-proposal-create-from-json` | admin | admin | P1 | ❌ Missing | — |
 | `admin-proposal-edit` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-edit.spec.js` |
-| `admin-proposal-section-edit-form` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-section-form.spec.js` |
-| `admin-proposal-section-edit-paste` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-section-paste.spec.js` |
+| `admin-proposal-section-edit-form` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-section-form.spec.js` |
+| `admin-proposal-section-edit-paste` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-section-paste.spec.js` |
 | `admin-proposal-section-reorder` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-section-reorder.spec.js` |
-| `admin-proposal-functional-requirements-form` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-requirements.spec.js` |
-| `admin-proposal-functional-requirements-paste` | admin | admin | P1 | ⚠️ Partial | `e2e/admin/admin-proposal-requirements.spec.js` |
+| `admin-proposal-functional-requirements-form` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-requirements.spec.js` |
+| `admin-proposal-functional-requirements-paste` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-requirements.spec.js` |
 | `admin-proposal-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-delete.spec.js` |
 | `admin-proposal-duplicate` | admin | admin | P2 | ❌ Missing | — |
 | `admin-proposal-comment` | admin | admin | P3 | ❌ Missing | — |
@@ -907,20 +975,25 @@
 | `admin-mini-crm-clients` | admin | admin | P2 | ❌ Missing | — |
 | `admin-proposal-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-send.spec.js` |
 | `admin-blog-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-list.spec.js` |
+| `admin-blog-calendar` | admin | admin | P2 | ❌ Missing | — |
 | `admin-blog-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-create.spec.js` |
-| `admin-blog-create-from-json` | admin | admin | P2 | ❌ Missing | — |
+| `admin-blog-create-from-json` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-create.spec.js` |
 | `admin-blog-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-edit.spec.js` |
 | `admin-blog-delete` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-blog-delete.spec.js` |
+| `admin-proposal-manual-alerts` | admin | admin | P2 | ❌ Missing | — |
+| `admin-portfolio-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-list.spec.js` |
+| `admin-portfolio-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-create.spec.js` |
+| `admin-portfolio-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-edit.spec.js` |
+| `admin-portfolio-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-delete.spec.js` |
 
 ### Summary
 
-- **Total flows:** 47 (+9 new flows: proposal-share, proposal-engagement-tracking, admin-proposal-duplicate, admin-proposal-comment, admin-proposal-analytics, admin-proposal-dashboard, admin-mini-crm-clients, admin-blog-create-from-json)
-- **P1 (Critical):** 16
-- **P2 (High):** 22
-- **P3 (Medium):** 9
-- **Covered (full):** 30 (64%)
-- **Partial:** 4 (9%) — section-edit-form, section-edit-paste, requirements-form, requirements-paste
-- **Missing:** 13 (28%) — proposal-view-onboarding, proposal-share, proposal-engagement-tracking, admin-proposal-create-from-json, admin-proposal-duplicate, admin-proposal-comment, admin-proposal-analytics, admin-proposal-dashboard, admin-mini-crm-clients, admin-blog-create-from-json, +3 more
+- **Total flows:** 48 (added admin-blog-calendar, admin-proposal-manual-alerts)
+- **P1 (Critical):** 15
+- **P2 (High):** 25
+- **P3 (Medium):** 8
+- **Covered (full):** 35 (73%)
+- **Missing:** 13 (27%) — proposal-view-onboarding, proposal-share, proposal-engagement-tracking, admin-proposal-create-from-json, admin-proposal-duplicate, admin-proposal-comment, admin-proposal-analytics, admin-proposal-dashboard, admin-mini-crm-clients, admin-blog-calendar, admin-proposal-manual-alerts
 
 ### Unit Test Coverage
 

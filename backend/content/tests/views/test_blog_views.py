@@ -63,12 +63,14 @@ class TestAdminBlogListView:
     def test_returns_200_for_admin(self, admin_client, blog_post, draft_blog_post):
         response = admin_client.get(reverse('list-admin-blog-posts'))
         assert response.status_code == 200
-        assert len(response.data) == 2
+        assert response.data['count'] == 2
+        assert len(response.data['results']) == 2
 
     def test_includes_drafts_for_admin(self, admin_client, draft_blog_post):
         response = admin_client.get(reverse('list-admin-blog-posts'))
         assert response.status_code == 200
-        assert len(response.data) == 1
+        assert response.data['count'] == 1
+        assert len(response.data['results']) == 1
 
 
 class TestAdminCreateBlogPost:

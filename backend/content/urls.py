@@ -24,14 +24,15 @@ from content.views.proposal import (
     track_proposal_engagement, retrieve_proposal_analytics,
     proposal_dashboard, export_proposal_analytics_csv,
     create_share_link, retrieve_shared_proposal, schedule_followup,
-    list_clients,
+    list_clients, log_activity, proposal_alerts,
+    create_proposal_alert, dismiss_proposal_alert,
 )
 from content.views.blog import (
     list_blog_posts, retrieve_blog_post, blog_sitemap_data,
     list_admin_blog_posts, create_blog_post, create_blog_post_from_json,
     get_blog_json_template,
     retrieve_admin_blog_post, update_blog_post, delete_blog_post,
-    duplicate_blog_post, upload_blog_cover_image,
+    duplicate_blog_post, upload_blog_cover_image, blog_calendar,
 )
 
 urlpatterns = [
@@ -73,6 +74,10 @@ urlpatterns = [
     path('proposals/<int:proposal_id>/analytics/csv/', export_proposal_analytics_csv, name='proposal-analytics-csv'),
     path('proposals/dashboard/', proposal_dashboard, name='proposal-dashboard'),
     path('proposals/clients/', list_clients, name='list-clients'),
+    path('proposals/alerts/', proposal_alerts, name='proposal-alerts'),
+    path('proposals/alerts/create/', create_proposal_alert, name='create-proposal-alert'),
+    path('proposals/alerts/<int:alert_id>/dismiss/', dismiss_proposal_alert, name='dismiss-proposal-alert'),
+    path('proposals/<int:proposal_id>/log-activity/', log_activity, name='log-activity'),
 
     # Proposals — section editing
     path('proposals/sections/<int:section_id>/update/', update_proposal_section, name='update-proposal-section'),
@@ -87,6 +92,7 @@ urlpatterns = [
     path('blog/admin/<int:post_id>/delete/', delete_blog_post, name='delete-blog-post'),
     path('blog/admin/<int:post_id>/duplicate/', duplicate_blog_post, name='duplicate-blog-post'),
     path('blog/admin/<int:post_id>/upload-cover/', upload_blog_cover_image, name='upload-blog-cover-image'),
+    path('blog/admin/calendar/', blog_calendar, name='blog-calendar'),
 
     # Blog — public
     path('blog/', list_blog_posts, name='list-blog-posts'),

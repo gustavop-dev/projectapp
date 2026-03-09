@@ -17,13 +17,15 @@ pytestmark = pytest.mark.django_db
 
 
 class TestGetDefaultSections:
-    def test_returns_12_sections_for_es(self):
+    def test_returns_13_sections_for_es(self):
+        """Verify ES defaults include all 13 section types (greeting through next_steps)."""
         sections = ProposalService.get_default_sections('es')
-        assert len(sections) == 12
+        assert len(sections) == 13
 
-    def test_returns_12_sections_for_en(self):
+    def test_returns_13_sections_for_en(self):
+        """Verify EN defaults include all 13 section types (greeting through next_steps)."""
         sections = ProposalService.get_default_sections('en')
-        assert len(sections) == 12
+        assert len(sections) == 13
 
     def test_all_sections_have_required_keys(self):
         sections = ProposalService.get_default_sections('es')
@@ -39,12 +41,14 @@ class TestGetDefaultSections:
         orders = [s['order'] for s in sections]
         assert orders == sorted(orders)
 
-    def test_section_types_cover_all_12_types(self):
+    def test_section_types_cover_all_13_types(self):
+        """Verify all 13 section types are present in the ES defaults."""
         expected_types = {
             'greeting', 'executive_summary', 'context_diagnostic',
             'conversion_strategy', 'design_ux', 'creative_support',
             'development_stages', 'functional_requirements',
-            'timeline', 'investment', 'final_note', 'next_steps',
+            'timeline', 'investment', 'proposal_summary',
+            'final_note', 'next_steps',
         }
         sections = ProposalService.get_default_sections('es')
         actual_types = {s['section_type'] for s in sections}
@@ -56,17 +60,22 @@ class TestGetDefaultSections:
         assert 'Greeting' in greeting['title']
 
     def test_es_sections_have_spanish_content(self):
+        """Verify ES executive_summary section has Spanish content in its content_json."""
         sections = ProposalService.get_default_sections('es')
         es_section = next(s for s in sections if s['section_type'] == 'executive_summary')
-        assert 'Resumen' in es_section['title'] or 'ejecutivo' in es_section['title'].lower()
+        assert 'Resumen' in es_section['content_json']['title']
 
     def test_functional_requirements_has_default_groups(self):
+        """Verify ES functional_requirements has 6 groups including analytics_dashboard."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
-        assert len(groups) == 5
+        assert len(groups) == 6
         group_ids = {g['id'] for g in groups}
-        assert group_ids == {'views', 'components', 'features', 'integrations_api', 'admin_module'}
+        assert group_ids == {
+            'views', 'components', 'features',
+            'integrations_api', 'admin_module', 'analytics_dashboard',
+        }
 
     def test_views_group_has_13_default_items(self):
         sections = ProposalService.get_default_sections('es')
@@ -100,13 +109,17 @@ class TestGetDefaultSections:
         greeting = next(s for s in sections if s['section_type'] == 'greeting')
         assert greeting['title'].startswith('\U0001f44b')
 
-    def test_en_functional_requirements_has_5_groups(self):
+    def test_en_functional_requirements_has_6_groups(self):
+        """Verify EN functional_requirements has 6 groups including analytics_dashboard."""
         sections = ProposalService.get_default_sections('en')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
-        assert len(groups) == 5
+        assert len(groups) == 6
         group_ids = {g['id'] for g in groups}
-        assert 'integrations_api' in group_ids
+        assert group_ids == {
+            'views', 'components', 'features',
+            'integrations_api', 'admin_module', 'analytics_dashboard',
+        }
 
     def test_development_stages_has_current_stage(self):
         sections = ProposalService.get_default_sections('es')
@@ -116,8 +129,9 @@ class TestGetDefaultSections:
         assert len(current_stages) == 1
 
     def test_defaults_to_es_for_unknown_language(self):
+        """Unknown language code falls back to Spanish defaults (13 sections)."""
         sections = ProposalService.get_default_sections('fr')
-        assert len(sections) == 12
+        assert len(sections) == 13
 
 
 class TestSendProposal:

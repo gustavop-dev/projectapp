@@ -240,25 +240,10 @@
           <FieldInput v-model="form.title" label="Título" />
         </div>
         <FieldTextarea v-model="form.introText" label="Texto introductorio" :rows="2" :isSingle="true" />
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FieldInput v-model="form.totalInvestment" label="Inversión total" placeholder="$3.500.000" />
-          <div>
-            <label class="block text-xs text-gray-500 mb-0.5">Moneda</label>
-            <select
-              v-model="form.currency"
-              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
-            >
-              <option value="COP">COP</option>
-              <option value="USD">USD</option>
-            </select>
-          </div>
+        <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800">
+          💰 <strong>Inversión total:</strong> ${{ Number(proposalData?.total_investment || 0).toLocaleString() }} {{ proposalData?.currency || 'COP' }}
+          <span class="text-xs text-blue-600 ml-2">(se edita en la pestaña "General")</span>
         </div>
-        <p v-if="proposalData?.total_investment && !form.totalInvestment" class="text-xs text-amber-600 -mt-3">
-          ⚠ Vacío — se puede usar ${{ Number(proposalData.total_investment).toLocaleString() }} {{ proposalData.currency || 'COP' }} de los datos generales.
-          <button type="button" class="ml-1 text-emerald-600 underline" @click="fillInvestmentFromProposal">
-            Llenar automáticamente
-          </button>
-        </p>
         <div>
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Qué incluye</label>
           <draggable v-model="form.whatsIncluded" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
@@ -434,6 +419,47 @@
         <FieldTextarea v-model="form.thankYouMessage" label="Mensaje de agradecimiento" :rows="2" :isSingle="true" />
       </template>
 
+      <!-- PROPOSAL SUMMARY -->
+      <template v-else-if="sectionType === 'proposal_summary'">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FieldInput v-model="form.index" label="Índice" placeholder="10" />
+          <FieldInput v-model="form.title" label="Título" />
+        </div>
+        <FieldTextarea v-model="form.subtitle" label="Subtítulo" :rows="2" :isSingle="true" />
+        <div>
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Tarjetas de resumen</label>
+          <draggable v-model="form.cards" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+            <template #item="{ element: card, index: idx }">
+              <div class="mb-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+                <div class="flex items-center justify-between mb-1">
+                  <div class="flex items-center gap-2">
+                    <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
+                    <span class="text-xs text-gray-400">Tarjeta {{ idx + 1 }}</span>
+                  </div>
+                  <button type="button" class="text-xs text-red-500" @click="form.cards.splice(idx, 1)">Eliminar</button>
+                </div>
+                <div class="grid grid-cols-[100px_1fr] gap-2 mb-1">
+                  <EmojiIconField v-model="card.icon" label="Icono" placeholder="💰" />
+                  <FieldInput v-model="card.title" label="Título" />
+                </div>
+                <FieldInput v-model="card.description" label="Descripción" />
+                <div class="mt-1">
+                  <label class="block text-[10px] text-gray-400 mb-0.5">Fuente del valor</label>
+                  <select v-model="card.source" class="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-xs bg-white focus:ring-1 focus:ring-emerald-500 outline-none">
+                    <option value="static">Estático (solo texto)</option>
+                    <option value="total_investment">Inversión total (auto)</option>
+                    <option value="timeline_duration">Duración del cronograma (auto)</option>
+                    <option value="expires_at">Fecha de expiración (auto)</option>
+                    <option value="cta">Call-to-action</option>
+                  </select>
+                </div>
+              </div>
+            </template>
+          </draggable>
+          <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.cards.push({ icon: '', title: '', description: '', source: 'static' })">+ Agregar tarjeta</button>
+        </div>
+      </template>
+
       <!-- NEXT STEPS -->
       <template v-else-if="sectionType === 'next_steps'">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -554,7 +580,7 @@
               <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
               <draggable v-model="group.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
                 <template #item="{ element: item, index: iIdx }">
-                  <div class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                  <div class="mb-2 bg-gray-50 rounded-lg p-3 border" :class="!item.is_required && !item.price ? 'border-amber-300 bg-amber-50/30' : 'border-gray-100'">
                     <div class="flex items-center justify-between mb-1">
                       <div class="flex items-center gap-2">
                         <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
@@ -574,6 +600,7 @@
                         <span class="text-[10px] text-gray-500">Obligatorio</span>
                       </label>
                     </div>
+                    <p v-if="!item.is_required && !item.price" class="text-[10px] text-amber-600 mt-1">⚠ Elemento opcional sin precio — el cliente no podrá calcular su inversión personalizada.</p>
                   </div>
                 </template>
               </draggable>
@@ -707,6 +734,7 @@
       </button>
       <span v-if="savedMsg" class="text-xs text-green-600">{{ savedMsg }}</span>
     </div>
+    <p v-if="validationError" class="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">{{ validationError }}</p>
 
     <!-- Section preview modal -->
     <SectionPreviewModal
@@ -802,6 +830,7 @@ const previewSection = computed(() => {
   };
 });
 const savedMsg = ref('');
+const validationError = ref('');
 const showRawJson = ref(false);
 const hostingCollapsed = ref(true);
 const modulesCollapsed = ref(true);
@@ -858,15 +887,11 @@ function fillInvestmentFromProposal() {
   ];
 }
 
-function parseInvestmentNumber(str) {
-  if (!str) return 0;
-  return Number(String(str).replace(/[^0-9.]/g, '')) || 0;
-}
-
-function recalcPaymentDescriptions() {
-  const total = parseInvestmentNumber(form.totalInvestment);
+function recalcPaymentFromProposal() {
+  if (!props.proposalData?.total_investment) return;
+  const total = Number(props.proposalData.total_investment);
   if (!total) return;
-  const cur = form.currency || 'COP';
+  const cur = props.proposalData.currency || 'COP';
   const fmt = (n) => '$' + Math.round(n).toLocaleString();
   for (const opt of form.paymentOptions) {
     const pctMatch = opt.label?.match(/(\d+)%/);
@@ -890,10 +915,10 @@ watch(() => props.section, (s) => {
   Object.assign(form, buildFormFromJson(s.content_json || {}, s.section_type));
 }, { deep: true });
 
-// Auto-recalculate payment option descriptions when investment or currency changes
+// Auto-recalculate payment option descriptions when proposal investment changes
 if (sectionType.value === 'investment') {
-  watch([() => form.totalInvestment, () => form.currency], () => {
-    recalcPaymentDescriptions();
+  watch(() => props.proposalData?.total_investment, () => {
+    recalcPaymentFromProposal();
   });
 }
 
@@ -943,10 +968,44 @@ const rawJsonText = computed(() => {
   } catch { return '{}'; }
 });
 
+function validateOptionalPrices() {
+  const missing = [];
+  const type = sectionType.value;
+
+  if (type === 'investment') {
+    const modules = form.modules || [];
+    for (const mod of modules) {
+      if (mod.is_required === false && !mod.price) {
+        missing.push(mod.name || 'Módulo sin nombre');
+      }
+    }
+  } else if (type === 'functional_requirements') {
+    const allGroups = [...(form.groups || []), ...(form.additionalModules || [])];
+    for (const group of allGroups) {
+      for (const item of (group.items || [])) {
+        if (item.is_required === false && !item.price) {
+          missing.push(item.name || 'Elemento sin nombre');
+        }
+      }
+    }
+  }
+
+  return missing;
+}
+
 function handleSave() {
   isSaving.value = true;
   savedMsg.value = '';
+  validationError.value = '';
   try {
+    // Hard validation: optional items must have a price
+    const missingPrices = validateOptionalPrices();
+    if (missingPrices.length > 0) {
+      validationError.value = `No se puede guardar: los siguientes elementos opcionales (Obligatorio = No) no tienen precio asignado: ${missingPrices.join(', ')}`;
+      isSaving.value = false;
+      return;
+    }
+
     const contentJson = formToJson(form, sectionType.value);
     if (pasteMode.value) {
       contentJson._editMode = 'paste';

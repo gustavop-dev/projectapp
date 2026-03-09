@@ -2,16 +2,28 @@
   <div>
     <div class="flex items-center justify-between mb-8">
       <h1 class="text-2xl font-light text-gray-900">Blog Posts</h1>
-      <NuxtLink
-        to="/panel/blog/create"
-        class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
-               font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        Nuevo Post
-      </NuxtLink>
+      <div class="flex items-center gap-3">
+        <NuxtLink
+          to="/panel/blog/calendar"
+          class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl
+                 font-medium text-sm hover:bg-gray-50 transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          Calendario
+        </NuxtLink>
+        <NuxtLink
+          to="/panel/blog/create"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
+                 font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Nuevo Post
+        </NuxtLink>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -131,6 +143,36 @@
           </table>
         </div>
       </div>
+
+      <!-- Pagination controls -->
+      <div v-if="blogStore.adminPagination.totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-white rounded-b-xl">
+        <span class="text-xs text-gray-400">{{ blogStore.adminPagination.count }} posts · Página {{ blogStore.adminPagination.page }} de {{ blogStore.adminPagination.totalPages }}</span>
+        <div class="flex gap-1">
+          <button
+            :disabled="blogStore.adminPagination.page <= 1"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-gray-200 hover:bg-gray-50 disabled:opacity-40"
+            @click="goToPage(blogStore.adminPagination.page - 1)"
+          >
+            ← Anterior
+          </button>
+          <button
+            v-for="page in visiblePages"
+            :key="page"
+            class="w-8 h-8 rounded-lg text-xs font-medium transition-colors"
+            :class="blogStore.adminPagination.page === page ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:bg-gray-100'"
+            @click="goToPage(page)"
+          >
+            {{ page }}
+          </button>
+          <button
+            :disabled="blogStore.adminPagination.page >= blogStore.adminPagination.totalPages"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-gray-200 hover:bg-gray-50 disabled:opacity-40"
+            @click="goToPage(blogStore.adminPagination.page + 1)"
+          >
+            Siguiente →
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -143,6 +185,21 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const blogStore = useBlogStore();
 const posts = computed(() => blogStore.posts);
+
+const visiblePages = computed(() => {
+  const total = blogStore.adminPagination.totalPages;
+  const current = blogStore.adminPagination.page;
+  const pages = [];
+  const start = Math.max(1, current - 2);
+  const end = Math.min(total, current + 2);
+  for (let i = start; i <= end; i++) pages.push(i);
+  return pages;
+});
+
+function goToPage(page) {
+  if (page < 1 || page > blogStore.adminPagination.totalPages) return;
+  blogStore.fetchAdminPosts(page);
+}
 
 onMounted(() => {
   blogStore.fetchAdminPosts();
@@ -182,5 +239,6 @@ async function handleDuplicate(post) {
 async function handleDelete(post) {
   if (!confirm(`¿Eliminar "${post.title_es}"?`)) return;
   await blogStore.deletePost(post.id);
+  blogStore.fetchAdminPosts(blogStore.adminPagination.page);
 }
 </script>

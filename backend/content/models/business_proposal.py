@@ -64,11 +64,48 @@ class BusinessProposal(models.Model):
     reminder_sent_at = models.DateTimeField(null=True, blank=True)
     urgency_email_sent_at = models.DateTimeField(null=True, blank=True)
 
+    # Classification
+    PROJECT_TYPE_CHOICES = [
+        ('website', 'Sitio Web'),
+        ('ecommerce', 'E-commerce'),
+        ('webapp', 'Aplicación Web'),
+        ('landing', 'Landing Page'),
+        ('redesign', 'Rediseño'),
+        ('other', 'Otro'),
+    ]
+    MARKET_TYPE_CHOICES = [
+        ('b2b', 'B2B'),
+        ('b2c', 'B2C'),
+        ('saas', 'SaaS'),
+        ('retail', 'Retail'),
+        ('services', 'Servicios profesionales'),
+        ('health', 'Salud'),
+        ('education', 'Educación'),
+        ('real_estate', 'Inmobiliaria'),
+        ('other', 'Otro'),
+    ]
+    project_type = models.CharField(
+        max_length=20, choices=PROJECT_TYPE_CHOICES, blank=True, default=''
+    )
+    market_type = models.CharField(
+        max_length=20, choices=MARKET_TYPE_CHOICES, blank=True, default=''
+    )
+    project_type_custom = models.CharField(
+        max_length=100, blank=True, default='',
+        help_text='Free-text description when project_type is "other".'
+    )
+    market_type_custom = models.CharField(
+        max_length=100, blank=True, default='',
+        help_text='Free-text description when market_type is "other".'
+    )
+    client_phone = models.CharField(max_length=30, blank=True, default='')
+
     # Rejection feedback
     rejection_reason = models.CharField(max_length=100, blank=True, default='')
     rejection_comment = models.TextField(blank=True, default='')
 
     # Tracking
+    last_activity_at = models.DateTimeField(null=True, blank=True)
     view_count = models.PositiveIntegerField(default=0)
     first_viewed_at = models.DateTimeField(null=True, blank=True)
     sent_at = models.DateTimeField(null=True, blank=True)
@@ -118,3 +155,43 @@ class BusinessProposal(models.Model):
         """Build the client-facing URL for viewing this proposal."""
         base = getattr(settings, 'FRONTEND_BASE_URL', 'http://localhost:3000')
         return f'{base}/proposal/{self.uuid}'
+
+
+class ProposalAlert(models.Model):
+    """
+    Manual alert/reminder created by sellers for a specific proposal.
+
+    Complements the automatic alerts (not_viewed, not_responded, expiring_soon)
+    with seller-defined reminders that appear in the proposals dashboard.
+    """
+
+    ALERT_TYPE_CHOICES = [
+        ('reminder', 'Recordatorio'),
+        ('followup', 'Seguimiento'),
+        ('call', 'Llamada'),
+        ('meeting', 'Reunión'),
+        ('custom', 'Personalizado'),
+    ]
+
+    proposal = models.ForeignKey(
+        BusinessProposal,
+        on_delete=models.CASCADE,
+        related_name='manual_alerts',
+    )
+    alert_type = models.CharField(
+        max_length=20, choices=ALERT_TYPE_CHOICES, default='reminder'
+    )
+    message = models.CharField(max_length=500)
+    alert_date = models.DateTimeField(
+        help_text='When this alert should become visible.'
+    )
+    is_dismissed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['alert_date']
+        verbose_name = 'Proposal Alert'
+        verbose_name_plural = 'Proposal Alerts'
+
+    def __str__(self):
+        return f'Alert: {self.proposal.client_name} — {self.message[:50]}'

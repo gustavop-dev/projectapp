@@ -134,7 +134,7 @@ test.describe('Admin Blog Edit', () => {
     await page.goto('/panel/blog/1/edit');
     await page.waitForLoadState('networkidle');
 
-    const jsonTextarea = page.getByPlaceholder('"intro"');
+    const jsonTextarea = page.getByRole('group', { name: 'Español' }).getByPlaceholder('"intro"');
     await expect(jsonTextarea).toBeVisible();
     const value = await jsonTextarea.inputValue();
     expect(value).toContain('Intro ES');

@@ -93,7 +93,7 @@
     "result": "Dos sitios web que no solo se vean impecables, sino que eleven la percepción de marca, generen confianza en un público exigente y conviertan más visitantes en oportunidades reales de asesoría y venta."
   },
   "designUX": {
-    "index": "06",
+    "index": "04",
     "title": "Diseño visual y experiencia de usuario",
     "paragraphs": [
       "La propuesta visual será concebida bajo una lógica premium, limpia y cuidadosamente editorial. En joyería de alto valor, el diseño no es un detalle decorativo: es parte de la percepción de legitimidad, exclusividad y confianza. Por eso, cada sitio será diseñado a medida, evitando estructuras genéricas o sensaciones de plantilla.",
@@ -111,7 +111,7 @@
     "objective": "Lograr que ambas webs transmitan exclusividad, confianza y alto valor percibido desde la primera impresión, alineando la experiencia digital con la categoría real del negocio."
   },
   "creativeSupport": {
-    "index": "07",
+    "index": "05",
     "title": "Acompañamiento creativo personalizado",
     "paragraphs": [
       "Durante todo el proceso, Denisse y su equipo contarán con un acompañamiento cercano, estratégico y creativo por parte de Project App. No se tratará únicamente de ejecutar pantallas, sino de construir una presencia digital con intención, criterio visual y alineación comercial.",
@@ -174,7 +174,7 @@
     ]
   },
   "functionalRequirements": {
-    "index": "07",
+    "index": "06",
     "title": "Requerimientos Funcionales del Proyecto",
     "intro": "A continuación se plantea una estructura funcional inicial para el rediseño de ambos sitios web, basada en el análisis del contenido visible actual, los dolores identificados por el cliente y el objetivo estratégico del proyecto: elevar la percepción de marca, facilitar la gestión del contenido y preparar la base de medición y conversión.",
     "groups": [
@@ -456,7 +456,7 @@
     ]
   },
   "timeline": {
-    "index": "05",
+    "index": "07",
     "title": "Cronograma del Proyecto",
     "introText": "Este cronograma presenta una ruta realista para diseñar, desarrollar, probar y desplegar el rediseño de ambos sitios web con una lógica de calidad, validación y salida controlada.",
     "totalDuration": "Por definir según alcance final",
@@ -539,7 +539,7 @@
     ]
   },
   "investment": {
-    "index": "04",
+    "index": "08",
     "title": "Inversión y Formas de Pago",
     "introText": "Inversión total del proyecto de rediseño para ambos sitios web:",
     "totalInvestment": "$5.400.000",
@@ -601,7 +601,7 @@
     ]
   },
   "finalNote": {
-    "index": "10",
+    "index": "09",
     "title": "Nota Final",
     "message": "Creemos firmemente que esta propuesta representa una oportunidad clara para elevar la presencia digital de Círculo Colombiano de Joyerías y Joyería Liévano hacia un estándar mucho más alineado con su categoría, historia y valor de marca.",
     "personalNote": "Más que rediseñar dos sitios, buscamos construir dos experiencias digitales que transmitan confianza, exclusividad y respaldo, al tiempo que resuelven una necesidad operativa real de soporte, gestión y acompañamiento continuo.",
@@ -630,7 +630,7 @@
     ]
   },
   "nextSteps": {
-    "index": "11",
+    "index": "10",
     "title": "Próximos pasos",
     "introMessage": "Estamos listos para avanzar con la siguiente etapa del proceso y convertir esta visión en una propuesta final cerrada.",
     "steps": [
