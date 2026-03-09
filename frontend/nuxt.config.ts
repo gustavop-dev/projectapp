@@ -20,7 +20,10 @@ export default defineNuxtConfig({
     '/en-us/web-designs': { ssr: true },
     '/es-co/web-designs': { ssr: true },
     '/en-us/portfolio-works': { ssr: true },
+    '/en-us/portfolio-works/**': { ssr: true },
     '/es-co/portfolio-works': { ssr: true },
+    '/es-co/portfolio-works/**': { ssr: true },
+    '/portfolio-works/**': { ssr: true },
     '/en-us/custom-software': { ssr: true },
     '/es-co/custom-software': { ssr: true },
     '/en-us/3d-animations': { ssr: true },
@@ -43,6 +46,10 @@ export default defineNuxtConfig({
     devProxy: {
       '/api': {
         target: 'http://127.0.0.1:8000/api',
+        changeOrigin: true,
+      },
+      '/media': {
+        target: 'http://127.0.0.1:8000/media',
         changeOrigin: true,
       },
     },

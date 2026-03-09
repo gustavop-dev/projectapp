@@ -9,9 +9,33 @@ from .models import (
 class PortfolioWorkAdmin(admin.ModelAdmin):
     """
     Custom admin configuration for the PortfolioWork model.
-    Display specific fields of the PortfolioWork model.
     """
-    list_display = ('title_en', 'title_es', 'cover_image', 'project_url', 'category_title_en')
+    list_display = ('title_en', 'title_es', 'slug', 'is_published', 'order', 'published_at', 'created_at')
+    list_filter = ('is_published',)
+    search_fields = ('title_es', 'title_en', 'excerpt_es', 'excerpt_en')
+    prepopulated_fields = {'slug': ('title_es',)}
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        ('Español', {
+            'fields': ('title_es', 'excerpt_es', 'content_json_es'),
+        }),
+        ('English', {
+            'fields': ('title_en', 'excerpt_en', 'content_json_en'),
+        }),
+        (None, {
+            'fields': ('slug', 'cover_image', 'cover_image_url', 'project_url', 'category_title_es', 'category_title_en', 'order'),
+        }),
+        ('SEO', {
+            'fields': ('meta_title_es', 'meta_title_en', 'meta_description_es', 'meta_description_en', 'meta_keywords_es', 'meta_keywords_en'),
+            'classes': ('collapse',),
+        }),
+        ('Publishing', {
+            'fields': ('is_published', 'published_at'),
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+        }),
+    )
 
 class ContactAdmin(admin.ModelAdmin):
     """

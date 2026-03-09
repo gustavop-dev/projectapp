@@ -12,7 +12,7 @@
     <div class="pt-24 sm:pt-28 pb-6 sm:pb-8 px-4 sm:px-6">
       <div class="max-w-4xl mx-auto">
         <NuxtLink
-          to="/blog"
+          :to="localePath('/blog')"
           class="inline-flex items-center gap-2 text-sm font-regular text-green-light hover:text-esmerald transition-colors"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,7 +35,7 @@
           {{ isEnglish ? 'Article not found' : 'Artículo no encontrado' }}
         </h1>
         <NuxtLink
-          to="/blog"
+          :to="localePath('/blog')"
           class="inline-flex items-center gap-2 px-8 py-4 rounded-full transition-all hover:scale-105 bg-esmerald text-white"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -182,7 +182,7 @@
               <div class="grid grid-cols-1 gap-4" :class="prevPost && nextPost ? 'sm:grid-cols-2' : ''">
                 <NuxtLink
                   v-if="prevPost"
-                  :to="`/blog/${prevPost.slug}`"
+                  :to="localePath(`/blog/${prevPost.slug}`)"
                   class="group flex items-center gap-3 p-4 rounded-2xl bg-white border border-gray-200/60 hover:shadow-md transition-all overflow-hidden"
                 >
                   <svg class="w-5 h-5 text-green-light group-hover:text-esmerald transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
@@ -193,7 +193,7 @@
                 </NuxtLink>
                 <NuxtLink
                   v-if="nextPost"
-                  :to="`/blog/${nextPost.slug}`"
+                  :to="localePath(`/blog/${nextPost.slug}`)"
                   class="group flex items-center justify-end gap-3 p-4 rounded-2xl bg-white border border-gray-200/60 hover:shadow-md transition-all text-right overflow-hidden"
                 >
                   <div class="min-w-0 flex-1">
@@ -220,7 +220,7 @@
               v-for="relPost in relatedPosts"
               :key="relPost.id"
               class="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 cursor-pointer"
-              @click="navigateTo(`/blog/${relPost.slug}`)"
+              @click="navigateTo(localePath(`/blog/${relPost.slug}`))"
             >
               <div class="relative aspect-[16/10] overflow-hidden">
                 <img
@@ -294,6 +294,7 @@ const AUTHOR_PROFILES = {
 
 const route = useRoute();
 const { locale } = useI18n();
+const localePath = useLocalePath();
 const blogStore = useBlogStore();
 const post = computed(() => blogStore.currentPost);
 const isEnglish = computed(() => locale.value.startsWith('en'));

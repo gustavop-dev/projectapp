@@ -4,7 +4,15 @@ from content.views.design import design_list
 from content.views.model_3d import model3d_list
 from content.views.product import product_list
 from content.views.hosting import hosting_list
-from content.views.portfolio_works import portfolio_works_list
+from content.views.portfolio_works import (
+    portfolio_works_list, list_portfolio_works, retrieve_portfolio_work,
+    portfolio_sitemap_data,
+    list_admin_portfolio_works, create_portfolio_work,
+    create_portfolio_work_from_json, get_portfolio_json_template,
+    retrieve_admin_portfolio_work, update_portfolio_work,
+    delete_portfolio_work, duplicate_portfolio_work,
+    upload_portfolio_cover_image,
+)
 from content.views.proposal import (
     retrieve_public_proposal, download_proposal_pdf,
     list_proposals, retrieve_proposal, create_proposal,
@@ -84,4 +92,20 @@ urlpatterns = [
     path('blog/', list_blog_posts, name='list-blog-posts'),
     path('blog/sitemap-data/', blog_sitemap_data, name='blog-sitemap-data'),
     path('blog/<slug:slug>/', retrieve_blog_post, name='retrieve-blog-post'),
+
+    # Portfolio — admin CRUD (must come before slug catch-all)
+    path('portfolio/admin/', list_admin_portfolio_works, name='list-admin-portfolio-works'),
+    path('portfolio/admin/create/', create_portfolio_work, name='create-portfolio-work'),
+    path('portfolio/admin/create-from-json/', create_portfolio_work_from_json, name='create-portfolio-work-from-json'),
+    path('portfolio/admin/json-template/', get_portfolio_json_template, name='portfolio-json-template'),
+    path('portfolio/admin/<int:work_id>/detail/', retrieve_admin_portfolio_work, name='retrieve-admin-portfolio-work'),
+    path('portfolio/admin/<int:work_id>/update/', update_portfolio_work, name='update-portfolio-work'),
+    path('portfolio/admin/<int:work_id>/delete/', delete_portfolio_work, name='delete-portfolio-work'),
+    path('portfolio/admin/<int:work_id>/duplicate/', duplicate_portfolio_work, name='duplicate-portfolio-work'),
+    path('portfolio/admin/<int:work_id>/upload-cover/', upload_portfolio_cover_image, name='upload-portfolio-cover-image'),
+
+    # Portfolio — public
+    path('portfolio/', list_portfolio_works, name='list-portfolio-works-public'),
+    path('portfolio/sitemap-data/', portfolio_sitemap_data, name='portfolio-sitemap-data'),
+    path('portfolio/<slug:slug>/', retrieve_portfolio_work, name='retrieve-portfolio-work'),
 ]

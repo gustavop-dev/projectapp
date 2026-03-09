@@ -94,7 +94,7 @@
             v-if="featured && selectedCategory === '' && !searchQuery"
             ref="featuredCard"
             class="mb-20 group cursor-pointer"
-            @click="navigateTo(`/blog/${featured.slug}`)"
+            @click="navigateTo(localePath(`/blog/${featured.slug}`))"
             itemscope
             itemtype="https://schema.org/BlogPosting"
           >
@@ -155,7 +155,7 @@
               v-for="post in filteredPosts"
               :key="post.id"
               class="group bg-white rounded-2xl overflow-hidden shadow-sm active:scale-[0.98] transition-transform border border-gray-200/60 cursor-pointer"
-              @click="navigateTo(`/blog/${post.slug}`)"
+              @click="navigateTo(localePath(`/blog/${post.slug}`))"
               itemscope
               itemtype="https://schema.org/BlogPosting"
             >
@@ -204,7 +204,7 @@
               v-for="post in filteredPosts"
               :key="post.id"
               class="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 h-full flex flex-col cursor-pointer border border-gray-200/40"
-              @click="navigateTo(`/blog/${post.slug}`)"
+              @click="navigateTo(localePath(`/blog/${post.slug}`))"
               itemscope
               itemtype="https://schema.org/BlogPosting"
             >
@@ -341,6 +341,7 @@ import { useBlogStore } from '~/stores/blog';
 import { fadeUp, staggerFadeUp } from '~/animations';
 
 const { locale } = useI18n();
+const localePath = useLocalePath();
 const blogStore = useBlogStore();
 const posts = computed(() => blogStore.posts);
 const featured = computed(() => blogStore.featuredPost);

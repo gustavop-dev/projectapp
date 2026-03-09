@@ -1,134 +1,273 @@
-import { defineStore } from "pinia";
-import { get_request } from "./services/request_http";
-import { useLanguageStore } from "~/stores/language";
+import { defineStore } from 'pinia';
+import { get_request, create_request, patch_request, delete_request } from './services/request_http';
 
-export const usePortfolioWorksStore = defineStore("portfolio_works", {
+export const usePortfolioWorksStore = defineStore('portfolio_works', {
   /**
    * State of the PortfolioWorks store.
    *
    * Properties:
-   * - portfolioWorks (Array): Stores the list of portfolio works.
-   * - areUpdatePortfolioWorks (Boolean): Tracks if the portfolio works data has been updated.
+   * - works (Array): List of portfolio works.
+   * - currentWork (Object|null): Currently viewed/edited work.
+   * - isLoading (Boolean): Whether a fetch operation is in progress.
+   * - isUpdating (Boolean): Whether a mutation operation is in progress.
+   * - error (String|null): Last error message.
    */
   state: () => ({
-    portfolioWorks: [],
-    areUpdatePortfolioWorks: false,
+    works: [],
+    currentWork: null,
+    isLoading: false,
+    isUpdating: false,
+    error: null,
   }),
 
   getters: {
     /**
-     * getFilteredPortfolioWorksAndCategories: Getter that filters portfolio works based on the current language
-     * and returns both the filtered works and the unique categories.
-     *
-     * It first applies a language-based filter to the works and then extracts unique categories from the filtered works.
-     *
-     * @param {Object} state - The current state of the store.
-     * @returns {Object} - An object containing:
-     *  - portfolioWorks: An array of portfolio works filtered by language.
-     *  - categories: An array of unique category titles filtered by language.
+     * getWorkById: Find a work in the list by its ID.
      */
-    getFilteredPortfolioWorksAndCategories: (state) => {
-      const languageStore = useLanguageStore(); // Access the language store
-      const currentLanguage = languageStore.currentLanguage;
-
-      /**
-       * filterByLanguage: Helper function that filters the object's properties based on the selected language.
-       * It removes '_en' and '_es' suffixes and keeps the property relevant to the current language.
-       *
-       * @param {Object} obj - The object to be filtered.
-       * @returns {Object} - A filtered object with properties in the correct language.
-       */
-      const filterByLanguage = (obj) => {
-        let filteredObj = {};
-
-        for (const key in obj) {
-          if (key.endsWith("_en") || key.endsWith("_es")) {
-            const baseKey = key.replace(/(_en|_es)$/, ""); // Remove the suffix
-            filteredObj[baseKey] =
-              obj[currentLanguage === "es" ? `${baseKey}_es` : `${baseKey}_en`];
-          } else {
-            // Keep other properties that are not related to language
-            filteredObj[key] = obj[key];
-          }
-        }
-
-        return filteredObj;
-      };
-
-      // Step 1: Filter portfolio works based on the language
-      const filteredPortfolioWorks = state.portfolioWorks.map((work) =>
-        filterByLanguage(work)
-      );
-
-      // Step 2: Extract unique categories from the filtered portfolio works
-      const categories = [
-        ...new Set(filteredPortfolioWorks.map((work) => work.category_title)),
-      ];
-
-      // Return an object with both filtered portfolio works and unique categories
-      return {
-        portfolioWorks: filteredPortfolioWorks, // Filtered portfolio works
-        categories: categories, // Unique categories
-      };
-    },
-    
-    /**
-     * getFilteredByCategory: Getter that filters the passed portfolio works by the selected category.
-     *
-     * @param {Object} state - The current state of the store.
-     * @returns {Function} - A function that accepts a list of portfolio works and a category,
-     * and returns the works filtered by that category.
-     */
-    getFilteredByCategory: (state) => (portfolioWorks, selectedCategory) => {
-      // If "All" is selected, return the entire list of portfolio works
-      if (selectedCategory === "All") {
-        return portfolioWorks;
-      }
-
-      // Otherwise, filter by the selected category
-      return portfolioWorks.filter(
-        (work) => work.category_title === selectedCategory
-      );
-    },
+    getWorkById: (state) => (id) =>
+      state.works.find((w) => w.id === id),
   },
 
   actions: {
+    // -----------------------------------------------------------------
+    // Public
+    // -----------------------------------------------------------------
+
     /**
-     * init: Initializes the store by fetching portfolio works data if it hasn't been updated yet.
-     *
-     * This action ensures that the portfolio works are fetched only once, avoiding redundant requests.
+     * fetchWorks: List all published portfolio works.
+     * @param {string} lang - Language code ('es' or 'en').
      */
-    async init() {
-      if (!this.areUpdatePortfolioWorks) await this.fetchPortfolioWorksData();
+    async fetchWorks(lang = 'es') {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const response = await get_request(`portfolio/?lang=${lang}`);
+        this.works = response.data || [];
+        return { success: true };
+      } catch (error) {
+        this.error = 'fetch_failed';
+        console.error('Error fetching portfolio works:', error);
+        return { success: false };
+      } finally {
+        this.isLoading = false;
+      }
     },
 
     /**
-     * fetchPortfolioWorksData: Fetches portfolio works data from the API.
-     *
-     * This action makes an HTTP request to fetch the portfolio works data and updates
-     * the state with the fetched data. It also handles potential JSON parsing errors.
+     * fetchWork: Retrieve a single published portfolio work by slug.
+     * @param {string} slug - Work slug.
+     * @param {string} lang - Language code ('es' or 'en').
      */
-    async fetchPortfolioWorksData() {
-      if (this.areUpdatePortfolioWorks) return;
-
+    async fetchWork(slug, lang = 'es') {
+      this.isLoading = true;
+      this.error = null;
       try {
-        let response = await get_request("portfolio_works/");
-        let jsonData = response.data;
-
-        if (jsonData && typeof jsonData === "string") {
-          try {
-            jsonData = JSON.parse(jsonData);
-          } catch (error) {
-            console.error("Error parsing portfolio works data:", error.message);
-            jsonData = [];
-          }
-        }
-
-        this.portfolioWorks = jsonData ?? [];
-        this.areUpdatePortfolioWorks = true;
+        const response = await get_request(`portfolio/${slug}/?lang=${lang}`);
+        this.currentWork = response.data;
+        return { success: true, data: response.data };
       } catch (error) {
-        console.error("Error fetching portfolio works:", error);
-        this.portfolioWorks = [];
+        const status = error.response?.status;
+        if (status === 404) {
+          this.error = 'not_found';
+        } else {
+          this.error = 'unknown';
+        }
+        return { success: false, error: this.error, status };
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    // -----------------------------------------------------------------
+    // Admin
+    // -----------------------------------------------------------------
+
+    /**
+     * fetchAdminWorks: List all portfolio works (including drafts) for admin.
+     */
+    async fetchAdminWorks() {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const response = await get_request('portfolio/admin/');
+        this.works = response.data;
+        return { success: true };
+      } catch (error) {
+        this.error = 'fetch_failed';
+        console.error('Error fetching admin portfolio works:', error);
+        return { success: false };
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    /**
+     * fetchAdminWork: Retrieve full work detail for admin editing.
+     * @param {number} id - Work ID.
+     */
+    async fetchAdminWork(id) {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const response = await get_request(`portfolio/admin/${id}/detail/`);
+        this.currentWork = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'fetch_failed';
+        console.error('Error fetching portfolio work:', error);
+        return { success: false };
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    /**
+     * createWork: Create a new portfolio work.
+     * @param {object} payload - Work data.
+     */
+    async createWork(payload) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request('portfolio/admin/create/', payload);
+        this.currentWork = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'create_failed';
+        console.error('Error creating portfolio work:', error);
+        return { success: false, errors: error.response?.data };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * updateWork: Update a portfolio work's fields.
+     * @param {number} id - Work ID.
+     * @param {object} payload - Fields to update.
+     */
+    async updateWork(id, payload) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await patch_request(`portfolio/admin/${id}/update/`, payload);
+        this.currentWork = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'update_failed';
+        console.error('Error updating portfolio work:', error);
+        return { success: false, errors: error.response?.data };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * deleteWork: Delete a portfolio work.
+     * @param {number} id - Work ID.
+     */
+    async deleteWork(id) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        await delete_request(`portfolio/admin/${id}/delete/`);
+        this.works = this.works.filter((w) => w.id !== id);
+        if (this.currentWork?.id === id) {
+          this.currentWork = null;
+        }
+        return { success: true };
+      } catch (error) {
+        this.error = 'delete_failed';
+        console.error('Error deleting portfolio work:', error);
+        return { success: false };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * createWorkFromJSON: Create a portfolio work from a full JSON payload.
+     * @param {object} payload - Full portfolio JSON.
+     */
+    async createWorkFromJSON(payload) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request('portfolio/admin/create-from-json/', payload);
+        this.currentWork = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'create_failed';
+        console.error('Error creating portfolio work from JSON:', error);
+        return { success: false, errors: error.response?.data };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * uploadCoverImage: Upload a cover image file for a portfolio work.
+     * @param {number} id - Work ID.
+     * @param {File} file - Image file to upload.
+     */
+    async uploadCoverImage(id, file) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const formData = new FormData();
+        formData.append('cover_image', file);
+        const csrfToken = document.cookie
+          .split('; ')
+          .find((c) => c.startsWith('csrftoken='))
+          ?.split('=')[1] || '';
+        const response = await fetch(`/api/portfolio/admin/${id}/upload-cover/`, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrfToken },
+          body: formData,
+        });
+        if (!response.ok) throw new Error('Upload failed');
+        const data = await response.json();
+        this.currentWork = data;
+        return { success: true, data };
+      } catch (error) {
+        this.error = 'upload_failed';
+        console.error('Error uploading cover image:', error);
+        return { success: false };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * duplicateWork: Create a deep copy of a portfolio work as a new draft.
+     * @param {number} id - Work ID to duplicate.
+     */
+    async duplicateWork(id) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(`portfolio/admin/${id}/duplicate/`, {});
+        this.works.unshift(response.data);
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'duplicate_failed';
+        console.error('Error duplicating portfolio work:', error);
+        return { success: false };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * downloadJSONTemplate: Fetch the portfolio JSON template from the API.
+     */
+    async downloadJSONTemplate() {
+      try {
+        const response = await get_request('portfolio/admin/json-template/');
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error downloading portfolio JSON template:', error);
+        return { success: false };
       }
     },
   },

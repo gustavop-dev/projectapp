@@ -44,6 +44,15 @@
             >
               Blog
             </NuxtLink>
+            <NuxtLink
+              to="/panel/portfolio"
+              class="text-sm font-medium transition-colors border-b-2 pb-0.5"
+              :class="isModule('portfolio')
+                ? 'text-emerald-600 border-emerald-600'
+                : 'text-gray-500 border-transparent hover:text-emerald-600'"
+            >
+              Portfolio
+            </NuxtLink>
             <a href="/admin/" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
               Django Admin →
             </a>
@@ -81,6 +90,16 @@
           @click="mobileMenuOpen = false"
         >
           Blog
+        </NuxtLink>
+        <NuxtLink
+          to="/panel/portfolio"
+          class="text-sm font-medium px-2 py-1.5 rounded-lg transition-colors"
+          :class="isModule('portfolio')
+            ? 'text-emerald-600 bg-emerald-50'
+            : 'text-gray-600 hover:bg-gray-50'"
+          @click="mobileMenuOpen = false"
+        >
+          Portfolio
         </NuxtLink>
         <a href="/admin/" class="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5 transition-colors">
           Django Admin →
