@@ -32,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
 
 const sectionRef = ref(null);
@@ -43,7 +43,17 @@ const props = defineProps({
   proposal: { type: Object, default: () => ({}) },
   timelineDuration: { type: String, default: '' },
   language: { type: String, default: 'es' },
+  proposalUuid: { type: String, default: '' },
+  investmentModules: { type: Array, default: () => [] },
+  rawTotalInvestment: { type: String, default: '' },
+  paymentOptions: { type: Array, default: () => [] },
 });
+
+function parseInvestment(str) {
+  if (!str) return 0;
+  const cleaned = String(str).replace(/[^\d]/g, '');
+  return parseInt(cleaned, 10) || 0;
+}
 
 function formatCurrency(value) {
   if (!value) return '';
@@ -52,13 +62,75 @@ function formatCurrency(value) {
   return '$' + num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
+const customTotal = ref(null);
+const selectedModuleCount = ref(null);
+
+onMounted(() => {
+  if (props.proposalUuid && props.investmentModules?.length) {
+    try {
+      const raw = localStorage.getItem(`proposal-${props.proposalUuid}-modules`);
+      if (raw) {
+        const selectedIds = JSON.parse(raw);
+        const base = parseInvestment(props.rawTotalInvestment);
+        const deselectedSum = props.investmentModules
+          .filter(m => m.is_required !== true && !selectedIds.includes(m.id))
+          .reduce((sum, m) => sum + (m.price || 0), 0);
+        if (deselectedSum > 0) {
+          customTotal.value = base - deselectedSum;
+        }
+        selectedModuleCount.value = selectedIds.length;
+      }
+    } catch (_e) { /* ignore */ }
+  }
+});
+
+const i18n = {
+  es: {
+    customized: 'Inversión personalizada según tu selección.',
+    modulesTitle: 'Módulos del proyecto',
+    modulesDesc: 'Componentes técnicos que conforman tu solución personalizada.',
+    modulesCustomized: 'Personalizado — ajustado a tus necesidades.',
+    paymentTitle: 'Formas de pago',
+    paymentDesc: 'Opciones flexibles de pago para tu inversión.',
+    discountTitle: 'Descuento especial',
+    discountDesc: 'Precio preferencial disponible por tiempo limitado.',
+    guaranteeTitle: 'Garantía post-lanzamiento',
+    guaranteeDesc: 'Soporte técnico, corrección de bugs y mantenimiento incluido.',
+    modules: 'módulos',
+    options: 'opciones de pago',
+  },
+  en: {
+    customized: 'Customized investment based on your selection.',
+    modulesTitle: 'Project modules',
+    modulesDesc: 'Technical components that make up your custom solution.',
+    modulesCustomized: 'Customized — tailored to your needs.',
+    paymentTitle: 'Payment options',
+    paymentDesc: 'Flexible payment options for your investment.',
+    discountTitle: 'Special discount',
+    discountDesc: 'Preferential pricing available for a limited time.',
+    guaranteeTitle: 'Post-launch guarantee',
+    guaranteeDesc: 'Technical support, bug fixes, and maintenance included.',
+    modules: 'modules',
+    options: 'payment options',
+  },
+};
+
+const t = computed(() => i18n[props.language] || i18n.es);
+
 const resolvedCards = computed(() => {
   const cards = props.content?.cards || [];
-  return cards.map(card => {
+  const existingSources = new Set(cards.map(c => c.source).filter(Boolean));
+
+  const resolved = cards.map(card => {
     let value = '';
     let description = card.description;
-    if (card.source === 'total_investment' && props.proposal?.total_investment) {
-      value = `${formatCurrency(props.proposal.total_investment)} ${props.proposal.currency || 'COP'}`;
+    if (card.source === 'total_investment') {
+      if (customTotal.value !== null) {
+        value = `${formatCurrency(customTotal.value)} ${props.proposal?.currency || 'COP'}`;
+        description = t.value.customized;
+      } else if (props.proposal?.total_investment) {
+        value = `${formatCurrency(props.proposal.total_investment)} ${props.proposal.currency || 'COP'}`;
+      }
     } else if (card.source === 'timeline_duration' && props.timelineDuration) {
       value = props.timelineDuration;
     } else if (card.source === 'expires_at' && props.proposal?.expires_at) {
@@ -74,6 +146,46 @@ const resolvedCards = computed(() => {
     }
     return { ...card, value, description };
   });
+
+  // Auto-generate additional cards from available data
+  if (!existingSources.has('modules_count') && props.investmentModules?.length) {
+    const count = selectedModuleCount.value ?? props.investmentModules.length;
+    resolved.push({
+      icon: '🧩',
+      title: t.value.modulesTitle,
+      value: `${count} ${t.value.modules}`,
+      description: selectedModuleCount.value !== null ? t.value.modulesCustomized : t.value.modulesDesc,
+    });
+  }
+
+  if (!existingSources.has('payment_options') && props.paymentOptions?.length) {
+    resolved.push({
+      icon: '💳',
+      title: t.value.paymentTitle,
+      value: `${props.paymentOptions.length} ${t.value.options}`,
+      description: t.value.paymentDesc,
+    });
+  }
+
+  if (!existingSources.has('discount') && props.proposal?.discount_percent > 0) {
+    resolved.push({
+      icon: '🔥',
+      title: t.value.discountTitle,
+      value: `${props.proposal.discount_percent}% OFF`,
+      description: t.value.discountDesc,
+    });
+  }
+
+  if (!existingSources.has('guarantee')) {
+    resolved.push({
+      icon: '🛡️',
+      title: t.value.guaranteeTitle,
+      value: '',
+      description: t.value.guaranteeDesc,
+    });
+  }
+
+  return resolved;
 });
 </script>
 

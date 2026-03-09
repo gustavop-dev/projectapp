@@ -302,7 +302,7 @@ test.describe('Admin Proposal Create & Send', () => {
     await expect(page.getByRole('button', { name: /Crear y Enviar/i })).toBeVisible();
   });
 
-  test('"Crear y Enviar" creates proposal and sends it', {
+  test('"Crear y Enviar" creates proposal, sends it, and redirects to edit page', {
     tag: [...ADMIN_PROPOSAL_CREATE_AND_SEND, '@role:admin'],
   }, async ({ page }) => {
     let sendCalled = false;
@@ -330,14 +330,11 @@ test.describe('Admin Proposal Create & Send', () => {
     await page.getByLabel('Email del cliente').fill('carlos@test.com');
     await page.getByPlaceholder('3500000').fill('15000000');
 
-    const [response] = await Promise.all([
-      page.waitForResponse(r => r.url().includes('proposals/create/')),
-      page.getByRole('button', { name: /Crear y Enviar/i }).click(),
-    ]);
-    await response.finished();
+    await page.getByRole('button', { name: /Crear y Enviar/i }).click();
 
-    // Post-creation modal appears with "Enviar al Cliente" option
-    await expect(page.getByText('Propuesta creada')).toBeVisible({ timeout: 5000 });
+    // handleCreateAndSend creates + sends + redirects directly (no interstitial)
+    await expect(page).toHaveURL(/\/panel\/proposals\/\d+\/edit/, { timeout: 15000 });
+    expect(sendCalled).toBe(true);
   });
 });
 

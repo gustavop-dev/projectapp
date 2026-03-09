@@ -431,15 +431,23 @@ function getSectionProps(section) {
     };
   }
 
-  // For proposal_summary: inject proposal-level data
+  // For proposal_summary: inject proposal-level data + investment info for calculator sync
   if (section.section_type === 'proposal_summary') {
     const timelineSection = enabledSections.value.find(s => s.section_type === 'timeline');
     const timelineDuration = timelineSection?.content_json?.totalDuration || '';
+    const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
+    const investContent = investmentSection?.content_json || {};
+    const investmentModules = (investContent.modules || []).map(m => ({ ...m, _source: 'investment' }));
+    const allCalculatorItems = [...investmentModules, ...configurableRequirementItems.value];
     return {
       content,
       proposal: proposal.value,
       timelineDuration,
       language: proposal.value?.language || 'es',
+      proposalUuid: proposal.value?.uuid || '',
+      investmentModules: allCalculatorItems,
+      rawTotalInvestment: investContent.totalInvestment || '',
+      paymentOptions: investContent.paymentOptions || [],
     };
   }
 
