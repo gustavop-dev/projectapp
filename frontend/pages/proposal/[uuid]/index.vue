@@ -54,15 +54,6 @@
       <!-- Onboarding tutorial tooltips -->
       <ProposalOnboarding ref="onboardingRef" :language="pLang" @complete="showReadingTimePopup" />
 
-      <!-- Sticky accept bar (all panels except greeting and closing) -->
-      <ProposalResponseButtons
-        :proposal="proposal"
-        :visible="currentIndex > 0 && currentPanel.section_type !== 'proposal_closing'"
-        :language="proposal?.language || 'es'"
-        :whatsappLink="extractedWhatsappLink"
-        :proposalTitle="proposal?.title || ''"
-        :currentSectionTitle="currentPanel?.title || ''"
-      />
 
       <!-- Welcome-back overlay -->
       <Teleport to="body">
@@ -190,7 +181,6 @@ import RawContentSection from '~/components/BusinessProposal/RawContentSection.v
 import ProposalClosing from '~/components/BusinessProposal/ProposalClosing.vue';
 import SectionNavButtons from '~/components/BusinessProposal/SectionNavButtons.vue';
 import ProposalOnboarding from '~/components/BusinessProposal/ProposalOnboarding.vue';
-import ProposalResponseButtons from '~/components/BusinessProposal/ProposalResponseButtons.vue';
 import ShareProposalButton from '~/components/BusinessProposal/ShareProposalButton.vue';
 
 definePageMeta({ layout: false });

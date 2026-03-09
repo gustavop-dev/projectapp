@@ -59,20 +59,22 @@ def retrieve_public_proposal(request, proposal_uuid):
             status=status.HTTP_410_GONE,
         )
 
-    # Record the view
-    proposal.view_count += 1
-    update_fields = ['view_count']
+    # Only record views/metrics for proposals that have been sent (not drafts)
+    is_first_view = False
+    if proposal.status != BusinessProposal.Status.DRAFT:
+        proposal.view_count += 1
+        update_fields = ['view_count']
 
-    is_first_view = proposal.first_viewed_at is None
-    if is_first_view:
-        proposal.first_viewed_at = timezone.now()
-        update_fields.append('first_viewed_at')
+        is_first_view = proposal.first_viewed_at is None
+        if is_first_view:
+            proposal.first_viewed_at = timezone.now()
+            update_fields.append('first_viewed_at')
 
-    if proposal.status == BusinessProposal.Status.SENT:
-        proposal.status = BusinessProposal.Status.VIEWED
-        update_fields.append('status')
+        if proposal.status == BusinessProposal.Status.SENT:
+            proposal.status = BusinessProposal.Status.VIEWED
+            update_fields.append('status')
 
-    proposal.save(update_fields=update_fields)
+        proposal.save(update_fields=update_fields)
 
     # Send real-time notification to sales team on first view (async)
     if is_first_view:
@@ -759,6 +761,10 @@ def track_proposal_engagement(request, proposal_uuid):
     proposal = get_object_or_404(
         BusinessProposal, uuid=proposal_uuid, is_active=True
     )
+
+    # Don't track engagement for draft proposals
+    if proposal.status == BusinessProposal.Status.DRAFT:
+        return Response({'status': 'skipped'}, status=status.HTTP_200_OK)
 
     session_id = request.data.get('session_id', '')
     sections = request.data.get('sections', [])

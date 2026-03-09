@@ -482,22 +482,47 @@ def _draw_banner_box(c, x, y, width, text, bg_color=BONE,
                      text_color=ESMERALD, font_size=9, icon_text='',
                      ps=None):
     """Draw a full-width banner box with optional icon prefix. Returns new y."""
-    if ps:
-        y = _check_y(c, y, ps, need=36)
     text = _strip_emoji(str(text))
-    box_h = 28
+    leading = font_size + 3
+    pad_x = 12
+    pad_y = 10
+
+    # Calculate available width for body text
+    icon_w = 0
+    if icon_text:
+        icon_w = pdfmetrics.stringWidth(
+            icon_text, _font('bold'), font_size
+        ) + 6
+
+    avail_w = width - 2 * pad_x - icon_w
+    char_w = font_size * 0.48
+    wrap_width = max(int(avail_w / char_w), 20)
+    lines = textwrap.wrap(text, width=wrap_width)
+    if not lines:
+        lines = ['']
+
+    box_h = 2 * pad_y + len(lines) * leading
+    if ps:
+        y = _check_y(c, y, ps, need=box_h + 12)
+
     box_y = y - box_h + 8
     c.setFillColor(bg_color)
     c.roundRect(x, box_y, width, box_h, 6, fill=1, stroke=0)
-    inner_x = x + 12
+
+    inner_x = x + pad_x
+    text_top_y = box_y + box_h - pad_y - font_size + 2
     if icon_text:
         c.setFont(_font('bold'), font_size)
         c.setFillColor(text_color)
-        c.drawString(inner_x, box_y + 9, icon_text)
-        inner_x += c.stringWidth(icon_text, _font('bold'), font_size) + 6
+        c.drawString(inner_x, text_top_y, icon_text)
+        inner_x += icon_w
+
     c.setFont(_font('regular'), font_size)
     c.setFillColor(text_color)
-    c.drawString(inner_x, box_y + 9, text)
+    ty = text_top_y
+    for line in lines:
+        c.drawString(inner_x, ty, line)
+        ty -= leading
     return box_y - 6
 
 
@@ -1382,12 +1407,16 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         if renewal:
             y -= 6
             if ps:
-                y = _check_y(c, y, ps, need=60)
+                y = _check_y(c, y, ps, need=80)
             c.setFont(_font('bold'), 8)
             c.setFillColor(ESMERALD)
             c.drawString(MARGIN_L, y, 'Renovaciones')
             y -= 14
-            y = _draw_paragraphs(c, y, [renewal], font_size=8,
+            # Split on double-newlines to preserve paragraph breaks
+            renewal_paras = [
+                p.strip() for p in str(renewal).split('\n\n') if p.strip()
+            ]
+            y = _draw_paragraphs(c, y, renewal_paras, font_size=8,
                                  leading=11, ps=ps)
 
     # Value reasons

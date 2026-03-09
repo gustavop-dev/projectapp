@@ -1272,7 +1272,7 @@ DEFAULT_SECTIONS_EN = [
         'order': 12,
         'is_wide_panel': False,
         'content_json': {
-            'index': '11',
+            'index': '12',
             'title': 'Final Note & Next Steps',
             'message': (
                 'We firmly believe this proposal represents an exceptional opportunity '
