@@ -133,7 +133,7 @@ const resolvedCards = computed(() => {
   const cards = props.content?.cards || [];
   const existingSources = new Set(cards.map(c => c.source).filter(Boolean));
 
-  const resolved = cards.map(card => {
+  const resolved = cards.filter(c => c.source !== 'cta').map(card => {
     let value = '';
     let description = card.description;
     if (card.source === 'total_investment') {
@@ -212,15 +212,6 @@ const resolvedCards = computed(() => {
       title: t.value.bestPracticesTitle,
       value: '',
       description: t.value.bestPracticesDesc,
-    });
-  }
-
-  if (!existingSources.has('post_launch_support')) {
-    resolved.push({
-      icon: '🛡️',
-      title: t.value.guaranteeTitle,
-      value: '',
-      description: t.value.guaranteeDesc,
     });
   }
 

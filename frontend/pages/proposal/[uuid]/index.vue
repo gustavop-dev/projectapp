@@ -50,7 +50,6 @@
         :proposalUuid="proposal.uuid"
         :language="proposal?.language || 'es'"
       />
-      <WhatsAppFloatingButton :whatsappLink="extractedWhatsappLink" />
 
       <!-- Onboarding tutorial tooltips -->
       <ProposalOnboarding ref="onboardingRef" :language="pLang" @complete="showReadingTimePopup" />
