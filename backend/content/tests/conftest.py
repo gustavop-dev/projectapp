@@ -166,6 +166,40 @@ def portfolio_work(db):
 
 
 @pytest.fixture
+def published_portfolio_work(db):
+    """A published portfolio work with content_json."""
+    return PortfolioWork.objects.create(
+        title_en='MOOSER Hotel',
+        title_es='MOOSER Hotel: Experiencia digital',
+        excerpt_en='Digital experience for an alpine hotel.',
+        excerpt_es='Experiencia digital para un hotel alpino.',
+        project_url='https://mooser-hotel.com',
+        content_json_es={
+            'problem': {'title': 'El Desafío', 'description': 'Desc ES.', 'highlights': ['H1']},
+            'solution': {'title': 'Solución', 'description': 'Sol ES.', 'highlights': ['S1']},
+            'results': {'title': 'Resultados', 'description': 'Res ES.', 'highlights': ['R1'], 'testimonial_video_url': ''},
+        },
+        content_json_en={
+            'problem': {'title': 'The Challenge', 'description': 'Desc EN.', 'highlights': ['H1']},
+            'solution': {'title': 'Solution', 'description': 'Sol EN.', 'highlights': ['S1']},
+            'results': {'title': 'Results', 'description': 'Res EN.', 'highlights': ['R1'], 'testimonial_video_url': ''},
+        },
+        is_published=True,
+    )
+
+
+@pytest.fixture
+def draft_portfolio_work(db):
+    """An unpublished (draft) portfolio work."""
+    return PortfolioWork.objects.create(
+        title_en='Secret Project',
+        title_es='Proyecto Secreto',
+        project_url='https://example.com/secret',
+        is_published=False,
+    )
+
+
+@pytest.fixture
 def blog_post(db):
     """A published blog post with bilingual content."""
     return BlogPost.objects.create(

@@ -20,12 +20,7 @@ const STATIC_BILINGUAL_PAGES: Array<{
   { path: '', changefreq: 'weekly', priority: '1.0', comment: 'Home' },
   { path: '/landing-web-design', changefreq: 'weekly', priority: '0.9', comment: 'Landing Web Design' },
   { path: '/about-us', changefreq: 'monthly', priority: '0.9', comment: 'About Us' },
-  { path: '/web-designs', changefreq: 'weekly', priority: '0.9', comment: 'Web Designs' },
   { path: '/portfolio-works', changefreq: 'weekly', priority: '0.9', comment: 'Portfolio Works' },
-  { path: '/custom-software', changefreq: 'monthly', priority: '0.9', comment: 'Custom Software' },
-  { path: '/3d-animations', changefreq: 'weekly', priority: '0.8', comment: '3D Animations' },
-  { path: '/e-commerce-prices', changefreq: 'monthly', priority: '0.7', comment: 'E-Commerce Prices' },
-  { path: '/hosting', changefreq: 'monthly', priority: '0.7', comment: 'Hosting' },
   { path: '/contact', changefreq: 'monthly', priority: '0.6', comment: 'Contact' },
 ];
 

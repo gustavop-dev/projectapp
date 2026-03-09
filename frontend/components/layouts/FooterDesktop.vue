@@ -193,13 +193,8 @@ const solutions = computed(() => {
   return [
     { name: s.home || 'Home', href: '/' },
     { name: s.about || 'About us', href: '/about-us' },
-    { name: s.web_designs || 'Web designs', href: '/web-designs' },
     { name: s.web_developments || 'Our work', href: '/portfolio-works' },
-    { name: s.custom_software || 'Custom software', href: '/custom-software' },
-    { name: s.animations_3d || '3D Animations', href: '/3d-animations' },
-    { name: s.prices || 'E-commerce pricing', href: '/e-commerce-prices' },
-    { name: s.hosting || 'Hosting', href: '/hosting' },
-    { name: s.blog || 'Blog', href: '/blog', absolute: true },
+    { name: s.blog || 'Blog', href: '/blog' },
   ];
 });
 

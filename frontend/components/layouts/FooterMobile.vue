@@ -91,13 +91,8 @@ const showModalEmail = ref(false);
 const solutions = computed(() => [
   { name: globalMessages.value?.solutions?.home, href: '/' },
   { name: globalMessages.value?.solutions?.about, href: '/about-us' },
-  { name: globalMessages.value?.solutions?.web_designs, href: '/web-designs' },
   { name: globalMessages.value?.solutions?.web_developments, href: '/portfolio-works' },
-  { name: globalMessages.value?.solutions?.custom_software, href: '/custom-software' },
-  { name: globalMessages.value?.solutions?.animations_3d, href: '/3d-animations' },
-  { name: globalMessages.value?.solutions?.prices, href: '/e-commerce-prices' },
-  { name: globalMessages.value?.solutions?.hosting, href: '/hosting' },
-  { name: globalMessages.value?.solutions?.blog || 'Blog', href: '/blog', absolute: true },
+  { name: globalMessages.value?.solutions?.blog || 'Blog', href: '/blog' },
 ]);
 
 const mainVideo = ref(null);

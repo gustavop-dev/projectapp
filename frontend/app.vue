@@ -1,6 +1,9 @@
 <template>
+  <!-- Persistent Navbar — lives outside NuxtPage so it never disappears during transitions -->
+  <Navbar v-if="showNavbar" />
+
   <NuxtLayout>
-    <NuxtPage />
+    <NuxtPage :transition="{ name: 'page', mode: 'out-in' }" />
   </NuxtLayout>
 
   <!-- Floating WhatsApp button with neon glow -->
@@ -58,11 +61,17 @@
 
 <script setup>
 import { computed } from 'vue'
+import Navbar from '~/components/layouts/Navbar.vue'
 import MediaOptimizer from '~/components/layouts/MediaOptimizer.vue'
 import { useGtagConversions } from '~/composables/useGtagConversions'
 
 const route = useRoute()
 const { trackWhatsAppClick } = useGtagConversions()
+
+const showNavbar = computed(() => {
+  const path = route.path
+  return !path.includes('/panel') && !path.includes('/proposal')
+})
 
 const showWhatsApp = computed(() => {
   const path = route.path
@@ -88,5 +97,20 @@ body {
   opacity: 0;
   transform: translateY(30px);
   transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Smooth page transitions */
+.page-enter-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.page-leave-active {
+  transition: opacity 0.2s ease;
+}
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.page-leave-to {
+  opacity: 0;
 }
 </style>

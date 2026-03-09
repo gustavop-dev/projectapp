@@ -1,8 +1,5 @@
 <template>
     <div itemscope itemtype="https://schema.org/Organization">
-        <header class="fixed top-0 left-0 w-screen z-50">
-            <Navbar></Navbar>
-        </header>
         <main>
             <section class="bg-lemon px-3 py-32 lg:pt-52 lg:pb-60" aria-labelledby="about-main-title">
                 <div class="grid lg:grid-cols-2">
@@ -29,12 +26,9 @@
                     </div>
                 </div>
             </section>
-            <section class="bg-lemon h-auto p-3" aria-label="Animated visual showcase" itemscope itemtype="https://schema.org/MediaObject">
-                <div class="w-full h-auto rounded-xl overflow-hidden lg:h-full">
-                    <video ref="particlePlanetVideo" autoplay muted loop playsinline aria-label="Particle planet animation" itemprop="contentUrl">
-                        <source :src="vidParticlePlanet" type="video/mp4" />
-                        <p class="sr-only">An animated abstract particle planet representing Project App.'s digital expertise</p>
-                    </video>
+            <section class="bg-lemon h-auto p-3" aria-label="Animated visual showcase">
+                <div class="w-full rounded-xl overflow-hidden" style="height: 60vh;">
+                    <PastelGradient />
                 </div>
             </section>
             <section class="grid justify-items-end max-w-7xl mx-auto px-3 py-32 lg:py-52 lg:justify-items-start" aria-labelledby="digital-landscape-title" itemscope itemtype="https://schema.org/CreativeWork">
@@ -159,19 +153,17 @@
 </template>
 
 <script setup>
-import Navbar from '~/components/layouts/Navbar.vue'; // Import the Navbar component for the navigation bar
-import Footer from '~/components/layouts/Footer.vue'; // Import the Footer component for the website's footer
-import Contact from '~/components/layouts/Contact.vue'; // Import the Contact component for the contact section
-import { onMounted, ref } from 'vue'; // Import Vue's lifecycle hook and ref for reactivity
-import { gsap } from 'gsap'; // Import GSAP (GreenSock Animation Platform) for animations
-import { ScrollTrigger } from 'gsap/ScrollTrigger'; // Import the GSAP ScrollTrigger plugin
-import { useMessages } from '~/composables/useMessages'; // Import the custom composable to get localized messages
-import { useFreeResources } from '~/composables/useFreeResources'; // Import the custom composable for resource cleanup
+import Footer from '~/components/layouts/Footer.vue';
+import Contact from '~/components/layouts/Contact.vue';
+import PastelGradient from '~/components/backgrounds/PastelGradient.vue';
+import { onMounted, ref } from 'vue';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useMessages } from '~/composables/useMessages';
 
 import imgLeft from '~/assets/images/left.webp';
 import imgMobile from '~/assets/images/mobile.webp';
 import imgVisualIntro from '~/assets/images/visual_intro.webp';
-import vidParticlePlanet from '~/assets/videos/aboutUs/particlePlanet.mp4';
 
 const { messages } = useMessages(); // Destructure the localized messages from the custom composable
 
@@ -179,9 +171,6 @@ const { messages } = useMessages(); // Destructure the localized messages from t
 const leftImage = ref(null);
 const imageContainer = ref(null);
 const mobileImage = ref(null);
-
-// Ref for video elements
-const particlePlanetVideo = ref(null);
 
 /**
  * Initializes the ScrollTrigger animation on the leftImage element.
@@ -215,8 +204,4 @@ onMounted(() => {
   }
 });
 
-// Use `useFreeResources` to manage cleanup for the video
-useFreeResources({
-  videos: [particlePlanetVideo]
-});
 </script>

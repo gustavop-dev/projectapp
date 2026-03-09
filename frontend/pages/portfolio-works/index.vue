@@ -1,10 +1,5 @@
 <template>
   <div itemscope itemtype="https://schema.org/CollectionPage">
-    <!-- Navbar -->
-    <div class="fixed top-0 left-0 w-full z-50">
-      <Navbar />
-    </div>
-
     <!-- Original Hero: Video + Lemon background -->
     <section itemscope itemtype="https://schema.org/WPHeader">
       <div class="p-3 h-svh">
@@ -17,14 +12,9 @@
               <span class="sr-only">by Project App.</span>
             </h1>
           </div>
-          <div class="order-1" itemscope itemtype="https://schema.org/VideoObject">
+          <div class="order-1">
             <div class="relative w-full h-svh overflow-hidden">
-              <video ref="backgroundVideo" autoplay muted loop playsinline class="absolute inset-0 w-auto h-full object-cover" itemprop="contentUrl">
-                <source :src="vidAbstractGradient" type="video/mp4" />
-                Your browser does not support the video tag.
-                <span class="sr-only">Project App. video presentation</span>
-              </video>
-              <meta itemprop="name" content="Project App. Portfolio Background Video" />
+              <AnimatedGradient />
             </div>
           </div>
         </div>
@@ -42,11 +32,7 @@
           {{ messages.section_subtitle }}
           <span class="sr-only">Project App. portfolio</span>
         </h2>
-        <p class="text-md font-light text-esmerald mt-6" itemprop="description">
-          *{{ messages.custom_software_notice }}
-          <span class="sr-only">Project App.</span>
-        </p>
-        <p class="text-2md font-light text-esmerald mt-3" itemprop="description">
+        <p class="text-2md font-light text-esmerald mt-6" itemprop="description">
           *{{ messages.dynamic_web_notice }}
           <span class="sr-only">Project App. specializes in web solutions</span>
         </p>
@@ -64,7 +50,7 @@
         </div>
 
         <!-- Awwwards-style project grid (replaces old simple cards) -->
-        <div v-else ref="worksGrid" class="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4 lg:mt-24" role="list" aria-label="Portfolio projects">
+        <div v-else ref="worksGrid" class="mt-12 grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4 lg:mt-24" role="list" aria-label="Portfolio projects">
           <article
             v-for="work in works"
             :key="work.id"
@@ -80,7 +66,7 @@
                 v-if="work.cover_image"
                 :src="work.cover_image"
                 :alt="`${work.title} - Project App. portfolio project`"
-                class="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700"
+                class="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-700"
                 loading="lazy"
                 itemprop="image"
               />
@@ -121,7 +107,7 @@
               </div>
             </div>
 
-            <h3 class="mt-4 font-regular text-esmerald text-md group-hover:text-green-light transition-colors" itemprop="name">
+            <h3 class="mt-2 sm:mt-4 font-regular text-esmerald text-sm sm:text-md group-hover:text-green-light transition-colors leading-tight" itemprop="name">
               {{ work.title }}
               <span class="sr-only">- Project App. portfolio showcase</span>
             </h3>
@@ -143,14 +129,11 @@
 
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import Navbar from '~/components/layouts/Navbar.vue';
 import Footer from '~/components/layouts/Footer.vue';
+import AnimatedGradient from '~/components/backgrounds/AnimatedGradient.vue';
 import { usePortfolioWorksStore } from '~/stores/portfolio_works';
 import { useMessages } from '~/composables/useMessages';
-import { useFreeResources } from '~/composables/useFreeResources';
 import { staggerFadeUp } from '~/animations';
-
-import vidAbstractGradient from '~/assets/videos/webDevelopments/abstractGradientBackground.mp4';
 
 useSeoHead('portfolioWorks');
 
@@ -162,7 +145,6 @@ const works = computed(() => portfolioStore.works);
 const isEnglish = computed(() => locale.value.startsWith('en'));
 const portfolioLang = computed(() => isEnglish.value ? 'en' : 'es');
 
-const backgroundVideo = ref(null);
 const worksGrid = ref(null);
 
 function runGridAnimations() {
@@ -179,8 +161,6 @@ onMounted(() => {
 });
 
 watch(works, () => { runGridAnimations(); });
-
-useFreeResources({ videos: [backgroundVideo] });
 
 function handleShare(work) {
   const url = `${window.location.origin}${localePath(`/portfolio-works/${work.slug}`)}`;

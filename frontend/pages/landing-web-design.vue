@@ -1,10 +1,5 @@
 <template>
   <div class="overflow-x-hidden bg-esmerald-light" itemscope itemtype="https://schema.org/WebPage">
-    <!-- Fixed navbar component at the top of the page -->
-    <header class="fixed top-0 left-0 w-full z-50">
-      <Navbar />
-    </header>
-
     <!-- Hero section -->
     <Hero />
 
@@ -61,7 +56,6 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import Navbar from '~/components/layouts/Navbar.vue'
 import { useFreeResources } from '~/composables/useFreeResources'
 import ContactSection from '~/views-legacy/partials/ContactSection.vue'
 import FooterSection from '~/views-legacy/partials/FooterSection.vue'

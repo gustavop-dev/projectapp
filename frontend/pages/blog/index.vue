@@ -1,10 +1,5 @@
 <template>
   <div class="min-h-screen bg-esmerald-light" itemscope itemtype="https://schema.org/Blog">
-    <!-- Navbar -->
-    <header class="fixed top-0 left-0 w-full z-50">
-      <Navbar />
-    </header>
-
     <!-- Hero Section -->
     <section ref="heroSection" class="relative pt-32 sm:pt-40 pb-16 sm:pb-20 px-4 sm:px-6 overflow-hidden" aria-labelledby="blog-title">
       <!-- Subtle decorative circles -->
@@ -14,11 +9,12 @@
         <div class="text-center mb-16">
           <h1
             id="blog-title"
+            data-enter
             class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-light mb-6 tracking-tight leading-[1.05] text-esmerald"
           >
             Blog
           </h1>
-          <p class="text-xl md:text-2xl max-w-3xl mx-auto text-green-light leading-relaxed font-regular">
+          <p data-enter class="text-xl md:text-2xl max-w-3xl mx-auto text-green-light leading-relaxed font-regular">
             {{ isEnglish
               ? 'Insights and trends in AI, software development, and digital transformation.'
               : 'Novedades y tendencias en IA, desarrollo de software y transformación digital.'
@@ -334,11 +330,13 @@
 
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import Navbar from '~/components/layouts/Navbar.vue';
 import ContactSection from '~/views-legacy/partials/ContactSection.vue';
 import FooterSection from '~/views-legacy/partials/FooterSection.vue';
 import { useBlogStore } from '~/stores/blog';
 import { fadeUp, staggerFadeUp } from '~/animations';
+import { usePageEntrance } from '~/composables/usePageEntrance';
+
+usePageEntrance();
 
 const { locale } = useI18n();
 const localePath = useLocalePath();

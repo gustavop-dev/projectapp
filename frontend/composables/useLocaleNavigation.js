@@ -6,14 +6,9 @@ import { computed } from 'vue';
 const legacyRouteNameToPath = {
   'home': '/',
   'aboutUs': '/about-us',
-  'webDesigns': '/web-designs',
   'portfolioWorks': '/portfolio-works',
-  'customSoftware': '/custom-software',
-  'eCommercePrices': '/e-commerce-prices',
-  'hosting': '/hosting',
   'contact': '/contact',
   'contactSuccess': '/contact-success',
-  '3dAnimations': '/3d-animations',
 };
 
 /**

@@ -5,15 +5,10 @@ export default {
       solutions: {
         home: "Home",
         about: "About us",
-        web_designs: "Web designs",
         web_developments: "Our work",
-        custom_software: "Custom software",
-        animations_3d: "3D Animations",
-        prices: "E-commerce pricing",
-        hosting: "Hosting",
         blog: "Blog",
       },
-      contact_us: "Contact Us"
+      contact_us: "Contact"
     },
     preloader: {
       right_text: "Where code\nmeets creativity",
@@ -58,12 +53,7 @@ export default {
       solutions: {
         home: "Home",
         about: "About us",
-        web_designs: "Web designs",
         web_developments: "Our work",
-        custom_software: "Custom software",
-        animations_3d: "3D Animations",
-        prices: "E-commerce pricing",
-        hosting: "Hosting",
         blog: "Blog",
       },
     },

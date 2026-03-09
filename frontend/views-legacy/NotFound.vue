@@ -1,8 +1,5 @@
 <template>
   <div>
-    <div class="fixed top-0 left-0 w-full z-50">
-      <Navbar></Navbar>
-    </div>
     <section>
       <div class="h-svh p-3">
         <div
@@ -47,7 +44,6 @@
 </template>
 
 <script setup>
-import Navbar from "~/components/layouts/Navbar.vue";
 import Footer from "~/components/layouts/Footer.vue";
 import { ref } from "vue";
 import { useMessages } from "~/composables/useMessages";

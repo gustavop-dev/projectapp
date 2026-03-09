@@ -3,11 +3,6 @@
     <!-- Reading progress bar + time remaining -->
     <ReadingProgressBar v-if="post" :read-time-minutes="post.read_time_minutes || 0" :lang="blogLang" />
 
-    <!-- Navbar -->
-    <header class="fixed top-0 left-0 w-full z-50">
-      <Navbar />
-    </header>
-
     <!-- Back Button -->
     <div class="pt-24 sm:pt-28 pb-6 sm:pb-8 px-4 sm:px-6">
       <div class="max-w-4xl mx-auto">
@@ -68,7 +63,7 @@
               </div>
             </div>
 
-            <h1 class="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-light mb-6 sm:mb-8 tracking-tight leading-[1.05] text-esmerald" itemprop="headline">
+            <h1 data-enter class="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-light mb-6 sm:mb-8 tracking-tight leading-[1.05] text-esmerald" itemprop="headline">
               {{ post.title }}
             </h1>
 
@@ -263,13 +258,15 @@
 
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import Navbar from '~/components/layouts/Navbar.vue';
 import ContactSection from '~/views-legacy/partials/ContactSection.vue';
 import FooterSection from '~/views-legacy/partials/FooterSection.vue';
 import BlogContentRenderer from '~/components/blog/BlogContentRenderer.vue';
 import ReadingProgressBar from '~/components/blog/ReadingProgressBar.vue';
 import { useBlogStore } from '~/stores/blog';
 import { fadeUp } from '~/animations';
+import { usePageEntrance } from '~/composables/usePageEntrance';
+
+usePageEntrance();
 
 const AUTHOR_PROFILES = {
   'projectapp-team': {

@@ -1,161 +1,155 @@
 <template>
-  <!--Navbar Desktop-->
-  <nav class="hidden lg:block relative w-screen" aria-label="Main navigation">
-    <div class="absolute ps-8 pt-6 z-10">
-      <h1 :class="[
-        'text-xl font-bold',
-        theme === 'dark' ? 'text-white' : 'text-esmerald'
-      ]">
-        <NuxtLink 
-          :to="localePath('/')"
-          class="cursor-pointer"
-          aria-label="Project App. - Professional Web Design & Development Company - Homepage"
-          >
-            Project<br>App.
-        </NuxtLink>
-      </h1>
-    </div>
-    <div class="flex absolute z-10 pt-6 top-0 right-0 lg:pe-8">
-      <button
-        @click="toggleLanguage"
-        class="inline-flex items-center gap-x-1 text-sm bg-window-black bg-opacity-40 backdrop-blur-md text-white font-regular py-2 px-4 rounded-xl mx-2 transition duration-250 ease-out hover:bg-esmerald"
-        :aria-label="`Switch to ${isEnglish ? 'Spanish' : 'English'}`">
-        <span class="uppercase font-light">{{ isEnglish ? 'EN' : 'ES' }}</span>
-        <span class="sr-only">Change language</span>
-      </button>
-      <Popover class="relative">
-        <PopoverButton 
-          class="inline-flex items-center gap-x-1 text-md bg-window-black bg-opacity-40 backdrop-blur-md text-white font-regular py-2 px-8 rounded-xl mx-2 transition duration-250 ease-out hover:bg-esmerald"
-          aria-expanded="auto"
-          aria-haspopup="true">
-          <span>
-            {{ globalMessages?.menu_button || 'Menu' }}
-          </span>
-          <span class="sr-only">Open website navigation menu</span>
-        </PopoverButton>
+  <!--Navbar Desktop — Glassmorphism pill with sliding lemon indicator -->
+  <nav
+    class="hidden lg:flex fixed top-6 left-1/2 -translate-x-1/2 z-50 items-center gap-2 pl-7 pr-3 py-3.5 rounded-full bg-white/60 backdrop-blur-2xl border border-white/30 shadow-xl"
+    aria-label="Main navigation"
+  >
+    <!-- Logo -->
+    <NuxtLink
+      :to="localePath('/')"
+      class="flex items-center pr-4 mr-2 text-esmerald font-bold text-xl tracking-tight hover:opacity-80 transition-opacity flex-shrink-0 border-r border-esmerald/10"
+      aria-label="Project App. - Homepage"
+    >
+      Project<span class="text-esmerald">App.</span>
+    </NuxtLink>
 
-        <transition 
-          enter-active-class="transition ease-out duration-200" 
-          enter-from-class="opacity-0 translate-y-1" 
-          enter-to-class="opacity-100 translate-y-0" 
-          leave-active-class="transition ease-in duration-150" 
-          leave-from-class="opacity-100 translate-y-0" 
-          leave-to-class="opacity-0 translate-y-1"
-          >
-          <PopoverPanel class="absolute right-0 z-10 mt-5 flex max-w-min px-2" role="menu" aria-orientation="vertical">
-            <div class="w-max grid grid-cols-2 rounded-xl bg-window-black bg-opacity-40 text-white backdrop-blur-md" role="menubar">
-              <NuxtLink
-                :to="item.absolute ? item.href : localePath(item.href)" 
-                v-for="(item, index) in solutions" 
-                :key="index" 
-                class="flex p-2 ps-4 font-regular text-white text-xl relative group"
-                @mouseenter="hoverMenu($event, true)" 
-                @mouseleave="hoverMenu($event, false)"
-                role="menuitem"
-              >
-                {{ item.name }}
-                <div class="absolute ms-4 left-0 bottom-0 h-0.5 w-0 bg-white transition-all duration-300 group-hover:w-full underline"></div>
-                <div class="relative ps-2 transform opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-regular arrow">
-                  ➜
-                </div>
-                <span class="sr-only">Navigate to {{ item.name }}</span>
-              </NuxtLink>
-              <SocialLinks></SocialLinks>
-              <ButtonWhitArrow @click="showModalEmail = true"></ButtonWhitArrow>
-            </div>
-          </PopoverPanel>
-        </transition>
-      </Popover>
-      <button 
-        @click="showModalEmail = true" 
-        class="inline-flex items-center gap-x-1 text-md bg-window-black bg-opacity-40 backdrop-blur-md text-white font-regular py-2 px-8 rounded-xl mx-2 transition duration-250 ease-out hover:bg-esmerald"
-        aria-label="Contact our website development team">
-        {{ globalMessages?.get_in_touch || 'Get in touch' }}
-        <span class="sr-only">Open contact form</span>
-      </button>
+    <!-- Nav links container with sliding lemon pill -->
+    <div ref="navLinksContainer" class="relative flex items-center gap-1">
+      <!-- Sliding lemon pill indicator -->
+      <div
+        ref="lemonPill"
+        class="absolute top-0 left-0 h-full rounded-full bg-lemon pointer-events-none will-change-transform"
+        style="width: 0; opacity: 0;"
+      />
+
+      <!-- Nav links -->
+      <NuxtLink
+        v-for="(item, idx) in navItems"
+        :key="item.href"
+        :ref="el => { if (el) navLinkRefs[idx] = el.$el || el; }"
+        :to="item.external ? item.href : localePath(item.href)"
+        :target="item.external ? '_blank' : undefined"
+        :rel="item.external ? 'noopener noreferrer' : undefined"
+        class="relative z-10 px-6 py-3 rounded-full text-base transition-colors duration-200"
+        :class="isActiveRoute(item.routeKey) ? 'text-esmerald font-medium' : 'text-esmerald/60 font-regular hover:text-esmerald'"
+      >
+        {{ item.name }}
+      </NuxtLink>
     </div>
+
+    <!-- Language toggle -->
+    <button
+      @click="toggleLanguage"
+      class="px-4 py-2.5 rounded-full text-sm font-medium text-esmerald/50 hover:text-esmerald hover:bg-white/40 transition-all uppercase tracking-wider ml-2"
+      :aria-label="`Switch to ${isEnglish ? 'Spanish' : 'English'}`"
+    >
+      {{ isEnglish ? 'EN' : 'ES' }}
+    </button>
   </nav>
 
-  <!--Navbar Mobile-->
-  <nav class="block lg:hidden relative min-h-[60px] w-screen" aria-label="Mobile navigation">
-    <div class="absolute ps-8 pt-6 z-10">
-      <h1 :class="[
-        'text-xl font-bold',
-        theme === 'dark' ? 'text-white' : 'text-esmerald'
-      ]">
-        <NuxtLink 
-          :to="localePath('/')" 
-          class="cursor-pointer"
-          aria-label="Project App. - Professional Web Design & Development Company - Homepage">
-          Project<br>App.
-        </NuxtLink>
-      </h1>
-    </div>
+  <!--Navbar Mobile — Fixed glassmorphism bar -->
+  <nav class="flex lg:hidden fixed top-0 left-0 right-0 z-50 items-center justify-between px-5 py-4 bg-white/60 backdrop-blur-2xl border-b border-white/20" aria-label="Mobile navigation">
+    <NuxtLink
+      :to="localePath('/')"
+      class="text-esmerald font-bold text-lg tracking-tight"
+      aria-label="Project App. - Homepage"
+    >
+      Project<span>App.</span>
+    </NuxtLink>
 
-    <div class="flex absolute z-10 pt-6 pe-6 top-0 right-0 space-x-2 text-white">
+    <div class="flex items-center gap-2">
       <button
         @click="toggleLanguage"
-        class="bg-window-black bg-opacity-40 backdrop-blur-md rounded-xl px-3 py-3 text-sm font-light"
-        :aria-label="`Switch to ${isEnglish ? 'Spanish' : 'English'}`">
+        class="px-2.5 py-1.5 rounded-full text-xs font-medium text-esmerald/50 uppercase tracking-wider"
+        :aria-label="`Switch to ${isEnglish ? 'Spanish' : 'English'}`"
+      >
         {{ isEnglish ? 'EN' : 'ES' }}
-        <span class="sr-only">Change language</span>
       </button>
-      <button 
-        @click="openMenuMobile" 
-        class="bg-window-black bg-opacity-40 backdrop-blur-md rounded-xl px-4 py-3 text-md"
-        aria-expanded="false"
-        aria-haspopup="true"
-        aria-controls="mobile-menu">
-        {{ globalMessages?.menu_button || 'Menu' }}
-        <span class="sr-only">Open mobile navigation menu</span>
-      </button>
-      <button 
-        @click="showModalEmail = true" 
-        class="bg-window-black bg-opacity-40 backdrop-blur-md rounded-xl px-4 py-3 flex justify-center items-center font-regular text-md"
-        aria-label="Contact our web design team">
-        {{ globalMessages?.get_in_touch || 'Get in touch' }}
-        <span class="sr-only">Open contact form</span>
+      <button
+        @click="openMenuMobile"
+        class="w-10 h-10 rounded-full bg-esmerald flex items-center justify-center"
+        aria-label="Open menu"
+      >
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
       </button>
     </div>
   </nav>
 
+  <!-- Fullscreen mobile menu overlay -->
   <Teleport to="body">
-    <div class="fixed inset-0 flex justify-end z-50" v-show="showMenu" id="mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation menu">
-      <div 
-        ref="background" 
-        @click="closeBackdrop" 
-        class="absolute inset-0 bg-gray-500 bg-opacity-40 backdrop-blur-md"
-        aria-hidden="true">
-      </div>
-      <nav ref="menuBox" class="relative bg-lemon h-svh w-full max-w-[100vw] shadow-lg flex flex-col z-60 overflow-y-auto" aria-label="Mobile navigation options">
-        <div class="flex justify-end py-3 pe-3">
-          <button 
-            @click="closeMenuMobile" 
-            class="text-esmerald"
-            aria-label="Close menu">
-            <XMarkIcon class="w-8 h-8"></XMarkIcon>
-            <span class="sr-only">Close navigation menu</span>
+    <div
+      v-show="showMenu"
+      class="fixed inset-0 z-[100]"
+      id="mobile-menu"
+      role="dialog"
+      aria-modal="true"
+    >
+      <!-- Backdrop -->
+      <div
+        ref="background"
+        @click="closeBackdrop"
+        class="absolute inset-0 bg-white/40 backdrop-blur-xl"
+        style="opacity: 0;"
+      />
+
+      <!-- Menu panel -->
+      <div
+        ref="menuBox"
+        class="absolute inset-0 flex flex-col bg-esmerald-light/95 backdrop-blur-md"
+        style="opacity: 0;"
+      >
+        <!-- Top bar: logo + close -->
+        <div class="flex items-center justify-between px-5 py-4">
+          <NuxtLink
+            :to="localePath('/')"
+            class="text-esmerald font-bold text-lg tracking-tight"
+            @click="closeMenu"
+          >
+            ProjectApp.
+          </NuxtLink>
+          <button
+            @click="closeMenuMobile"
+            class="w-10 h-10 rounded-full bg-esmerald/10 flex items-center justify-center text-esmerald hover:bg-esmerald/20 transition-colors"
+            aria-label="Close menu"
+          >
+            <XMarkIcon class="w-6 h-6" />
           </button>
         </div>
-        <div class="flex flex-col flex-grow py-4">
+
+        <!-- Nav links — large, staggered -->
+        <div class="flex-1 flex flex-col justify-center px-8 gap-2">
           <NuxtLink
-            :to="item.absolute ? item.href : localePath(item.href)" 
-            v-for="(item, index) in solutions" 
-            :key="index" 
-            class="flex p-2 ps-4 font-regular text-esmerald text-4xl relative group"
-            @click="closeMenuMobile"
-            aria-label="Navigate to {{ item.name }}"
-            >
+            v-for="(item, index) in mobileMenuItems"
+            :key="item.href"
+            :to="item.external ? item.href : localePath(item.href)"
+            :target="item.external ? '_blank' : undefined"
+            :ref="el => { if (el) mobileNavRefs[index] = el.$el || el; }"
+            class="mobile-nav-item text-esmerald font-light text-5xl py-3 border-b border-esmerald/10 transition-colors hover:text-green-light"
+            style="opacity: 0; transform: translateY(20px);"
+            @click="closeMenu"
+          >
             {{ item.name }}
-            <span class="sr-only">Navigate to {{ item.name }} page</span>
           </NuxtLink>
         </div>
-        <div class="w-full pb-4">
-          <SocialLinks></SocialLinks>
-          <div class="border-transparent border-t-esmerald border-opacity-40 border"></div>
-          <ButtonWhitArrow @click="showModalEmail = true"></ButtonWhitArrow>
+
+        <!-- Bottom: WhatsApp CTA + socials -->
+        <div class="px-8 pb-8 space-y-4" ref="mobileBottomRef" style="opacity: 0; transform: translateY(15px);">
+          <a
+            href="https://wa.me/message/XX77FJEUEM26H1?src=qr"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center justify-center gap-3 w-full py-4 rounded-2xl bg-esmerald text-white text-base font-medium transition-all hover:bg-esmerald/90"
+          >
+            <svg class="w-5 h-5" viewBox="0 0 448 512" fill="currentColor"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157" /></svg>
+            {{ globalMessages?.contact_us || 'Contact' }}
+          </a>
+          <div class="flex items-center justify-center gap-6 text-sm text-esmerald/50">
+            <a href="https://instagram.com/projectapp.co" target="_blank" rel="noopener noreferrer" class="hover:text-esmerald transition-colors">Instagram</a>
+            <a href="https://facebook.com/projectapp.co" target="_blank" rel="noopener noreferrer" class="hover:text-esmerald transition-colors">Facebook</a>
+            <button @click="toggleLanguage" class="hover:text-esmerald transition-colors uppercase">{{ isEnglish ? 'ES' : 'EN' }}</button>
+          </div>
         </div>
-      </nav>
+      </div>
     </div>
   </Teleport>
 
@@ -163,7 +157,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { gsap } from 'gsap';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue';
 import { XMarkIcon } from '@heroicons/vue/24/outline';
@@ -199,7 +193,7 @@ const toggleLanguage = () => {
 defineProps({
   theme: {
     type: String,
-    default: 'light', // puede ser 'light' o 'dark'
+    default: 'light',
   }
 })
 
@@ -209,20 +203,94 @@ const menuBox = ref(null);
 const showModalEmail = ref(false);
 const showMenu = ref(false);
 
-// Menu items as computed for reactive translations
-const solutions = computed(() => {
+// Desktop navbar — sliding lemon pill
+const route = useRoute();
+const lemonPill = ref(null);
+const navLinksContainer = ref(null);
+const navLinkRefs = ref([]);
+
+// Nav items: includes Contact as the last item (WhatsApp link)
+const navItems = computed(() => {
+  const s = globalMessages.value?.solutions || {};
+  const cta = globalMessages.value?.contact_us || 'Contact';
+  return [
+    { name: s.home || 'Home', href: '/', routeKey: 'index' },
+    { name: s.about || 'About', href: '/about-us', routeKey: 'about-us' },
+    { name: s.web_developments || 'Our work', href: '/portfolio-works', routeKey: 'portfolio-works' },
+    { name: s.blog || 'Blog', href: '/blog', routeKey: 'blog' },
+    { name: cta, href: 'https://wa.me/message/XX77FJEUEM26H1?src=qr', external: true, routeKey: 'contact' },
+  ];
+});
+
+// Mobile menu items (same nav + no external Contact, that's the CTA button)
+const mobileMenuItems = computed(() => {
   const s = globalMessages.value?.solutions || {};
   return [
     { name: s.home || 'Home', href: '/' },
     { name: s.about || 'About', href: '/about-us' },
-    { name: s.web_designs || 'Web designs', href: '/web-designs' },
-    { name: s.web_developments || 'Web developments', href: '/portfolio-works' },
-    { name: s.custom_software || 'Custom software', href: '/custom-software' },
-    { name: s.animations_3d || '3D animations', href: '/3d-animations' },
-    { name: s.prices || 'Prices', href: '/e-commerce-prices' },
-    { name: s.hosting || 'Hosting', href: '/hosting' },
-    { name: s.blog || 'Blog', href: '/blog', absolute: true },
+    { name: s.web_developments || 'Our work', href: '/portfolio-works' },
+    { name: s.blog || 'Blog', href: '/blog' },
   ];
+});
+const mobileNavRefs = ref([]);
+const mobileBottomRef = ref(null);
+
+const isActiveRoute = (routeKey) => {
+  if (routeKey === 'contact') return false;
+  const name = route.name;
+  if (!name || typeof name !== 'string') return false;
+  const baseName = name.split('___')[0];
+  if (routeKey === 'index') return baseName === 'index';
+  return baseName.startsWith(routeKey);
+};
+
+const activeNavIndex = computed(() => {
+  const idx = navItems.value.findIndex(item => isActiveRoute(item.routeKey));
+  return idx >= 0 ? idx : -1;
+});
+
+let pillInitialized = false;
+
+function slidePillToActive(animate = true) {
+  const idx = activeNavIndex.value;
+  const pill = lemonPill.value;
+  if (!pill) return;
+
+  // If no active route (e.g. external page), keep pill at last position
+  if (idx < 0) return;
+
+  const el = navLinkRefs.value[idx];
+  if (!el) return;
+  const container = navLinksContainer.value;
+  if (!container) return;
+  const containerRect = container.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  const targetX = elRect.left - containerRect.left;
+  const targetW = elRect.width;
+
+  if (!pillInitialized) {
+    // First time: instant position, then fade in
+    gsap.set(pill, { x: targetX, width: targetW });
+    gsap.to(pill, { opacity: 1, duration: 0.3 });
+    pillInitialized = true;
+    return;
+  }
+
+  if (animate) {
+    // Pure horizontal slide — no opacity change
+    gsap.to(pill, {
+      x: targetX,
+      width: targetW,
+      duration: 0.5,
+      ease: 'power3.inOut',
+    });
+  } else {
+    gsap.set(pill, { x: targetX, width: targetW, opacity: 1 });
+  }
+}
+
+watch(() => route.fullPath, () => {
+  nextTick(() => slidePillToActive(true));
 });
 
 /**
@@ -242,85 +310,84 @@ const hoverMenu = (event, isHover) => {
   }
 };
 
-/**
- * Abre el menú móvil con protección contra propagación.
- */
 const openMenuMobile = (event) => {
-  // Detener la propagación del evento para evitar que llegue al document
   event.stopPropagation();
   openMenu();
 };
 
-/**
- * Abre el menú con animaciones GSAP.
- */
 const openMenu = () => {
   showMenu.value = true;
-  
-  // Retrasamos las animaciones hasta el siguiente frame para evitar bloqueo de renderizado
+
   requestAnimationFrame(() => {
-    if (background.value && menuBox.value) {
-      gsap.fromTo(
-        background.value,
-        { opacity: 0 },
-        { opacity: 1, duration: 0.25, ease: "power2.inOut" }
+    const tl = gsap.timeline();
+
+    // 1. Backdrop fades in
+    if (background.value) {
+      tl.fromTo(background.value, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'power2.out' }, 0);
+    }
+
+    // 2. Menu panel fades in
+    if (menuBox.value) {
+      tl.fromTo(menuBox.value, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'power2.out' }, 0.05);
+    }
+
+    // 3. Each nav link staggers in — the premium feel
+    const navEls = mobileNavRefs.value.filter(Boolean);
+    if (navEls.length) {
+      tl.fromTo(navEls,
+        { opacity: 0, y: 30 },
+        { opacity: 1, y: 0, duration: 0.5, stagger: 0.08, ease: 'power3.out' },
+        0.15
       );
-    
-      gsap.fromTo(
-        menuBox.value,
-        { x: window.innerWidth },
-        { x: 0, duration: 0.25, ease: "power2.inOut" }
+    }
+
+    // 4. Bottom CTA slides up last
+    if (mobileBottomRef.value) {
+      tl.fromTo(mobileBottomRef.value,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out' },
+        0.45
       );
     }
   });
 };
 
-/**
- * Cierra el menú móvil con protección contra propagación.
- */
 const closeMenuMobile = (event) => {
-  // Detener la propagación del evento para evitar comportamientos inesperados
   event.stopPropagation();
   closeMenu();
 };
 
-/**
- * Cierra el menú desde el backdrop/background con protección contra propagación.
- */
 const closeBackdrop = (event) => {
-  // Detener la propagación del evento
   event.stopPropagation();
   closeMenu();
 };
 
-/**
- * Cierra el menú con animaciones GSAP.
- */
 const closeMenu = () => {
-  if (!background.value || !menuBox.value) return;
-  
   const tl = gsap.timeline({
-    onComplete: () => {
-      showMenu.value = false;
-    }
+    onComplete: () => { showMenu.value = false; }
   });
-  
-  // Usar timeline para coordinar animaciones
-  tl.to(menuBox.value, {
-    x: menuBox.value.offsetWidth,
-    duration: 0.25,
-    ease: "power2.inOut"
-  }, 0);
-  
-  tl.to(background.value, {
-    opacity: 0,
-    duration: 0.25,
-    ease: "power2.inOut"
-  }, 0);
+
+  // Fade everything out together, fast
+  const navEls = mobileNavRefs.value.filter(Boolean);
+  if (navEls.length) {
+    tl.to(navEls, { opacity: 0, y: -10, duration: 0.2, stagger: 0.03, ease: 'power2.in' }, 0);
+  }
+  if (mobileBottomRef.value) {
+    tl.to(mobileBottomRef.value, { opacity: 0, duration: 0.15 }, 0);
+  }
+  if (menuBox.value) {
+    tl.to(menuBox.value, { opacity: 0, duration: 0.25, ease: 'power2.in' }, 0.1);
+  }
+  if (background.value) {
+    tl.to(background.value, { opacity: 0, duration: 0.25, ease: 'power2.in' }, 0.1);
+  }
 };
 
 // Inicialización de efectos al montar el componente
 onMounted(() => {
+  // Slide lemon pill to active link on initial load
+  setTimeout(() => slidePillToActive(false), 100);
+
   document.addEventListener('click', (e) => {
     // Solo cerrar el menú si está abierto y el clic no fue en el menú ni en el botón de apertura
     if (showMenu.value) {

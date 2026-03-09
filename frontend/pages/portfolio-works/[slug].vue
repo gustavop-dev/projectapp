@@ -1,9 +1,5 @@
 <template>
   <div class="min-h-screen bg-esmerald-light" itemscope itemtype="https://schema.org/CreativeWork">
-    <header class="fixed top-0 left-0 w-full z-50">
-      <Navbar />
-    </header>
-
     <!-- Loading -->
     <div v-if="portfolioStore.isLoading" class="flex items-center justify-center min-h-screen">
       <div class="w-8 h-8 border-2 border-esmerald/30 border-t-esmerald rounded-full animate-spin" />
@@ -38,16 +34,28 @@
         <!-- Title + Excerpt + Share (above the image) -->
         <header ref="titleSection" class="px-4 sm:px-6 pb-8 sm:pb-12">
           <div class="max-w-4xl mx-auto text-center">
-            <h1 class="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-light mb-6 sm:mb-8 tracking-tight leading-[1.05] text-esmerald" itemprop="name">
+            <h1 data-enter class="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-light mb-6 sm:mb-8 tracking-tight leading-[1.05] text-esmerald" itemprop="name">
               {{ work.title }}
             </h1>
-            <p v-if="work.excerpt" class="text-lg sm:text-xl md:text-2xl max-w-3xl mx-auto text-green-light leading-relaxed font-regular mb-8 sm:mb-10" itemprop="description">
+            <p v-if="work.excerpt" data-enter class="text-lg sm:text-xl md:text-2xl max-w-3xl mx-auto text-green-light leading-relaxed font-regular mb-8 sm:mb-10" itemprop="description">
               {{ work.excerpt }}
             </p>
-            <button class="px-5 sm:px-6 py-2.5 sm:py-3 rounded-full flex items-center gap-2 mx-auto transition-all hover:scale-105 border-2 border-gray-200 text-esmerald" @click="handleShare">
-              <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-              <span class="text-sm font-regular">{{ isEnglish ? 'Share' : 'Compartir' }}</span>
-            </button>
+            <div data-enter class="flex items-center justify-center gap-3">
+              <button class="px-5 sm:px-6 py-2.5 sm:py-3 rounded-full flex items-center gap-2 transition-all hover:scale-105 border-2 border-gray-200 text-esmerald" @click="handleShare">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                <span class="text-sm font-regular">{{ isEnglish ? 'Share' : 'Compartir' }}</span>
+              </button>
+              <a
+                v-if="work.project_url"
+                :href="work.project_url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="px-5 sm:px-6 py-2.5 sm:py-3 rounded-full flex items-center gap-2 transition-all hover:scale-105 bg-esmerald text-white"
+              >
+                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                <span class="text-sm font-medium">{{ isEnglish ? 'Visit Site' : 'Visitar Sitio' }}</span>
+              </a>
+            </div>
           </div>
         </header>
 
@@ -155,8 +163,8 @@
       <!-- Footer -->
       <FooterSection />
 
-      <!-- Sticky Awwwards bar -->
-      <div class="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 w-auto">
+      <!-- Sticky Awwwards bar — desktop only, hidden on mobile to not conflict with WhatsApp button -->
+      <div class="hidden lg:block fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-auto">
         <div class="bg-esmerald-dark/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/10 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2 sm:gap-3">
           <!-- Pr. logo circle -->
           <NuxtLink :to="localePath('/')" class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white flex items-center justify-center flex-shrink-0 hover:scale-105 transition-transform">
@@ -188,10 +196,12 @@
 
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import Navbar from '~/components/layouts/Navbar.vue';
 import FooterSection from '~/views-legacy/partials/FooterSection.vue';
 import { usePortfolioWorksStore } from '~/stores/portfolio_works';
 import { fadeUp } from '~/animations';
+import { usePageEntrance } from '~/composables/usePageEntrance';
+
+usePageEntrance();
 
 const route = useRoute();
 const { locale } = useI18n();
