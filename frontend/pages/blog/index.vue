@@ -303,7 +303,7 @@
     </main>
 
     <!-- CTA Section -->
-    <section ref="ctaSection" class="py-14 sm:py-20 px-4 sm:px-6 bg-esmerald">
+    <section class="py-14 sm:py-20 px-4 sm:px-6 bg-esmerald">
       <div class="max-w-4xl mx-auto text-center">
         <h2 class="text-3xl sm:text-4xl md:text-5xl font-light mb-6 tracking-tight text-white">
           {{ isEnglish ? 'Have a Project in Mind?' : '¿Tienes un Proyecto en Mente?' }}
@@ -432,7 +432,6 @@ const heroSection = ref(null);
 const filtersRow = ref(null);
 const featuredCard = ref(null);
 const postsGrid = ref(null);
-const ctaSection = ref(null);
 
 function runHeroAnimations() {
   if (heroSection.value) {
@@ -457,7 +456,6 @@ function runPostAnimations() {
 onMounted(() => {
   blogStore.fetchPosts(blogLang.value);
   runHeroAnimations();
-  if (ctaSection.value) fadeUp(ctaSection.value, { scrollTrigger: { trigger: ctaSection.value } });
 });
 
 watch(posts, () => { runPostAnimations(); });

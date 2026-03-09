@@ -136,7 +136,7 @@
             />
 
             <!-- CTA inline -->
-            <div ref="ctaInline" class="bg-white rounded-2xl p-6 sm:p-10 shadow-sm border border-gray-200/60 text-center mt-12">
+            <div class="bg-white rounded-2xl p-6 sm:p-10 shadow-sm border border-gray-200/60 text-center mt-12">
               <h3 class="text-2xl sm:text-3xl font-light mb-3 sm:mb-4 text-esmerald">
                 {{ isEnglish ? 'Did This Article Inspire You?' : '¿Te Inspiró Este Artículo?' }}
               </h3>
@@ -179,27 +179,26 @@
 
             <!-- Previous / Next Article Navigation -->
             <nav v-if="prevPost || nextPost" class="mt-16 pt-8 border-t border-gray-200/50">
-              <div class="grid gap-4" :class="prevPost && nextPost ? 'sm:grid-cols-2' : 'sm:grid-cols-1'">
+              <div class="grid grid-cols-1 gap-4" :class="prevPost && nextPost ? 'sm:grid-cols-2' : ''">
                 <NuxtLink
                   v-if="prevPost"
                   :to="`/blog/${prevPost.slug}`"
-                  class="group flex items-center gap-4 p-4 rounded-2xl bg-white border border-gray-200/60 hover:shadow-md transition-all"
+                  class="group flex items-center gap-3 p-4 rounded-2xl bg-white border border-gray-200/60 hover:shadow-md transition-all overflow-hidden"
                 >
                   <svg class="w-5 h-5 text-green-light group-hover:text-esmerald transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-                  <div class="min-w-0">
+                  <div class="min-w-0 flex-1">
                     <p class="text-xs text-green-light mb-1">{{ isEnglish ? 'Previous' : 'Anterior' }}</p>
-                    <p class="text-sm font-medium text-esmerald leading-tight truncate">{{ prevPost.title }}</p>
+                    <p class="text-sm font-medium text-esmerald leading-tight line-clamp-2">{{ prevPost.title }}</p>
                   </div>
                 </NuxtLink>
                 <NuxtLink
                   v-if="nextPost"
                   :to="`/blog/${nextPost.slug}`"
-                  class="group flex items-center justify-end gap-4 p-4 rounded-2xl bg-white border border-gray-200/60 hover:shadow-md transition-all text-right"
-                  :class="!prevPost ? 'sm:col-start-2' : ''"
+                  class="group flex items-center justify-end gap-3 p-4 rounded-2xl bg-white border border-gray-200/60 hover:shadow-md transition-all text-right overflow-hidden"
                 >
-                  <div class="min-w-0">
+                  <div class="min-w-0 flex-1">
                     <p class="text-xs text-green-light mb-1">{{ isEnglish ? 'Next' : 'Siguiente' }}</p>
-                    <p class="text-sm font-medium text-esmerald leading-tight truncate">{{ nextPost.title }}</p>
+                    <p class="text-sm font-medium text-esmerald leading-tight line-clamp-2">{{ nextPost.title }}</p>
                   </div>
                   <svg class="w-5 h-5 text-green-light group-hover:text-esmerald transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
                 </NuxtLink>
@@ -377,7 +376,6 @@ function formatCategory(cat) {
 
 const articleHeader = ref(null);
 const coverImageWrap = ref(null);
-const ctaInline = ref(null);
 
 function runArticleAnimations() {
   nextTick(() => {
@@ -386,7 +384,6 @@ function runArticleAnimations() {
       children.forEach((el, i) => fadeUp(el, { delay: 0.1 + i * 0.12 }));
     }
     if (coverImageWrap.value) fadeUp(coverImageWrap.value, { delay: 0.3 });
-    if (ctaInline.value) fadeUp(ctaInline.value, { scrollTrigger: { trigger: ctaInline.value } });
   });
 }
 
