@@ -1,5 +1,11 @@
 import { ref, watch, onBeforeUnmount, onMounted } from 'vue';
 
+function _getCsrfToken() {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 /**
  * Composable for tracking section-level engagement in a proposal.
  *
@@ -85,9 +91,12 @@ export function useProposalTracking(proposalUuid, currentPanel) {
 
     try {
       const url = `/api/proposals/${proposalUuid.value}/track/`;
+      const headers = { 'Content-Type': 'application/json' };
+      const csrf = _getCsrfToken();
+      if (csrf) headers['X-CSRFToken'] = csrf;
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload),
       });
       if (response.ok) {

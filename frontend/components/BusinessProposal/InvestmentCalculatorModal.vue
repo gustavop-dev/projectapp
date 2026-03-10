@@ -77,6 +77,35 @@
                       </p>
                     </div>
                   </div>
+                  <!-- Detail toggle for calculator modules -->
+                  <div v-if="mod._source === 'calculator_module' && (mod.description || mod.detailItems?.length)" class="px-4 pb-3 -mt-1">
+                    <button
+                      type="button"
+                      class="text-[11px] font-semibold text-esmerald/70 hover:text-esmerald transition-colors flex items-center gap-1"
+                      @click.stop="toggleDetail(mod.id)"
+                    >
+                      {{ expandedModules.has(mod.id) ? t.hideDetail : t.viewDetail }}
+                      <svg class="w-3 h-3 transition-transform" :class="expandedModules.has(mod.id) ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    <Transition name="detail-slide">
+                      <div v-if="expandedModules.has(mod.id)" class="mt-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 space-y-2">
+                        <p v-if="mod.description" class="text-[11px] text-gray-600 leading-relaxed">
+                          {{ mod.description }}
+                        </p>
+                        <ul v-if="mod.detailItems?.length" class="space-y-1.5">
+                          <li v-for="(item, idx) in mod.detailItems" :key="idx" class="flex items-start gap-2">
+                            <span class="text-xs flex-shrink-0">{{ item.icon || '•' }}</span>
+                            <div class="min-w-0">
+                              <span class="text-[11px] font-medium text-gray-700">{{ item.name }}</span>
+                              <span v-if="item.description" class="text-[11px] text-gray-500 ml-1">— {{ item.description }}</span>
+                            </div>
+                          </li>
+                        </ul>
+                      </div>
+                    </Transition>
+                  </div>
                 </div>
               </div>
             </template>
@@ -182,6 +211,8 @@ const i18n = {
     impactGeneric: 'Este componente no se incluirá en el proyecto.',
     impactWeeks: 'Se reduce ~1 semana del cronograma.',
     freeLabel: 'Gratis',
+    viewDetail: 'Ver detalle',
+    hideDetail: 'Ocultar detalle',
     aiScheduleCall: 'Agendar llamada',
     aiInviteNote: '🤝 Te invitamos a una llamada personalizada donde exploraremos juntos cómo la inteligencia artificial puede transformar tu negocio. Conocerás nuestras soluciones, cómo las adaptamos a tu caso particular, y los costos asociados — sin compromiso.',
     optionalItemsBadge: 'Los elementos aquí son opcionales y pueden modificar el valor de la inversión y el tiempo de desarrollo. Para ver los requerimientos completos de tu proyecto, visítalos en la sección de Requerimientos Funcionales.',
@@ -206,6 +237,8 @@ const i18n = {
     impactGeneric: 'This component will not be included in the project.',
     impactWeeks: 'Reduces ~1 week from the timeline.',
     freeLabel: 'Free',
+    viewDetail: 'View detail',
+    hideDetail: 'Hide detail',
     aiScheduleCall: 'Schedule a call',
     aiInviteNote: '🤝 We invite you to a personalized call where we\'ll explore together how artificial intelligence can transform your business. You\'ll learn about our solutions, how we tailor them to your specific case, and associated costs — no commitment required.',
     optionalItemsBadge: 'The items here are optional and may change the investment amount and development timeline. To see the full requirements for your project, visit the Functional Requirements section.',
@@ -248,6 +281,17 @@ watch(() => props.visible, (val) => {
 
 const selectedCount = computed(() => localModules.value.filter(m => m.selected).length);
 
+const expandedModules = ref(new Set());
+
+function toggleDetail(modId) {
+  if (expandedModules.value.has(modId)) {
+    expandedModules.value.delete(modId);
+  } else {
+    expandedModules.value.add(modId);
+  }
+  expandedModules.value = new Set(expandedModules.value);
+}
+
 const groupLabels = {
   investment: { es: 'Módulos de inversión', en: 'Investment modules' },
   views: { es: 'Vistas', en: 'Views' },
@@ -257,7 +301,7 @@ const groupLabels = {
   admin_module: { es: 'Módulo administrativo', en: 'Admin module' },
   analytics_dashboard: { es: 'Analítica', en: 'Analytics' },
   pwa_module: { es: 'Progressive Web App (PWA)', en: 'Progressive Web App (PWA)' },
-  ai_module: { es: '🤖 Implementación con IA', en: '🤖 AI Implementation' },
+  ai_module: { es: '🤖 Integración con IA', en: '🤖 AI Integration' },
   reports_alerts_module: { es: 'Reportes y Alertas', en: 'Reports & Alerts' },
   _other: { es: 'Otros', en: 'Other' },
 };
@@ -375,5 +419,24 @@ function confirmSelection() {
 .modal-fade-enter-from,
 .modal-fade-leave-to {
   opacity: 0;
+}
+
+.detail-slide-enter-active,
+.detail-slide-leave-active {
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.detail-slide-enter-from,
+.detail-slide-leave-to {
+  opacity: 0;
+  max-height: 0;
+  margin-top: 0;
+}
+
+.detail-slide-enter-to,
+.detail-slide-leave-from {
+  opacity: 1;
+  max-height: 500px;
 }
 </style>

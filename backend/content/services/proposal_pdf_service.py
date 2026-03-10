@@ -1931,7 +1931,8 @@ class ProposalPdfService:
                             continue
                         _gid = _safe(_grp, 'id') or ''
                         _mid = f'module-{_gid}'
-                        _pp = _safe(_grp, 'price_percent')
+                        _pp_raw = _safe(_grp, 'price_percent')
+                        _pp = float(_pp_raw) if _pp_raw is not None else None
                         _calc_module_items.append({
                             'id': _mid,
                             'group_id': _gid,

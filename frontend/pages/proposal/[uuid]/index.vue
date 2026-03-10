@@ -348,6 +348,8 @@ const calculatorModuleItems = computed(() => {
       default_selected: false,
       is_ai_invite: group.is_ai_invite || false,
       _source: 'calculator_module',
+      description: group.description || '',
+      detailItems: group.items || [],
     });
   }
   return items;

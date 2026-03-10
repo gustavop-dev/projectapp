@@ -91,7 +91,7 @@ const mockProposal = {
           {
             id: 'ai_module',
             icon: '🤖',
-            title: 'Implementación y Automatización con IA',
+            title: 'Integración y Automatización con IA',
             description: 'Potencia tu proyecto con IA.',
             is_calculator_module: true,
             default_selected: false,
@@ -197,7 +197,7 @@ test.describe('Proposal Calculator Modules (PWA, AI, Reports)', () => {
     await openCalculatorModal(page);
 
     // AI module group label
-    await expect(page.getByText(/Implementación con IA/i)).toBeVisible();
+    await expect(page.getByText(/Integración con IA/i)).toBeVisible();
 
     // Should show "Agendar llamada" instead of a price
     await expect(page.getByText('Agendar llamada')).toBeVisible();
@@ -210,7 +210,7 @@ test.describe('Proposal Calculator Modules (PWA, AI, Reports)', () => {
     await openCalculatorModal(page);
 
     // Click the AI module to select it
-    const aiRow = page.locator('div.rounded-xl.border').filter({ hasText: /Implementación.*IA/ });
+    const aiRow = page.locator('div.rounded-xl.border').filter({ hasText: /Integración.*IA/ });
     await aiRow.click();
 
     // The creative invite note should be visible (purple box)

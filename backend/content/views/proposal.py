@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
@@ -769,6 +769,7 @@ def check_admin_auth(request):
 # ---------------------------------------------------------------------------
 
 @api_view(['POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def track_proposal_engagement(request, proposal_uuid):
     """
