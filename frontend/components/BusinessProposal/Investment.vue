@@ -190,6 +190,7 @@
       @close="calculatorOpen = false"
       @update:selection="onSelectionUpdate"
       @navigateToRequirements="$emit('navigateToRequirements'); calculatorOpen = false"
+      @updateCalculatorModules="(ids) => $emit('updateCalculatorModules', ids)"
     />
   </section>
 </template>
@@ -201,7 +202,7 @@ import { useExpirationTimer } from '~/composables/useExpirationTimer';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import InvestmentCalculatorModal from './InvestmentCalculatorModal.vue';
 
-defineEmits(['navigateToRequirements']);
+defineEmits(['navigateToRequirements', 'updateCalculatorModules']);
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
@@ -339,11 +340,16 @@ onMounted(() => {
         const deselectedSum = props.modules
           .filter(m => {
             const locked = m.is_required === true;
-            return !locked && !selectedIds.includes(m.id);
+            if (locked) return false;
+            if (m._source === 'calculator_module') return false;
+            return !selectedIds.includes(m.id);
           })
           .reduce((sum, m) => sum + (m.price || 0), 0);
-        if (deselectedSum > 0) {
-          customTotal.value = base - deselectedSum;
+        const addedSum = props.modules
+          .filter(m => m._source === 'calculator_module' && selectedIds.includes(m.id) && m.price)
+          .reduce((sum, m) => sum + (m.price || 0), 0);
+        if (deselectedSum > 0 || addedSum > 0) {
+          customTotal.value = base - deselectedSum + addedSum;
         }
       }
     } catch (_e) { /* ignore */ }

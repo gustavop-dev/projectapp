@@ -30,7 +30,7 @@
                 <div
                   v-for="mod in group.items"
                   :key="mod.id"
-                  class="flex items-center justify-between p-4 rounded-xl border transition-all"
+                  class="rounded-xl border transition-all"
                   :class="[
                     mod.selected
                       ? 'bg-esmerald/5 border-esmerald/20'
@@ -39,46 +39,64 @@
                   ]"
                   @click="toggleModule(mod)"
                 >
-                  <div class="flex items-center gap-3 flex-1 min-w-0">
-                    <div
-                      class="w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors flex-shrink-0"
-                      :class="mod.selected
-                        ? 'bg-esmerald border-esmerald text-white'
-                        : 'border-gray-300 bg-white'"
-                    >
-                      <svg v-if="mod.selected" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                      </svg>
+                  <div class="flex items-center justify-between p-4">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                      <div
+                        class="w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors flex-shrink-0"
+                        :class="mod.selected
+                          ? 'bg-esmerald border-esmerald text-white'
+                          : 'border-gray-300 bg-white'"
+                      >
+                        <svg v-if="mod.selected" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <div class="min-w-0">
+                        <span class="font-medium" :class="mod.selected ? 'text-esmerald' : 'text-gray-500'">
+                          {{ mod.name }}
+                        </span>
+                        <span v-if="mod._locked" class="ml-2 text-[10px] text-esmerald/50 font-medium uppercase">{{ t.required }}</span>
+                        <span v-if="mod._freeActive" class="ml-2 text-[10px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded-full">🎁 {{ t.freeLabel }}</span>
+                        <p v-if="!mod.selected && !mod._locked && !mod.is_ai_invite" class="text-[11px] text-amber-600 leading-snug mt-0.5">
+                          ⚠ {{ impactMessage(mod) }}
+                        </p>
+                      </div>
                     </div>
-                    <div class="min-w-0">
-                      <span class="font-medium" :class="mod.selected ? 'text-esmerald' : 'text-gray-500'">
-                        {{ mod.name }}
-                      </span>
-                      <span v-if="mod._locked" class="ml-2 text-[10px] text-esmerald/50 font-medium uppercase">{{ t.required }}</span>
-                      <span v-if="mod._freeActive" class="ml-2 text-[10px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded-full">🎁 {{ t.freeLabel }}</span>
-                      <p v-if="!mod.selected && !mod._locked" class="text-[11px] text-amber-600 leading-snug mt-0.5">
-                        ⚠ {{ impactMessage(mod) }}
+                    <span v-if="mod.is_ai_invite" class="text-[11px] font-semibold text-purple-600 flex-shrink-0">
+                      {{ t.aiScheduleCall }}
+                    </span>
+                    <span v-else class="font-bold text-sm flex-shrink-0" :class="mod.selected ? 'text-esmerald' : 'text-gray-400'">
+                      {{ mod.price ? (mod._source === 'calculator_module' && mod.selected ? '+' : '') + formatPrice(mod.price) : t.included }}
+                    </span>
+                  </div>
+                  <!-- AI invite creative note -->
+                  <div v-if="mod.is_ai_invite" class="px-4 pb-4 -mt-1">
+                    <div class="bg-purple-50 border border-purple-100 rounded-lg px-3 py-2.5">
+                      <p class="text-[11px] text-purple-700 leading-relaxed">
+                        {{ t.aiInviteNote }}
                       </p>
                     </div>
                   </div>
-                  <span class="font-bold text-sm flex-shrink-0" :class="mod.selected ? 'text-esmerald' : 'text-gray-400'">
-                    {{ mod.price ? formatPrice(mod.price) : t.included }}
-                  </span>
                 </div>
               </div>
             </template>
 
-            <!-- Link to functional requirements -->
-            <button
-              type="button"
-              class="mt-2 text-xs text-esmerald/60 hover:text-esmerald transition-colors flex items-center gap-1"
-              @click="$emit('navigateToRequirements')"
-            >
-              📋 {{ t.viewRequirements }}
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+            <!-- Informational badge -->
+            <div class="mt-4 mb-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+              <p class="text-[11px] text-blue-700 leading-relaxed">
+                💡 {{ t.optionalItemsBadge }}
+              </p>
+              <button
+                type="button"
+                class="mt-1.5 text-[11px] text-blue-600 font-semibold hover:text-blue-800 transition-colors flex items-center gap-1"
+                @click="$emit('navigateToRequirements')"
+              >
+                📋 {{ t.viewRequirements }}
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <!-- Footer with total -->
@@ -141,7 +159,7 @@ function parseInvestment(str) {
   return parseInt(cleaned, 10) || 0;
 }
 
-const emit = defineEmits(['close', 'update:selection', 'navigateToRequirements']);
+const emit = defineEmits(['close', 'update:selection', 'navigateToRequirements', 'updateCalculatorModules']);
 
 const i18n = {
   es: {
@@ -164,6 +182,9 @@ const i18n = {
     impactGeneric: 'Este componente no se incluirá en el proyecto.',
     impactWeeks: 'Se reduce ~1 semana del cronograma.',
     freeLabel: 'Gratis',
+    aiScheduleCall: 'Agendar llamada',
+    aiInviteNote: '🤝 Te invitamos a una llamada personalizada donde exploraremos juntos cómo la inteligencia artificial puede transformar tu negocio. Conocerás nuestras soluciones, cómo las adaptamos a tu caso particular, y los costos asociados — sin compromiso.',
+    optionalItemsBadge: 'Los elementos aquí son opcionales y pueden modificar el valor de la inversión y el tiempo de desarrollo. Para ver los requerimientos completos de tu proyecto, visítalos en la sección de Requerimientos Funcionales.',
   },
   en: {
     title: 'Customize your investment',
@@ -185,6 +206,9 @@ const i18n = {
     impactGeneric: 'This component will not be included in the project.',
     impactWeeks: 'Reduces ~1 week from the timeline.',
     freeLabel: 'Free',
+    aiScheduleCall: 'Schedule a call',
+    aiInviteNote: '🤝 We invite you to a personalized call where we\'ll explore together how artificial intelligence can transform your business. You\'ll learn about our solutions, how we tailor them to your specific case, and associated costs — no commitment required.',
+    optionalItemsBadge: 'The items here are optional and may change the investment amount and development timeline. To see the full requirements for your project, visit the Functional Requirements section.',
   },
 };
 
@@ -211,9 +235,10 @@ watch(() => props.visible, (val) => {
         const expiresAt = new Date(sentDate.getTime() + m.free_days * 86400000);
         freeActive = now < expiresAt;
       }
+      const defaultSel = m.default_selected !== false;
       return {
         ...m,
-        selected: locked ? true : (saved ? saved.includes(m.id) : true),
+        selected: locked ? true : (saved ? saved.includes(m.id) : defaultSel),
         _locked: locked,
         _freeActive: freeActive,
       };
@@ -231,6 +256,9 @@ const groupLabels = {
   integrations_api: { es: 'Integraciones', en: 'Integrations' },
   admin_module: { es: 'Módulo administrativo', en: 'Admin module' },
   analytics_dashboard: { es: 'Analítica', en: 'Analytics' },
+  pwa_module: { es: 'Progressive Web App (PWA)', en: 'Progressive Web App (PWA)' },
+  ai_module: { es: '🤖 Implementación con IA', en: '🤖 AI Implementation' },
+  reports_alerts_module: { es: 'Reportes y Alertas', en: 'Reports & Alerts' },
   _other: { es: 'Otros', en: 'Other' },
 };
 
@@ -251,12 +279,15 @@ const baseTotalInvestment = computed(() => parseInvestment(props.totalInvestment
 
 const dynamicTotal = computed(() => {
   const deselectedSum = localModules.value
-    .filter(m => !m.selected)
+    .filter(m => !m.selected && m._source !== 'calculator_module')
     .reduce((sum, m) => sum + (m.price || 0), 0);
   const freeSum = localModules.value
     .filter(m => m.selected && m._freeActive && m.price)
     .reduce((sum, m) => sum + (m.price || 0), 0);
-  return baseTotalInvestment.value - deselectedSum - freeSum;
+  const addedSum = localModules.value
+    .filter(m => m.selected && m._source === 'calculator_module' && m.price)
+    .reduce((sum, m) => sum + (m.price || 0), 0);
+  return baseTotalInvestment.value - deselectedSum - freeSum + addedSum;
 });
 
 const { animated: animatedTotal } = useAnimatedNumber(dynamicTotal, 500);
@@ -330,6 +361,7 @@ function confirmSelection() {
     localStorage.setItem(storageKey, JSON.stringify(selectedIds));
   } catch (_e) { /* ignore */ }
   emit('update:selection', { selectedIds, total: dynamicTotal.value, weeks: dynamicWeeks.value });
+  emit('updateCalculatorModules', selectedIds);
   emit('close');
 }
 </script>

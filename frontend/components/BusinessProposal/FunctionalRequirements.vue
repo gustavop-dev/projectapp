@@ -74,6 +74,10 @@ const props = defineProps({
     type: String,
     default: 'es',
   },
+  selectedCalculatorModules: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const i18n = {
@@ -87,7 +91,11 @@ const data = props.data;
 const allGroups = computed(() => {
   const groups = data.groups || [];
   const additional = data.additionalModules || [];
-  return [...groups, ...additional].filter(g => g && (g.title || g.items?.length));
+  const all = [...groups, ...additional].filter(g => g && (g.title || g.items?.length));
+  return all.filter(g => {
+    if (!g.is_calculator_module) return true;
+    return props.selectedCalculatorModules.includes(`module-${g.id}`);
+  });
 });
 
 const modalVisible = ref(false);

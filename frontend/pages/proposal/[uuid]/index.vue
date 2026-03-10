@@ -141,6 +141,7 @@
             :is="sectionComponentMap[currentPanel.section_type]"
             v-bind="getSectionProps(currentPanel)"
             @navigateToRequirements="handleNavigateToRequirements"
+            @updateCalculatorModules="onCalculatorModulesUpdate"
           />
         </div>
       </Transition>
@@ -306,6 +307,7 @@ const configurableRequirementItems = computed(() => {
   const allGroups = [...(cj.groups || []), ...(cj.additionalModules || [])];
   const items = [];
   for (const group of allGroups) {
+    if (group.is_calculator_module) continue;
     for (const item of (group.items || [])) {
       if (item.price != null || item.is_required === false) {
         items.push({
@@ -322,6 +324,36 @@ const configurableRequirementItems = computed(() => {
   }
   return items;
 });
+
+const calculatorModuleItems = computed(() => {
+  const frSection = enabledSections.value.find(s => s.section_type === 'functional_requirements');
+  if (!frSection) return [];
+  const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
+  const investContent = investmentSection?.content_json || {};
+  const baseTotal = parseInt(String(investContent.totalInvestment || '').replace(/[^\d]/g, ''), 10) || 0;
+  const cj = frSection.content_json || {};
+  const allGroups = [...(cj.groups || []), ...(cj.additionalModules || [])];
+  const items = [];
+  for (const group of allGroups) {
+    if (!group.is_calculator_module) continue;
+    const pricePercent = group.price_percent;
+    const price = pricePercent != null ? Math.round(baseTotal * pricePercent / 100) : 0;
+    items.push({
+      id: `module-${group.id}`,
+      name: `${group.icon || ''} ${group.title}`.trim(),
+      groupId: group.id,
+      price,
+      included: true,
+      is_required: false,
+      default_selected: false,
+      is_ai_invite: group.is_ai_invite || false,
+      _source: 'calculator_module',
+    });
+  }
+  return items;
+});
+
+const selectedCalculatorModuleIds = ref(new Set());
 
 function computeAllModuleIds() {
   const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
@@ -404,13 +436,14 @@ function getSectionProps(section) {
         additionalModules: content.additionalModules || [],
       },
       language: proposal.value?.language || 'es',
+      selectedCalculatorModules: [...selectedCalculatorModuleIds.value],
     };
   }
 
   // For investment: inject discount data from proposal
   if (section.section_type === 'investment') {
     const investmentModules = (content.modules || []).map(m => ({ ...m, _source: 'investment' }));
-    const allCalculatorItems = [...investmentModules, ...configurableRequirementItems.value];
+    const allCalculatorItems = [...investmentModules, ...configurableRequirementItems.value, ...calculatorModuleItems.value];
     // Extract baseWeeks from timeline section's totalDuration
     const timelineSection = enabledSections.value.find(s => s.section_type === 'timeline');
     const totalDuration = timelineSection?.content_json?.totalDuration || '';
@@ -437,7 +470,7 @@ function getSectionProps(section) {
     const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
     const investContent = investmentSection?.content_json || {};
     const investmentModules = (investContent.modules || []).map(m => ({ ...m, _source: 'investment' }));
-    const allCalculatorItems = [...investmentModules, ...configurableRequirementItems.value];
+    const allCalculatorItems = [...investmentModules, ...configurableRequirementItems.value, ...calculatorModuleItems.value];
     return {
       content,
       proposal: proposal.value,
@@ -521,6 +554,13 @@ function handleNavigate(index) {
 function handleNavigateToRequirements() {
   const idx = displayPanels.value.findIndex(p => p.section_type === 'functional_requirements');
   if (idx !== -1) navigateTo(idx);
+}
+
+function onCalculatorModulesUpdate(selectedIds) {
+  if (!selectedIds) return;
+  const calcModIds = calculatorModuleItems.value.map(m => m.id);
+  const selected = new Set(calcModIds.filter(id => selectedIds.includes(id)));
+  selectedCalculatorModuleIds.value = selected;
 }
 
 function goNext() {

@@ -64,6 +64,7 @@ backend/static/frontend/
 
 # Coverage
 htmlcov/
+.coverage
 
 # Root-level npm artifacts (frontend lives in frontend/)
 /node_modules/
@@ -72,3 +73,6 @@ htmlcov/
 
 # Windsurf
 .windsurf/plans/
+
+# Claude Code
+.claude/

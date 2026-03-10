@@ -449,6 +449,72 @@ DEFAULT_SECTIONS = [
                         },
                     ],
                 },
+                {
+                    'id': 'pwa_module',
+                    'icon': '📱',
+                    'title': 'Progressive Web App (PWA)',
+                    'description': (
+                        'Convierte tu sitio web en una aplicación instalable que funciona '
+                        'incluso sin conexión a internet. Ofrece una experiencia nativa '
+                        'directamente desde el navegador, sin necesidad de tiendas de aplicaciones.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 30,
+                    'items': [
+                        {'icon': '📲', 'name': 'Instalación en dispositivo', 'description': 'Los usuarios pueden instalar tu sitio como una app en su celular o computador, con acceso directo desde la pantalla de inicio.'},
+                        {'icon': '📡', 'name': 'Funcionamiento offline', 'description': 'El sitio sigue siendo accesible sin conexión a internet, mostrando contenido previamente cargado y sincronizando datos al reconectarse.'},
+                        {'icon': '🔔', 'name': 'Notificaciones push', 'description': 'Envía notificaciones directas al dispositivo del usuario para mantenerlo informado sobre novedades, promociones o actualizaciones.'},
+                        {'icon': '🎨', 'name': 'Pantalla de carga personalizada', 'description': 'Splash screen con la identidad visual de tu marca al abrir la aplicación, generando una experiencia profesional desde el primer instante.'},
+                        {'icon': '🔄', 'name': 'Sincronización en segundo plano', 'description': 'Los datos se sincronizan automáticamente cuando el dispositivo recupera la conexión, garantizando información actualizada sin intervención del usuario.'},
+                        {'icon': '⬆️', 'name': 'Actualización automática', 'description': 'La aplicación se actualiza de forma transparente sin que el usuario tenga que hacer nada, siempre con la versión más reciente.'},
+                    ],
+                },
+                {
+                    'id': 'ai_module',
+                    'icon': '🤖',
+                    'title': 'Implementación y Automatización con IA',
+                    'description': (
+                        'Potencia tu proyecto con inteligencia artificial. Exploramos juntos '
+                        'cómo adaptar soluciones de IA a las necesidades específicas de tu negocio.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': None,
+                    'is_ai_invite': True,
+                    'items': [
+                        {'icon': '⚡', 'name': 'Automatizaciones', 'description': 'Flujos de trabajo inteligentes que ejecutan tareas repetitivas de forma autónoma, liberando tiempo para lo que realmente importa.'},
+                        {'icon': '📊', 'name': 'Análisis de datos con lenguaje natural', 'description': 'Consulta tus datos usando preguntas en español o inglés y obtén respuestas claras, gráficos y reportes sin necesidad de conocimientos técnicos.'},
+                        {'icon': '✍️', 'name': 'Generación de contenido', 'description': 'Creación asistida de textos, descripciones de productos, artículos de blog y comunicaciones, manteniendo el tono y estilo de tu marca.'},
+                        {'icon': '💬', 'name': 'Comunicación inteligente', 'description': 'Chatbots y asistentes virtuales que atienden a tus clientes 24/7, responden preguntas frecuentes y escalan conversaciones cuando es necesario.'},
+                        {'icon': '📄', 'name': 'Procesamiento de documentos', 'description': 'Extracción y clasificación automática de información desde facturas, contratos y formularios, reduciendo el trabajo manual y los errores.'},
+                        {'icon': '🔍', 'name': 'Búsqueda e investigación', 'description': 'Motor de búsqueda semántico que entiende la intención del usuario y devuelve resultados relevantes, no solo coincidencias de texto.'},
+                        {'icon': '🛡️', 'name': 'Seguridad y moderación', 'description': 'Detección automática de contenido inapropiado, spam y actividad sospechosa para mantener tu plataforma segura y confiable.'},
+                        {'icon': '⚙️', 'name': 'Optimización de procesos', 'description': 'Análisis inteligente de tus operaciones para identificar cuellos de botella, sugerir mejoras y automatizar decisiones rutinarias.'},
+                        {'icon': '🎓', 'name': 'Aprendizaje y capacitación', 'description': 'Sistemas adaptativos que personalizan la experiencia de aprendizaje según el ritmo y nivel de cada usuario.'},
+                        {'icon': '🔮', 'name': 'Predicción y forecasting', 'description': 'Modelos predictivos que anticipan tendencias, demanda y comportamiento de clientes para tomar decisiones más informadas.'},
+                        {'icon': '🔗', 'name': 'Integración y orquestación', 'description': 'Conexión inteligente entre tus herramientas y servicios existentes, coordinando flujos de datos y acciones entre múltiples plataformas.'},
+                    ],
+                },
+                {
+                    'id': 'reports_alerts_module',
+                    'icon': '📬',
+                    'title': 'Reportes y Alertas vía Correo o Telegram',
+                    'description': (
+                        'Mantente informado en todo momento con reportes automáticos y alertas '
+                        'personalizadas que llegan directamente a tu correo o Telegram.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 10,
+                    'items': [
+                        {'icon': '📧', 'name': 'Reportes automáticos por correo', 'description': 'Recibe resúmenes periódicos con las métricas clave de tu negocio directamente en tu bandeja de entrada, sin tener que entrar al sistema.'},
+                        {'icon': '🔔', 'name': 'Alertas personalizadas', 'description': 'Configura notificaciones para eventos importantes: nuevas ventas, registros de usuarios, stock bajo, o cualquier métrica que definas.'},
+                        {'icon': '✈️', 'name': 'Integración con Telegram', 'description': 'Recibe alertas y reportes instantáneos en tu chat de Telegram, ideal para estar al tanto desde cualquier lugar y en tiempo real.'},
+                        {'icon': '⏰', 'name': 'Programación de envíos', 'description': 'Define la frecuencia y horario de tus reportes: diario, semanal, mensual o en tiempo real según tus necesidades.'},
+                        {'icon': '📋', 'name': 'Resumen ejecutivo periódico', 'description': 'Informe consolidado con las métricas más relevantes de tu proyecto, diseñado para una lectura rápida y toma de decisiones ágil.'},
+                    ],
+                },
             ],
             'additionalModules': [],
         },
@@ -1116,6 +1182,72 @@ DEFAULT_SECTIONS_EN = [
                                 'in your audience.'
                             ),
                         },
+                    ],
+                },
+                {
+                    'id': 'pwa_module',
+                    'icon': '📱',
+                    'title': 'Progressive Web App (PWA)',
+                    'description': (
+                        'Turn your website into an installable application that works '
+                        'even without an internet connection. Deliver a native-like experience '
+                        'directly from the browser, no app stores required.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 30,
+                    'items': [
+                        {'icon': '📲', 'name': 'Device Installation', 'description': 'Users can install your site as an app on their phone or computer, with direct access from the home screen.'},
+                        {'icon': '📡', 'name': 'Offline Functionality', 'description': 'The site remains accessible without an internet connection, showing previously loaded content and syncing data upon reconnection.'},
+                        {'icon': '🔔', 'name': 'Push Notifications', 'description': 'Send direct notifications to user devices to keep them informed about news, promotions, or updates.'},
+                        {'icon': '🎨', 'name': 'Custom Splash Screen', 'description': 'Branded splash screen with your visual identity when opening the app, creating a professional experience from the first moment.'},
+                        {'icon': '🔄', 'name': 'Background Sync', 'description': 'Data syncs automatically when the device reconnects, ensuring up-to-date information without user intervention.'},
+                        {'icon': '⬆️', 'name': 'Automatic Updates', 'description': 'The application updates transparently without requiring any user action, always running the latest version.'},
+                    ],
+                },
+                {
+                    'id': 'ai_module',
+                    'icon': '🤖',
+                    'title': 'AI Implementation & Automation',
+                    'description': (
+                        'Supercharge your project with artificial intelligence. '
+                        'We explore together how to tailor AI solutions to your specific business needs.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': None,
+                    'is_ai_invite': True,
+                    'items': [
+                        {'icon': '⚡', 'name': 'Automations', 'description': 'Intelligent workflows that execute repetitive tasks autonomously, freeing up time for what truly matters.'},
+                        {'icon': '📊', 'name': 'Natural Language Data Analysis', 'description': 'Query your data using plain language questions and get clear answers, charts, and reports without technical expertise.'},
+                        {'icon': '✍️', 'name': 'Content Generation', 'description': 'AI-assisted creation of texts, product descriptions, blog articles, and communications, maintaining your brand tone and style.'},
+                        {'icon': '💬', 'name': 'Intelligent Communication', 'description': 'Chatbots and virtual assistants that serve your customers 24/7, answer FAQs, and escalate conversations when needed.'},
+                        {'icon': '📄', 'name': 'Document Processing', 'description': 'Automatic extraction and classification of information from invoices, contracts, and forms, reducing manual work and errors.'},
+                        {'icon': '🔍', 'name': 'Search & Research', 'description': 'Semantic search engine that understands user intent and returns relevant results, not just text matches.'},
+                        {'icon': '🛡️', 'name': 'Security & Moderation', 'description': 'Automatic detection of inappropriate content, spam, and suspicious activity to keep your platform safe and trustworthy.'},
+                        {'icon': '⚙️', 'name': 'Process Optimization', 'description': 'Intelligent analysis of your operations to identify bottlenecks, suggest improvements, and automate routine decisions.'},
+                        {'icon': '🎓', 'name': 'Learning & Training', 'description': 'Adaptive systems that personalize the learning experience according to each user\'s pace and level.'},
+                        {'icon': '🔮', 'name': 'Prediction & Forecasting', 'description': 'Predictive models that anticipate trends, demand, and customer behavior for more informed decision-making.'},
+                        {'icon': '🔗', 'name': 'Integration & Orchestration', 'description': 'Intelligent connection between your existing tools and services, coordinating data flows and actions across multiple platforms.'},
+                    ],
+                },
+                {
+                    'id': 'reports_alerts_module',
+                    'icon': '📬',
+                    'title': 'Reports & Alerts via Email or Telegram',
+                    'description': (
+                        'Stay informed at all times with automated reports and customized alerts '
+                        'delivered directly to your email or Telegram.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 10,
+                    'items': [
+                        {'icon': '📧', 'name': 'Automated Email Reports', 'description': 'Receive periodic summaries with key business metrics directly in your inbox, without having to log into the system.'},
+                        {'icon': '🔔', 'name': 'Custom Alerts', 'description': 'Set up notifications for important events: new sales, user registrations, low stock, or any metric you define.'},
+                        {'icon': '✈️', 'name': 'Telegram Integration', 'description': 'Receive instant alerts and reports in your Telegram chat, perfect for staying informed from anywhere in real time.'},
+                        {'icon': '⏰', 'name': 'Scheduled Delivery', 'description': 'Define the frequency and timing of your reports: daily, weekly, monthly, or real-time based on your needs.'},
+                        {'icon': '📋', 'name': 'Periodic Executive Summary', 'description': 'Consolidated report with the most relevant metrics of your project, designed for quick reading and agile decision-making.'},
                     ],
                 },
             ],

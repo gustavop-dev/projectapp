@@ -69,15 +69,16 @@ class TestGetDefaultSections:
         assert 'Resumen' in es_section['content_json']['title']
 
     def test_functional_requirements_has_default_groups(self):
-        """Verify ES functional_requirements has 6 groups including analytics_dashboard."""
+        """Verify ES functional_requirements has 9 groups including calculator modules."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
-        assert len(groups) == 6
+        assert len(groups) == 9
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
             'integrations_api', 'admin_module', 'analytics_dashboard',
+            'pwa_module', 'ai_module', 'reports_alerts_module',
         }
 
     def test_views_group_has_13_default_items(self):
@@ -112,16 +113,55 @@ class TestGetDefaultSections:
         greeting = next(s for s in sections if s['section_type'] == 'greeting')
         assert greeting['title'].startswith('\U0001f44b')
 
-    def test_en_functional_requirements_has_6_groups(self):
-        """Verify EN functional_requirements has 6 groups including analytics_dashboard."""
+    def test_pwa_module_has_6_items_and_is_calculator_module(self):
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        pwa = next(g for g in fr['content_json']['groups'] if g['id'] == 'pwa_module')
+        assert len(pwa['items']) == 6
+        assert pwa['is_calculator_module'] is True
+        assert pwa['default_selected'] is False
+        assert pwa['price_percent'] == 30
+
+    def test_ai_module_has_11_items_and_is_ai_invite(self):
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        ai = next(g for g in fr['content_json']['groups'] if g['id'] == 'ai_module')
+        assert len(ai['items']) == 11
+        assert ai['is_calculator_module'] is True
+        assert ai['is_ai_invite'] is True
+        assert ai['price_percent'] is None
+
+    def test_reports_alerts_module_has_5_items(self):
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        reports = next(g for g in fr['content_json']['groups'] if g['id'] == 'reports_alerts_module')
+        assert len(reports['items']) == 5
+        assert reports['is_calculator_module'] is True
+        assert reports['price_percent'] == 10
+
+    def test_en_calculator_modules_mirror_es(self):
+        es = ProposalService.get_default_sections('es')
+        en = ProposalService.get_default_sections('en')
+        es_fr = next(s for s in es if s['section_type'] == 'functional_requirements')
+        en_fr = next(s for s in en if s['section_type'] == 'functional_requirements')
+        for mod_id in ('pwa_module', 'ai_module', 'reports_alerts_module'):
+            es_g = next(g for g in es_fr['content_json']['groups'] if g['id'] == mod_id)
+            en_g = next(g for g in en_fr['content_json']['groups'] if g['id'] == mod_id)
+            assert len(es_g['items']) == len(en_g['items'])
+            assert es_g['is_calculator_module'] == en_g['is_calculator_module']
+            assert es_g.get('price_percent') == en_g.get('price_percent')
+
+    def test_en_functional_requirements_has_9_groups(self):
+        """Verify EN functional_requirements has 9 groups including calculator modules."""
         sections = ProposalService.get_default_sections('en')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
-        assert len(groups) == 6
+        assert len(groups) == 9
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
             'integrations_api', 'admin_module', 'analytics_dashboard',
+            'pwa_module', 'ai_module', 'reports_alerts_module',
         }
 
     def test_development_stages_has_current_stage(self):
