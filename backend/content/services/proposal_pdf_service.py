@@ -1488,6 +1488,24 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         # Renewal note — SMLMV formula text
         renewal = _safe(hosting, 'renewalNote')
         if renewal:
+            # Normalise legacy 5% formula to current 6%
+            renewal = str(renewal).replace('5%', '6%').replace(
+                '$65,000', '$78.000').replace(
+                '$65.000', '$78.000').replace(
+                '$745,000', '$758.000').replace(
+                '$745.000', '$758.000')
+        if not renewal and h_title:
+            renewal = (
+                'Renovaciones a partir del segundo año: el costo se ajusta anualmente '
+                'con base en el SMLMV (Salario Mínimo Legal Mensual Vigente) del año '
+                'de renovación, aplicando la siguiente fórmula:\n\n'
+                'Costo de renovación = Costo del año anterior + '
+                '(6% \u00d7 SMLMV del año de renovación)\n\n'
+                'Por ejemplo, si el SMLMV del año de renovación fuera $1.300.000 COP, '
+                'el incremento sería de $78.000 COP, llevando el costo a $758.000 COP '
+                'para ese año.'
+            )
+        if renewal:
             y -= 6
             if ps:
                 y = _check_y(c, y, ps, need=80)
@@ -1932,7 +1950,10 @@ class ProposalPdfService:
                         _gid = _safe(_grp, 'id') or ''
                         _mid = f'module-{_gid}'
                         _pp_raw = _safe(_grp, 'price_percent')
-                        _pp = float(_pp_raw) if _pp_raw is not None else None
+                        try:
+                            _pp = float(_pp_raw) if _pp_raw not in (None, '') else None
+                        except (TypeError, ValueError):
+                            _pp = None
                         _calc_module_items.append({
                             'id': _mid,
                             'group_id': _gid,

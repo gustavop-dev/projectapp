@@ -160,9 +160,9 @@ DEFAULT_SECTIONS = [
                     'con base en el SMLMV (Salario Mínimo Legal Mensual Vigente) del año '
                     'de renovación, aplicando la siguiente fórmula:\n\n'
                     'Costo de renovación = Costo del año anterior + '
-                    '(5% × SMLMV del año de renovación)\n\n'
-                    'Por ejemplo, si el SMLMV del año de renovación fuera $1,300,000 COP, '
-                    'el incremento sería de $65,000 COP, llevando el costo a $745,000 COP '
+                    '(6% × SMLMV del año de renovación)\n\n'
+                    'Por ejemplo, si el SMLMV del año de renovación fuera $1.300.000 COP, '
+                    'el incremento sería de $78.000 COP, llevando el costo a $758.000 COP '
                     'para ese año.'
                 ),
                 'coverageNote': (
