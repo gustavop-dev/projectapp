@@ -3,7 +3,7 @@
  *
  * Covers: form render, successful submission, validation errors.
  */
-import { test } from '../helpers/test.js';
+import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { PUBLIC_CONTACT_SUBMIT } from '../helpers/flow-tags.js';
 
@@ -13,7 +13,12 @@ test.describe('Contact Form Submit', () => {
   }, async ({ page }) => {
     await page.goto('/contact');
 
-    await page.waitForLoadState('networkidle');
+    // Contact page heading should be visible
+    await expect(page.locator('h1').first()).toBeVisible({ timeout: 15000 });
+
+    // Form inputs should be present
+    await expect(page.locator('form')).toBeAttached();
+    await expect(page.locator('input[type="email"]')).toBeAttached();
   });
 
   test('submits contact form successfully', {
@@ -35,7 +40,11 @@ test.describe('Contact Form Submit', () => {
     });
 
     await page.goto('/contact');
+    await expect(page.locator('h1').first()).toBeVisible({ timeout: 15000 });
 
-    await page.waitForLoadState('networkidle');
+    // Fill in form fields
+    await page.locator('input[type="text"]').first().fill('Test User');
+    await page.locator('input[type="tel"]').fill('+573001234567');
+    await page.locator('input[type="email"]').fill('test@example.com');
   });
 });

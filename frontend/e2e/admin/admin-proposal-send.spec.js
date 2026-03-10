@@ -11,6 +11,8 @@ import { ADMIN_PROPOSAL_SEND } from '../helpers/flow-tags.js';
 
 const PROPOSAL_ID = 1;
 
+const futureDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
 const mockDraftProposal = {
   id: PROPOSAL_ID,
   uuid: '11111111-1111-1111-1111-111111111111',
@@ -23,9 +25,11 @@ const mockDraftProposal = {
   currency: 'COP',
   view_count: 0,
   sent_at: null,
-  expires_at: null,
+  expires_at: futureDate,
   is_active: true,
-  sections: [],
+  sections: [
+    { id: 10, section_type: 'greeting', title: 'Bienvenido', order: 0, is_enabled: true, content_json: { clientName: 'Test Client' } },
+  ],
   requirement_groups: [],
 };
 
@@ -52,22 +56,20 @@ test.describe('Admin Proposal Send', () => {
     await expect(page.getByRole('button', { name: 'Enviar al Cliente' })).toBeVisible();
   });
 
-  test('clicking "Enviar al Cliente" calls send API and updates status', {
+  test('clicking "Enviar al Cliente" opens checklist modal and sends on confirm', {
     tag: [...ADMIN_PROPOSAL_SEND, '@role:admin'],
   }, async ({ page }) => {
     let sendCalled = false;
-    let currentStatus = 'draft';
 
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') {
         return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
       }
       if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
-        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockDraftProposal, status: currentStatus }) };
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDraftProposal) };
       }
       if (apiPath === `proposals/${PROPOSAL_ID}/send/`) {
         sendCalled = true;
-        currentStatus = 'sent';
         return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockDraftProposal, status: 'sent', sent_at: '2026-03-04T12:00:00Z' }) };
       }
       return null;
@@ -76,13 +78,16 @@ test.describe('Admin Proposal Send', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
     await page.waitForLoadState('networkidle');
 
-    // Accept the confirm() dialog that handleSend triggers
-    page.on('dialog', dialog => dialog.accept());
+    // Click the send button — opens the pre-send checklist modal
+    await page.getByRole('button', { name: 'Enviar al Cliente' }).first().click();
 
-    // Click the send button — wait for the send API response
+    // Checklist modal should appear
+    await expect(page.getByText('Checklist pre-envío')).toBeVisible();
+
+    // Click the modal's send button to confirm
     const [sendResponse] = await Promise.all([
       page.waitForResponse(r => r.url().includes(`proposals/${PROPOSAL_ID}/send/`)),
-      page.getByRole('button', { name: 'Enviar al Cliente' }).click(),
+      page.locator('.fixed').getByRole('button', { name: 'Enviar al Cliente' }).click(),
     ]);
     await sendResponse.finished();
 
@@ -104,8 +109,7 @@ test.describe('Admin Proposal Send', () => {
     await page.waitForLoadState('networkidle');
 
     // For sent proposals, re-send button appears instead of send
-    await expect(page.getByRole('button', { name: 'Re-enviar al Cliente' })).toBeVisible({ timeout: 10000 });
-    await expect(page.getByRole('button', { name: 'Enviar al Cliente', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Re-enviar al Cliente/i })).toBeVisible({ timeout: 10000 });
   });
 
   test('"Enviar al Cliente" is hidden when client email is empty', {

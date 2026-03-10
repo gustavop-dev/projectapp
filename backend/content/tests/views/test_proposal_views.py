@@ -203,12 +203,14 @@ class TestPostExpirationVisitAlert:
         expired_proposal.refresh_from_db()
         assert expired_proposal.post_expiration_alert_sent_at is not None
 
+    @freeze_time('2026-03-10 12:00:00')
     @patch('content.services.proposal_email_service.ProposalEmailService.send_post_expiration_visit_alert')
     def test_does_not_duplicate_alert(self, mock_alert, api_client, expired_proposal):
         expired_proposal.post_expiration_alert_sent_at = timezone.now()
         expired_proposal.save(update_fields=['post_expiration_alert_sent_at'])
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})
-        api_client.get(url)
+        response = api_client.get(url)
+        assert response.status_code == 410
         mock_alert.assert_not_called()
 
 
@@ -787,6 +789,7 @@ class TestTrackProposalEngagement:
         assert response.status_code == 200
         assert ProposalSectionView.objects.count() == 0
 
+    @freeze_time('2026-03-10 12:00:00')
     @patch('content.services.proposal_email_service.ProposalEmailService.send_revisit_alert', return_value=True)
     def test_sends_revisit_alert_after_3_sessions(self, mock_alert, api_client, sent_proposal):
         """Revisit alert fires after 3 distinct session IDs with 3+ day gap."""

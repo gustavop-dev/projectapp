@@ -111,25 +111,25 @@ describe('useExpirationTimer', () => {
       expect(urgencyLevel.value).toBe('urgent');
     });
 
-    it('formats countdown with hours only', () => {
+    it('formats countdown in HH:MM when 8 hours left', () => {
       const expiresAt = ref('2026-03-01T20:00:00Z');
       const { formattedCountdown } = useExpirationTimer(expiresAt);
 
-      expect(formattedCountdown.value).toBe('8 horas');
+      expect(formattedCountdown.value).toBe('08:00');
     });
 
-    it('formats singular hora when 1 hour left', () => {
+    it('formats countdown in HH:MM when 1 hour left', () => {
       const expiresAt = ref('2026-03-01T13:00:00Z');
       const { formattedCountdown } = useExpirationTimer(expiresAt);
 
-      expect(formattedCountdown.value).toBe('1 hora');
+      expect(formattedCountdown.value).toBe('01:00');
     });
 
-    it('returns "Menos de 1 hora" when less than 1 hour', () => {
+    it('formats countdown in HH:MM when 30 minutes left', () => {
       const expiresAt = ref('2026-03-01T12:30:00Z');
       const { formattedCountdown } = useExpirationTimer(expiresAt);
 
-      expect(formattedCountdown.value).toBe('Menos de 1 hora');
+      expect(formattedCountdown.value).toBe('00:30');
     });
   });
 
@@ -178,26 +178,33 @@ describe('useExpirationTimer', () => {
     });
   });
 
-  describe('with singular day formatting', () => {
-    it('formats singular día when 1 day left with hours', () => {
+  describe('with under-48h day formatting', () => {
+    it('formats HH:MM when 30 hours left', () => {
       const expiresAt = ref('2026-03-02T18:00:00Z');
       const { formattedCountdown } = useExpirationTimer(expiresAt);
 
-      expect(formattedCountdown.value).toBe('1 día');
+      expect(formattedCountdown.value).toBe('30:00');
     });
 
-    it('formats singular día when 1 day and 1 hour left', () => {
+    it('formats HH:MM when 25 hours left', () => {
       const expiresAt = ref('2026-03-02T13:00:00Z');
       const { formattedCountdown } = useExpirationTimer(expiresAt);
 
-      expect(formattedCountdown.value).toBe('1 día');
+      expect(formattedCountdown.value).toBe('25:00');
     });
 
-    it('formats singular día with no hours when exactly 1 day left', () => {
+    it('formats HH:MM when exactly 24 hours left', () => {
       const expiresAt = ref('2026-03-02T12:00:00Z');
       const { formattedCountdown } = useExpirationTimer(expiresAt);
 
-      expect(formattedCountdown.value).toBe('1 día');
+      expect(formattedCountdown.value).toBe('24:00');
+    });
+
+    it('formats días when 3 days left (over 48h)', () => {
+      const expiresAt = ref('2026-03-04T12:00:00Z');
+      const { formattedCountdown } = useExpirationTimer(expiresAt);
+
+      expect(formattedCountdown.value).toBe('3 días');
     });
   });
 

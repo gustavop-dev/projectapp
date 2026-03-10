@@ -34,22 +34,25 @@ const mockSentProposal = {
 
 /**
  * Helper: navigate to the last panel (proposal_closing) which contains
- * the accept/reject buttons. Since the mock has 0 sections, displayPanels
- * will have only 1 panel (proposal_closing), so we land on it directly.
+ * the accept/reject buttons. Waits for the preloader animation to finish
+ * (showContent becomes true), then clicks nav-next until closing panel.
  */
 async function openClosingPanel(page) {
   await page.goto(`/proposal/${MOCK_UUID}`);
   await page.waitForLoadState('networkidle');
 
-  // Wait for proposal content to render (preloader may delay)
-  const nextBtn = page.getByTestId('nav-next');
+  // Wait for proposal content to render after preloader animation completes
+  // The proposal-wrapper div only appears once showContent=true
+  await expect(page.locator('.proposal-wrapper')).toBeVisible({ timeout: 15000 });
+
   // Navigate through all panels to reach the closing panel
+  const nextBtn = page.getByTestId('nav-next');
   let safetyLimit = 10;
   while (safetyLimit-- > 0) {
-    const isVisible = await nextBtn.isVisible().catch(() => false);
+    const isVisible = await nextBtn.isVisible({ timeout: 500 }).catch(() => false);
     if (!isVisible) break;
     await nextBtn.click();
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('.panel-container')).toBeVisible();
   }
 }
 
@@ -77,8 +80,8 @@ test.describe('Proposal Respond', () => {
     const acceptBtn = page.getByRole('button', { name: /Acepto la propuesta/i });
     await expect(acceptBtn).toBeVisible();
 
-    // Click accept opens confirmation modal
-    await acceptBtn.click();
+    // Click accept opens confirmation modal (force due to CSS pulse animation)
+    await acceptBtn.click({ force: true });
     await expect(page.getByText('¿Confirmar aceptación?')).toBeVisible();
     await expect(page.getByRole('button', { name: /Sí, acepto/i })).toBeVisible();
   });
@@ -101,8 +104,8 @@ test.describe('Proposal Respond', () => {
 
     await openClosingPanel(page);
 
-    // Click accept → open modal → confirm
-    await page.getByRole('button', { name: /Acepto la propuesta/i }).click();
+    // Click accept → open modal → confirm (force due to CSS pulse animation)
+    await page.getByRole('button', { name: /Acepto la propuesta/i }).click({ force: true });
     await page.getByRole('button', { name: /Sí, acepto/i }).click();
 
     // Verify success state appears

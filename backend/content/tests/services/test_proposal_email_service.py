@@ -586,3 +586,109 @@ class TestSendStakeholderDetectedNotification:
             email_proposal, 2
         )
         assert result is False
+
+
+class TestSendProposalToClientEdgePaths:
+    def test_returns_false_when_no_client_email(self, no_email_proposal):
+        """send_proposal_to_client returns False when proposal has no client_email."""
+        result = ProposalEmailService.send_proposal_to_client(no_email_proposal)
+        assert result is False
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('Template error'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        """send_proposal_to_client returns False when template rendering fails."""
+        result = ProposalEmailService.send_proposal_to_client(email_proposal)
+        assert result is False
+
+
+class TestSendSellerInactivityEscalation:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_escalation_email_successfully(self, mock_render, mock_email_cls, email_proposal):
+        """Escalation email sent to notification address with correct context."""
+        mock_render.return_value = '<html>Escalation</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_seller_inactivity_escalation(email_proposal, 7)
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        assert mock_render.call_count == 2
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        """Returns False when template rendering raises an exception."""
+        result = ProposalEmailService.send_seller_inactivity_escalation(email_proposal, 5)
+        assert result is False
+
+
+class TestSendNegotiationNotification:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_notification_successfully(self, mock_render, mock_email_cls, email_proposal):
+        """Negotiation notification sent to team with comment in context."""
+        mock_render.return_value = '<html>Negotiate</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_negotiation_notification(
+            email_proposal, comment='Reduce modules please'
+        )
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        """Returns False when template rendering fails."""
+        result = ProposalEmailService.send_negotiation_notification(email_proposal)
+        assert result is False
+
+
+class TestSendNegotiationConfirmation:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_confirmation_to_client(self, mock_render, mock_email_cls, email_proposal):
+        """Negotiation confirmation sent to client_email."""
+        mock_render.return_value = '<html>Confirm</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_negotiation_confirmation(email_proposal)
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+
+    def test_returns_false_when_no_client_email(self, no_email_proposal):
+        """Returns False when proposal has no client_email."""
+        result = ProposalEmailService.send_negotiation_confirmation(no_email_proposal)
+        assert result is False
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        """Returns False when template rendering fails."""
+        result = ProposalEmailService.send_negotiation_confirmation(email_proposal)
+        assert result is False
+
+
+class TestSendPostExpirationVisitAlert:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_alert_successfully(self, mock_render, mock_email_cls, email_proposal):
+        """Post-expiration visit alert sent to notification address."""
+        mock_render.return_value = '<html>Expired Visit</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_post_expiration_visit_alert(email_proposal)
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        assert mock_render.call_count == 2
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        """Returns False when template rendering fails."""
+        result = ProposalEmailService.send_post_expiration_visit_alert(email_proposal)
+        assert result is False

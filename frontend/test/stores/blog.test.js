@@ -174,7 +174,7 @@ describe('useBlogStore', () => {
 
       const result = await store.fetchAdminPosts();
 
-      expect(get_request).toHaveBeenCalledWith('blog/admin/');
+      expect(get_request).toHaveBeenCalledWith('blog/admin/?page=1&page_size=15');
       expect(store.posts).toHaveLength(2);
       expect(result.success).toBe(true);
     });

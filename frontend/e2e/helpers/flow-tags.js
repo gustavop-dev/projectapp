@@ -88,3 +88,14 @@ export const ADMIN_DASHBOARD_PIPELINE_VALUE = ['@flow:admin-dashboard-pipeline-v
 export const PROPOSAL_REJECTION_OPTIONAL_REASON = ['@flow:proposal-rejection-optional-reason', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_CALCULATOR_TIMELINE = ['@flow:proposal-calculator-timeline', '@module:proposal', '@priority:P1'];
 export const ADMIN_DISCOUNT_ANALYSIS_ENHANCED = ['@flow:admin-discount-analysis-enhanced', '@module:admin', '@priority:P3'];
+
+// ── Phase 2+ new flows ──
+export const PROPOSAL_NEGOTIATE = ['@flow:proposal-negotiate', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_INVESTMENT_CALCULATOR = ['@flow:proposal-investment-calculator', '@module:proposal', '@priority:P1'];
+export const ADMIN_PROPOSAL_ACTIONS_MODAL = ['@flow:admin-proposal-actions-modal', '@module:admin', '@priority:P1'];
+export const PROPOSAL_COMMENT_FROM_CLOSING = ['@flow:proposal-comment-from-closing', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_REJECTION_SMART_RECOVERY = ['@flow:proposal-rejection-smart-recovery', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_FUNCTIONAL_REQUIREMENTS_MODAL = ['@flow:proposal-functional-requirements-modal', '@module:proposal', '@priority:P2'];
+export const ADMIN_PROPOSAL_SEND_FROM_LISTING = ['@flow:admin-proposal-send-from-listing', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_ACTIVITY_LOG = ['@flow:admin-proposal-activity-log', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_AUTOMATIONS_TOGGLE = ['@flow:admin-proposal-automations-toggle', '@module:admin', '@priority:P2'];

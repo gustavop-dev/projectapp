@@ -508,6 +508,54 @@
       "priority": "P3",
       "description": "Enhanced discount card with sample sizes, avg discount %, and delta warning.",
       "expectedSpecs": 1
+    },
+    "proposal-negotiate": {
+      "name": "Proposal Negotiate (Accept with Changes)",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P1",
+      "description": "Client clicks 'Aceptar con cambios' → negotiate modal → required comment → submit → negotiating success state.",
+      "expectedSpecs": 1
+    },
+    "proposal-investment-calculator": {
+      "name": "Proposal Investment Calculator",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P1",
+      "description": "Client opens calculator modal, toggles optional modules, sees dynamic total/timeline, confirms selection.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-actions-modal": {
+      "name": "Admin Proposal Actions Modal",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Admin opens actions modal from listing with edit, preview, send/resend, copy, WhatsApp, duplicate, toggle, delete actions.",
+      "expectedSpecs": 1
+    },
+    "proposal-comment-from-closing": {
+      "name": "Proposal Comment from Closing",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Client submits written comments from the closing panel via comment modal.",
+      "expectedSpecs": 1
+    },
+    "proposal-rejection-smart-recovery": {
+      "name": "Proposal Rejection Smart Recovery",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "After rejection, context-specific recovery cards render based on rejection reason with appropriate CTAs.",
+      "expectedSpecs": 1
+    },
+    "proposal-functional-requirements-modal": {
+      "name": "Proposal Functional Requirements Modal",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Client clicks requirement group card to open detail modal showing items with icons and descriptions.",
+      "expectedSpecs": 1
     }
   }
 }

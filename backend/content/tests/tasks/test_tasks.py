@@ -759,3 +759,283 @@ class TestPublishScheduledBlogPostsTask:
 
         post.refresh_from_db()
         assert post.is_published is False
+
+
+class TestSuggestPreExpirationDiscountTask:
+    @freeze_time('2026-03-10 12:00:00')
+    def test_creates_alert_for_viewed_proposal_expiring_soon(self):
+        """Creates discount_suggestion alert for viewed proposal expiring within 5 days."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Expiring Soon',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            discount_percent=0,
+            expires_at=now + timedelta(days=3),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.suggest_pre_expiration_discount.call_local()
+
+        alert = ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='discount_suggestion',
+        ).first()
+        assert alert is not None
+        assert 'Expira en' in alert.message
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_skips_proposal_with_existing_discount(self):
+        """No alert created for proposals that already have a discount."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        BusinessProposal.objects.create(
+            title='Has Discount',
+            client_name='Client',
+            status='viewed',
+            discount_percent=10,
+            expires_at=now + timedelta(days=3),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.suggest_pre_expiration_discount.call_local()
+
+        assert ProposalAlert.objects.filter(alert_type='discount_suggestion').count() == 0
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_skips_proposal_expiring_beyond_5_days(self):
+        """No alert for proposals expiring more than 5 days from now."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        BusinessProposal.objects.create(
+            title='Far Expiry',
+            client_name='Client',
+            status='viewed',
+            discount_percent=0,
+            expires_at=now + timedelta(days=10),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.suggest_pre_expiration_discount.call_local()
+
+        assert ProposalAlert.objects.filter(alert_type='discount_suggestion').count() == 0
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_does_not_duplicate_existing_alert(self):
+        """No duplicate alert created if one already exists."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Already Alerted',
+            client_name='Client',
+            status='viewed',
+            discount_percent=0,
+            expires_at=now + timedelta(days=3),
+        )
+        ProposalAlert.objects.create(
+            proposal=proposal,
+            alert_type='discount_suggestion',
+            message='Existing alert',
+            alert_date=now,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.suggest_pre_expiration_discount.call_local()
+
+        assert ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='discount_suggestion',
+        ).count() == 1
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_skips_responded_proposals(self):
+        """No alert for proposals that have been responded to."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        BusinessProposal.objects.create(
+            title='Responded',
+            client_name='Client',
+            status='viewed',
+            discount_percent=0,
+            expires_at=now + timedelta(days=3),
+            responded_at=now - timedelta(days=1),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.suggest_pre_expiration_discount.call_local()
+
+        assert ProposalAlert.objects.filter(alert_type='discount_suggestion').count() == 0
+
+
+class TestEscalateSellerInactivityTask:
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_seller_inactivity_escalation',
+        return_value=True,
+    )
+    def test_escalates_inactive_proposal(self, mock_send):
+        """Sends escalation for proposal with no seller activity for 5+ days."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Inactive',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            sent_at=now - timedelta(days=7),
+            first_viewed_at=now - timedelta(days=6),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.escalate_seller_inactivity.call_local()
+
+        mock_send.assert_called_once()
+        assert ProposalChangeLog.objects.filter(
+            proposal=proposal, change_type='seller_inactivity_escalation',
+        ).exists()
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_seller_inactivity_escalation',
+        return_value=True,
+    )
+    def test_skips_when_recent_seller_activity(self, mock_send):
+        """No escalation when seller logged activity within 5 days."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Active Seller',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            sent_at=now - timedelta(days=7),
+            first_viewed_at=now - timedelta(days=6),
+        )
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type='call',
+            description='Called client',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.escalate_seller_inactivity.call_local()
+
+        assert mock_send.call_count == 0
+        assert not ProposalChangeLog.objects.filter(
+            change_type='seller_inactivity_escalation',
+        ).exists()
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_seller_inactivity_escalation',
+        return_value=True,
+    )
+    def test_skips_when_already_escalated(self, mock_send):
+        """No duplicate escalation when one already exists."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Already Escalated',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            sent_at=now - timedelta(days=7),
+            first_viewed_at=now - timedelta(days=6),
+        )
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type='seller_inactivity_escalation',
+            description='Already sent.',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.escalate_seller_inactivity.call_local()
+
+        assert mock_send.call_count == 0
+        assert ProposalChangeLog.objects.filter(
+            change_type='seller_inactivity_escalation',
+        ).count() == 1  # unchanged from setup
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_seller_inactivity_escalation',
+        return_value=True,
+    )
+    def test_skips_when_automations_paused(self, mock_send):
+        """No escalation when automations are paused."""
+        now = timezone.now()
+        BusinessProposal.objects.create(
+            title='Paused',
+            client_name='Client',
+            status='viewed',
+            automations_paused=True,
+            sent_at=now - timedelta(days=7),
+            first_viewed_at=now - timedelta(days=6),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.escalate_seller_inactivity.call_local()
+
+        assert mock_send.call_count == 0
+        assert not ProposalChangeLog.objects.filter(
+            change_type='seller_inactivity_escalation',
+        ).exists()
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_seller_inactivity_escalation',
+        side_effect=Exception('SMTP error'),
+    )
+    def test_exception_is_caught_and_logged(self, mock_send):
+        """Exception in send_seller_inactivity_escalation is caught, not raised."""
+        now = timezone.now()
+        BusinessProposal.objects.create(
+            title='Error',
+            client_name='Client',
+            status='viewed',
+            sent_at=now - timedelta(days=7),
+            first_viewed_at=now - timedelta(days=6),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.escalate_seller_inactivity.call_local()
+
+        mock_send.assert_called_once()
+        assert not ProposalChangeLog.objects.filter(
+            change_type='seller_inactivity_escalation',
+        ).exists()
+
+
+class TestAutomationsPausedPaths:
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_reminder')
+    def test_reminder_skips_when_automations_paused(self, mock_send):
+        """Reminder task skips when automations_paused=True."""
+        proposal = BusinessProposal.objects.create(
+            title='Paused Reminder',
+            client_name='Client',
+            client_email='client@test.com',
+            status='sent',
+            automations_paused=True,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_proposal_reminder.call_local(proposal.id)
+
+        assert mock_send.call_count == 0
+        proposal.refresh_from_db()
+        assert proposal.reminder_sent_at is None
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email')
+    def test_urgency_skips_when_automations_paused(self, mock_send):
+        """Urgency task skips when automations_paused=True."""
+        proposal = BusinessProposal.objects.create(
+            title='Paused Urgency',
+            client_name='Client',
+            client_email='client@test.com',
+            status='sent',
+            automations_paused=True,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_urgency_reminder.call_local(proposal.id)
+
+        assert mock_send.call_count == 0
+        proposal.refresh_from_db()
+        assert proposal.urgency_email_sent_at is None
