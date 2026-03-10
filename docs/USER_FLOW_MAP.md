@@ -843,6 +843,28 @@
   4. Client action tags indicate what input the client provides at each stage.
 - **Coverage:** ✅ Covered — `frontend/e2e/proposal/proposal-process-methodology.spec.js`
 
+### FLOW: `proposal-calculator-modules`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P1
+- **Routes:** `/proposal/:uuid`
+- **Description:** Calculator modal displays three new default modules: PWA (30% of total investment), AI Implementation (invite-only, no direct cost), and Reports & Alerts (10% of total investment). All are unselected by default. AI module shows a creative invite note and "Agendar llamada" label. An informational badge explains items are optional.
+- **Steps:**
+  1. Client navigates to the Investment section and clicks "Personalizar tu inversión".
+  2. Calculator modal opens showing existing investment modules.
+  3. PWA module appears as a separate group, unselected by default, with price as +30% of total.
+  4. AI module appears with "Agendar llamada" label instead of price and a purple creative invite note.
+  5. Reports & Alerts module appears unselected by default with price as +10% of total.
+  6. Client selects PWA module → total investment increases by 30%.
+  7. Informational badge at modal bottom explains optional items and links to Functional Requirements.
+  8. Client confirms selection → modal closes, total updates on Investment section.
+- **Branches:**
+  - [Branch A — AI invite] Client selects AI module → invite note visible, no cost added.
+  - [Branch B — FR integration] Selected calculator modules appear in Functional Requirements section.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-calculator-modules.spec.js`
+
 ### FLOW: `admin-blog-list`
 
 - **Module:** admin
@@ -1090,14 +1112,15 @@
 | `proposal-rejection-optional-reason` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-rejection-optional.spec.js` |
 | `proposal-calculator-timeline` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-calculator-timeline.spec.js` |
 | `admin-discount-analysis-enhanced` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-discount-analysis.spec.js` |
+| `proposal-calculator-modules` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-calculator-modules.spec.js` |
 
 ### Summary
 
-- **Total flows:** 64 (added 11 new flows in v1.6.0)
-- **P1 (Critical):** 16
+- **Total flows:** 65 (added 1 new flow: calculator modules)
+- **P1 (Critical):** 17
 - **P2 (High):** 37
 - **P3 (Medium):** 11
-- **Covered (full):** 60 (94%)
+- **Covered (full):** 61 (94%)
 - **Backend-only:** 2 (3%) — periodic tasks covered by backend unit tests
 - **Missing:** 2 (3%) — backend-only periodic tasks already covered by unit tests
 

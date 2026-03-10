@@ -870,8 +870,16 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
             ],
         })
 
-    # Overview cards (2-column grid)
+    # Filter out calculator-module groups not selected
     sel_ids = ps.get('selected_modules') if ps else None
+    if sel_ids is not None:
+        all_groups = [
+            g for g in all_groups
+            if not _safe(g, 'is_calculator_module')
+            or f"module-{_safe(g, 'id')}" in sel_ids
+        ]
+
+    # Overview cards (2-column grid)
     col_w = (CONTENT_W - 16) / 2
     chars = int(col_w / 5.0)
     last_card_bottom = y
@@ -1160,6 +1168,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
     if total and selected_ids is not None:
         all_mods = _safe(data, 'modules', [])
         fr_items = ps.get('_fr_items', []) if ps else []
+        calc_items = ps.get('_calc_module_items', []) if ps else []
         deselected_sum = sum(
             _safe(m, 'price', 0) for m in all_mods
             if _safe(m, 'id') not in selected_ids
@@ -1167,7 +1176,11 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             it.get('price', 0) for it in fr_items
             if it.get('id') not in selected_ids
         )
-        adjusted = base_num - deselected_sum
+        added_sum = sum(
+            it.get('price', 0) for it in calc_items
+            if it.get('id') in selected_ids and it.get('price')
+        )
+        adjusted = base_num - deselected_sum + added_sum
         display_total = _format_cop(adjusted)
 
     # Intro text — full width, brief
@@ -1293,6 +1306,34 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                     MARGIN_L + CONTENT_W / 2, y, duration_text
                 )
                 y -= 16
+
+    # ── AI scope note (when AI module selected) ───────────────────
+    if ps:
+        calc_items = ps.get('_calc_module_items', [])
+        sel_check = ps.get('selected_modules')
+        for ci in calc_items:
+            if ci.get('is_ai_invite') and (
+                sel_check is None or ci.get('id') in sel_check
+            ):
+                y = _check_y(c, y, ps, need=30)
+                lang = (_proposal.language or 'es') if _proposal else 'es'
+                ai_note = (
+                    'Nota: El alcance y costos del módulo de IA se definirán '
+                    'en una llamada personalizada. Este módulo no tiene costo '
+                    'adicional asignado hasta acordar el alcance.'
+                ) if lang == 'es' else (
+                    'Note: The scope and costs of the AI module will be defined '
+                    'in a personalized call. This module has no additional cost '
+                    'assigned until the scope is agreed upon.'
+                )
+                c.setFont(_font('regular'), 8)
+                c.setFillColor(GRAY_500)
+                note_lines = textwrap.wrap(ai_note, width=90)
+                for nl in note_lines:
+                    c.drawString(MARGIN_L, y, nl)
+                    y -= 11
+                y -= 4
+                break
 
     # ── Interactive Modules (if present) ──────────────────────────
     modules = _safe(data, 'modules', [])
@@ -1878,6 +1919,43 @@ class ProposalPdfService:
                                 _fr_items.append({'id': _fid, 'price': _fprice})
             ps['_fr_items'] = _fr_items
 
+            # Pre-collect calculator module items for additive pricing
+            _calc_module_items = []
+            if selected_modules is not None:
+                for _sec in sections:
+                    if _sec.section_type != 'functional_requirements':
+                        continue
+                    _cj = _sec.content_json or {}
+                    for _grp in list(_cj.get('groups') or []) + list(_cj.get('additionalModules') or []):
+                        if not _safe(_grp, 'is_calculator_module'):
+                            continue
+                        _gid = _safe(_grp, 'id') or ''
+                        _mid = f'module-{_gid}'
+                        _pp = _safe(_grp, 'price_percent')
+                        _calc_module_items.append({
+                            'id': _mid,
+                            'group_id': _gid,
+                            'price_percent': _pp,
+                            'price': 0,  # will be computed below
+                            'is_ai_invite': bool(_safe(_grp, 'is_ai_invite')),
+                        })
+                # Compute prices based on base investment total
+                if _calc_module_items:
+                    _inv_sec = next(
+                        (s for s in sections if s.section_type == 'investment'),
+                        None,
+                    )
+                    if _inv_sec:
+                        _inv_cj = _inv_sec.content_json or {}
+                        _raw_total = str(_inv_cj.get('totalInvestment', ''))
+                        _base_num = int(re.sub(r'[^\d]', '', _raw_total) or '0')
+                        for _ci in _calc_module_items:
+                            if _ci['price_percent'] is not None:
+                                _ci['price'] = round(
+                                    _base_num * _ci['price_percent'] / 100
+                                )
+            ps['_calc_module_items'] = _calc_module_items
+
             # Extract base_weeks from timeline section for dynamic duration
             base_weeks = 0
             if selected_modules is not None:
@@ -1953,6 +2031,13 @@ class ProposalPdfService:
                     parent_idx = data.get('index', '')
                     sel_ids = ps.get('selected_modules')
                     if stype == 'functional_requirements' and func_groups:
+                        # Filter out calculator-module groups not selected
+                        if sel_ids is not None:
+                            func_groups = [
+                                g for g in func_groups
+                                if not _safe(g, 'is_calculator_module')
+                                or f"module-{_safe(g, 'id')}" in sel_ids
+                            ]
                         for gi, grp in enumerate(func_groups):
                             grp_paste = (
                                 _safe(grp, '_editMode') == 'paste'

@@ -99,3 +99,6 @@ export const PROPOSAL_FUNCTIONAL_REQUIREMENTS_MODAL = ['@flow:proposal-functiona
 export const ADMIN_PROPOSAL_SEND_FROM_LISTING = ['@flow:admin-proposal-send-from-listing', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_ACTIVITY_LOG = ['@flow:admin-proposal-activity-log', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_AUTOMATIONS_TOGGLE = ['@flow:admin-proposal-automations-toggle', '@module:admin', '@priority:P2'];
+
+// ── Calculator modules (PWA, AI, Reports & Alerts) ──
+export const PROPOSAL_CALCULATOR_MODULES = ['@flow:proposal-calculator-modules', '@module:proposal', '@priority:P1'];

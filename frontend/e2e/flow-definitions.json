@@ -556,6 +556,14 @@
       "priority": "P2",
       "description": "Client clicks requirement group card to open detail modal showing items with icons and descriptions.",
       "expectedSpecs": 1
+    },
+    "proposal-calculator-modules": {
+      "name": "Proposal Calculator Modules (PWA, AI, Reports)",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P1",
+      "description": "Calculator modal displays PWA (30%), AI (invite-only), Reports & Alerts (10%) modules with correct pricing, default unselected state, AI invite note, and info badge.",
+      "expectedSpecs": 1
     }
   }
 }
