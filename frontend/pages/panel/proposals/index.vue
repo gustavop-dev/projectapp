@@ -183,6 +183,7 @@
       <table class="w-full min-w-[800px]">
         <thead>
           <tr class="border-b border-gray-100 text-left">
+            <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-12">ID</th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-emerald-600" @click="toggleSort('title')">
               Título <span v-if="sortKey === 'title'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
             </th>
@@ -203,6 +204,7 @@
         </thead>
         <tbody class="divide-y divide-gray-50">
           <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="p.is_active ? 'hover:bg-gray-50' : 'bg-gray-50 opacity-60'" @click="navigateToProposal(p.id)">
+            <td class="px-4 py-4 text-xs text-gray-400 tabular-nums">#{{ p.id }}</td>
             <td class="px-6 py-4">
               <NuxtLink
                 :to="`/panel/proposals/${p.id}/edit`"
@@ -274,7 +276,7 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="actionsModalProposal = null"
         >
-          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
             <!-- Header -->
             <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <div>
