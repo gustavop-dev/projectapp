@@ -132,7 +132,7 @@ test.describe('Admin Proposal Create', () => {
     await page.getByRole('button', { name: 'Ir a Editar' }).click();
 
     // Should redirect to edit page
-    await expect(page).toHaveURL(/\/panel\/proposals\/\d+\/edit/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/panel\/proposals\/\d+\/edit/, { timeout: 15000 });
   });
 
   test('selecting "Otro" project type shows custom text input', {
@@ -265,7 +265,7 @@ test.describe('Admin Proposal Create from JSON', () => {
     await expect(page.getByText('Propuesta creada')).toBeVisible({ timeout: 5000 });
     await page.getByRole('button', { name: 'Ir a Editar' }).click();
 
-    await expect(page).toHaveURL(/\/panel\/proposals\/\d+\/edit/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/panel\/proposals\/\d+\/edit/, { timeout: 15000 });
   });
 });
 

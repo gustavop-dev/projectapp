@@ -7,7 +7,7 @@
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
-import { PROPOSAL_VIEW } from '../helpers/flow-tags.js';
+import { PROPOSAL_VIEW_NAVIGATION } from '../helpers/flow-tags.js';
 
 const MOCK_UUID = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
 
@@ -80,7 +80,7 @@ test.describe('Proposal View Navigation', () => {
   });
 
   test('ProposalIndex toggle button is visible on load', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}`);
@@ -91,7 +91,7 @@ test.describe('Proposal View Navigation', () => {
   });
 
   test('clicking ProposalIndex toggle opens the index panel', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}`);
@@ -109,7 +109,7 @@ test.describe('Proposal View Navigation', () => {
   });
 
   test('clicking an index item navigates to that section', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}`);
@@ -132,7 +132,7 @@ test.describe('Proposal View Navigation', () => {
   });
 
   test('ProposalIndex left nav button is hidden when index is open', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}`);
@@ -155,7 +155,7 @@ test.describe('Proposal View Navigation', () => {
   });
 
   test('cycling through all sections reaches the closing panel', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}`);

@@ -148,10 +148,68 @@ class TestRespondToProposal:
         response = api_client.post(url, {'action': 'invalid'}, format='json')
         assert response.status_code == 400
 
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_response_notification')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_negotiation_notification')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_negotiation_confirmation')
+    def test_negotiating_proposal_returns_200(
+        self, mock_confirm, mock_notify, mock_response, api_client, sent_proposal,
+    ):
+        url = reverse('respond-to-proposal', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.post(
+            url, {'action': 'negotiating', 'comment': 'Adjust scope please'}, format='json',
+        )
+        assert response.status_code == 200
+        sent_proposal.refresh_from_db()
+        assert sent_proposal.status == 'negotiating'
+        mock_notify.assert_called_once()
+        mock_confirm.assert_called_once()
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_response_notification')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_negotiation_notification')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_negotiation_confirmation')
+    def test_negotiating_logs_change(
+        self, mock_confirm, mock_notify, mock_response, api_client, sent_proposal,
+    ):
+        url = reverse('respond-to-proposal', kwargs={'proposal_uuid': sent_proposal.uuid})
+        api_client.post(
+            url, {'action': 'negotiating', 'comment': 'Need fewer modules'}, format='json',
+        )
+        log = ProposalChangeLog.objects.filter(
+            proposal=sent_proposal, change_type='negotiating',
+        ).first()
+        assert log is not None
+        assert 'Need fewer modules' in log.description
+
     def test_returns_400_for_draft_proposal(self, api_client, proposal):
         url = reverse('respond-to-proposal', kwargs={'proposal_uuid': proposal.uuid})
         response = api_client.post(url, {'action': 'accepted'}, format='json')
         assert response.status_code == 400
+
+
+class TestPostExpirationVisitAlert:
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_post_expiration_visit_alert')
+    def test_creates_alert_on_expired_visit(self, mock_alert, api_client, expired_proposal):
+        from content.models import ProposalAlert
+        assert expired_proposal.post_expiration_alert_sent_at is None
+        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})
+        response = api_client.get(url)
+        assert response.status_code == 410
+        alert = ProposalAlert.objects.filter(
+            proposal=expired_proposal, alert_type='post_expiration_visit',
+        ).first()
+        assert alert is not None
+        assert 'alto interés' in alert.message.lower()
+        mock_alert.assert_called_once()
+        expired_proposal.refresh_from_db()
+        assert expired_proposal.post_expiration_alert_sent_at is not None
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_post_expiration_visit_alert')
+    def test_does_not_duplicate_alert(self, mock_alert, api_client, expired_proposal):
+        expired_proposal.post_expiration_alert_sent_at = timezone.now()
+        expired_proposal.save(update_fields=['post_expiration_alert_sent_at'])
+        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})
+        api_client.get(url)
+        mock_alert.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

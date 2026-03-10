@@ -54,6 +54,32 @@ def retrieve_public_proposal(request, proposal_uuid):
         if proposal.status != BusinessProposal.Status.EXPIRED:
             proposal.status = BusinessProposal.Status.EXPIRED
             proposal.save(update_fields=['status'])
+
+        # Post-expiration visit alert — high-intent signal
+        if not proposal.post_expiration_alert_sent_at:
+            try:
+                from content.models import ProposalAlert
+                ProposalAlert.objects.create(
+                    proposal=proposal,
+                    alert_type='post_expiration_visit',
+                    message=(
+                        f'{proposal.client_name} abrió la propuesta expirada '
+                        f'"{proposal.title}". Señal de alto interés.'
+                    ),
+                    alert_date=timezone.now(),
+                )
+                from content.services.proposal_email_service import (
+                    ProposalEmailService,
+                )
+                ProposalEmailService.send_post_expiration_visit_alert(proposal)
+                proposal.post_expiration_alert_sent_at = timezone.now()
+                proposal.save(update_fields=['post_expiration_alert_sent_at'])
+            except Exception:
+                logger.exception(
+                    'Failed to send post-expiration alert for proposal %s',
+                    proposal.uuid,
+                )
+
         return Response(
             {'error': 'This proposal has expired.'},
             status=status.HTTP_410_GONE,
@@ -588,12 +614,13 @@ def bulk_reorder_sections(request, proposal_id):
 @permission_classes([AllowAny])
 def respond_to_proposal(request, proposal_uuid):
     """
-    Client accepts or rejects a proposal.
-    Body: { "action": "accepted" | "rejected", "reason": "...", "comment": "..." }
+    Client accepts, rejects, or negotiates a proposal.
+    Body: { "action": "accepted" | "rejected" | "negotiating", "reason": "...", "comment": "..." }
 
     Updates proposal status, stores rejection feedback, and sends emails:
     - Acceptance: confirmation to client + notification to team
     - Rejection: thank-you to client + notification with reason to team
+    - Negotiating: confirmation to client + notification to team with comment
     """
     proposal = get_object_or_404(BusinessProposal, uuid=proposal_uuid)
 
@@ -604,9 +631,9 @@ def respond_to_proposal(request, proposal_uuid):
         )
 
     action = request.data.get('action')
-    if action not in ('accepted', 'rejected'):
+    if action not in ('accepted', 'rejected', 'negotiating'):
         return Response(
-            {'error': 'Invalid action. Must be "accepted" or "rejected".'},
+            {'error': 'Invalid action. Must be "accepted", "rejected", or "negotiating".'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -622,10 +649,13 @@ def respond_to_proposal(request, proposal_uuid):
     proposal.save(update_fields=update_fields)
 
     # Log the response event
-    change_type = 'accepted' if action == 'accepted' else 'rejected'
+    change_type = action
+    comment = request.data.get('comment', '')
     description = f'Client {action} the proposal.'
     if action == 'rejected' and proposal.rejection_reason:
         description += f' Reason: {proposal.rejection_reason}'
+    if action == 'negotiating' and comment:
+        description += f' Comment: {comment[:500]}'
     ProposalChangeLog.objects.create(
         proposal=proposal,
         change_type=change_type,
@@ -641,6 +671,9 @@ def respond_to_proposal(request, proposal_uuid):
         ProposalEmailService.send_rejection_thank_you(proposal)
         # Schedule re-engagement email 48h later if rejection is budget-related
         _schedule_reengagement_if_budget(proposal)
+    elif action == 'negotiating':
+        ProposalEmailService.send_negotiation_notification(proposal, comment)
+        ProposalEmailService.send_negotiation_confirmation(proposal)
 
     return Response(
         {'status': action, 'message': f'Proposal {action} successfully.'},

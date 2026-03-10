@@ -780,7 +780,7 @@
   2. Dashboard loads data from `GET /api/proposals/dashboard/` including `win_rate_by_project_type`, `win_rate_by_market_type`, `win_rate_by_combination`.
   3. Two side-by-side bar charts show win rates by project type and market type (best type highlighted).
   4. Combination table shows project×market cross-tab for combos with ≥2 proposals.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered — `frontend/e2e/admin/admin-proposal-win-rate.spec.js`
 
 ### FLOW: `admin-proposal-engagement-score`
 
@@ -793,7 +793,7 @@
   1. Admin opens the Analytics tab for a proposal.
   2. Analytics loads from `GET /api/proposals/:id/analytics/` including `engagement_score`.
   3. Engagement score card renders with color-coded level (green ≥70, yellow ≥40, red <40) and contextual recommendation text.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered — `frontend/e2e/admin/admin-proposal-analytics.spec.js`
 
 ### FLOW: `admin-proposal-metrics-manual`
 
@@ -808,7 +808,7 @@
   3. Admin types in search bar → results filter in real-time.
   4. Each metric shows name, description, calculation method, and recommended action.
   5. Admin clicks outside or ✕ to close.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered — `frontend/e2e/admin/admin-proposal-metrics-manual.spec.js`
 
 ### FLOW: `proposal-welcome-back`
 
@@ -827,7 +827,7 @@
 - **Branches:**
   - [Branch A — First visit] No saved progress → normal onboarding flow.
   - [Branch B — Preview mode] Welcome-back is skipped in preview mode.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered — `frontend/e2e/proposal/proposal-welcome-back.spec.js`
 
 ### FLOW: `proposal-process-methodology`
 
@@ -841,7 +841,7 @@
   2. Section renders with intro text and 5-step pipeline.
   3. Active steps are highlighted with green styling.
   4. Client action tags indicate what input the client provides at each stage.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered — `frontend/e2e/proposal/proposal-process-methodology.spec.js`
 
 ### FLOW: `admin-blog-list`
 

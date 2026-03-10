@@ -20,6 +20,7 @@ class BusinessProposal(models.Model):
         VIEWED = 'viewed', 'Viewed'
         ACCEPTED = 'accepted', 'Accepted'
         REJECTED = 'rejected', 'Rejected'
+        NEGOTIATING = 'negotiating', 'Negotiating'
         EXPIRED = 'expired', 'Expired'
 
     class Currency(models.TextChoices):
@@ -54,7 +55,7 @@ class BusinessProposal(models.Model):
 
     # Status & lifecycle
     status = models.CharField(
-        max_length=10, choices=Status.choices, default=Status.DRAFT
+        max_length=20, choices=Status.choices, default=Status.DRAFT
     )
     expires_at = models.DateTimeField(null=True, blank=True)
     reminder_days = models.PositiveIntegerField(default=10)
@@ -119,6 +120,7 @@ class BusinessProposal(models.Model):
     investment_interest_email_sent_at = models.DateTimeField(null=True, blank=True)
     followup_scheduled_at = models.DateTimeField(null=True, blank=True)
     stakeholder_alert_sent_at = models.DateTimeField(null=True, blank=True)
+    post_expiration_alert_sent_at = models.DateTimeField(null=True, blank=True)
 
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -176,6 +178,7 @@ class ProposalAlert(models.Model):
         ('meeting', 'Reunión'),
         ('custom', 'Personalizado'),
         ('discount_suggestion', 'Sugerencia de descuento'),
+        ('post_expiration_visit', 'Visita post-expiración'),
     ]
 
     proposal = models.ForeignKey(
@@ -184,7 +187,7 @@ class ProposalAlert(models.Model):
         related_name='manual_alerts',
     )
     alert_type = models.CharField(
-        max_length=20, choices=ALERT_TYPE_CHOICES, default='reminder'
+        max_length=25, choices=ALERT_TYPE_CHOICES, default='reminder'
     )
     message = models.CharField(max_length=500)
     alert_date = models.DateTimeField(

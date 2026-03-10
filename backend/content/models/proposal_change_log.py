@@ -20,6 +20,7 @@ class ProposalChangeLog(models.Model):
         EXPIRED = 'expired', 'Expired'
         DUPLICATED = 'duplicated', 'Duplicated'
         COMMENTED = 'commented', 'Commented'
+        NEGOTIATING = 'negotiating', 'Negotiating'
         REENGAGEMENT = 'reengagement', 'Reengagement'
         CALL = 'call', 'Call'
         MEETING = 'meeting', 'Meeting'

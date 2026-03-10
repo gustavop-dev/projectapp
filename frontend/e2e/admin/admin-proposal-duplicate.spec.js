@@ -12,7 +12,7 @@ import { ADMIN_PROPOSAL_DUPLICATE } from '../helpers/flow-tags.js';
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
 
 const mockProposals = [
-  { id: 1, uuid: 'aaa', title: 'Propuesta Original', client_name: 'Carlos', client_email: 'c@t.com', status: 'sent', total_investment: 5000, currency: 'COP', view_count: 3, is_active: true, created_at: '2026-01-10T10:00:00Z' },
+  { id: 1, uuid: 'aaa', title: 'Propuesta Original', client_name: 'Carlos', client_email: 'c@t.com', status: 'sent', total_investment: '5000000', currency: 'COP', view_count: 3, is_active: true, heat_score: 5, created_at: '2026-01-10T10:00:00Z', last_activity_at: '2026-01-10T10:00:00Z' },
 ];
 
 const mockDuplicated = {
@@ -38,6 +38,7 @@ test.describe('Admin Proposal Duplicate', () => {
   test('duplicating a proposal from the list redirects to new edit page', {
     tag: [...ADMIN_PROPOSAL_DUPLICATE, '@role:admin'],
   }, async ({ page }) => {
+    let duplicated = false;
     await mockApi(page, async ({ route, apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === 'proposals/' && route.request().method() === 'GET') {
@@ -46,6 +47,7 @@ test.describe('Admin Proposal Duplicate', () => {
       if (apiPath === 'proposals/alerts/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
       if (apiPath === 'proposals/dashboard/') return { status: 200, contentType: 'application/json', body: JSON.stringify(dashboardData) };
       if (apiPath === 'proposals/1/duplicate/' && route.request().method() === 'POST') {
+        duplicated = true;
         return { status: 201, contentType: 'application/json', body: JSON.stringify(mockDuplicated) };
       }
       if (apiPath === 'proposals/50/detail/') {
@@ -57,16 +59,17 @@ test.describe('Admin Proposal Duplicate', () => {
     await page.goto('/panel/proposals');
     await page.waitForLoadState('networkidle');
 
-    // Open the actions dropdown for the first proposal
-    await page.locator('table tbody tr').first().locator('button').last().click();
-    await expect(page.getByRole('button', { name: 'Duplicar' })).toBeVisible();
+    // Open the actions modal for the first proposal (three-dot "..." button in the last column)
+    const firstRow = page.locator('table tbody tr').first();
+    await expect(firstRow).toBeVisible({ timeout: 10000 });
+    await firstRow.locator('td').last().locator('button').click();
 
-    // Use dispatchEvent with bubbles:false to avoid tr click propagation
-    await page.getByRole('button', { name: 'Duplicar' }).evaluate(el => {
-      el.dispatchEvent(new MouseEvent('click', { bubbles: false }));
-    });
+    // Actions modal should appear — click "Duplicar propuesta"
+    await expect(page.getByText('Duplicar propuesta')).toBeVisible({ timeout: 5000 });
+    await page.getByText('Duplicar propuesta').click();
 
     // Should redirect to the duplicated proposal's edit page
-    await expect(page).toHaveURL(/\/panel\/proposals\/50\/edit/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/panel\/proposals\/50\/edit/, { timeout: 15000 });
+    expect(duplicated).toBe(true);
   });
 });

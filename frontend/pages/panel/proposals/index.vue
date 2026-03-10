@@ -244,14 +244,23 @@
               <span v-else class="text-gray-300 text-xs">—</span>
             </td>
             <td class="px-6 py-4">
-              <button
-                class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
-                @click.stop="actionsModalProposal = p"
-              >
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                </svg>
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  v-if="p.status === 'draft' && p.client_email"
+                  class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200"
+                  @click.stop="handleSend(p.id)"
+                >
+                  📤 Enviar
+                </button>
+                <button
+                  class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+                  @click.stop="actionsModalProposal = p"
+                >
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                  </svg>
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -310,6 +319,38 @@
       </Transition>
     </Teleport>
 
+    <!-- Send confirmation modal -->
+    <Teleport to="body">
+      <Transition name="fade-modal">
+        <div
+          v-if="sendConfirmId"
+          class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          @click.self="sendConfirmId = null"
+        >
+          <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+            <div class="text-4xl mb-3">📤</div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">¿Enviar esta propuesta?</h3>
+            <p class="text-sm text-gray-500 mb-6">Se enviará un email al cliente con el enlace de la propuesta.</p>
+            <div class="flex gap-3 justify-center">
+              <button
+                class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors"
+                :disabled="isSending"
+                @click="confirmSend"
+              >
+                {{ isSending ? 'Enviando...' : 'Sí, enviar' }}
+              </button>
+              <button
+                class="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
+                @click="sendConfirmId = null"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-gray-100">
         <span class="text-xs text-gray-400">{{ filteredProposals.length }} propuestas</span>
@@ -341,6 +382,8 @@ const proposals = computed(() => proposalStore.proposals);
 const activeFilter = ref('');
 const actionsModalProposal = ref(null);
 const copiedId = ref(null);
+const sendConfirmId = ref(null);
+const isSending = ref(false);
 const searchQuery = ref('');
 const showAlertForm = ref(false);
 const alertError = ref('');
@@ -545,6 +588,7 @@ const statusOptions = [
   { value: 'viewed', label: 'Vistas' },
   { value: 'accepted', label: 'Aceptadas' },
   { value: 'rejected', label: 'Rechazadas' },
+  { value: 'negotiating', label: 'Negociando' },
   { value: 'expired', label: 'Expiradas' },
 ];
 
@@ -563,6 +607,7 @@ function alertIcon(type) {
     manual_meeting: '🤝', manual_custom: '📝',
     seller_inactive: '🏷️', zombie: '💀', late_return: '🔄',
     manual_discount_suggestion: '💰', discount_suggestion: '💰',
+    manual_post_expiration_visit: '🔥🕰️', post_expiration_visit: '🔥🕰️',
   };
   return map[type] || '⚠️';
 }
@@ -603,10 +648,20 @@ function filterByStatus(status) {
   proposalStore.fetchProposals(status || undefined);
 }
 
-async function handleSend(id) {
-  if (!confirm('¿Enviar esta propuesta al cliente?')) return;
-  await proposalStore.sendProposal(id);
-  proposalStore.fetchProposals(activeFilter.value || undefined);
+function handleSend(id) {
+  sendConfirmId.value = id;
+}
+
+async function confirmSend() {
+  if (!sendConfirmId.value) return;
+  isSending.value = true;
+  try {
+    await proposalStore.sendProposal(sendConfirmId.value);
+    sendConfirmId.value = null;
+    proposalStore.fetchProposals(activeFilter.value || undefined);
+  } finally {
+    isSending.value = false;
+  }
 }
 
 async function handleResend(id) {
@@ -648,6 +703,7 @@ function statusClass(status) {
     viewed: 'bg-green-50 text-green-700',
     accepted: 'bg-emerald-50 text-emerald-700',
     rejected: 'bg-red-50 text-red-700',
+    negotiating: 'bg-amber-50 text-amber-700',
     expired: 'bg-yellow-50 text-yellow-700',
   };
   return map[status] || 'bg-gray-100 text-gray-600';

@@ -1,0 +1,14 @@
+[ALTO INTERÉS] Visita post-expiración: {{ proposal_title }} — {{ client_name }}
+
+🔥 El cliente {{ client_name }} abrió la propuesta expirada "{{ proposal_title }}".
+
+Propuesta: {{ proposal_title }}
+Inversión: {{ total_investment }} {{ currency }}
+
+¿Por qué es importante? Un cliente que regresa a ver una propuesta
+expirada tiene intención real de compra. Es la señal más fuerte posible.
+Contacta de inmediato para reactivar la propuesta.
+
+Ver propuesta: {{ edit_url }}
+
+© 2026 ProjectApp.co

@@ -1,0 +1,17 @@
+[NEGOCIANDO] Propuesta: {{ proposal_title }} — {{ client_name }}
+
+El cliente {{ client_name }} quiere aceptar la propuesta con cambios de alcance.
+
+Propuesta: {{ proposal_title }}
+Inversión: {{ total_investment }} {{ currency }}
+{% if comment %}
+Notas del cliente:
+---
+{{ comment }}
+---
+{% endif %}
+El cliente está interesado pero quiere ajustar alcance. ¡Momento ideal para contactar!
+
+Ver propuesta: {{ edit_url }}
+
+© 2026 ProjectApp.co

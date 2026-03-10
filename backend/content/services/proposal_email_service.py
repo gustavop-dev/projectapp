@@ -251,7 +251,11 @@ class ProposalEmailService:
             'total_investment': proposal.total_investment,
             'currency': proposal.currency,
             'action': action,
-            'action_label': 'ACEPTADA' if action == 'accepted' else 'RECHAZADA',
+            'action_label': (
+                'ACEPTADA' if action == 'accepted'
+                else 'NEGOCIANDO' if action == 'negotiating'
+                else 'RECHAZADA'
+            ),
             'proposal_uuid': str(proposal.uuid),
             'rejection_reason': getattr(proposal, 'rejection_reason', ''),
             'rejection_comment': getattr(proposal, 'rejection_comment', ''),
@@ -265,7 +269,11 @@ class ProposalEmailService:
                 'emails/proposal_response_notification.txt', context
             )
 
-            action_tag = 'ACCEPTED' if action == 'accepted' else 'REJECTED'
+            action_tag = (
+                'ACCEPTED' if action == 'accepted'
+                else 'NEGOTIATING' if action == 'negotiating'
+                else 'REJECTED'
+            )
             subject = (
                 f'[{action_tag}] Propuesta: {proposal.title} — '
                 f'{proposal.client_name}'
@@ -987,6 +995,177 @@ class ProposalEmailService:
         except Exception:
             logger.exception(
                 'Failed to send seller inactivity escalation for proposal %s',
+                proposal.uuid,
+            )
+            return False
+
+    @classmethod
+    def send_negotiation_notification(cls, proposal, comment=''):
+        """
+        Send notification to the sales team when a client wants to
+        accept with changes (negotiating status).
+        """
+        frontend_base = getattr(
+            settings, 'FRONTEND_BASE_URL', 'http://localhost:3000'
+        )
+        edit_url = f'{frontend_base}/panel/proposals/{proposal.id}/edit'
+
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_title': proposal.title,
+            'total_investment': proposal.total_investment,
+            'currency': proposal.currency,
+            'comment': comment,
+            'edit_url': edit_url,
+            'proposal_uuid': str(proposal.uuid),
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_negotiation_notification.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_negotiation_notification.txt', context
+            )
+
+            subject = (
+                f'🤝 [NEGOCIANDO] {proposal.client_name} quiere '
+                f'ajustar la propuesta "{proposal.title}"'
+            )
+
+            notification_email = getattr(
+                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[notification_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info(
+                'Sent negotiation notification for proposal %s',
+                proposal.uuid,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send negotiation notification for proposal %s',
+                proposal.uuid,
+            )
+            return False
+
+    @classmethod
+    def send_negotiation_confirmation(cls, proposal):
+        """
+        Send confirmation email to the client when they choose
+        'accept with changes' (negotiating).
+        """
+        if not proposal.client_email:
+            return False
+
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_url': proposal.public_url,
+            'title': proposal.title,
+            'total_investment': proposal.total_investment,
+            'currency': proposal.currency,
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_negotiation_confirmation.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_negotiation_confirmation.txt', context
+            )
+
+            subject = (
+                f'🤝 {proposal.client_name}, recibimos tu solicitud '
+                f'de ajustes — Project App'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[proposal.client_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info(
+                'Sent negotiation confirmation for proposal %s to %s',
+                proposal.uuid, proposal.client_email,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send negotiation confirmation for proposal %s',
+                proposal.uuid,
+            )
+            return False
+
+    @classmethod
+    def send_post_expiration_visit_alert(cls, proposal):
+        """
+        Send immediate alert to the sales team when a client opens
+        an expired proposal — high-intent signal.
+        """
+        frontend_base = getattr(
+            settings, 'FRONTEND_BASE_URL', 'http://localhost:3000'
+        )
+        edit_url = f'{frontend_base}/panel/proposals/{proposal.id}/edit'
+
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_title': proposal.title,
+            'total_investment': proposal.total_investment,
+            'currency': proposal.currency,
+            'edit_url': edit_url,
+            'proposal_uuid': str(proposal.uuid),
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_post_expiration_visit.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_post_expiration_visit.txt', context
+            )
+
+            subject = (
+                f'🔥 {proposal.client_name} abrió la propuesta expirada '
+                f'"{proposal.title}" — ¡Alto interés!'
+            )
+
+            notification_email = getattr(
+                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[notification_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info(
+                'Sent post-expiration visit alert for proposal %s',
+                proposal.uuid,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send post-expiration visit alert for proposal %s',
                 proposal.uuid,
             )
             return False

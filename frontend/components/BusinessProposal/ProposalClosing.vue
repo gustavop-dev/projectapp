@@ -58,6 +58,14 @@
           💬 {{ t.commentBtn }}
         </button>
         <button
+          class="px-8 sm:px-12 py-3 bg-amber-50 border-2 border-amber-300 text-amber-800 rounded-xl font-medium text-sm
+                 hover:bg-amber-100 transition-colors flex items-center gap-2"
+          :disabled="isSubmitting"
+          @click="showNegotiateModal = true"
+        >
+          🤝 {{ t.negotiateBtn }}
+        </button>
+        <button
           class="text-xs text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2"
           :disabled="isSubmitting"
           @click="showRejectModal = true"
@@ -76,6 +84,13 @@
         <div class="text-5xl mb-3 celebration-bounce">🎉</div>
         <p class="text-xl font-bold text-emerald-600">{{ t.accepted }}</p>
         <p class="text-gray-500 mt-2">{{ t.acceptedSub }}</p>
+      </div>
+
+      <!-- Negotiating success -->
+      <div v-else-if="negotiatingSubmitted || proposal?.status === 'negotiating'" data-animate="fade-up" class="py-4 w-full max-w-lg">
+        <div class="text-5xl mb-3 celebration-bounce">🤝</div>
+        <p class="text-xl font-bold text-amber-700">{{ t.negotiatingSuccess }}</p>
+        <p class="text-gray-500 mt-2">{{ t.negotiatingSub }}</p>
       </div>
 
       <!-- Smart rejection recovery (Feature 12) -->
@@ -173,6 +188,32 @@
     </div>
   </teleport>
 
+  <!-- Negotiate modal (Accept with Changes) -->
+  <teleport to="body">
+    <div v-if="showNegotiateModal" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showNegotiateModal = false">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-5 sm:p-8">
+        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ t.negotiateTitle }}</h3>
+        <p class="text-gray-600 text-sm mb-4">{{ t.negotiateText }}</p>
+        <textarea
+          v-model="negotiateComment"
+          rows="4"
+          :placeholder="t.negotiatePlaceholder"
+          class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 outline-none resize-none"
+        />
+        <div class="flex gap-3 justify-end mt-4">
+          <button class="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showNegotiateModal = false">{{ t.cancel }}</button>
+          <button
+            class="px-5 py-2 bg-amber-600 text-white rounded-xl text-sm font-medium hover:bg-amber-700 transition-colors"
+            :disabled="isSubmitting || !negotiateComment.trim()"
+            @click="confirmNegotiate"
+          >
+            {{ isSubmitting ? t.sending : t.negotiateConfirm }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </teleport>
+
   <!-- Reject modal -->
   <teleport to="body">
     <div v-if="showRejectModal" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showRejectModal = false">
@@ -239,6 +280,13 @@ const i18nStrings = {
     validityTitle: 'Validez de la Propuesta',
     thankYouTitle: '¡Gracias por tu Tiempo!',
     acceptBtn: 'Acepto la propuesta',
+    negotiateBtn: 'Aceptar con cambios',
+    negotiateTitle: 'Me interesa, pero negociemos alcance',
+    negotiateText: 'Cuéntanos qué ajustes necesitas. Nuestro equipo te contactará para conversar opciones sin compromiso.',
+    negotiatePlaceholder: 'Ej: Me gustaría reducir el número de módulos, ajustar el timeline, explorar un precio diferente...',
+    negotiateConfirm: 'Enviar solicitud de ajustes',
+    negotiatingSuccess: '¡Solicitud recibida!',
+    negotiatingSub: 'Nuestro equipo revisará tus notas y te contactará pronto para conversar opciones.',
     talkBtn: '📞 Prefiero hablar antes de decidir',
     commentBtn: 'Tengo comentarios por escrito',
     commentTitle: 'Tus comentarios nos ayudan',
@@ -289,6 +337,13 @@ const i18nStrings = {
     validityTitle: 'Proposal Validity',
     thankYouTitle: 'Thank You for Your Time!',
     acceptBtn: 'I accept the proposal',
+    negotiateBtn: 'Accept with changes',
+    negotiateTitle: 'I\'m interested, but let\'s adjust the scope',
+    negotiateText: 'Tell us what adjustments you need. Our team will reach out to discuss options with no commitment.',
+    negotiatePlaceholder: 'E.g.: I\'d like to reduce the number of modules, adjust the timeline, explore a different price...',
+    negotiateConfirm: 'Send adjustment request',
+    negotiatingSuccess: 'Request received!',
+    negotiatingSub: 'Our team will review your notes and contact you soon to discuss options.',
     talkBtn: '📞 I prefer to talk before deciding',
     commentBtn: 'I have written comments',
     commentTitle: 'Your feedback helps us',
@@ -383,6 +438,9 @@ const rejectionSubmitted = ref(false);
 const submittedReason = ref('');
 const showAcceptConfirm = ref(false);
 const showRejectModal = ref(false);
+const showNegotiateModal = ref(false);
+const negotiateComment = ref('');
+const negotiatingSubmitted = ref(false);
 const showCommentModal = ref(false);
 const negotiationComment = ref('');
 const isCommenting = ref(false);
@@ -417,6 +475,23 @@ async function confirmAccept() {
       submitted.value = true;
       showAcceptConfirm.value = false;
       nextTick(() => fireConfetti());
+    }
+  } finally {
+    isSubmitting.value = false;
+  }
+}
+
+async function confirmNegotiate() {
+  if (!props.proposal?.uuid) return;
+  isSubmitting.value = true;
+  try {
+    const result = await proposalStore.respondToProposal(
+      props.proposal.uuid, 'negotiating',
+      { comment: negotiateComment.value },
+    );
+    if (result.success) {
+      negotiatingSubmitted.value = true;
+      showNegotiateModal.value = false;
     }
   } finally {
     isSubmitting.value = false;

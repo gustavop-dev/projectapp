@@ -1,0 +1,14 @@
+Recibimos tu solicitud de ajustes — Project App
+
+Hola {{ client_name }},
+
+Recibimos tu solicitud para ajustar el alcance de la propuesta "{{ title }}".
+Nuestro equipo revisará tus notas y te contactará en las próximas horas
+para conversar sobre las opciones.
+
+Mientras tanto, puedes seguir revisando la propuesta:
+{{ proposal_url }}
+
+¿Preguntas? Responde a este email o escríbenos por WhatsApp.
+
+© 2026 ProjectApp.co
