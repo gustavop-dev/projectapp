@@ -308,9 +308,9 @@
                   <!-- Info tooltip -->
                   <div class="relative flex-shrink-0 group/info">
                     <span class="w-6 h-6 rounded-full bg-gray-100 group-hover/info:bg-emerald-50 flex items-center justify-center text-gray-400 group-hover/info:text-emerald-600 text-[11px] cursor-help transition-colors">?</span>
-                    <div class="absolute right-0 bottom-full mb-2 w-52 bg-gray-900 text-white text-xs rounded-xl px-3 py-2 shadow-lg opacity-0 pointer-events-none group-hover/info:opacity-100 group-hover/info:pointer-events-auto transition-opacity z-10 leading-relaxed">
+                    <div class="absolute right-full top-1/2 -translate-y-1/2 mr-2 w-52 bg-gray-900 text-white text-xs rounded-xl px-3 py-2 shadow-lg opacity-0 pointer-events-none group-hover/info:opacity-100 group-hover/info:pointer-events-auto transition-opacity z-10 leading-relaxed">
                       {{ action.info }}
-                      <div class="absolute -bottom-1 right-3 w-2 h-2 bg-gray-900 rotate-45" />
+                      <div class="absolute top-1/2 -translate-y-1/2 -right-1 w-2 h-2 bg-gray-900 rotate-45" />
                     </div>
                   </div>
                 </component>
