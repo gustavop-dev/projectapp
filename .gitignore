@@ -74,5 +74,5 @@ htmlcov/
 # Windsurf
 .windsurf/plans/
 
-# Claude Code
-.claude/
+# Claude Code (keep commands, ignore worktrees)
+.claude/worktrees/
