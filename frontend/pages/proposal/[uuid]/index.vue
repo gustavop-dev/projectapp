@@ -221,6 +221,28 @@ const sectionComponentMap = {
 const proposal = computed(() => proposalStore.currentProposal);
 const enabledSections = computed(() => proposalStore.enabledSections);
 
+// 4.5 — Personalized OG meta tags for WhatsApp sharing
+useHead({
+  title: computed(() => proposal.value ? `Propuesta para ${proposal.value.client_name}` : 'Propuesta'),
+  meta: computed(() => {
+    if (!proposal.value) return [];
+    const p = proposal.value;
+    const lang = p.language || 'es';
+    const title = lang === 'en'
+      ? `Proposal for ${p.client_name}`
+      : `Propuesta para ${p.client_name}`;
+    const desc = lang === 'en'
+      ? `${p.client_name}, here is your custom proposal: ${p.title}`
+      : `${p.client_name}, aquí está tu propuesta personalizada: ${p.title}`;
+    return [
+      { property: 'og:title', content: title },
+      { property: 'og:description', content: desc },
+      { property: 'og:type', content: 'website' },
+      { name: 'description', content: desc },
+    ];
+  }),
+});
+
 // Build display panels: skip next_steps (merged into final_note), no FR sub-panels
 const displayPanels = computed(() => {
   const panels = [];
@@ -347,6 +369,7 @@ const calculatorModuleItems = computed(() => {
       is_required: false,
       default_selected: false,
       is_ai_invite: group.is_ai_invite || false,
+      invite_note: group.invite_note || '',
       _source: 'calculator_module',
       description: group.description || '',
       detailItems: group.items || [],

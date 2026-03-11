@@ -437,6 +437,22 @@
         </div>
         <FieldTextarea v-model="form.subtitle" label="Subtítulo" :rows="2" :isSingle="true" />
         <div>
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">KPIs personalizados</label>
+          <p class="text-[10px] text-gray-400 mb-2">Métricas clave que aparecerán como tarjetas destacadas al inicio del resumen. Incluye fuentes verificables.</p>
+          <div v-for="(kpi, idx) in (form.kpis || [])" :key="'kpi-' + idx" class="mb-2 bg-emerald-50/50 rounded-xl p-3 border border-emerald-100">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs text-emerald-600 font-medium">KPI {{ idx + 1 }}</span>
+              <button type="button" class="text-xs text-red-500" @click="form.kpis.splice(idx, 1)">Eliminar</button>
+            </div>
+            <div class="grid grid-cols-[120px_1fr] gap-2 mb-1">
+              <FieldInput v-model="kpi.value" label="Valor" placeholder="+40%" />
+              <FieldInput v-model="kpi.label" label="Etiqueta" placeholder="Incremento en conversión web" />
+            </div>
+            <FieldInput v-model="kpi.source" label="Fuente" placeholder="HubSpot 2024" />
+          </div>
+          <button type="button" class="text-xs text-emerald-600 font-medium" @click="if (!form.kpis) form.kpis = []; form.kpis.push({ value: '', label: '', source: '' })">+ Agregar KPI</button>
+        </div>
+        <div>
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Tarjetas de resumen</label>
           <draggable v-model="form.cards" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
             <template #item="{ element: card, index: idx }">

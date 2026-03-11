@@ -102,3 +102,13 @@ export const ADMIN_PROPOSAL_AUTOMATIONS_TOGGLE = ['@flow:admin-proposal-automati
 
 // ── Calculator modules (PWA, AI, Reports & Alerts) ──
 export const PROPOSAL_CALCULATOR_MODULES = ['@flow:proposal-calculator-modules', '@module:proposal', '@priority:P1'];
+
+// ── v1.7.0 new flows ──
+export const PROPOSAL_EXPIRED_GRACEFUL = ['@flow:proposal-expired-graceful', '@module:proposal', '@priority:P1'];
+export const ADMIN_PROPOSAL_BATCH_ACTIONS = ['@flow:admin-proposal-batch-actions', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_QUICK_SEND = ['@flow:admin-proposal-quick-send', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_QUICK_LOG = ['@flow:admin-proposal-quick-log', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_JSON_IMPORT_WARNINGS = ['@flow:admin-proposal-json-import-warnings', '@module:admin', '@priority:P2'];
+export const PROPOSAL_SUMMARY_KPIS = ['@flow:proposal-summary-kpis', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_CALCULATOR_NEW_MODULES = ['@flow:proposal-calculator-new-modules', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_DISCOUNT_MULTI_SECTION = ['@flow:proposal-discount-multi-section', '@module:proposal', '@priority:P2'];

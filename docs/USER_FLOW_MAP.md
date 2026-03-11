@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 1.5.0
-> **Last updated:** 2025-07-12
+> **Version:** 1.7.0
+> **Last updated:** 2026-03-11
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -810,6 +810,75 @@
   5. Admin clicks outside or ✕ to close.
 - **Coverage:** ✅ Covered — `frontend/e2e/admin/admin-proposal-metrics-manual.spec.js`
 
+### FLOW: `admin-proposal-batch-actions`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/`
+- **Description:** Admin selects multiple proposals via checkboxes and performs batch actions (re-send, expire, delete). A sticky action bar appears at the top when at least one proposal is selected. Includes a select-all checkbox in the table header.
+- **Steps:**
+  1. Admin navigates to `/panel/proposals/`.
+  2. Admin clicks checkboxes on individual proposal rows (or the header checkbox to select all visible).
+  3. Sticky batch action bar appears showing "{N} seleccionada(s)" with action buttons.
+  4. Admin clicks a batch action (🔄 Re-enviar, ⏰ Expirar, or 🗑️ Eliminar).
+  5. Confirmation dialog appears.
+  6. Admin confirms → API call to `POST /api/proposals/bulk-action/` with `{ ids, action }`.
+  7. On success, selection is cleared and proposal list refreshes.
+- **Branches:**
+  - [Branch A — Cancel] Admin clicks "Cancelar" → selection is cleared, action bar disappears.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-list.spec.js`
+
+### FLOW: `admin-proposal-engagement-decay-alert`
+
+- **Module:** admin
+- **Role:** system
+- **Priority:** P2
+- **Routes:** N/A (backend-triggered)
+- **Description:** When a client views fewer sections in a session compared to their average from previous sessions (below 50% of the average), the system creates an `engagement_decay` ProposalAlert. The alert is rate-limited to one per 3 days per proposal. It appears in the alerts panel on the proposals list page.
+- **Steps:**
+  1. Client views a proposal and engagement data is sent via `POST /api/proposals/:uuid/track/`.
+  2. Backend compares current session section count to the average of previous sessions.
+  3. If current count < 50% of average, and no `engagement_decay` alert exists for the last 3 days, a new alert is created.
+  4. Alert message includes section counts: "{clientName} vio {N} secciones vs promedio anterior de {avg}. Posible pérdida de interés."
+  5. Alert appears in the admin proposals list alerts panel.
+- **Coverage:** ⚠️ Backend-only
+- **Backend Tests:** `content/tests/views/test_proposal_views.py`
+
+### FLOW: `admin-proposal-post-rejection-revisit`
+
+- **Module:** admin
+- **Role:** system
+- **Priority:** P2
+- **Routes:** N/A (backend-triggered)
+- **Description:** When a client revisits a proposal that was previously rejected, the system creates a `post_rejection_revisit` ProposalAlert. This signals potential reconsideration and appears in the admin alerts panel.
+- **Steps:**
+  1. Client opens a proposal URL where `status = 'rejected'`.
+  2. Backend detects the rejected status in `retrieve_public_proposal`.
+  3. A `post_rejection_revisit` ProposalAlert is created with message: "{clientName} revisitó la propuesta rechazada. Posible reconsideración."
+  4. Alert appears in the admin proposals list alerts panel.
+- **Coverage:** ⚠️ Backend-only
+- **Backend Tests:** `content/tests/views/test_proposal_views.py`
+
+### FLOW: `admin-proposal-json-import-warnings`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/create` (JSON import tab)
+- **Description:** When importing a proposal from JSON, the backend validates the payload and returns warnings for any section keys that don't map to known section types. Warnings are non-blocking — the proposal is still created, but the admin is informed of unmapped keys that were ignored.
+- **Steps:**
+  1. Admin switches to "Importar JSON" tab on the create page.
+  2. Admin pastes a JSON payload containing extra or misspelled section keys.
+  3. Admin submits → API call to `POST /api/proposals/create-from-json/`.
+  4. Backend validates with `ProposalFromJSONSerializer`, identifies unmapped keys.
+  5. Proposal is created successfully with known sections populated.
+  6. Response includes `warnings` array listing unmapped section keys.
+  7. Frontend displays warnings to the admin.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-create.spec.js`
+
 ### FLOW: `proposal-welcome-back`
 
 - **Module:** proposal
@@ -864,6 +933,206 @@
   - [Branch B — FR integration] Selected calculator modules appear in Functional Requirements section.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-calculator-modules.spec.js`
+
+### FLOW: `proposal-expired-graceful`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P1
+- **Routes:** `/proposal/:uuid`
+- **Description:** When a client opens an expired proposal, the backend returns HTTP 410 Gone and creates a `post_expiration_visit` alert. The frontend renders a graceful `ProposalExpired` component with the client name, proposal title, a WhatsApp reactivation CTA, and an email contact option.
+- **Steps:**
+  1. Client opens a proposal URL where `expires_at` is in the past.
+  2. API call to `GET /api/proposals/:uuid/` returns HTTP 410 with partial proposal data.
+  3. Backend creates a `post_expiration_visit` ProposalAlert for the seller.
+  4. Frontend detects 410 status and sets `loadError = 'expired'`.
+  5. `ProposalExpired` component renders with personalized message: "{clientName}, esta propuesta ha expirado".
+  6. WhatsApp reactivation button pre-fills a message mentioning the proposal title.
+  7. Email contact button links to team email.
+- **Branches:**
+  - [Branch A — Post-rejection revisit] If the proposal was rejected and the client revisits, a `post_rejection_revisit` alert is also created.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-view.spec.js` (Branch A — Proposal expired)
+
+### FLOW: `proposal-calculator-abandonment-tracking`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link) / system
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** The calculator modal tracks whether the client confirms or abandons their module selection. On close without confirming, an `abandoned` event is sent. On confirm, a `confirmed` event is sent. Both are stored as `ProposalChangeLog` entries and aggregated in the admin dashboard as `calc_abandonment_rate` and `dropped_modules`.
+- **Steps:**
+  1. Client opens the calculator modal in the Investment section.
+  2. Client toggles modules (selects/deselects).
+  3. [Branch A — Confirm] Client clicks "Confirmar selección" → `confirmed` event sent via `POST /api/proposals/:uuid/track-calculator/`.
+  4. [Branch B — Abandon] Client closes modal without confirming → `abandoned` event sent automatically.
+  5. Backend creates `ProposalChangeLog` with `calc_confirmed` or `calc_abandoned` change type.
+  6. Dashboard aggregates data: `calc_abandonment_rate` = abandoned / (abandoned + confirmed), `dropped_modules` = most frequently deselected modules.
+- **Coverage:** ⚠️ Backend-only
+- **Backend Tests:** `content/tests/views/test_proposal_views.py`
+
+### FLOW: `proposal-negotiate`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P1
+- **Routes:** `/proposal/:uuid`
+- **Description:** Client clicks "Necesito ajustes" from the ProposalClosing panel to open a negotiation flow. The response is sent to the backend with `decision: negotiating`, which pauses automations and logs the event.
+- **Steps:**
+  1. Client navigates to the closing panel.
+  2. Client clicks "Necesito ajustes" (amber button).
+  3. Confirmation modal opens.
+  4. Client confirms → API call to `POST /api/proposals/:uuid/respond/` with `decision: negotiating`.
+  5. Backend sets `automations_paused = True` and status to `negotiating`.
+  6. Success message displays with WhatsApp CTA for further discussion.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-respond.spec.js`
+
+### FLOW: `admin-proposal-quick-send`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/`
+- **Description:** Admin sends or re-sends a proposal directly from the proposals list without entering the edit page. Draft proposals show a "📤 Enviar" button; sent/viewed proposals show "🔄 Re-enviar". A confirmation modal prevents accidental sends.
+- **Steps:**
+  1. Admin views the proposals list.
+  2. For draft proposals with client_email: "📤 Enviar" button is visible in the row.
+  3. Admin clicks "📤 Enviar" → confirmation modal opens: "¿Enviar esta propuesta?".
+  4. Admin confirms → API call to `POST /api/proposals/:id/send/`.
+  5. Success: proposal status changes to `sent`, list refreshes.
+  6. For sent/viewed proposals: "🔄 Re-enviar" button is visible → confirm dialog → `POST /api/proposals/:id/resend/`.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-list.spec.js`
+
+### FLOW: `admin-proposal-quick-log`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/`
+- **Description:** Admin registers a seller activity (call, meeting, follow-up, note) directly from the proposals list via the actions modal, without entering the proposal detail. Opens a quick-log modal with activity type selector and description field.
+- **Steps:**
+  1. Admin opens the actions modal (⋮) for a proposal.
+  2. Admin clicks "📝 Registrar actividad".
+  3. Quick-log modal opens showing client name and proposal title.
+  4. Admin selects activity type (call, meeting, follow-up, note).
+  5. Admin enters a description.
+  6. Admin clicks "Registrar" → API call to `POST /api/proposals/:id/log-activity/`.
+  7. Success: modal closes, proposal list refreshes with updated `last_activity_at`.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
+### FLOW: `proposal-discount-multi-section`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** When a proposal has an active discount, the discount badge is consistently visible across three sections: Investment (banner with % OFF), Calculator modal (footer badge), and ProposalClosing (special price badge). This ensures the client is always aware of the time-limited offer.
+- **Steps:**
+  1. Client opens a proposal with `discount_percent > 0`.
+  2. Investment section shows a discount banner with percentage and days remaining.
+  3. Calculator modal shows a discount badge in the footer.
+  4. Closing section shows a "Precio especial" badge above the accept button.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
+### FLOW: `proposal-onboarding-mobile-swipe`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P3
+- **Routes:** `/proposal/:uuid`
+- **Description:** On mobile devices, the onboarding tutorial replaces positioned tooltips with a fullscreen swipe carousel overlay. Users navigate steps by swiping left/right or tapping next/back buttons. Desktop retains tooltip-based onboarding.
+- **Steps:**
+  1. First-time visitor opens a proposal on a mobile device.
+  2. ProposalOnboarding detects `isMobile` and renders fullscreen overlay.
+  3. User swipes left/right or taps navigation buttons to progress through steps.
+  4. On completion, onboarding emits `@complete` and sets localStorage flag.
+  5. Reading time popup appears.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
+### FLOW: `proposal-og-meta-personalized`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P3
+- **Routes:** `/proposal/:uuid`
+- **Description:** Personalized Open Graph meta tags are set dynamically so WhatsApp/social media previews show the client name and proposal title. Uses `useHead` with computed `og:title` and `og:description`.
+- **Steps:**
+  1. Proposal page loads and fetches proposal data.
+  2. `useHead` sets `og:title` to "Propuesta para {client_name}".
+  3. `og:description` includes client name and proposal title in the appropriate language.
+  4. When the proposal URL is shared on WhatsApp/social media, the personalized preview is shown.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
+### FLOW: `admin-proposal-dashboard-auto-refresh`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/proposals/`
+- **Description:** The ProposalDashboard KPI panel auto-refreshes every 60 seconds when open. A manual "Actualizar" button and "last updated" label are also available. Auto-refresh pauses when the dashboard is collapsed.
+- **Steps:**
+  1. Admin views the proposals list with the dashboard open.
+  2. Dashboard fetches data on first open.
+  3. Every 60 seconds, data refreshes automatically if the panel is open.
+  4. "Actualizar" button triggers manual refresh with spin animation.
+  5. "justo ahora" / "hace Xs" label shows time since last refresh.
+  6. Collapsing the dashboard stops auto-refresh; expanding resumes it.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
+### FLOW: `proposal-summary-kpis`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** The Proposal Summary section displays personalized KPI cards at the top, sourced from `content_json.kpis`. Each KPI shows a value, label, and source citation. KPIs are editable in the admin SectionEditor and included in the JSON template.
+- **Steps:**
+  1. Client navigates to the Proposal Summary section.
+  2. KPI cards render from `content.kpis` array with value, label, and source.
+  3. Below KPIs, standard summary cards (investment, timeline, etc.) render.
+  4. Admin can add/edit/remove KPIs in the SectionEditor for proposal_summary.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
+### FLOW: `admin-proposal-log-activity`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/:id/edit` (Activity tab)
+- **Description:** Admin manually logs a seller activity on a proposal. Activity types include call, meeting, follow-up, and note. The activity is stored as a ProposalChangeLog entry and updates `last_activity_at`.
+- **Steps:**
+  1. Admin opens a proposal edit page and navigates to the Activity tab.
+  2. Admin selects an activity type and enters a description.
+  3. Admin submits → API call to `POST /api/proposals/:id/log-activity/`.
+  4. Backend creates a ProposalChangeLog entry and updates `last_activity_at`.
+  5. Activity timeline refreshes with the new entry.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+
+### FLOW: `proposal-calculator-new-modules`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** The investment calculator displays new default modules: Dashboard KPIs (free, selected by default), Email Marketing (10% of total), Reports & Alerts (20% of total), and renamed PWA module (40% of total). Each module has detailed items and business-oriented descriptions.
+- **Steps:**
+  1. Client opens the calculator modal.
+  2. Dashboard KPIs module appears selected by default with "Incluido" label (free).
+  3. Email Marketing module appears unselected with price as +10% of total.
+  4. Reports & Alerts module appears unselected with price as +20% of total.
+  5. PWA module appears as "Aplicación Móvil Instalable (PWA)" with price as +40% of total.
+  6. Client toggles modules → total investment and timeline update in real-time.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
 
 ### FLOW: `admin-blog-list`
 
@@ -1113,16 +1382,34 @@
 | `proposal-calculator-timeline` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-calculator-timeline.spec.js` |
 | `admin-discount-analysis-enhanced` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-discount-analysis.spec.js` |
 | `proposal-calculator-modules` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-calculator-modules.spec.js` |
+| `proposal-expired-graceful` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view.spec.js` |
+| `proposal-calculator-abandonment-tracking` | proposal | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
+| `admin-proposal-batch-actions` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
+| `admin-proposal-engagement-decay-alert` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
+| `admin-proposal-post-rejection-revisit` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
+| `admin-proposal-json-import-warnings` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
+| `proposal-negotiate` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-respond.spec.js` |
+| `admin-proposal-quick-send` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
+| `admin-proposal-quick-log` | admin | admin | P2 | ❌ Missing | — |
+| `proposal-calculator-timeline-impact` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-timeline.spec.js` |
+| `proposal-discount-multi-section` | proposal | guest | P2 | ❌ Missing | — |
+| `proposal-onboarding-mobile-swipe` | proposal | guest | P3 | ❌ Missing | — |
+| `proposal-og-meta-personalized` | proposal | guest | P3 | ❌ Missing | — |
+| `admin-proposal-dashboard-auto-refresh` | admin | admin | P3 | ❌ Missing | — |
+| `proposal-summary-kpis` | proposal | guest | P2 | ❌ Missing | — |
+| `admin-proposal-log-activity` | admin | admin | P2 | ❌ Missing | — |
+| `proposal-calculator-new-modules` | proposal | guest | P2 | ❌ Missing | — |
 
 ### Summary
 
-- **Total flows:** 65 (added 1 new flow: calculator modules)
-- **P1 (Critical):** 17
-- **P2 (High):** 37
-- **P3 (Medium):** 11
-- **Covered (full):** 61 (94%)
-- **Backend-only:** 2 (3%) — periodic tasks covered by backend unit tests
-- **Missing:** 2 (3%) — backend-only periodic tasks already covered by unit tests
+- **Total flows:** 83 (added 12 new flows: negotiate, quick-send, quick-log, calculator timeline, discount multi-section, mobile onboarding, OG meta, dashboard refresh, summary KPIs, log activity, new calculator modules)
+- **P1 (Critical):** 19
+- **P2 (High):** 50
+- **P3 (Medium):** 14
+- **Covered (full):** 66 (80%)
+- **Backend-only:** 5 (6%) — system-triggered alerts and tracking covered by backend unit tests
+- **Partial:** 2 (2%)
+- **Missing:** 7 (8%) — newly added flows pending E2E specs
 
 ### Unit Test Coverage
 

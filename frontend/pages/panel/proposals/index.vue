@@ -178,11 +178,50 @@
       <p class="text-gray-500 text-sm">No hay propuestas{{ activeFilter ? ` con estado "${activeFilter}"` : '' }}.</p>
     </div>
 
+    <!-- Batch action bar -->
+    <Transition name="fade-modal">
+      <div v-if="selectedIds.size > 0" class="sticky top-0 z-40 mb-3 bg-gray-900 text-white rounded-xl px-5 py-3 flex items-center justify-between shadow-lg">
+        <span class="text-sm font-medium">{{ selectedIds.size }} seleccionada(s)</span>
+        <div class="flex items-center gap-2">
+          <button
+            class="px-3 py-1.5 bg-blue-600 rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+            :disabled="isBulkActing"
+            @click="handleBulkAction('resend')"
+          >
+            🔄 Re-enviar
+          </button>
+          <button
+            class="px-3 py-1.5 bg-yellow-600 rounded-lg text-xs font-medium hover:bg-yellow-700 transition-colors disabled:opacity-50"
+            :disabled="isBulkActing"
+            @click="handleBulkAction('expire')"
+          >
+            ⏰ Expirar
+          </button>
+          <button
+            class="px-3 py-1.5 bg-red-600 rounded-lg text-xs font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+            :disabled="isBulkActing"
+            @click="handleBulkAction('delete')"
+          >
+            🗑️ Eliminar
+          </button>
+          <button
+            class="px-3 py-1.5 bg-gray-700 rounded-lg text-xs font-medium hover:bg-gray-600 transition-colors"
+            @click="selectedIds = new Set()"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Table -->
-    <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+    <div v-if="!proposalStore.isLoading && proposals.length > 0" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
       <table class="w-full min-w-[800px]">
         <thead>
           <tr class="border-b border-gray-100 text-left">
+            <th class="px-3 py-3 w-10">
+              <input type="checkbox" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" :checked="selectedIds.size === paginatedProposals.length && paginatedProposals.length > 0" @change="toggleSelectAll" @click.stop />
+            </th>
             <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-12">ID</th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-emerald-600" @click="toggleSort('title')">
               Título <span v-if="sortKey === 'title'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
@@ -199,11 +238,17 @@
             </th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Vistas</th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center" title="Score de calor (1-10)">🔥</th>
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center cursor-pointer hover:text-emerald-600" title="Lead Score (0-100)" @click="toggleSort('lead_score')">
+              Score <span v-if="sortKey === 'lead_score'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+            </th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-50">
-          <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="p.is_active ? 'hover:bg-gray-50' : 'bg-gray-50 opacity-60'" @click="navigateToProposal(p.id)">
+          <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="[p.is_active ? 'hover:bg-gray-50' : 'bg-gray-50 opacity-60', selectedIds.has(p.id) ? 'bg-emerald-50/50' : '']" @click="navigateToProposal(p.id)">
+            <td class="px-3 py-4" @click.stop>
+              <input type="checkbox" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" :checked="selectedIds.has(p.id)" @change="toggleSelect(p.id)" />
+            </td>
             <td class="px-4 py-4 text-xs text-gray-400 tabular-nums">#{{ p.id }}</td>
             <td class="px-6 py-4">
               <NuxtLink
@@ -245,6 +290,12 @@
               </span>
               <span v-else class="text-gray-300 text-xs">—</span>
             </td>
+            <td class="px-6 py-4 text-center">
+              <span v-if="p.lead_score > 0" class="text-xs font-bold tabular-nums" :class="leadScoreColor(p.lead_score)">
+                {{ p.lead_score }}
+              </span>
+              <span v-else class="text-gray-300 text-xs">—</span>
+            </td>
             <td class="px-6 py-4">
               <div class="flex items-center gap-2">
                 <button
@@ -253,6 +304,13 @@
                   @click.stop="handleSend(p.id)"
                 >
                   📤 Enviar
+                </button>
+                <button
+                  v-else-if="['sent', 'viewed'].includes(p.status) && p.client_email"
+                  class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200"
+                  @click.stop="handleResend(p.id)"
+                >
+                  🔄 Re-enviar
                 </button>
                 <button
                   class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
@@ -315,6 +373,7 @@
                   </div>
                 </component>
               </template>
+
             </div>
           </div>
         </div>
@@ -344,6 +403,57 @@
               <button
                 class="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
                 @click="sendConfirmId = null"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Quick-log activity modal -->
+    <Teleport to="body">
+      <Transition name="fade-modal">
+        <div
+          v-if="quickLogProposal"
+          class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          @click.self="quickLogProposal = null"
+        >
+          <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-base font-bold text-gray-900">Registrar actividad</h3>
+              <button class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors" @click="quickLogProposal = null">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <p class="text-xs text-gray-500 mb-4">{{ quickLogProposal.client_name }} — {{ quickLogProposal.title }}</p>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Tipo de actividad</label>
+                <select v-model="quickLogType" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-emerald-500">
+                  <option value="call">📞 Llamada</option>
+                  <option value="meeting">🤝 Reunión</option>
+                  <option value="followup">📩 Seguimiento</option>
+                  <option value="note">📝 Nota</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Descripción</label>
+                <input v-model="quickLogMessage" type="text" placeholder="Ej: Llamada de seguimiento, cliente interesado..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-emerald-500" @keyup.enter="confirmQuickLog" />
+              </div>
+            </div>
+            <div class="flex gap-3 mt-5">
+              <button
+                class="flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                :disabled="!quickLogMessage.trim() || isQuickLogging"
+                @click="confirmQuickLog"
+              >
+                {{ isQuickLogging ? 'Guardando...' : 'Registrar' }}
+              </button>
+              <button
+                class="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
+                @click="quickLogProposal = null"
               >
                 Cancelar
               </button>
@@ -386,6 +496,10 @@ const actionsModalProposal = ref(null);
 const copiedId = ref(null);
 const sendConfirmId = ref(null);
 const isSending = ref(false);
+const quickLogProposal = ref(null);
+const quickLogType = ref('call');
+const quickLogMessage = ref('');
+const isQuickLogging = ref(false);
 const searchQuery = ref('');
 const showAlertForm = ref(false);
 const alertError = ref('');
@@ -400,6 +514,36 @@ const sortDir = ref('desc');
 const currentPage = ref(1);
 const pageSize = 15;
 const zombieExpanded = ref(false);
+const selectedIds = ref(new Set());
+const isBulkActing = ref(false);
+
+function toggleSelectAll() {
+  if (selectedIds.value.size === paginatedProposals.value.length) {
+    selectedIds.value = new Set();
+  } else {
+    selectedIds.value = new Set(paginatedProposals.value.map(p => p.id));
+  }
+}
+
+function toggleSelect(id) {
+  const s = new Set(selectedIds.value);
+  if (s.has(id)) s.delete(id);
+  else s.add(id);
+  selectedIds.value = s;
+}
+
+async function handleBulkAction(action) {
+  const ids = [...selectedIds.value];
+  const labels = { delete: 'eliminar', expire: 'expirar', resend: 're-enviar' };
+  if (!confirm(`¿${labels[action] || action} ${ids.length} propuesta(s)?`)) return;
+  isBulkActing.value = true;
+  const result = await proposalStore.bulkAction(ids, action);
+  if (result.success) {
+    selectedIds.value = new Set();
+    proposalStore.fetchProposals(activeFilter.value || undefined);
+  }
+  isBulkActing.value = false;
+}
 
 const ZOMBIE_TYPES = ['zombie', 'zombie_draft', 'zombie_sent_stale'];
 const zombieAlerts = computed(() =>
@@ -542,6 +686,16 @@ const proposalActions = computed(() => {
     href: buildWhatsAppUrl(p),
     bgClass: 'bg-green-50 text-green-600',
     textClass: 'text-green-700',
+  });
+
+  actions.push({
+    key: 'quick-log',
+    icon: '📝',
+    label: 'Registrar actividad',
+    info: 'Registra rápidamente una llamada, reunión o nota sin entrar a la propuesta.',
+    bgClass: 'bg-teal-50 text-teal-600',
+    textClass: 'text-teal-700',
+    onClick: () => { actionsModalProposal.value = null; openQuickLog(p); },
   });
 
   actions.push({
@@ -729,6 +883,34 @@ function heatScoreColor(score) {
   if (score >= 5) return 'bg-orange-400';
   if (score >= 2) return 'bg-yellow-400 text-gray-800';
   return 'bg-gray-300 text-gray-700';
+}
+
+function leadScoreColor(score) {
+  if (score >= 80) return 'text-emerald-600';
+  if (score >= 50) return 'text-blue-600';
+  if (score >= 20) return 'text-amber-600';
+  return 'text-gray-500';
+}
+
+function openQuickLog(p) {
+  quickLogProposal.value = p;
+  quickLogType.value = 'call';
+  quickLogMessage.value = '';
+}
+
+async function confirmQuickLog() {
+  if (!quickLogProposal.value || !quickLogMessage.value.trim()) return;
+  isQuickLogging.value = true;
+  try {
+    await proposalStore.logActivity(quickLogProposal.value.id, {
+      change_type: quickLogType.value,
+      description: quickLogMessage.value.trim(),
+    });
+    quickLogProposal.value = null;
+    proposalStore.fetchProposals(activeFilter.value || undefined);
+  } finally {
+    isQuickLogging.value = false;
+  }
 }
 
 function buildWhatsAppUrl(p) {

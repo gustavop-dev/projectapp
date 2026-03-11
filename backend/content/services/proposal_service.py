@@ -452,7 +452,7 @@ DEFAULT_SECTIONS = [
                 {
                     'id': 'pwa_module',
                     'icon': '📱',
-                    'title': 'Progressive Web App (PWA)',
+                    'title': 'Aplicación Móvil Instalable (PWA)',
                     'description': (
                         'Convierte tu sitio web en una aplicación instalable que funciona '
                         'incluso sin conexión a internet. Ofrece una experiencia nativa '
@@ -460,7 +460,7 @@ DEFAULT_SECTIONS = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
-                    'price_percent': 30,
+                    'price_percent': 40,
                     'items': [
                         {'icon': '📲', 'name': 'Instalación en dispositivo', 'description': 'Los usuarios pueden instalar tu sitio como una app en su celular o computador, con acceso directo desde la pantalla de inicio.'},
                         {'icon': '📡', 'name': 'Funcionamiento offline', 'description': 'El sitio sigue siendo accesible sin conexión a internet, mostrando contenido previamente cargado y sincronizando datos al reconectarse.'},
@@ -473,7 +473,7 @@ DEFAULT_SECTIONS = [
                 {
                     'id': 'ai_module',
                     'icon': '🤖',
-                    'title': 'Implementación y Automatización con IA',
+                    'title': 'Integración y Automatización con IA',
                     'description': (
                         'Potencia tu proyecto con inteligencia artificial. Exploramos juntos '
                         'cómo adaptar soluciones de IA a las necesidades específicas de tu negocio.'
@@ -482,6 +482,12 @@ DEFAULT_SECTIONS = [
                     'default_selected': False,
                     'price_percent': None,
                     'is_ai_invite': True,
+                    'invite_note': (
+                        '🤝 Te invitamos a una llamada personalizada donde exploraremos '
+                        'juntos cómo la inteligencia artificial puede transformar tu negocio. '
+                        'Conocerás nuestras soluciones, cómo las adaptamos a tu caso particular, '
+                        'y los costos asociados — sin compromiso.'
+                    ),
                     'items': [
                         {'icon': '⚡', 'name': 'Automatizaciones', 'description': 'Flujos de trabajo inteligentes que ejecutan tareas repetitivas de forma autónoma, liberando tiempo para lo que realmente importa.'},
                         {'icon': '📊', 'name': 'Análisis de datos con lenguaje natural', 'description': 'Consulta tus datos usando preguntas en español o inglés y obtén respuestas claras, gráficos y reportes sin necesidad de conocimientos técnicos.'},
@@ -506,13 +512,125 @@ DEFAULT_SECTIONS = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
-                    'price_percent': 10,
+                    'price_percent': 20,
                     'items': [
                         {'icon': '📧', 'name': 'Reportes automáticos por correo', 'description': 'Recibe resúmenes periódicos con las métricas clave de tu negocio directamente en tu bandeja de entrada, sin tener que entrar al sistema.'},
                         {'icon': '🔔', 'name': 'Alertas personalizadas', 'description': 'Configura notificaciones para eventos importantes: nuevas ventas, registros de usuarios, stock bajo, o cualquier métrica que definas.'},
                         {'icon': '✈️', 'name': 'Integración con Telegram', 'description': 'Recibe alertas y reportes instantáneos en tu chat de Telegram, ideal para estar al tanto desde cualquier lugar y en tiempo real.'},
                         {'icon': '⏰', 'name': 'Programación de envíos', 'description': 'Define la frecuencia y horario de tus reportes: diario, semanal, mensual o en tiempo real según tus necesidades.'},
                         {'icon': '📋', 'name': 'Resumen ejecutivo periódico', 'description': 'Informe consolidado con las métricas más relevantes de tu proyecto, diseñado para una lectura rápida y toma de decisiones ágil.'},
+                    ],
+                },
+                {
+                    'id': 'kpi_dashboard_module',
+                    'icon': '📊',
+                    'title': 'Dashboard de KPIs y Métricas',
+                    'description': (
+                        'Panel de control personalizado con indicadores clave de rendimiento '
+                        'en tiempo real para monitorear la salud de tu negocio y tomar '
+                        'decisiones basadas en datos.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': True,
+                    'price_percent': 0,
+                    'is_free': True,
+                    'items': [
+                        {'icon': '📈', 'name': 'KPIs en tiempo real', 'description': 'Visualiza los indicadores más importantes de tu negocio actualizados al instante: ventas, conversiones, tráfico y más.'},
+                        {'icon': '🎯', 'name': 'Metas y objetivos', 'description': 'Define metas mensuales o trimestrales y monitorea el progreso con barras de avance y alertas de cumplimiento.'},
+                        {'icon': '📊', 'name': 'Gráficos interactivos', 'description': 'Dashboards visuales con gráficos de línea, barras y torta que permiten filtrar por período, categoría o segmento.'},
+                        {'icon': '🔔', 'name': 'Alertas de rendimiento', 'description': 'Notificaciones automáticas cuando un KPI cae por debajo del umbral definido o supera una meta establecida.'},
+                        {'icon': '📥', 'name': 'Exportación de reportes', 'description': 'Descarga reportes en PDF o CSV para compartir con tu equipo o stakeholders sin necesidad de acceder al sistema.'},
+                    ],
+                },
+                {
+                    'id': 'email_marketing_module',
+                    'icon': '📧',
+                    'title': 'Integración de Email Marketing',
+                    'description': (
+                        'Conecta tu sitio web con plataformas de email marketing para '
+                        'automatizar campañas, segmentar audiencias y aumentar la '
+                        'conversión de visitantes en clientes.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 10,
+                    'items': [
+                        {'icon': '📬', 'name': 'Captura de leads', 'description': 'Formularios optimizados y pop-ups inteligentes para capturar emails de visitantes interesados en tu contenido o productos.'},
+                        {'icon': '🔄', 'name': 'Automatizaciones de email', 'description': 'Secuencias automáticas de bienvenida, carritos abandonados, seguimiento post-compra y re-engagement de usuarios inactivos.'},
+                        {'icon': '🎯', 'name': 'Segmentación de audiencia', 'description': 'Clasifica a tus suscriptores por comportamiento, intereses y datos demográficos para enviar mensajes relevantes y personalizados.'},
+                        {'icon': '📊', 'name': 'Analítica de campañas', 'description': 'Métricas detalladas de apertura, clics, conversiones y ROI de cada campaña para optimizar tu estrategia de comunicación.'},
+                        {'icon': '🔗', 'name': 'Integración con plataformas', 'description': 'Conexión nativa con Mailchimp, SendGrid, Brevo u otras plataformas líderes de email marketing según tus necesidades.'},
+                    ],
+                },
+                {
+                    'id': 'conversion_tracking_module',
+                    'icon': '📡',
+                    'title': 'Conversiones Inteligentes (Meta & Google Ads)',
+                    'description': (
+                        'Maximiza el retorno de tu inversión publicitaria con seguimiento '
+                        'de conversiones server-side. Tu sitio web reporta cada acción '
+                        'valiosa directamente a Meta y Google, sin depender de cookies '
+                        'ni del navegador del visitante.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': None,
+                    'is_ai_invite': True,
+                    'invite_note': (
+                        '🤝 Te invitamos a una llamada donde analizaremos tu estrategia '
+                        'publicitaria actual y diseñaremos juntos la integración server-side '
+                        'con Meta y Google Ads. Verás cómo maximizar tu ROAS con datos '
+                        'de conversión precisos — sin compromiso.'
+                    ),
+                    'items': [
+                        {'icon': '🔗', 'name': 'Conexión directa con Meta Conversions API', 'description': 'Cada conversión se envía desde tu servidor directamente a Meta, permitiendo que Facebook e Instagram identifiquen qué anuncios generaron resultados reales, incluso con bloqueadores de anuncios.'},
+                        {'icon': '📊', 'name': 'Conexión directa con Google Enhanced Conversions', 'description': 'Las conversiones se reportan desde el servidor con datos encriptados del cliente. Google asocia cada conversión con el clic original del anuncio y optimiza las pujas automáticas con información real.'},
+                        {'icon': '🛡️', 'name': 'Inmune a bloqueadores y restricciones de cookies', 'description': 'A diferencia del tracking tradicional, este módulo funciona desde tu servidor. No lo afectan los bloqueadores de anuncios, las restricciones de iOS 14+ ni la eliminación de cookies de terceros.'},
+                        {'icon': '🔄', 'name': 'Deduplicación automática de eventos', 'description': 'El sistema mantiene el tracking del navegador como respaldo y sincroniza ambas fuentes con un identificador único. Meta y Google eliminan duplicados automáticamente.'},
+                        {'icon': '🎯', 'name': 'Eventos de conversión personalizados', 'description': 'Se configuran los eventos que importan para tu negocio: formulario enviado, clic en WhatsApp, llamada agendada, propuesta vista, propuesta aceptada. Cada uno con su valor monetario para calcular ROAS real.'},
+                        {'icon': '📈', 'name': 'Panel de estado de conversiones', 'description': 'Visualiza desde tu panel administrativo el estado de cada evento enviado: confirmado, pendiente o fallido. Incluye diagnóstico de calidad de matching.'},
+                    ],
+                },
+                {
+                    'id': 'i18n_module',
+                    'icon': '🌍',
+                    'title': 'Multi-idioma y Localización Regional',
+                    'description': (
+                        'Sistema de internacionalización nativo que permite servir tu sitio '
+                        'en múltiples idiomas con flujo de traducción integrado, formatos '
+                        'de moneda y fecha regionales, y la posibilidad de mostrar catálogos '
+                        'o precios diferentes por país.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 15,
+                    'items': [
+                        {'icon': '🌐', 'name': 'Soporte multi-idioma nativo', 'description': 'Estructura preparada para servir todo el contenido del sitio en dos o más idiomas, con selector de idioma visible y persistencia de preferencia del usuario.'},
+                        {'icon': '💱', 'name': 'Formatos regionales de moneda y fecha', 'description': 'Adaptación automática de formatos numéricos, monedas y fechas según la región del visitante o el idioma seleccionado.'},
+                        {'icon': '🛒', 'name': 'Catálogos y precios por país', 'description': 'Posibilidad de mostrar productos, precios y disponibilidad diferenciados por región geográfica o mercado objetivo.'},
+                        {'icon': '📝', 'name': 'Flujo de traducción integrado', 'description': 'Panel administrativo para gestionar las traducciones de cada sección sin necesidad de intervención técnica, con indicador de contenido pendiente por traducir.'},
+                        {'icon': '🔍', 'name': 'Detección automática de idioma', 'description': 'El sitio detecta el idioma preferido del navegador del visitante y lo redirige automáticamente a la versión correspondiente, mejorando la experiencia desde el primer momento.'},
+                    ],
+                },
+                {
+                    'id': 'gift_cards_module',
+                    'icon': '🎁',
+                    'title': 'Gift Cards y Vouchers Digitales',
+                    'description': (
+                        'Creación, venta y canje de tarjetas de regalo digitales con saldo '
+                        'configurable, diseño de marca y código único verificable en checkout. '
+                        'Genera ingresos anticipados y captura nuevos clientes a través '
+                        'de los compradores existentes.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 20,
+                    'items': [
+                        {'icon': '💳', 'name': 'Creación y venta de gift cards', 'description': 'Los clientes pueden comprar tarjetas de regalo digitales con saldo configurable directamente desde tu sitio web, con proceso de pago integrado.'},
+                        {'icon': '✅', 'name': 'Canje en checkout con código único', 'description': 'Cada gift card genera un código único verificable que el destinatario puede aplicar durante el proceso de compra como método de pago parcial o total.'},
+                        {'icon': '📊', 'name': 'Historial de saldo y movimientos', 'description': 'Tanto el comprador como el destinatario pueden consultar el saldo disponible, movimientos realizados y fecha de vencimiento de cada tarjeta.'},
+                        {'icon': '🎨', 'name': 'Diseño de marca personalizado', 'description': 'Las gift cards se generan con la identidad visual de tu marca, incluyendo logo, colores y mensaje personalizable del comprador para el destinatario.'},
+                        {'icon': '⏰', 'name': 'Vencimiento configurable', 'description': 'Define políticas de vencimiento por tipo de tarjeta: sin vencimiento, 6 meses, 1 año, o personalizado. Incluye notificaciones automáticas antes de la expiración.'},
                     ],
                 },
             ],
@@ -622,6 +740,16 @@ DEFAULT_SECTIONS = [
             'index': '11',
             'title': 'Resumen de la Propuesta',
             'subtitle': 'Los datos clave de esta propuesta en un vistazo:',
+            'kpis': [
+                {'value': '+40%', 'label': 'Incremento esperado en conversión web', 'source': 'HubSpot 2024'},
+                {'value': '3x', 'label': 'Retorno estimado de inversión a 12 meses', 'source': 'Análisis interno'},
+                {'value': '-60%', 'label': 'Reducción en tiempo de gestión manual', 'source': 'McKinsey Digital 2023'},
+            ],
+            '_kpi_note': (
+                'Los KPIs son personalizables por cliente. Incluye métricas relevantes '
+                'para el sector del cliente con fuentes verificables. Estos aparecerán '
+                'como tarjetas destacadas al inicio del resumen.'
+            ),
             'cards': [
                 {
                     'icon': '💰',
@@ -1187,7 +1315,7 @@ DEFAULT_SECTIONS_EN = [
                 {
                     'id': 'pwa_module',
                     'icon': '📱',
-                    'title': 'Progressive Web App (PWA)',
+                    'title': 'Installable Mobile App (PWA)',
                     'description': (
                         'Turn your website into an installable application that works '
                         'even without an internet connection. Deliver a native-like experience '
@@ -1195,7 +1323,7 @@ DEFAULT_SECTIONS_EN = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
-                    'price_percent': 30,
+                    'price_percent': 40,
                     'items': [
                         {'icon': '📲', 'name': 'Device Installation', 'description': 'Users can install your site as an app on their phone or computer, with direct access from the home screen.'},
                         {'icon': '📡', 'name': 'Offline Functionality', 'description': 'The site remains accessible without an internet connection, showing previously loaded content and syncing data upon reconnection.'},
@@ -1208,7 +1336,7 @@ DEFAULT_SECTIONS_EN = [
                 {
                     'id': 'ai_module',
                     'icon': '🤖',
-                    'title': 'AI Implementation & Automation',
+                    'title': 'AI Integration & Automation',
                     'description': (
                         'Supercharge your project with artificial intelligence. '
                         'We explore together how to tailor AI solutions to your specific business needs.'
@@ -1217,6 +1345,12 @@ DEFAULT_SECTIONS_EN = [
                     'default_selected': False,
                     'price_percent': None,
                     'is_ai_invite': True,
+                    'invite_note': (
+                        '🤝 We invite you to a personalized call where we\'ll explore together '
+                        'how artificial intelligence can transform your business. You\'ll learn '
+                        'about our solutions, how we tailor them to your specific case, '
+                        'and associated costs \u2014 no commitment required.'
+                    ),
                     'items': [
                         {'icon': '⚡', 'name': 'Automations', 'description': 'Intelligent workflows that execute repetitive tasks autonomously, freeing up time for what truly matters.'},
                         {'icon': '📊', 'name': 'Natural Language Data Analysis', 'description': 'Query your data using plain language questions and get clear answers, charts, and reports without technical expertise.'},
@@ -1241,13 +1375,124 @@ DEFAULT_SECTIONS_EN = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
-                    'price_percent': 10,
+                    'price_percent': 20,
                     'items': [
                         {'icon': '📧', 'name': 'Automated Email Reports', 'description': 'Receive periodic summaries with key business metrics directly in your inbox, without having to log into the system.'},
                         {'icon': '🔔', 'name': 'Custom Alerts', 'description': 'Set up notifications for important events: new sales, user registrations, low stock, or any metric you define.'},
                         {'icon': '✈️', 'name': 'Telegram Integration', 'description': 'Receive instant alerts and reports in your Telegram chat, perfect for staying informed from anywhere in real time.'},
                         {'icon': '⏰', 'name': 'Scheduled Delivery', 'description': 'Define the frequency and timing of your reports: daily, weekly, monthly, or real-time based on your needs.'},
                         {'icon': '📋', 'name': 'Periodic Executive Summary', 'description': 'Consolidated report with the most relevant metrics of your project, designed for quick reading and agile decision-making.'},
+                    ],
+                },
+                {
+                    'id': 'kpi_dashboard_module',
+                    'icon': '📊',
+                    'title': 'KPI Dashboard & Metrics',
+                    'description': (
+                        'Custom control panel with real-time key performance indicators '
+                        'to monitor the health of your business and make '
+                        'data-driven decisions.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': True,
+                    'price_percent': 0,
+                    'is_free': True,
+                    'items': [
+                        {'icon': '📈', 'name': 'Real-time KPIs', 'description': 'Visualize the most important indicators of your business updated instantly: sales, conversions, traffic and more.'},
+                        {'icon': '🎯', 'name': 'Goals & Objectives', 'description': 'Set monthly or quarterly goals and track progress with progress bars and compliance alerts.'},
+                        {'icon': '📊', 'name': 'Interactive Charts', 'description': 'Visual dashboards with line, bar and pie charts that allow filtering by period, category or segment.'},
+                        {'icon': '🔔', 'name': 'Performance Alerts', 'description': 'Automatic notifications when a KPI falls below the defined threshold or exceeds a set goal.'},
+                        {'icon': '📥', 'name': 'Report Export', 'description': 'Download reports in PDF or CSV to share with your team or stakeholders without needing to access the system.'},
+                    ],
+                },
+                {
+                    'id': 'email_marketing_module',
+                    'icon': '📧',
+                    'title': 'Email Marketing Integration',
+                    'description': (
+                        'Connect your website with email marketing platforms to '
+                        'automate campaigns, segment audiences and increase '
+                        'visitor-to-customer conversion.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 10,
+                    'items': [
+                        {'icon': '📬', 'name': 'Lead Capture', 'description': 'Optimized forms and smart pop-ups to capture emails from visitors interested in your content or products.'},
+                        {'icon': '🔄', 'name': 'Email Automations', 'description': 'Automatic welcome sequences, abandoned carts, post-purchase follow-up and re-engagement of inactive users.'},
+                        {'icon': '🎯', 'name': 'Audience Segmentation', 'description': 'Classify your subscribers by behavior, interests and demographics to send relevant, personalized messages.'},
+                        {'icon': '📊', 'name': 'Campaign Analytics', 'description': 'Detailed metrics on opens, clicks, conversions and ROI of each campaign to optimize your communication strategy.'},
+                        {'icon': '🔗', 'name': 'Platform Integration', 'description': 'Native connection with Mailchimp, SendGrid, Brevo or other leading email marketing platforms based on your needs.'},
+                    ],
+                },
+                {
+                    'id': 'conversion_tracking_module',
+                    'icon': '📡',
+                    'title': 'Smart Conversions (Meta & Google Ads)',
+                    'description': (
+                        'Maximize your advertising ROI with server-side conversion tracking. '
+                        'Your website reports every valuable action directly to Meta and Google, '
+                        'without relying on cookies or the visitor\'s browser.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': None,
+                    'is_ai_invite': True,
+                    'invite_note': (
+                        '🤝 We invite you to a call where we\'ll analyze your current '
+                        'advertising strategy and design together the server-side integration '
+                        'with Meta and Google Ads. See how to maximize your ROAS with '
+                        'accurate conversion data \u2014 no commitment required.'
+                    ),
+                    'items': [
+                        {'icon': '🔗', 'name': 'Direct Meta Conversions API Connection', 'description': 'Every conversion is sent from your server directly to Meta, allowing Facebook and Instagram to identify which ads generated real results, even with ad blockers.'},
+                        {'icon': '📊', 'name': 'Direct Google Enhanced Conversions Connection', 'description': 'Conversions are reported from the server with encrypted client data. Google matches each conversion to the original ad click and optimizes automated bids with real information.'},
+                        {'icon': '🛡️', 'name': 'Immune to Blockers & Cookie Restrictions', 'description': 'Unlike traditional tracking, this module works from your server. It is not affected by ad blockers, iOS 14+ restrictions, or third-party cookie deprecation.'},
+                        {'icon': '🔄', 'name': 'Automatic Event Deduplication', 'description': 'The system keeps browser tracking as a backup and syncs both sources with a unique identifier. Meta and Google automatically remove duplicates.'},
+                        {'icon': '🎯', 'name': 'Custom Conversion Events', 'description': 'Configure the events that matter to your business: form submitted, WhatsApp click, call booked, proposal viewed, proposal accepted. Each with its monetary value to calculate real ROAS.'},
+                        {'icon': '📈', 'name': 'Conversion Status Panel', 'description': 'View from your admin panel the status of each event sent: confirmed, pending, or failed. Includes matching quality diagnostics.'},
+                    ],
+                },
+                {
+                    'id': 'i18n_module',
+                    'icon': '🌍',
+                    'title': 'Multi-language & Regional Localization',
+                    'description': (
+                        'Native internationalization system that serves your site '
+                        'in multiple languages with an integrated translation workflow, '
+                        'regional currency and date formats, and the ability to display '
+                        'different catalogs or prices by country.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 15,
+                    'items': [
+                        {'icon': '🌐', 'name': 'Native Multi-language Support', 'description': 'Structure ready to serve all site content in two or more languages, with a visible language selector and user preference persistence.'},
+                        {'icon': '💱', 'name': 'Regional Currency & Date Formats', 'description': 'Automatic adaptation of numeric formats, currencies, and dates based on the visitor\'s region or selected language.'},
+                        {'icon': '🛒', 'name': 'Catalogs & Pricing by Country', 'description': 'Ability to display products, prices, and availability differentiated by geographic region or target market.'},
+                        {'icon': '📝', 'name': 'Integrated Translation Workflow', 'description': 'Admin panel to manage translations for each section without technical intervention, with an indicator for content pending translation.'},
+                        {'icon': '🔍', 'name': 'Automatic Language Detection', 'description': 'The site detects the visitor\'s preferred browser language and automatically redirects to the corresponding version, improving the experience from the first moment.'},
+                    ],
+                },
+                {
+                    'id': 'gift_cards_module',
+                    'icon': '🎁',
+                    'title': 'Gift Cards & Digital Vouchers',
+                    'description': (
+                        'Create, sell, and redeem digital gift cards with configurable balance, '
+                        'branded design, and a unique verifiable code at checkout. '
+                        'Generate upfront revenue and capture new customers through '
+                        'existing buyers.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 20,
+                    'items': [
+                        {'icon': '💳', 'name': 'Gift Card Creation & Sales', 'description': 'Customers can purchase digital gift cards with configurable balance directly from your website, with an integrated payment process.'},
+                        {'icon': '✅', 'name': 'Checkout Redemption with Unique Code', 'description': 'Each gift card generates a unique verifiable code that the recipient can apply during checkout as a partial or full payment method.'},
+                        {'icon': '📊', 'name': 'Balance & Transaction History', 'description': 'Both the buyer and recipient can check the available balance, transactions made, and expiration date for each card.'},
+                        {'icon': '🎨', 'name': 'Custom Branded Design', 'description': 'Gift cards are generated with your brand\'s visual identity, including logo, colors, and a customizable message from the buyer to the recipient.'},
+                        {'icon': '⏰', 'name': 'Configurable Expiration', 'description': 'Define expiration policies per card type: no expiration, 6 months, 1 year, or custom. Includes automatic notifications before expiration.'},
                     ],
                 },
             ],
@@ -1352,6 +1597,16 @@ DEFAULT_SECTIONS_EN = [
             'index': '11',
             'title': 'Proposal Summary',
             'subtitle': 'Key details of this proposal at a glance:',
+            'kpis': [
+                {'value': '+40%', 'label': 'Expected increase in web conversion', 'source': 'HubSpot 2024'},
+                {'value': '3x', 'label': 'Estimated ROI within 12 months', 'source': 'Internal analysis'},
+                {'value': '-60%', 'label': 'Reduction in manual management time', 'source': 'McKinsey Digital 2023'},
+            ],
+            '_kpi_note': (
+                'KPIs are customizable per client. Include metrics relevant '
+                'to the client\'s industry with verifiable sources. These will appear '
+                'as highlighted cards at the top of the summary.'
+            ),
             'cards': [
                 {
                     'icon': '💰',

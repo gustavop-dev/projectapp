@@ -26,6 +26,8 @@ class ProposalChangeLog(models.Model):
         MEETING = 'meeting', 'Meeting'
         FOLLOWUP = 'followup', 'Follow-up'
         NOTE = 'note', 'Note'
+        CALCULATOR_CONFIRMED = 'calc_confirmed', 'Calculator Confirmed'
+        CALCULATOR_ABANDONED = 'calc_abandoned', 'Calculator Abandoned'
 
     proposal = models.ForeignKey(
         'BusinessProposal',

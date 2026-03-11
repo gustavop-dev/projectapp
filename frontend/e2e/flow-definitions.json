@@ -564,6 +564,132 @@
       "priority": "P1",
       "description": "Calculator modal displays PWA (30%), AI (invite-only), Reports & Alerts (10%) modules with correct pricing, default unselected state, AI invite note, and info badge.",
       "expectedSpecs": 1
+    },
+    "proposal-expired-graceful": {
+      "name": "Proposal Expired Graceful",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P1",
+      "description": "Expired proposal returns 410 with partial data; frontend renders ProposalExpired with client name, WhatsApp CTA, and email contact.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-batch-actions": {
+      "name": "Admin Proposal Batch Actions",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Select multiple proposals via checkboxes and perform batch actions (re-send, expire, delete) with sticky action bar.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-quick-send": {
+      "name": "Admin Proposal Quick Send",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Send or re-send a proposal directly from the proposals list without entering edit page.",
+      "expectedSpecs": 1,
+      "knownGaps": ["Covered within admin-proposal-list.spec.js"]
+    },
+    "admin-proposal-quick-log": {
+      "name": "Admin Proposal Quick Log Activity",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Register a seller activity (call, meeting, follow-up, note) directly from the proposals list via quick-log modal.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-json-import-warnings": {
+      "name": "Admin Proposal JSON Import Warnings",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "JSON import returns warnings for unmapped section keys; warnings displayed in post-creation modal.",
+      "expectedSpecs": 1,
+      "knownGaps": ["Covered within admin-proposal-create.spec.js"]
+    },
+    "proposal-summary-kpis": {
+      "name": "Proposal Summary KPIs",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Proposal Summary section displays personalized KPI cards with value, label, and source citation.",
+      "expectedSpecs": 1
+    },
+    "proposal-calculator-new-modules": {
+      "name": "Proposal Calculator New Default Modules",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Calculator displays KPI Dashboard (free, default selected), Email Marketing (10%), Conversion Tracking (invite), i18n (15%), Gift Cards (20%) modules.",
+      "expectedSpecs": 1
+    },
+    "proposal-discount-multi-section": {
+      "name": "Proposal Discount Multi-Section",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Discount badge visible in Investment banner, Calculator footer, and ProposalClosing special price badge.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-log-activity": {
+      "name": "Admin Proposal Log Activity (Edit Page)",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin logs seller activity from proposal edit page Activity tab.",
+      "expectedSpecs": 1,
+      "knownGaps": ["Similar to quick-log but from edit page; deferred"]
+    },
+    "admin-proposal-engagement-decay-alert": {
+      "name": "Admin Proposal Engagement Decay Alert",
+      "module": "admin",
+      "roles": ["system"],
+      "priority": "P2",
+      "description": "System creates engagement_decay alert when client views fewer sections than average.",
+      "expectedSpecs": 0,
+      "knownGaps": ["Backend-only, covered by backend unit tests"]
+    },
+    "admin-proposal-post-rejection-revisit": {
+      "name": "Admin Proposal Post-Rejection Revisit",
+      "module": "admin",
+      "roles": ["system"],
+      "priority": "P2",
+      "description": "System creates post_rejection_revisit alert when rejected proposal is revisited.",
+      "expectedSpecs": 0,
+      "knownGaps": ["Backend-only, covered by backend unit tests"]
+    },
+    "proposal-calculator-abandonment-tracking": {
+      "name": "Proposal Calculator Abandonment Tracking",
+      "module": "proposal",
+      "roles": ["system"],
+      "priority": "P2",
+      "description": "Calculator tracks confirmed/abandoned module selections as ProposalChangeLog entries.",
+      "expectedSpecs": 0,
+      "knownGaps": ["Backend-only, covered by backend unit tests"]
+    },
+    "proposal-onboarding-mobile-swipe": {
+      "name": "Proposal Onboarding Mobile Swipe",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "Mobile onboarding replaces tooltips with fullscreen swipe carousel overlay.",
+      "expectedSpecs": 1
+    },
+    "proposal-og-meta-personalized": {
+      "name": "Proposal OG Meta Personalized",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "Personalized Open Graph meta tags for WhatsApp/social media previews.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-dashboard-auto-refresh": {
+      "name": "Admin Proposal Dashboard Auto-Refresh",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P3",
+      "description": "Dashboard KPI panel auto-refreshes every 60s with manual refresh button and last-updated label.",
+      "expectedSpecs": 1
     }
   }
 }

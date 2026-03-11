@@ -42,10 +42,10 @@
                   <div class="flex items-center justify-between p-4">
                     <div class="flex items-center gap-3 flex-1 min-w-0">
                       <div
-                        class="w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors flex-shrink-0"
+                        class="w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0"
                         :class="mod.selected
-                          ? 'bg-esmerald border-esmerald text-white'
-                          : 'border-gray-300 bg-white'"
+                          ? 'bg-esmerald border-esmerald text-white scale-110'
+                          : 'border-gray-300 bg-white scale-100'"
                       >
                         <svg v-if="mod.selected" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
@@ -73,7 +73,7 @@
                   <div v-if="mod.is_ai_invite" class="px-4 pb-4 -mt-1">
                     <div class="bg-purple-50 border border-purple-100 rounded-lg px-3 py-2.5">
                       <p class="text-[11px] text-purple-700 leading-relaxed">
-                        {{ t.aiInviteNote }}
+                        {{ mod.invite_note || t.aiInviteNote }}
                       </p>
                     </div>
                   </div>
@@ -130,6 +130,11 @@
 
           <!-- Footer with total -->
           <div class="px-6 py-5 border-t border-gray-100 bg-gray-50">
+            <!-- Discount badge -->
+            <div v-if="hasActiveDiscount" class="mb-3 flex items-center gap-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-xl px-4 py-2.5">
+              <span class="text-xs font-bold text-amber-700">🔥 {{ props.discountPercent }}% OFF</span>
+              <span class="text-xs text-amber-600">{{ t.discountApplied }}</span>
+            </div>
             <div class="flex items-center justify-between mb-4">
               <div>
                 <span class="text-sm text-gray-500">{{ t.selectedModules }}</span>
@@ -137,7 +142,7 @@
               </div>
               <div class="text-right">
                 <span class="text-sm text-gray-500 block">{{ t.estimatedTotal }}</span>
-                <span class="text-2xl font-bold text-esmerald">{{ formatPrice(animatedTotal) }}</span>
+                <span class="text-2xl font-bold text-esmerald transition-transform" :class="{ 'total-pulse': totalPulsing }">{{ formatPrice(animatedTotal) }}</span>
                 <span class="text-xs text-gray-400 ml-1">{{ currency }}</span>
               </div>
             </div>
@@ -170,6 +175,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
+import { create_request } from '~/stores/services/request_http';
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -180,6 +186,12 @@ const props = defineProps({
   totalInvestment: { type: String, default: '' },
   baseWeeks: { type: Number, default: 0 },
   sentAt: { type: String, default: '' },
+  discountPercent: { type: Number, default: 0 },
+  discountedInvestment: { type: String, default: '' },
+});
+
+const hasActiveDiscount = computed(() => {
+  return props.discountPercent > 0 && props.discountedInvestment;
 });
 
 function parseInvestment(str) {
@@ -189,6 +201,21 @@ function parseInvestment(str) {
 }
 
 const emit = defineEmits(['close', 'update:selection', 'navigateToRequirements', 'updateCalculatorModules']);
+
+const hasInteracted = ref(false);
+const confirmed = ref(false);
+
+function trackCalculatorEvent(event) {
+  if (!props.proposalUuid) return;
+  const selectedIds = localModules.value.filter(m => m.selected).map(m => m.id);
+  const deselectedIds = localModules.value.filter(m => !m.selected && !m._locked).map(m => m.id);
+  create_request(`proposals/${props.proposalUuid}/track-calculator/`, {
+    event,
+    selected: selectedIds,
+    deselected: deselectedIds,
+    total: dynamicTotal.value,
+  }).catch(() => { /* silent */ });
+}
 
 const i18n = {
   es: {
@@ -210,6 +237,7 @@ const i18n = {
     impactIntegration: 'Esta integración no estará conectada al sistema.',
     impactGeneric: 'Este componente no se incluirá en el proyecto.',
     impactWeeks: 'Se reduce ~1 semana del cronograma.',
+    discountApplied: 'Descuento aplicado al confirmar',
     freeLabel: 'Gratis',
     viewDetail: 'Ver detalle',
     hideDetail: 'Ocultar detalle',
@@ -236,6 +264,7 @@ const i18n = {
     impactIntegration: 'This integration will not be connected to the system.',
     impactGeneric: 'This component will not be included in the project.',
     impactWeeks: 'Reduces ~1 week from the timeline.',
+    discountApplied: 'Discount applied on confirmation',
     freeLabel: 'Free',
     viewDetail: 'View detail',
     hideDetail: 'Hide detail',
@@ -300,9 +329,14 @@ const groupLabels = {
   integrations_api: { es: 'Integraciones', en: 'Integrations' },
   admin_module: { es: 'Módulo administrativo', en: 'Admin module' },
   analytics_dashboard: { es: 'Analítica', en: 'Analytics' },
-  pwa_module: { es: 'Progressive Web App (PWA)', en: 'Progressive Web App (PWA)' },
+  pwa_module: { es: 'Aplicación Móvil Instalable (PWA)', en: 'Installable Mobile App (PWA)' },
   ai_module: { es: '🤖 Integración con IA', en: '🤖 AI Integration' },
   reports_alerts_module: { es: 'Reportes y Alertas', en: 'Reports & Alerts' },
+  kpi_dashboard_module: { es: 'Dashboard de KPIs', en: 'KPI Dashboard' },
+  email_marketing_module: { es: 'Email Marketing', en: 'Email Marketing' },
+  conversion_tracking_module: { es: '📡 Conversiones Inteligentes', en: '📡 Smart Conversions' },
+  i18n_module: { es: '🌍 Multi-idioma', en: '🌍 Multi-language' },
+  gift_cards_module: { es: '🎁 Gift Cards', en: '🎁 Gift Cards' },
   _other: { es: 'Otros', en: 'Other' },
 };
 
@@ -396,6 +430,7 @@ function impactMessage(mod) {
 function toggleModule(mod) {
   if (mod._locked) return;
   mod.selected = !mod.selected;
+  hasInteracted.value = true;
 }
 
 function confirmSelection() {
@@ -404,10 +439,32 @@ function confirmSelection() {
   try {
     localStorage.setItem(storageKey, JSON.stringify(selectedIds));
   } catch (_e) { /* ignore */ }
+  confirmed.value = true;
+  trackCalculatorEvent('confirmed');
   emit('update:selection', { selectedIds, total: dynamicTotal.value, weeks: dynamicWeeks.value });
   emit('updateCalculatorModules', selectedIds);
   emit('close');
 }
+
+const totalPulsing = ref(false);
+let pulseTimer = null;
+
+watch(dynamicTotal, () => {
+  if (!hasInteracted.value) return;
+  totalPulsing.value = true;
+  clearTimeout(pulseTimer);
+  pulseTimer = setTimeout(() => { totalPulsing.value = false; }, 400);
+});
+
+watch(() => props.visible, (val) => {
+  if (!val && hasInteracted.value && !confirmed.value) {
+    trackCalculatorEvent('abandoned');
+  }
+  if (val) {
+    hasInteracted.value = false;
+    confirmed.value = false;
+  }
+});
 </script>
 
 <style scoped>
@@ -438,5 +495,14 @@ function confirmSelection() {
 .detail-slide-leave-from {
   opacity: 1;
   max-height: 500px;
+}
+
+@keyframes pulse-scale {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.total-pulse {
+  animation: pulse-scale 0.35s ease-in-out;
 }
 </style>

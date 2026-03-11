@@ -27,8 +27,8 @@
       />
     </Transition>
 
-    <!-- Tooltip card -->
-    <Transition name="tooltip-pop" mode="out-in">
+    <!-- Desktop: Tooltip card -->
+    <Transition v-if="!isMobile" name="tooltip-pop" mode="out-in">
       <div
         v-if="visible"
         :key="currentStep"
@@ -93,6 +93,69 @@
         </div>
       </div>
     </Transition>
+
+    <!-- Mobile: Fullscreen swipe carousel -->
+    <Transition v-if="isMobile" name="fade">
+      <div
+        v-if="visible"
+        class="fixed inset-0 z-[10000] flex items-end justify-center bg-black/50 p-4"
+        @touchstart="onTouchStart"
+        @touchend="onTouchEnd"
+      >
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 mb-safe">
+          <!-- Progress dots -->
+          <div class="flex items-center justify-center gap-2 mb-5">
+            <div
+              v-for="i in totalSteps"
+              :key="i"
+              class="h-2 rounded-full transition-all duration-300"
+              :class="i - 1 === currentStep
+                ? 'w-6 bg-emerald-500'
+                : i - 1 < currentStep
+                  ? 'w-2 bg-emerald-300'
+                  : 'w-2 bg-gray-200'"
+            />
+          </div>
+
+          <!-- Step content -->
+          <div class="text-center mb-6">
+            <h4 class="text-base font-bold text-gray-900 mb-2">{{ currentStepData.title }}</h4>
+            <p class="text-sm text-gray-500 leading-relaxed">{{ currentStepData.description }}</p>
+          </div>
+
+          <!-- Swipe hint -->
+          <p class="text-center text-[10px] text-gray-300 mb-4">
+            {{ props.language === 'en' ? 'Swipe left/right or use buttons' : 'Desliza o usa los botones' }}
+          </p>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-between">
+            <button
+              class="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+              @click="dismiss"
+            >
+              {{ btnLabels.skip }}
+            </button>
+            <div class="flex items-center gap-3">
+              <button
+                v-if="currentStep > 0"
+                class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                @click="prev"
+              >
+                {{ btnLabels.back }}
+              </button>
+              <button
+                class="px-5 py-2 text-sm font-medium text-white bg-emerald-600 rounded-xl
+                       hover:bg-emerald-700 transition-colors shadow-sm"
+                @click="next"
+              >
+                {{ isLastStep ? btnLabels.done : btnLabels.next }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </Teleport>
 </template>
 
@@ -105,6 +168,25 @@ const TOOLTIP_H_EST = 190;
 const GAP = 14;
 const ARROW_SIZE = 6;
 const VIEWPORT_PAD = 12;
+
+const isMobile = ref(false);
+let touchStartX = 0;
+
+function checkMobile() {
+  isMobile.value = window.innerWidth < 768;
+}
+
+function onTouchStart(e) {
+  touchStartX = e.touches[0].clientX;
+}
+
+function onTouchEnd(e) {
+  const diff = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(diff) > 50) {
+    if (diff < 0) next();
+    else prev();
+  }
+}
 
 const props = defineProps({
   language: { type: String, default: 'es' },
@@ -332,8 +414,15 @@ function onResize() {
   if (visible.value) positionAll();
 }
 
-onMounted(() => { window.addEventListener('resize', onResize); });
-onBeforeUnmount(() => { window.removeEventListener('resize', onResize); });
+onMounted(() => {
+  checkMobile();
+  window.addEventListener('resize', onResize);
+  window.addEventListener('resize', checkMobile);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onResize);
+  window.removeEventListener('resize', checkMobile);
+});
 
 defineExpose({ start });
 </script>

@@ -512,7 +512,11 @@
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 sm:p-8 text-center">
           <div class="text-5xl mb-4">✅</div>
           <h3 class="text-xl font-bold text-gray-900 mb-2">Propuesta creada</h3>
-          <p class="text-sm text-gray-500 mb-6">{{ createdProposal.title }}</p>
+          <p class="text-sm text-gray-500 mb-4">{{ createdProposal.title }}</p>
+          <div v-if="jsonWarnings.length" class="mb-4 text-left bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+            <p class="text-xs font-semibold text-amber-800 mb-1">⚠️ Advertencias del JSON</p>
+            <p v-for="(warn, i) in jsonWarnings" :key="i" class="text-xs text-amber-700">{{ warn }}</p>
+          </div>
           <div class="flex flex-col gap-3">
             <a
               :href="'/proposal/' + createdProposal.uuid + '?preview=1'"
@@ -656,6 +660,7 @@ const EXPECTED_SECTION_KEYS = [
 const jsonRaw = ref('');
 const jsonParsed = ref(null);
 const jsonError = ref('');
+const jsonWarnings = ref([]);
 const uploadedFileName = ref('');
 const isDownloading = ref(false);
 
@@ -800,6 +805,7 @@ async function handleJsonSubmit() {
   const result = await proposalStore.createProposalFromJSON(payload);
   if (result.success) {
     createdProposal.value = result.data;
+    jsonWarnings.value = result.data?.warnings || [];
     showPostCreateModal.value = true;
   } else {
     errorMsg.value = formatError(result.errors);

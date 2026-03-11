@@ -81,7 +81,16 @@ def retrieve_public_proposal(request, proposal_uuid):
                 )
 
         return Response(
-            {'error': 'This proposal has expired.'},
+            {
+                'error': 'This proposal has expired.',
+                'client_name': proposal.client_name,
+                'title': proposal.title,
+                'uuid': str(proposal.uuid),
+                'expired_at': (
+                    proposal.expires_at.isoformat()
+                    if proposal.expires_at else None
+                ),
+            },
             status=status.HTTP_410_GONE,
         )
 
@@ -112,6 +121,33 @@ def retrieve_public_proposal(request, proposal_uuid):
                 'Failed to queue first-view notification for proposal %s',
                 proposal.uuid,
             )
+
+    # 3.4 — Post-rejection revisit alert (high-intent signal)
+    is_reengagement = request.query_params.get('ref') == 'reengagement'
+    if (
+        proposal.status == BusinessProposal.Status.REJECTED
+        and not is_reengagement
+        and not getattr(proposal, '_post_rejection_alert_sent', False)
+    ):
+        existing = ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='post_rejection_revisit',
+        ).exists()
+        if not existing:
+            try:
+                ProposalAlert.objects.create(
+                    proposal=proposal,
+                    alert_type='post_rejection_revisit',
+                    message=(
+                        f'{proposal.client_name} revisitó la propuesta rechazada '
+                        f'"{proposal.title}". Posible reconsideración.'
+                    ),
+                    alert_date=timezone.now(),
+                )
+            except Exception:
+                logger.exception(
+                    'Failed to create post-rejection revisit alert for %s',
+                    proposal.uuid,
+                )
 
     serializer = ProposalDetailSerializer(
         proposal, context={'request': request, 'is_admin': False}
@@ -181,13 +217,19 @@ def list_proposals(request):
     serializer = ProposalListSerializer(qs, many=True)
     data = serializer.data
 
-    # Compute heat scores for non-draft active proposals
+    # Compute heat scores and lead scores for non-draft active proposals
     now = timezone.now()
     for item in data:
         if item['status'] in ('sent', 'viewed') and item['is_active']:
-            item['heat_score'] = _compute_heat_score_for_proposal(item['id'], now)
+            heat = _compute_heat_score_for_proposal(item['id'], now)
+            item['heat_score'] = heat
+            item['lead_score'] = min(100, heat * 10)
+        elif item['status'] == 'accepted':
+            item['heat_score'] = 0
+            item['lead_score'] = 100
         else:
             item['heat_score'] = 0
+            item['lead_score'] = 0
 
     return Response(data, status=status.HTTP_200_OK)
 
@@ -331,10 +373,21 @@ def create_proposal_from_json(request):
             content_json=content_json,
         )
 
+    # Detect unrecognized section keys (silent bug prevention)
+    known_keys = set(SECTION_KEY_MAP.keys()) | {'_meta'}
+    provided_keys = set(sections_data.keys())
+    unmapped_keys = sorted(provided_keys - known_keys)
+
     detail = ProposalDetailSerializer(
         proposal, context={'request': request, 'is_admin': True}
     )
-    return Response(detail.data, status=status.HTTP_201_CREATED)
+    response_data = detail.data
+    if unmapped_keys:
+        response_data['warnings'] = [
+            f'Unknown section keys ignored: {", ".join(unmapped_keys)}. '
+            f'Valid keys: {", ".join(sorted(SECTION_KEY_MAP.keys()))}.'
+        ]
+    return Response(response_data, status=status.HTTP_201_CREATED)
 
 
 @api_view(['GET'])
@@ -370,6 +423,39 @@ def get_proposal_json_template(request):
             'currency': 'COP | USD',
             'expires_at': '2026-04-06T00:00:00Z',
         },
+    }
+
+    template['_seller_prompt'] = {
+        'role': (
+            'You are an expert sales consultant crafting a business proposal. '
+            'Your goal is to persuade the client by demonstrating deep understanding '
+            'of their industry, challenges, and opportunities.'
+        ),
+        'tone': (
+            'Business-oriented but approachable. Avoid overly technical jargon. '
+            'Write as if speaking directly to the decision-maker. Use confident, '
+            'results-focused language.'
+        ),
+        'personalization': [
+            'Always mention the client name and company name.',
+            'Reference the client\'s specific industry, sector, and market.',
+            'Include at least 2-3 metrics or statistics relevant to their sector (cite reliable sources).',
+            'Tailor examples and case studies to their business type.',
+        ],
+        'investment_anchoring': [
+            'Present ROI and value BEFORE mentioning price.',
+            'Frame the investment as a business decision, not a cost.',
+            'Compare the investment to the cost of inaction or lost opportunity.',
+            'If applicable, show projected revenue impact or efficiency gains.',
+        ],
+        'structure_tips': [
+            'Greeting: warm, personal, mention how/why you connected.',
+            'Executive Summary: 3-4 sentences max, outcome-focused.',
+            'Context/Diagnostic: show you understand their current situation.',
+            'Strategy: actionable and specific to their goals.',
+            'Investment: lead with value, break down modules clearly.',
+            'Timeline: realistic milestones tied to business outcomes.',
+        ],
     }
 
     return Response(template, status=status.HTTP_200_OK)
@@ -428,6 +514,53 @@ def delete_proposal(request, proposal_id):
     proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
     proposal.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def bulk_action(request):
+    """
+    Perform a batch action on multiple proposals.
+
+    Payload: { "ids": [1, 2, 3], "action": "delete"|"expire"|"resend" }
+    """
+    ids = request.data.get('ids', [])
+    action_type = request.data.get('action', '')
+
+    if not ids or not isinstance(ids, list):
+        return Response(
+            {'detail': 'ids must be a non-empty list.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if action_type not in ('delete', 'expire', 'resend'):
+        return Response(
+            {'detail': 'action must be one of: delete, expire, resend.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    proposals = BusinessProposal.objects.filter(pk__in=ids)
+    affected = 0
+
+    if action_type == 'delete':
+        affected = proposals.count()
+        proposals.delete()
+
+    elif action_type == 'expire':
+        affected = proposals.exclude(status='expired').update(
+            status='expired',
+            expires_at=timezone.now(),
+        )
+
+    elif action_type == 'resend':
+        from content.services.proposal_service import ProposalService
+        for p in proposals.filter(status__in=['sent', 'viewed'], client_email__gt=''):
+            try:
+                ProposalService.resend_proposal(p)
+                affected += 1
+            except Exception:
+                logger.exception('Bulk resend failed for proposal %s', p.id)
+
+    return Response({'affected': affected, 'action': action_type})
 
 
 @api_view(['POST'])
@@ -646,6 +779,11 @@ def respond_to_proposal(request, proposal_uuid):
         proposal.rejection_comment = request.data.get('comment', '')
         update_fields.extend(['rejection_reason', 'rejection_comment'])
 
+    # 3.6 — Auto-pause follow-ups on client response
+    if not proposal.automations_paused:
+        proposal.automations_paused = True
+        update_fields.append('automations_paused')
+
     proposal.save(update_fields=update_fields)
 
     # Log the response event
@@ -660,6 +798,13 @@ def respond_to_proposal(request, proposal_uuid):
         proposal=proposal,
         change_type=change_type,
         description=description,
+    )
+
+    # Log automation pause
+    ProposalChangeLog.objects.create(
+        proposal=proposal,
+        change_type='note',
+        description=f'Automations paused: client responded with "{action}".',
     )
 
     from content.services.proposal_email_service import ProposalEmailService
@@ -891,6 +1036,51 @@ def track_proposal_engagement(request, proposal_uuid):
                 entered_at=entered_at,
             )
 
+    # --- 3.5 Engagement decay between sessions ---
+    if proposal.status in ('sent', 'viewed'):
+        current_section_count = len([s for s in sections if s.get('section_type')])
+        # Get previous sessions' section counts
+        prev_events = (
+            ProposalViewEvent.objects
+            .filter(proposal=proposal)
+            .exclude(session_id=session_id)
+        )
+        if prev_events.exists():
+            from django.db.models import Count
+            prev_counts = list(
+                ProposalSectionView.objects
+                .filter(view_event__in=prev_events)
+                .values('view_event')
+                .annotate(cnt=Count('id'))
+                .values_list('cnt', flat=True)
+            )
+            if prev_counts:
+                avg_prev = sum(prev_counts) / len(prev_counts)
+                if avg_prev > 0 and current_section_count < avg_prev * 0.5:
+                    # Check if we already created this alert recently
+                    from datetime import timedelta as _td
+                    recent_decay = ProposalAlert.objects.filter(
+                        proposal=proposal,
+                        alert_type='engagement_decay',
+                        alert_date__gte=timezone.now() - _td(days=3),
+                    ).exists()
+                    if not recent_decay:
+                        try:
+                            ProposalAlert.objects.create(
+                                proposal=proposal,
+                                alert_type='engagement_decay',
+                                message=(
+                                    f'{proposal.client_name} vio {current_section_count} secciones '
+                                    f'vs promedio anterior de {avg_prev:.0f}. Posible pérdida de interés.'
+                                ),
+                                alert_date=timezone.now(),
+                            )
+                        except Exception:
+                            logger.exception(
+                                'Failed to create engagement_decay alert for %s',
+                                proposal.uuid,
+                            )
+
     # --- Smart follow-up alert ---
     # Trigger if: ≥3 unique sessions AND 3+ day gap between first and latest view
     if not proposal.revisit_alert_sent_at and proposal.status in ('sent', 'viewed'):
@@ -940,6 +1130,57 @@ def track_proposal_engagement(request, proposal_uuid):
                     'Failed to send revisit alert for proposal %s',
                     proposal.uuid,
                 )
+
+    return Response({'status': 'ok'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def track_calculator_interaction(request, proposal_uuid):
+    """
+    Track calculator interactions: confirmed selections or abandonment.
+
+    Payload:
+        {
+            "event": "confirmed" | "abandoned",
+            "selected": [module_id, ...],
+            "deselected": [module_id, ...],
+            "total": 3500000
+        }
+    """
+    import json as _json
+
+    proposal = get_object_or_404(
+        BusinessProposal, uuid=proposal_uuid, is_active=True,
+    )
+
+    event = request.data.get('event', '')
+    if event not in ('confirmed', 'abandoned'):
+        return Response(
+            {'error': 'event must be "confirmed" or "abandoned".'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    selected = request.data.get('selected', [])
+    deselected = request.data.get('deselected', [])
+    total = request.data.get('total', 0)
+
+    change_type = (
+        ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED
+        if event == 'confirmed'
+        else ProposalChangeLog.ChangeType.CALCULATOR_ABANDONED
+    )
+
+    ProposalChangeLog.objects.create(
+        proposal=proposal,
+        change_type=change_type,
+        description=_json.dumps({
+            'selected': selected,
+            'deselected': deselected,
+            'total': total,
+        }),
+    )
 
     return Response({'status': 'ok'}, status=status.HTTP_200_OK)
 
@@ -1723,6 +1964,64 @@ def proposal_dashboard(request):
         for row in combo_qs
     ]
 
+    # --- 3.3 Engagement / close-value correlation ---
+    # Compare avg investment for high-engagement vs low-engagement accepted proposals
+    engagement_value_insight = None
+    accepted_proposals = all_proposals.filter(status='accepted')
+    if accepted_proposals.count() >= 4:
+        # Compute total engagement time per accepted proposal
+        engagement_data = []
+        for p in accepted_proposals:
+            total_time = (
+                _PSV.objects
+                .filter(view_event__proposal=p)
+                .aggregate(t=Sum('time_spent_seconds'))
+            )['t'] or 0
+            engagement_data.append({
+                'investment': float(p.total_investment or 0),
+                'time': total_time,
+            })
+        if engagement_data:
+            median_time = sorted(d['time'] for d in engagement_data)[len(engagement_data) // 2]
+            high_eng = [d['investment'] for d in engagement_data if d['time'] >= median_time]
+            low_eng = [d['investment'] for d in engagement_data if d['time'] < median_time]
+            avg_high = round(sum(high_eng) / len(high_eng)) if high_eng else 0
+            avg_low = round(sum(low_eng) / len(low_eng)) if low_eng else 0
+            diff = avg_high - avg_low
+            engagement_value_insight = {
+                'avg_high_engagement_value': avg_high,
+                'avg_low_engagement_value': avg_low,
+                'difference': diff,
+                'high_count': len(high_eng),
+                'low_count': len(low_eng),
+            }
+
+    # --- 3.1 Most dropped calculator modules ---
+    import json as _json
+    calc_logs = (
+        ProposalChangeLog.objects
+        .filter(change_type='calc_confirmed')
+        .values_list('description', flat=True)
+    )
+    drop_counts = {}
+    for desc in calc_logs:
+        try:
+            data = _json.loads(desc)
+            for mod_id in data.get('deselected', []):
+                drop_counts[mod_id] = drop_counts.get(mod_id, 0) + 1
+        except (ValueError, TypeError):
+            pass
+    top_dropped_modules = sorted(
+        [{'module_id': k, 'drop_count': v} for k, v in drop_counts.items()],
+        key=lambda x: x['drop_count'], reverse=True,
+    )[:10]
+
+    # Calculator abandonment rate
+    calc_confirmed = ProposalChangeLog.objects.filter(change_type='calc_confirmed').count()
+    calc_abandoned = ProposalChangeLog.objects.filter(change_type='calc_abandoned').count()
+    calc_total = calc_confirmed + calc_abandoned
+    calc_abandonment_rate = round(calc_abandoned / calc_total * 100, 1) if calc_total > 0 else None
+
     return Response({
         'total_proposals': total,
         'by_status': by_status,
@@ -1744,6 +2043,9 @@ def proposal_dashboard(request):
         'win_rate_by_project_type': win_rate_by_project_type,
         'win_rate_by_market_type': win_rate_by_market_type,
         'win_rate_by_combination': win_rate_by_combination,
+        'engagement_value_insight': engagement_value_insight,
+        'top_dropped_modules': top_dropped_modules,
+        'calc_abandonment_rate': calc_abandonment_rate,
     }, status=status.HTTP_200_OK)
 
 

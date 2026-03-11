@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from content.models import (
     BusinessProposal,
+    ProposalAlert,
     ProposalChangeLog,
     ProposalSection,
     ProposalSectionView,
@@ -24,6 +25,15 @@ CLIENT_NAMES = [
     'Felipe Ramírez', 'Daniela Ortiz', 'Mateo Gutiérrez', 'Sofía Mendoza',
     'Julián Castro', 'Paula Jiménez', 'Nicolás Rojas', 'Mariana Díaz',
 ]
+
+CLIENT_PHONES = [
+    '+573001234567', '+573109876543', '+573205551234', '+573154443322',
+    '+573187776655', '+14155551234', '+573001112233', '+573209998877',
+    '', '', '',  # some without phone
+]
+
+PROJECT_TYPE_CHOICES = ['website', 'ecommerce', 'webapp', 'landing', 'redesign', 'other']
+MARKET_TYPE_CHOICES = ['b2b', 'b2c', 'saas', 'retail', 'services', 'health', 'education', 'real_estate', 'other']
 
 PROJECT_TYPES = [
     ('Landing Profesional', 3500000, 'COP'),
@@ -62,9 +72,22 @@ USER_AGENTS = [
 
 SECTION_TYPES = [
     ('greeting', 'Saludo'),
+    ('executive_summary', 'Resumen ejecutivo'),
+    ('context_diagnostic', 'Contexto y diagnóstico'),
+    ('conversion_strategy', 'Estrategia de conversión'),
+    ('design_ux', 'Diseño UX'),
     ('development_stages', 'Etapas de desarrollo'),
+    ('process_methodology', 'Metodología'),
+    ('functional_requirements', 'Requerimientos funcionales'),
+    ('timeline', 'Línea de tiempo'),
     ('investment', 'Inversión'),
-    ('closing', 'Cierre'),
+    ('proposal_summary', 'Resumen'),
+    ('final_note', 'Nota final'),
+]
+
+ALERT_TYPES = [
+    'discount_suggestion', 'post_expiration_visit', 'engagement_decay',
+    'post_rejection_revisit',
 ]
 
 STATUSES = list(BusinessProposal.Status.values)
@@ -90,29 +113,38 @@ class Command(BaseCommand):
             project_type, investment, currency = PROJECT_TYPES[i % len(PROJECT_TYPES)]
             discount = random.choice([0, 10, 15, 20, 25])
 
+            lang = random.choices(['es', 'en'], weights=[0.7, 0.3])[0]
+
             data = {
                 'title': f'Propuesta {project_type} — {client_name.split()[0]}',
                 'client_name': client_name,
                 'client_email': f'{client_name.split()[0].lower()}@example.com',
+                'client_phone': random.choice(CLIENT_PHONES),
                 'total_investment': investment,
                 'currency': currency,
                 'status': status,
                 'discount_percent': discount,
                 'expires_at': now + timedelta(days=random.randint(7, 45)),
+                'language': lang,
+                'project_type': random.choice(PROJECT_TYPE_CHOICES),
+                'market_type': random.choice(MARKET_TYPE_CHOICES),
             }
 
             # Set realistic lifecycle fields per status
             if status == 'sent':
                 data['sent_at'] = now - timedelta(days=random.randint(1, 5))
+                data['last_activity_at'] = data['sent_at']
             elif status == 'viewed':
                 data['sent_at'] = now - timedelta(days=random.randint(5, 10))
                 data['first_viewed_at'] = now - timedelta(days=random.randint(1, 4))
                 data['view_count'] = random.randint(1, 8)
+                data['last_activity_at'] = data['first_viewed_at']
             elif status == 'accepted':
                 data['sent_at'] = now - timedelta(days=random.randint(10, 20))
                 data['first_viewed_at'] = now - timedelta(days=random.randint(5, 9))
                 data['view_count'] = random.randint(3, 15)
                 data['responded_at'] = now - timedelta(days=random.randint(1, 4))
+                data['last_activity_at'] = data['responded_at']
             elif status == 'rejected':
                 data['sent_at'] = now - timedelta(days=random.randint(10, 20))
                 data['first_viewed_at'] = now - timedelta(days=random.randint(5, 9))
@@ -120,11 +152,19 @@ class Command(BaseCommand):
                 data['responded_at'] = now - timedelta(days=random.randint(1, 4))
                 data['rejection_reason'] = random.choice(REJECTION_REASONS)
                 data['rejection_comment'] = random.choice(REJECTION_COMMENTS)
+                data['last_activity_at'] = data['responded_at']
+            elif status == 'negotiating':
+                data['sent_at'] = now - timedelta(days=random.randint(5, 15))
+                data['first_viewed_at'] = now - timedelta(days=random.randint(2, 4))
+                data['view_count'] = random.randint(2, 10)
+                data['responded_at'] = now - timedelta(days=random.randint(0, 2))
+                data['last_activity_at'] = data['responded_at']
             elif status == 'expired':
                 data['sent_at'] = now - timedelta(days=random.randint(30, 60))
                 data['first_viewed_at'] = now - timedelta(days=random.randint(20, 29))
                 data['view_count'] = random.randint(0, 3)
                 data['expires_at'] = now - timedelta(days=random.randint(1, 10))
+                data['last_activity_at'] = data.get('first_viewed_at') or data['sent_at']
 
             proposal = BusinessProposal.objects.create(**data)
             self.stdout.write(
@@ -137,12 +177,40 @@ class Command(BaseCommand):
             if status != 'draft':
                 self._create_engagement_data(proposal, now)
 
+            # --- Generate alerts for some proposals ---
+            if status in ('sent', 'viewed', 'rejected', 'expired') and random.random() < 0.4:
+                self._create_alerts(proposal, now)
+
+            # --- Generate calculator interaction logs ---
+            if status in ('viewed', 'accepted', 'negotiating') and random.random() < 0.5:
+                self._create_calculator_logs(proposal)
+
+            # --- Generate seller activity logs ---
+            if status in ('viewed', 'accepted', 'negotiating', 'rejected') and random.random() < 0.6:
+                self._create_seller_activity_logs(proposal, now)
+
             # Create default sections (groups now stored in content_json)
-            lang = random.choice(['es', 'en']) if i % 3 == 0 else 'es'
             default_sections = ProposalService.get_default_sections(language=lang)
             for section_cfg in default_sections:
                 if section_cfg['section_type'] == 'greeting':
                     section_cfg['content_json']['clientName'] = proposal.client_name
+                if section_cfg['section_type'] == 'proposal_summary':
+                    section_cfg['content_json']['kpis'] = random.choice([
+                        [
+                            {'value': '+40%', 'label': 'Incremento esperado en conversión web', 'source': 'HubSpot 2024'},
+                            {'value': '3x', 'label': 'Retorno estimado de inversión a 12 meses', 'source': 'Análisis interno'},
+                            {'value': '-60%', 'label': 'Reducción en tiempo de gestión manual', 'source': 'McKinsey Digital 2023'},
+                        ],
+                        [
+                            {'value': '+25%', 'label': 'Incremento en retención de clientes', 'source': 'Bain & Company 2024'},
+                            {'value': '2.5x', 'label': 'ROI promedio en automatización', 'source': 'Forrester 2023'},
+                        ],
+                        [
+                            {'value': '-45%', 'label': 'Reducción en costos operativos', 'source': 'Deloitte Digital 2024'},
+                            {'value': '+70%', 'label': 'Mejora en tiempo de respuesta al cliente', 'source': 'Salesforce 2024'},
+                            {'value': '4x', 'label': 'Aumento en leads cualificados', 'source': 'HubSpot 2024'},
+                        ],
+                    ])
                 if section_cfg['section_type'] == 'investment':
                     total = float(investment)
                     cur = currency
@@ -248,3 +316,100 @@ class Command(BaseCommand):
                         if random.random() < 0.7 else None
                     ),
                 )
+
+    def _create_alerts(self, proposal, now):
+        """Generate ProposalAlert records for the proposal."""
+        alert_type = random.choice(ALERT_TYPES)
+        messages = {
+            'discount_suggestion': f'{proposal.client_name} ha visitado la propuesta varias veces. Considerar ofrecer descuento.',
+            'post_expiration_visit': f'{proposal.client_name} abrió la propuesta expirada. Señal de alto interés.',
+            'engagement_decay': f'{proposal.client_name} mostró menor engagement en su última visita.',
+            'post_rejection_revisit': f'{proposal.client_name} revisitó la propuesta rechazada. Posible reconsideración.',
+        }
+        ProposalAlert.objects.create(
+            proposal=proposal,
+            alert_type=alert_type,
+            message=messages.get(alert_type, 'Alert'),
+            alert_date=now - timedelta(days=random.randint(0, 5)),
+        )
+
+    def _create_calculator_logs(self, proposal):
+        """Generate calculator interaction change logs."""
+        import json
+        modules = [
+            'pwa_module', 'ai_module', 'reports_alerts_module',
+            'kpi_dashboard_module', 'email_marketing_module',
+            'conversion_tracking_module', 'i18n_module', 'gift_cards_module',
+        ]
+        selected = random.sample(modules, k=random.randint(2, 4))
+        # kpi_dashboard_module is free and selected by default
+        if 'kpi_dashboard_module' not in selected:
+            selected.append('kpi_dashboard_module')
+        deselected = [m for m in modules if m not in selected]
+
+        # Confirmed interaction
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type='calc_confirmed',
+            description=json.dumps({
+                'selected': selected,
+                'deselected': deselected,
+                'total': float(proposal.total_investment),
+            }),
+        )
+
+        # 30% chance of also having an abandoned interaction before confirming
+        if random.random() < 0.3:
+            ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type='calc_abandoned',
+                description=json.dumps({
+                    'selected': modules,
+                    'deselected': [],
+                    'total': float(proposal.total_investment),
+                }),
+            )
+
+    def _create_seller_activity_logs(self, proposal, now):
+        """Generate seller activity change logs (call, meeting, followup, note)."""
+        activity_types = ['call', 'meeting', 'followup', 'note']
+        descriptions = {
+            'call': [
+                'Llamada de seguimiento. Cliente interesado, pide más info sobre módulo PWA.',
+                'Llamada inicial para presentar la propuesta. Buena recepción.',
+                'Cliente solicitó llamada para aclarar dudas sobre el cronograma.',
+                'Seguimiento telefónico. Pendiente aprobación de presupuesto interno.',
+            ],
+            'meeting': [
+                'Reunión virtual para revisión de requerimientos funcionales.',
+                'Demo del dashboard de KPIs al equipo directivo del cliente.',
+                'Reunión presencial. Cliente quiere agregar módulo de email marketing.',
+            ],
+            'followup': [
+                'Email de seguimiento con resumen de la reunión.',
+                'Envío de caso de éxito similar al sector del cliente.',
+                'Seguimiento post-demo. Cliente evaluando internamente.',
+            ],
+            'note': [
+                'Cliente mencionó que compara con otra agencia. Reforzar propuesta de valor.',
+                'Contacto del socio del cliente pidió información adicional.',
+                'Presupuesto aprobado internamente, esperando firma.',
+            ],
+        }
+        num_activities = random.randint(1, 3)
+        ref_date = proposal.sent_at or (now - timedelta(days=10))
+        for _ in range(num_activities):
+            act_type = random.choice(activity_types)
+            desc = random.choice(descriptions[act_type])
+            activity_date = ref_date + timedelta(
+                days=random.randint(1, 10),
+                hours=random.randint(8, 18),
+            )
+            log = ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type=act_type,
+                description=desc,
+            )
+            ProposalChangeLog.objects.filter(pk=log.pk).update(
+                created_at=activity_date,
+            )

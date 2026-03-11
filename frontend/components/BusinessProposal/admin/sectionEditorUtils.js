@@ -86,7 +86,7 @@ export function buildFormFromJson(json, type, proposalData) {
     case 'final_note':
       return { index: j.index || '', title: j.title || '', message: j.message || '', personalNote: j.personalNote || '', teamName: j.teamName || '', teamRole: j.teamRole || '', contactEmail: j.contactEmail || '', signature: j.signature || '', commitmentBadges: (j.commitmentBadges || []).map(b => ({ ...b })), validityMessage: j.validityMessage || '', thankYouMessage: j.thankYouMessage || '' };
     case 'proposal_summary':
-      return { index: j.index || '', title: j.title || '', subtitle: j.subtitle || '', cards: (j.cards || []).map(c => ({ icon: c.icon || '', title: c.title || '', description: c.description || '', source: c.source || 'static' })) };
+      return { index: j.index || '', title: j.title || '', subtitle: j.subtitle || '', kpis: (j.kpis || []).map(k => ({ value: k.value || '', label: k.label || '', source: k.source || '' })), cards: (j.cards || []).map(c => ({ icon: c.icon || '', title: c.title || '', description: c.description || '', source: c.source || 'static' })) };
     case 'next_steps':
       return { index: j.index || '', title: j.title || '', introMessage: j.introMessage || '', steps: (j.steps || []).map(s => ({ ...s })), ctaMessage: j.ctaMessage || '', primaryCTA: { text: j.primaryCTA?.text || '', link: j.primaryCTA?.link || '' }, secondaryCTA: { text: j.secondaryCTA?.text || '', link: j.secondaryCTA?.link || '' }, contactMethods: (j.contactMethods || []).map(m => ({ ...m })), validityMessage: j.validityMessage || '', thankYouMessage: j.thankYouMessage || '' };
     default:
@@ -159,7 +159,7 @@ export function formToJson(formData, type) {
     case 'final_note':
       return { index: f.index, title: f.title, message: f.message, personalNote: f.personalNote, teamName: f.teamName, teamRole: f.teamRole, contactEmail: f.contactEmail, signature: f.signature, commitmentBadges: f.commitmentBadges, validityMessage: f.validityMessage, thankYouMessage: f.thankYouMessage };
     case 'proposal_summary':
-      return { index: f.index, title: f.title, subtitle: f.subtitle, cards: (f.cards || []).map(c => ({ icon: c.icon, title: c.title, description: c.description, source: c.source })) };
+      return { index: f.index, title: f.title, subtitle: f.subtitle, kpis: (f.kpis || []).filter(k => k.value || k.label).map(k => ({ value: k.value, label: k.label, source: k.source })), cards: (f.cards || []).map(c => ({ icon: c.icon, title: c.title, description: c.description, source: c.source })) };
     case 'next_steps':
       return { index: f.index, title: f.title, introMessage: f.introMessage, steps: f.steps, ctaMessage: f.ctaMessage, primaryCTA: f.primaryCTA, secondaryCTA: f.secondaryCTA, contactMethods: f.contactMethods, validityMessage: f.validityMessage, thankYouMessage: f.thankYouMessage };
     default:
@@ -269,6 +269,10 @@ export function formToReadableText(form, type) {
     }
   } else if (type === 'proposal_summary') {
     if (form.subtitle) parts.push(form.subtitle);
+    if (form.kpis?.length) {
+      parts.push('\nKPIs:');
+      for (const k of form.kpis) parts.push(`${k.value} — ${k.label}${k.source ? ` (${k.source})` : ''}`);
+    }
     for (const c of (form.cards || [])) {
       parts.push(`${c.icon || ''} ${c.title}: ${c.description || ''}`);
     }

@@ -1,11 +1,18 @@
+import logging
 import mimetypes
 import os
 
 from django.conf import settings
 from django.http import FileResponse, Http404, HttpResponseRedirect
 
+logger = logging.getLogger(__name__)
+
 FRONTEND_DIR = os.path.join(settings.BASE_DIR, 'static', 'frontend')
 DEFAULT_LOCALE = 'en-us'
+
+# Known SPA route prefixes that should always resolve to the SPA fallback
+# instead of returning 404 when no pre-rendered file exists.
+SPA_ROUTE_PREFIXES = ('panel', 'proposal')
 
 
 def serve_nuxt(request, path=''):
@@ -54,5 +61,16 @@ def serve_nuxt(request, path=''):
         response = FileResponse(open(root_index, 'rb'), content_type='text/html')
         response['Cache-Control'] = 'no-cache'
         return response
+
+    # Log a warning for known SPA routes that couldn't be served — this
+    # indicates 200.html is missing from the Nuxt build output.
+    first_segment = clean_path.split('/')[0]
+    if first_segment in SPA_ROUTE_PREFIXES:
+        logger.warning(
+            'SPA fallback missing for route /%s — 200.html not found in %s. '
+            'Ensure "nuxt generate" produces 200.html '
+            '(nitro.prerender.fallback must be true in nuxt.config.ts).',
+            clean_path, FRONTEND_DIR,
+        )
 
     raise Http404('Page not found')

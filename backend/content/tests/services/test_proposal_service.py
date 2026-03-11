@@ -69,16 +69,18 @@ class TestGetDefaultSections:
         assert 'Resumen' in es_section['content_json']['title']
 
     def test_functional_requirements_has_default_groups(self):
-        """Verify ES functional_requirements has 9 groups including calculator modules."""
+        """Verify ES functional_requirements has 14 groups including calculator modules."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
-        assert len(groups) == 9
+        assert len(groups) == 14
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
             'integrations_api', 'admin_module', 'analytics_dashboard',
             'pwa_module', 'ai_module', 'reports_alerts_module',
+            'kpi_dashboard_module', 'email_marketing_module',
+            'conversion_tracking_module', 'i18n_module', 'gift_cards_module',
         }
 
     def test_views_group_has_13_default_items(self):
@@ -120,7 +122,7 @@ class TestGetDefaultSections:
         assert len(pwa['items']) == 6
         assert pwa['is_calculator_module'] is True
         assert pwa['default_selected'] is False
-        assert pwa['price_percent'] == 30
+        assert pwa['price_percent'] == 40
 
     def test_ai_module_has_11_items_and_is_ai_invite(self):
         sections = ProposalService.get_default_sections('es')
@@ -137,32 +139,76 @@ class TestGetDefaultSections:
         reports = next(g for g in fr['content_json']['groups'] if g['id'] == 'reports_alerts_module')
         assert len(reports['items']) == 5
         assert reports['is_calculator_module'] is True
-        assert reports['price_percent'] == 10
+        assert reports['price_percent'] == 20
 
     def test_en_calculator_modules_mirror_es(self):
         es = ProposalService.get_default_sections('es')
         en = ProposalService.get_default_sections('en')
         es_fr = next(s for s in es if s['section_type'] == 'functional_requirements')
         en_fr = next(s for s in en if s['section_type'] == 'functional_requirements')
-        for mod_id in ('pwa_module', 'ai_module', 'reports_alerts_module'):
+        for mod_id in (
+            'pwa_module', 'ai_module', 'reports_alerts_module',
+            'kpi_dashboard_module', 'email_marketing_module',
+            'conversion_tracking_module', 'i18n_module', 'gift_cards_module',
+        ):
             es_g = next(g for g in es_fr['content_json']['groups'] if g['id'] == mod_id)
             en_g = next(g for g in en_fr['content_json']['groups'] if g['id'] == mod_id)
             assert len(es_g['items']) == len(en_g['items'])
             assert es_g['is_calculator_module'] == en_g['is_calculator_module']
             assert es_g.get('price_percent') == en_g.get('price_percent')
 
-    def test_en_functional_requirements_has_9_groups(self):
-        """Verify EN functional_requirements has 9 groups including calculator modules."""
+    def test_en_functional_requirements_has_14_groups(self):
+        """Verify EN functional_requirements has 14 groups including calculator modules."""
         sections = ProposalService.get_default_sections('en')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
-        assert len(groups) == 9
+        assert len(groups) == 14
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
             'integrations_api', 'admin_module', 'analytics_dashboard',
             'pwa_module', 'ai_module', 'reports_alerts_module',
+            'kpi_dashboard_module', 'email_marketing_module',
+            'conversion_tracking_module', 'i18n_module', 'gift_cards_module',
         }
+
+    def test_conversion_tracking_module_has_6_items_and_is_ai_invite(self):
+        """Verify conversion_tracking_module: 6 items, is_ai_invite, no price."""
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        ct = next(g for g in fr['content_json']['groups'] if g['id'] == 'conversion_tracking_module')
+        assert len(ct['items']) == 6
+        assert ct['is_calculator_module'] is True
+        assert ct['is_ai_invite'] is True
+        assert ct['price_percent'] is None
+        assert ct['invite_note']
+
+    def test_i18n_module_has_5_items_and_15_percent(self):
+        """Verify i18n_module: 5 items, price_percent 15."""
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        i18n = next(g for g in fr['content_json']['groups'] if g['id'] == 'i18n_module')
+        assert len(i18n['items']) == 5
+        assert i18n['is_calculator_module'] is True
+        assert i18n['default_selected'] is False
+        assert i18n['price_percent'] == 15
+
+    def test_gift_cards_module_has_5_items_and_20_percent(self):
+        """Verify gift_cards_module: 5 items, price_percent 20."""
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        gc = next(g for g in fr['content_json']['groups'] if g['id'] == 'gift_cards_module')
+        assert len(gc['items']) == 5
+        assert gc['is_calculator_module'] is True
+        assert gc['default_selected'] is False
+        assert gc['price_percent'] == 20
+
+    def test_ai_module_has_invite_note(self):
+        """Verify ai_module has an invite_note field."""
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        ai = next(g for g in fr['content_json']['groups'] if g['id'] == 'ai_module')
+        assert ai['invite_note']
 
     def test_development_stages_has_current_stage(self):
         sections = ProposalService.get_default_sections('es')

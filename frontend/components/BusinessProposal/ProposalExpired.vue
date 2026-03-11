@@ -9,17 +9,21 @@
       </div>
 
       <h1 class="text-3xl md:text-4xl font-light text-gray-900 mb-4">
-        Esta propuesta ha expirado
+        {{ clientName ? `${clientName}, esta` : 'Esta' }} propuesta ha expirado
       </h1>
 
-      <p class="text-gray-500 text-lg mb-10 leading-relaxed">
-        La propuesta que intentas ver ya no está disponible.
-        Contáctanos para preparar una nueva propuesta personalizada.
+      <p class="text-gray-500 text-lg mb-4 leading-relaxed">
+        La propuesta <strong v-if="proposalTitle" class="text-gray-700">"{{ proposalTitle }}"</strong>
+        ya no está vigente, pero podemos reactivarla o preparar una versión actualizada.
+      </p>
+
+      <p class="text-gray-400 text-sm mb-10">
+        Escríbenos y en menos de 24 horas tendrás una nueva propuesta lista.
       </p>
 
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a
-          href="https://wa.me/573238122373"
+          :href="whatsappReactivationUrl"
           target="_blank"
           rel="noopener noreferrer"
           class="inline-flex items-center justify-center gap-2 px-6 py-3
@@ -31,7 +35,7 @@
               0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1
               c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157" />
           </svg>
-          WhatsApp
+          Solicitar reactivación
         </a>
 
         <a
@@ -56,10 +60,25 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue';
+
+const props = defineProps({
   proposal: {
     type: Object,
     default: null,
   },
+});
+
+const clientName = computed(() => props.proposal?.client_name || '');
+const proposalTitle = computed(() => props.proposal?.title || '');
+
+const whatsappReactivationUrl = computed(() => {
+  const title = proposalTitle.value;
+  const name = clientName.value;
+  const greeting = name ? `Hola, soy ${name}. ` : 'Hola. ';
+  const msg = title
+    ? `${greeting}La propuesta "${title}" expiró y me gustaría reactivarla o recibir una versión actualizada.`
+    : `${greeting}Mi propuesta expiró y me gustaría reactivarla o recibir una versión actualizada.`;
+  return `https://wa.me/573238122373?text=${encodeURIComponent(msg)}`;
 });
 </script>

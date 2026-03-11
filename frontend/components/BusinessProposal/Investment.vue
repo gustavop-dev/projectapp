@@ -187,6 +187,8 @@
       :totalInvestment="totalInvestment"
       :baseWeeks="baseWeeks"
       :sentAt="sentAt"
+      :discountPercent="discountPercent"
+      :discountedInvestment="discountedInvestment"
       @close="calculatorOpen = false"
       @update:selection="onSelectionUpdate"
       @navigateToRequirements="$emit('navigateToRequirements'); calculatorOpen = false"
@@ -457,7 +459,7 @@ const i18n = {
 const t = computed(() => i18n[props.language] || i18n.es);
 
 const hasActiveDiscount = computed(() => {
-  return props.discountPercent > 0 && props.discountedInvestment && daysRemaining.value !== null && daysRemaining.value <= 5;
+  return props.discountPercent > 0 && props.discountedInvestment;
 });
 
 function formatCurrency(value) {

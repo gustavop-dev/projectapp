@@ -62,6 +62,16 @@ export const useProposalStore = defineStore('proposals', {
         const status = error.response?.status;
         if (status === 410) {
           this.error = 'expired';
+          // Store partial data from 410 response for ProposalExpired
+          const partial = error.response?.data;
+          if (partial) {
+            this.currentProposal = {
+              client_name: partial.client_name || '',
+              title: partial.title || '',
+              uuid: partial.uuid || uuid,
+              expired_at: partial.expired_at || null,
+            };
+          }
         } else if (status === 404) {
           this.error = 'not_found';
         } else {
@@ -570,6 +580,21 @@ export const useProposalStore = defineStore('proposals', {
         return { success: true };
       } catch (error) {
         console.error('Error dismissing alert:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * bulkAction: Perform a batch action on multiple proposals.
+     * @param {Array} ids - Proposal IDs.
+     * @param {string} action - 'delete' | 'expire' | 'resend'.
+     */
+    async bulkAction(ids, action) {
+      try {
+        const response = await create_request('proposals/bulk-action/', { ids, action });
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error performing bulk action:', error);
         return { success: false };
       }
     },

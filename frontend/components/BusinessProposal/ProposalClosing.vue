@@ -30,7 +30,7 @@
         </div>
       </div>
 
-      <!-- Accept / Reject buttons -->
+      <!-- Accept / Adjust / Decline — simplified to 3 clear options -->
       <div v-if="canRespond && !submitted" data-animate="fade-up" class="flex flex-col items-center gap-3 pt-2">
         <button
           class="px-10 sm:px-16 py-5 bg-emerald-600 text-white rounded-2xl font-bold text-lg sm:text-xl
@@ -40,22 +40,6 @@
           @click="showAcceptConfirm = true"
         >
           <span>✅</span> {{ t.acceptBtn }}
-        </button>
-        <a
-          v-if="whatsappTalkUrl"
-          :href="whatsappTalkUrl"
-          target="_blank"
-          class="px-8 sm:px-12 py-3 bg-green-50 border-2 border-green-300 text-green-800 rounded-xl font-medium text-sm
-                 hover:bg-green-100 transition-colors flex items-center gap-2"
-        >
-          {{ t.talkBtn }}
-        </a>
-        <button
-          class="text-xs text-emerald-600 hover:text-emerald-700 transition-colors mt-1 font-medium"
-          :disabled="isSubmitting"
-          @click="showCommentModal = true"
-        >
-          💬 {{ t.commentBtn }}
         </button>
         <button
           class="px-8 sm:px-12 py-3 bg-amber-50 border-2 border-amber-300 text-amber-800 rounded-xl font-medium text-sm
@@ -72,6 +56,14 @@
         >
           {{ t.rejectBtn }}
         </button>
+        <a
+          v-if="whatsappTalkUrl"
+          :href="whatsappTalkUrl"
+          target="_blank"
+          class="text-xs text-green-600 hover:text-green-700 transition-colors mt-1 flex items-center gap-1"
+        >
+          📞 {{ t.talkBtn }}
+        </a>
       </div>
 
       <!-- Comment submitted confirmation -->
@@ -150,7 +142,7 @@
     <div v-if="showAcceptConfirm" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showAcceptConfirm = false">
       <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-5 sm:p-8 text-center">
         <div class="text-5xl mb-4">🎉</div>
-        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ t.confirmTitle }}</h3>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ confirmTitleText }}</h3>
         <p class="text-gray-600 text-sm mb-6">{{ t.confirmText }}</p>
         <div class="flex gap-3 justify-center">
           <button class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors" :disabled="isSubmitting" @click="confirmAccept">
@@ -229,7 +221,7 @@
               <option v-for="reason in t.reasons" :key="reason" :value="reason">{{ reason }}</option>
             </select>
           </div>
-          <div v-if="rejectReason">
+          <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">{{ isOtherReason ? t.otherLabel : t.commentLabel }}</label>
             <textarea v-model="rejectComment" rows="3" :placeholder="isOtherReason ? t.otherPlaceholder : t.commentPlaceholder"
               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none" />
@@ -280,24 +272,24 @@ const i18nStrings = {
     validityTitle: 'Validez de la Propuesta',
     thankYouTitle: '¡Gracias por tu Tiempo!',
     acceptBtn: 'Acepto la propuesta',
-    negotiateBtn: 'Aceptar con cambios',
+    negotiateBtn: 'Necesito ajustes',
     negotiateTitle: 'Me interesa, pero negociemos alcance',
     negotiateText: 'Cuéntanos qué ajustes necesitas. Nuestro equipo te contactará para conversar opciones sin compromiso.',
     negotiatePlaceholder: 'Ej: Me gustaría reducir el número de módulos, ajustar el timeline, explorar un precio diferente...',
     negotiateConfirm: 'Enviar solicitud de ajustes',
     negotiatingSuccess: '¡Solicitud recibida!',
     negotiatingSub: 'Nuestro equipo revisará tus notas y te contactará pronto para conversar opciones.',
-    talkBtn: '📞 Prefiero hablar antes de decidir',
+    talkBtn: 'Prefiero hablar antes de decidir',
     commentBtn: 'Tengo comentarios por escrito',
     commentTitle: 'Tus comentarios nos ayudan',
     commentText: 'Sin compromiso — cuéntanos qué dudas tienes o qué ajustes necesitarías para avanzar.',
     commentPlaceholder2: 'Ej: El precio está un poco fuera de mi presupuesto, ¿podemos explorar opciones?',
     commentSend: 'Enviar mensaje',
     commentSent: 'Mensaje enviado. Te contactaremos pronto.',
-    rejectBtn: 'No me interesa por ahora',
-    confirmTitle: '¿Confirmar aceptación?',
-    confirmText: 'Al aceptar, recibirás un email de confirmación con los próximos pasos.',
-    confirmYes: 'Sí, acepto',
+    rejectBtn: 'No es el momento',
+    confirmTitle: '¡Perfecto{clientName}!',
+    confirmText: 'Te escribiremos en menos de 2 horas. Mientras, puedes descargar un resumen de lo acordado.',
+    confirmYes: '¡Confirmar!',
     cancel: 'Cancelar',
     sending: 'Enviando...',
     accepted: '¡Propuesta aceptada!',
@@ -337,24 +329,24 @@ const i18nStrings = {
     validityTitle: 'Proposal Validity',
     thankYouTitle: 'Thank You for Your Time!',
     acceptBtn: 'I accept the proposal',
-    negotiateBtn: 'Accept with changes',
+    negotiateBtn: 'I need adjustments',
     negotiateTitle: 'I\'m interested, but let\'s adjust the scope',
     negotiateText: 'Tell us what adjustments you need. Our team will reach out to discuss options with no commitment.',
     negotiatePlaceholder: 'E.g.: I\'d like to reduce the number of modules, adjust the timeline, explore a different price...',
     negotiateConfirm: 'Send adjustment request',
     negotiatingSuccess: 'Request received!',
     negotiatingSub: 'Our team will review your notes and contact you soon to discuss options.',
-    talkBtn: '📞 I prefer to talk before deciding',
+    talkBtn: 'I prefer to talk before deciding',
     commentBtn: 'I have written comments',
     commentTitle: 'Your feedback helps us',
     commentText: 'No commitment — tell us what questions you have or what adjustments you would need to move forward.',
     commentPlaceholder2: 'E.g.: The price is a bit over my budget, can we explore options?',
     commentSend: 'Send message',
     commentSent: 'Message sent. We will be in touch soon.',
-    rejectBtn: 'Not interested right now',
-    confirmTitle: 'Confirm acceptance?',
-    confirmText: 'By accepting, you will receive a confirmation email with the next steps.',
-    confirmYes: 'Yes, I accept',
+    rejectBtn: 'Not the right time',
+    confirmTitle: 'Awesome{clientName}!',
+    confirmText: 'We\'ll reach out within 2 hours. Meanwhile, you can download a summary of what was agreed.',
+    confirmYes: 'Confirm!',
     cancel: 'Cancel',
     sending: 'Sending...',
     accepted: 'Proposal accepted!',
@@ -421,8 +413,14 @@ const canRespond = computed(() => {
   return s === 'sent' || s === 'viewed';
 });
 
+const confirmTitleText = computed(() => {
+  const name = props.proposal?.client_name;
+  const suffix = name ? `, ${name}` : '';
+  return t.value.confirmTitle.replace('{clientName}', suffix);
+});
+
 const hasActiveDiscount = computed(() => {
-  return props.proposal?.discount_percent > 0 && props.proposal?.discounted_investment && daysRemaining.value !== null && daysRemaining.value <= 5;
+  return props.proposal?.discount_percent > 0 && props.proposal?.discounted_investment;
 });
 
 function formatCurrency(value) {
