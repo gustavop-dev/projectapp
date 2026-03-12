@@ -1,12 +1,12 @@
 <template>
-  <section class="relative min-h-screen flex items-center overflow-hidden">
-    <div class="w-full pl-6 pr-0 lg:pl-12 xl:pl-16 pt-24 pb-0 lg:pt-28 lg:pb-0">
+  <section class="relative lg:min-h-screen flex items-center overflow-hidden">
+    <div class="w-full pl-6 pr-0 lg:pl-12 xl:pl-16 pt-20 pb-8 lg:pt-28 lg:pb-0">
       <div class="flex flex-col lg:flex-row items-center gap-8 lg:gap-4">
 
         <!-- Left Column: Copy -->
-        <div class="w-full lg:w-1/2 space-y-8 lg:space-y-10">
+        <div class="w-full lg:w-1/2 space-y-6 lg:space-y-10">
           <!-- Main Headline -->
-          <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-bold text-slate-900 leading-tight">
+          <h1 class="text-4xl sm:text-5xl md:text-5xl lg:text-5xl xl:text-6xl font-bold text-slate-900 leading-tight">
             {{ messages?.hero?.title_part1 || 'Your Trusted' }}
             <span class="block text-esmerald mt-2">
               {{ messages?.hero?.title_part2 || 'Web Design Partner' }}
@@ -59,7 +59,7 @@
           </div>
 
           <!-- Key Benefits Grid -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-4 sm:pt-6">
             <div class="flex items-start gap-3">
               <svg class="w-6 h-6 text-esmerald flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>

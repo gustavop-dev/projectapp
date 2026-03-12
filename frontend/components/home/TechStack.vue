@@ -1,42 +1,42 @@
 <template>
-  <section class="py-12 relative overflow-hidden">
+  <section class="py-6 sm:py-8 lg:py-12 relative overflow-hidden">
     <div class="container mx-auto px-6 flex justify-center">
       <!-- Single Tech Bubble with all icons -->
       <div class="tech-bubble">
         <img 
           src="~/assets/images/icons/figma.svg" 
           alt="Figma"
-          class="w-12 h-12 sm:w-16 sm:h-16 md:w-24 md:h-24 lg:w-32 lg:h-32 transition-transform hover:scale-110"
+          class="tech-icon transition-transform hover:scale-110"
         />
         <img 
           src="~/assets/images/icons/webflow.svg" 
           alt="Webflow"
-          class="w-12 h-12 sm:w-16 sm:h-16 md:w-24 md:h-24 lg:w-32 lg:h-32 transition-transform hover:scale-110"
+          class="tech-icon transition-transform hover:scale-110"
         />
         <img 
           src="~/assets/images/icons/astro.svg" 
           alt="Astro"
-          class="w-12 h-12 sm:w-16 sm:h-16 md:w-24 md:h-24 lg:w-32 lg:h-32 transition-transform hover:scale-110"
+          class="tech-icon transition-transform hover:scale-110"
         />
         <img 
           src="~/assets/images/icons/stripe.svg" 
           alt="Stripe"
-          class="w-12 h-12 sm:w-16 sm:h-16 md:w-24 md:h-24 lg:w-32 lg:h-32 transition-transform hover:scale-110"
+          class="tech-icon transition-transform hover:scale-110"
         />
         <img 
           src="~/assets/images/icons/framer.svg" 
           alt="Framer"
-          class="w-12 h-12 sm:w-16 sm:h-16 md:w-24 md:h-24 lg:w-32 lg:h-32 transition-transform hover:scale-110"
+          class="tech-icon transition-transform hover:scale-110"
         />
         <img 
           src="~/assets/images/icons/vuejs_logo_icon_169247.svg" 
           alt="Vue.js"
-          class="w-12 h-12 sm:w-16 sm:h-16 md:w-24 md:h-24 lg:w-32 lg:h-32 transition-transform hover:scale-110"
+          class="tech-icon transition-transform hover:scale-110"
         />
         <img 
           src="~/assets/images/icons/pngwing.com.png" 
           alt="Technology"
-          class="w-12 h-12 sm:w-16 sm:h-16 md:w-24 md:h-24 lg:w-32 lg:h-32 transition-transform hover:scale-110"
+          class="tech-icon transition-transform hover:scale-110"
         />
       </div>
     </div>
@@ -50,13 +50,38 @@ const { messages } = useMessages()
 </script>
 
 <style scoped>
+.tech-icon {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .tech-icon {
+    height: 40px;
+  }
+}
+
+@media (min-width: 768px) {
+  .tech-icon {
+    height: 48px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .tech-icon {
+    height: 56px;
+  }
+}
+
 .tech-bubble {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 20px;
-  padding: 24px 28px;
+  gap: 16px;
+  padding: 20px 24px;
   background: #ffffff;
   border-radius: 24px;
   box-shadow: 

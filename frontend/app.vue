@@ -1,4 +1,10 @@
 <template>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript>
+    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-564CMQCG"
+      height="0" width="0" style="display:none;visibility:hidden"></iframe>
+  </noscript>
+
   <!-- Persistent Navbar — lives outside NuxtPage so it never disappears during transitions -->
   <Navbar v-if="showNavbar" />
 
