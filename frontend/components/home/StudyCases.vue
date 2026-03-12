@@ -40,6 +40,7 @@ import { useMessages } from '~/composables/useMessages'
 
 import portfolioVideo from '~/assets/videos/portfolio/portfolio-showcase.mp4'
 import videoPoster from '~/assets/images/home/hero/video-poster.jpg'
+import mockupTaptag from '~/assets/images/home/hero/mockup-taptag.png'
 import imgGM from '~/assets/images/studyCases/G&M-Platform.png'
 import imgConstance from '~/assets/images/studyCases/Constance-Hotels.png'
 
@@ -65,6 +66,7 @@ const allCaseStudies = computed(() => {
     quote: taptag.quote || '',
     url: taptag.url || '',
     src: videoPoster,
+    mockupSrc: mockupTaptag,
     watchVideo: true
   } : null
 

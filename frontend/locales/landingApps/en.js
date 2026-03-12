@@ -88,22 +88,10 @@ export default {
                 url: 'https://www.gmconsultoresjuridicos.com/'
             },
             {
-                name: 'Luminaire Authentik',
-                designation: 'E-commerce and mobile growth',
-                quote: 'Improved navigation, checkout and mobile experience for a much smoother purchase process from start to finish.',
-                url: 'https://luminaireauthentik.com/'
-            },
-            {
                 name: 'Constance Hotels',
                 designation: 'Hospitality and conversion strategy',
                 quote: 'With product and UX improvements we optimized critical points of the digital journey to increase direct actions and retention.',
                 url: 'https://www.constancehotels.com/en/'
-            },
-            {
-                name: 'OBSESD Photography Studio',
-                designation: 'Creative services and digital presence',
-                quote: 'We redesigned their digital experience and improved the lead capture flow, helping the team convert more visits into qualified conversations.',
-                url: 'https://www.obsesd.dk/'
             }
         ]
     },

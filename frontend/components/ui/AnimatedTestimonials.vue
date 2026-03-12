@@ -14,22 +14,44 @@
               opacity: isActive(index) ? 1 : 0.7
             }"
           >
-            <video
-              v-if="testimonial.video"
-              :src="testimonial.video"
-              autoplay
-              muted
-              loop
-              playsinline
-              class="h-full w-full rounded-3xl object-cover object-center"
-            />
-            <img
-              v-else
-              :src="testimonial.src"
-              :alt="testimonial.name"
-              draggable="false"
-              class="h-full w-full rounded-3xl object-cover object-center"
-            />
+            <!-- Special overlapping layout for items with video showcase -->
+            <div
+              v-if="testimonial.watchVideo && testimonial.mockupSrc"
+              class="relative w-full h-full flex items-center justify-center"
+            >
+              <div class="showcase-stack">
+                <div class="showcase-card showcase-video" @click="emit('watch-video')">
+                  <img :src="testimonial.src" :alt="testimonial.name" class="w-full h-full object-cover rounded-2xl" />
+                  <div class="play-overlay">
+                    <div class="play-btn">
+                      <svg class="w-10 h-10 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                  </div>
+                </div>
+                <div class="showcase-card showcase-mockup">
+                  <img :src="testimonial.mockupSrc" :alt="testimonial.name + ' Platform'" class="w-full h-full object-cover rounded-2xl" />
+                </div>
+              </div>
+            </div>
+            <!-- Normal image or video -->
+            <template v-else>
+              <video
+                v-if="testimonial.video"
+                :src="testimonial.video"
+                autoplay
+                muted
+                loop
+                playsinline
+                class="h-full w-full rounded-3xl object-cover object-center"
+              />
+              <img
+                v-else
+                :src="testimonial.src"
+                :alt="testimonial.name"
+                draggable="false"
+                class="h-full w-full rounded-3xl object-cover object-center"
+              />
+            </template>
           </div>
         </div>
       </div>
@@ -275,3 +297,82 @@ onBeforeUnmount(() => {
   stopAutoplay()
 })
 </script>
+
+<style scoped>
+.showcase-stack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.showcase-card {
+  position: absolute;
+  width: 55%;
+  height: 80%;
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.18), 0 8px 24px -8px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.showcase-video {
+  top: 5%;
+  left: 5%;
+  transform: rotate(-8deg);
+  z-index: 2;
+  cursor: pointer;
+}
+
+.showcase-video:hover {
+  transform: rotate(-4deg) scale(1.03);
+}
+
+.showcase-mockup {
+  top: 10%;
+  right: 5%;
+  transform: rotate(6deg);
+  z-index: 1;
+}
+
+.showcase-mockup:hover {
+  transform: rotate(2deg) scale(1.03);
+  z-index: 3;
+}
+
+.play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+  transition: background 0.3s ease;
+}
+
+.showcase-video:hover .play-overlay {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.play-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(0, 41, 33, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.showcase-video:hover .play-btn {
+  transform: scale(1.1);
+  background: rgba(0, 41, 33, 0.95);
+}
+
+@media (max-width: 1023px) {
+  .showcase-card {
+    width: 60%;
+    height: 75%;
+  }
+}
+</style>
