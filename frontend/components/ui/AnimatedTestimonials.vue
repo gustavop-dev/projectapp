@@ -55,18 +55,28 @@
           </p>
           
           <!-- Visit Project Button -->
-          <a 
-            v-if="testimonials[active].url"
-            :href="testimonials[active].url" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            class="inline-flex items-center gap-2 mt-6 text-esmerald font-medium text-base hover:gap-3 transition-all duration-300 group"
-          >
-            {{ visitProjectText }}
-            <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-            </svg>
-          </a>
+          <div class="flex flex-col items-start gap-3 mt-6">
+            <a 
+              v-if="testimonials[active].url"
+              :href="testimonials[active].url" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 text-esmerald font-medium text-base hover:gap-3 transition-all duration-300 group"
+            >
+              {{ visitProjectText }}
+              <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+              </svg>
+            </a>
+            <button
+              v-if="testimonials[active].watchVideo"
+              @click="emit('watch-video')"
+              class="inline-flex items-center gap-2 text-green-light font-medium text-base hover:text-esmerald transition-colors cursor-pointer"
+            >
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              {{ watchVideoText }}
+            </button>
+          </div>
         </div>
 
         <!-- Navigation Buttons -->
@@ -113,8 +123,14 @@ const props = defineProps({
   visitProjectText: {
     type: String,
     default: 'Visit Project'
+  },
+  watchVideoText: {
+    type: String,
+    default: 'Watch video'
   }
 })
+
+const emit = defineEmits(['watch-video'])
 
 const active = ref(0)
 const imageRefs = ref([])
