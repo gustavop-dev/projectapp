@@ -87,10 +87,10 @@ export default {
         budgetLabel: 'Estimated budget (COP)',
         privacy: 'By submitting this form, your information will be treated according to our',
         privacyLink: 'Privacy Policy.',
-        submit: 'Contact us on WhatsApp',
+        submit: 'Get a Quote Now',
         sending: 'Sending...',
         whatsappUrl: 'https://wa.me/573238122373?text=Hi%2C%20I%20want%20to%20quote%20my%20software%20project',
-        whatsappLabel: 'WhatsApp'
+        whatsappLabel: 'Get in Touch by WhatsApp'
     },
     study_cases: {
         title: 'Companies that already transformed their operations with us',

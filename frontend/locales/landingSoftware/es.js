@@ -87,10 +87,10 @@ export default {
         budgetLabel: 'Presupuesto estimado (COP)',
         privacy: 'Al enviar este formulario, tu información será tratada de acuerdo con nuestra',
         privacyLink: 'Política de Privacidad.',
-        submit: 'Contáctanos por WhatsApp',
+        submit: 'Cotizar Ahora',
         sending: 'Enviando...',
         whatsappUrl: 'https://wa.me/573238122373?text=Hola%2C%20quiero%20cotizar%20mi%20proyecto%20de%20software',
-        whatsappLabel: 'WhatsApp'
+        whatsappLabel: 'Contactar por WhatsApp'
     },
     study_cases: {
         title: 'Empresas que ya transformaron su operación con nosotros',

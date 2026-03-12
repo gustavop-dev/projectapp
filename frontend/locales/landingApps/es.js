@@ -67,7 +67,7 @@ export default {
         submit: 'Cotizar ahora',
         sending: 'Enviando...',
         whatsappUrl: 'https://wa.me/573238122373?text=Hola%2C%20quiero%20cotizar%20mi%20app%20m%C3%B3vil',
-        whatsappLabel: 'WhatsApp'
+        whatsappLabel: 'Contactar por WhatsApp'
     },
     study_cases: {
         title: 'Apps que ya están en las tiendas (y que la gente usa)',
