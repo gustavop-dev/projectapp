@@ -43,25 +43,6 @@
           required
         ></textarea>
 
-        <!-- Budget Options -->
-        <div class="budget-section">
-          <label class="budget-label">{{ messages?.contactForm?.budgetLabel || 'Project budget (USD)' }}</label>
-          <div class="flex flex-wrap gap-3 mt-4">
-            <button
-              v-for="option in budgetOptions"
-              :key="option"
-              type="button"
-              @click="selectBudget(option)"
-              :class="[
-                'budget-pill',
-                form.budget === option ? 'budget-pill-active' : ''
-              ]"
-            >
-              {{ option }}
-            </button>
-          </div>
-        </div>
-
         <!-- Privacy Policy -->
         <p class="text-xs text-gray-600 leading-relaxed">
           {{ messages?.contactForm?.privacy || 'By submitting this form, your information will be sent directly to the listed business. It will not be sold, shared, or disclosed by Chilliwack Connect.' }}
@@ -79,65 +60,100 @@
             {{ isSubmitting ? (messages?.contactForm?.sending || 'Sending...') : (messages?.contactForm?.submit || 'Submit') }}
           </button>
 
-          <!-- Book a Call Button -->
+          <!-- Book a Call Button (hidden when key is empty) -->
           <button
+            v-if="messages?.contactForm?.bookCall"
             type="button"
             class="book-call-button"
             data-cal-link="projectapp/discovery-call-projectapp"
             data-cal-namespace="discovery-call-projectapp"
             data-cal-config='{"layout":"week_view","theme":"dark"}'
           >
-            {{ messages?.contactForm?.bookCall || 'Book a Call' }}
+            {{ messages.contactForm.bookCall }}
           </button>
+
+          <!-- WhatsApp Button (shown when whatsappUrl exists and bookCall is empty) -->
+          <a
+            v-if="!messages?.contactForm?.bookCall && messages?.contactForm?.whatsappUrl"
+            :href="messages.contactForm.whatsappUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="book-call-button inline-flex items-center justify-center"
+          >
+            {{ messages?.contactForm?.whatsappLabel || 'WhatsApp' }}
+          </a>
         </div>
       </form>
     </div>
 
-    <!-- Right Column - Two cards stacked -->
-    <div class="right-column flex flex-col gap-6">
-      <!-- Card 2: Awesome UI Design -->
+    <!-- Right Column - Desktop: Two cards stacked -->
+    <div class="right-column hidden lg:flex flex-col gap-6">
       <div class="service-card group">
         <div class="card-background card-bg-2"></div>
         <div class="card-content">
           <div class="mockup-container">
-            <img 
-              src="~/assets/images/home/services/mkups/design.webp" 
-              alt="UI Design Mockup"
-              class="mockup-image"
-            />
+            <img src="~/assets/images/home/services/mkups/design.webp" alt="UI Design Mockup" class="mockup-image" />
           </div>
           <div class="card-text">
-            <h3 class="text-2xl font-bold text-white mb-3">
-              {{ messages?.services?.card2?.title || 'Awesome UI Design' }}
-            </h3>
-            <p class="text-white/90 text-sm leading-relaxed">
-              {{ messages?.services?.card2?.description || 'Where stunning visuals meet effortless functionality for an experience users love.' }}
-            </p>
+            <h3 class="text-2xl font-bold text-white mb-3">{{ messages?.services?.card2?.title || 'Awesome UI Design' }}</h3>
+            <p class="text-white/90 text-sm leading-relaxed">{{ messages?.services?.card2?.description || '' }}</p>
           </div>
         </div>
       </div>
-
-      <!-- Card 3: Flawless Performance -->
       <div class="service-card group">
         <div class="card-background card-bg-3"></div>
         <div class="card-content">
           <div class="mockup-container">
-            <img 
-              src="~/assets/images/home/services/mkups/cards-info.webp" 
-              alt="Performance Mockup"
-              class="mockup-image"
-            />
+            <img src="~/assets/images/home/services/mkups/cards-info.webp" alt="Performance Mockup" class="mockup-image" />
           </div>
           <div class="card-text">
-            <h3 class="text-2xl font-bold text-white mb-3">
-              {{ messages?.services?.card3?.title || 'Data-Driven Performance' }}
-            </h3>
-            <p class="text-white/90 text-sm leading-relaxed">
-              {{ messages?.services?.card3?.description || 'Maximize conversions, retention, and SEO rankings with Google Tag Manager and Clarity analytics tracking every user interaction.' }}
-            </p>
+            <h3 class="text-2xl font-bold text-white mb-3">{{ messages?.services?.card3?.title || 'Data-Driven Performance' }}</h3>
+            <p class="text-white/90 text-sm leading-relaxed">{{ messages?.services?.card3?.description || '' }}</p>
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Mobile: Swiper carousel for service cards -->
+    <div class="lg:hidden">
+      <ClientOnly>
+        <swiper
+          :modules="swiperModules"
+          :slides-per-view="1.15"
+          :space-between="12"
+          :pagination="{ clickable: true }"
+          class="services-cards-swiper"
+        >
+          <swiper-slide>
+            <div class="service-card group">
+              <div class="card-background card-bg-2"></div>
+              <div class="card-content">
+                <div class="mockup-container">
+                  <img src="~/assets/images/home/services/mkups/design.webp" alt="UI Design Mockup" class="mockup-image" />
+                </div>
+                <div class="card-text">
+                  <h3 class="text-2xl font-bold text-white mb-3">{{ messages?.services?.card2?.title || 'Awesome UI Design' }}</h3>
+                  <p class="text-white/90 text-sm leading-relaxed">{{ messages?.services?.card2?.description || '' }}</p>
+                </div>
+              </div>
+            </div>
+          </swiper-slide>
+          <swiper-slide>
+            <div class="service-card group">
+              <div class="card-background card-bg-3"></div>
+              <div class="card-content">
+                <div class="mockup-container">
+                  <img src="~/assets/images/home/services/mkups/cards-info.webp" alt="Performance Mockup" class="mockup-image" />
+                </div>
+                <div class="card-text">
+                  <h3 class="text-2xl font-bold text-white mb-3">{{ messages?.services?.card3?.title || 'Data-Driven Performance' }}</h3>
+                  <p class="text-white/90 text-sm leading-relaxed">{{ messages?.services?.card3?.description || '' }}</p>
+                </div>
+              </div>
+            </div>
+          </swiper-slide>
+        </swiper>
+      </ClientOnly>
     </div>
   </div>
 </template>
@@ -149,9 +165,14 @@ import { useMessages } from '~/composables/useMessages'
 import { useLanguageStore } from '~/stores/language'
 import { useContactsStore } from '~/stores/contacts'
 import { useGtagConversions } from '~/composables/useGtagConversions'
+import { Swiper, SwiperSlide } from 'swiper/vue'
+import { Pagination } from 'swiper/modules'
 import gsap from 'gsap'
+import 'swiper/css'
+import 'swiper/css/pagination'
 
 const { messages } = useMessages()
+const swiperModules = [Pagination]
 const router = useRouter()
 const languageStore = useLanguageStore()
 const { currentLocale } = storeToRefs(languageStore)
@@ -168,15 +189,8 @@ const form = ref({
   fullName: '',
   phone: '',
   email: '',
-  project: '',
-  budget: ''
+  project: ''
 })
-
-const budgetOptions = ['500-5K', '5-10K', '10-20K', '20-30K', '>30K']
-
-const selectBudget = (option) => {
-  form.value.budget = option
-}
 
 // Handle form submission
 const handleSubmit = async () => {
@@ -260,41 +274,6 @@ onMounted(() => {
 .minimal-textarea {
   resize: none;
   font-family: inherit;
-}
-
-.budget-section {
-  padding-top: 8px;
-}
-
-.budget-label {
-  display: block;
-  font-size: 16px;
-  font-weight: 400;
-  color: #64748b;
-  margin-bottom: 4px;
-}
-
-.budget-pill {
-  padding: 10px 24px;
-  font-size: 15px;
-  font-weight: 400;
-  color: #64748b;
-  background: transparent;
-  border: 1px solid #e2e8f0;
-  border-radius: 50px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.budget-pill:hover {
-  border-color: #002921;
-  color: #002921;
-}
-
-.budget-pill-active {
-  background: #002921;
-  color: #ffffff;
-  border-color: #002921;
 }
 
 .submit-button {

@@ -3,8 +3,8 @@ export default {
       menu_button: "Menú",
       get_in_touch: "Contacto",
       solutions: {
-        home: "Inicio",
-        about: "Nosotros",
+        software: "Software a la medida",
+        apps: "Desarrollo de Apps",
         web_developments: "Nuestro trabajo",
         blog: "Blog",
       },
@@ -51,8 +51,8 @@ export default {
       email_address: "team@projectapp.co",
       play_reel: "Reproducir",
       solutions: {
-        home: "Inicio",
-        about: "Nosotros",
+        software: "Software a la medida",
+        apps: "Desarrollo de Apps",
         web_developments: "Nuestro trabajo",
         blog: "Blog",
       },

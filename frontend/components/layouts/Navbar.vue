@@ -30,7 +30,7 @@
         :to="item.external ? item.href : localePath(item.href)"
         :target="item.external ? '_blank' : undefined"
         :rel="item.external ? 'noopener noreferrer' : undefined"
-        class="relative z-10 px-6 py-3 rounded-full text-base transition-colors duration-200"
+        class="relative z-10 px-6 py-3 rounded-full text-base transition-colors duration-200 whitespace-nowrap"
         :class="isActiveRoute(item.routeKey) ? 'text-esmerald font-medium' : 'text-esmerald/60 font-regular hover:text-esmerald'"
       >
         {{ item.name }}
@@ -214,8 +214,8 @@ const navItems = computed(() => {
   const s = globalMessages.value?.solutions || {};
   const cta = globalMessages.value?.contact_us || 'Contact';
   return [
-    { name: s.home || 'Home', href: '/', routeKey: 'index' },
-    { name: s.about || 'About', href: '/about-us', routeKey: 'about-us' },
+    { name: s.software || 'Custom Software', href: '/', routeKey: 'index' },
+    { name: s.apps || 'App Development', href: '/landing-apps', routeKey: 'landing-apps' },
     { name: s.web_developments || 'Our work', href: '/portfolio-works', routeKey: 'portfolio-works' },
     { name: s.blog || 'Blog', href: '/blog', routeKey: 'blog' },
     { name: cta, href: 'https://wa.me/message/XX77FJEUEM26H1?src=qr', external: true, routeKey: 'contact' },
@@ -226,8 +226,8 @@ const navItems = computed(() => {
 const mobileMenuItems = computed(() => {
   const s = globalMessages.value?.solutions || {};
   return [
-    { name: s.home || 'Home', href: '/' },
-    { name: s.about || 'About', href: '/about-us' },
+    { name: s.software || 'Custom Software', href: '/' },
+    { name: s.apps || 'App Development', href: '/landing-apps' },
     { name: s.web_developments || 'Our work', href: '/portfolio-works' },
     { name: s.blog || 'Blog', href: '/blog' },
   ];
@@ -240,7 +240,7 @@ const isActiveRoute = (routeKey) => {
   const name = route.name;
   if (!name || typeof name !== 'string') return false;
   const baseName = name.split('___')[0];
-  if (routeKey === 'index') return baseName === 'index';
+  if (routeKey === 'index') return baseName === 'index' || baseName === 'landing-software';
   return baseName.startsWith(routeKey);
 };
 

@@ -113,4 +113,26 @@ body {
 .page-leave-to {
   opacity: 0;
 }
+
+/* Global Swiper pagination styles for mobile carousels */
+.swiper-pagination {
+  position: relative !important;
+  margin-top: 16px !important;
+  bottom: auto !important;
+}
+
+.swiper-pagination-bullet {
+  width: 8px;
+  height: 8px;
+  background: #002921;
+  opacity: 0.25;
+  transition: all 0.3s ease;
+}
+
+.swiper-pagination-bullet-active {
+  opacity: 1;
+  background: #002921;
+  width: 24px;
+  border-radius: 4px;
+}
 </style>

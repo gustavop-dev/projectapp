@@ -3,8 +3,8 @@ export default {
       menu_button: "Menu",
       get_in_touch: "Contact",
       solutions: {
-        home: "Home",
-        about: "About us",
+        software: "Custom Software",
+        apps: "App Development",
         web_developments: "Our work",
         blog: "Blog",
       },
@@ -51,8 +51,8 @@ export default {
       email_address: "team@projectapp.co",
       play_reel: "Play Reel",
       solutions: {
-        home: "Home",
-        about: "About us",
+        software: "Custom Software",
+        apps: "App Development",
         web_developments: "Our work",
         blog: "Blog",
       },

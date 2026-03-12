@@ -14,7 +14,17 @@
               opacity: isActive(index) ? 1 : 0.7
             }"
           >
+            <video
+              v-if="testimonial.video"
+              :src="testimonial.video"
+              autoplay
+              muted
+              loop
+              playsinline
+              class="h-full w-full rounded-3xl object-cover object-center"
+            />
             <img
+              v-else
               :src="testimonial.src"
               :alt="testimonial.name"
               draggable="false"

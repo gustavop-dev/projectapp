@@ -2,7 +2,7 @@
   <section class="marquee-section overflow-hidden">
     <div class="marquee-inner">
       <!-- Top strip: dark esmerald background, white text -->
-      <div class="ribbon-wrapper ribbon-wrapper--top">
+      <div ref="ribbonTop" class="ribbon-wrapper ribbon-wrapper--top">
         <div class="ribbon bg-esmerald text-white">
           <div class="ribbon-track">
             <span
@@ -17,7 +17,7 @@
       </div>
 
       <!-- Bottom strip: lemon background, dark esmerald text -->
-      <div class="ribbon-wrapper ribbon-wrapper--bottom">
+      <div ref="ribbonBottom" class="ribbon-wrapper ribbon-wrapper--bottom">
         <div class="ribbon bg-lemon text-esmerald">
           <div class="ribbon-track ribbon-track--reverse">
             <span
@@ -35,27 +35,34 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useMessages } from '~/composables/useMessages'
 import gsap from 'gsap'
 
 const { messages } = useMessages()
 
-onMounted(() => {
-  gsap.from('.ribbon-wrapper--top', {
-    y: -80,
-    opacity: 0,
-    duration: 1.1,
-    ease: 'power3.out'
-  })
+const ribbonTop = ref(null)
+const ribbonBottom = ref(null)
 
-  gsap.from('.ribbon-wrapper--bottom', {
-    y: 80,
-    opacity: 0,
-    duration: 1.1,
-    delay: 0.1,
-    ease: 'power3.out'
-  })
+onMounted(() => {
+  if (ribbonTop.value) {
+    gsap.from(ribbonTop.value, {
+      y: -80,
+      opacity: 0,
+      duration: 1.1,
+      ease: 'power3.out'
+    })
+  }
+
+  if (ribbonBottom.value) {
+    gsap.from(ribbonBottom.value, {
+      y: 80,
+      opacity: 0,
+      duration: 1.1,
+      delay: 0.1,
+      ease: 'power3.out'
+    })
+  }
 })
 </script>
 

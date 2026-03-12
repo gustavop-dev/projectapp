@@ -4,6 +4,16 @@ export default {
       description: "Project App. helps companies and founders build MVPs, web platforms, mobile apps, and custom software with one dedicated team covering strategy, UX/UI, development, deployment, and support.",
       keywords: "Project App., MVP development, web platform development, mobile app development, custom software, software development company, frontend backend development, product development"
     },
+    landingSoftware: {
+      title: "Custom Software Development in 30 Days - Project App.",
+      description: "We build custom software that transforms your manual processes into intelligent systems. Free diagnosis, weekly sprints, 100% your code. From $6M COP.",
+      keywords: "custom software development, bespoke software, software development company, process automation, MVP, web platform, agile development, enterprise software Colombia"
+    },
+    landingApps: {
+      title: "iOS & Android Mobile App Development in 30 Days - Project App.",
+      description: "We create mobile apps people actually use. iOS, Android, or both. UX/UI design + development + store publishing. Detailed proposal in 24 hours.",
+      keywords: "mobile app development, create iOS Android app, app development company, custom app, Flutter, React Native, mobile application development Colombia"
+    },
     landingWebDesign: {
       title: "Project App. - Professional Web Design & Development Company",
       description: "Project App. is a professional web design and development company specializing in custom software solutions. Our team of expert website developers creates bespoke websites without WordPress or templates.",

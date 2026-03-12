@@ -18,7 +18,18 @@
           </h2>
         </div>
         
+        <a
+          v-if="messages?.book_call?.whatsapp_url"
+          :href="messages.book_call.whatsapp_url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="px-6 py-3 bg-lemon text-black rounded-full font-semibold text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg inline-flex items-center gap-2 w-fit"
+        >
+          {{ messages?.book_call?.cta || "Let's Talk" }}
+          <span class="text-xl">•</span>
+        </a>
         <button
+          v-else
           class="px-6 py-3 bg-lemon text-black rounded-full font-semibold text-base hover:bg-lemon/90 transition-all hover:scale-105 shadow-md hover:shadow-lg inline-flex items-center gap-2 w-fit"
           data-cal-link="projectapp/discovery-call-projectapp"
           data-cal-namespace="discovery-call-projectapp"
@@ -38,8 +49,22 @@
           class="absolute inset-0 w-full h-full object-cover"
         />
 
-        <!-- Email Badge -->
+        <!-- Email Badge / WhatsApp Badge -->
+        <a
+          v-if="messages?.book_call?.whatsapp_url"
+          :href="messages.book_call.whatsapp_url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="relative z-10 bg-white rounded-full px-6 py-3 flex items-center gap-3 hover:scale-105 transition-transform shadow-lg cursor-pointer"
+        >
+          <span class="text-3xl">👋</span>
+          <div class="text-left">
+            <p class="text-xs font-semibold text-esmerald">{{ messages?.book_call?.prefer_email || 'Prefer WhatsApp?' }}</p>
+            <p class="text-sm font-bold text-esmerald">{{ messages?.book_call?.say_hi || 'Say hi!' }}</p>
+          </div>
+        </a>
         <button 
+          v-else
           @click="goToContact"
           class="relative z-10 bg-white rounded-full px-6 py-3 flex items-center gap-3 hover:scale-105 transition-transform shadow-lg cursor-pointer"
         >

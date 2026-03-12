@@ -5,8 +5,10 @@ import { computed } from 'vue';
  * Nuxt i18n generates route names like 'index___en-us', 'slug___en-us', etc.
  */
 const routeToViewKey = {
-  'index': 'softwareHome',
+  'index': 'landingSoftware',
   'landing-web-design': 'home',
+  'landing-software': 'landingSoftware',
+  'landing-apps': 'landingApps',
   'about-us': 'aboutUs',
   'portfolio-works': 'portfolioWorks',
   'contact': 'contact',

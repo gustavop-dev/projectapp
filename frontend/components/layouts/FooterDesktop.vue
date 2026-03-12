@@ -191,8 +191,8 @@ const showModalEmail = ref(false);
 const solutions = computed(() => {
   const s = globalMessages.value?.solutions || {};
   return [
-    { name: s.home || 'Home', href: '/' },
-    { name: s.about || 'About us', href: '/about-us' },
+    { name: s.software || 'Custom Software', href: '/' },
+    { name: s.apps || 'App Development', href: '/landing-apps' },
     { name: s.web_developments || 'Our work', href: '/portfolio-works' },
     { name: s.blog || 'Blog', href: '/blog' },
   ];

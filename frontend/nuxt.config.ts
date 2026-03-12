@@ -15,6 +15,10 @@ export default defineNuxtConfig({
     '/es-co': { ssr: true },
     '/en-us/landing-web-design': { ssr: true },
     '/es-co/landing-web-design': { ssr: true },
+    '/en-us/landing-software': { ssr: true },
+    '/es-co/landing-software': { ssr: true },
+    '/en-us/landing-apps': { ssr: true },
+    '/es-co/landing-apps': { ssr: true },
     '/en-us/about-us': { ssr: true },
     '/es-co/about-us': { ssr: true },
     '/en-us/portfolio-works': { ssr: true },
@@ -121,6 +125,9 @@ export default defineNuxtConfig({
       ],
       link: [
         { rel: 'icon', href: '/img/icons/icon-logo-192x192.png' },
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap' },
       ],
       script: [
         {

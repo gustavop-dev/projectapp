@@ -4,6 +4,16 @@ export default {
       description: "Project App. ayuda a empresas y emprendedores a construir MVPs, plataformas web, apps móviles y software a medida con un equipo integral de estrategia, UX/UI, desarrollo, despliegue y soporte.",
       keywords: "Project App., desarrollo de MVP, desarrollo de plataformas web, desarrollo de apps móviles, software a medida, empresa de desarrollo de software, frontend backend, desarrollo de productos digitales"
     },
+    landingSoftware: {
+      title: "Desarrollo de Software a la Medida en 30 Días - Project App.",
+      description: "Desarrollamos software a la medida que transforma tus procesos manuales en sistemas inteligentes. Diagnóstico gratuito, sprints semanales, código 100% tuyo. Desde $6M COP.",
+      keywords: "desarrollo de software a la medida, software personalizado, empresa de desarrollo de software, automatización de procesos, MVP, plataforma web, desarrollo ágil, software empresarial Colombia"
+    },
+    landingApps: {
+      title: "Desarrollo de Apps Móviles iOS y Android en 30 Días - Project App.",
+      description: "Creamos apps móviles que la gente sí usa. iOS, Android o ambas. Diseño UX/UI + desarrollo + publicación en tiendas. Propuesta detallada en 24 horas.",
+      keywords: "desarrollo de apps móviles, crear app iOS Android, empresa de desarrollo de aplicaciones, app a medida, Flutter, React Native, desarrollo de aplicaciones móviles Colombia"
+    },
     landingWebDesign: {
       title: "Project App. - Empresa Profesional de Diseño y Desarrollo Web",
       description: "Project App. es una empresa profesional de diseño y desarrollo web especializada en soluciones de software a medida. Nuestro equipo de desarrolladores web expertos crea sitios web personalizados sin WordPress ni plantillas.",

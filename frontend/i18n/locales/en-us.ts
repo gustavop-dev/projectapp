@@ -12,6 +12,8 @@ export default defineI18nLocale(async () => {
     hosting,
     portfolioWorks,
     webDesigns,
+    landingSoftware,
+    landingApps,
     animations3d,
     notFound,
   ] = await Promise.all([
@@ -27,6 +29,8 @@ export default defineI18nLocale(async () => {
     import('~/locales/hosting/en.js'),
     import('~/locales/portfolioWorks/en.js'),
     import('~/locales/webDesigns/en.js'),
+    import('~/locales/landingSoftware/en.js'),
+    import('~/locales/landingApps/en.js'),
     import('~/locales/3dAnimations/en.js'),
     import('~/locales/404View/en.js'),
   ])
@@ -44,6 +48,8 @@ export default defineI18nLocale(async () => {
     hosting: hosting.default,
     portfolioWorks: portfolioWorks.default,
     webDesigns: webDesigns.default,
+    landingSoftware: landingSoftware.default,
+    landingApps: landingApps.default,
     '3dAnimations': animations3d.default,
     '404View': notFound.default,
   }

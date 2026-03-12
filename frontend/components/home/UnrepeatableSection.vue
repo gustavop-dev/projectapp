@@ -5,8 +5,7 @@
         
         <!-- Left side: Title all light -->
         <div class="flex-shrink-0 z-20">
-          <h2 class="unrepeatable-title font-light leading-tight">
-            {{ messages?.unrepeatable?.title || 'unrepeatable.' }}
+          <h2 class="unrepeatable-title font-light leading-tight" v-html="messages?.unrepeatable?.title || 'unrepeatable.'">
           </h2>
         </div>
 
@@ -42,10 +41,11 @@
           </span>
         </h3>
 
-        <!-- Cards Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          
-          <!-- Card 1: Kick Off -->
+        <!-- Desktop: Cards Grid -->
+        <div :class="[
+          'hidden md:grid grid-cols-1 md:grid-cols-2 gap-6',
+          messages?.unrepeatable?.card4Title ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
+        ]">
           <div 
             class="process-card rounded-3xl p-8 text-white relative overflow-hidden min-h-[320px] flex flex-col justify-between bg-cover bg-center"
             :style="{ backgroundImage: `url(${cardImage1})` }"
@@ -55,13 +55,9 @@
             </div>
             <div class="relative z-10">
               <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card1Title || 'Architecture & Planning' }}</h4>
-              <p class="text-sm text-gray-200 leading-relaxed">
-                {{ messages?.unrepeatable?.card1Description || 'We define the complete project structure: site map, user flows, strategic CTAs, required forms, and necessary integrations to achieve your goals.' }}
-              </p>
+              <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card1Description || '' }}</p>
             </div>
           </div>
-
-          <!-- Card 2: IA & Wireframes -->
           <div 
             class="process-card rounded-3xl p-8 text-white relative overflow-hidden min-h-[320px] flex flex-col justify-between bg-cover bg-center"
             :style="{ backgroundImage: `url(${cardImage2})` }"
@@ -71,13 +67,9 @@
             </div>
             <div class="relative z-10">
               <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card2Title || 'UI/UX Design' }}</h4>
-              <p class="text-sm text-gray-200 leading-relaxed">
-                {{ messages?.unrepeatable?.card2Description || 'We create the complete design in Figma for all project views. We work in iterations with you until achieving final design approval.' }}
-              </p>
+              <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card2Description || '' }}</p>
             </div>
           </div>
-
-          <!-- Card 3: Interaction & UI Design -->
           <div 
             class="process-card rounded-3xl p-8 text-white relative overflow-hidden min-h-[320px] flex flex-col justify-between bg-cover bg-center"
             :style="{ backgroundImage: `url(${cardImage3})` }"
@@ -87,14 +79,11 @@
             </div>
             <div class="relative z-10">
               <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card3Title || 'Development & Implementation' }}</h4>
-              <p class="text-sm text-gray-200 leading-relaxed">
-                {{ messages?.unrepeatable?.card3Description || 'We implement the approved design, configure CMS if needed, integrate tools (CRM, WhatsApp, analytics), and apply basic technical SEO.' }}
-              </p>
+              <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card3Description || '' }}</p>
             </div>
           </div>
-
-          <!-- Card 4: Client deliverables -->
           <div 
+            v-if="messages?.unrepeatable?.card4Title"
             class="process-card rounded-3xl p-8 text-white relative overflow-hidden min-h-[320px] flex flex-col justify-between bg-cover bg-center"
             :style="{ backgroundImage: `url(${cardImage4})` }"
           >
@@ -103,12 +92,79 @@
             </div>
             <div class="relative z-10">
               <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card4Title || 'Deployment & Validation' }}</h4>
-              <p class="text-sm text-gray-200 leading-relaxed">
-                {{ messages?.unrepeatable?.card4Description || 'We publish the project on hosting, perform final tests on forms, integrations, tracking, and performance to ensure everything works perfectly.' }}
-              </p>
+              <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card4Description || '' }}</p>
             </div>
           </div>
+        </div>
 
+        <!-- Mobile: Swiper carousel for process cards -->
+        <div class="md:hidden">
+          <ClientOnly>
+            <swiper
+              :modules="swiperModules"
+              :slides-per-view="1.1"
+              :space-between="12"
+              :pagination="{ clickable: true }"
+              class="process-cards-swiper"
+            >
+              <swiper-slide>
+                <div 
+                  class="process-card rounded-3xl p-8 text-white relative overflow-hidden min-h-[300px] flex flex-col justify-between bg-cover bg-center"
+                  :style="{ backgroundImage: `url(${cardImage1})` }"
+                >
+                  <div class="icon-wrapper mb-auto relative z-10 flex justify-center">
+                    <img :src="iconCoffee" alt="Coffee" class="w-16 h-16 object-contain" />
+                  </div>
+                  <div class="relative z-10">
+                    <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card1Title || 'Architecture & Planning' }}</h4>
+                    <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card1Description || '' }}</p>
+                  </div>
+                </div>
+              </swiper-slide>
+              <swiper-slide>
+                <div 
+                  class="process-card rounded-3xl p-8 text-white relative overflow-hidden min-h-[300px] flex flex-col justify-between bg-cover bg-center"
+                  :style="{ backgroundImage: `url(${cardImage2})` }"
+                >
+                  <div class="icon-wrapper mb-auto relative z-10 flex justify-center">
+                    <img :src="iconNotebook" alt="Notebook" class="w-16 h-16 object-contain" />
+                  </div>
+                  <div class="relative z-10">
+                    <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card2Title || 'UI/UX Design' }}</h4>
+                    <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card2Description || '' }}</p>
+                  </div>
+                </div>
+              </swiper-slide>
+              <swiper-slide>
+                <div 
+                  class="process-card rounded-3xl p-8 text-white relative overflow-hidden min-h-[300px] flex flex-col justify-between bg-cover bg-center"
+                  :style="{ backgroundImage: `url(${cardImage3})` }"
+                >
+                  <div class="icon-wrapper mb-auto relative z-10 flex justify-center">
+                    <img :src="iconPingPong" alt="Ping Pong" class="w-16 h-16 object-contain" />
+                  </div>
+                  <div class="relative z-10">
+                    <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card3Title || 'Development & Implementation' }}</h4>
+                    <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card3Description || '' }}</p>
+                  </div>
+                </div>
+              </swiper-slide>
+              <swiper-slide v-if="messages?.unrepeatable?.card4Title">
+                <div 
+                  class="process-card rounded-3xl p-8 text-white relative overflow-hidden min-h-[300px] flex flex-col justify-between bg-cover bg-center"
+                  :style="{ backgroundImage: `url(${cardImage4})` }"
+                >
+                  <div class="icon-wrapper mb-auto relative z-10 flex justify-center">
+                    <img :src="iconRocket" alt="Rocket" class="w-16 h-16 object-contain" />
+                  </div>
+                  <div class="relative z-10">
+                    <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card4Title || 'Deployment & Validation' }}</h4>
+                    <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card4Description || '' }}</p>
+                  </div>
+                </div>
+              </swiper-slide>
+            </swiper>
+          </ClientOnly>
         </div>
       </div>
     </div>
@@ -118,7 +174,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useMessages } from '~/composables/useMessages'
+import { Swiper, SwiperSlide } from 'swiper/vue'
+import { Pagination } from 'swiper/modules'
 import gsap from 'gsap'
+import 'swiper/css'
+import 'swiper/css/pagination'
 
 import imgBeBold from '~/assets/images/home/services/process/be-bold.webp'
 import imgCard1 from '~/assets/images/home/services/process/card-be-bold-1.webp'
@@ -132,6 +192,7 @@ import imgRocket from '~/assets/images/home/services/process/rocket.webp'
 
 const { messages } = useMessages()
 
+const swiperModules = [Pagination]
 const asterisk = ref(null)
 const beBoldImage = imgBeBold
 const cardImage1 = imgCard1

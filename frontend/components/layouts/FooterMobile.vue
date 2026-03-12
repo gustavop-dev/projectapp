@@ -89,9 +89,9 @@ const { globalMessages } = useGlobalMessages('footer');
 // Estado reactivo
 const showModalEmail = ref(false);
 const solutions = computed(() => [
-  { name: globalMessages.value?.solutions?.home, href: '/' },
-  { name: globalMessages.value?.solutions?.about, href: '/about-us' },
-  { name: globalMessages.value?.solutions?.web_developments, href: '/portfolio-works' },
+  { name: globalMessages.value?.solutions?.software || 'Custom Software', href: '/' },
+  { name: globalMessages.value?.solutions?.apps || 'App Development', href: '/landing-apps' },
+  { name: globalMessages.value?.solutions?.web_developments || 'Our work', href: '/portfolio-works' },
   { name: globalMessages.value?.solutions?.blog || 'Blog', href: '/blog' },
 ]);
 

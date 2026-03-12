@@ -6,7 +6,7 @@
         class="video-modal-overlay fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
         @click.self="closeModal"
       >
-        <div class="video-modal-container relative w-full max-w-5xl">
+        <div class="video-modal-container relative w-full max-w-3xl lg:max-w-4xl">
           <!-- Close button -->
           <button
             @click="closeModal"
@@ -19,11 +19,11 @@
           </button>
 
           <!-- Native HTML5 Video player -->
-          <div class="video-wrapper bg-black rounded-lg overflow-hidden">
+          <div class="video-wrapper bg-black rounded-2xl overflow-hidden flex items-center justify-center max-h-[75vh]">
             <video
               ref="videoPlayer"
               :src="videoSrc"
-              class="w-full rounded-lg"
+              class="max-w-full max-h-[75vh] rounded-2xl object-contain"
               playsinline
               controls
               preload="auto"
