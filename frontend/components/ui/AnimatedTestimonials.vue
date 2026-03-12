@@ -1,16 +1,16 @@
 <template>
-  <div :class="['w-full mx-auto', className]" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
+  <div :class="['w-full mx-auto relative', className]" style="isolation: isolate; z-index: 0;" @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave">
     <div class="relative grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
       <!-- Images Section - Larger and Horizontal -->
       <div class="order-2 lg:order-1">
-        <div class="relative w-full" style="aspect-ratio: 1905/995;">
+        <div class="relative w-full" style="aspect-ratio: 1905/995; isolation: isolate;">
           <div
             v-for="(testimonial, index) in testimonials"
             :key="index"
             ref="imageRefs"
             class="absolute inset-0 origin-bottom"
             :style="{
-              zIndex: isActive(index) ? 999 : testimonials.length + 2 - index,
+              zIndex: isActive(index) ? 40 : testimonials.length + 2 - index,
               opacity: isActive(index) ? 1 : 0.7
             }"
           >
