@@ -46,9 +46,10 @@ function setupMock(page) {
 
 test.describe('Proposal Rejection Optional Reason', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('reject modal shows optional reason label and nudge text', {
@@ -65,7 +66,7 @@ test.describe('Proposal Rejection Optional Reason', () => {
     await page.waitForLoadState('networkidle');
 
     // Click reject link
-    const rejectLink = page.getByText(/No me interesa por ahora/i);
+    const rejectLink = page.getByRole('button', { name: /No es el momento/i });
     await expect(rejectLink).toBeVisible({ timeout: 10000 });
     await rejectLink.click();
 
@@ -86,7 +87,7 @@ test.describe('Proposal Rejection Optional Reason', () => {
     await nextBtn.click();
     await page.waitForLoadState('networkidle');
 
-    const rejectLink = page.getByText(/No me interesa por ahora/i);
+    const rejectLink = page.getByRole('button', { name: /No es el momento/i });
     await expect(rejectLink).toBeVisible({ timeout: 10000 });
     await rejectLink.click();
 

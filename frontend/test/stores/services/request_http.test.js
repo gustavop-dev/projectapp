@@ -184,7 +184,9 @@ describe('getCookie (via CSRF header)', () => {
 
   it('returns null when typeof document is undefined (SSR context)', async () => {
     const origDescriptor = Object.getOwnPropertyDescriptor(global, 'document');
-    Object.defineProperty(global, 'document', { value: undefined, writable: true, configurable: true });
+    // JSDOM in later versions doesn't allow redefining document. We temporarily set it to null instead of deleting
+    const origDoc = global.document;
+    global.document = undefined;
 
     jest.resetModules();
     jest.doMock('axios', () => ({ __esModule: true, default: mockAxios }));
@@ -197,7 +199,7 @@ describe('getCookie (via CSRF header)', () => {
     }));
 
     if (origDescriptor) {
-      Object.defineProperty(global, 'document', origDescriptor);
+      global.document = origDoc;
     }
   });
 });

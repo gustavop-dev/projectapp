@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="mb-8">
-      <NuxtLink to="/panel/proposals" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+      <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
         ← Volver a propuestas
       </NuxtLink>
       <h1 class="text-2xl font-light text-gray-900 mt-2">Nueva Propuesta</h1>
@@ -175,6 +175,26 @@
           </div>
         </div>
 
+        <!-- Hosting percent -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Hosting (% de inversión total)</label>
+          <div class="flex items-center gap-3">
+            <input
+              v-model.number="form.hosting_percent"
+              type="number"
+              min="0"
+              max="100"
+              class="w-32 px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            />
+            <span class="text-sm text-gray-500">%</span>
+            <span v-if="form.hosting_percent > 0 && form.total_investment > 0" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
+              ☁️ ${{ Math.round(form.total_investment * form.hosting_percent / 100).toLocaleString() }} {{ form.currency }} / año
+            </span>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">Se sincroniza con el % del Plan de Hosting en la sección "Tu inversión y cómo pagar".</p>
+        </div>
+
         <!-- Expires at -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de expiración</label>
@@ -253,7 +273,7 @@
           >
             {{ proposalStore.isUpdating ? 'Creando...' : 'Crear y Enviar' }}
           </button>
-          <NuxtLink to="/panel/proposals" class="text-sm text-gray-500 hover:text-gray-700">
+          <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-gray-500 hover:text-gray-700">
             Cancelar
           </NuxtLink>
         </div>
@@ -498,7 +518,7 @@
             >
               {{ proposalStore.isUpdating ? 'Creando...' : 'Crear desde JSON' }}
             </button>
-            <NuxtLink to="/panel/proposals" class="text-sm text-gray-500 hover:text-gray-700">
+            <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-gray-500 hover:text-gray-700">
               Cancelar
             </NuxtLink>
           </div>
@@ -536,7 +556,7 @@
             </button>
             <button
               class="w-full px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors"
-              @click="router.push(`/panel/proposals/${createdProposal.id}/edit`)"
+              @click="router.push(localePath(`/panel/proposals/${createdProposal.id}/edit`))"
             >
               Ir a Editar
             </button>
@@ -551,6 +571,7 @@
 import { reactive, ref, computed } from 'vue';
 import { get_request } from '~/stores/services/request_http';
 
+const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const router = useRouter();
@@ -598,6 +619,7 @@ const form = reactive({
   language: 'es',
   total_investment: 0,
   currency: 'COP',
+  hosting_percent: 30,
   expires_at: defaultExpiryStr,
   reminder_days: 10,
   urgency_reminder_days: 15,
@@ -636,7 +658,7 @@ async function handleCreateAndSend() {
   const result = await proposalStore.createProposal(payload);
   if (result.success) {
     await proposalStore.sendProposal(result.data.id);
-    router.push(`/panel/proposals/${result.data.id}/edit`);
+    router.push(localePath(`/panel/proposals/${result.data.id}/edit`));
   } else {
     errorMsg.value = formatError(result.errors);
   }
@@ -645,7 +667,7 @@ async function handleCreateAndSend() {
 async function handleSendCreated() {
   if (!createdProposal.value?.id) return;
   await proposalStore.sendProposal(createdProposal.value.id);
-  router.push(`/panel/proposals/${createdProposal.value.id}/edit`);
+  router.push(localePath(`/panel/proposals/${createdProposal.value.id}/edit`));
 }
 
 // -------------------------------------------------------------------------
@@ -675,6 +697,7 @@ const jsonForm = reactive({
   language: 'es',
   total_investment: 0,
   currency: 'COP',
+  hosting_percent: 30,
   expires_at: defaultExpiryStr,
   reminder_days: 10,
   urgency_reminder_days: 15,

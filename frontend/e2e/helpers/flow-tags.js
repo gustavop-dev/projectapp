@@ -97,7 +97,7 @@ export const PROPOSAL_COMMENT_FROM_CLOSING = ['@flow:proposal-comment-from-closi
 export const PROPOSAL_REJECTION_SMART_RECOVERY = ['@flow:proposal-rejection-smart-recovery', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_FUNCTIONAL_REQUIREMENTS_MODAL = ['@flow:proposal-functional-requirements-modal', '@module:proposal', '@priority:P2'];
 export const ADMIN_PROPOSAL_SEND_FROM_LISTING = ['@flow:admin-proposal-send-from-listing', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_ACTIVITY_LOG = ['@flow:admin-proposal-activity-log', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_ACTIVITY_LOG = ['@flow:admin-proposal-log-activity', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_AUTOMATIONS_TOGGLE = ['@flow:admin-proposal-automations-toggle', '@module:admin', '@priority:P2'];
 
 // ── Calculator modules (PWA, AI, Reports & Alerts) ──
@@ -111,4 +111,15 @@ export const ADMIN_PROPOSAL_QUICK_LOG = ['@flow:admin-proposal-quick-log', '@mod
 export const ADMIN_PROPOSAL_JSON_IMPORT_WARNINGS = ['@flow:admin-proposal-json-import-warnings', '@module:admin', '@priority:P2'];
 export const PROPOSAL_SUMMARY_KPIS = ['@flow:proposal-summary-kpis', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_CALCULATOR_NEW_MODULES = ['@flow:proposal-calculator-new-modules', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_CALCULATOR_INTEGRATIONS = ['@flow:proposal-calculator-integrations', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_DISCOUNT_MULTI_SECTION = ['@flow:proposal-discount-multi-section', '@module:proposal', '@priority:P2'];
+
+// ── v1.8.0 audit flows ──
+export const PROPOSAL_CALCULATOR_MICRO_FEEDBACK = ['@flow:proposal-calculator-micro-feedback', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_PAYMENT_PLAN_CLOSING = ['@flow:proposal-payment-plan-closing', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_POST_ACCEPTANCE_WELCOME = ['@flow:proposal-post-acceptance-welcome', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_STRUCTURED_NEGOTIATION = ['@flow:proposal-structured-negotiation', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_CONDITIONAL_ACCEPTANCE = ['@flow:proposal-conditional-acceptance', '@module:proposal', '@priority:P2'];
+export const ADMIN_PROPOSAL_INLINE_STATUS_CHANGE = ['@flow:admin-proposal-inline-status-change', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_SCORECARD = ['@flow:admin-proposal-scorecard', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_SECTION_COMPLETENESS = ['@flow:admin-proposal-section-completeness', '@module:admin', '@priority:P3'];

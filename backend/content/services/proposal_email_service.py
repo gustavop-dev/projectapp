@@ -1112,6 +1112,118 @@ class ProposalEmailService:
             return False
 
     @classmethod
+    def send_post_rejection_revisit_alert(cls, proposal):
+        """
+        Send immediate alert to the sales team when a rejected client
+        revisits the proposal after 7+ days — high-intent reconsideration signal.
+        """
+        frontend_base = getattr(
+            settings, 'FRONTEND_BASE_URL', 'http://localhost:3000'
+        )
+        edit_url = f'{frontend_base}/panel/proposals/{proposal.id}/edit'
+
+        days_since = 0
+        if proposal.responded_at:
+            days_since = (timezone.now() - proposal.responded_at).days
+
+        context = {
+            'client_name': proposal.client_name,
+            'proposal_title': proposal.title,
+            'total_investment': proposal.total_investment,
+            'currency': proposal.currency,
+            'edit_url': edit_url,
+            'proposal_uuid': str(proposal.uuid),
+            'days_since_rejection': days_since,
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/post_rejection_revisit_alert.html', context
+            )
+            text_content = render_to_string(
+                'emails/post_rejection_revisit_alert.txt', context
+            )
+
+            subject = (
+                f'🔄 [RECONSIDERACIÓN] {proposal.client_name} revisitó la '
+                f'propuesta rechazada "{proposal.title}" ({days_since}d después)'
+            )
+
+            notification_email = getattr(
+                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[notification_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info(
+                'Sent post-rejection revisit alert for proposal %s (%d days)',
+                proposal.uuid, days_since,
+            )
+            return True
+
+        except Exception:
+            logger.exception(
+                'Failed to send post-rejection revisit alert for proposal %s',
+                proposal.uuid,
+            )
+            return False
+
+    @classmethod
+    def send_daily_pipeline_digest(cls, digest_data):
+        """
+        Send a daily pipeline digest email summarising proposal activity.
+
+        Args:
+            digest_data: dict with keys:
+                - viewed_yesterday: list of proposal dicts
+                - inactive: list of proposal dicts
+                - expiring_soon: list of proposal dicts
+                - total_active: int
+                - date: str
+        """
+        context = digest_data
+
+        try:
+            html_content = render_to_string(
+                'emails/daily_pipeline_digest.html', context
+            )
+            text_content = render_to_string(
+                'emails/daily_pipeline_digest.txt', context
+            )
+
+            subject = (
+                f'📊 Pipeline Diario — {digest_data["date"]} — '
+                f'{digest_data["total_active"]} propuestas activas'
+            )
+
+            notification_email = getattr(
+                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[notification_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+            email.send(fail_silently=False)
+
+            logger.info('Sent daily pipeline digest for %s', digest_data['date'])
+            return True
+
+        except Exception:
+            logger.exception('Failed to send daily pipeline digest')
+            return False
+
+    @classmethod
     def send_post_expiration_visit_alert(cls, proposal):
         """
         Send immediate alert to the sales team when a client opens

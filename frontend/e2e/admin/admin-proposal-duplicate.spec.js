@@ -59,10 +59,12 @@ test.describe('Admin Proposal Duplicate', () => {
     await page.goto('/panel/proposals');
     await page.waitForLoadState('networkidle');
 
-    // Open the actions modal for the first proposal (three-dot "..." button in the last column)
-    const firstRow = page.locator('table tbody tr').first();
-    await expect(firstRow).toBeVisible({ timeout: 10000 });
-    await firstRow.locator('td').last().locator('button').click();
+    // Wait for the table to render with proposal data
+    await expect(page.getByText('Propuesta Original')).toBeVisible({ timeout: 10000 });
+
+    // quality: allow-fragile-selector (table actions button has no testid, same pattern as actions-modal spec)
+    const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
+    await actionsBtn.click();
 
     // Actions modal should appear — click "Duplicar propuesta"
     await expect(page.getByText('Duplicar propuesta')).toBeVisible({ timeout: 5000 });

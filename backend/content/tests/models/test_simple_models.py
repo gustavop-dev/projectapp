@@ -85,6 +85,19 @@ class TestPortfolioWork:
         assert portfolio_work.title_en == 'Client Portal'
         assert portfolio_work.title_es == 'Portal de Cliente'
 
+    def test_slug_collision_appends_counter(self, db):
+        """When two works share the same title the second gets a suffixed slug."""
+        pw1 = PortfolioWork.objects.create(
+            title_en='Same Title', title_es='Mismo Titulo',
+            project_url='https://example.com/a',
+        )
+        pw2 = PortfolioWork.objects.create(
+            title_en='Same Title', title_es='Mismo Titulo',
+            project_url='https://example.com/b',
+        )
+        assert pw1.slug == 'mismo-titulo'
+        assert pw2.slug == 'mismo-titulo-1'
+
     def test_delete_removes_cover_image(self, db, tmp_path, monkeypatch):
         """Verify cover image file is removed from disk on delete."""
         monkeypatch.setattr('django.conf.settings.MEDIA_ROOT', str(tmp_path))

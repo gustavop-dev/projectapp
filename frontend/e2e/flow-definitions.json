@@ -1,6 +1,6 @@
 {
-  "version": "2.3.0",
-  "lastUpdated": "2026-03-09",
+  "version": "2.4.0",
+  "lastUpdated": "2026-03-12",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -498,7 +498,7 @@
       "module": "proposal",
       "roles": ["guest"],
       "priority": "P1",
-      "description": "Investment calculator shows dynamic timeline reduction based on deselected modules.",
+      "description": "Investment calculator shows dynamic timeline changes: deselecting investment modules reduces weeks, selecting calculator modules adds ~1 week each.",
       "expectedSpecs": 1
     },
     "admin-discount-analysis-enhanced": {
@@ -562,7 +562,7 @@
       "module": "proposal",
       "roles": ["guest"],
       "priority": "P1",
-      "description": "Calculator modal displays PWA (30%), AI (invite-only), Reports & Alerts (10%) modules with correct pricing, default unselected state, AI invite note, and info badge.",
+      "description": "Calculator modal displays modules in order: PWA (40%), AI (invite-only), Smart Conversions (invite-only), Electronic Invoicing (60%), International Payments (20%), Regional Payments (20%), Email Marketing (10%), Reports & Alerts (20%, default selected), Multi-idioma (15%). Info badge at top of modal. Selecting modules adds ~1 week to timeline.",
       "expectedSpecs": 1
     },
     "proposal-expired-graceful": {
@@ -620,7 +620,15 @@
       "module": "proposal",
       "roles": ["guest"],
       "priority": "P2",
-      "description": "Calculator displays KPI Dashboard (free, default selected), Email Marketing (10%), Conversion Tracking (invite), i18n (15%), Gift Cards (20%) modules.",
+      "description": "Calculator displays Email Marketing (10%), i18n (15%), Gift Cards (20%) modules. KPI Dashboard removed from calculator (included by default like Analytics).",
+      "expectedSpecs": 1
+    },
+    "proposal-calculator-integrations": {
+      "name": "Proposal Calculator Integration Modules",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Calculator displays integration groups as toggleable modules: International Payments (20%), Regional Payments (20%), Electronic Invoicing (60%), Conversion Tracking (invite-only, 0%).",
       "expectedSpecs": 1
     },
     "proposal-discount-multi-section": {
@@ -689,6 +697,115 @@
       "roles": ["admin"],
       "priority": "P3",
       "description": "Dashboard KPI panel auto-refreshes every 60s with manual refresh button and last-updated label.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-inline-status-change": {
+      "name": "Admin Proposal Inline Status Change",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Change proposal status directly from the proposals table via inline dropdown.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-scorecard": {
+      "name": "Admin Proposal Pre-Send Scorecard",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "View a 1-10 completeness scorecard with blockers before sending a proposal.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-section-completeness": {
+      "name": "Admin Proposal Section Completeness",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P3",
+      "description": "Progress bar showing percentage of enabled sections with content in the edit view.",
+      "expectedSpecs": 1
+    },
+    "admin-daily-pipeline-digest": {
+      "name": "Admin Daily Pipeline Digest",
+      "module": "admin",
+      "roles": ["system"],
+      "priority": "P2",
+      "description": "Daily email digest with viewed yesterday, inactive, and expiring proposals.",
+      "expectedSpecs": 0,
+      "knownGaps": ["Backend-only, covered by backend unit tests"]
+    },
+    "admin-high-engagement-alert": {
+      "name": "Admin High Engagement Alert",
+      "module": "admin",
+      "roles": ["system"],
+      "priority": "P2",
+      "description": "System creates high_engagement_today alert when client has 3+ view sessions in one day.",
+      "expectedSpecs": 0,
+      "knownGaps": ["Backend-only, covered by backend unit tests"]
+    },
+    "admin-calculator-followup-alert": {
+      "name": "Admin Calculator Abandonment Follow-up",
+      "module": "admin",
+      "roles": ["system"],
+      "priority": "P2",
+      "description": "System creates calculator_followup alert 24h after calculator abandonment without confirmation.",
+      "expectedSpecs": 0,
+      "knownGaps": ["Backend-only, covered by backend unit tests"]
+    },
+    "admin-whatsapp-suggestion": {
+      "name": "Admin WhatsApp Suggestion",
+      "module": "admin",
+      "roles": ["system"],
+      "priority": "P2",
+      "description": "System creates whatsapp_suggestion alert with pre-drafted message based on top viewed section.",
+      "expectedSpecs": 0,
+      "knownGaps": ["Backend-only, covered by backend unit tests"]
+    },
+    "admin-auto-archive-zombie": {
+      "name": "Admin Auto-Archive Zombie Proposals",
+      "module": "admin",
+      "roles": ["system"],
+      "priority": "P3",
+      "description": "System auto-archives expired proposals with no activity in 30 days.",
+      "expectedSpecs": 0,
+      "knownGaps": ["Backend-only, covered by backend unit tests"]
+    },
+    "proposal-calculator-micro-feedback": {
+      "name": "Proposal Calculator Micro-Feedback",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Transient +/- price badge when toggling calculator modules with prices.",
+      "expectedSpecs": 1
+    },
+    "proposal-payment-plan-closing": {
+      "name": "Proposal Payment Plan in Closing",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Display payment plan milestones near the accept button in the closing section.",
+      "expectedSpecs": 1
+    },
+    "proposal-post-acceptance-welcome": {
+      "name": "Proposal Post-Acceptance Welcome Kit",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P1",
+      "description": "After acceptance: PDF download, onboarding timeline, and PM WhatsApp contact.",
+      "expectedSpecs": 1
+    },
+    "proposal-structured-negotiation": {
+      "name": "Proposal Structured Negotiation Modal",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Negotiate modal with structured checkbox reasons and tab toggle for adjust vs comment.",
+      "expectedSpecs": 1
+    },
+    "proposal-conditional-acceptance": {
+      "name": "Proposal Conditional Acceptance",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Accept with an optional condition note (Acepto, pero...).",
       "expectedSpecs": 1
     }
   }

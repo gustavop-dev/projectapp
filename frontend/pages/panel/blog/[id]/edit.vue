@@ -3,7 +3,7 @@
     <!-- Header row -->
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-4">
-        <NuxtLink to="/panel/blog" class="text-gray-400 hover:text-gray-600 transition-colors">
+        <NuxtLink :to="localePath('/panel/blog')" class="text-gray-400 hover:text-gray-600 transition-colors">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
@@ -341,6 +341,8 @@
 <script setup>
 import { reactive, ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useBlogStore } from '~/stores/blog';
+
+const localePath = useLocalePath();
 import BlogContentRenderer from '~/components/blog/BlogContentRenderer.vue';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });

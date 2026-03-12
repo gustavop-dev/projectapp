@@ -27,6 +27,7 @@ from content.views.proposal import (
     create_share_link, retrieve_shared_proposal, schedule_followup,
     list_clients, log_activity, proposal_alerts,
     create_proposal_alert, dismiss_proposal_alert,
+    update_proposal_status, proposal_scorecard,
 )
 from content.views.blog import (
     list_blog_posts, retrieve_blog_post, blog_sitemap_data,
@@ -71,6 +72,8 @@ urlpatterns = [
     path('proposals/<int:proposal_id>/send/', send_proposal, name='send-proposal'),
     path('proposals/<int:proposal_id>/resend/', resend_proposal, name='resend-proposal'),
     path('proposals/<int:proposal_id>/toggle-active/', toggle_proposal_active, name='toggle-proposal-active'),
+    path('proposals/<int:proposal_id>/update-status/', update_proposal_status, name='update-proposal-status'),
+    path('proposals/<int:proposal_id>/scorecard/', proposal_scorecard, name='proposal-scorecard'),
     path('proposals/<int:proposal_id>/reorder-sections/', bulk_reorder_sections, name='reorder-sections'),
     path('proposals/<int:proposal_id>/analytics/', retrieve_proposal_analytics, name='proposal-analytics'),
     path('proposals/<int:proposal_id>/analytics/csv/', export_proposal_analytics_csv, name='proposal-analytics-csv'),

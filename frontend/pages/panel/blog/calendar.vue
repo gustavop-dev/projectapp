@@ -4,7 +4,7 @@
       <h1 class="text-2xl font-light text-gray-900">Calendario de Blog</h1>
       <div class="flex items-center gap-3">
         <NuxtLink
-          to="/panel/blog"
+          :to="localePath('/panel/blog')"
           class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl
                  font-medium text-sm hover:bg-gray-50 transition-colors"
         >
@@ -14,7 +14,7 @@
           Lista
         </NuxtLink>
         <NuxtLink
-          to="/panel/blog/create"
+          :to="localePath('/panel/blog/create')"
           class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
                  font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
         >
@@ -91,7 +91,7 @@
             <NuxtLink
               v-for="post in day.posts"
               :key="post.id"
-              :to="`/panel/blog/${post.id}/edit`"
+              :to="localePath(`/panel/blog/${post.id}/edit`)"
               class="block px-2 py-1.5 rounded-lg text-xs transition-colors cursor-pointer"
               :class="postCardClass(post)"
             >
@@ -127,6 +127,8 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useBlogStore } from '~/stores/blog';
+
+const localePath = useLocalePath();
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 

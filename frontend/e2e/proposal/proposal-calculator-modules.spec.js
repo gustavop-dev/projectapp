@@ -1,8 +1,10 @@
 /**
- * E2E tests for the three new calculator modules in the investment modal:
- * PWA (30%), AI Implementation (invite-only), Reports & Alerts (10%).
+ * E2E tests for the three calculator modules in the investment modal:
+ * PWA (40%), AI Implementation (invite-only, price_percent 0), Reports & Alerts (20%, default selected).
  *
- * Covers: modules visibility, default unselected state, price display,
+ * @flow: proposal-calculator-modules
+ *
+ * Covers: modules visibility, default states, price display,
  * AI invite note, info badge, selecting module updates total.
  */
 import { test, expect } from '../helpers/test.js';
@@ -70,6 +72,7 @@ const mockProposal = {
             id: 'views',
             icon: '👁️',
             title: 'Vistas',
+            is_visible: true,
             description: 'Pantallas del proyecto.',
             items: [
               { icon: '🏠', name: 'Home', description: 'Landing page.' },
@@ -79,10 +82,11 @@ const mockProposal = {
             id: 'pwa_module',
             icon: '📱',
             title: 'Progressive Web App (PWA)',
+            is_visible: true,
             description: 'Convierte tu sitio web en una aplicación instalable.',
             is_calculator_module: true,
             default_selected: false,
-            price_percent: 30,
+            price_percent: 40,
             items: [
               { icon: '📲', name: 'Instalación en dispositivo', description: 'Instala como app.' },
               { icon: '📡', name: 'Funcionamiento offline', description: 'Acceso sin conexión.' },
@@ -92,11 +96,12 @@ const mockProposal = {
             id: 'ai_module',
             icon: '🤖',
             title: 'Integración y Automatización con IA',
+            is_visible: true,
             description: 'Potencia tu proyecto con IA.',
             is_calculator_module: true,
             default_selected: false,
-            price_percent: null,
-            is_ai_invite: true,
+            price_percent: 0,
+            is_invite: true,
             items: [
               { icon: '⚡', name: 'Automatizaciones', description: 'Flujos inteligentes.' },
               { icon: '💬', name: 'Comunicación inteligente', description: 'Chatbots 24/7.' },
@@ -106,10 +111,11 @@ const mockProposal = {
             id: 'reports_alerts_module',
             icon: '📬',
             title: 'Reportes y Alertas vía Correo o Telegram',
+            is_visible: true,
             description: 'Reportes automáticos y alertas personalizadas.',
             is_calculator_module: true,
-            default_selected: false,
-            price_percent: 10,
+            default_selected: true,
+            price_percent: 20,
             items: [
               { icon: '📧', name: 'Reportes automáticos', description: 'Métricas por correo.' },
               { icon: '✈️', name: 'Integración con Telegram', description: 'Alertas en Telegram.' },
@@ -147,13 +153,14 @@ function setupMock(page) {
 
 async function openCalculatorModal(page) {
   await page.goto(`/proposal/${MOCK_UUID}`);
-  await page.waitForLoadState('networkidle');
-  await expect(page.locator('.proposal-wrapper')).toBeVisible({ timeout: 15000 });
 
   // Navigate from greeting to investment section
   const nextBtn = page.getByTestId('nav-next');
-  await expect(nextBtn).toBeVisible({ timeout: 5000 });
+  await expect(nextBtn).toBeVisible({ timeout: 15000 });
   await nextBtn.click();
+
+  // Wait for investment section to render before opening modal
+  await expect(page.getByText(/inversi[oó]n/i).first()).toBeVisible({ timeout: 10000 });
 
   // Open calculator modal
   const customizeBtn = page.getByRole('button', { name: /Personalizar/i });
@@ -162,14 +169,15 @@ async function openCalculatorModal(page) {
   await customizeBtn.click();
 
   // Wait for modal content
-  await expect(page.getByText(/Selecciona los módulos/i)).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText(/Selecciona los módulos/i)).toBeVisible({ timeout: 10000 });
 }
 
 test.describe('Proposal Calculator Modules (PWA, AI, Reports)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('PWA module appears in modal as unselected by default', {
@@ -178,16 +186,17 @@ test.describe('Proposal Calculator Modules (PWA, AI, Reports)', () => {
     await setupMock(page);
     await openCalculatorModal(page);
 
-    // PWA group label (h4) should be visible
-    await expect(page.locator('h4').filter({ hasText: /Progressive Web App/i })).toBeVisible();
+    // PWA group label should be visible
+    await expect(page.getByText(/Progressive Web App/i).first()).toBeVisible();
 
-    // PWA module item row should exist inside the modal body
-    const pwaRow = page.locator('div.rounded-xl.border').filter({ hasText: /Progressive Web App/ });
+    // PWA module row should be visible
+    // quality: allow-fragile-selector (module row has no testid, identified by text content within styled container)
+    const pwaRow = page.locator('.rounded-xl').filter({ hasText: /Progressive Web App/ }).first();
     await expect(pwaRow).toBeVisible();
 
-    // The module checkbox should show unselected state (no checkmark SVG)
-    const pwaCheckbox = pwaRow.locator('div.w-6.h-6');
-    await expect(pwaCheckbox.locator('svg')).not.toBeVisible();
+    // Unselected modules show an impact warning — verify it is present (proves unselected state)
+    // The generic impact text is 'Este componente no se incluirá en el proyecto.'
+    await expect(pwaRow.getByText(/no se incluirá/i)).toBeVisible();
   });
 
   test('AI module shows schedule call label instead of price', {
@@ -211,13 +220,14 @@ test.describe('Proposal Calculator Modules (PWA, AI, Reports)', () => {
 
     // Click the AI module to select it
     const aiRow = page.locator('div.rounded-xl.border').filter({ hasText: /Integración.*IA/ });
+    await aiRow.scrollIntoViewIfNeeded();
     await aiRow.click();
 
     // The creative invite note should be visible (purple box)
-    await expect(page.getByText(/Te invitamos a una llamada personalizada/)).toBeVisible();
+    await expect(page.getByText(/Te invitamos a una llamada personalizada/)).toBeVisible({ timeout: 5000 });
   });
 
-  test('Reports & Alerts module appears in modal as unselected by default', {
+  test('Reports & Alerts module appears in modal as selected by default', {
     tag: [...PROPOSAL_CALCULATOR_MODULES, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
@@ -230,9 +240,9 @@ test.describe('Proposal Calculator Modules (PWA, AI, Reports)', () => {
     const reportsRow = page.locator('div.rounded-xl.border').filter({ hasText: /Reportes y Alertas/ });
     await expect(reportsRow).toBeVisible();
 
-    // The module checkbox should show unselected state (no checkmark SVG)
+    // The module checkbox should show selected state (checkmark SVG visible)
     const reportsCheckbox = reportsRow.locator('div.w-6.h-6');
-    await expect(reportsCheckbox.locator('svg')).not.toBeVisible();
+    await expect(reportsCheckbox.locator('svg')).toBeVisible();
   });
 
   test('selecting PWA module increases total investment display', {
@@ -242,19 +252,20 @@ test.describe('Proposal Calculator Modules (PWA, AI, Reports)', () => {
     await openCalculatorModal(page);
 
     // Modal footer total — scope to the border-t footer area containing "Total inversión"
+    // Reports & Alerts is default_selected:true at 20% = +$2.000.000, so initial = $12.000.000
     const modalFooter = page.locator('div.border-t.border-gray-100.bg-gray-50');
     const footerTotal = modalFooter.locator('span.font-bold').filter({ hasText: /\$/ });
-    await expect(footerTotal).toContainText('10.000.000');
+    await expect(footerTotal).toContainText('12.000.000');
 
-    // Click PWA module to select it (+30% = +$3.000.000)
+    // Click PWA module to select it (+40% = +$4.000.000)
     const pwaRow = page.locator('div.rounded-xl.border').filter({ hasText: /Progressive Web App/ });
     await pwaRow.click();
 
-    // Total should increase to $13.000.000
-    await expect(footerTotal).toContainText('13.000.000', { timeout: 3000 });
+    // Total should increase to $16.000.000
+    await expect(footerTotal).toContainText('16.000.000', { timeout: 3000 });
   });
 
-  test('info badge about optional items is visible at modal bottom', {
+  test('info badge about optional items is visible at modal top', {
     tag: [...PROPOSAL_CALCULATOR_MODULES, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);

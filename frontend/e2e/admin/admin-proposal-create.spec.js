@@ -38,9 +38,8 @@ test.describe('Admin Proposal Create', () => {
       return null;
     });
     await page.goto('/panel/proposals/create');
-    await page.waitForLoadState('networkidle');
 
-    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('button', { name: 'Manual' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Importar JSON' })).toBeVisible();
     // Title input visible in manual mode
@@ -64,7 +63,7 @@ test.describe('Admin Proposal Create', () => {
     });
 
     await page.goto('/panel/proposals/create');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
 
     // Fill required fields
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
@@ -114,7 +113,7 @@ test.describe('Admin Proposal Create', () => {
     });
 
     await page.goto('/panel/proposals/create');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
 
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
     await page.getByLabel('Nombre del cliente').fill('Carlos López');
@@ -132,7 +131,7 @@ test.describe('Admin Proposal Create', () => {
     await page.getByRole('button', { name: 'Ir a Editar' }).click();
 
     // Should redirect to edit page
-    await expect(page).toHaveURL(/\/panel\/proposals\/\d+\/edit/, { timeout: 15000 });
+    await page.waitForURL(/\/panel\/proposals\/\d+\/edit/, { timeout: 15000 });
   });
 
   test('selecting "Otro" project type shows custom text input', {
@@ -148,6 +147,7 @@ test.describe('Admin Proposal Create', () => {
     const customInput = page.getByPlaceholder('Especificar tipo de proyecto...');
     await expect(customInput).not.toBeVisible();
 
+    // quality: allow-fragile-selector (project type select has no testid, identified by default option text)
     await page.locator('select').filter({ hasText: 'Sin definir' }).first().selectOption('other');
     await expect(customInput).toBeVisible();
   });

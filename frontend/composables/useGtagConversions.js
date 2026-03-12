@@ -10,7 +10,7 @@ export function useGtagConversions() {
     if (typeof window === 'undefined' || typeof window.gtag !== 'function') return
     const callback = () => {
       if (typeof url !== 'undefined') {
-        window.location = url
+        window.open(url, '_self')
       }
     }
     window.gtag('event', 'conversion', {
@@ -25,7 +25,7 @@ export function useGtagConversions() {
     if (typeof window === 'undefined' || typeof window.gtag !== 'function') return
     const callback = () => {
       if (typeof url !== 'undefined') {
-        window.location = url
+        window.open(url, '_self')
       }
     }
     window.gtag('event', 'conversion', {
@@ -40,7 +40,7 @@ export function useGtagConversions() {
     if (typeof window === 'undefined' || typeof window.gtag !== 'function') return
     const callback = () => {
       if (typeof url !== 'undefined') {
-        window.location = url
+        window.open(url, '_self')
       }
     }
     window.gtag('event', 'conversion', {

@@ -30,6 +30,20 @@
         </div>
       </div>
 
+      <!-- F12: Payment plan milestones -->
+      <div v-if="canRespond && !submitted && paymentMilestones.length" data-animate="fade-up" class="w-full max-w-md bg-gray-50 border border-gray-200 rounded-xl p-4 text-left">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{{ t.paymentPlanTitle }}</p>
+        <div class="space-y-2">
+          <div v-for="(m, i) in paymentMilestones" :key="i" class="flex items-center gap-3">
+            <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center flex-shrink-0">{{ i + 1 }}</span>
+            <div class="flex-1 min-w-0">
+              <span class="text-sm font-medium text-gray-700">{{ m.label }}</span>
+              <span class="text-sm text-emerald-600 font-bold ml-2">{{ m.amount }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Accept / Adjust / Decline — simplified to 3 clear options -->
       <div v-if="canRespond && !submitted" data-animate="fade-up" class="flex flex-col items-center gap-3 pt-2">
         <button
@@ -41,6 +55,7 @@
         >
           <span>✅</span> {{ t.acceptBtn }}
         </button>
+        <!-- F14: Consolidated negotiate + comment CTA -->
         <button
           class="px-8 sm:px-12 py-3 bg-amber-50 border-2 border-amber-300 text-amber-800 rounded-xl font-medium text-sm
                  hover:bg-amber-100 transition-colors flex items-center gap-2"
@@ -71,11 +86,43 @@
         <p class="text-sm font-medium text-emerald-700">✅ {{ t.commentSent }}</p>
       </div>
 
-      <!-- Success messages -->
-      <div v-if="submitted || proposal?.status === 'accepted'" data-animate="fade-up" class="py-4">
+      <!-- F13: Post-acceptance welcome kit -->
+      <div v-if="submitted || proposal?.status === 'accepted'" data-animate="fade-up" class="py-4 w-full max-w-lg">
         <div class="text-5xl mb-3 celebration-bounce">🎉</div>
         <p class="text-xl font-bold text-emerald-600">{{ t.accepted }}</p>
-        <p class="text-gray-500 mt-2">{{ t.acceptedSub }}</p>
+        <p class="text-gray-500 mt-2 mb-6">{{ t.acceptedSub }}</p>
+
+        <!-- PDF download -->
+        <a
+          v-if="proposal?.uuid"
+          :href="`/api/proposals/${proposal.uuid}/pdf/`"
+          target="_blank"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors mb-6"
+        >
+          📄 {{ t.downloadPdf }}
+        </a>
+
+        <!-- Onboarding timeline -->
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 text-left space-y-4">
+          <h4 class="font-bold text-gray-900 text-sm">{{ t.onboardingTitle }}</h4>
+          <div v-for="(step, i) in onboardingSteps" :key="i" class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{{ i + 1 }}</div>
+            <div>
+              <p class="text-sm font-medium text-gray-800">{{ step.title }}</p>
+              <p class="text-xs text-gray-500">{{ step.desc }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- PM WhatsApp contact -->
+        <a
+          v-if="whatsappTalkUrl"
+          :href="whatsappTalkUrl"
+          target="_blank"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm font-medium hover:bg-green-100 transition-colors mt-4"
+        >
+          💬 {{ t.contactPm }}
+        </a>
       </div>
 
       <!-- Negotiating success -->
@@ -137,13 +184,22 @@
     </div>
   </section>
 
-  <!-- Accept confirmation modal -->
+  <!-- F16: Accept confirmation modal with optional condition note -->
   <teleport to="body">
     <div v-if="showAcceptConfirm" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showAcceptConfirm = false">
       <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-5 sm:p-8 text-center">
         <div class="text-5xl mb-4">🎉</div>
         <h3 class="text-xl font-bold text-gray-900 mb-2">{{ confirmTitleText }}</h3>
-        <p class="text-gray-600 text-sm mb-6">{{ t.confirmText }}</p>
+        <p class="text-gray-600 text-sm mb-4">{{ t.confirmText }}</p>
+        <div class="text-left mb-4">
+          <label class="block text-xs text-gray-500 mb-1">{{ t.conditionLabel }}</label>
+          <textarea
+            v-model="conditionNote"
+            rows="2"
+            :placeholder="t.conditionPlaceholder"
+            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
+          />
+        </div>
         <div class="flex gap-3 justify-center">
           <button class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors" :disabled="isSubmitting" @click="confirmAccept">
             {{ isSubmitting ? t.sending : t.confirmYes }}
@@ -154,52 +210,72 @@
     </div>
   </teleport>
 
-  <!-- Comment modal -->
-  <teleport to="body">
-    <div v-if="showCommentModal" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showCommentModal = false">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-5 sm:p-8">
-        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ t.commentTitle }}</h3>
-        <p class="text-gray-600 text-sm mb-4">{{ t.commentText }}</p>
-        <textarea
-          v-model="negotiationComment"
-          rows="4"
-          :placeholder="t.commentPlaceholder2"
-          class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
-        />
-        <div class="flex gap-3 justify-end mt-4">
-          <button class="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showCommentModal = false">{{ t.cancel }}</button>
-          <button
-            class="px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
-            :disabled="isCommenting || !negotiationComment.trim()"
-            @click="submitComment"
-          >
-            {{ isCommenting ? t.sending : t.commentSend }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </teleport>
-
-  <!-- Negotiate modal (Accept with Changes) -->
+  <!-- F14+F15: Consolidated negotiate/comment modal with structured checkboxes -->
   <teleport to="body">
     <div v-if="showNegotiateModal" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showNegotiateModal = false">
       <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-5 sm:p-8">
         <h3 class="text-xl font-bold text-gray-900 mb-2">{{ t.negotiateTitle }}</h3>
         <p class="text-gray-600 text-sm mb-4">{{ t.negotiateText }}</p>
+
+        <!-- F15: Structured adjustment reasons -->
+        <div class="space-y-2 mb-4">
+          <label
+            v-for="reason in t.adjustmentReasons"
+            :key="reason"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors"
+            :class="selectedAdjustments.includes(reason) ? 'bg-amber-50 border-amber-300' : 'border-gray-200 hover:border-amber-200'"
+          >
+            <input type="checkbox" :value="reason" v-model="selectedAdjustments" class="w-4 h-4 accent-amber-600 rounded" />
+            <span class="text-sm text-gray-700">{{ reason }}</span>
+          </label>
+        </div>
+
+        <!-- Tab toggle: Negotiate vs Comment -->
+        <div class="flex gap-2 mb-3">
+          <button
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            :class="negotiateTab === 'adjust' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-500'"
+            @click="negotiateTab = 'adjust'"
+          >🤝 {{ t.negotiateBtn }}</button>
+          <button
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            :class="negotiateTab === 'comment' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'"
+            @click="negotiateTab = 'comment'"
+          >💬 {{ t.commentBtn }}</button>
+        </div>
+
         <textarea
+          v-if="negotiateTab === 'adjust'"
           v-model="negotiateComment"
-          rows="4"
+          rows="3"
           :placeholder="t.negotiatePlaceholder"
           class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 outline-none resize-none"
         />
+        <textarea
+          v-else
+          v-model="negotiationComment"
+          rows="3"
+          :placeholder="t.commentPlaceholder2"
+          class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
+        />
+
         <div class="flex gap-3 justify-end mt-4">
           <button class="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showNegotiateModal = false">{{ t.cancel }}</button>
           <button
+            v-if="negotiateTab === 'adjust'"
             class="px-5 py-2 bg-amber-600 text-white rounded-xl text-sm font-medium hover:bg-amber-700 transition-colors"
-            :disabled="isSubmitting || !negotiateComment.trim()"
+            :disabled="isSubmitting || (!negotiateComment.trim() && !selectedAdjustments.length)"
             @click="confirmNegotiate"
           >
             {{ isSubmitting ? t.sending : t.negotiateConfirm }}
+          </button>
+          <button
+            v-else
+            class="px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
+            :disabled="isCommenting || !negotiationComment.trim()"
+            @click="submitComment"
+          >
+            {{ isCommenting ? t.sending : t.commentSend }}
           </button>
         </div>
       </div>
@@ -308,6 +384,19 @@ const i18nStrings = {
     commentPlaceholder: 'Algún comentario adicional...',
     confirmReject: 'Confirmar rechazo',
     specialPrice: 'Precio especial disponible',
+    paymentPlanTitle: 'Plan de pagos',
+    downloadPdf: 'Descargar resumen PDF',
+    onboardingTitle: '¿Qué sigue?',
+    contactPm: 'Contactar a tu Project Manager',
+    conditionLabel: '¿Aceptas con alguna condición? (opcional)',
+    conditionPlaceholder: 'Ej: Acepto, pero necesito que se incluya X...',
+    adjustmentReasons: [
+      'Reducir alcance / módulos',
+      'Ajustar timeline',
+      'Explorar precio diferente',
+      'Cambiar prioridades',
+      'Otro ajuste',
+    ],
     recovery: {
       budgetTitle: '¿Qué tal una versión más enfocada?',
       budgetText: 'Entendemos. Podemos ajustar el alcance del proyecto para adaptarnos a tu presupuesto. ¿Te gustaría explorar opciones?',
@@ -365,6 +454,19 @@ const i18nStrings = {
     commentPlaceholder: 'Any additional comments...',
     confirmReject: 'Confirm rejection',
     specialPrice: 'Special price available',
+    paymentPlanTitle: 'Payment plan',
+    downloadPdf: 'Download PDF summary',
+    onboardingTitle: 'What\'s next?',
+    contactPm: 'Contact your Project Manager',
+    conditionLabel: 'Accept with a condition? (optional)',
+    conditionPlaceholder: 'E.g.: I accept, but I need X to be included...',
+    adjustmentReasons: [
+      'Reduce scope / modules',
+      'Adjust timeline',
+      'Explore different price',
+      'Change priorities',
+      'Other adjustment',
+    ],
     recovery: {
       budgetTitle: 'How about a more focused version?',
       budgetText: 'We understand. We can adjust the project scope to fit your budget. Would you like to explore options?',
@@ -448,6 +550,33 @@ const rejectComment = ref('');
 const isOtherReason = computed(() => rejectReason.value === t.value.otherReason);
 const followupScheduled = ref(false);
 const isScheduling = ref(false);
+const conditionNote = ref('');
+const selectedAdjustments = ref([]);
+const negotiateTab = ref('adjust');
+
+const paymentMilestones = computed(() => {
+  const opts = props.proposal?.payment_options;
+  if (!opts || typeof opts !== 'object') return [];
+  if (Array.isArray(opts)) return opts.map(o => ({ label: o.label || o.name || '', amount: o.amount || '' }));
+  if (opts.milestones && Array.isArray(opts.milestones)) return opts.milestones;
+  return [];
+});
+
+const onboardingSteps = computed(() => {
+  const lang = props.language;
+  if (lang === 'en') {
+    return [
+      { title: 'Confirmation email', desc: 'You will receive an email with the summary and next steps.' },
+      { title: 'Kickoff call', desc: 'Within 48h, your Project Manager will contact you.' },
+      { title: 'Project setup', desc: 'We set up the environment and start the first sprint.' },
+    ];
+  }
+  return [
+    { title: 'Email de confirmación', desc: 'Recibirás un email con el resumen y próximos pasos.' },
+    { title: 'Llamada de kickoff', desc: 'En menos de 48h, tu Project Manager te contactará.' },
+    { title: 'Setup del proyecto', desc: 'Configuramos el entorno e iniciamos el primer sprint.' },
+  ];
+});
 
 const whatsappRecoveryLink = computed(() => {
   const title = props.proposal?.title || '';
@@ -468,7 +597,11 @@ async function confirmAccept() {
   if (!props.proposal?.uuid) return;
   isSubmitting.value = true;
   try {
-    const result = await proposalStore.respondToProposal(props.proposal.uuid, 'accepted');
+    const extra = {};
+    if (conditionNote.value.trim()) {
+      extra.condition = conditionNote.value.trim();
+    }
+    const result = await proposalStore.respondToProposal(props.proposal.uuid, 'accepted', extra);
     if (result.success) {
       submitted.value = true;
       showAcceptConfirm.value = false;
@@ -483,9 +616,16 @@ async function confirmNegotiate() {
   if (!props.proposal?.uuid) return;
   isSubmitting.value = true;
   try {
+    const parts = [];
+    if (selectedAdjustments.value.length) {
+      parts.push('[' + selectedAdjustments.value.join(', ') + ']');
+    }
+    if (negotiateComment.value.trim()) {
+      parts.push(negotiateComment.value.trim());
+    }
     const result = await proposalStore.respondToProposal(
       props.proposal.uuid, 'negotiating',
-      { comment: negotiateComment.value },
+      { comment: parts.join(' — ') },
     );
     if (result.success) {
       negotiatingSubmitted.value = true;

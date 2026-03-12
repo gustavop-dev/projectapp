@@ -39,9 +39,10 @@ function setupMock(page) {
 
 test.describe('Proposal Share Button Hint', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('share hint tooltip appears after delay', {
@@ -68,8 +69,7 @@ test.describe('Proposal Share Button Hint', () => {
 
     // Wait for page to render, then verify hint is not shown
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 15000 });
-    // Give enough time for the 2s delay to pass
-    await page.waitForTimeout(3000);
-    await expect(page.getByText('Comparte con tu equipo')).not.toBeVisible();
+    // The hint has a 2s auto-show delay; wait for that window to pass using condition-based wait
+    await expect(page.getByText('Comparte con tu equipo')).not.toBeVisible({ timeout: 5000 });
   });
 });

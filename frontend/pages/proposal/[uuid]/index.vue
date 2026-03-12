@@ -32,27 +32,49 @@
         <button class="ml-4 underline text-white/80 hover:text-white" @click="exitPreview">{{ pLang === 'es' ? 'Volver al panel' : 'Back to panel' }}</button>
       </div>
 
-      <!-- UX overlay elements -->
-      <ProposalIndex
-        :sections="displayPanels"
-        :currentIndex="currentIndex"
-        :visitedPanelIds="visitedPanelIds"
-        @navigate="handleNavigate"
-        @update:open="(val) => indexOpen = val"
-      />
-      <SectionCounter :current="currentIndex + 1" :total="totalSections" />
-      <ExpirationBadge v-if="proposal.expires_at" :expiresAt="proposal.expires_at" />
-
-      <!-- PDF download + Share -->
-      <PdfDownloadButton />
-      <ShareProposalButton
-        v-if="proposal?.uuid"
-        :proposalUuid="proposal.uuid"
-        :language="proposal?.language || 'es'"
+      <!-- View mode gateway: shown when user hasn't chosen a view yet -->
+      <ProposalViewGateway
+        v-if="!viewMode"
+        :language="pLang"
+        :clientName="proposal.client_name || ''"
+        @select="handleViewModeSelect"
       />
 
-      <!-- Onboarding tutorial tooltips -->
-      <ProposalOnboarding ref="onboardingRef" :language="pLang" @complete="showReadingTimePopup" />
+      <!-- Proposal sections: shown after view mode is chosen -->
+      <template v-if="viewMode">
+        <!-- UX overlay elements -->
+        <ProposalIndex
+          :sections="displayPanels"
+          :currentIndex="currentIndex"
+          :visitedPanelIds="visitedPanelIds"
+          @navigate="handleNavigate"
+          @update:open="(val) => indexOpen = val"
+        />
+        <SectionCounter :current="currentIndex + 1" :total="totalSections" />
+        <ExpirationBadge v-if="proposal.expires_at" :expiresAt="proposal.expires_at" />
+
+        <!-- PDF download + Share -->
+        <PdfDownloadButton />
+        <ShareProposalButton
+          v-if="proposal?.uuid"
+          :proposalUuid="proposal.uuid"
+          :language="proposal?.language || 'es'"
+        />
+
+        <!-- Onboarding tutorial tooltips -->
+        <ProposalOnboarding ref="onboardingRef" :language="pLang" @complete="showReadingTimePopup" />
+
+        <!-- Sticky response bar (visible before reaching closing section) -->
+        <ProposalResponseButtons
+          :proposal="proposal"
+          :visible="showStickyBar"
+          :language="pLang"
+          :whatsappLink="extractedWhatsappLink"
+          :proposalTitle="proposal?.title || ''"
+          :currentSectionTitle="currentPanel?.title || ''"
+          @negotiate="navigateToClosing"
+          @reject="navigateToClosing"
+        />
 
 
       <!-- Welcome-back toast (non-blocking) -->
@@ -98,7 +120,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 class="text-lg font-bold text-esmerald mb-2">{{ pLang === 'es' ? 'Tiempo de lectura: ~6 minutos' : 'Reading time: ~6 minutes' }}</h3>
+              <h3 class="text-lg font-bold text-esmerald mb-2">{{ pLang === 'es' ? `Tiempo de lectura: ~${viewMode === 'executive' ? '2' : '8'} minutos` : `Reading time: ~${viewMode === 'executive' ? '2' : '8'} minutes` }}</h3>
               <p class="text-sm text-esmerald/70 font-light leading-relaxed mb-6">
                 {{ pLang === 'es' ? 'Por favor lee el contenido de todas las secciones. Cada una aborda un punto importante y diferente de la propuesta.' : 'Please read through all sections. Each one covers an important and different aspect of the proposal.' }}
               </p>
@@ -142,9 +164,11 @@
             v-bind="getSectionProps(currentPanel)"
             @navigateToRequirements="handleNavigateToRequirements"
             @updateCalculatorModules="onCalculatorModulesUpdate"
+            @switchToDetailed="handleSwitchToDetailed"
           />
         </div>
       </Transition>
+    </template>
     </div>
   </div>
 </template>
@@ -181,6 +205,8 @@ import SectionNavButtons from '~/components/BusinessProposal/SectionNavButtons.v
 import ProposalOnboarding from '~/components/BusinessProposal/ProposalOnboarding.vue';
 import ShareProposalButton from '~/components/BusinessProposal/ShareProposalButton.vue';
 import WhatsAppFloatingButton from '~/components/BusinessProposal/WhatsAppFloatingButton.vue';
+import ProposalViewGateway from '~/components/BusinessProposal/ProposalViewGateway.vue';
+import ProposalResponseButtons from '~/components/BusinessProposal/ProposalResponseButtons.vue';
 
 definePageMeta({ layout: false });
 
@@ -243,12 +269,22 @@ useHead({
   }),
 });
 
+const viewMode = ref(null); // null = gateway, 'executive', 'detailed'
+const EXECUTIVE_SECTION_TYPES = new Set([
+  'greeting', 'executive_summary', 'proposal_summary', 'investment', 'timeline', 'proposal_closing',
+]);
+
 // Build display panels: skip next_steps (merged into final_note), no FR sub-panels
+// When viewMode is 'executive', filter to only executive section types
 const displayPanels = computed(() => {
   const panels = [];
+  const isExecutive = viewMode.value === 'executive';
+
   for (const section of enabledSections.value) {
     // Skip next_steps — its content is merged into final_note
     if (section.section_type === 'next_steps') continue;
+    // In executive mode, skip sections not in the executive set
+    if (isExecutive && !EXECUTIVE_SECTION_TYPES.has(section.section_type)) continue;
     panels.push(section);
   }
 
@@ -326,7 +362,7 @@ const configurableRequirementItems = computed(() => {
   const frSection = enabledSections.value.find(s => s.section_type === 'functional_requirements');
   if (!frSection) return [];
   const cj = frSection.content_json || {};
-  const allGroups = [...(cj.groups || []), ...(cj.additionalModules || [])];
+  const allGroups = [...(cj.groups || []), ...(cj.additionalModules || [])].filter(g => g.is_visible !== false);
   const items = [];
   for (const group of allGroups) {
     if (group.is_calculator_module) continue;
@@ -354,7 +390,7 @@ const calculatorModuleItems = computed(() => {
   const investContent = investmentSection?.content_json || {};
   const baseTotal = parseInt(String(investContent.totalInvestment || '').replace(/[^\d]/g, ''), 10) || 0;
   const cj = frSection.content_json || {};
-  const allGroups = [...(cj.groups || []), ...(cj.additionalModules || [])];
+  const allGroups = [...(cj.groups || []), ...(cj.additionalModules || [])].filter(g => g.is_visible !== false);
   const items = [];
   for (const group of allGroups) {
     if (!group.is_calculator_module) continue;
@@ -367,8 +403,8 @@ const calculatorModuleItems = computed(() => {
       price,
       included: true,
       is_required: false,
-      default_selected: false,
-      is_ai_invite: group.is_ai_invite || false,
+      default_selected: group.default_selected ?? false,
+      is_invite: group.is_invite || false,
       invite_note: group.invite_note || '',
       _source: 'calculator_module',
       description: group.description || '',
@@ -386,7 +422,10 @@ function computeAllModuleIds() {
   const content = investmentSection.content_json || {};
   const investmentIds = (content.modules || []).map(m => m.id).filter(Boolean);
   const frIds = configurableRequirementItems.value.map(item => item.id);
-  return [...investmentIds, ...frIds];
+  const defaultSelectedCalcIds = calculatorModuleItems.value
+    .filter(m => m.default_selected)
+    .map(m => m.id);
+  return [...investmentIds, ...frIds, ...defaultSelectedCalcIds];
 }
 
 const prevPanelTitle = computed(() => {
@@ -454,6 +493,16 @@ function getSectionProps(section) {
         })),
       }));
     }
+    // Build a price map for calculator modules so FR cards can show price badges
+    const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
+    const investContent = investmentSection?.content_json || {};
+    const baseTotal = parseInt(String(investContent.totalInvestment || '').replace(/[^\d]/g, ''), 10) || 0;
+    const calcPriceMap = {};
+    for (const g of [...(content.additionalModules || []), ...groups]) {
+      if (g.is_calculator_module && g.price_percent != null) {
+        calcPriceMap[g.id] = Math.round(baseTotal * g.price_percent / 100);
+      }
+    }
     return {
       data: {
         ...content,
@@ -462,6 +511,8 @@ function getSectionProps(section) {
       },
       language: proposal.value?.language || 'es',
       selectedCalculatorModules: [...selectedCalculatorModuleIds.value],
+      calculatorModulePrices: calcPriceMap,
+      currency: investContent.currency || proposal.value?.currency || 'COP',
     };
   }
 
@@ -485,6 +536,7 @@ function getSectionProps(section) {
       whatsappLink: extractedWhatsappLink.value,
       baseWeeks,
       sentAt: proposal.value?.sent_at || '',
+      viewMode: viewMode.value || 'detailed',
     };
   }
 
@@ -581,6 +633,45 @@ function handleNavigateToRequirements() {
   if (idx !== -1) navigateTo(idx);
 }
 
+const showStickyBar = computed(() => {
+  if (!proposal.value) return false;
+  const s = proposal.value.status;
+  if (s !== 'sent' && s !== 'viewed') return false;
+  // Hide when already on the closing panel (it has its own buttons)
+  return currentPanel.value?.section_type !== 'proposal_closing';
+});
+
+function navigateToClosing() {
+  const idx = displayPanels.value.findIndex(p => p.section_type === 'proposal_closing');
+  if (idx !== -1) navigateTo(idx);
+}
+
+function handleViewModeSelect(mode) {
+  viewMode.value = mode;
+  currentIndex.value = 0;
+  // Persist choice
+  if (proposal.value?.uuid) {
+    try {
+      localStorage.setItem(`proposal-${proposal.value.uuid}-viewMode`, mode);
+    } catch (_e) { /* ignore */ }
+  }
+  // Start onboarding after gateway selection
+  nextTick(() => {
+    onboardingRef.value?.start();
+  });
+}
+
+function handleSwitchToDetailed() {
+  viewMode.value = 'detailed';
+  currentIndex.value = 0;
+  window.scrollTo({ top: 0, behavior: 'auto' });
+  if (proposal.value?.uuid) {
+    try {
+      localStorage.setItem(`proposal-${proposal.value.uuid}-viewMode`, 'detailed');
+    } catch (_e) { /* ignore */ }
+  }
+}
+
 function onCalculatorModulesUpdate(selectedIds) {
   if (!selectedIds) return;
   const calcModIds = calculatorModuleItems.value.map(m => m.id);
@@ -645,8 +736,18 @@ const onAnimationComplete = () => {
   showContent.value = true;
   window.addEventListener('keydown', handleKeydown);
 
-  // Check for returning client (welcome-back)
-  if (!isPreviewMode.value && proposal.value?.uuid) {
+  // Restore viewMode from localStorage for returning visitors
+  if (proposal.value?.uuid) {
+    try {
+      const savedMode = localStorage.getItem(`proposal-${proposal.value.uuid}-viewMode`);
+      if (savedMode === 'executive' || savedMode === 'detailed') {
+        viewMode.value = savedMode;
+      }
+    } catch (_e) { /* ignore */ }
+  }
+
+  // Check for returning client (welcome-back) — only if viewMode is already set
+  if (viewMode.value && !isPreviewMode.value && proposal.value?.uuid) {
     try {
       const key = `proposal-${proposal.value.uuid}-progress`;
       const saved = localStorage.getItem(key);
@@ -660,10 +761,12 @@ const onAnimationComplete = () => {
     } catch (_e) { /* ignore */ }
   }
 
-  // Start onboarding tutorial after a short delay for elements to render
-  nextTick(() => {
-    onboardingRef.value?.start();
-  });
+  // If viewMode is set (returning visitor), start onboarding; otherwise gateway is shown
+  if (viewMode.value) {
+    nextTick(() => {
+      onboardingRef.value?.start();
+    });
+  }
 };
 
 onBeforeUnmount(() => {

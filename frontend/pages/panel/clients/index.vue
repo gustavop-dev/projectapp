@@ -105,7 +105,7 @@
                 >
                   <td class="px-5 py-3">
                     <NuxtLink
-                      :to="`/panel/proposals/${p.id}/edit`"
+                      :to="localePath(`/panel/proposals/${p.id}/edit`)"
                       class="font-medium text-gray-900 hover:text-emerald-600 transition-colors"
                     >
                       {{ p.title }}
@@ -145,6 +145,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 
+const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const proposalStore = useProposalStore();

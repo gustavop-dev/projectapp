@@ -16,14 +16,6 @@ function todayISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function getMondayISO(offset = 0) {
-  const d = new Date();
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
-  d.setDate(diff);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
 const mockCalendarPosts = [
   { id: 1, title_es: 'Post Publicado', category: 'ai', date: todayISO(), calendar_status: 'published' },
   { id: 2, title_es: 'Post Programado', category: 'design', date: todayISO(), calendar_status: 'scheduled' },
@@ -101,6 +93,7 @@ test.describe('Admin Blog Calendar', () => {
     await page.goto('/panel/blog/calendar');
     await page.waitForLoadState('networkidle');
 
+    // quality: allow-fragile-selector (calendar heading has no testid, first h2 is the week label)
     const initialWeekText = await page.locator('h2').first().textContent();
     calendarRequestCount = 0;
 
@@ -114,6 +107,7 @@ test.describe('Admin Blog Calendar', () => {
     await page.getByRole('button', { name: 'Hoy' }).click();
     await page.waitForLoadState('networkidle');
 
+    // quality: allow-fragile-selector (same calendar heading)
     const resetWeekText = await page.locator('h2').first().textContent();
     expect(resetWeekText).toBe(initialWeekText);
   });
@@ -134,6 +128,7 @@ test.describe('Admin Blog Calendar', () => {
 
     // All days should show "Sin posts"
     const emptyLabels = page.getByText('Sin posts');
+    // quality: allow-fragile-selector (multiple 'Sin posts' labels, checking any one is visible)
     await expect(emptyLabels.first()).toBeVisible();
   });
 });

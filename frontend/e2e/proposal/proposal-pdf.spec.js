@@ -11,6 +11,10 @@ test.describe('Proposal PDF Download', () => {
   test('PDF download returns 200 with PDF content', {
     tag: [...PROPOSAL_DOWNLOAD_PDF, '@role:guest'],
   }, async ({ page }) => {
+    await page.addInitScript((uuid) => {
+      localStorage.setItem('proposal_onboarding_seen', 'true');
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === `proposals/${MOCK_UUID}/`) return { status: 200, contentType: 'application/json', body: JSON.stringify({ id: 1, uuid: MOCK_UUID, title: 'PDF Test', client_name: 'Client', status: 'sent', sections: [], requirement_groups: [] }) };
       if (apiPath === `proposals/${MOCK_UUID}/pdf/`) return { status: 200, contentType: 'application/pdf', body: '%PDF-fake-content' };

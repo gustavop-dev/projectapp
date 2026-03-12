@@ -4,7 +4,7 @@
       <h1 class="text-2xl font-light text-gray-900">Blog Posts</h1>
       <div class="flex items-center gap-3">
         <NuxtLink
-          to="/panel/blog/calendar"
+          :to="localePath('/panel/blog/calendar')"
           class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl
                  font-medium text-sm hover:bg-gray-50 transition-colors"
         >
@@ -14,7 +14,7 @@
           Calendario
         </NuxtLink>
         <NuxtLink
-          to="/panel/blog/create"
+          :to="localePath('/panel/blog/create')"
           class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
                  font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
         >
@@ -46,7 +46,7 @@
         >
           <div class="flex items-start justify-between gap-3 mb-2">
             <NuxtLink
-              :to="`/panel/blog/${post.id}/edit`"
+              :to="localePath(`/panel/blog/${post.id}/edit`)"
               class="text-sm font-medium text-gray-900 hover:text-emerald-600 transition-colors leading-tight"
             >
               {{ post.title_es }}
@@ -61,7 +61,7 @@
           <p class="text-xs text-gray-400 mb-3">{{ post.slug }} · {{ formatDate(post.published_at || post.created_at) }}</p>
           <div class="flex items-center gap-3">
             <NuxtLink
-              :to="`/panel/blog/${post.id}/edit`"
+              :to="localePath(`/panel/blog/${post.id}/edit`)"
               class="text-xs text-emerald-600 font-medium"
             >
               Editar
@@ -98,7 +98,7 @@
               <tr v-for="post in posts" :key="post.id" class="hover:bg-gray-50 transition-colors">
                 <td class="px-6 py-4">
                   <NuxtLink
-                    :to="`/panel/blog/${post.id}/edit`"
+                    :to="localePath(`/panel/blog/${post.id}/edit`)"
                     class="text-sm font-medium text-gray-900 hover:text-emerald-600 transition-colors"
                   >
                     {{ post.title_es }}
@@ -119,7 +119,7 @@
                 <td class="px-6 py-4 text-right">
                   <div class="flex items-center justify-end gap-2">
                     <NuxtLink
-                      :to="`/panel/blog/${post.id}/edit`"
+                      :to="localePath(`/panel/blog/${post.id}/edit`)"
                       class="text-xs text-gray-500 hover:text-emerald-600 transition-colors"
                     >
                       Editar
@@ -180,6 +180,8 @@
 <script setup>
 import { computed, onMounted } from 'vue';
 import { useBlogStore } from '~/stores/blog';
+
+const localePath = useLocalePath();
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 

@@ -43,9 +43,10 @@ function setupMock(page) {
 
 test.describe('Proposal Process & Methodology', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('renders 5-step pipeline with correct step titles', {

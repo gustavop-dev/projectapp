@@ -27,7 +27,10 @@
                 <span class="text-xl">{{ group.icon || '🧩' }}</span>
               </div>
               <h3 class="text-lg font-medium text-esmerald">{{ group.title }}</h3>
-              <span v-if="group.items?.length" class="ml-auto badge-count text-xs font-bold text-white bg-esmerald/70 px-2.5 py-1 rounded-full group-hover:bg-esmerald group-hover:scale-110 transition-all">
+              <span v-if="groupPrice(group)" class="ml-auto text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                💰 +{{ formatPrice(groupPrice(group)) }}
+              </span>
+              <span v-else-if="group.items?.length" class="ml-auto badge-count text-xs font-bold text-white bg-esmerald/70 px-2.5 py-1 rounded-full group-hover:bg-esmerald group-hover:scale-110 transition-all">
                 {{ group.items.length }}
               </span>
             </div>
@@ -78,6 +81,14 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  calculatorModulePrices: {
+    type: Object,
+    default: () => ({}),
+  },
+  currency: {
+    type: String,
+    default: 'COP',
+  },
 });
 
 const i18n = {
@@ -91,7 +102,7 @@ const data = props.data;
 const allGroups = computed(() => {
   const groups = data.groups || [];
   const additional = data.additionalModules || [];
-  const all = [...groups, ...additional].filter(g => g && (g.title || g.items?.length));
+  const all = [...groups, ...additional].filter(g => g && g.is_visible !== false && (g.title || g.items?.length));
   return all.filter(g => {
     if (!g.is_calculator_module) return true;
     return props.selectedCalculatorModules.includes(`module-${g.id}`);
@@ -100,6 +111,16 @@ const allGroups = computed(() => {
 
 const modalVisible = ref(false);
 const selectedGroup = ref({});
+
+function groupPrice(group) {
+  if (!group.is_calculator_module) return 0;
+  return props.calculatorModulePrices[group.id] || 0;
+}
+
+function formatPrice(value) {
+  if (!value) return '';
+  return '$' + Number(value).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
 
 function openModal(group) {
   selectedGroup.value = group;

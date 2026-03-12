@@ -47,8 +47,9 @@ async function openQuickLogModal(page) {
     if (floatingBtn) floatingBtn.style.display = 'none';
   });
 
-  // Open actions modal — click the three-dots SVG button in the first row's actions cell
+  // quality: allow-fragile-selector (table row has no testid, first row is the target for actions)
   const firstRow = page.locator('tbody tr').first();
+  // quality: allow-fragile-selector (table row actions button has no testid, last td + last button is the three-dots trigger)
   const dotsBtn = firstRow.locator('td').last().locator('button').last();
   await dotsBtn.click();
 
@@ -131,9 +132,14 @@ test.describe('@flow: admin-proposal-quick-log — Quick Log Activity from Propo
 
     const modal = page.locator('div.fixed.inset-0').filter({ has: page.locator('select') });
     const submitBtn = modal.getByRole('button', { name: 'Registrar', exact: true });
-    await submitBtn.click();
+
+    // Wait for API response before asserting modal closure
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('log-activity')),
+      submitBtn.click(),
+    ]);
 
     // Modal should close after successful submission
-    await expect(page.locator('select')).not.toBeVisible({ timeout: 5000 });
+    await expect(modal).not.toBeVisible({ timeout: 5000 });
   });
 });

@@ -58,7 +58,6 @@ def retrieve_public_proposal(request, proposal_uuid):
         # Post-expiration visit alert — high-intent signal
         if not proposal.post_expiration_alert_sent_at:
             try:
-                from content.models import ProposalAlert
                 ProposalAlert.objects.create(
                     proposal=proposal,
                     alert_type='post_expiration_visit',
@@ -123,31 +122,44 @@ def retrieve_public_proposal(request, proposal_uuid):
             )
 
     # 3.4 — Post-rejection revisit alert (high-intent signal)
+    #        Enhanced: only fire when rejection happened 7+ days ago
     is_reengagement = request.query_params.get('ref') == 'reengagement'
     if (
         proposal.status == BusinessProposal.Status.REJECTED
         and not is_reengagement
         and not getattr(proposal, '_post_rejection_alert_sent', False)
     ):
-        existing = ProposalAlert.objects.filter(
-            proposal=proposal, alert_type='post_rejection_revisit',
-        ).exists()
-        if not existing:
-            try:
-                ProposalAlert.objects.create(
-                    proposal=proposal,
-                    alert_type='post_rejection_revisit',
-                    message=(
-                        f'{proposal.client_name} revisitó la propuesta rechazada '
-                        f'"{proposal.title}". Posible reconsideración.'
-                    ),
-                    alert_date=timezone.now(),
-                )
-            except Exception:
-                logger.exception(
-                    'Failed to create post-rejection revisit alert for %s',
-                    proposal.uuid,
-                )
+        from datetime import timedelta as _td
+        rejection_gap_ok = (
+            proposal.responded_at
+            and proposal.responded_at + _td(days=7) < timezone.now()
+        )
+        if rejection_gap_ok:
+            existing = ProposalAlert.objects.filter(
+                proposal=proposal, alert_type='post_rejection_revisit',
+            ).exists()
+            if not existing:
+                try:
+                    ProposalAlert.objects.create(
+                        proposal=proposal,
+                        alert_type='post_rejection_revisit',
+                        message=(
+                            f'{proposal.client_name} revisitó la propuesta rechazada '
+                            f'"{proposal.title}" después de 7+ días. Posible reconsideración.'
+                        ),
+                        alert_date=timezone.now(),
+                    )
+                    from content.services.proposal_email_service import (
+                        ProposalEmailService,
+                    )
+                    ProposalEmailService.send_post_rejection_revisit_alert(
+                        proposal
+                    )
+                except Exception:
+                    logger.exception(
+                        'Failed to create post-rejection revisit alert for %s',
+                        proposal.uuid,
+                    )
 
     serializer = ProposalDetailSerializer(
         proposal, context={'request': request, 'is_admin': False}
@@ -660,6 +672,204 @@ def toggle_proposal_active(request, proposal_id):
     return Response(detail.data, status=status.HTTP_200_OK)
 
 
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def update_proposal_status(request, proposal_id):
+    """
+    Inline status change from the proposals table.
+    Body: { "status": "expired" }
+
+    Validates allowed transitions and logs the change.
+    """
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+    new_status = (request.data.get('status') or '').strip()
+
+    valid_statuses = {c[0] for c in BusinessProposal.Status.choices}
+    if new_status not in valid_statuses:
+        return Response(
+            {'error': f'Invalid status: {new_status}'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Block illogical transitions
+    blocked = {
+        'accepted': {'draft'},
+        'rejected': {'draft'},
+        'draft': {'accepted', 'rejected', 'negotiating'},
+    }
+    if new_status in blocked.get(proposal.status, set()):
+        return Response(
+            {'error': f'Cannot transition from {proposal.status} to {new_status}.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    old_status = proposal.status
+    proposal.status = new_status
+    proposal.save(update_fields=['status'])
+
+    ProposalChangeLog.objects.create(
+        proposal=proposal,
+        change_type='status_change',
+        field_name='status',
+        old_value=old_status,
+        new_value=new_status,
+        description=f'Status changed from {old_status} to {new_status} (inline).',
+    )
+
+    detail = ProposalDetailSerializer(
+        proposal, context={'request': request, 'is_admin': True}
+    )
+    return Response(detail.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def proposal_scorecard(request, proposal_id):
+    """
+    Pre-send scorecard: returns a 1-10 completeness score with
+    individual checks and blockers for a proposal.
+    """
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+
+    checks = []
+
+    # 1. Client email
+    has_email = bool(proposal.client_email)
+    checks.append({
+        'key': 'client_email',
+        'label': 'Email del cliente',
+        'passed': has_email,
+        'blocker': True,
+    })
+
+    # 2. Client name
+    has_name = bool(proposal.client_name)
+    checks.append({
+        'key': 'client_name',
+        'label': 'Nombre del cliente',
+        'passed': has_name,
+        'blocker': True,
+    })
+
+    # 3. Investment > 0
+    has_investment = bool(proposal.total_investment and proposal.total_investment > 0)
+    checks.append({
+        'key': 'total_investment',
+        'label': 'Inversión total > $0',
+        'passed': has_investment,
+        'blocker': True,
+    })
+
+    # 4. Expiration date in the future
+    has_expiration = bool(
+        proposal.expires_at and proposal.expires_at > timezone.now()
+    )
+    checks.append({
+        'key': 'expires_at',
+        'label': 'Fecha de expiración futura',
+        'passed': has_expiration,
+        'blocker': True,
+    })
+
+    # 5. At least 1 enabled section
+    enabled_sections = proposal.sections.filter(is_enabled=True).count()
+    has_sections = enabled_sections >= 1
+    checks.append({
+        'key': 'enabled_sections',
+        'label': 'Al menos 1 sección habilitada',
+        'passed': has_sections,
+        'blocker': True,
+    })
+
+    # 6. Title set
+    has_title = bool(proposal.title and proposal.title.strip())
+    checks.append({
+        'key': 'title',
+        'label': 'Título de la propuesta',
+        'passed': has_title,
+        'blocker': False,
+    })
+
+    # 7. Sections with content (non-empty content_json)
+    import json as _json
+    sections_with_content = 0
+    for sec in proposal.sections.filter(is_enabled=True):
+        cj = sec.content_json
+        if isinstance(cj, str):
+            try:
+                cj = _json.loads(cj)
+            except (ValueError, TypeError):
+                cj = {}
+        if cj and cj != {}:
+            sections_with_content += 1
+    content_ratio = (
+        sections_with_content / enabled_sections if enabled_sections > 0 else 0
+    )
+    checks.append({
+        'key': 'sections_content',
+        'label': f'Secciones con contenido ({sections_with_content}/{enabled_sections})',
+        'passed': content_ratio >= 0.5,
+        'blocker': False,
+    })
+
+    # 8. Discount configured (optional quality check)
+    has_discount_or_na = True  # Not a blocker
+    checks.append({
+        'key': 'discount_review',
+        'label': 'Descuento revisado',
+        'passed': has_discount_or_na,
+        'blocker': False,
+    })
+
+    # 9. Payment options set (read from investment section content_json)
+    investment_section = proposal.sections.filter(
+        section_type='investment', is_enabled=True
+    ).first()
+    inv_cj = {}
+    if investment_section:
+        inv_cj = investment_section.content_json or {}
+        if isinstance(inv_cj, str):
+            try:
+                inv_cj = _json.loads(inv_cj)
+            except (ValueError, TypeError):
+                inv_cj = {}
+    has_payment = bool(inv_cj.get('paymentOptions'))
+    checks.append({
+        'key': 'payment_options',
+        'label': 'Opciones de pago definidas',
+        'passed': has_payment,
+        'blocker': False,
+    })
+
+    # 10. Timeline / estimated weeks (read from investment section content_json)
+    estimated_weeks = inv_cj.get('estimatedWeeks', 0)
+    try:
+        estimated_weeks = int(estimated_weeks)
+    except (ValueError, TypeError):
+        estimated_weeks = 0
+    has_timeline = estimated_weeks > 0
+    checks.append({
+        'key': 'estimated_weeks',
+        'label': 'Tiempo estimado definido',
+        'passed': has_timeline,
+        'blocker': False,
+    })
+
+    # Compute score (1-10)
+    passed_count = sum(1 for c in checks if c['passed'])
+    score = max(1, round(passed_count / len(checks) * 10))
+    blockers = [c for c in checks if c['blocker'] and not c['passed']]
+
+    return Response({
+        'score': score,
+        'checks': checks,
+        'blockers': blockers,
+        'can_send': len(blockers) == 0,
+        'total_checks': len(checks),
+        'passed_checks': passed_count,
+    }, status=status.HTTP_200_OK)
+
+
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def resend_proposal(request, proposal_id):
@@ -789,16 +999,27 @@ def respond_to_proposal(request, proposal_uuid):
     # Log the response event
     change_type = action
     comment = request.data.get('comment', '')
+    condition = request.data.get('condition', '').strip()
     description = f'Client {action} the proposal.'
     if action == 'rejected' and proposal.rejection_reason:
         description += f' Reason: {proposal.rejection_reason}'
     if action == 'negotiating' and comment:
         description += f' Comment: {comment[:500]}'
+    if action == 'accepted' and condition:
+        description += f' Condition: {condition[:500]}'
     ProposalChangeLog.objects.create(
         proposal=proposal,
         change_type=change_type,
         description=description,
     )
+
+    # Log conditional acceptance separately for easy querying
+    if action == 'accepted' and condition:
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type='cond_accepted',
+            description=f'Conditional acceptance: {condition[:500]}',
+        )
 
     # Log automation pause
     ProposalChangeLog.objects.create(
@@ -1165,6 +1386,7 @@ def track_calculator_interaction(request, proposal_uuid):
     selected = request.data.get('selected', [])
     deselected = request.data.get('deselected', [])
     total = request.data.get('total', 0)
+    elapsed_seconds = request.data.get('elapsed_seconds', 0)
 
     change_type = (
         ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED
@@ -1179,6 +1401,7 @@ def track_calculator_interaction(request, proposal_uuid):
             'selected': selected,
             'deselected': deselected,
             'total': total,
+            'elapsed_seconds': elapsed_seconds,
         }),
     )
 

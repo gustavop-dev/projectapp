@@ -54,9 +54,8 @@ test.describe('Admin Proposal Dashboard', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Total propuestas')).toBeVisible();
+    await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('12')).toBeVisible();
     await expect(page.getByText('25%')).toBeVisible();
     await expect(page.getByText('Tasa conversión')).toBeVisible();
@@ -67,8 +66,8 @@ test.describe('Admin Proposal Dashboard', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
+    await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 15000 });
     const distSection = page.locator('text=Distribución por estado').locator('..');
     await expect(distSection).toBeVisible();
     await expect(distSection.getByText('draft').first()).toBeVisible();
@@ -81,9 +80,8 @@ test.describe('Admin Proposal Dashboard', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Top motivos de rechazo')).toBeVisible();
+    await expect(page.getByText('Top motivos de rechazo')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('Precio alto')).toBeVisible();
     await expect(page.getByText('Sin presupuesto')).toBeVisible();
   });
@@ -93,9 +91,8 @@ test.describe('Admin Proposal Dashboard', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Total propuestas')).toBeVisible();
+    await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 15000 });
 
     // Hide dashboard
     await page.getByText('Ocultar Dashboard').click();

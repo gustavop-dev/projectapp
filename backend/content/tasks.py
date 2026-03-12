@@ -468,6 +468,404 @@ def publish_scheduled_blog_posts():
         logger.info('Published %d scheduled blog post(s).', count)
 
 
+def _suggest_action_for_proposal(proposal, now):
+    """
+    Generate a contextual suggested action for a single proposal
+    based on its current state, engagement signals, and timing.
+
+    Returns a short actionable string for the daily digest email.
+    """
+    from datetime import timedelta
+
+    # Negotiating → follow up on the negotiation
+    if proposal.status == 'negotiating':
+        return 'Seguir negociación: enviar opciones de ajuste o agendar llamada.'
+
+    # High view count today-ish → call now
+    if proposal.view_count and proposal.view_count >= 3:
+        return f'Llamar hoy: {proposal.view_count} visitas registradas. Alta intención.'
+
+    # Expiring soon → offer discount or extend
+    if proposal.expires_at:
+        days_left = (proposal.expires_at - now).days
+        if 0 < days_left <= 3:
+            if not proposal.discount_percent:
+                return f'Expira en {days_left}d. Considerar activar descuento o re-enviar con nota.'
+            return f'Expira en {days_left}d. Enviar recordatorio de urgencia.'
+
+    # Viewed but no response → WhatsApp follow-up
+    if proposal.status == 'viewed':
+        ref_date = proposal.last_activity_at or proposal.first_viewed_at
+        if ref_date and (now - ref_date) > timedelta(days=2):
+            days_waiting = (now - ref_date).days
+            return f'Sin respuesta hace {days_waiting}d. Enviar WhatsApp personalizado.'
+        return 'Visto recientemente. Esperar 24-48h o enviar WhatsApp de refuerzo.'
+
+    # Sent but never viewed → re-send or call
+    if proposal.status == 'sent':
+        if proposal.sent_at and (now - proposal.sent_at) > timedelta(days=3):
+            return 'Sin abrir hace >3d. Re-enviar propuesta o contactar por teléfono.'
+        return 'Enviada recientemente. Esperar a que la abra.'
+
+    return 'Revisar estado y dar seguimiento.'
+
+
+@periodic_task(crontab(hour='7', minute='0'))
+def send_daily_pipeline_digest():
+    """
+    Daily task (7 AM): compile and send a pipeline digest email
+    summarising: proposals viewed yesterday, inactive proposals,
+    proposals expiring within 5 days, total active count, and
+    a suggested action #1 per proposal.
+    """
+    from datetime import timedelta
+
+    from content.models import BusinessProposal, ProposalViewEvent
+    from content.services.proposal_email_service import ProposalEmailService
+
+    now = timezone.now()
+    yesterday_start = (now - timedelta(days=1)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    yesterday_end = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    three_days_ago = now - timedelta(days=3)
+
+    active_proposals = BusinessProposal.objects.filter(
+        status__in=['sent', 'viewed', 'negotiating'],
+        is_active=True,
+    )
+
+    # Proposals viewed yesterday
+    viewed_yesterday_ids = (
+        ProposalViewEvent.objects
+        .filter(viewed_at__gte=yesterday_start, viewed_at__lt=yesterday_end)
+        .values_list('proposal_id', flat=True)
+        .distinct()
+    )
+    viewed_yesterday_qs = active_proposals.filter(pk__in=viewed_yesterday_ids)
+    viewed_yesterday = []
+    for p in viewed_yesterday_qs:
+        viewed_yesterday.append({
+            'id': p.id,
+            'client_name': p.client_name,
+            'title': p.title,
+            'status': p.status,
+            'total_investment': p.total_investment,
+            'currency': p.currency,
+            'suggested_action': _suggest_action_for_proposal(p, now),
+        })
+
+    # Inactive proposals (no activity >3 days)
+    inactive = []
+    for p in active_proposals.filter(status__in=['sent', 'viewed', 'negotiating']):
+        ref_date = p.last_activity_at or p.sent_at
+        if ref_date and ref_date < three_days_ago:
+            inactive.append({
+                'id': p.id,
+                'client_name': p.client_name,
+                'title': p.title,
+                'days_inactive': (now - ref_date).days,
+                'suggested_action': _suggest_action_for_proposal(p, now),
+            })
+
+    # Expiring within 5 days
+    expiring_soon_qs = active_proposals.filter(
+        expires_at__isnull=False,
+        expires_at__gt=now,
+        expires_at__lte=now + timedelta(days=5),
+    )
+    expiring_soon = []
+    for p in expiring_soon_qs:
+        expiring_soon.append({
+            'id': p.id,
+            'client_name': p.client_name,
+            'title': p.title,
+            'expires_at': p.expires_at,
+            'suggested_action': _suggest_action_for_proposal(p, now),
+        })
+
+    digest_data = {
+        'viewed_yesterday': viewed_yesterday,
+        'inactive': inactive,
+        'expiring_soon': expiring_soon,
+        'total_active': active_proposals.count(),
+        'date': now.strftime('%Y-%m-%d'),
+    }
+
+    ProposalEmailService.send_daily_pipeline_digest(digest_data)
+
+
+@periodic_task(crontab(hour='*/3', minute='45'))
+def detect_high_engagement_today():
+    """
+    Periodic task (every 3 hours): if a client has >=3 unique view sessions
+    on a proposal today, create a high_engagement_today alert for the seller.
+    Rate-limited to one alert per day per proposal.
+    """
+    from datetime import timedelta
+
+    from content.models import BusinessProposal, ProposalAlert, ProposalViewEvent
+
+    now = timezone.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    active_proposals = BusinessProposal.objects.filter(
+        status__in=['sent', 'viewed', 'negotiating'],
+        is_active=True,
+    )
+
+    created = 0
+    for proposal in active_proposals:
+        sessions_today = (
+            ProposalViewEvent.objects
+            .filter(proposal=proposal, viewed_at__gte=today_start)
+            .values('session_id')
+            .distinct()
+            .count()
+        )
+        if sessions_today < 3:
+            continue
+
+        already_alerted = ProposalAlert.objects.filter(
+            proposal=proposal,
+            alert_type='high_engagement_today',
+            is_dismissed=False,
+            created_at__gte=today_start,
+        ).exists()
+        if already_alerted:
+            continue
+
+        ProposalAlert.objects.create(
+            proposal=proposal,
+            alert_type='high_engagement_today',
+            message=(
+                f'{proposal.client_name} visitó la propuesta '
+                f'{sessions_today} veces hoy. Considera llamar ahora.'
+            ),
+            alert_date=now,
+        )
+        created += 1
+
+    if created > 0:
+        logger.info('Created %d high-engagement alerts.', created)
+
+
+@periodic_task(crontab(hour='*/2', minute='30'))
+def check_calculator_abandonment_followup():
+    """
+    Periodic task (every 2 hours): if a client abandoned the calculator
+    (calc_abandoned logged) >24h ago, with no subsequent calc_confirmed,
+    proposal still viewed/sent, and no response — create follow-up alert.
+
+    Enhanced: also detects high-intent sessions where the client spent >5min
+    in the calculator before abandoning, and includes this in the alert message.
+    """
+    import json as _json
+    from datetime import timedelta
+
+    from content.models import BusinessProposal, ProposalAlert, ProposalChangeLog
+
+    now = timezone.now()
+    one_day_ago = now - timedelta(hours=24)
+
+    candidates = BusinessProposal.objects.filter(
+        status__in=['sent', 'viewed'],
+        is_active=True,
+        automations_paused=False,
+        calculator_followup_sent_at__isnull=True,
+        responded_at__isnull=True,
+    )
+
+    created = 0
+    for proposal in candidates:
+        abandoned_logs = ProposalChangeLog.objects.filter(
+            proposal=proposal,
+            change_type='calc_abandoned',
+            created_at__lt=one_day_ago,
+        ).order_by('-created_at')
+        if not abandoned_logs.exists():
+            continue
+
+        has_confirmed_after = ProposalChangeLog.objects.filter(
+            proposal=proposal,
+            change_type='calc_confirmed',
+            created_at__gt=one_day_ago,
+        ).exists()
+        if has_confirmed_after:
+            continue
+
+        # Check elapsed time from the most recent abandonment event
+        max_elapsed = 0
+        latest_log = abandoned_logs.first()
+        if latest_log and latest_log.description:
+            try:
+                data = _json.loads(latest_log.description)
+                max_elapsed = data.get('elapsed_seconds', 0)
+            except (ValueError, TypeError):
+                pass
+
+        high_intent = max_elapsed >= 300  # >5 minutes
+        if high_intent:
+            minutes = max_elapsed // 60
+            message = (
+                f'{proposal.client_name} pasó {minutes}+ min en el calculador '
+                f'sin confirmar (alta intención). Enviar: '
+                f'"¿Tienes dudas sobre los módulos? Puedo ajustar la selección contigo."'
+            )
+        else:
+            message = (
+                f'{proposal.client_name} abandonó el calculador hace >24h '
+                f'sin confirmar. Considera enviar seguimiento.'
+            )
+
+        ProposalAlert.objects.create(
+            proposal=proposal,
+            alert_type='calculator_followup',
+            message=message,
+            alert_date=now,
+        )
+        proposal.calculator_followup_sent_at = now
+        proposal.save(update_fields=['calculator_followup_sent_at'])
+        created += 1
+
+    if created > 0:
+        logger.info('Created %d calculator followup alerts.', created)
+
+
+@periodic_task(crontab(hour='9', minute='30'))
+def generate_whatsapp_suggestions():
+    """
+    Daily task (9:30 AM): for proposals viewed >48h ago without response,
+    generate a WhatsApp suggestion alert with a pre-drafted message
+    mentioning the section where the client spent most time.
+    """
+    from datetime import timedelta
+
+    from django.db.models import Sum
+
+    from content.models import (
+        BusinessProposal, ProposalAlert, ProposalSectionView,
+    )
+
+    now = timezone.now()
+    two_days_ago = now - timedelta(hours=48)
+
+    candidates = BusinessProposal.objects.filter(
+        status='viewed',
+        is_active=True,
+        automations_paused=False,
+        responded_at__isnull=True,
+        first_viewed_at__isnull=False,
+        first_viewed_at__lt=two_days_ago,
+        client_phone__gt='',
+    )
+
+    created = 0
+    for proposal in candidates:
+        already_exists = ProposalAlert.objects.filter(
+            proposal=proposal,
+            alert_type='whatsapp_suggestion',
+            is_dismissed=False,
+        ).exists()
+        if already_exists:
+            continue
+
+        top_section = (
+            ProposalSectionView.objects
+            .filter(view_event__proposal=proposal)
+            .values('section_type')
+            .annotate(total_time=Sum('time_spent_seconds'))
+            .order_by('-total_time')
+            .first()
+        )
+
+        section_name = (top_section['section_type'] if top_section else 'la propuesta')
+        section_labels = {
+            'greeting': 'bienvenida',
+            'executive_summary': 'resumen ejecutivo',
+            'context_diagnostic': 'diagnóstico y contexto',
+            'conversion_strategy': 'estrategia de conversión',
+            'design_ux': 'diseño y UX',
+            'creative_support': 'soporte creativo',
+            'development_stages': 'etapas de desarrollo',
+            'functional_requirements': 'requerimientos funcionales',
+            'timeline': 'cronograma',
+            'investment': 'inversión',
+            'final_note': 'nota final',
+            'next_steps': 'próximos pasos',
+            'proposal_summary': 'resumen',
+            'process_methodology': 'proceso y metodología',
+            'closing': 'cierre',
+            'about_us': 'sobre nosotros',
+        }
+        label = section_labels.get(section_name, section_name)
+
+        message_draft = (
+            f'Hola {proposal.client_name}, vi que revisaste la sección de '
+            f'{label} con mucho interés. ¿Te puedo ayudar con alguna duda?'
+        )
+
+        ProposalAlert.objects.create(
+            proposal=proposal,
+            alert_type='whatsapp_suggestion',
+            message=f'Sugerencia de WhatsApp para {proposal.client_name}: "{message_draft}"',
+            alert_date=now,
+        )
+        created += 1
+
+    if created > 0:
+        logger.info('Created %d WhatsApp suggestions.', created)
+
+
+@periodic_task(crontab(hour='1', minute='30'))
+def auto_archive_zombie_proposals():
+    """
+    Daily task: deactivate proposals that are expired and had no
+    interaction (views or change logs) in the last 30 days.
+    """
+    from datetime import timedelta
+
+    from django.db.models import Max
+
+    from content.models import BusinessProposal, ProposalChangeLog
+
+    now = timezone.now()
+    thirty_days_ago = now - timedelta(days=30)
+
+    candidates = BusinessProposal.objects.filter(
+        status='expired',
+        is_active=True,
+    )
+
+    archived = 0
+    for proposal in candidates:
+        last_view = (
+            proposal.view_events
+            .aggregate(latest=Max('viewed_at'))['latest']
+        )
+        last_log = (
+            ProposalChangeLog.objects
+            .filter(proposal=proposal)
+            .aggregate(latest=Max('created_at'))['latest']
+        )
+
+        latest_activity = max(
+            filter(None, [last_view, last_log, proposal.created_at])
+        )
+        if latest_activity and latest_activity < thirty_days_ago:
+            proposal.is_active = False
+            proposal.save(update_fields=['is_active'])
+            ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type='auto_archived',
+                description='Auto-archived: expired with no activity for 30+ days.',
+            )
+            archived += 1
+
+    if archived > 0:
+        logger.info('Auto-archived %d zombie proposals.', archived)
+
+
 @task()
 def notify_first_view(proposal_id):
     """

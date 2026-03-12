@@ -71,7 +71,7 @@ test.describe('Admin Proposal Actions Modal', () => {
     // Wait for the table to render
     await expect(page.getByText('Actions Modal Test')).toBeVisible({ timeout: 10000 });
 
-    // Click the actions (⋮) button on the proposal row
+    // quality: allow-fragile-selector (table actions button has no testid, last SVG button in row is the actions trigger)
     const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
     await actionsBtn.click();
 
@@ -86,9 +86,9 @@ test.describe('Admin Proposal Actions Modal', () => {
     await page.goto('/panel/proposals');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Actions Modal Test')).toBeVisible({ timeout: 10000 });
+    await page.getByText('Actions Modal Test').waitFor({ state: 'visible', timeout: 10000 });
 
-    // Open actions modal
+    // quality: allow-fragile-selector (table actions button has no testid)
     const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
     await actionsBtn.click();
 
@@ -111,7 +111,7 @@ test.describe('Admin Proposal Actions Modal', () => {
 
     await expect(page.getByText('Actions Modal Test')).toBeVisible({ timeout: 10000 });
 
-    // Open actions modal
+    // quality: allow-fragile-selector (table actions button has no testid)
     const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
     await actionsBtn.click();
 
@@ -129,12 +129,12 @@ test.describe('Admin Proposal Actions Modal', () => {
 
     await expect(page.getByText('Actions Modal Test')).toBeVisible({ timeout: 10000 });
 
-    // Open actions modal
+    // quality: allow-fragile-selector (table actions button has no testid)
     const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
     await actionsBtn.click();
     await expect(page.getByText('Editar propuesta')).toBeVisible();
 
-    // Click the close button
+    // quality: allow-fragile-selector (modal close button identified by SVG icon, no testid)
     const closeBtn = page.locator('.fixed').getByRole('button').filter({ has: page.locator('svg path') }).first();
     await closeBtn.click();
 

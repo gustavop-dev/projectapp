@@ -1,0 +1,15 @@
+🔄 POSIBLE RECONSIDERACIÓN — {{ proposal_title }}
+
+{{ client_name }} revisitó la propuesta "{{ proposal_title }}" que había rechazado hace {{ days_since_rejection }} días.
+Este comportamiento sugiere que el cliente está reconsiderando.
+
+Detalles:
+- Propuesta: {{ proposal_title }}
+- Cliente: {{ client_name }}
+- Inversión: ${{ total_investment }} {{ currency }}
+- Días desde rechazo: {{ days_since_rejection }}
+
+📞 Contactar al cliente: {{ edit_url }}
+
+---
+Alerta automática — ProjectApp.co

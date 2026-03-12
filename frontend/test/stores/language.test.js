@@ -88,6 +88,31 @@ describe('useLanguageStore', () => {
 
       store.loadMessages.mockRestore();
     });
+
+    it('uses stored preference from localStorage when available', async () => {
+      jest.spyOn(store, 'loadMessages').mockResolvedValue();
+      localStorage.setItem('preferred_locale', 'es-co');
+
+      await store.detectBrowserLanguageAndRegion();
+
+      expect(store.currentLocale).toBe('es-co');
+      expect(store.loadMessages).toHaveBeenCalledWith('es');
+
+      localStorage.removeItem('preferred_locale');
+      store.loadMessages.mockRestore();
+    });
+
+    it('ignores invalid stored preference', async () => {
+      jest.spyOn(store, 'loadMessages').mockResolvedValue();
+      localStorage.setItem('preferred_locale', 'fr-fr');
+
+      await store.detectBrowserLanguageAndRegion();
+
+      expect(store.currentLocale).not.toBe('fr-fr');
+
+      localStorage.removeItem('preferred_locale');
+      store.loadMessages.mockRestore();
+    });
   });
 
   describe('detectBrowserLanguage', () => {

@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 1.7.0
-> **Last updated:** 2026-03-11
+> **Version:** 1.8.0
+> **Last updated:** 2026-03-12
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -918,15 +918,15 @@
 - **Role:** guest (via shared UUID link)
 - **Priority:** P1
 - **Routes:** `/proposal/:uuid`
-- **Description:** Calculator modal displays three new default modules: PWA (30% of total investment), AI Implementation (invite-only, no direct cost), and Reports & Alerts (10% of total investment). All are unselected by default. AI module shows a creative invite note and "Agendar llamada" label. An informational badge explains items are optional.
+- **Description:** Calculator modal displays core calculator modules in order: PWA (40%), AI (invite-only), Conversiones Inteligentes (invite-only), Facturación Electrónica (60%), Pasarela Internacional (20%), Pasarela Regional (20%), Email Marketing (10%), Reportes y Alertas (20%, selected by default), Multi-idioma (15%). An informational badge at the **top** of the modal explains items are optional. Selecting a calculator module **adds** ~1 week to the timeline.
 - **Steps:**
   1. Client navigates to the Investment section and clicks "Personalizar tu inversión".
-  2. Calculator modal opens showing existing investment modules.
-  3. PWA module appears as a separate group, unselected by default, with price as +30% of total.
-  4. AI module appears with "Agendar llamada" label instead of price and a purple creative invite note.
-  5. Reports & Alerts module appears unselected by default with price as +10% of total.
-  6. Client selects PWA module → total investment increases by 30%.
-  7. Informational badge at modal bottom explains optional items and links to Functional Requirements.
+  2. Calculator modal opens with informational badge at the top.
+  3. Modules appear in the specified order: PWA, AI, Smart Conversions, Electronic Invoicing, International Payments, Regional Payments, Email Marketing, Reports & Alerts, Multi-idioma.
+  4. PWA module appears unselected by default, with price as +40% of total.
+  5. AI module appears with "Agendar llamada" label instead of price and a purple creative invite note.
+  6. Reports & Alerts module appears selected by default with price as +20% of total.
+  7. Selecting a module adds ~1 week to estimated timeline; deselecting an investment module reduces ~1 week.
   8. Client confirms selection → modal closes, total updates on Investment section.
 - **Branches:**
   - [Branch A — AI invite] Client selects AI module → invite note visible, no cost added.
@@ -1123,16 +1123,36 @@
 - **Role:** guest (via shared UUID link)
 - **Priority:** P2
 - **Routes:** `/proposal/:uuid`
-- **Description:** The investment calculator displays new default modules: Dashboard KPIs (free, selected by default), Email Marketing (10% of total), Reports & Alerts (20% of total), and renamed PWA module (40% of total). Each module has detailed items and business-oriented descriptions.
+- **Description:** The investment calculator displays additional default modules: Email Marketing (10%), i18n (15%), and Gift Cards (20%). KPI Dashboard has been removed from the calculator and is now included by default (like Analytics). Conversion Tracking moved to integrations (see `proposal-calculator-integrations`).
 - **Steps:**
   1. Client opens the calculator modal.
-  2. Dashboard KPIs module appears selected by default with "Incluido" label (free).
-  3. Email Marketing module appears unselected with price as +10% of total.
-  4. Reports & Alerts module appears unselected with price as +20% of total.
-  5. PWA module appears as "Aplicación Móvil Instalable (PWA)" with price as +40% of total.
-  6. Client toggles modules → total investment and timeline update in real-time.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+  2. Email Marketing module appears unselected with price as +10% of total.
+  3. i18n module appears unselected with price as +15% of total.
+  4. Gift Cards module appears unselected with price as +20% of total.
+  5. Client toggles modules → total investment and timeline update in real-time.
+  6. KPI Dashboard is NOT shown in the modal (included by default like Analytics module).
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-calculator-new-modules.spec.js`
+
+### FLOW: `proposal-calculator-integrations`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** The investment calculator displays integration groups as individually toggleable calculator modules: International Payments (20%), Regional Payments Colombia (20%), Electronic Invoicing / DIAN (60%), and Conversion Tracking Meta & Google Ads (invite-only, 0%). Each was previously grouped under a single `integrations_api` group and now has its own pricing, selection state, and invite attributes.
+- **Steps:**
+  1. Client opens the calculator modal.
+  2. International Payments integration appears unselected with price as +20% of total.
+  3. Regional Payments (Colombia) integration appears unselected with price as +20% of total.
+  4. Electronic Invoicing integration appears unselected with price as +60% of total.
+  5. Conversion Tracking integration appears with "Agendar llamada" invite-only label and invite note.
+  6. Client selects International Payments → total investment increases by 20%.
+  7. Client selects Electronic Invoicing → total investment increases by 60%.
+- **Branches:**
+  - [Branch A — Conversion Tracking invite] Client sees invite note, no cost added.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-calculator-integrations.spec.js`
 
 ### FLOW: `admin-blog-list`
 
@@ -1382,6 +1402,7 @@
 | `proposal-calculator-timeline` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-calculator-timeline.spec.js` |
 | `admin-discount-analysis-enhanced` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-discount-analysis.spec.js` |
 | `proposal-calculator-modules` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-calculator-modules.spec.js` |
+| `proposal-calculator-integrations` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-integrations.spec.js` |
 | `proposal-expired-graceful` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view.spec.js` |
 | `proposal-calculator-abandonment-tracking` | proposal | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
 | `admin-proposal-batch-actions` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
@@ -1398,18 +1419,31 @@
 | `admin-proposal-dashboard-auto-refresh` | admin | admin | P3 | ❌ Missing | — |
 | `proposal-summary-kpis` | proposal | guest | P2 | ❌ Missing | — |
 | `admin-proposal-log-activity` | admin | admin | P2 | ❌ Missing | — |
-| `proposal-calculator-new-modules` | proposal | guest | P2 | ❌ Missing | — |
+| `proposal-calculator-new-modules` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-new-modules.spec.js` |
+| `admin-proposal-inline-status-change` | admin | admin | P2 | ❌ Missing | — |
+| `admin-proposal-scorecard` | admin | admin | P2 | ❌ Missing | — |
+| `admin-proposal-section-completeness` | admin | admin | P3 | ❌ Missing | — |
+| `admin-daily-pipeline-digest` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests |
+| `admin-high-engagement-alert` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests |
+| `admin-calculator-followup-alert` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests |
+| `admin-whatsapp-suggestion` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests |
+| `admin-auto-archive-zombie` | admin | system | P3 | ⚠️ Backend-only | Backend unit tests |
+| `proposal-calculator-micro-feedback` | proposal | guest | P2 | ❌ Missing | — |
+| `proposal-payment-plan-closing` | proposal | guest | P2 | ❌ Missing | — |
+| `proposal-post-acceptance-welcome` | proposal | guest | P1 | ❌ Missing | — |
+| `proposal-structured-negotiation` | proposal | guest | P2 | ❌ Missing | — |
+| `proposal-conditional-acceptance` | proposal | guest | P2 | ❌ Missing | — |
 
 ### Summary
 
-- **Total flows:** 83 (added 12 new flows: negotiate, quick-send, quick-log, calculator timeline, discount multi-section, mobile onboarding, OG meta, dashboard refresh, summary KPIs, log activity, new calculator modules)
-- **P1 (Critical):** 19
-- **P2 (High):** 50
-- **P3 (Medium):** 14
-- **Covered (full):** 66 (80%)
-- **Backend-only:** 5 (6%) — system-triggered alerts and tracking covered by backend unit tests
+- **Total flows:** 98
+- **P1 (Critical):** 20
+- **P2 (High):** 62
+- **P3 (Medium):** 16
+- **Covered (full):** 69 (70%)
+- **Backend-only:** 10 (10%) — system-triggered alerts and automation covered by backend unit tests
 - **Partial:** 2 (2%)
-- **Missing:** 7 (8%) — newly added flows pending E2E specs
+- **Missing:** 17 (17%) — pending E2E specs
 
 ### Unit Test Coverage
 

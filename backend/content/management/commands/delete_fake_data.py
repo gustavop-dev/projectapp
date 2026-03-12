@@ -1,5 +1,10 @@
-from content.models import Contact, Design, Model3D, Product, Category, Item, BusinessProposal, BlogPost
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
+
+from content.models import BlogPost, BusinessProposal, Category, Contact, Design, Item, Model3D, Product
+
+User = get_user_model()
+
 
 class Command(BaseCommand):
     help = 'Delete all fake data for contacts, designs, models3d, and products'
@@ -49,5 +54,12 @@ class Command(BaseCommand):
         for post in BlogPost.objects.all():
             post.delete()
             self.stdout.write(self.style.SUCCESS(f'BlogPost "{post}" deleted'))
+
+        # Superusers and staff users are intentionally never deleted
+        protected = User.objects.filter(is_superuser=True).count() + User.objects.filter(is_staff=True).count()
+        if protected:
+            self.stdout.write(self.style.WARNING(
+                f'Skipped {protected} superuser/staff account(s) — protected from deletion'
+            ))
 
         self.stdout.write(self.style.SUCCESS('All fake data has been deleted'))

@@ -33,9 +33,10 @@ function buildProposal(expiresAt) {
 
 test.describe('Proposal Countdown Realtime', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('shows HH:MM countdown when proposal expires within 48 hours', {

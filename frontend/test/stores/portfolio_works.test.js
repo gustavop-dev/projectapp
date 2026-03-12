@@ -223,6 +223,170 @@ describe('usePortfolioWorksStore', () => {
     });
   });
 
+  describe('fetchAdminWork', () => {
+    it('fetches single admin work by id', async () => {
+      get_request.mockResolvedValue({ data: mockWork });
+
+      const result = await store.fetchAdminWork(1);
+
+      expect(get_request).toHaveBeenCalledWith('portfolio/admin/1/detail/');
+      expect(store.currentWork).toEqual(mockWork);
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(mockWork);
+    });
+
+    it('handles error and sets fetch_failed', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.fetchAdminWork(99);
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('fetch_failed');
+    });
+
+    it('sets isLoading during fetch', async () => {
+      get_request.mockResolvedValue({ data: mockWork });
+
+      const promise = store.fetchAdminWork(1);
+      expect(store.isLoading).toBe(true);
+      await promise;
+      expect(store.isLoading).toBe(false);
+    });
+  });
+
+  describe('createWorkFromJSON', () => {
+    it('creates work from JSON and returns data', async () => {
+      create_request.mockResolvedValue({ data: mockWork });
+
+      const result = await store.createWorkFromJSON({ title_es: 'JSON Work' });
+
+      expect(create_request).toHaveBeenCalledWith(
+        'portfolio/admin/create-from-json/',
+        { title_es: 'JSON Work' },
+      );
+      expect(store.currentWork).toEqual(mockWork);
+      expect(result.success).toBe(true);
+    });
+
+    it('handles error with validation data', async () => {
+      create_request.mockRejectedValue({ response: { data: { title_es: ['required'] } } });
+
+      const result = await store.createWorkFromJSON({});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual({ title_es: ['required'] });
+      expect(store.error).toBe('create_failed');
+    });
+
+    it('sets isUpdating during creation', async () => {
+      create_request.mockResolvedValue({ data: mockWork });
+
+      const promise = store.createWorkFromJSON({});
+      expect(store.isUpdating).toBe(true);
+      await promise;
+      expect(store.isUpdating).toBe(false);
+    });
+  });
+
+  describe('uploadCoverImage', () => {
+    it('uploads file and updates currentWork', async () => {
+      const mockFile = new File(['img'], 'cover.jpg', { type: 'image/jpeg' });
+      const updatedWork = { ...mockWork, cover_image: '/media/cover.jpg' };
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(updatedWork),
+      });
+      Object.defineProperty(document, 'cookie', {
+        value: 'csrftoken=testtoken',
+        writable: true,
+      });
+
+      const result = await store.uploadCoverImage(1, mockFile);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/portfolio/admin/1/upload-cover/',
+        expect.objectContaining({ method: 'POST' }),
+      );
+      expect(store.currentWork).toEqual(updatedWork);
+      expect(result.success).toBe(true);
+    });
+
+    it('handles upload failure (non-ok response)', async () => {
+      const mockFile = new File(['img'], 'cover.jpg', { type: 'image/jpeg' });
+      global.fetch = jest.fn().mockResolvedValue({ ok: false });
+
+      const result = await store.uploadCoverImage(1, mockFile);
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('upload_failed');
+    });
+
+    it('handles network error', async () => {
+      const mockFile = new File(['img'], 'cover.jpg', { type: 'image/jpeg' });
+      global.fetch = jest.fn().mockRejectedValue(new Error('Network'));
+
+      const result = await store.uploadCoverImage(1, mockFile);
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('upload_failed');
+    });
+
+    it('sets isUpdating during upload', async () => {
+      const mockFile = new File(['img'], 'cover.jpg', { type: 'image/jpeg' });
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(mockWork),
+      });
+
+      const promise = store.uploadCoverImage(1, mockFile);
+      expect(store.isUpdating).toBe(true);
+      await promise;
+      expect(store.isUpdating).toBe(false);
+    });
+  });
+
+  describe('downloadJSONTemplate', () => {
+    it('fetches template and returns data', async () => {
+      const template = { sections: ['greeting', 'investment'] };
+      get_request.mockResolvedValue({ data: template });
+
+      const result = await store.downloadJSONTemplate();
+
+      expect(get_request).toHaveBeenCalledWith('portfolio/admin/json-template/');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(template);
+    });
+
+    it('handles error gracefully', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.downloadJSONTemplate();
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('updateWork error handling', () => {
+    it('handles update error with validation data', async () => {
+      patch_request.mockRejectedValue({ response: { data: { title_es: ['required'] } } });
+
+      const result = await store.updateWork(1, {});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual({ title_es: ['required'] });
+      expect(store.error).toBe('update_failed');
+    });
+
+    it('sets isUpdating during update', async () => {
+      patch_request.mockResolvedValue({ data: mockWork });
+
+      const promise = store.updateWork(1, { title_es: 'Up' });
+      expect(store.isUpdating).toBe(true);
+      await promise;
+      expect(store.isUpdating).toBe(false);
+    });
+  });
+
   describe('getWorkById getter', () => {
     it('finds work by id', () => {
       store.works = [mockWork, { ...mockWork, id: 2 }];

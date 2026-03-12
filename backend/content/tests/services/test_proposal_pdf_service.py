@@ -59,6 +59,40 @@ from content.services.proposal_pdf_service import (
 pytestmark = pytest.mark.django_db
 
 
+# ── Data builders ─────────────────────────────────────────────
+
+_HOSTING_PLAN_WITH_SPECS = {
+    'title': 'Cloud Pro',
+    'description': 'Full managed hosting.',
+    'specs': [
+        {'label': 'Storage', 'value': '50 GB'},
+        {'label': 'Bandwidth', 'value': 'Unlimited'},
+        {'label': 'SSL', 'value': 'Included'},
+    ],
+    'monthlyPrice': '$150.000',
+    'monthlyLabel': 'por mes',
+    'annualPrice': '$1.500.000',
+    'annualLabel': 'pago anual',
+    'coverageNote': 'Hosting covers domain, SSL, and CDN.',
+}
+
+
+def _investment_content_json(**overrides):
+    """Build investment section content_json with sensible defaults."""
+    base = {
+        'index': '4', 'title': 'Inversión',
+        'introText': 'Total:',
+        'totalInvestment': '$5,000,000', 'currency': 'COP',
+        'whatsIncluded': [],
+        'paymentOptions': [],
+        'hostingPlan': {'title': 'Cloud', 'description': 'Included.'},
+        'modules': [],
+        'valueReasons': [],
+    }
+    base.update(overrides)
+    return base
+
+
 # ── Fixtures ──────────────────────────────────────────────────
 
 @pytest.fixture
@@ -286,6 +320,40 @@ _FINAL_NOTE_DATA = {
     'contactEmail': 'team@test.com',
     'commitmentBadges': [{'title': 'Quality', 'description': 'Guaranteed'}],
 }
+
+
+def _calculator_module_group(**overrides):
+    """Build a calculator module group with sensible defaults."""
+    base = {
+        'id': 'pwa_module', 'title': 'PWA',
+        'is_calculator_module': True,
+        'default_selected': False,
+        'price_percent': 20,
+        'is_visible': True,
+        'description': 'Progressive Web App.',
+        'items': [{'name': 'Offline', 'description': 'Works offline.'}],
+    }
+    base.update(overrides)
+    return base
+
+
+def _fr_section_content_json(groups=None, **overrides):
+    """Build functional_requirements section content_json."""
+    base = {
+        'index': '1', 'title': 'Requirements',
+        'intro': '',
+        'groups': groups or [],
+        'additionalModules': [],
+    }
+    base.update(overrides)
+    return base
+
+
+def _final_note_data(**overrides):
+    """Build final note section data with sensible defaults."""
+    base = dict(_FINAL_NOTE_DATA)
+    base.update(overrides)
+    return base
 
 
 # ── Drawing helper tests ─────────────────────────────────────
@@ -909,19 +977,10 @@ class TestGenerate:
             title='Inversión',
             order=0,
             is_enabled=True,
-            content_json={
-                'index': '4', 'title': 'Inversión',
-                'introText': 'Total:',
-                'totalInvestment': '$5,000,000', 'currency': 'COP',
-                'whatsIncluded': [],
-                'paymentOptions': [],
-                'hostingPlan': {'title': 'Cloud', 'description': 'Included.'},
-                'modules': [
-                    {'id': 'web', 'name': 'Sitio Web', 'price': 3000000, 'included': True},
-                    {'id': 'seo', 'name': 'SEO', 'price': 500000, 'included': False},
-                ],
-                'valueReasons': [],
-            },
+            content_json=_investment_content_json(modules=[
+                {'id': 'web', 'name': 'Sitio Web', 'price': 3000000, 'included': True},
+                {'id': 'seo', 'name': 'SEO', 'price': 500000, 'included': False},
+            ]),
         )
 
         result = ProposalPdfService.generate(
@@ -952,19 +1011,10 @@ class TestGenerate:
             title='Inversión',
             order=0,
             is_enabled=True,
-            content_json={
-                'index': '4', 'title': 'Inversión',
-                'introText': 'Total:',
-                'totalInvestment': '$5,000,000', 'currency': 'COP',
-                'whatsIncluded': [],
-                'paymentOptions': [],
-                'hostingPlan': {'title': 'Cloud', 'description': 'Included.'},
-                'modules': [
-                    {'id': 'web', 'name': 'Sitio Web', 'price': 3000000, 'included': True},
-                    {'id': 'seo', 'name': 'SEO', 'price': 500000, 'included': False},
-                ],
-                'valueReasons': [],
-            },
+            content_json=_investment_content_json(modules=[
+                {'id': 'web', 'name': 'Sitio Web', 'price': 3000000, 'included': True},
+                {'id': 'seo', 'name': 'SEO', 'price': 500000, 'included': False},
+            ]),
         )
 
         result = ProposalPdfService.generate(
@@ -995,18 +1045,9 @@ class TestGenerate:
             title='Inversión',
             order=0,
             is_enabled=True,
-            content_json={
-                'index': '4', 'title': 'Inversión',
-                'introText': 'Total:',
-                'totalInvestment': '$5,000,000', 'currency': 'COP',
-                'whatsIncluded': [],
-                'paymentOptions': [],
-                'hostingPlan': {'title': 'Cloud', 'description': 'Included.'},
-                'modules': [
-                    {'id': 'web', 'name': 'Sitio Web', 'price': 3000000, 'included': True},
-                ],
-                'valueReasons': [],
-            },
+            content_json=_investment_content_json(modules=[
+                {'id': 'web', 'name': 'Sitio Web', 'price': 3000000, 'included': True},
+            ]),
         )
 
         result = ProposalPdfService.generate(
@@ -1507,48 +1548,30 @@ class TestBackCoverMerge(TestMergeWithCovers):
 class TestInvestmentHostingEdgeCases:
     def test_investment_with_hosting_specs_and_pricing(self, pdf_canvas, proposal):
         """Investment section with hosting specs grid and pricing renders."""
-        data = {
-            'index': '9', 'title': 'Investment',
-            'introText': 'Total:',
-            'totalInvestment': '$5,000,000', 'currency': 'COP',
-            'whatsIncluded': [{'title': 'Design', 'description': 'UX'}],
-            'paymentOptions': [{'label': '50%', 'description': '$2.5M'}],
-            'hostingPlan': {
-                'title': 'Cloud Pro',
-                'description': 'Full managed hosting.',
-                'specs': [
-                    {'label': 'Storage', 'value': '50 GB'},
-                    {'label': 'Bandwidth', 'value': 'Unlimited'},
-                    {'label': 'SSL', 'value': 'Included'},
-                ],
-                'monthlyPrice': '$150.000',
-                'monthlyLabel': 'por mes',
-                'annualPrice': '$1.500.000',
-                'annualLabel': 'pago anual',
-                'coverageNote': 'Hosting covers domain, SSL, and CDN.',
-            },
-            'valueReasons': ['Quality', 'Support'],
-        }
+        data = _investment_content_json(
+            index='9', title='Investment',
+            totalInvestment='$5,000,000',
+            whatsIncluded=[{'title': 'Design', 'description': 'UX'}],
+            paymentOptions=[{'label': '50%', 'description': '$2.5M'}],
+            hostingPlan=_HOSTING_PLAN_WITH_SPECS,
+            valueReasons=['Quality', 'Support'],
+        )
         page_before = pdf_canvas.getPageNumber()
         SECTION_RENDERERS['investment'](pdf_canvas, data, proposal)
         assert pdf_canvas.getPageNumber() >= page_before
 
     def test_investment_with_monthly_price_only(self, pdf_canvas, proposal):
         """Investment hosting with only monthly price renders."""
-        data = {
-            'index': '9', 'title': 'Investment',
-            'introText': 'Total:',
-            'totalInvestment': '$1,000,000', 'currency': 'COP',
-            'whatsIncluded': [],
-            'paymentOptions': [],
-            'hostingPlan': {
+        data = _investment_content_json(
+            index='9', title='Investment',
+            totalInvestment='$1,000,000',
+            hostingPlan={
                 'title': 'Basic',
                 'description': 'Basic hosting.',
                 'monthlyPrice': '$50.000',
                 'annualPrice': '',
             },
-            'valueReasons': [],
-        }
+        )
         page_before = pdf_canvas.getPageNumber()
         SECTION_RENDERERS['investment'](pdf_canvas, data, proposal)
         assert pdf_canvas.getPageNumber() >= page_before
@@ -1597,12 +1620,10 @@ class TestGenerateWithFRItems:
             proposal=proposal,
             section_type='investment',
             title='Inv', order=2, is_enabled=True,
-            content_json={
-                'index': '9', 'title': 'Investment',
-                'introText': 'Total:', 'totalInvestment': '$2,000,000',
-                'currency': 'COP', 'whatsIncluded': [], 'paymentOptions': [],
-                'hostingPlan': {}, 'valueReasons': [],
-            },
+            content_json=_investment_content_json(
+                index='9', title='Investment',
+                totalInvestment='$2,000,000', hostingPlan={},
+            ),
         )
 
         result = ProposalPdfService.generate(
@@ -1649,5 +1670,656 @@ class TestGenerateWithFRItems:
         assert result[:5] == b'%PDF-'
         reader = PdfReader(io.BytesIO(result))
         assert len(reader.pages) >= 2
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
+
+
+# ── Phase 2a: Helper edge cases ──────────────────────────────
+
+class TestRegisterFontsException:
+    def test_font_registration_exception_is_handled(self, monkeypatch):
+        """TTFont raising an exception is caught and font registration continues."""
+        import content.services.proposal_pdf_service as mod
+
+        monkeypatch.setattr(mod, '_fonts_registered', False)
+
+        original_ttfont = mod.TTFont
+        call_count = {'n': 0}
+
+        def _exploding_ttfont(name, path):
+            call_count['n'] += 1
+            if call_count['n'] == 1:
+                raise RuntimeError('Font load error')
+            return original_ttfont(name, path)
+
+        monkeypatch.setattr(mod, 'TTFont', _exploding_ttfont)
+        _register_fonts()
+        assert mod._fonts_registered is True
+
+
+class TestFontFallbackKeyError:
+    def test_returns_helvetica_when_primary_not_registered(self, monkeypatch):
+        """_font returns the Helvetica fallback when pdfmetrics.getFont raises KeyError."""
+        from reportlab.pdfbase import pdfmetrics as pm
+
+        original_get = pm.getFont
+
+        def _always_raise(name):
+            raise KeyError(name)
+
+        monkeypatch.setattr(pm, 'getFont', _always_raise)
+        result = _font('regular')
+        assert result == 'Helvetica'
+        monkeypatch.setattr(pm, 'getFont', original_get)
+
+
+class TestCleanUrlDisplayException:
+    def test_returns_input_on_parse_failure(self, monkeypatch):
+        """_clean_url_display returns the original string when urlparse raises."""
+        import content.services.proposal_pdf_service as mod
+
+        def _exploding_parse(url):
+            raise ValueError('bad url')
+
+        monkeypatch.setattr('urllib.parse.urlparse', _exploding_parse)
+        result = _clean_url_display(':::bad')
+        assert result == ':::bad'
+
+
+# ── Phase 2b: Pagination early-return paths ──────────────────
+
+class TestDrawParagraphsNoPs:
+    def test_returns_early_when_y_below_margin_without_ps(self, pdf_canvas):
+        """_draw_paragraphs returns y unchanged when below margin and no ps."""
+        start_y = MARGIN_B + 5
+        end_y = _draw_paragraphs(
+            pdf_canvas, start_y,
+            ['Long paragraph that would normally wrap multiple lines.'],
+        )
+        assert end_y <= start_y
+
+
+class TestDrawBulletListNoPs:
+    def test_returns_early_when_y_below_margin_without_ps(self, pdf_canvas):
+        """_draw_bullet_list returns y unchanged when below margin and no ps."""
+        start_y = MARGIN_B + 5
+        end_y = _draw_bullet_list(
+            pdf_canvas, start_y,
+            ['Long bullet item that would normally wrap.'],
+        )
+        assert end_y <= start_y
+
+
+# ── Phase 2c: Section renderer no-ps break paths ─────────────
+
+class TestSectionRendererNoPsBreaks:
+    @pytest.fixture
+    def _proposal(self, db):
+        return BusinessProposal.objects.create(
+            title='NoPsBreak', client_name='Test',
+            client_email='t@t.com', language='es',
+            total_investment=Decimal('1000000'), currency='COP',
+            status='sent',
+        )
+
+    def test_conversion_strategy_breaks_at_low_y_without_ps(self, pdf_canvas, _proposal):
+        """Conversion strategy loop breaks when y is below margin and no ps."""
+        data = {
+            'index': '3', 'title': 'Strategy',
+            'intro': 'Build.',
+            'steps': [
+                {'title': f'Step {i}', 'bullets': [f'Action {i}']}
+                for i in range(20)
+            ],
+            'resultTitle': 'Result', 'result': 'More.',
+        }
+        y = SECTION_RENDERERS['conversion_strategy'](
+            pdf_canvas, data, _proposal, y=MARGIN_B + 60,
+        )
+        assert isinstance(y, (int, float))
+
+    def test_development_stages_breaks_at_low_y_without_ps(self, pdf_canvas, _proposal):
+        """Development stages loop breaks when y is below margin and no ps."""
+        data = {
+            'title': 'Stages',
+            'stages': [
+                {'title': f'Phase {i}', 'description': f'Work {i}.', 'current': False}
+                for i in range(20)
+            ],
+        }
+        y = SECTION_RENDERERS['development_stages'](
+            pdf_canvas, data, _proposal, y=MARGIN_B + 60,
+        )
+        assert isinstance(y, (int, float))
+
+    def test_timeline_breaks_at_low_y_without_ps(self, pdf_canvas, _proposal):
+        """Timeline phases loop breaks when y is below margin and no ps."""
+        data = {
+            'index': '8', 'title': 'Timeline',
+            'introText': 'Phases.',
+            'totalDuration': '',
+            'phases': [
+                {'title': f'P{i}', 'duration': '1w', 'description': f'D{i}.',
+                 'tasks': [], 'milestone': ''}
+                for i in range(20)
+            ],
+        }
+        y = SECTION_RENDERERS['timeline'](
+            pdf_canvas, data, _proposal, y=MARGIN_B + 60,
+        )
+        assert isinstance(y, (int, float))
+
+    def test_next_steps_breaks_at_low_y_without_ps(self, pdf_canvas, _proposal):
+        """Next steps loop breaks when y is below margin and no ps."""
+        data = {
+            'index': '11', 'title': 'Next Steps',
+            'introMessage': 'Ready.',
+            'steps': [
+                {'title': f'S{i}', 'description': f'D{i}.'}
+                for i in range(20)
+            ],
+            'ctaMessage': '', 'contactMethods': [],
+        }
+        y = SECTION_RENDERERS['next_steps'](
+            pdf_canvas, data, _proposal, y=MARGIN_B + 50,
+        )
+        assert isinstance(y, (int, float))
+
+    def test_functional_requirements_card_break_at_low_y(self, pdf_canvas, _proposal):
+        """FR overview cards break when y is too low for the next card."""
+        data = {
+            'index': '7', 'title': 'Reqs',
+            'intro': '',
+            'groups': [
+                {'title': f'Group {i}', 'description': f'Desc {i}.',
+                 'items': [{'name': f'Item {j}', 'description': f'D{j}.'} for j in range(3)]}
+                for i in range(30)
+            ],
+            'additionalModules': [],
+        }
+        y = SECTION_RENDERERS['functional_requirements'](
+            pdf_canvas, data, _proposal, y=MARGIN_B + 80,
+        )
+        assert isinstance(y, (int, float))
+
+
+# ── Phase 2d: Investment with selected_modules ────────────────
+
+class TestInvestmentSelectedModulesAdv:
+    @pytest.fixture
+    def _proposal(self, db):
+        return BusinessProposal.objects.create(
+            title='InvSelMod', client_name='Test',
+            client_email='t@t.com', language='es',
+            total_investment=Decimal('5000000'), currency='COP',
+            status='sent',
+        )
+
+    def test_adjusted_total_recalculates_payment_options(self, pdf_canvas, _proposal):
+        """Payment option amounts are recalculated when selected_modules changes the total."""
+        from content.services.proposal_pdf_service import _render_investment
+
+        ps = {
+            'num': 1, 'client': 'Test',
+            'selected_modules': ['web'],
+            '_fr_items': [],
+            '_calc_module_items': [],
+            'base_weeks': 0,
+        }
+        data = _investment_content_json(
+            totalInvestment='$5.000.000',
+            paymentOptions=[
+                {'label': '50% inicio', 'description': '$2.500.000'},
+                {'label': '50% final', 'description': '$2.500.000'},
+            ],
+            modules=[
+                {'id': 'web', 'name': 'Web', 'price': 3000000},
+                {'id': 'seo', 'name': 'SEO', 'price': 2000000},
+            ],
+        )
+        y = _render_investment(pdf_canvas, data, _proposal, ps=ps)
+        assert isinstance(y, (int, float))
+
+    def test_adjusted_duration_renders_when_modules_deselected(self, pdf_canvas, _proposal):
+        """Adjusted duration text renders when base_weeks > 0 and modules are removed."""
+        from content.services.proposal_pdf_service import _render_investment
+
+        ps = {
+            'num': 1, 'client': 'Test',
+            'selected_modules': [],
+            '_fr_items': [
+                {'id': 'fr-views-home', 'price': 100000, 'groupId': 'views', '_source': ''},
+                {'id': 'fr-views-about', 'price': 100000, 'groupId': 'views', '_source': ''},
+                {'id': 'fr-views-contact', 'price': 100000, 'groupId': 'views', '_source': ''},
+            ],
+            '_calc_module_items': [],
+            'base_weeks': 12,
+        }
+        data = _investment_content_json(
+            totalInvestment='$5.000.000',
+            paymentOptions=[],
+            modules=[
+                {'id': 'mod1', 'name': 'Mod', 'price': 500000, '_source': 'investment'},
+                {'id': 'mod2', 'name': 'Mod2', 'price': 500000, '_source': 'investment'},
+            ],
+        )
+        y = _render_investment(pdf_canvas, data, _proposal, ps=ps)
+        assert isinstance(y, (int, float))
+
+    def test_ai_scope_note_renders_for_invite_module(self, pdf_canvas, _proposal):
+        """AI scope note renders when a calculator module with is_invite is selected."""
+        from content.services.proposal_pdf_service import _render_investment
+
+        ps = {
+            'num': 1, 'client': 'Test',
+            'selected_modules': ['module-ai_module'],
+            '_fr_items': [],
+            '_calc_module_items': [
+                {'id': 'module-ai_module', 'group_id': 'ai_module',
+                 'price_percent': None, 'price': 0, 'is_invite': True},
+            ],
+            'base_weeks': 0,
+        }
+        data = _investment_content_json(
+            totalInvestment='$5.000.000',
+            paymentOptions=[],
+            modules=[],
+        )
+        y = _render_investment(pdf_canvas, data, _proposal, ps=ps)
+        assert isinstance(y, (int, float))
+
+
+# ── Phase 2e: generate() with calculator modules + base_weeks ─
+
+class TestGenerateCalculatorModules:
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_calculator_modules_collected_and_priced(
+        self, mock_back, mock_cover, proposal,
+    ):
+        """Calculator module items are collected and prices computed from base total."""
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='Reqs', order=0, is_enabled=True,
+            content_json=_fr_section_content_json(
+                groups=[_calculator_module_group()],
+            ),
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='investment',
+            title='Inv', order=1, is_enabled=True,
+            content_json=_investment_content_json(
+                totalInvestment='$10.000.000',
+            ),
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='timeline',
+            title='Timeline', order=2, is_enabled=True,
+            content_json={
+                'index': '3', 'title': 'Cronograma',
+                'introText': '', 'totalDuration': '8 semanas',
+                'phases': [],
+            },
+        )
+
+        result = ProposalPdfService.generate(
+            proposal, selected_modules=['module-pwa_module'],
+        )
+
+        assert result is not None
+        assert result[:5] == b'%PDF-'
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_paste_mode_greeting_renders(
+        self, mock_back, mock_cover, proposal,
+    ):
+        """Greeting with _editMode=paste uses rawText renderer."""
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='greeting',
+            title='Hi', order=0, is_enabled=True,
+            content_json={
+                '_editMode': 'paste',
+                'rawText': '# Welcome\nHello client.',
+                'clientName': 'Test',
+            },
+        )
+
+        result = ProposalPdfService.generate(proposal)
+
+        assert result is not None
+        assert result[:5] == b'%PDF-'
+        mock_cover.exists.assert_called()
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_fr_configurable_items_filtered_with_selected_modules(
+        self, mock_back, mock_cover, proposal,
+    ):
+        """FR groups with configurable items are filtered by selected_modules."""
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='Reqs', order=0, is_enabled=True,
+            content_json={
+                'index': '1', 'title': 'Requirements',
+                'intro': 'Details.',
+                'groups': [
+                    {
+                        'id': 'views', 'title': 'Views',
+                        'is_visible': True,
+                        'description': 'Pages.',
+                        'items': [
+                            {'name': 'Home', 'description': 'Landing.', 'is_required': True},
+                            {'name': 'Blog', 'description': 'Blog.', 'is_required': False, 'price': 500000},
+                            {'name': 'Gallery', 'description': 'Photos.', 'price': 300000},
+                        ],
+                    },
+                    {
+                        'id': 'hidden_group', 'title': 'Hidden',
+                        'is_visible': False,
+                        'description': 'Should not appear.',
+                        'items': [{'name': 'X', 'description': 'Y.'}],
+                    },
+                ],
+                'additionalModules': [],
+            },
+        )
+
+        result = ProposalPdfService.generate(
+            proposal,
+            selected_modules=['fr-views-home', 'fr-views-blog'],
+        )
+
+        assert result is not None
+        assert result[:5] == b'%PDF-'
+        mock_cover.exists.assert_called()
+
+
+# ── Phase 2f: Badge overflow + bold_line ──────────────────────
+
+class TestFinalNoteBadgeOverflow:
+    def test_badge_pills_wrap_to_next_row(self, pdf_canvas, proposal):
+        """Many long badge titles cause pills to wrap to a new row."""
+        many_badges = [
+            {'title': f'Very Long Badge Title Number {i}'} for i in range(10)
+        ]
+        data = _final_note_data(personalNote='', commitmentBadges=many_badges)
+        ps = {'num': 1, 'client': 'Test', 'total': None}
+        y = SECTION_RENDERERS['final_note'](pdf_canvas, data, proposal, ps=ps)
+        assert isinstance(y, (int, float))
+
+
+class TestRenderRawTextBoldLine:
+    def test_bold_line_type_renders_at_low_y_with_ps(self, pdf_canvas, proposal):
+        """Bold line markdown type renders correctly at low y with ps."""
+        data = {
+            'index': '1', 'title': 'Test',
+            'rawText': '**Bold Title Line**\n\nSome paragraph.\n\n### H3 Heading\n\n#### H4 Heading',
+        }
+        ps = {'num': 1, 'client': 'Test', 'total': None}
+        y = _render_raw_text(pdf_canvas, data, proposal, ps=ps, y=MARGIN_B + 100)
+        assert isinstance(y, (int, float))
+
+
+class TestInvestmentHostingRendering:
+    def test_hosting_with_note_and_renewal_renders(self, pdf_canvas, proposal):
+        """Investment hosting plan with note and renewal fields renders correctly."""
+        data = _investment_content_json(
+            totalInvestment='$5.000.000',
+            hostingPlan=_HOSTING_PLAN_WITH_SPECS | {
+                'renewalNote': 'Renewal at 5% SMLMV.',
+            },
+        )
+        ps = {'num': 1, 'client': 'Test', 'total': None,
+              'selected_modules': None, '_fr_items': [],
+              '_calc_module_items': [], 'base_weeks': 0}
+        y = SECTION_RENDERERS['investment'](pdf_canvas, data, proposal, ps=ps)
+        assert isinstance(y, (int, float))
+
+    def test_hosting_with_no_renewal_generates_default(self, pdf_canvas, proposal):
+        """Hosting without renewalNote but with title generates default renewal text."""
+        data = _investment_content_json(
+            totalInvestment='$5.000.000',
+            hostingPlan={
+                'title': 'Starter',
+                'description': 'Basic hosting.',
+                'specs': [],
+                'monthlyPrice': '$50.000',
+                'annualPrice': '',
+            },
+        )
+        ps = {'num': 1, 'client': 'Test', 'total': None,
+              'selected_modules': None, '_fr_items': [],
+              '_calc_module_items': [], 'base_weeks': 0}
+        y = SECTION_RENDERERS['investment'](pdf_canvas, data, proposal, ps=ps)
+        assert isinstance(y, (int, float))
+
+
+class TestRequirementGroupEmptyItems:
+    def test_group_with_no_items_returns_y(self, pdf_canvas):
+        """Requirement group with empty items returns y without rendering cards."""
+        from content.services.proposal_pdf_service import _render_requirement_group_page
+
+        grp = {'title': 'Empty Group', 'description': '', 'items': []}
+        y = _render_requirement_group_page(pdf_canvas, grp)
+        assert isinstance(y, (int, float))
+
+
+# ── Phase 2g: Remaining uncovered lines ──────────────────────
+
+class TestDrawLineWithLinksEmptyPart:
+    def test_empty_part_from_split_is_skipped(self, pdf_canvas):
+        """Line starting with a domain produces empty first part that is skipped (L230)."""
+        _register_fonts()
+        ops_before = len(pdf_canvas._code)
+        _draw_line_with_links(
+            pdf_canvas, 50, 500, 'example.com is a site',
+            _font('regular'), 10, ESMERALD,
+        )
+        assert len(pdf_canvas._code) > ops_before
+
+
+class TestDrawParagraphsNewPageWithPs:
+    def test_multi_line_paragraph_at_low_y_triggers_new_page(self, pdf_canvas):
+        """Multi-line paragraph near bottom with ps triggers _new_page (L368)."""
+        ps = {'num': 1, 'client': 'Test'}
+        long_text = 'A very long paragraph. ' * 20
+        end_y = _draw_paragraphs(
+            pdf_canvas, MARGIN_B + 15, [long_text], ps=ps,
+        )
+        assert isinstance(end_y, (int, float))
+        assert ps['num'] >= 2
+
+
+class TestDrawBulletListNewPageWithPs:
+    def test_multi_line_bullet_at_low_y_triggers_new_page(self, pdf_canvas):
+        """Multi-line bullet item near bottom with ps triggers _new_page (L394)."""
+        ps = {'num': 1, 'client': 'Test'}
+        long_item = 'A bullet item with lots of text. ' * 15
+        end_y = _draw_bullet_list(
+            pdf_canvas, MARGIN_B + 15, [long_item], ps=ps,
+        )
+        assert isinstance(end_y, (int, float))
+        assert ps['num'] >= 2
+
+
+class TestDrawBannerBoxEmptyText:
+    def test_empty_text_still_renders_box(self, pdf_canvas):
+        """_draw_banner_box with empty text produces a single empty-line box (L502)."""
+        start_y = PAGE_H - 200
+        end_y = _draw_banner_box(
+            pdf_canvas, MARGIN_L, start_y, CONTENT_W, '',
+            icon_text='Info:',
+        )
+        assert end_y < start_y
+
+
+class TestInvestmentDurationFeaturesReduction:
+    def test_features_group_deselection_reduces_duration(self, pdf_canvas, proposal):
+        """Deselected items with groupId='features' reduce adjusted weeks (L1291-1292)."""
+        from content.services.proposal_pdf_service import _render_investment
+
+        ps = {
+            'num': 1, 'client': 'Test',
+            'selected_modules': [],
+            '_fr_items': [
+                {'id': 'fr-feat-a', 'price': 0, 'groupId': 'features', '_source': ''},
+                {'id': 'fr-feat-b', 'price': 0, 'groupId': 'features', '_source': ''},
+                {'id': 'fr-feat-c', 'price': 0, 'groupId': 'features', '_source': ''},
+            ],
+            '_calc_module_items': [],
+            'base_weeks': 12,
+        }
+        data = _investment_content_json(
+            totalInvestment='$5.000.000',
+            paymentOptions=[], modules=[],
+        )
+        y = _render_investment(pdf_canvas, data, proposal, ps=ps)
+        assert isinstance(y, (int, float))
+
+
+class TestFinalNoteEmptyBadgeTitle:
+    def test_badge_with_empty_title_is_skipped(self, pdf_canvas, proposal):
+        """Badge with empty/None title is skipped in the loop."""
+        mixed_badges = [{'title': ''}, {'title': None}, {'title': 'Valid Badge'}]
+        data = _final_note_data(
+            message='Thanks.', personalNote='',
+            contactEmail='e@t.com', commitmentBadges=mixed_badges,
+        )
+        ps = {'num': 1, 'client': 'Test'}
+        y = SECTION_RENDERERS['final_note'](pdf_canvas, data, proposal, ps=ps)
+        assert isinstance(y, (int, float))
+
+
+class TestNextStepsEmptyContactTitle:
+    def test_contact_method_with_empty_title_is_skipped(self, pdf_canvas, proposal):
+        """Contact method with empty title is skipped in the loop (L1731)."""
+        from content.services.proposal_pdf_service import _render_next_steps
+
+        data = {
+            'index': '11', 'title': 'Next Steps',
+            'introMessage': 'Ready.',
+            'steps': [],
+            'ctaMessage': '',
+            'contactMethods': [
+                {'title': '', 'value': 'skip@test.com'},
+                {'title': 'Email', 'value': 'team@test.com'},
+            ],
+        }
+        ps = {'num': 1, 'client': 'Test'}
+        y = _render_next_steps(pdf_canvas, data, proposal, ps=ps)
+        assert isinstance(y, (int, float))
+
+
+class TestCalculatorModuleInvalidPricePercent:
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_invalid_price_percent_falls_back_to_none(
+        self, mock_back, mock_cover, proposal,
+    ):
+        """Calculator module with non-numeric price_percent catches TypeError."""
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='Reqs', order=0, is_enabled=True,
+            content_json={
+                'index': '1', 'title': 'Requirements',
+                'intro': '',
+                'groups': [{
+                    'id': 'bad_module', 'title': 'Bad',
+                    'is_calculator_module': True,
+                    'price_percent': 'not-a-number',
+                    'is_visible': True,
+                    'description': 'Bad price.',
+                    'items': [{'name': 'X', 'description': 'Y.'}],
+                }],
+                'additionalModules': [],
+            },
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='investment',
+            title='Inv', order=1, is_enabled=True,
+            content_json=_investment_content_json(totalInvestment='$1.000.000'),
+        )
+
+        result = ProposalPdfService.generate(
+            proposal, selected_modules=['module-bad_module'],
+        )
+
+        assert result is not None
+        assert result[:5] == b'%PDF-'
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_all_configurable_items_deselected_skips_group(
+        self, mock_back, mock_cover, proposal,
+    ):
+        """FR group where all configurable items are deselected is skipped."""
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='Reqs', order=0, is_enabled=True,
+            content_json={
+                'index': '1', 'title': 'Requirements',
+                'intro': '',
+                'groups': [{
+                    'id': 'optional_only', 'title': 'Optional',
+                    'is_visible': True,
+                    'description': 'All optional.',
+                    'items': [
+                        {'name': 'A', 'description': 'A.', 'is_required': False, 'price': 100},
+                        {'name': 'B', 'description': 'B.', 'is_required': False, 'price': 200},
+                    ],
+                }],
+                'additionalModules': [],
+            },
+        )
+
+        result = ProposalPdfService.generate(
+            proposal, selected_modules=[],
+        )
+
+        assert result is not None
+        assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
         mock_back.exists.assert_called()

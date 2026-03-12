@@ -1,0 +1,20 @@
+📊 PIPELINE DIARIO — {{ date }}
+{{ total_active }} propuestas activas
+
+👁️ VISTAS AYER ({{ viewed_yesterday|length }}):
+{% for p in viewed_yesterday %}- {{ p.client_name }} — {{ p.title }} ({{ p.status }})
+{% empty %}Ninguna propuesta fue vista ayer.
+{% endfor %}
+
+⏸️ SIN ACTIVIDAD >3 DÍAS ({{ inactive|length }}):
+{% for p in inactive %}- {{ p.client_name }} — {{ p.title }} ({{ p.days_inactive }}d inactiva)
+{% empty %}Todas las propuestas tienen actividad reciente.
+{% endfor %}
+
+🔥 EXPIRAN EN ≤5 DÍAS ({{ expiring_soon|length }}):
+{% for p in expiring_soon %}- {{ p.client_name }} — {{ p.title }} (expira {{ p.expires_at|date:"d M" }})
+{% empty %}No hay propuestas por expirar.
+{% endfor %}
+
+---
+Resumen diario automático — ProjectApp.co

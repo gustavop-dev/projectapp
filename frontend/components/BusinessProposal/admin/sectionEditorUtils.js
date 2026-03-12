@@ -54,11 +54,23 @@ export function buildFormFromJson(json, type, proposalData) {
         groups: (j.groups || []).map(g => ({
           id: g.id || '', icon: g.icon || '', title: g.title || '',
           description: g.description || '',
+          is_visible: g.is_visible !== undefined ? g.is_visible : true,
+          is_calculator_module: g.is_calculator_module || false,
+          default_selected: g.default_selected ?? false,
+          price_percent: g.price_percent ?? null,
+          is_invite: g.is_invite || false,
+          invite_note: g.invite_note || '',
           items: (g.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '', price: i.price ?? null, is_required: i.is_required !== false })),
           _pasteMode: g._editMode === 'paste', _pasteText: g.rawText || '', _collapsed: true,
         })),
         additionalModules: (j.additionalModules || []).map(m => ({
           icon: m.icon || '', title: m.title || '', description: m.description || '',
+          is_visible: m.is_visible !== undefined ? m.is_visible : true,
+          is_calculator_module: m.is_calculator_module || false,
+          default_selected: m.default_selected ?? false,
+          price_percent: m.price_percent ?? null,
+          is_invite: m.is_invite || false,
+          invite_note: m.invite_note || '',
           items: (m.items || []).map(i => ({ icon: i.icon || '', name: i.name || '', description: i.description || '', price: i.price ?? null, is_required: i.is_required !== false })),
           _pasteMode: m._editMode === 'paste', _pasteText: m.rawText || '', _collapsed: true,
         })),
@@ -75,8 +87,8 @@ export function buildFormFromJson(json, type, proposalData) {
         hostingPlan: {
           title: hp.title || '', description: hp.description || '',
           specs: (hp.specs || []).map(s => ({ icon: s.icon || '', label: s.label || '', value: s.value || '' })),
-          monthlyPrice: hp.monthlyPrice || '', monthlyLabel: hp.monthlyLabel || '',
-          annualPrice: hp.annualPrice || '', annualLabel: hp.annualLabel || '',
+          hostingPercent: hp.hostingPercent ?? 30, monthlyLabel: hp.monthlyLabel || '',
+          annualLabel: hp.annualLabel || '',
           renewalNote: hp.renewalNote || '', coverageNote: hp.coverageNote || '',
         },
         modules: (j.modules || []).map(m => ({ id: m.id || '', name: m.name || '', price: m.price ?? 0, included: m.included !== false, is_required: m.is_required !== false })),
@@ -121,8 +133,14 @@ export function formToJson(formData, type) {
       const cleanGroup = (g) => {
         const out = {
           id: g.id, icon: g.icon, title: g.title, description: g.description,
+          is_visible: g.is_visible !== undefined ? g.is_visible : true,
           items: (g.items || []).map(i => ({ icon: i.icon, name: i.name, description: i.description, ...(i.price != null ? { price: i.price } : {}), is_required: i.is_required !== false })),
         };
+        if (g.is_calculator_module) out.is_calculator_module = true;
+        if (g.default_selected != null) out.default_selected = g.default_selected;
+        if (g.price_percent != null) out.price_percent = g.price_percent;
+        if (g.is_invite) out.is_invite = true;
+        if (g.invite_note) out.invite_note = g.invite_note;
         if (g._pasteMode) {
           out._editMode = 'paste';
           out.rawText = g._pasteText || '';
@@ -148,8 +166,8 @@ export function formToJson(formData, type) {
         hostingPlan: {
           title: hp.title, description: hp.description,
           specs: (hp.specs || []).map(s => ({ icon: s.icon, label: s.label, value: s.value })),
-          monthlyPrice: hp.monthlyPrice, monthlyLabel: hp.monthlyLabel,
-          annualPrice: hp.annualPrice, annualLabel: hp.annualLabel,
+          hostingPercent: hp.hostingPercent ?? 30, monthlyLabel: hp.monthlyLabel,
+          annualLabel: hp.annualLabel,
           renewalNote: hp.renewalNote || '', coverageNote: hp.coverageNote || '',
         },
         modules: (f.modules || []).map(m => ({ id: m.id, name: m.name, price: m.price ?? 0, included: m.included !== false, is_required: m.is_required !== false })),
@@ -252,8 +270,7 @@ export function formToReadableText(form, type) {
       if (hp.specs?.length) {
         for (const s of hp.specs) parts.push(`- ${s.icon || ''} ${s.label}: ${s.value}`);
       }
-      if (hp.monthlyPrice) parts.push(`Precio mensual: ${hp.monthlyPrice} (${hp.monthlyLabel || ''})`);
-      if (hp.annualPrice) parts.push(`Precio anual: ${hp.annualPrice} (${hp.annualLabel || ''})`);
+      if (hp.hostingPercent) parts.push(`Hosting: ${hp.hostingPercent}% de la inversión total`);
       if (hp.renewalNote) parts.push(`\n${hp.renewalNote}`);
     }
   } else if (type === 'final_note') {

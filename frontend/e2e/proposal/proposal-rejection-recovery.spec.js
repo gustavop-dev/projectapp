@@ -34,35 +34,41 @@ const mockSentProposal = {
 
 async function openClosingPanel(page) {
   await page.goto(`/proposal/${MOCK_UUID}`);
-  await expect(page.locator('.proposal-wrapper')).toBeVisible({ timeout: 15000 });
 
+  // Wait for proposal to finish loading — nav-next appears once content is ready
   const nextBtn = page.getByTestId('nav-next');
+  await expect(nextBtn).toBeVisible({ timeout: 15000 });
+
+  // Click through sections until nav-next disappears (we're on the closing panel)
   let safetyLimit = 10;
   while (safetyLimit-- > 0) {
-    const isVisible = await nextBtn.isVisible({ timeout: 500 }).catch(() => false);
-    if (!isVisible) break;
     await nextBtn.click();
-    await expect(page.locator('.panel-container')).toBeVisible();
+    // Wait for section transition, then check if next is still available
+    await page.waitForTimeout(500);
+    const stillVisible = await nextBtn.isVisible().catch(() => false);
+    if (!stillVisible) break;
   }
+
+  // Confirm we reached the closing panel
+  await expect(page.getByRole('button', { name: /No es el momento/i })).toBeVisible({ timeout: 5000 });
 }
 
 async function rejectWithReason(page, reason) {
-  await page.getByRole('button', { name: /No me interesa por ahora/i }).click();
+  await page.getByRole('button', { name: /No es el momento/i }).click();
   await expect(page.getByText(/Lamentamos que no sea el momento/i)).toBeVisible();
 
   // Select reason inside the reject modal (Teleport to body)
-  const modal = page.locator('.fixed').filter({ hasText: 'Confirmar rechazo' });
   if (reason) {
-    const selectEl = modal.locator('select');
-    await expect(selectEl).toBeVisible();
+    // quality: allow-fragile-selector (rejection modal select has no testid, only one select in the modal)
+    const selectEl = page.locator('select').first();
+    await expect(selectEl).toBeVisible({ timeout: 3000 });
     await selectEl.selectOption(reason);
-    // Wait for Vue reactivity to propagate the selected value
     await expect(selectEl).toHaveValue(reason);
   }
 
-  const confirmBtn = modal.getByRole('button', { name: /Confirmar rechazo/i });
+  const confirmBtn = page.getByRole('button', { name: /Confirmar rechazo/i });
   const [respondResponse] = await Promise.all([
-    page.waitForResponse(r => r.url().includes(`proposals/${MOCK_UUID}/respond/`)),
+    page.waitForResponse(r => r.url().includes(`proposals/${MOCK_UUID}/respond/`), { timeout: 10000 }),
     confirmBtn.click(),
   ]);
   await respondResponse.finished();
@@ -82,9 +88,10 @@ function buildMockHandler(respondStatus = 'rejected') {
 
 test.describe('Proposal Rejection Smart Recovery', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('reject modal opens with reason select and confirm button', {
@@ -93,13 +100,12 @@ test.describe('Proposal Rejection Smart Recovery', () => {
     await mockApi(page, buildMockHandler());
     await openClosingPanel(page);
 
-    await page.getByRole('button', { name: /No me interesa por ahora/i }).click();
+    await page.getByRole('button', { name: /No es el momento/i }).click();
     await expect(page.getByText(/Lamentamos que no sea el momento/i)).toBeVisible();
 
-    // Verify modal has reason select and confirm button
-    const modal = page.locator('.fixed').filter({ hasText: 'Confirmar rechazo' });
-    await expect(modal.locator('select')).toBeVisible();
-    await expect(modal.getByRole('button', { name: /Confirmar rechazo/i })).toBeVisible();
+    // quality: allow-fragile-selector (rejection modal select has no testid)
+    await expect(page.locator('select').first()).toBeVisible({ timeout: 3000 });
+    await expect(page.getByRole('button', { name: /Confirmar rechazo/i })).toBeVisible();
   });
 
   test('rejecting with "No es el momento" shows schedule reminder card', {

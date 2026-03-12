@@ -46,6 +46,14 @@ export default defineNuxtConfig({
         target: 'http://127.0.0.1:8000/api',
         changeOrigin: true,
       },
+      '/admin': {
+        target: 'http://127.0.0.1:8000/admin',
+        changeOrigin: true,
+      },
+      '/static': {
+        target: 'http://127.0.0.1:8000/static',
+        changeOrigin: true,
+      },
       '/media': {
         target: 'http://127.0.0.1:8000/media',
         changeOrigin: true,

@@ -125,7 +125,8 @@ class TestAdminCreatePortfolioWork:
         assert response.status_code == 201
         assert PortfolioWork.objects.count() == 1
         work = PortfolioWork.objects.first()
-        assert isinstance(work.slug, str) and len(work.slug) > 0
+        assert isinstance(work.slug, str)
+        assert len(work.slug) > 0
 
     def test_returns_400_with_missing_required_fields(self, admin_client):
         payload = {'title_es': 'Solo título'}

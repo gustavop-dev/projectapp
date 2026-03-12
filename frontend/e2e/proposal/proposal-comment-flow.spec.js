@@ -34,23 +34,27 @@ const mockSentProposal = {
 
 async function openClosingPanel(page) {
   await page.goto(`/proposal/${MOCK_UUID}`);
-  await expect(page.locator('.proposal-wrapper')).toBeVisible({ timeout: 15000 });
 
+  // Wait for proposal to finish loading
   const nextBtn = page.getByTestId('nav-next');
+  await expect(nextBtn).toBeVisible({ timeout: 15000 });
+
+  // Click through sections until nav-next disappears (closing panel)
   let safetyLimit = 10;
   while (safetyLimit-- > 0) {
-    const isVisible = await nextBtn.isVisible({ timeout: 500 }).catch(() => false);
-    if (!isVisible) break;
     await nextBtn.click();
-    await expect(page.locator('.panel-container')).toBeVisible();
+    await page.waitForTimeout(500);
+    const stillVisible = await nextBtn.isVisible().catch(() => false);
+    if (!stillVisible) break;
   }
 }
 
 test.describe('Proposal Comment from Closing Panel', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('comment button opens modal with textarea', {

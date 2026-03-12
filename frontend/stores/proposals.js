@@ -312,6 +312,48 @@ export const useProposalStore = defineStore('proposals', {
     },
 
     /**
+     * updateProposalStatus: Inline status change from the proposals table.
+     * @param {number} id - Proposal ID.
+     * @param {string} newStatus - New status value.
+     */
+    async updateProposalStatus(id, newStatus) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await patch_request(`proposals/${id}/update-status/`, { status: newStatus });
+        if (this.currentProposal?.id === id) {
+          this.currentProposal = response.data;
+        }
+        const idx = this.proposals.findIndex((p) => p.id === id);
+        if (idx !== -1) {
+          this.proposals[idx].status = response.data.status;
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'update_status_failed';
+        console.error('Error updating proposal status:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * fetchScorecard: Get pre-send scorecard for a proposal.
+     * @param {number} id - Proposal ID.
+     */
+    async fetchScorecard(id) {
+      try {
+        const response = await get_request(`proposals/${id}/scorecard/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching scorecard:', error);
+        return { success: false };
+      }
+    },
+
+    /**
      * updateSection: Update a proposal section's content.
      * @param {number} sectionId - Section ID.
      * @param {object} payload - Fields to update (content_json, title, etc.).

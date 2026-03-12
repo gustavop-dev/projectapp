@@ -95,12 +95,10 @@ describe('useGtagConversions', () => {
       trackFormSubmission('https://example.com');
 
       const callArgs = mockGtag.mock.calls[0][2];
-      const originalLocation = window.location;
-      delete window.location;
-      window.location = '';
+      const openSpy = jest.spyOn(window, 'open').mockImplementation(() => {});
       callArgs.event_callback();
-      expect(window.location).toBe('https://example.com');
-      window.location = originalLocation;
+      expect(openSpy).toHaveBeenCalledWith('https://example.com', '_self');
+      openSpy.mockRestore();
     });
 
     it('trackFormSubmission callback does not redirect without URL', () => {
@@ -120,12 +118,10 @@ describe('useGtagConversions', () => {
       trackWhatsAppClick('https://wa.me/123');
 
       const callArgs = mockGtag.mock.calls[0][2];
-      const originalLocation = window.location;
-      delete window.location;
-      window.location = '';
+      const openSpy = jest.spyOn(window, 'open').mockImplementation(() => {});
       callArgs.event_callback();
-      expect(window.location).toBe('https://wa.me/123');
-      window.location = originalLocation;
+      expect(openSpy).toHaveBeenCalledWith('https://wa.me/123', '_self');
+      openSpy.mockRestore();
     });
 
     it('trackWhatsAppClick callback does not redirect without URL', () => {
@@ -145,12 +141,10 @@ describe('useGtagConversions', () => {
       trackBookACall('https://calendly.com/test');
 
       const callArgs = mockGtag.mock.calls[0][2];
-      const originalLocation = window.location;
-      delete window.location;
-      window.location = '';
+      const openSpy = jest.spyOn(window, 'open').mockImplementation(() => {});
       callArgs.event_callback();
-      expect(window.location).toBe('https://calendly.com/test');
-      window.location = originalLocation;
+      expect(openSpy).toHaveBeenCalledWith('https://calendly.com/test', '_self');
+      openSpy.mockRestore();
     });
 
     it('trackBookACall callback does not redirect without URL', () => {

@@ -1,14 +1,37 @@
-from django.core.management.base import BaseCommand
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from django.core.management.base import BaseCommand
+
+User = get_user_model()
+
 
 class Command(BaseCommand):
-    help = 'Create fake data for contacts, designs, and models3d'
+    help = 'Create all fake data (contacts, designs, models3d, products, proposals, blog posts)'
 
     def add_arguments(self, parser):
-        parser.add_argument('number', type=int, help='Number of records to create')
+        parser.add_argument(
+            '--count', type=int, default=10,
+            help='Number of records to create per entity (default: 10)',
+        )
 
     def handle(self, *args, **options):
-        number_of_records = options['number']
+        number_of_records = options['count']
+
+        # Create admin superuser if not already present
+        admin, created = User.objects.get_or_create(
+            username='admin',
+            defaults={
+                'email': 'admin@admin.com',
+                'is_staff': True,
+                'is_superuser': True,
+            },
+        )
+        if created:
+            admin.set_password('admin')
+            admin.save()
+            self.stdout.write(self.style.SUCCESS('Admin superuser created (username: admin / password: admin)'))
+        else:
+            self.stdout.write(self.style.WARNING('Admin superuser already exists — skipped'))
 
         # Create fake data for contacts
         self.stdout.write(self.style.SUCCESS('Creating fake contacts...'))
@@ -20,7 +43,7 @@ class Command(BaseCommand):
 
         # Create fake data for 3D models
         self.stdout.write(self.style.SUCCESS('Creating fake 3D models...'))
-        call_command('create_model3ds', number_of_records)
+        call_command('create_models_3d', number_of_records)
 
         # Create fake data for products
         self.stdout.write(self.style.SUCCESS('Creating fake products...'))
@@ -28,7 +51,7 @@ class Command(BaseCommand):
 
         # Create fake data for business proposals
         self.stdout.write(self.style.SUCCESS('Creating fake business proposals...'))
-        call_command('create_fake_proposals')
+        call_command('create_fake_proposals', '--count', str(number_of_records))
 
         # Create fake data for blog posts
         self.stdout.write(self.style.SUCCESS('Creating fake blog posts...'))

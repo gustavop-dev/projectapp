@@ -129,6 +129,45 @@ class TestProposalDetailSerializerComputedFields:
         )
         assert 'public_url' in serializer.data
 
+    def test_hosting_percent_present_with_default(self, proposal):
+        serializer = ProposalDetailSerializer(
+            proposal, context={'is_admin': True}
+        )
+        assert 'hosting_percent' in serializer.data
+        assert serializer.data['hosting_percent'] == 30
+
+
+class TestProposalCreateUpdateSerializerHostingPercent:
+    def test_accepts_hosting_percent(self):
+        payload = {
+            'title': 'Test',
+            'client_name': 'Client',
+            'client_email': 'c@test.com',
+            'total_investment': '1000.00',
+            'currency': 'COP',
+            'hosting_percent': 25,
+        }
+        serializer = ProposalCreateUpdateSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['hosting_percent'] == 25
+
+    def test_hosting_percent_defaults_to_30(self, proposal):
+        """Model default hosting_percent is 30 and serializer omits it when not supplied."""
+        assert proposal.hosting_percent == 30
+        assert isinstance(proposal.hosting_percent, int)
+        serializer = ProposalCreateUpdateSerializer(
+            data={
+                'title': 'Default Check',
+                'client_name': 'C',
+                'client_email': 'c@test.com',
+                'total_investment': '500.00',
+                'currency': 'COP',
+            },
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert 'hosting_percent' not in serializer.validated_data or \
+            serializer.validated_data['hosting_percent'] == 30
+
 
 class TestProposalFromJSONSerializer:
     """Validation tests for ProposalFromJSONSerializer."""

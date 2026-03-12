@@ -5,15 +5,14 @@ last_activity_at update, permission checks.
 """
 import pytest
 from django.urls import reverse
-from django.utils import timezone
 
-from content.models import BusinessProposal, ProposalChangeLog
+from content.models import ProposalChangeLog
 
 pytestmark = pytest.mark.django_db
 
 
 class TestLogActivity:
-    """POST /api/proposals/<id>/log-activity/"""
+    """POST /api/proposals/<id>/log-activity/."""
 
     def _url(self, proposal_id):
         return reverse('log-activity', kwargs={'proposal_id': proposal_id})

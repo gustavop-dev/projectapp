@@ -153,7 +153,7 @@ class Config:
     """
     
     # File discovery
-    backend_app_name: str = "core_app"
+    backend_app_name: str = "content"
     py_allowed_folders: frozenset[str] = frozenset(
         {
             "commands",

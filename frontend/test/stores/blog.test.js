@@ -481,4 +481,27 @@ describe('useBlogStore', () => {
       expect(result.success).toBe(false);
     });
   });
+
+  describe('fetchCalendarPosts', () => {
+    it('fetches calendar posts for date range', async () => {
+      const posts = [{ id: 1, title_es: 'Post', calendar_status: 'published' }];
+      get_request.mockResolvedValue({ data: posts });
+
+      const result = await store.fetchCalendarPosts('2026-03-01', '2026-03-31');
+
+      expect(get_request).toHaveBeenCalledWith('blog/admin/calendar/?start=2026-03-01&end=2026-03-31');
+      expect(store.calendarPosts).toEqual(posts);
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(posts);
+    });
+
+    it('returns empty array on error', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.fetchCalendarPosts('2026-03-01', '2026-03-31');
+
+      expect(result.success).toBe(false);
+      expect(result.data).toEqual([]);
+    });
+  });
 });

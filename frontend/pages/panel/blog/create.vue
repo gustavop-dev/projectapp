@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="flex items-center gap-4 mb-8">
-      <NuxtLink to="/panel/blog" class="text-gray-400 hover:text-gray-600 transition-colors">
+      <NuxtLink :to="localePath('/panel/blog')" class="text-gray-400 hover:text-gray-600 transition-colors">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
@@ -141,7 +141,7 @@
         <button type="submit" :disabled="blogStore.isUpdating" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
           {{ blogStore.isUpdating ? 'Creando...' : 'Crear Post' }}
         </button>
-        <NuxtLink to="/panel/blog" class="px-6 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition-colors">Cancelar</NuxtLink>
+        <NuxtLink :to="localePath('/panel/blog')" class="px-6 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition-colors">Cancelar</NuxtLink>
       </div>
     </form>
 
@@ -247,7 +247,7 @@
             <button type="submit" :disabled="blogStore.isUpdating" class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
               {{ blogStore.isUpdating ? 'Creando...' : 'Crear desde JSON' }}
             </button>
-            <NuxtLink to="/panel/blog" class="text-sm text-gray-500 hover:text-gray-700">Cancelar</NuxtLink>
+            <NuxtLink :to="localePath('/panel/blog')" class="text-sm text-gray-500 hover:text-gray-700">Cancelar</NuxtLink>
           </div>
         </div>
       </form>
@@ -258,6 +258,8 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
 import { useBlogStore } from '~/stores/blog';
+
+const localePath = useLocalePath();
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -321,7 +323,7 @@ async function handleSubmit() {
 
   const result = await blogStore.createPost(payload);
   if (result.success) {
-    navigateTo('/panel/blog');
+    navigateTo(localePath('/panel/blog'));
   } else {
     errorMsg.value = 'Error al crear el post. Revisa los campos.';
   }
@@ -439,7 +441,7 @@ async function handleJsonSubmit() {
 
   const result = await blogStore.createPostFromJSON(payload);
   if (result.success) {
-    navigateTo(`/panel/blog/${result.data.id}/edit`);
+    navigateTo(localePath(`/panel/blog/${result.data.id}/edit`));
   } else {
     errorMsg.value = 'Error al crear el post desde JSON. Revisa los campos.';
   }

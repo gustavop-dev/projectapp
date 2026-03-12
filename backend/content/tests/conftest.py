@@ -269,6 +269,7 @@ def proposal(db):
         title='Web Application Development',
         client_name='Acme Corp',
         client_email='contact@acme.com',
+        client_phone='+573001234567',
         language='es',
         total_investment=Decimal('15000.00'),
         currency='COP',
@@ -276,22 +277,29 @@ def proposal(db):
         expires_at=timezone.now() + timezone.timedelta(days=30),
         reminder_days=5,
         discount_percent=20,
+        project_type='webapp',
+        market_type='b2b',
     )
 
 
 @pytest.fixture
 def sent_proposal(db):
     """A proposal that has been sent to the client."""
+    now = timezone.now()
     return BusinessProposal.objects.create(
         title='Mobile App Development',
         client_name='Beta Inc',
         client_email='info@beta.com',
+        client_phone='+14155551234',
         language='en',
         total_investment=Decimal('25000.00'),
         currency='USD',
         status='sent',
-        sent_at=timezone.now(),
-        expires_at=timezone.now() + timezone.timedelta(days=15),
+        sent_at=now,
+        last_activity_at=now,
+        expires_at=now + timezone.timedelta(days=15),
+        project_type='webapp',
+        market_type='saas',
     )
 
 
@@ -313,6 +321,7 @@ def expired_proposal(db):
 @pytest.fixture
 def rejected_proposal(db):
     """A proposal that has been rejected by the client."""
+    now = timezone.now()
     return BusinessProposal.objects.create(
         title='Rejected Project',
         client_name='Declined Client',
@@ -322,14 +331,21 @@ def rejected_proposal(db):
         currency='COP',
         status='rejected',
         rejection_reason='presupuesto alto',
-        sent_at=timezone.now() - timezone.timedelta(days=5),
-        expires_at=timezone.now() + timezone.timedelta(days=10),
+        sent_at=now - timezone.timedelta(days=5),
+        first_viewed_at=now - timezone.timedelta(days=3),
+        view_count=2,
+        responded_at=now - timezone.timedelta(days=1),
+        last_activity_at=now - timezone.timedelta(days=1),
+        expires_at=now + timezone.timedelta(days=10),
+        project_type='website',
+        market_type='services',
     )
 
 
 @pytest.fixture
 def viewed_proposal(db):
     """A proposal that has been viewed by the client."""
+    now = timezone.now()
     return BusinessProposal.objects.create(
         title='Viewed Project',
         client_name='Viewer Client',
@@ -338,9 +354,36 @@ def viewed_proposal(db):
         total_investment=Decimal('12000.00'),
         currency='COP',
         status='viewed',
-        sent_at=timezone.now() - timezone.timedelta(days=3),
-        first_viewed_at=timezone.now() - timezone.timedelta(hours=6),
-        expires_at=timezone.now() + timezone.timedelta(days=20),
+        sent_at=now - timezone.timedelta(days=3),
+        first_viewed_at=now - timezone.timedelta(hours=6),
+        view_count=4,
+        last_activity_at=now - timezone.timedelta(hours=6),
+        expires_at=now + timezone.timedelta(days=20),
+        project_type='ecommerce',
+        market_type='b2c',
+    )
+
+
+@pytest.fixture
+def negotiating_proposal(db):
+    """A proposal in negotiation — client accepted with changes."""
+    now = timezone.now()
+    return BusinessProposal.objects.create(
+        title='Negotiating Project',
+        client_name='Negotiator Client',
+        client_email='negotiator@client.com',
+        language='es',
+        total_investment=Decimal('18000.00'),
+        currency='COP',
+        status='negotiating',
+        sent_at=now - timezone.timedelta(days=8),
+        first_viewed_at=now - timezone.timedelta(days=5),
+        view_count=6,
+        responded_at=now - timezone.timedelta(days=1),
+        last_activity_at=now - timezone.timedelta(days=1),
+        expires_at=now + timezone.timedelta(days=12),
+        project_type='webapp',
+        market_type='b2b',
     )
 
 

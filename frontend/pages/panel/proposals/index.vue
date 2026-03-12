@@ -3,7 +3,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
       <h1 class="text-2xl font-light text-gray-900">Propuestas</h1>
       <NuxtLink
-        to="/panel/proposals/create"
+        :to="localePath('/panel/proposals/create')"
         class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
                font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
       >
@@ -34,7 +34,7 @@
           v-for="alert in zombieAlerts"
           :key="`zombie-${alert.id}-${alert.alert_type}`"
           class="flex items-center justify-between bg-gray-700/50 rounded-lg px-4 py-2.5 border border-gray-600 cursor-pointer hover:border-gray-500 transition-colors"
-          @click="router.push(`/panel/proposals/${alert.id}/edit`)"
+          @click="router.push(localePath(`/panel/proposals/${alert.id}/edit`))"
         >
           <div class="flex items-center gap-3">
             <span class="text-sm">{{ alert.alert_type === 'zombie_draft' ? '📝💀' : alert.alert_type === 'zombie_sent_stale' ? '📤💀' : '💀' }}</span>
@@ -111,7 +111,7 @@
           v-for="alert in activeAlerts"
           :key="`${alert.id}-${alert.alert_type}-${alert.manual_alert_id || ''}`"
           class="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border border-amber-100 cursor-pointer hover:border-amber-300 transition-colors"
-          @click="router.push(`/panel/proposals/${alert.id}/edit`)"
+          @click="router.push(localePath(`/panel/proposals/${alert.id}/edit`))"
         >
           <div class="flex items-center gap-3">
             <span class="text-sm">{{ alertIcon(alert.alert_type) }}</span>
@@ -252,7 +252,7 @@
             <td class="px-4 py-4 text-xs text-gray-400 tabular-nums">#{{ p.id }}</td>
             <td class="px-6 py-4">
               <NuxtLink
-                :to="`/panel/proposals/${p.id}/edit`"
+                :to="localePath(`/panel/proposals/${p.id}/edit`)"
                 class="text-sm font-medium text-gray-900 hover:text-emerald-600"
               >
                 {{ p.title }}
@@ -263,9 +263,15 @@
               <div v-if="p.client_phone" class="text-[10px] text-gray-400">📱 {{ p.client_phone }}</div>
             </td>
             <td class="px-6 py-4">
-              <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(p.status)">
-                {{ p.status }}
-              </span>
+              <select
+                :value="p.status"
+                class="text-xs px-2.5 py-1 rounded-full font-medium border-0 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500 pr-6"
+                :class="statusClass(p.status)"
+                @change="handleInlineStatusChange(p.id, $event.target.value)"
+                @click.stop
+              >
+                <option v-for="s in allStatuses" :key="s" :value="s">{{ s }}</option>
+              </select>
             </td>
             <td class="px-6 py-4 text-sm text-gray-600 tabular-nums">
               ${{ Number(p.total_investment).toLocaleString() }} {{ p.currency }}
@@ -487,6 +493,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import ProposalDashboard from '~/components/BusinessProposal/admin/ProposalDashboard.vue';
 import MetricsManual from '~/components/BusinessProposal/admin/MetricsManual.vue';
 
+const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const proposalStore = useProposalStore();
@@ -734,7 +741,7 @@ const proposalActions = computed(() => {
 
 const router = useRouter();
 function navigateToProposal(id) {
-  router.push(`/panel/proposals/${id}/edit`);
+  router.push(localePath(`/panel/proposals/${id}/edit`));
 }
 
 const statusOptions = [
@@ -747,6 +754,15 @@ const statusOptions = [
   { value: 'negotiating', label: 'Negociando' },
   { value: 'expired', label: 'Expiradas' },
 ];
+
+const allStatuses = ['draft', 'sent', 'viewed', 'accepted', 'rejected', 'negotiating', 'expired'];
+
+async function handleInlineStatusChange(proposalId, newStatus) {
+  const result = await proposalStore.updateProposalStatus(proposalId, newStatus);
+  if (!result.success) {
+    proposalStore.fetchProposals(activeFilter.value || undefined);
+  }
+}
 
 const alerts = ref([]);
 
@@ -835,7 +851,7 @@ async function handleToggleActive(id, currentlyActive) {
 async function handleDuplicate(id) {
   const result = await proposalStore.duplicateProposal(id);
   if (result.success) {
-    router.push(`/panel/proposals/${result.data.id}/edit`);
+    router.push(localePath(`/panel/proposals/${result.data.id}/edit`));
   }
 }
 

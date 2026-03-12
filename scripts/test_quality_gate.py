@@ -984,8 +984,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--report-path", type=Path,
                         default=Path("test-results/test-quality-report.json"),
                         help="JSON report output path")
-    parser.add_argument("--backend-app", default="core_app",
-                        help="Django app name (default: core_app)")
+    parser.add_argument("--backend-app", default="content",
+                        help="Django app name (default: content)")
     parser.add_argument("--suite", choices=["backend", "frontend-unit", "frontend-e2e"],
                         help="Analyze specific suite only")
     parser.add_argument("--frontend-unit-dir", default="app/__tests__",

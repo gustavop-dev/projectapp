@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between mb-8">
       <h1 class="text-2xl font-light text-gray-900">Portfolio Works</h1>
       <NuxtLink
-        to="/panel/portfolio/create"
+        :to="localePath('/panel/portfolio/create')"
         class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
                font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
       >
@@ -28,7 +28,7 @@
       <div v-else class="sm:hidden space-y-3">
         <div v-for="work in works" :key="work.id" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
           <div class="flex items-start justify-between gap-3 mb-2">
-            <NuxtLink :to="`/panel/portfolio/${work.id}/edit`" class="text-sm font-medium text-gray-900 hover:text-emerald-600 transition-colors leading-tight">
+            <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="text-sm font-medium text-gray-900 hover:text-emerald-600 transition-colors leading-tight">
               {{ work.title_es }}
             </NuxtLink>
             <span class="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0" :class="statusBadgeClass(work)">
@@ -37,7 +37,7 @@
           </div>
           <p class="text-xs text-gray-400 mb-3">{{ work.slug }} · {{ formatDate(work.published_at || work.created_at) }}</p>
           <div class="flex items-center gap-3">
-            <NuxtLink :to="`/panel/portfolio/${work.id}/edit`" class="text-xs text-emerald-600 font-medium">Editar</NuxtLink>
+            <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="text-xs text-emerald-600 font-medium">Editar</NuxtLink>
             <button class="text-xs text-gray-500 hover:text-emerald-600 transition-colors" @click="handleDuplicate(work)">Duplicar</button>
             <button class="text-xs text-red-400 hover:text-red-600 transition-colors" @click="handleDelete(work)">Eliminar</button>
           </div>
@@ -60,7 +60,7 @@
             <tbody class="divide-y divide-gray-50">
               <tr v-for="work in works" :key="work.id" class="hover:bg-gray-50 transition-colors">
                 <td class="px-6 py-4">
-                  <NuxtLink :to="`/panel/portfolio/${work.id}/edit`" class="text-sm font-medium text-gray-900 hover:text-emerald-600 transition-colors">
+                  <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="text-sm font-medium text-gray-900 hover:text-emerald-600 transition-colors">
                     {{ work.title_es }}
                   </NuxtLink>
                   <p class="text-xs text-gray-400 mt-0.5">{{ work.title_en }} · {{ work.slug }}</p>
@@ -74,7 +74,7 @@
                 <td class="px-6 py-4 text-sm text-gray-500">{{ formatDate(work.published_at || work.created_at) }}</td>
                 <td class="px-6 py-4 text-right">
                   <div class="flex items-center justify-end gap-2">
-                    <NuxtLink :to="`/panel/portfolio/${work.id}/edit`" class="text-xs text-gray-500 hover:text-emerald-600 transition-colors">Editar</NuxtLink>
+                    <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="text-xs text-gray-500 hover:text-emerald-600 transition-colors">Editar</NuxtLink>
                     <button class="text-xs text-gray-500 hover:text-emerald-600 transition-colors" @click="handleDuplicate(work)">Duplicar</button>
                     <button class="text-xs text-red-400 hover:text-red-600 transition-colors" @click="handleDelete(work)">Eliminar</button>
                   </div>
@@ -91,6 +91,8 @@
 <script setup>
 import { computed, onMounted } from 'vue';
 import { usePortfolioWorksStore } from '~/stores/portfolio_works';
+
+const localePath = useLocalePath();
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 

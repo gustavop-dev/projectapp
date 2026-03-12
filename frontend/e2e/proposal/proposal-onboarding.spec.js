@@ -47,6 +47,9 @@ test.describe('Proposal Onboarding', () => {
     tag: [...PROPOSAL_VIEW_ONBOARDING, '@role:client'],
   }, async ({ page }) => {
     // Do NOT set proposal_onboarding_seen — let onboarding show
+    await page.addInitScript((uuid) => {
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
     await page.waitForLoadState('networkidle');
@@ -59,6 +62,9 @@ test.describe('Proposal Onboarding', () => {
   test('clicking Omitir dismisses onboarding', {
     tag: [...PROPOSAL_VIEW_ONBOARDING, '@role:client'],
   }, async ({ page }) => {
+    await page.addInitScript((uuid) => {
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
     await page.waitForLoadState('networkidle');
@@ -76,9 +82,10 @@ test.describe('Proposal Onboarding', () => {
     tag: [...PROPOSAL_VIEW_ONBOARDING, '@role:client'],
   }, async ({ page }) => {
     // Set localStorage as if onboarding was already seen
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
 
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);

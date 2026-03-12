@@ -35,9 +35,10 @@ function setup410Mock(page) {
 
 test.describe('@flow: proposal-expired-graceful — Expired Proposal Graceful Page', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('renders expired message with client name', {
@@ -96,7 +97,7 @@ test.describe('@flow: proposal-expired-graceful — Expired Proposal Graceful Pa
     await page.goto(`/proposal/${MOCK_UUID}`);
     await page.waitForLoadState('networkidle');
 
-    // The proposal wrapper should NOT be visible
+    // quality: allow-fragile-selector (checking proposal-wrapper absence confirms expired state renders instead of proposal)
     await expect(page.locator('.proposal-wrapper')).not.toBeVisible({ timeout: 5000 });
 
     // The expired message should be the main content

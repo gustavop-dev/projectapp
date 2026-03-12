@@ -76,18 +76,18 @@ SECTION_TYPES = [
     ('context_diagnostic', 'Contexto y diagnóstico'),
     ('conversion_strategy', 'Estrategia de conversión'),
     ('design_ux', 'Diseño UX'),
+    ('creative_support', 'Acompañamiento creativo'),
     ('development_stages', 'Etapas de desarrollo'),
-    ('process_methodology', 'Metodología'),
     ('functional_requirements', 'Requerimientos funcionales'),
     ('timeline', 'Línea de tiempo'),
     ('investment', 'Inversión'),
-    ('proposal_summary', 'Resumen'),
     ('final_note', 'Nota final'),
+    ('next_steps', 'Próximos pasos'),
 ]
 
 ALERT_TYPES = [
-    'discount_suggestion', 'post_expiration_visit', 'engagement_decay',
-    'post_rejection_revisit',
+    'reminder', 'followup', 'call', 'meeting', 'custom',
+    'discount_suggestion', 'post_expiration_visit',
 ]
 
 STATUSES = list(BusinessProposal.Status.values)
@@ -115,6 +115,9 @@ class Command(BaseCommand):
 
             lang = random.choices(['es', 'en'], weights=[0.7, 0.3])[0]
 
+            chosen_project_type = random.choice(PROJECT_TYPE_CHOICES)
+            chosen_market_type = random.choice(MARKET_TYPE_CHOICES)
+
             data = {
                 'title': f'Propuesta {project_type} — {client_name.split()[0]}',
                 'client_name': client_name,
@@ -126,9 +129,29 @@ class Command(BaseCommand):
                 'discount_percent': discount,
                 'expires_at': now + timedelta(days=random.randint(7, 45)),
                 'language': lang,
-                'project_type': random.choice(PROJECT_TYPE_CHOICES),
-                'market_type': random.choice(MARKET_TYPE_CHOICES),
+                'project_type': chosen_project_type,
+                'market_type': chosen_market_type,
             }
+
+            # Fill custom text when type is 'other'
+            if chosen_project_type == 'other':
+                data['project_type_custom'] = random.choice([
+                    'Portal interno corporativo',
+                    'Herramienta de gestión de inventarios',
+                    'Sistema de turnos médicos',
+                    'Plataforma de crowdfunding',
+                ])
+            if chosen_market_type == 'other':
+                data['market_type_custom'] = random.choice([
+                    'Agroindustria',
+                    'Logística y transporte',
+                    'Turismo y hotelería',
+                    'ONG y fundaciones',
+                ])
+
+            # ~20% of non-draft proposals have automations paused
+            if status != 'draft' and random.random() < 0.2:
+                data['automations_paused'] = True
 
             # Set realistic lifecycle fields per status
             if status == 'sent':
@@ -194,23 +217,6 @@ class Command(BaseCommand):
             for section_cfg in default_sections:
                 if section_cfg['section_type'] == 'greeting':
                     section_cfg['content_json']['clientName'] = proposal.client_name
-                if section_cfg['section_type'] == 'proposal_summary':
-                    section_cfg['content_json']['kpis'] = random.choice([
-                        [
-                            {'value': '+40%', 'label': 'Incremento esperado en conversión web', 'source': 'HubSpot 2024'},
-                            {'value': '3x', 'label': 'Retorno estimado de inversión a 12 meses', 'source': 'Análisis interno'},
-                            {'value': '-60%', 'label': 'Reducción en tiempo de gestión manual', 'source': 'McKinsey Digital 2023'},
-                        ],
-                        [
-                            {'value': '+25%', 'label': 'Incremento en retención de clientes', 'source': 'Bain & Company 2024'},
-                            {'value': '2.5x', 'label': 'ROI promedio en automatización', 'source': 'Forrester 2023'},
-                        ],
-                        [
-                            {'value': '-45%', 'label': 'Reducción en costos operativos', 'source': 'Deloitte Digital 2024'},
-                            {'value': '+70%', 'label': 'Mejora en tiempo de respuesta al cliente', 'source': 'Salesforce 2024'},
-                            {'value': '4x', 'label': 'Aumento en leads cualificados', 'source': 'HubSpot 2024'},
-                        ],
-                    ])
                 if section_cfg['section_type'] == 'investment':
                     total = float(investment)
                     cur = currency
@@ -300,6 +306,51 @@ class Command(BaseCommand):
                     f'Client rejected: {proposal.rejection_reason}.'
                 ),
             )
+        elif proposal.status == 'negotiating':
+            ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type='negotiating',
+                description='Client accepted with changes — negotiation started.',
+            )
+        elif proposal.status == 'expired':
+            ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type='expired',
+                description='Proposal expired without a response.',
+            )
+
+        # Sprinkle additional lifecycle logs for realism
+        if proposal.status in ('viewed', 'accepted', 'negotiating') and random.random() < 0.3:
+            ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type='commented',
+                description=random.choice([
+                    'Cliente dejó un comentario: "Me interesa pero tengo dudas sobre el cronograma."',
+                    'Comentario del cliente: "¿Pueden incluir soporte post-lanzamiento?"',
+                    'Nota del cliente: "Necesito consultarlo con mi socio."',
+                ]),
+            )
+        if proposal.status in ('sent', 'viewed') and random.random() < 0.15:
+            ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type='resent',
+                description='Proposal re-sent to the client after updates.',
+            )
+        if random.random() < 0.1:
+            ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type='duplicated',
+                description='Proposal duplicated as a new draft.',
+            )
+        if proposal.status in ('rejected', 'expired') and random.random() < 0.2:
+            ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type='reengagement',
+                description=random.choice([
+                    'Reengagement email sent — client showed renewed interest.',
+                    'Client revisited proposal after rejection. Reengagement triggered.',
+                ]),
+            )
 
         # --- ShareLinks (50% chance for viewed/accepted/rejected) ---
         if proposal.status in ('viewed', 'accepted', 'rejected'):
@@ -321,10 +372,13 @@ class Command(BaseCommand):
         """Generate ProposalAlert records for the proposal."""
         alert_type = random.choice(ALERT_TYPES)
         messages = {
+            'reminder': f'Recordatorio: hacer seguimiento a {proposal.client_name} esta semana.',
+            'followup': f'Seguimiento pendiente con {proposal.client_name} sobre la propuesta.',
+            'call': f'Llamar a {proposal.client_name} para revisar estado de la propuesta.',
+            'meeting': f'Agendar reunión con {proposal.client_name} para revisión de alcance.',
+            'custom': f'Nota personalizada sobre {proposal.client_name}.',
             'discount_suggestion': f'{proposal.client_name} ha visitado la propuesta varias veces. Considerar ofrecer descuento.',
             'post_expiration_visit': f'{proposal.client_name} abrió la propuesta expirada. Señal de alto interés.',
-            'engagement_decay': f'{proposal.client_name} mostró menor engagement en su última visita.',
-            'post_rejection_revisit': f'{proposal.client_name} revisitó la propuesta rechazada. Posible reconsideración.',
         }
         ProposalAlert.objects.create(
             proposal=proposal,

@@ -1,12 +1,13 @@
 /**
  * E2E tests for the new default calculator modules added in v1.7.0:
- * KPI Dashboard (free, default selected), Email Marketing (10%),
- * Conversion Tracking (invite), i18n (15%), Gift Cards (20%).
+ * Email Marketing (10%), i18n (15%), Gift Cards (20%).
+ * KPI Dashboard was removed from the calculator (included by default like Analytics).
  *
  * @flow: proposal-calculator-new-modules
  *
  * Covers: module visibility, default states, pricing display,
- * free module badge, invite-only label, selecting module updates total.
+ * selecting module updates total, KPI not shown in calculator.
+ * Note: Conversion Tracking moved to integrations — see proposal-calculator-integrations.spec.js.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -67,25 +68,15 @@ const mockProposal = {
             id: 'views',
             icon: '👁️',
             title: 'Vistas',
+            is_visible: true,
             description: 'Pantallas.',
             items: [{ icon: '🏠', name: 'Home', description: 'Landing.' }],
-          },
-          {
-            id: 'kpi_dashboard_module',
-            icon: '📊',
-            title: 'Dashboard de KPIs',
-            description: 'Panel de métricas clave en tiempo real.',
-            is_calculator_module: true,
-            default_selected: true,
-            price_percent: 0,
-            items: [
-              { icon: '📈', name: 'Métricas en tiempo real', description: 'KPIs actualizados.' },
-            ],
           },
           {
             id: 'email_marketing_module',
             icon: '📧',
             title: 'Email Marketing Integrado',
+            is_visible: true,
             description: 'Campañas de email automatizadas.',
             is_calculator_module: true,
             default_selected: false,
@@ -95,23 +86,10 @@ const mockProposal = {
             ],
           },
           {
-            id: 'conversion_tracking_module',
-            icon: '🎯',
-            title: 'Conversiones Inteligentes',
-            description: 'Seguimiento avanzado de conversiones.',
-            is_calculator_module: true,
-            default_selected: false,
-            price_percent: null,
-            is_ai_invite: true,
-            invite_note: 'Agendemos una llamada para diseñar tu embudo de conversión personalizado.',
-            items: [
-              { icon: '📊', name: 'Embudos de conversión', description: 'Tracking multi-canal.' },
-            ],
-          },
-          {
             id: 'i18n_module',
             icon: '🌐',
             title: 'Multi-idioma (i18n)',
+            is_visible: true,
             description: 'Soporte multilingüe completo.',
             is_calculator_module: true,
             default_selected: false,
@@ -124,6 +102,7 @@ const mockProposal = {
             id: 'gift_cards_module',
             icon: '🎁',
             title: 'Sistema de Gift Cards',
+            is_visible: true,
             description: 'Gift cards digitales.',
             is_calculator_module: true,
             default_selected: false,
@@ -159,44 +138,39 @@ function setupMock(page) {
 
 async function openCalculatorModal(page) {
   await page.goto(`/proposal/${MOCK_UUID}`);
-  await page.waitForLoadState('networkidle');
-  await expect(page.locator('.proposal-wrapper')).toBeVisible({ timeout: 15000 });
 
   const nextBtn = page.getByTestId('nav-next');
-  await expect(nextBtn).toBeVisible({ timeout: 5000 });
+  await expect(nextBtn).toBeVisible({ timeout: 15000 });
   await nextBtn.click();
+
+  // Wait for investment section to render before opening modal
+  await expect(page.getByText(/inversi[oó]n/i).first()).toBeVisible({ timeout: 10000 });
 
   const customizeBtn = page.getByRole('button', { name: /Personalizar/i });
   await expect(customizeBtn).toBeVisible({ timeout: 10000 });
   await customizeBtn.scrollIntoViewIfNeeded();
   await customizeBtn.click();
 
-  await expect(page.getByText(/Selecciona los módulos/i)).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText(/Selecciona los módulos/i)).toBeVisible({ timeout: 10000 });
 }
 
 test.describe('@flow: proposal-calculator-new-modules — New Default Calculator Modules', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
-  test('KPI Dashboard module appears with zero price (included at no cost)', {
+  test('KPI Dashboard is not shown in calculator modal (included by default)', {
     tag: [...PROPOSAL_CALCULATOR_NEW_MODULES, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await openCalculatorModal(page);
 
-    // The group header uses groupLabels: "Dashboard de KPIs"
-    await expect(page.locator('h4').filter({ hasText: /Dashboard de KPIs/ })).toBeVisible();
-
-    // The module row shows the group icon + title
+    // KPI Dashboard should NOT appear as a calculator module row
     const kpiRow = page.locator('div.rounded-xl.border').filter({ hasText: /Dashboard de KPIs/ });
-    await expect(kpiRow).toBeVisible();
-
-    // Calculator modules default to unselected (default_selected: false in page code)
-    const checkbox = kpiRow.locator('div.w-6.h-6');
-    await expect(checkbox.locator('svg')).not.toBeVisible();
+    await expect(kpiRow).not.toBeVisible();
   });
 
   test('Email Marketing module appears as unselected with 10% price', {
@@ -211,21 +185,6 @@ test.describe('@flow: proposal-calculator-new-modules — New Default Calculator
     // Should be unselected (no checkmark)
     const checkbox = emailRow.locator('div.w-6.h-6');
     await expect(checkbox.locator('svg')).not.toBeVisible();
-  });
-
-  test('Conversion Tracking module shows invite-only label', {
-    tag: [...PROPOSAL_CALCULATOR_NEW_MODULES, '@role:guest'],
-  }, async ({ page }) => {
-    await setupMock(page);
-    await openCalculatorModal(page);
-
-    // Group header from groupLabels
-    await expect(page.locator('h4').filter({ hasText: /Conversiones Inteligentes/ })).toBeVisible();
-
-    // Module row with invite-only "Agendar llamada" label
-    const convRow = page.locator('div.rounded-xl.border').filter({ hasText: /Conversiones Inteligentes/ });
-    await expect(convRow).toBeVisible();
-    await expect(convRow.getByText('Agendar llamada')).toBeVisible();
   });
 
   test('i18n module appears with 15% price', {
@@ -264,8 +223,9 @@ test.describe('@flow: proposal-calculator-new-modules — New Default Calculator
 
     // Click Gift Cards module (+20% = +$2.000.000)
     const giftRow = page.locator('div.rounded-xl.border').filter({ hasText: /Gift Cards/ });
+    await giftRow.scrollIntoViewIfNeeded();
     await giftRow.click();
 
-    await expect(footerTotal).toContainText('12.000.000', { timeout: 3000 });
+    await expect(footerTotal).toContainText('12.000.000', { timeout: 5000 });
   });
 });

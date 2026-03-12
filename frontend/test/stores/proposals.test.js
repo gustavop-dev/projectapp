@@ -145,6 +145,30 @@ describe('useProposalStore', () => {
       expect(store.error).toBe('expired');
     });
 
+    it('stores partial data from 410 response for ProposalExpired', async () => {
+      get_request.mockRejectedValue({
+        response: {
+          status: 410,
+          data: {
+            client_name: 'Acme Corp',
+            title: 'Expired Proposal',
+            uuid: 'exp-uuid-123',
+            expired_at: '2026-03-01T00:00:00Z',
+          },
+        },
+      });
+
+      await store.fetchPublicProposal('exp-uuid-123');
+
+      expect(store.error).toBe('expired');
+      expect(store.currentProposal).toEqual({
+        client_name: 'Acme Corp',
+        title: 'Expired Proposal',
+        uuid: 'exp-uuid-123',
+        expired_at: '2026-03-01T00:00:00Z',
+      });
+    });
+
     it('sets not_found error on 404', async () => {
       get_request.mockRejectedValue({ response: { status: 404 } });
 
@@ -958,6 +982,113 @@ describe('useProposalStore', () => {
       get_request.mockRejectedValue(new Error('Network error'));
 
       const result = await store.fetchClients();
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('logActivity', () => {
+    it('logs activity and returns data', async () => {
+      create_request.mockResolvedValue({ data: { id: 1, change_type: 'call' } });
+
+      const result = await store.logActivity(5, { change_type: 'call', description: 'Called' });
+
+      expect(create_request).toHaveBeenCalledWith(
+        'proposals/5/log-activity/',
+        { change_type: 'call', description: 'Called' },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it('returns success false on error', async () => {
+      create_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.logActivity(5, {});
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('fetchAlerts', () => {
+    it('fetches alerts and returns data', async () => {
+      const alerts = [{ id: 1, alert_type: 'not_viewed' }];
+      get_request.mockResolvedValue({ data: alerts });
+
+      const result = await store.fetchAlerts();
+
+      expect(get_request).toHaveBeenCalledWith('proposals/alerts/');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(alerts);
+    });
+
+    it('returns empty array on error', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.fetchAlerts();
+
+      expect(result.success).toBe(false);
+      expect(result.data).toEqual([]);
+    });
+  });
+
+  describe('createAlert', () => {
+    it('creates alert and returns data', async () => {
+      const alertData = { id: 1, alert_type: 'reminder' };
+      create_request.mockResolvedValue({ data: alertData });
+
+      const result = await store.createAlert({ proposal: 1, alert_type: 'reminder', message: 'Test' });
+
+      expect(create_request).toHaveBeenCalledWith(
+        'proposals/alerts/create/',
+        expect.objectContaining({ alert_type: 'reminder' }),
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it('returns validation errors on failure', async () => {
+      create_request.mockRejectedValue({ response: { data: { message: ['required'] } } });
+
+      const result = await store.createAlert({});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual({ message: ['required'] });
+    });
+  });
+
+  describe('dismissAlert', () => {
+    it('dismisses alert by id', async () => {
+      patch_request.mockResolvedValue({});
+
+      const result = await store.dismissAlert(42);
+
+      expect(patch_request).toHaveBeenCalledWith('proposals/alerts/42/dismiss/', {});
+      expect(result.success).toBe(true);
+    });
+
+    it('returns success false on error', async () => {
+      patch_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.dismissAlert(99);
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('bulkAction', () => {
+    it('performs bulk action and returns data', async () => {
+      create_request.mockResolvedValue({ data: { affected: 3, action: 'delete' } });
+
+      const result = await store.bulkAction([1, 2, 3], 'delete');
+
+      expect(create_request).toHaveBeenCalledWith('proposals/bulk-action/', { ids: [1, 2, 3], action: 'delete' });
+      expect(result.success).toBe(true);
+      expect(result.data.affected).toBe(3);
+    });
+
+    it('returns success false on error', async () => {
+      create_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.bulkAction([], 'expire');
 
       expect(result.success).toBe(false);
     });

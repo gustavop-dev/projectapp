@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pipeline Diario — Project App</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;max-width:600px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#059669;padding:32px 40px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:700;">
+                📊 Pipeline Diario
+              </h1>
+              <p style="margin:8px 0 0;color:#a7f3d0;font-size:15px;font-weight:400;">
+                {{ date }} — {{ total_active }} propuestas activas
+              </p>
+            </td>
+          </tr>
+
+          <!-- Viewed Yesterday -->
+          <tr>
+            <td style="padding:24px 40px 8px;">
+              <h2 style="margin:0 0 12px;color:#1f2937;font-size:18px;font-weight:700;">
+                👁️ Vistas ayer ({{ viewed_yesterday|length }})
+              </h2>
+              {% if viewed_yesterday %}
+              <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background-color:#f0fdf4;border-radius:12px;">
+                {% for p in viewed_yesterday %}
+                <tr>
+                  <td style="padding:10px 20px;border-bottom:1px solid #dcfce7;">
+                    <p style="margin:0;color:#1f2937;font-size:14px;">
+                      <strong>{{ p.client_name }}</strong> — {{ p.title }}
+                      <span style="color:#6b7280;font-size:12px;">({{ p.status }})</span>
+                    </p>
+                  </td>
+                </tr>
+                {% endfor %}
+              </table>
+              {% else %}
+              <p style="margin:0;color:#9ca3af;font-size:14px;">Ninguna propuesta fue vista ayer.</p>
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- Inactive -->
+          <tr>
+            <td style="padding:16px 40px 8px;">
+              <h2 style="margin:0 0 12px;color:#1f2937;font-size:18px;font-weight:700;">
+                ⏸️ Sin actividad >3 días ({{ inactive|length }})
+              </h2>
+              {% if inactive %}
+              <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background-color:#fef2f2;border-radius:12px;">
+                {% for p in inactive %}
+                <tr>
+                  <td style="padding:10px 20px;border-bottom:1px solid #fecaca;">
+                    <p style="margin:0;color:#1f2937;font-size:14px;">
+                      <strong>{{ p.client_name }}</strong> — {{ p.title }}
+                      <span style="color:#dc2626;font-size:12px;font-weight:600;">{{ p.days_inactive }}d inactiva</span>
+                    </p>
+                  </td>
+                </tr>
+                {% endfor %}
+              </table>
+              {% else %}
+              <p style="margin:0;color:#9ca3af;font-size:14px;">Todas las propuestas tienen actividad reciente. 🎉</p>
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- Expiring Soon -->
+          <tr>
+            <td style="padding:16px 40px 8px;">
+              <h2 style="margin:0 0 12px;color:#1f2937;font-size:18px;font-weight:700;">
+                🔥 Expiran en ≤5 días ({{ expiring_soon|length }})
+              </h2>
+              {% if expiring_soon %}
+              <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;background-color:#fffbeb;border-radius:12px;">
+                {% for p in expiring_soon %}
+                <tr>
+                  <td style="padding:10px 20px;border-bottom:1px solid #fde68a;">
+                    <p style="margin:0;color:#1f2937;font-size:14px;">
+                      <strong>{{ p.client_name }}</strong> — {{ p.title }}
+                      <span style="color:#d97706;font-size:12px;font-weight:600;">expira {{ p.expires_at|date:"d M" }}</span>
+                    </p>
+                  </td>
+                </tr>
+                {% endfor %}
+              </table>
+              {% else %}
+              <p style="margin:0;color:#9ca3af;font-size:14px;">No hay propuestas por expirar.</p>
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 40px 32px;text-align:center;">
+              <p style="margin:0;color:#9ca3af;font-size:12px;">
+                Resumen diario automático — ProjectApp.co
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

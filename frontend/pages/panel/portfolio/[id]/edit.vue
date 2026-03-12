@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="flex items-center gap-4 mb-8">
-      <NuxtLink to="/panel/portfolio" class="text-gray-400 hover:text-gray-600 transition-colors">
+      <NuxtLink :to="localePath('/panel/portfolio')" class="text-gray-400 hover:text-gray-600 transition-colors">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
@@ -134,7 +134,7 @@
         <button type="submit" :disabled="portfolioStore.isUpdating" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
           {{ portfolioStore.isUpdating ? 'Guardando...' : 'Guardar cambios' }}
         </button>
-        <NuxtLink to="/panel/portfolio" class="px-6 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition-colors">Volver</NuxtLink>
+        <NuxtLink :to="localePath('/panel/portfolio')" class="px-6 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition-colors">Volver</NuxtLink>
       </div>
     </form>
   </div>
@@ -143,6 +143,8 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePortfolioWorksStore } from '~/stores/portfolio_works';
+
+const localePath = useLocalePath();
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 

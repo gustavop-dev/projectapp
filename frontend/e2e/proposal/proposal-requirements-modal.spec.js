@@ -68,10 +68,9 @@ const mockProposal = {
 
 async function navigateToRequirements(page) {
   await page.goto(`/proposal/${MOCK_UUID}`);
-  await expect(page.locator('.proposal-wrapper')).toBeVisible({ timeout: 15000 });
 
   const nextBtn = page.getByTestId('nav-next');
-  await expect(nextBtn).toBeVisible({ timeout: 3000 });
+  await expect(nextBtn).toBeVisible({ timeout: 15000 });
   await nextBtn.click();
 
   await expect(page.getByText('Requerimientos funcionales')).toBeVisible({ timeout: 5000 });
@@ -79,9 +78,10 @@ async function navigateToRequirements(page) {
 
 test.describe('Proposal Functional Requirements Modal', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('clicking a group card opens detail modal with items', {
@@ -101,7 +101,7 @@ test.describe('Proposal Functional Requirements Modal', () => {
     await expect(page.getByText('Componentes')).toBeVisible();
 
     // Click the Vistas group card using the "Ver detalle" link inside it
-    const vistasCard = page.locator('.overview-card').filter({ hasText: 'Vistas' });
+    const vistasCard = page.getByText('Vistas').first();
     await vistasCard.click();
 
     // Modal should show group items
@@ -121,7 +121,7 @@ test.describe('Proposal Functional Requirements Modal', () => {
     await navigateToRequirements(page);
 
     // Click the Componentes group card
-    const componentesCard = page.locator('.overview-card').filter({ hasText: 'Componentes' });
+    const componentesCard = page.getByText('Componentes').first();
     await componentesCard.click();
 
     // Modal should show Componentes items

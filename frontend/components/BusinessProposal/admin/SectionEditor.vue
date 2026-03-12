@@ -290,55 +290,6 @@
         <FieldTextarea v-model="form.paymentMethods" label="Métodos de pago" help="Uno por línea" :rows="3" />
         <FieldTextarea v-model="form.valueReasons" label="Razones de valor" help="Una por línea" :rows="3" />
 
-        <!-- Interactive Modules (Cotizador) -->
-        <div class="mt-4 border border-gray-200 rounded-xl overflow-hidden">
-          <div class="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-               @click="modulesCollapsed = !modulesCollapsed">
-            <h4 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': !modulesCollapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-              🧮 Módulos Interactivos (Cotizador)
-            </h4>
-            <span class="text-xs text-gray-400">{{ (form.modules || []).length }} módulos</span>
-          </div>
-          <div v-show="!modulesCollapsed" class="p-4 space-y-3">
-            <p class="text-xs text-gray-500 mb-2">Define los módulos que el cliente podrá activar/desactivar en el cotizador interactivo.</p>
-            <div v-for="(mod, mIdx) in form.modules" :key="mIdx" class="bg-gray-50 rounded-lg p-3 border border-gray-100">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-[10px] text-gray-400">Módulo {{ mIdx + 1 }}</span>
-                <button type="button" class="text-[10px] text-red-500" @click="form.modules.splice(mIdx, 1)">Eliminar</button>
-              </div>
-              <div class="grid grid-cols-[120px_1fr_120px] gap-2 mb-1">
-                <FieldInput v-model="mod.id" label="ID" placeholder="modulo-1" />
-                <FieldInput v-model="mod.name" label="Nombre" placeholder="Sitio Web Principal" />
-                <FieldInput v-model.number="mod.price" label="Precio" type="number" placeholder="0" />
-              </div>
-              <div class="grid grid-cols-3 gap-x-3 gap-y-1 mt-2">
-                <label class="flex items-center gap-2">
-                  <input type="checkbox" v-model="mod.included" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                  <span class="text-xs text-gray-600">Incluido por defecto</span>
-                </label>
-                <label class="flex items-center gap-2">
-                  <input type="checkbox" v-model="mod.is_required" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                  <span class="text-xs text-gray-600">Obligatorio</span>
-                </label>
-                <label class="flex items-center gap-2">
-                  <input type="checkbox" v-model="mod.is_free" class="rounded border-gray-300 text-amber-500 focus:ring-amber-400" />
-                  <span class="text-xs text-amber-700">🎁 Gratis</span>
-                </label>
-              </div>
-              <div v-if="mod.is_free" class="mt-2 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                <span class="text-xs text-amber-700">Vigencia:</span>
-                <input v-model.number="mod.free_days" type="number" min="1" max="90" placeholder="7"
-                  class="w-20 px-2 py-1 border border-amber-300 rounded-lg text-xs focus:ring-1 focus:ring-amber-400 outline-none" />
-                <span class="text-xs text-amber-600">días desde envío</span>
-              </div>
-            </div>
-            <button type="button" class="text-xs text-emerald-600 font-medium" @click="(form.modules = form.modules || []).push({ id: '', name: '', price: 0, included: true, is_required: true, is_free: false, free_days: 7 })">+ Agregar módulo</button>
-          </div>
-        </div>
-
         <!-- Hosting Plan -->
         <div class="mt-4 border border-gray-200 rounded-xl overflow-hidden">
           <div class="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
@@ -375,13 +326,14 @@
               </draggable>
               <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.hostingPlan.specs.push({ icon: '', label: '', value: '' })">+ Agregar especificación</button>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FieldInput v-model="form.hostingPlan.monthlyPrice" label="Precio mensual" placeholder="$49.999 COP" />
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <FieldInput v-model.number="form.hostingPlan.hostingPercent" label="% de inversión total" type="number" placeholder="30" />
               <FieldInput v-model="form.hostingPlan.monthlyLabel" label="Etiqueta mensual" placeholder="por mes" />
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FieldInput v-model="form.hostingPlan.annualPrice" label="Precio anual" placeholder="$680.000 COP" />
               <FieldInput v-model="form.hostingPlan.annualLabel" label="Etiqueta anual" placeholder="Hosting anual — Año 1" />
+            </div>
+            <div v-if="form.hostingPlan.hostingPercent > 0 && proposalData?.total_investment" class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800">
+              💡 <strong>Hosting anual estimado:</strong> ${{ Math.round(Number(proposalData.total_investment) * form.hostingPlan.hostingPercent / 100).toLocaleString() }} {{ proposalData?.currency || 'COP' }}
+              <span class="text-xs text-blue-600 ml-2">({{ form.hostingPlan.hostingPercent }}% de ${{ Number(proposalData.total_investment).toLocaleString() }})</span>
             </div>
             <FieldTextarea v-model="form.hostingPlan.renewalNote" label="Nota de renovación (visible al cliente)" help="Fórmula de incremento anual, SMLMV, etc." :rows="4" :isSingle="true" />
             <FieldTextarea v-model="form.hostingPlan.coverageNote" label="Nota de cobertura (solo PDF)" help="Descripción de los 3 componentes del hosting (mantenimiento, soporte, recursos)" :rows="3" :isSingle="true" />
@@ -581,7 +533,13 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
             </button>
-            <button v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features' && group.id !== 'integrations_api'"
+            <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
+              :class="group.is_visible !== false ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-red-50 text-red-500 border-red-200'"
+              :title="group.is_visible !== false ? 'Visible para el cliente' : 'Oculto para el cliente'"
+              @click="group.is_visible = group.is_visible === false ? true : false">
+              {{ group.is_visible !== false ? '👁 Visible' : '🚫 Oculto' }}
+            </button>
+            <button v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features'"
               type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.groups.splice(gIdx, 1)">Eliminar</button>
           </div>
         </div>
@@ -625,16 +583,6 @@
                         <input type="checkbox" v-model="item.is_required" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                         <span class="text-[10px] text-gray-500">Obligatorio</span>
                       </label>
-                      <label class="flex items-center gap-1.5">
-                        <input type="checkbox" v-model="item.is_free" class="rounded border-gray-300 text-amber-500 focus:ring-amber-400" />
-                        <span class="text-[10px] text-amber-700">🎁 Gratis</span>
-                      </label>
-                    </div>
-                    <div v-if="item.is_free" class="mt-1 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
-                      <span class="text-[10px] text-amber-700">Vigencia:</span>
-                      <input v-model.number="item.free_days" type="number" min="1" max="90" placeholder="7"
-                        class="w-16 px-2 py-1 border border-amber-300 rounded-lg text-[10px] focus:ring-1 focus:ring-amber-400 outline-none" />
-                      <span class="text-[10px] text-amber-600">días desde envío</span>
                     </div>
                     <p v-if="!item.is_required && !item.price" class="text-[10px] text-amber-600 mt-1">⚠ Elemento opcional sin precio — el cliente no podrá calcular su inversión personalizada.</p>
                   </div>
@@ -843,7 +791,7 @@ const props = defineProps({
   proposalData: { type: Object, default: () => ({}) },
 });
 
-const emit = defineEmits(['save']);
+const emit = defineEmits(['save', 'syncHostingPercent']);
 
 const sectionType = computed(() => props.section.section_type);
 const sectionTitle = ref(props.section.title);
@@ -869,7 +817,6 @@ const savedMsg = ref('');
 const validationError = ref('');
 const showRawJson = ref(false);
 const hostingCollapsed = ref(true);
-const modulesCollapsed = ref(true);
 const initialContent = props.section.content_json || {};
 const pasteMode = ref(initialContent._editMode === 'paste');
 const pasteText = ref(initialContent.rawText || '');
@@ -955,6 +902,13 @@ watch(() => props.section, (s) => {
 if (sectionType.value === 'investment') {
   watch(() => props.proposalData?.total_investment, () => {
     recalcPaymentFromProposal();
+  });
+
+  // Sync hosting_percent from General tab → hostingPlan.hostingPercent
+  watch(() => props.proposalData?.hosting_percent, (newVal) => {
+    if (newVal != null && form.hostingPlan && form.hostingPlan.hostingPercent !== newVal) {
+      form.hostingPlan.hostingPercent = newVal;
+    }
   });
 }
 
@@ -1058,6 +1012,10 @@ function handleSave() {
         content_json: contentJson,
       },
     });
+    // Sync hostingPercent back to General tab when saving the investment section
+    if (sectionType.value === 'investment' && form.hostingPlan?.hostingPercent != null) {
+      emit('syncHostingPercent', form.hostingPlan.hostingPercent);
+    }
     savedMsg.value = '✓ Guardado';
     setTimeout(() => { savedMsg.value = ''; }, 3000);
   } finally {

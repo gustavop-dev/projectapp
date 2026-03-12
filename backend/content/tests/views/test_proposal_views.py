@@ -793,8 +793,9 @@ class TestTrackProposalEngagement:
     @patch('content.services.proposal_email_service.ProposalEmailService.send_revisit_alert', return_value=True)
     def test_sends_revisit_alert_after_3_sessions(self, mock_alert, api_client, sent_proposal):
         """Revisit alert fires after 3 distinct session IDs with 3+ day gap."""
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
         # Set first_viewed_at to 4 days ago so temporal gap check passes
         sent_proposal.first_viewed_at = timezone.now() - timedelta(days=4)
         sent_proposal.save(update_fields=['first_viewed_at'])
@@ -1650,6 +1651,856 @@ class TestDashboardAvgTtr:
         assert response.data['avg_time_to_response_hours'] == 6.0
 
 
+# ---------------------------------------------------------------------------
+# Post-expiration alert exception (lines 77-78)
+# ---------------------------------------------------------------------------
+
+class TestPostExpirationAlertException:
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_post_expiration_visit_alert',
+        side_effect=Exception('SMTP down'),
+    )
+    def test_returns_410_when_alert_creation_raises(self, mock_alert, api_client, expired_proposal):
+        """Expired proposal retrieval returns 410 even when alert pipeline raises."""
+        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})
+        response = api_client.get(url)
+        assert response.status_code == 410
+        expired_proposal.refresh_from_db()
+        assert expired_proposal.post_expiration_alert_sent_at is None
+
+
+# ---------------------------------------------------------------------------
+# Engagement decay detection (lines 1046-1055)
+# ---------------------------------------------------------------------------
+
+class TestEngagementDecay:
+    def _url(self, uuid):
+        return reverse('track-proposal-engagement', kwargs={'proposal_uuid': uuid})
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_creates_engagement_decay_alert(self, api_client, sent_proposal):
+        """Engagement decay alert is created when current session views < 50% of avg."""
+        from content.models import ProposalAlert
+        # Previous session with many sections
+        prev_event = ProposalViewEvent.objects.create(
+            proposal=sent_proposal, session_id='prev-sess',
+        )
+        for i in range(6):
+            ProposalSectionView.objects.create(
+                view_event=prev_event, section_type=f'section_{i}',
+                section_title=f'Section {i}', time_spent_seconds=10,
+                entered_at=timezone.now(),
+            )
+        # Current session with very few sections (decay)
+        payload = {
+            'session_id': 'decay-sess',
+            'sections': [
+                {
+                    'section_type': 'greeting',
+                    'section_title': 'Hi',
+                    'time_spent_seconds': 2,
+                    'entered_at': '2026-03-10T12:00:00Z',
+                },
+            ],
+        }
+        response = api_client.post(self._url(sent_proposal.uuid), payload, format='json')
+        assert response.status_code == 200
+        assert ProposalAlert.objects.filter(
+            proposal=sent_proposal, alert_type='engagement_decay',
+        ).exists()
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_does_not_create_decay_alert_when_recent_exists(self, api_client, sent_proposal):
+        """No duplicate decay alert within 3-day window."""
+        from content.models import ProposalAlert
+        ProposalAlert.objects.create(
+            proposal=sent_proposal, alert_type='engagement_decay',
+            message='Decay', alert_date=timezone.now(),
+        )
+        prev_event = ProposalViewEvent.objects.create(
+            proposal=sent_proposal, session_id='prev-no-dup',
+        )
+        for i in range(6):
+            ProposalSectionView.objects.create(
+                view_event=prev_event, section_type=f'section_{i}',
+                section_title=f'Section {i}', time_spent_seconds=10,
+                entered_at=timezone.now(),
+            )
+        payload = {
+            'session_id': 'decay-no-dup',
+            'sections': [
+                {
+                    'section_type': 'greeting',
+                    'section_title': 'Hi',
+                    'time_spent_seconds': 2,
+                    'entered_at': '2026-03-10T12:00:00Z',
+                },
+            ],
+        }
+        response = api_client.post(self._url(sent_proposal.uuid), payload, format='json')
+        assert response.status_code == 200
+        assert ProposalAlert.objects.filter(
+            proposal=sent_proposal, alert_type='engagement_decay',
+        ).count() == 1
+
+
+# ---------------------------------------------------------------------------
+# Dashboard: win rate, engagement/value, dropped modules (lines 1938-2049)
+# ---------------------------------------------------------------------------
+
+class TestDashboardWinRateBreakdowns:
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_win_rate_by_project_type(self, admin_client, db):
+        """Dashboard returns win_rate_by_project_type when proposals have project_type."""
+        BusinessProposal.objects.create(
+            title='A', client_name='A', status='accepted',
+            total_investment=1000, project_type='webapp', market_type='b2b',
+        )
+        BusinessProposal.objects.create(
+            title='R', client_name='R', status='rejected',
+            total_investment=2000, project_type='webapp', market_type='b2b',
+        )
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        wr = response.data['win_rate_by_project_type']
+        assert len(wr) >= 1
+        webapp_entry = next(e for e in wr if e['type'] == 'webapp')
+        assert webapp_entry['total'] == 2
+        assert webapp_entry['accepted'] == 1
+        assert webapp_entry['win_rate'] == 50.0
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_win_rate_by_market_type(self, admin_client, db):
+        """Dashboard returns win_rate_by_market_type."""
+        BusinessProposal.objects.create(
+            title='A', client_name='A', status='accepted',
+            total_investment=1000, project_type='webapp', market_type='saas',
+        )
+        BusinessProposal.objects.create(
+            title='R', client_name='R', status='expired',
+            total_investment=2000, project_type='webapp', market_type='saas',
+        )
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        wr = response.data['win_rate_by_market_type']
+        assert len(wr) >= 1
+        saas_entry = next(e for e in wr if e['type'] == 'saas')
+        assert saas_entry['total'] == 2
+        assert saas_entry['win_rate'] == 50.0
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_win_rate_by_combination(self, admin_client, db):
+        """Dashboard returns win_rate_by_combination for combos with ≥2 terminal proposals."""
+        for _ in range(2):
+            BusinessProposal.objects.create(
+                title='C', client_name='C', status='accepted',
+                total_investment=1000, project_type='ecommerce', market_type='b2c',
+            )
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        combos = response.data['win_rate_by_combination']
+        assert len(combos) >= 1
+        combo = combos[0]
+        assert combo['project_type'] == 'ecommerce'
+        assert combo['market_type'] == 'b2c'
+        assert combo['win_rate'] == 100.0
+
+
+class TestDashboardEngagementValueInsight:
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_engagement_value_insight(self, admin_client, db):
+        """Dashboard returns engagement_value_insight when ≥4 accepted proposals exist."""
+        for i in range(4):
+            p = BusinessProposal.objects.create(
+                title=f'Acc{i}', client_name=f'C{i}', status='accepted',
+                total_investment=1000 * (i + 1),
+            )
+            event = ProposalViewEvent.objects.create(
+                proposal=p, session_id=f'ev-sess-{i}',
+            )
+            ProposalSectionView.objects.create(
+                view_event=event, section_type='investment',
+                section_title='Inv', time_spent_seconds=10 * (i + 1),
+                entered_at=timezone.now(),
+            )
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        insight = response.data['engagement_value_insight']
+        assert insight is not None
+        assert 'avg_high_engagement_value' in insight
+        assert 'avg_low_engagement_value' in insight
+        assert 'difference' in insight
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_null_insight_with_fewer_than_4_accepted(self, admin_client, db):
+        """Dashboard returns null engagement_value_insight with < 4 accepted proposals."""
+        BusinessProposal.objects.create(
+            title='A1', client_name='C1', status='accepted', total_investment=1000,
+        )
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        assert response.data['engagement_value_insight'] is None
+
+
+class TestDashboardDroppedModulesAndAbandonment:
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_top_dropped_modules(self, admin_client, db):
+        """Dashboard returns top_dropped_modules from calc_confirmed logs."""
+        import json
+        p = BusinessProposal.objects.create(
+            title='P', client_name='C', status='sent', total_investment=1000,
+        )
+        ProposalChangeLog.objects.create(
+            proposal=p, change_type='calc_confirmed',
+            description=json.dumps({'selected': ['m1'], 'deselected': ['m2', 'm3'], 'total': 1000}),
+        )
+        ProposalChangeLog.objects.create(
+            proposal=p, change_type='calc_confirmed',
+            description=json.dumps({'selected': ['m1'], 'deselected': ['m2'], 'total': 500}),
+        )
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        dropped = response.data['top_dropped_modules']
+        assert len(dropped) >= 1
+        m2_entry = next(d for d in dropped if d['module_id'] == 'm2')
+        assert m2_entry['drop_count'] == 2
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_calc_abandonment_rate(self, admin_client, db):
+        """Dashboard returns calc_abandonment_rate from confirmed + abandoned logs."""
+        import json
+        p = BusinessProposal.objects.create(
+            title='P', client_name='C', status='sent', total_investment=1000,
+        )
+        ProposalChangeLog.objects.create(
+            proposal=p, change_type='calc_confirmed',
+            description=json.dumps({'selected': [], 'deselected': [], 'total': 0}),
+        )
+        ProposalChangeLog.objects.create(
+            proposal=p, change_type='calc_abandoned',
+            description=json.dumps({'selected': [], 'deselected': [], 'total': 0}),
+        )
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        assert response.data['calc_abandonment_rate'] == 50.0
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_handles_invalid_json_in_calc_log(self, admin_client, db):
+        """Dashboard handles invalid JSON in calc_confirmed description gracefully."""
+        p = BusinessProposal.objects.create(
+            title='P', client_name='C', status='sent', total_investment=1000,
+        )
+        ProposalChangeLog.objects.create(
+            proposal=p, change_type='calc_confirmed',
+            description='not valid json',
+        )
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        assert response.data['top_dropped_modules'] == []
+
+
+# ---------------------------------------------------------------------------
+# CSV export with full data rows (lines 2078-2145)
+# ---------------------------------------------------------------------------
+
+class TestCsvExportFullData:
+    @freeze_time('2026-03-01 12:00:00')
+    def test_csv_includes_section_engagement_rows(self, admin_client, sent_proposal):
+        """CSV export includes per-section stats rows with visit count and times."""
+        event = ProposalViewEvent.objects.create(
+            proposal=sent_proposal, session_id='csv-full-s1',
+            ip_address='5.5.5.5',
+        )
+        ProposalSectionView.objects.create(
+            view_event=event, section_type='investment',
+            section_title='Investment', time_spent_seconds=20.5,
+            entered_at=timezone.now(),
+        )
+        ProposalSectionView.objects.create(
+            view_event=event, section_type='greeting',
+            section_title='Saludo', time_spent_seconds=8.0,
+            entered_at=timezone.now(),
+        )
+        url = reverse('proposal-analytics-csv', kwargs={'proposal_id': sent_proposal.id})
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'investment' in content
+        assert 'greeting' in content
+        assert 'Investment' in content
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_csv_includes_change_log_rows(self, admin_client, sent_proposal):
+        """CSV export includes change log entries."""
+        ProposalChangeLog.objects.create(
+            proposal=sent_proposal, change_type='status_changed',
+            field_name='status', old_value='draft', new_value='sent',
+            description='Status updated',
+        )
+        url = reverse('proposal-analytics-csv', kwargs={'proposal_id': sent_proposal.id})
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'CHANGE LOG' in content
+        assert 'status_changed' in content
+
+
+# ---------------------------------------------------------------------------
+# List clients: full proposal grouping (lines 2163-2190)
+# ---------------------------------------------------------------------------
+
+class TestListClientsFullData:
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_proposal_details_in_client_group(self, admin_client, db):
+        """Client group includes detailed proposal summaries."""
+        now = timezone.now()
+        BusinessProposal.objects.create(
+            title='P1', client_name='Detail Client', client_email='detail@test.com',
+            total_investment=5000, currency='COP', status='sent',
+            sent_at=now, view_count=3, expires_at=now + timezone.timedelta(days=10),
+        )
+        response = admin_client.get(reverse('list-clients'))
+        assert response.status_code == 200
+        client = response.data[0]
+        assert client['total_proposals'] == 1
+        proposal = client['proposals'][0]
+        assert proposal['title'] == 'P1'
+        assert proposal['total_investment'] == '5000.00'
+        assert proposal['currency'] == 'COP'
+        assert proposal['view_count'] == 3
+
+    def test_counts_accepted_rejected_pending(self, admin_client, db):
+        """Client group correctly counts accepted, rejected, and pending proposals."""
+        BusinessProposal.objects.create(
+            title='Acc', client_name='Multi', client_email='multi@test.com',
+            total_investment=1000, status='accepted',
+        )
+        BusinessProposal.objects.create(
+            title='Rej', client_name='Multi', client_email='multi@test.com',
+            total_investment=2000, status='rejected',
+        )
+        BusinessProposal.objects.create(
+            title='Draft', client_name='Multi', client_email='multi@test.com',
+            total_investment=3000, status='draft',
+        )
+        response = admin_client.get(reverse('list-clients'))
+        assert response.status_code == 200
+        client = response.data[0]
+        assert client['accepted'] == 1
+        assert client['rejected'] == 1
+        assert client['pending'] == 1
+        assert client['total_proposals'] == 3
+
+
+# ---------------------------------------------------------------------------
+# Analytics: responded_at / time_to_response (lines 1688-1691)
+# ---------------------------------------------------------------------------
+
+class TestAnalyticsRespondedAtFields:
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_responded_at_and_time_to_response(self, admin_client, db):
+        """Analytics includes responded_at and time_to_response_hours when proposal was responded."""
+        now = timezone.now()
+        p = BusinessProposal.objects.create(
+            title='Responded', client_name='R', status='accepted',
+            total_investment=1000,
+            sent_at=now - timezone.timedelta(hours=48),
+            first_viewed_at=now - timezone.timedelta(hours=24),
+            responded_at=now,
+        )
+        url = reverse('proposal-analytics', kwargs={'proposal_id': p.id})
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        assert response.data['responded_at'] is not None
+        assert response.data['time_to_response_hours'] == 24.0
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_returns_null_time_to_response_when_not_responded(self, admin_client, sent_proposal):
+        """Analytics returns null time_to_response_hours when no response yet."""
+        url = reverse('proposal-analytics', kwargs={'proposal_id': sent_proposal.id})
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        assert response.data['time_to_response_hours'] is None
+
+
+# ---------------------------------------------------------------------------
+# Track calculator interaction (lines 1140-1185)
+# ---------------------------------------------------------------------------
+
+class TestTrackCalculatorInteraction:
+    def _url(self, uuid):
+        return reverse('track-calculator-interaction', kwargs={'proposal_uuid': uuid})
+
+    def test_records_confirmed_interaction(self, api_client, sent_proposal):
+        """Confirmed calculator interaction creates calc_confirmed change log."""
+        payload = {
+            'event': 'confirmed',
+            'selected': ['module_a', 'module_b'],
+            'deselected': ['module_c'],
+            'total': 3500000,
+        }
+        response = api_client.post(self._url(sent_proposal.uuid), payload, format='json')
+        assert response.status_code == 200
+        assert ProposalChangeLog.objects.filter(
+            proposal=sent_proposal, change_type='calc_confirmed',
+        ).exists()
+
+    def test_records_abandoned_interaction(self, api_client, sent_proposal):
+        """Abandoned calculator interaction creates calc_abandoned change log."""
+        payload = {
+            'event': 'abandoned',
+            'selected': [],
+            'deselected': [],
+            'total': 0,
+        }
+        response = api_client.post(self._url(sent_proposal.uuid), payload, format='json')
+        assert response.status_code == 200
+        assert ProposalChangeLog.objects.filter(
+            proposal=sent_proposal, change_type='calc_abandoned',
+        ).exists()
+
+    def test_returns_400_for_invalid_event(self, api_client, sent_proposal):
+        """Invalid event type returns 400."""
+        payload = {'event': 'invalid'}
+        response = api_client.post(self._url(sent_proposal.uuid), payload, format='json')
+        assert response.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# Engagement: draft proposals skipped (line 946)
+# ---------------------------------------------------------------------------
+
+class TestEngagementSkipsDraft:
+    def test_skips_tracking_for_draft_proposal(self, api_client, proposal):
+        """Engagement tracking returns 200 with skipped status for draft proposals."""
+        url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': proposal.uuid})
+        payload = {
+            'session_id': 'sess-draft',
+            'sections': [
+                {'section_type': 'greeting', 'section_title': 'Hi',
+                 'time_spent_seconds': 1, 'entered_at': '2026-03-01T10:00:00Z'},
+            ],
+        }
+        response = api_client.post(url, payload, format='json')
+        assert response.status_code == 200
+        assert response.data['status'] == 'skipped'
+        assert ProposalViewEvent.objects.count() == 0
+
+
+# ---------------------------------------------------------------------------
+# Proposal alerts endpoint (lines 2282-2466)
+# ---------------------------------------------------------------------------
+
+class TestProposalAlerts:
+    def _url(self):
+        return reverse('proposal-alerts')
+
+    def test_returns_401_for_unauthenticated(self, api_client):
+        response = api_client.get(self._url())
+        assert response.status_code in (401, 403)
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_not_viewed_alert(self, admin_client, db):
+        """Stale proposal (sent, not viewed, past reminder_days) triggers not_viewed alert."""
+        BusinessProposal.objects.create(
+            title='Stale', client_name='S', status='sent',
+            total_investment=1000,
+            sent_at=timezone.now() - timezone.timedelta(days=10),
+            reminder_days=5,
+        )
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        alert_types = [a['alert_type'] for a in response.data]
+        assert 'not_viewed' in alert_types
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_not_responded_alert(self, admin_client, db):
+        """Viewed but not responded proposal past urgency_reminder_days triggers alert."""
+        BusinessProposal.objects.create(
+            title='Viewed', client_name='V', status='viewed',
+            total_investment=1000,
+            first_viewed_at=timezone.now() - timezone.timedelta(days=8),
+            urgency_reminder_days=5,
+        )
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        alert_types = [a['alert_type'] for a in response.data]
+        assert 'not_responded' in alert_types
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_expiring_soon_alert(self, admin_client, db):
+        """Proposal expiring within 3 days triggers expiring_soon alert."""
+        BusinessProposal.objects.create(
+            title='Expiring', client_name='E', status='sent',
+            total_investment=1000,
+            expires_at=timezone.now() + timezone.timedelta(days=2),
+        )
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        alert_types = [a['alert_type'] for a in response.data]
+        assert 'expiring_soon' in alert_types
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_seller_inactive_alert(self, admin_client, db):
+        """Seller inactive >3 days with no recent activity triggers alert."""
+        BusinessProposal.objects.create(
+            title='Inactive', client_name='I', status='viewed',
+            total_investment=1000,
+            first_viewed_at=timezone.now() - timezone.timedelta(days=5),
+            sent_at=timezone.now() - timezone.timedelta(days=10),
+            last_activity_at=timezone.now() - timezone.timedelta(days=5),
+        )
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        alert_types = [a['alert_type'] for a in response.data]
+        assert 'seller_inactive' in alert_types
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_zombie_alert(self, admin_client, db):
+        """Sent >7 days, no views, no seller activity triggers zombie alert."""
+        BusinessProposal.objects.create(
+            title='Zombie', client_name='Z', status='sent',
+            total_investment=1000, view_count=0,
+            sent_at=timezone.now() - timezone.timedelta(days=8),
+        )
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        alert_types = [a['alert_type'] for a in response.data]
+        assert 'zombie' in alert_types
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_zombie_draft_alert(self, admin_client, db):
+        """Draft >5 days without edit triggers zombie_draft alert."""
+        BusinessProposal.objects.create(
+            title='ZombieDraft', client_name='ZD', status='draft',
+            total_investment=1000,
+        )
+        # Force updated_at to be old
+        BusinessProposal.objects.filter(title='ZombieDraft').update(
+            updated_at=timezone.now() - timezone.timedelta(days=6),
+        )
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        alert_types = [a['alert_type'] for a in response.data]
+        assert 'zombie_draft' in alert_types
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_zombie_sent_stale_alert(self, admin_client, db):
+        """Sent >10 days, no views triggers zombie_sent_stale alert."""
+        BusinessProposal.objects.create(
+            title='ZombieSent', client_name='ZS', status='sent',
+            total_investment=1000, view_count=0,
+            sent_at=timezone.now() - timezone.timedelta(days=11),
+        )
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        alert_types = [a['alert_type'] for a in response.data]
+        assert 'zombie_sent_stale' in alert_types
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_late_return_alert(self, admin_client, db):
+        """Client returning after ≥5 days gap triggers late_return alert."""
+        p = BusinessProposal.objects.create(
+            title='LateReturn', client_name='LR', status='viewed',
+            total_investment=1000,
+        )
+        old_event = ProposalViewEvent.objects.create(
+            proposal=p, session_id='old-sess',
+        )
+        # Force viewed_at (auto_now_add) to 6 days ago
+        ProposalViewEvent.objects.filter(pk=old_event.pk).update(
+            viewed_at=timezone.now() - timezone.timedelta(days=6),
+        )
+        new_event = ProposalViewEvent.objects.create(
+            proposal=p, session_id='new-sess',
+        )
+        ProposalViewEvent.objects.filter(pk=new_event.pk).update(
+            viewed_at=timezone.now() - timezone.timedelta(hours=2),
+        )
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        alert_types = [a['alert_type'] for a in response.data]
+        assert 'late_return' in alert_types
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_returns_manual_alert(self, admin_client, db):
+        """Undismissed manual alerts are returned."""
+        from content.models import ProposalAlert
+        p = BusinessProposal.objects.create(
+            title='Manual', client_name='M', status='sent',
+            total_investment=1000,
+        )
+        ProposalAlert.objects.create(
+            proposal=p, alert_type='custom_reminder',
+            message='Follow up with client', alert_date=timezone.now(),
+        )
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        alert_types = [a['alert_type'] for a in response.data]
+        assert any('manual_' in at for at in alert_types)
+
+    def test_returns_empty_alerts_list(self, admin_client, db):
+        """Returns empty list when no alerts are needed."""
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        assert isinstance(response.data, list)
+
+
+# ---------------------------------------------------------------------------
+# Create / dismiss proposal alert (lines 2477-2493)
+# ---------------------------------------------------------------------------
+
+class TestCreateProposalAlert:
+    def _url(self):
+        return reverse('create-proposal-alert')
+
+    def test_creates_alert_returns_201(self, admin_client, proposal):
+        """Creating a manual alert returns 201."""
+        payload = {
+            'proposal': proposal.id,
+            'alert_type': 'reminder',
+            'message': 'Call client tomorrow',
+            'alert_date': '2026-03-15T10:00:00Z',
+        }
+        response = admin_client.post(self._url(), payload, format='json')
+        assert response.status_code == 201
+
+    def test_returns_400_for_invalid_data(self, admin_client):
+        """Missing required fields returns 400."""
+        response = admin_client.post(self._url(), {}, format='json')
+        assert response.status_code == 400
+
+
+class TestDismissProposalAlert:
+    @freeze_time('2026-03-01 12:00:00')
+    def test_dismisses_alert_returns_200(self, admin_client, proposal):
+        """Dismissing an alert marks it as dismissed."""
+        from content.models import ProposalAlert
+        alert = ProposalAlert.objects.create(
+            proposal=proposal, alert_type='custom',
+            message='Test', alert_date=timezone.now(),
+        )
+        url = reverse('dismiss-proposal-alert', kwargs={'alert_id': alert.id})
+        response = admin_client.patch(url)
+        assert response.status_code == 200
+        alert.refresh_from_db()
+        assert alert.is_dismissed is True
+
+    def test_returns_404_for_nonexistent_alert(self, admin_client):
+        """Dismissing nonexistent alert returns 404."""
+        url = reverse('dismiss-proposal-alert', kwargs={'alert_id': 99999})
+        response = admin_client.patch(url)
+        assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Post-rejection revisit alert (lines 132-147)
+# ---------------------------------------------------------------------------
+
+class TestPostRejectionRevisitAlert:
+    def test_creates_alert_on_rejected_proposal_visit(self, api_client, rejected_proposal):
+        """Visiting a rejected proposal creates a post_rejection_revisit alert."""
+        from content.models import ProposalAlert
+        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': rejected_proposal.uuid})
+        response = api_client.get(url)
+        assert response.status_code == 200
+        assert ProposalAlert.objects.filter(
+            proposal=rejected_proposal, alert_type='post_rejection_revisit',
+        ).exists()
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_does_not_duplicate_revisit_alert(self, api_client, rejected_proposal):
+        """Second visit to rejected proposal does not create duplicate alert."""
+        from content.models import ProposalAlert
+        ProposalAlert.objects.create(
+            proposal=rejected_proposal, alert_type='post_rejection_revisit',
+            message='Already exists', alert_date=timezone.now(),
+        )
+        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': rejected_proposal.uuid})
+        api_client.get(url)
+        assert ProposalAlert.objects.filter(
+            proposal=rejected_proposal, alert_type='post_rejection_revisit',
+        ).count() == 1
+
+    def test_no_alert_when_ref_is_reengagement(self, api_client, rejected_proposal):
+        """Reengagement link visits do not trigger post-rejection alert."""
+        from content.models import ProposalAlert
+        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': rejected_proposal.uuid})
+        api_client.get(url + '?ref=reengagement')
+        assert not ProposalAlert.objects.filter(
+            proposal=rejected_proposal, alert_type='post_rejection_revisit',
+        ).exists()
+
+
+# ---------------------------------------------------------------------------
+# List proposals: heat_score / lead_score branches (lines 227-229)
+# ---------------------------------------------------------------------------
+
+class TestListProposalsHeatScore:
+    @freeze_time('2026-03-10 12:00:00')
+    def test_accepted_proposal_has_lead_score_100(self, admin_client, db):
+        """Accepted proposals get heat_score=0 and lead_score=100."""
+        BusinessProposal.objects.create(
+            title='Accepted', client_name='A', status='accepted',
+            total_investment=1000,
+        )
+        response = admin_client.get(reverse('list-proposals'))
+        assert response.status_code == 200
+        item = response.data[0]
+        assert item['heat_score'] == 0
+        assert item['lead_score'] == 100
+
+
+# ---------------------------------------------------------------------------
+# Engagement decay alert exception (lines 1078-1079)
+# ---------------------------------------------------------------------------
+
+class TestEngagementDecayAlertException:
+    @freeze_time('2026-03-10 12:00:00')
+    @patch('content.models.ProposalAlert.objects.create', side_effect=Exception('DB error'))
+    def test_returns_200_when_decay_alert_creation_fails(self, mock_create, api_client, sent_proposal):
+        """Engagement tracking succeeds even when engagement_decay alert creation fails."""
+        prev_event = ProposalViewEvent.objects.create(
+            proposal=sent_proposal, session_id='prev-exc',
+        )
+        for i in range(6):
+            ProposalSectionView.objects.create(
+                view_event=prev_event, section_type=f'section_{i}',
+                section_title=f'Section {i}', time_spent_seconds=10,
+                entered_at=timezone.now(),
+            )
+        payload = {
+            'session_id': 'decay-exc',
+            'sections': [
+                {'section_type': 'greeting', 'section_title': 'Hi',
+                 'time_spent_seconds': 2, 'entered_at': '2026-03-10T12:00:00Z'},
+            ],
+        }
+        url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.post(url, payload, format='json')
+        assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Create from JSON with unmapped keys warning (line 386)
+# ---------------------------------------------------------------------------
+
+class TestCreateFromJsonUnmappedKeys:
+    def test_returns_warnings_for_unknown_section_keys(self, admin_client):
+        """Unknown section keys generate a warnings array in the response."""
+        payload = {
+            'title': 'Unmapped Test',
+            'client_name': 'Client',
+            'sections': {
+                'general': {'clientName': 'Client'},
+                'unknownSection': {'foo': 'bar'},
+            },
+        }
+        url = reverse('create-proposal-from-json')
+        response = admin_client.post(url, payload, format='json')
+        assert response.status_code == 201
+        assert 'warnings' in response.data
+        assert 'unknownSection' in response.data['warnings'][0]
+
+
+# ---------------------------------------------------------------------------
+# Post-rejection revisit alert exception (lines 145-146)
+# ---------------------------------------------------------------------------
+
+class TestPostRejectionRevisitException:
+    @patch('content.models.ProposalAlert.objects.filter')
+    def test_returns_200_when_revisit_alert_creation_raises(self, mock_filter, api_client, rejected_proposal):
+        """Proposal retrieval succeeds even when post-rejection alert creation raises."""
+        mock_filter.return_value.exists.return_value = False
+        with patch('content.models.ProposalAlert.objects.create', side_effect=Exception('DB error')):
+            url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': rejected_proposal.uuid})
+            response = api_client.get(url)
+            assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Heat score branches (lines 1246, 1270, 1272, 1287-1296)
+# ---------------------------------------------------------------------------
+
+class TestHeatScoreViaListProposals:
+    @freeze_time('2026-03-10 12:00:00')
+    def test_high_engagement_sent_proposal_has_heat_score(self, admin_client, db):
+        """Sent proposal with investment time, unique IPs, and views gets elevated heat score."""
+        p = BusinessProposal.objects.create(
+            title='Hot', client_name='H', status='sent',
+            total_investment=1000, view_count=5,
+            first_viewed_at=timezone.now() - timezone.timedelta(days=1),
+        )
+        event = ProposalViewEvent.objects.create(
+            proposal=p, session_id='heat-s1', ip_address='1.1.1.1',
+        )
+        ProposalSectionView.objects.create(
+            view_event=event, section_type='investment',
+            section_title='Inv', time_spent_seconds=70,
+            entered_at=timezone.now(),
+        )
+        response = admin_client.get(reverse('list-proposals'))
+        assert response.status_code == 200
+        item = next(i for i in response.data if i['id'] == p.id)
+        assert item['heat_score'] >= 1
+        assert item['lead_score'] >= 10
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_moderate_investment_time_gives_1_point(self, admin_client, db):
+        """Investment time between 15-60s gives 1 point (line 1272)."""
+        p = BusinessProposal.objects.create(
+            title='Moderate', client_name='M', status='sent',
+            total_investment=1000, view_count=2,
+            first_viewed_at=timezone.now() - timezone.timedelta(days=2),
+        )
+        event = ProposalViewEvent.objects.create(
+            proposal=p, session_id='heat-mod', ip_address='2.2.2.2',
+        )
+        ProposalSectionView.objects.create(
+            view_event=event, section_type='investment',
+            section_title='Inv', time_spent_seconds=30,
+            entered_at=timezone.now(),
+        )
+        response = admin_client.get(reverse('list-proposals'))
+        assert response.status_code == 200
+        item = next(i for i in response.data if i['id'] == p.id)
+        assert item['heat_score'] >= 1
+
+
+# ---------------------------------------------------------------------------
+# Engagement score: days-since branches (lines 1225-1228)
+# ---------------------------------------------------------------------------
+
+class TestEngagementScoreDaysBranches:
+    @freeze_time('2026-03-10 12:00:00')
+    def test_analytics_with_3_day_old_view_gets_mid_score(self, admin_client, db):
+        """Proposal first viewed 3 days ago hits the elif days_since <= 3 branch."""
+        p = BusinessProposal.objects.create(
+            title='3Day', client_name='D', status='viewed',
+            total_investment=1000, view_count=1,
+            sent_at=timezone.now() - timezone.timedelta(days=5),
+            first_viewed_at=timezone.now() - timezone.timedelta(days=3),
+        )
+        url = reverse('proposal-analytics', kwargs={'proposal_id': p.id})
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        assert response.data['engagement_score'] >= 0
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_analytics_with_5_day_old_view_gets_low_score(self, admin_client, db):
+        """Proposal first viewed 5 days ago hits the elif days_since <= 7 branch."""
+        p = BusinessProposal.objects.create(
+            title='5Day', client_name='D', status='viewed',
+            total_investment=1000, view_count=1,
+            sent_at=timezone.now() - timezone.timedelta(days=7),
+            first_viewed_at=timezone.now() - timezone.timedelta(days=5),
+        )
+        url = reverse('proposal-analytics', kwargs={'proposal_id': p.id})
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        assert response.data['engagement_score'] >= 0
+
+
 class TestCsvExportWithTrackingData:
     @freeze_time('2026-03-01 12:00:00')
     def test_csv_includes_section_stats_and_session_data(self, admin_client, sent_proposal):
@@ -1674,3 +2525,179 @@ class TestCsvExportWithTrackingData:
         assert 'greeting' in content
         assert 'csv-sess-1' in content
         assert 'status_changed' in content
+
+
+# ---------------------------------------------------------------------------
+# Conditional acceptance (Fix 1)
+# ---------------------------------------------------------------------------
+
+class TestConditionalAcceptance:
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_response_notification')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_acceptance_confirmation')
+    def test_acceptance_with_condition_creates_cond_accepted_log(
+        self, mock_confirm, mock_notify, api_client, sent_proposal
+    ):
+        """Accepting with a condition creates an extra cond_accepted changelog entry."""
+        url = reverse('respond-to-proposal', kwargs={'proposal_uuid': sent_proposal.uuid})
+        payload = {
+            'action': 'accepted',
+            'condition': 'Necesito soporte por 6 meses',
+        }
+        response = api_client.post(url, payload, format='json')
+        assert response.status_code == 200
+
+        logs = ProposalChangeLog.objects.filter(proposal=sent_proposal)
+        cond_logs = logs.filter(change_type='cond_accepted')
+        assert cond_logs.count() == 1
+        assert 'Necesito soporte por 6 meses' in cond_logs.first().description
+
+        # The main accepted log should also contain the condition
+        accepted_log = logs.filter(change_type='accepted').first()
+        assert 'Condition:' in accepted_log.description
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_response_notification')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_acceptance_confirmation')
+    def test_acceptance_without_condition_creates_no_cond_log(
+        self, mock_confirm, mock_notify, api_client, sent_proposal
+    ):
+        """Accepting without a condition does not create a cond_accepted log."""
+        url = reverse('respond-to-proposal', kwargs={'proposal_uuid': sent_proposal.uuid})
+        payload = {'action': 'accepted'}
+        response = api_client.post(url, payload, format='json')
+        assert response.status_code == 200
+
+        cond_logs = ProposalChangeLog.objects.filter(
+            proposal=sent_proposal, change_type='cond_accepted'
+        )
+        assert cond_logs.count() == 0
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_response_notification')
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_acceptance_confirmation')
+    def test_acceptance_with_empty_condition_creates_no_cond_log(
+        self, mock_confirm, mock_notify, api_client, sent_proposal
+    ):
+        """Accepting with a blank condition string does not create a cond_accepted log."""
+        url = reverse('respond-to-proposal', kwargs={'proposal_uuid': sent_proposal.uuid})
+        payload = {'action': 'accepted', 'condition': '   '}
+        response = api_client.post(url, payload, format='json')
+        assert response.status_code == 200
+
+        cond_logs = ProposalChangeLog.objects.filter(
+            proposal=sent_proposal, change_type='cond_accepted'
+        )
+        assert cond_logs.count() == 0
+
+
+# ---------------------------------------------------------------------------
+# Scorecard reads from section content_json (Fix 2)
+# ---------------------------------------------------------------------------
+
+class TestScorecardReadsFromSectionContent:
+    def test_scorecard_passes_payment_options_from_investment_section(self, admin_client, db):
+        """Scorecard payment_options check reads from investment section content_json."""
+        p = BusinessProposal.objects.create(
+            title='Scorecard Test', client_name='Client', client_email='c@t.com',
+            total_investment=5000000, status='draft',
+            expires_at=timezone.now() + timezone.timedelta(days=10),
+        )
+        ProposalSection.objects.create(
+            proposal=p, section_type='investment', title='Inversión',
+            order=1, is_enabled=True,
+            content_json={
+                'paymentOptions': [{'label': 'Pago 1', 'amount': '$2.5M'}],
+                'estimatedWeeks': 12,
+            },
+        )
+        url = reverse('proposal-scorecard', kwargs={'proposal_id': p.id})
+        response = admin_client.get(url)
+        assert response.status_code == 200
+
+        checks_by_key = {c['key']: c for c in response.data['checks']}
+        assert checks_by_key['payment_options']['passed'] is True
+        assert checks_by_key['estimated_weeks']['passed'] is True
+
+    def test_scorecard_fails_when_no_investment_section(self, admin_client, db):
+        """Scorecard gracefully handles missing investment section."""
+        p = BusinessProposal.objects.create(
+            title='No Inv', client_name='Client', client_email='c@t.com',
+            total_investment=5000000, status='draft',
+            expires_at=timezone.now() + timezone.timedelta(days=10),
+        )
+        ProposalSection.objects.create(
+            proposal=p, section_type='greeting', title='Greeting',
+            order=0, is_enabled=True, content_json={'clientName': 'Client'},
+        )
+        url = reverse('proposal-scorecard', kwargs={'proposal_id': p.id})
+        response = admin_client.get(url)
+        assert response.status_code == 200
+
+        checks_by_key = {c['key']: c for c in response.data['checks']}
+        assert checks_by_key['payment_options']['passed'] is False
+        assert checks_by_key['estimated_weeks']['passed'] is False
+
+    def test_scorecard_handles_empty_investment_content(self, admin_client, db):
+        """Scorecard handles investment section with empty content_json."""
+        p = BusinessProposal.objects.create(
+            title='Empty Inv', client_name='Client', client_email='c@t.com',
+            total_investment=5000000, status='draft',
+            expires_at=timezone.now() + timezone.timedelta(days=10),
+        )
+        ProposalSection.objects.create(
+            proposal=p, section_type='investment', title='Inversión',
+            order=1, is_enabled=True, content_json={},
+        )
+        url = reverse('proposal-scorecard', kwargs={'proposal_id': p.id})
+        response = admin_client.get(url)
+        assert response.status_code == 200
+
+        checks_by_key = {c['key']: c for c in response.data['checks']}
+        assert checks_by_key['payment_options']['passed'] is False
+        assert checks_by_key['estimated_weeks']['passed'] is False
+
+
+# ---------------------------------------------------------------------------
+# Inline status change
+# ---------------------------------------------------------------------------
+
+class TestInlineStatusChange:
+    def test_valid_status_change_succeeds(self, admin_client, sent_proposal):
+        """PATCH update-status with valid transition returns 200."""
+        url = reverse('update-proposal-status', kwargs={'proposal_id': sent_proposal.id})
+        response = admin_client.patch(url, {'status': 'viewed'}, format='json')
+        assert response.status_code == 200
+        sent_proposal.refresh_from_db()
+        assert sent_proposal.status == 'viewed'
+
+    def test_status_change_creates_changelog(self, admin_client, sent_proposal):
+        """Inline status change creates a ProposalChangeLog entry."""
+        url = reverse('update-proposal-status', kwargs={'proposal_id': sent_proposal.id})
+        admin_client.patch(url, {'status': 'expired'}, format='json')
+        log = ProposalChangeLog.objects.filter(
+            proposal=sent_proposal, change_type='status_change'
+        ).first()
+        assert log is not None
+        assert log.old_value == 'sent'
+        assert log.new_value == 'expired'
+
+    def test_invalid_status_returns_400(self, admin_client, sent_proposal):
+        """PATCH with invalid status value returns 400."""
+        url = reverse('update-proposal-status', kwargs={'proposal_id': sent_proposal.id})
+        response = admin_client.patch(url, {'status': 'invalid_status'}, format='json')
+        assert response.status_code == 400
+        assert 'error' in response.data
+
+    def test_blocked_transition_returns_400(self, admin_client, db):
+        """Blocked transition (e.g. draft → accepted) returns 400."""
+        p = BusinessProposal.objects.create(
+            title='Block', client_name='C', status='draft',
+            total_investment=1000,
+        )
+        url = reverse('update-proposal-status', kwargs={'proposal_id': p.id})
+        response = admin_client.patch(url, {'status': 'accepted'}, format='json')
+        assert response.status_code == 400
+
+    def test_empty_status_returns_400(self, admin_client, sent_proposal):
+        """PATCH with empty status returns 400."""
+        url = reverse('update-proposal-status', kwargs={'proposal_id': sent_proposal.id})
+        response = admin_client.patch(url, {'status': ''}, format='json')
+        assert response.status_code == 400

@@ -151,9 +151,8 @@ DEFAULT_SECTIONS = [
                     {'icon': '📍', 'label': 'Centros de datos', 'value': 'EE.UU., Brasil, Francia, Lituania e India'},
                     {'icon': '🧬', 'label': 'Compatibilidad', 'value': 'Linux (Ubuntu)'},
                 ],
-                'monthlyPrice': '$49.999 COP',
+                'hostingPercent': 30,
                 'monthlyLabel': 'por mes',
-                'annualPrice': '$680.000 COP',
                 'annualLabel': 'Hosting anual — Año 1',
                 'renewalNote': (
                     'Renovaciones a partir del segundo año: el costo se ajusta anualmente '
@@ -303,6 +302,7 @@ DEFAULT_SECTIONS = [
                     'id': 'views',
                     'icon': '🖥️',
                     'title': 'Vistas',
+                    'is_visible': True,
                     'description': (
                         'Cada vista es una pantalla o sección del sitio. Su propósito es guiar al visitante '
                         'para conocer la propuesta de valor y facilitar el contacto o la acción deseada.'
@@ -327,6 +327,7 @@ DEFAULT_SECTIONS = [
                     'id': 'components',
                     'icon': '🧩',
                     'title': 'Componentes',
+                    'is_visible': True,
                     'description': (
                         'Los componentes son elementos visuales o funcionales que se reutilizan en varias '
                         'secciones del sitio. Esto mantiene una experiencia coherente y optimiza el desarrollo.'
@@ -343,6 +344,7 @@ DEFAULT_SECTIONS = [
                     'id': 'features',
                     'icon': '⚙️',
                     'title': 'Funcionalidades Específicas',
+                    'is_visible': True,
                     'description': (
                         'Las funcionalidades son acciones o comportamientos interactivos del sitio web. '
                         'Le dan vida y dinamismo a la página, permitiendo que funcione de forma práctica y útil.'
@@ -357,23 +359,10 @@ DEFAULT_SECTIONS = [
                     ],
                 },
                 {
-                    'id': 'integrations_api',
-                    'icon': '🔌',
-                    'title': 'Integraciones (API)',
-                    'description': (
-                        '💳 Integración con una Pasarela de Pago para facilitar las transacciones de los usuarios. '
-                        'Se proponen las siguientes opciones por su facilidad de integración, presencia en el mercado colombiano '
-                        'y/o reconocimiento internacional.'
-                    ),
-                    'items': [
-                        {'icon': '🌎', 'name': 'Internacionales', 'description': 'Stripe: Ideal para recibir pagos con tarjeta de crédito/débito, muy usada a nivel mundial. PayPal: Plataforma reconocida globalmente, permite pagos con saldo PayPal, tarjeta y cuentas internacionales.'},
-                        {'icon': '🇨🇴', 'name': 'Regionales (Colombia)', 'description': 'PayU: Una de las más usadas en Colombia, permite pagos con tarjeta, PSE, Efecty, Baloto, Nequi, Daviplata. Wompi (Bancolombia): Excelente opción local con soporte para PSE, tarjetas, Nequi y botón Bancolombia. ePayco: Alternativa colombiana fácil de integrar, soporta múltiples métodos de pago como PSE, tarjetas y recaudos físicos.'},
-                    ],
-                },
-                {
                     'id': 'admin_module',
                     'icon': '🛠️',
                     'title': 'Módulo Administrativo',
+                    'is_visible': True,
                     'description': (
                         'El módulo administrativo permite gestionar el contenido y la operación del sitio '
                         'sin depender de desarrollo técnico.'
@@ -390,6 +379,7 @@ DEFAULT_SECTIONS = [
                     'id': 'analytics_dashboard',
                     'icon': '📊',
                     'title': 'Módulo de Analítica',
+                    'is_visible': True,
                     'description': (
                         'Dashboard de reportes inteligentes y métricas en tiempo real para entender '
                         'el comportamiento de los visitantes y tomar decisiones basadas en datos.'
@@ -450,9 +440,27 @@ DEFAULT_SECTIONS = [
                     ],
                 },
                 {
+                    'id': 'kpi_dashboard_module',
+                    'icon': '📊',
+                    'title': 'Dashboard de KPIs y Métricas',
+                    'is_visible': True,
+                    'description': (
+                        'Panel de control complementario al módulo de analítica, con indicadores '
+                        'clave de rendimiento en tiempo real para monitorear la salud de tu '
+                        'negocio y tomar decisiones basadas en datos.'
+                    ),
+                    'items': [
+                        {'icon': '📈', 'name': 'KPIs en tiempo real', 'description': 'Visualiza los indicadores más importantes de tu negocio actualizados al instante: ventas, conversiones, tráfico y más.'},
+                        {'icon': '📊', 'name': 'Gráficos interactivos', 'description': 'Dashboards visuales con gráficos de línea, barras y torta que permiten filtrar por período, categoría o segmento.'},
+                        {'icon': '🔔', 'name': 'Alertas de rendimiento', 'description': 'Notificaciones automáticas cuando un KPI cae por debajo del umbral definido o supera una meta establecida.'},
+                        {'icon': '📥', 'name': 'Exportación de reportes', 'description': 'Descarga reportes en CSV para compartir con tu equipo o stakeholders sin necesidad de acceder al sistema.'},
+                    ],
+                },
+                {
                     'id': 'pwa_module',
                     'icon': '📱',
                     'title': 'Aplicación Móvil Instalable (PWA)',
+                    'is_visible': True,
                     'description': (
                         'Convierte tu sitio web en una aplicación instalable que funciona '
                         'incluso sin conexión a internet. Ofrece una experiencia nativa '
@@ -474,14 +482,15 @@ DEFAULT_SECTIONS = [
                     'id': 'ai_module',
                     'icon': '🤖',
                     'title': 'Integración y Automatización con IA',
+                    'is_visible': True,
                     'description': (
                         'Potencia tu proyecto con inteligencia artificial. Exploramos juntos '
                         'cómo adaptar soluciones de IA a las necesidades específicas de tu negocio.'
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
-                    'price_percent': None,
-                    'is_ai_invite': True,
+                    'price_percent': 0,
+                    'is_invite': True,
                     'invite_note': (
                         '🤝 Te invitamos a una llamada personalizada donde exploraremos '
                         'juntos cómo la inteligencia artificial puede transformar tu negocio. '
@@ -503,49 +512,101 @@ DEFAULT_SECTIONS = [
                     ],
                 },
                 {
-                    'id': 'reports_alerts_module',
-                    'icon': '📬',
-                    'title': 'Reportes y Alertas vía Correo o Telegram',
+                    'id': 'integration_conversion_tracking',
+                    'icon': '📡',
+                    'title': 'Conversiones Inteligentes (Meta & Google Ads) (Integración API)',
+                    'is_visible': True,
                     'description': (
-                        'Mantente informado en todo momento con reportes automáticos y alertas '
-                        'personalizadas que llegan directamente a tu correo o Telegram.'
+                        'Maximiza el retorno de tu inversión publicitaria con seguimiento '
+                        'de conversiones server-side. Tu sitio web reporta cada acción '
+                        'valiosa directamente a Meta y Google, sin depender de cookies '
+                        'ni del navegador del visitante.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 0,
+                    'is_invite': True,
+                    'invite_note': (
+                        '🤝 Te invitamos a una llamada donde analizaremos tu estrategia '
+                        'publicitaria actual y diseñaremos juntos la integración server-side '
+                        'con Meta y Google Ads. Verás cómo maximizar tu ROAS con datos '
+                        'de conversión precisos — sin compromiso.'
+                    ),
+                    'items': [
+                        {'icon': '🔗', 'name': 'Conexión directa con Meta Conversions API', 'description': 'Cada conversión se envía desde tu servidor directamente a Meta, permitiendo que Facebook e Instagram identifiquen qué anuncios generaron resultados reales, incluso con bloqueadores de anuncios.'},
+                        {'icon': '📊', 'name': 'Conexión directa con Google Enhanced Conversions', 'description': 'Las conversiones se reportan desde el servidor con datos encriptados del cliente. Google asocia cada conversión con el clic original del anuncio y optimiza las pujas automáticas con información real.'},
+                        {'icon': '🛡️', 'name': 'Inmune a bloqueadores y restricciones de cookies', 'description': 'A diferencia del tracking tradicional, este módulo funciona desde tu servidor. No lo afectan los bloqueadores de anuncios, las restricciones de iOS 14+ ni la eliminación de cookies de terceros.'},
+                        {'icon': '🔄', 'name': 'Deduplicación automática de eventos', 'description': 'El sistema mantiene el tracking del navegador como respaldo y sincroniza ambas fuentes con un identificador único. Meta y Google eliminan duplicados automáticamente.'},
+                        {'icon': '🎯', 'name': 'Eventos de conversión personalizados', 'description': 'Se configuran los eventos que importan para tu negocio: formulario enviado, clic en WhatsApp, llamada agendada, propuesta vista, propuesta aceptada. Cada uno con su valor monetario para calcular ROAS real.'},
+                        {'icon': '📈', 'name': 'Panel de estado de conversiones', 'description': 'Visualiza desde tu panel administrativo el estado de cada evento enviado: confirmado, pendiente o fallido. Incluye diagnóstico de calidad de matching.'},
+                    ],
+                },
+                {
+                    'id': 'integration_electronic_invoicing',
+                    'icon': '🧾',
+                    'title': 'Facturación Electrónica e Integración DIAN (Integración API)',
+                    'is_visible': True,
+                    'description': (
+                        'Conexión de la plataforma con el sistema de facturación del cliente para generar, '
+                        'enviar, consultar y reconciliar comprobantes electrónicos desde los flujos operativos '
+                        'del negocio. Incluye sincronización de clientes, productos, impuestos, facturas, '
+                        'notas crédito/débito y documentos soporte, con trazabilidad del estado fiscal y '
+                        'soporte para automatizaciones vía API.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 60,
+                    'is_invite': False,
+                    'items': [
+                        {'icon': '📄', 'name': 'Generación de comprobantes electrónicos', 'description': 'Creación automática de facturas, notas crédito/débito y documentos soporte desde los flujos operativos del negocio.'},
+                        {'icon': '🔄', 'name': 'Sincronización de datos fiscales', 'description': 'Sincronización bidireccional de clientes, productos, impuestos y comprobantes con el sistema de facturación.'},
+                        {'icon': '📊', 'name': 'Trazabilidad del estado fiscal', 'description': 'Consulta y seguimiento del estado de cada comprobante: emitido, aceptado, rechazado o en proceso ante la DIAN.'},
+                        {'icon': '🔗', 'name': 'Integración con proveedores colombianos', 'description': 'Conexión con Siigo, Alegra u otros proveedores con presencia y API documentada en Colombia.'},
+                        {'icon': '⚙️', 'name': 'Automatizaciones vía API', 'description': 'Flujos automáticos para reconciliación de pagos, emisión de facturas al completar pedidos y notificaciones de estado fiscal.'},
+                    ],
+                },
+                {
+                    'id': 'integration_international_payments',
+                    'icon': '🌎',
+                    'title': 'Pasarela de Pago Internacional (Integración API)',
+                    'is_visible': True,
+                    'description': (
+                        'Integración con pasarelas de pago internacionales para facilitar '
+                        'transacciones globales con tarjeta de crédito/débito y cuentas internacionales.'
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
                     'price_percent': 20,
+                    'is_invite': False,
                     'items': [
-                        {'icon': '📧', 'name': 'Reportes automáticos por correo', 'description': 'Recibe resúmenes periódicos con las métricas clave de tu negocio directamente en tu bandeja de entrada, sin tener que entrar al sistema.'},
-                        {'icon': '🔔', 'name': 'Alertas personalizadas', 'description': 'Configura notificaciones para eventos importantes: nuevas ventas, registros de usuarios, stock bajo, o cualquier métrica que definas.'},
-                        {'icon': '✈️', 'name': 'Integración con Telegram', 'description': 'Recibe alertas y reportes instantáneos en tu chat de Telegram, ideal para estar al tanto desde cualquier lugar y en tiempo real.'},
-                        {'icon': '⏰', 'name': 'Programación de envíos', 'description': 'Define la frecuencia y horario de tus reportes: diario, semanal, mensual o en tiempo real según tus necesidades.'},
-                        {'icon': '📋', 'name': 'Resumen ejecutivo periódico', 'description': 'Informe consolidado con las métricas más relevantes de tu proyecto, diseñado para una lectura rápida y toma de decisiones ágil.'},
+                        {'icon': '💳', 'name': 'Stripe', 'description': 'Ideal para recibir pagos con tarjeta de crédito/débito, muy usada a nivel mundial. Soporta suscripciones, pagos únicos y múltiples divisas.'},
+                        {'icon': '🅿️', 'name': 'PayPal', 'description': 'Plataforma reconocida globalmente, permite pagos con saldo PayPal, tarjeta y cuentas internacionales.'},
                     ],
                 },
                 {
-                    'id': 'kpi_dashboard_module',
-                    'icon': '📊',
-                    'title': 'Dashboard de KPIs y Métricas',
+                    'id': 'integration_regional_payments',
+                    'icon': '🇨🇴',
+                    'title': 'Pasarela de Pago Regional (Colombia) (Integración API)',
+                    'is_visible': True,
                     'description': (
-                        'Panel de control personalizado con indicadores clave de rendimiento '
-                        'en tiempo real para monitorear la salud de tu negocio y tomar '
-                        'decisiones basadas en datos.'
+                        'Integración con pasarelas de pago con presencia en el mercado colombiano '
+                        'para facilitar transacciones locales con múltiples métodos de pago.'
                     ),
                     'is_calculator_module': True,
-                    'default_selected': True,
-                    'price_percent': 0,
-                    'is_free': True,
+                    'default_selected': False,
+                    'price_percent': 20,
+                    'is_invite': False,
                     'items': [
-                        {'icon': '📈', 'name': 'KPIs en tiempo real', 'description': 'Visualiza los indicadores más importantes de tu negocio actualizados al instante: ventas, conversiones, tráfico y más.'},
-                        {'icon': '🎯', 'name': 'Metas y objetivos', 'description': 'Define metas mensuales o trimestrales y monitorea el progreso con barras de avance y alertas de cumplimiento.'},
-                        {'icon': '📊', 'name': 'Gráficos interactivos', 'description': 'Dashboards visuales con gráficos de línea, barras y torta que permiten filtrar por período, categoría o segmento.'},
-                        {'icon': '🔔', 'name': 'Alertas de rendimiento', 'description': 'Notificaciones automáticas cuando un KPI cae por debajo del umbral definido o supera una meta establecida.'},
-                        {'icon': '📥', 'name': 'Exportación de reportes', 'description': 'Descarga reportes en PDF o CSV para compartir con tu equipo o stakeholders sin necesidad de acceder al sistema.'},
+                        {'icon': '💳', 'name': 'PayU', 'description': 'Una de las más usadas en Colombia, permite pagos con tarjeta, PSE, Efecty, Baloto, Nequi, Daviplata.'},
+                        {'icon': '🏦', 'name': 'Wompi (Bancolombia)', 'description': 'Excelente opción local con soporte para PSE, tarjetas, Nequi y botón Bancolombia.'},
+                        {'icon': '💰', 'name': 'ePayco', 'description': 'Alternativa colombiana fácil de integrar, soporta múltiples métodos de pago como PSE, tarjetas y recaudos físicos.'},
                     ],
                 },
                 {
                     'id': 'email_marketing_module',
                     'icon': '📧',
                     'title': 'Integración de Email Marketing',
+                    'is_visible': True,
                     'description': (
                         'Conecta tu sitio web con plataformas de email marketing para '
                         'automatizar campañas, segmentar audiencias y aumentar la '
@@ -563,38 +624,30 @@ DEFAULT_SECTIONS = [
                     ],
                 },
                 {
-                    'id': 'conversion_tracking_module',
-                    'icon': '📡',
-                    'title': 'Conversiones Inteligentes (Meta & Google Ads)',
+                    'id': 'reports_alerts_module',
+                    'icon': '📬',
+                    'title': 'Reportes y Alertas vía Correo o Telegram',
+                    'is_visible': True,
                     'description': (
-                        'Maximiza el retorno de tu inversión publicitaria con seguimiento '
-                        'de conversiones server-side. Tu sitio web reporta cada acción '
-                        'valiosa directamente a Meta y Google, sin depender de cookies '
-                        'ni del navegador del visitante.'
+                        'Mantente informado en todo momento con reportes automáticos y alertas '
+                        'personalizadas que llegan directamente a tu correo o Telegram.'
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
-                    'price_percent': None,
-                    'is_ai_invite': True,
-                    'invite_note': (
-                        '🤝 Te invitamos a una llamada donde analizaremos tu estrategia '
-                        'publicitaria actual y diseñaremos juntos la integración server-side '
-                        'con Meta y Google Ads. Verás cómo maximizar tu ROAS con datos '
-                        'de conversión precisos — sin compromiso.'
-                    ),
+                    'price_percent': 20,
                     'items': [
-                        {'icon': '🔗', 'name': 'Conexión directa con Meta Conversions API', 'description': 'Cada conversión se envía desde tu servidor directamente a Meta, permitiendo que Facebook e Instagram identifiquen qué anuncios generaron resultados reales, incluso con bloqueadores de anuncios.'},
-                        {'icon': '📊', 'name': 'Conexión directa con Google Enhanced Conversions', 'description': 'Las conversiones se reportan desde el servidor con datos encriptados del cliente. Google asocia cada conversión con el clic original del anuncio y optimiza las pujas automáticas con información real.'},
-                        {'icon': '🛡️', 'name': 'Inmune a bloqueadores y restricciones de cookies', 'description': 'A diferencia del tracking tradicional, este módulo funciona desde tu servidor. No lo afectan los bloqueadores de anuncios, las restricciones de iOS 14+ ni la eliminación de cookies de terceros.'},
-                        {'icon': '🔄', 'name': 'Deduplicación automática de eventos', 'description': 'El sistema mantiene el tracking del navegador como respaldo y sincroniza ambas fuentes con un identificador único. Meta y Google eliminan duplicados automáticamente.'},
-                        {'icon': '🎯', 'name': 'Eventos de conversión personalizados', 'description': 'Se configuran los eventos que importan para tu negocio: formulario enviado, clic en WhatsApp, llamada agendada, propuesta vista, propuesta aceptada. Cada uno con su valor monetario para calcular ROAS real.'},
-                        {'icon': '📈', 'name': 'Panel de estado de conversiones', 'description': 'Visualiza desde tu panel administrativo el estado de cada evento enviado: confirmado, pendiente o fallido. Incluye diagnóstico de calidad de matching.'},
+                        {'icon': '📧', 'name': 'Reportes automáticos por correo', 'description': 'Recibe resúmenes periódicos con las métricas clave de tu negocio directamente en tu bandeja de entrada, sin tener que entrar al sistema.'},
+                        {'icon': '🔔', 'name': 'Alertas personalizadas', 'description': 'Configura notificaciones para eventos importantes: nuevas ventas, registros de usuarios, stock bajo, o cualquier métrica que definas.'},
+                        {'icon': '✈️', 'name': 'Integración con Telegram', 'description': 'Recibe alertas y reportes instantáneos en tu chat de Telegram, ideal para estar al tanto desde cualquier lugar y en tiempo real.'},
+                        {'icon': '⏰', 'name': 'Programación de envíos', 'description': 'Define la frecuencia y horario de tus reportes: diario, semanal, mensual o en tiempo real según tus necesidades.'},
+                        {'icon': '📋', 'name': 'Resumen ejecutivo periódico', 'description': 'Informe consolidado con las métricas más relevantes de tu proyecto, diseñado para una lectura rápida y toma de decisiones ágil.'},
                     ],
                 },
                 {
                     'id': 'i18n_module',
                     'icon': '🌍',
                     'title': 'Multi-idioma y Localización Regional',
+                    'is_visible': True,
                     'description': (
                         'Sistema de internacionalización nativo que permite servir tu sitio '
                         'en múltiples idiomas con flujo de traducción integrado, formatos '
@@ -616,6 +669,7 @@ DEFAULT_SECTIONS = [
                     'id': 'gift_cards_module',
                     'icon': '🎁',
                     'title': 'Gift Cards y Vouchers Digitales',
+                    'is_visible': False,
                     'description': (
                         'Creación, venta y canje de tarjetas de regalo digitales con saldo '
                         'configurable, diseño de marca y código único verificable en checkout. '
@@ -631,6 +685,52 @@ DEFAULT_SECTIONS = [
                         {'icon': '📊', 'name': 'Historial de saldo y movimientos', 'description': 'Tanto el comprador como el destinatario pueden consultar el saldo disponible, movimientos realizados y fecha de vencimiento de cada tarjeta.'},
                         {'icon': '🎨', 'name': 'Diseño de marca personalizado', 'description': 'Las gift cards se generan con la identidad visual de tu marca, incluyendo logo, colores y mensaje personalizable del comprador para el destinatario.'},
                         {'icon': '⏰', 'name': 'Vencimiento configurable', 'description': 'Define políticas de vencimiento por tipo de tarjeta: sin vencimiento, 6 meses, 1 año, o personalizado. Incluye notificaciones automáticas antes de la expiración.'},
+                    ],
+                },
+                {
+                    'id': 'dark_mode_module',
+                    'icon': '🌙',
+                    'title': 'Motor de Tematización Dinámica (Dark Mode)',
+                    'is_visible': True,
+                    'description': (
+                        'Soporte técnico nativo que respeta las preferencias del sistema operativo '
+                        'del usuario, alternando fluidamente entre modo claro y oscuro con persistencia '
+                        'de elección. Un requerimiento visual contemporáneo que reduce la fatiga visual '
+                        'y proyecta modernidad absoluta.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 20,
+                    'items': [
+                        {'icon': '🎨', 'name': 'Paleta de colores dual', 'description': 'Diseño de dos sistemas de color completos (claro y oscuro) con variables CSS que se alternan de forma instantánea, manteniendo coherencia visual en ambos modos.'},
+                        {'icon': '⚙️', 'name': 'Detección automática de preferencia del sistema', 'description': 'El sitio detecta la preferencia de tema del sistema operativo del usuario (prefers-color-scheme) y aplica el modo correspondiente desde la primera visita.'},
+                        {'icon': '💾', 'name': 'Persistencia de elección del usuario', 'description': 'La preferencia manual del usuario se almacena y respeta en futuras visitas, prevaleciendo sobre la configuración del sistema operativo.'},
+                        {'icon': '🔄', 'name': 'Transición fluida entre modos', 'description': 'Animación suave y elegante al alternar entre modo claro y oscuro, sin parpadeos ni saltos visuales que interrumpan la experiencia de navegación.'},
+                        {'icon': '🖼️', 'name': 'Adaptación de imágenes y multimedia', 'description': 'Las imágenes, íconos y elementos gráficos se ajustan automáticamente al modo activo, optimizando contraste y legibilidad en cada contexto.'},
+                    ],
+                },
+                {
+                    'id': 'live_chat_module',
+                    'icon': '💬',
+                    'title': 'Chat en Vivo First-Party',
+                    'is_visible': True,
+                    'description': (
+                        'Sistema de chat en tiempo real completamente alojado en la infraestructura '
+                        'del cliente — sin Intercom, Drift ni LiveChat — donde los agentes atienden '
+                        'desde el mismo panel administrativo. Los datos son 100% propios, sin costos '
+                        'de suscripción crecientes ni riesgo de que la herramienta muestre anuncios '
+                        'de competidores.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 40,
+                    'items': [
+                        {'icon': '🔌', 'name': 'Widget de chat embebido', 'description': 'Componente flotante integrado en el sitio web que permite al visitante iniciar una conversación en tiempo real sin salir de la página que está navegando.'},
+                        {'icon': '🖥️', 'name': 'Panel de agente en el admin', 'description': 'Los agentes atienden las conversaciones directamente desde el panel administrativo del sitio, sin necesidad de aplicaciones externas ni cuentas adicionales.'},
+                        {'icon': '📡', 'name': 'Comunicación en tiempo real (WebSocket)', 'description': 'Mensajes instantáneos bidireccionales entre visitante y agente mediante conexión persistente, sin retrasos ni necesidad de recargar la página.'},
+                        {'icon': '🗄️', 'name': 'Historial de conversaciones propio', 'description': 'Todas las conversaciones se almacenan en la base de datos del cliente, con búsqueda, filtros por fecha y exportación. Los datos son 100% propiedad del cliente.'},
+                        {'icon': '🤖', 'name': 'Respuestas automáticas configurables', 'description': 'Mensajes de bienvenida, respuestas fuera de horario y FAQ automatizadas que mantienen la atención activa incluso cuando no hay agentes disponibles.'},
+                        {'icon': '🔔', 'name': 'Notificaciones de nuevos chats', 'description': 'Alertas en tiempo real al agente cuando un visitante inicia una conversación o envía un mensaje nuevo, garantizando tiempos de respuesta mínimos.'},
                     ],
                 },
             ],
@@ -1030,9 +1130,8 @@ DEFAULT_SECTIONS_EN = [
                     {'icon': '📍', 'label': 'Data centers', 'value': 'US, Brazil, France, Lithuania & India'},
                     {'icon': '🧬', 'label': 'Compatibility', 'value': 'Linux (Ubuntu)'},
                 ],
-                'monthlyPrice': '$4.99 USD',
+                'hostingPercent': 30,
                 'monthlyLabel': 'per month',
-                'annualPrice': '$59.88 USD',
                 'annualLabel': 'annual payment',
             },
             'paymentMethods': [
@@ -1165,6 +1264,7 @@ DEFAULT_SECTIONS_EN = [
                     'id': 'views',
                     'icon': '🖥️',
                     'title': 'Views',
+                    'is_visible': True,
                     'description': (
                         'Each view is a screen or section of the website. Its purpose is to guide the visitor '
                         'to understand the value proposition and facilitate contact or the desired action.'
@@ -1189,6 +1289,7 @@ DEFAULT_SECTIONS_EN = [
                     'id': 'components',
                     'icon': '🧩',
                     'title': 'Components',
+                    'is_visible': True,
                     'description': (
                         'Components are visual or functional elements reused across multiple sections '
                         'of the site. This ensures a coherent experience and optimizes development.'
@@ -1205,6 +1306,7 @@ DEFAULT_SECTIONS_EN = [
                     'id': 'features',
                     'icon': '⚙️',
                     'title': 'Specific Features',
+                    'is_visible': True,
                     'description': (
                         'Features are interactive actions or behaviors of the website. '
                         'They bring life and dynamism, making the page practical and useful.'
@@ -1219,23 +1321,10 @@ DEFAULT_SECTIONS_EN = [
                     ],
                 },
                 {
-                    'id': 'integrations_api',
-                    'icon': '🔌',
-                    'title': 'Integrations (API)',
-                    'description': (
-                        '💳 Payment Gateway Integration to facilitate user transactions. '
-                        'The following options are proposed for their ease of integration, market presence, '
-                        'and/or international recognition.'
-                    ),
-                    'items': [
-                        {'icon': '🌎', 'name': 'International', 'description': 'Stripe: Ideal for credit/debit card payments, widely used worldwide. PayPal: Globally recognized platform, allows payments with PayPal balance, cards, and international accounts.'},
-                        {'icon': '🇨🇴', 'name': 'Regional (Colombia)', 'description': 'PayU: One of the most used in Colombia, supports card, PSE, Efecty, Baloto, Nequi, Daviplata. Wompi (Bancolombia): Excellent local option with PSE, cards, Nequi, and Bancolombia button support. ePayco: Easy-to-integrate Colombian alternative supporting PSE, cards, and physical collections.'},
-                    ],
-                },
-                {
                     'id': 'admin_module',
                     'icon': '🛠️',
                     'title': 'Admin Module',
+                    'is_visible': True,
                     'description': (
                         'The admin module allows managing the site content and operations '
                         'without depending on technical development.'
@@ -1252,6 +1341,7 @@ DEFAULT_SECTIONS_EN = [
                     'id': 'analytics_dashboard',
                     'icon': '📊',
                     'title': 'Analytics Module',
+                    'is_visible': True,
                     'description': (
                         'Smart reporting dashboard with real-time metrics to understand '
                         'visitor behavior and make data-driven decisions.'
@@ -1313,9 +1403,27 @@ DEFAULT_SECTIONS_EN = [
                     ],
                 },
                 {
+                    'id': 'kpi_dashboard_module',
+                    'icon': '📊',
+                    'title': 'KPI Dashboard & Metrics',
+                    'is_visible': True,
+                    'description': (
+                        'Control panel complementary to the analytics module, with real-time '
+                        'key performance indicators to monitor the health of your business '
+                        'and make data-driven decisions.'
+                    ),
+                    'items': [
+                        {'icon': '📈', 'name': 'Real-time KPIs', 'description': 'Visualize the most important indicators of your business updated instantly: sales, conversions, traffic and more.'},
+                        {'icon': '📊', 'name': 'Interactive Charts', 'description': 'Visual dashboards with line, bar and pie charts that allow filtering by period, category or segment.'},
+                        {'icon': '🔔', 'name': 'Performance Alerts', 'description': 'Automatic notifications when a KPI falls below the defined threshold or exceeds a set goal.'},
+                        {'icon': '📥', 'name': 'Report Export', 'description': 'Download reports in CSV to share with your team or stakeholders without needing to access the system.'},
+                    ],
+                },
+                {
                     'id': 'pwa_module',
                     'icon': '📱',
                     'title': 'Installable Mobile App (PWA)',
+                    'is_visible': True,
                     'description': (
                         'Turn your website into an installable application that works '
                         'even without an internet connection. Deliver a native-like experience '
@@ -1337,14 +1445,15 @@ DEFAULT_SECTIONS_EN = [
                     'id': 'ai_module',
                     'icon': '🤖',
                     'title': 'AI Integration & Automation',
+                    'is_visible': True,
                     'description': (
                         'Supercharge your project with artificial intelligence. '
                         'We explore together how to tailor AI solutions to your specific business needs.'
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
-                    'price_percent': None,
-                    'is_ai_invite': True,
+                    'price_percent': 0,
+                    'is_invite': True,
                     'invite_note': (
                         '🤝 We invite you to a personalized call where we\'ll explore together '
                         'how artificial intelligence can transform your business. You\'ll learn '
@@ -1366,49 +1475,100 @@ DEFAULT_SECTIONS_EN = [
                     ],
                 },
                 {
-                    'id': 'reports_alerts_module',
-                    'icon': '📬',
-                    'title': 'Reports & Alerts via Email or Telegram',
+                    'id': 'integration_conversion_tracking',
+                    'icon': '📡',
+                    'title': 'Smart Conversions (Meta & Google Ads) (API Integration)',
+                    'is_visible': True,
                     'description': (
-                        'Stay informed at all times with automated reports and customized alerts '
-                        'delivered directly to your email or Telegram.'
+                        'Maximize your advertising ROI with server-side conversion tracking. '
+                        'Your website reports every valuable action directly to Meta and Google, '
+                        'without relying on cookies or the visitor\'s browser.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 0,
+                    'is_invite': True,
+                    'invite_note': (
+                        '🤝 We invite you to a call where we\'ll analyze your current '
+                        'advertising strategy and design together the server-side integration '
+                        'with Meta and Google Ads. See how to maximize your ROAS with '
+                        'accurate conversion data \u2014 no commitment required.'
+                    ),
+                    'items': [
+                        {'icon': '🔗', 'name': 'Direct Meta Conversions API Connection', 'description': 'Every conversion is sent from your server directly to Meta, allowing Facebook and Instagram to identify which ads generated real results, even with ad blockers.'},
+                        {'icon': '📊', 'name': 'Direct Google Enhanced Conversions Connection', 'description': 'Conversions are reported from the server with encrypted client data. Google matches each conversion to the original ad click and optimizes automated bids with real information.'},
+                        {'icon': '🛡️', 'name': 'Immune to Blockers & Cookie Restrictions', 'description': 'Unlike traditional tracking, this module works from your server. It is not affected by ad blockers, iOS 14+ restrictions, or third-party cookie deprecation.'},
+                        {'icon': '🔄', 'name': 'Automatic Event Deduplication', 'description': 'The system keeps browser tracking as a backup and syncs both sources with a unique identifier. Meta and Google automatically remove duplicates.'},
+                        {'icon': '🎯', 'name': 'Custom Conversion Events', 'description': 'Configure the events that matter to your business: form submitted, WhatsApp click, call booked, proposal viewed, proposal accepted. Each with its monetary value to calculate real ROAS.'},
+                        {'icon': '📈', 'name': 'Conversion Status Panel', 'description': 'View from your admin panel the status of each event sent: confirmed, pending, or failed. Includes matching quality diagnostics.'},
+                    ],
+                },
+                {
+                    'id': 'integration_electronic_invoicing',
+                    'icon': '🧾',
+                    'title': 'Electronic Invoicing & DIAN Integration (API Integration)',
+                    'is_visible': True,
+                    'description': (
+                        'Platform connection with the client\'s invoicing system to generate, '
+                        'send, query, and reconcile electronic receipts from business operational flows. '
+                        'Includes synchronization of clients, products, taxes, invoices, '
+                        'credit/debit notes and support documents, with fiscal status traceability '
+                        'and support for API automations.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 60,
+                    'is_invite': False,
+                    'items': [
+                        {'icon': '📄', 'name': 'Electronic Receipt Generation', 'description': 'Automatic creation of invoices, credit/debit notes, and support documents from business operational flows.'},
+                        {'icon': '🔄', 'name': 'Fiscal Data Synchronization', 'description': 'Bidirectional synchronization of clients, products, taxes, and receipts with the invoicing system.'},
+                        {'icon': '📊', 'name': 'Fiscal Status Traceability', 'description': 'Query and track the status of each receipt: issued, accepted, rejected, or in process with DIAN.'},
+                        {'icon': '🔗', 'name': 'Colombian Provider Integration', 'description': 'Connection with Siigo, Alegra, or other providers with presence and documented API in Colombia.'},
+                        {'icon': '⚙️', 'name': 'API Automations', 'description': 'Automatic flows for payment reconciliation, invoice issuance upon order completion, and fiscal status notifications.'},
+                    ],
+                },
+                {
+                    'id': 'integration_international_payments',
+                    'icon': '🌎',
+                    'title': 'International Payment Gateway (API Integration)',
+                    'is_visible': True,
+                    'description': (
+                        'Integration with international payment gateways to facilitate '
+                        'global transactions with credit/debit cards and international accounts.'
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
                     'price_percent': 20,
+                    'is_invite': False,
                     'items': [
-                        {'icon': '📧', 'name': 'Automated Email Reports', 'description': 'Receive periodic summaries with key business metrics directly in your inbox, without having to log into the system.'},
-                        {'icon': '🔔', 'name': 'Custom Alerts', 'description': 'Set up notifications for important events: new sales, user registrations, low stock, or any metric you define.'},
-                        {'icon': '✈️', 'name': 'Telegram Integration', 'description': 'Receive instant alerts and reports in your Telegram chat, perfect for staying informed from anywhere in real time.'},
-                        {'icon': '⏰', 'name': 'Scheduled Delivery', 'description': 'Define the frequency and timing of your reports: daily, weekly, monthly, or real-time based on your needs.'},
-                        {'icon': '📋', 'name': 'Periodic Executive Summary', 'description': 'Consolidated report with the most relevant metrics of your project, designed for quick reading and agile decision-making.'},
+                        {'icon': '💳', 'name': 'Stripe', 'description': 'Ideal for credit/debit card payments, widely used worldwide. Supports subscriptions, one-time payments, and multiple currencies.'},
+                        {'icon': '🅿️', 'name': 'PayPal', 'description': 'Globally recognized platform, allows payments with PayPal balance, cards, and international accounts.'},
                     ],
                 },
                 {
-                    'id': 'kpi_dashboard_module',
-                    'icon': '📊',
-                    'title': 'KPI Dashboard & Metrics',
+                    'id': 'integration_regional_payments',
+                    'icon': '🇨🇴',
+                    'title': 'Regional Payment Gateway (Colombia) (API Integration)',
+                    'is_visible': True,
                     'description': (
-                        'Custom control panel with real-time key performance indicators '
-                        'to monitor the health of your business and make '
-                        'data-driven decisions.'
+                        'Integration with payment gateways present in the Colombian market '
+                        'to facilitate local transactions with multiple payment methods.'
                     ),
                     'is_calculator_module': True,
-                    'default_selected': True,
-                    'price_percent': 0,
-                    'is_free': True,
+                    'default_selected': False,
+                    'price_percent': 20,
+                    'is_invite': False,
                     'items': [
-                        {'icon': '📈', 'name': 'Real-time KPIs', 'description': 'Visualize the most important indicators of your business updated instantly: sales, conversions, traffic and more.'},
-                        {'icon': '🎯', 'name': 'Goals & Objectives', 'description': 'Set monthly or quarterly goals and track progress with progress bars and compliance alerts.'},
-                        {'icon': '📊', 'name': 'Interactive Charts', 'description': 'Visual dashboards with line, bar and pie charts that allow filtering by period, category or segment.'},
-                        {'icon': '🔔', 'name': 'Performance Alerts', 'description': 'Automatic notifications when a KPI falls below the defined threshold or exceeds a set goal.'},
-                        {'icon': '📥', 'name': 'Report Export', 'description': 'Download reports in PDF or CSV to share with your team or stakeholders without needing to access the system.'},
+                        {'icon': '💳', 'name': 'PayU', 'description': 'One of the most used in Colombia, supports card, PSE, Efecty, Baloto, Nequi, Daviplata.'},
+                        {'icon': '🏦', 'name': 'Wompi (Bancolombia)', 'description': 'Excellent local option with PSE, cards, Nequi, and Bancolombia button support.'},
+                        {'icon': '💰', 'name': 'ePayco', 'description': 'Easy-to-integrate Colombian alternative supporting PSE, cards, and physical collections.'},
                     ],
                 },
                 {
                     'id': 'email_marketing_module',
                     'icon': '📧',
                     'title': 'Email Marketing Integration',
+                    'is_visible': True,
                     'description': (
                         'Connect your website with email marketing platforms to '
                         'automate campaigns, segment audiences and increase '
@@ -1426,37 +1586,30 @@ DEFAULT_SECTIONS_EN = [
                     ],
                 },
                 {
-                    'id': 'conversion_tracking_module',
-                    'icon': '📡',
-                    'title': 'Smart Conversions (Meta & Google Ads)',
+                    'id': 'reports_alerts_module',
+                    'icon': '📬',
+                    'title': 'Reports & Alerts via Email or Telegram',
+                    'is_visible': True,
                     'description': (
-                        'Maximize your advertising ROI with server-side conversion tracking. '
-                        'Your website reports every valuable action directly to Meta and Google, '
-                        'without relying on cookies or the visitor\'s browser.'
+                        'Stay informed at all times with automated reports and customized alerts '
+                        'delivered directly to your email or Telegram.'
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
-                    'price_percent': None,
-                    'is_ai_invite': True,
-                    'invite_note': (
-                        '🤝 We invite you to a call where we\'ll analyze your current '
-                        'advertising strategy and design together the server-side integration '
-                        'with Meta and Google Ads. See how to maximize your ROAS with '
-                        'accurate conversion data \u2014 no commitment required.'
-                    ),
+                    'price_percent': 20,
                     'items': [
-                        {'icon': '🔗', 'name': 'Direct Meta Conversions API Connection', 'description': 'Every conversion is sent from your server directly to Meta, allowing Facebook and Instagram to identify which ads generated real results, even with ad blockers.'},
-                        {'icon': '📊', 'name': 'Direct Google Enhanced Conversions Connection', 'description': 'Conversions are reported from the server with encrypted client data. Google matches each conversion to the original ad click and optimizes automated bids with real information.'},
-                        {'icon': '🛡️', 'name': 'Immune to Blockers & Cookie Restrictions', 'description': 'Unlike traditional tracking, this module works from your server. It is not affected by ad blockers, iOS 14+ restrictions, or third-party cookie deprecation.'},
-                        {'icon': '🔄', 'name': 'Automatic Event Deduplication', 'description': 'The system keeps browser tracking as a backup and syncs both sources with a unique identifier. Meta and Google automatically remove duplicates.'},
-                        {'icon': '🎯', 'name': 'Custom Conversion Events', 'description': 'Configure the events that matter to your business: form submitted, WhatsApp click, call booked, proposal viewed, proposal accepted. Each with its monetary value to calculate real ROAS.'},
-                        {'icon': '📈', 'name': 'Conversion Status Panel', 'description': 'View from your admin panel the status of each event sent: confirmed, pending, or failed. Includes matching quality diagnostics.'},
+                        {'icon': '📧', 'name': 'Automated Email Reports', 'description': 'Receive periodic summaries with key business metrics directly in your inbox, without having to log into the system.'},
+                        {'icon': '🔔', 'name': 'Custom Alerts', 'description': 'Set up notifications for important events: new sales, user registrations, low stock, or any metric you define.'},
+                        {'icon': '✈️', 'name': 'Telegram Integration', 'description': 'Receive instant alerts and reports in your Telegram chat, perfect for staying informed from anywhere in real time.'},
+                        {'icon': '⏰', 'name': 'Scheduled Delivery', 'description': 'Define the frequency and timing of your reports: daily, weekly, monthly, or real-time based on your needs.'},
+                        {'icon': '📋', 'name': 'Periodic Executive Summary', 'description': 'Consolidated report with the most relevant metrics of your project, designed for quick reading and agile decision-making.'},
                     ],
                 },
                 {
                     'id': 'i18n_module',
                     'icon': '🌍',
                     'title': 'Multi-language & Regional Localization',
+                    'is_visible': True,
                     'description': (
                         'Native internationalization system that serves your site '
                         'in multiple languages with an integrated translation workflow, '
@@ -1478,6 +1631,7 @@ DEFAULT_SECTIONS_EN = [
                     'id': 'gift_cards_module',
                     'icon': '🎁',
                     'title': 'Gift Cards & Digital Vouchers',
+                    'is_visible': False,
                     'description': (
                         'Create, sell, and redeem digital gift cards with configurable balance, '
                         'branded design, and a unique verifiable code at checkout. '
@@ -1493,6 +1647,51 @@ DEFAULT_SECTIONS_EN = [
                         {'icon': '📊', 'name': 'Balance & Transaction History', 'description': 'Both the buyer and recipient can check the available balance, transactions made, and expiration date for each card.'},
                         {'icon': '🎨', 'name': 'Custom Branded Design', 'description': 'Gift cards are generated with your brand\'s visual identity, including logo, colors, and a customizable message from the buyer to the recipient.'},
                         {'icon': '⏰', 'name': 'Configurable Expiration', 'description': 'Define expiration policies per card type: no expiration, 6 months, 1 year, or custom. Includes automatic notifications before expiration.'},
+                    ],
+                },
+                {
+                    'id': 'dark_mode_module',
+                    'icon': '🌙',
+                    'title': 'Dynamic Theming Engine (Dark Mode)',
+                    'is_visible': True,
+                    'description': (
+                        'Native technical support that respects the user\'s operating system preferences, '
+                        'seamlessly switching between light and dark mode with choice persistence. '
+                        'A contemporary visual requirement that reduces eye strain '
+                        'and projects absolute modernity.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 20,
+                    'items': [
+                        {'icon': '🎨', 'name': 'Dual Color Palette', 'description': 'Design of two complete color systems (light and dark) with CSS variables that switch instantly, maintaining visual coherence in both modes.'},
+                        {'icon': '⚙️', 'name': 'Automatic System Preference Detection', 'description': 'The site detects the user\'s OS theme preference (prefers-color-scheme) and applies the corresponding mode from the first visit.'},
+                        {'icon': '💾', 'name': 'User Choice Persistence', 'description': 'The user\'s manual preference is stored and respected on future visits, taking precedence over the operating system configuration.'},
+                        {'icon': '🔄', 'name': 'Smooth Mode Transition', 'description': 'Elegant and smooth animation when switching between light and dark mode, without flashes or visual jumps that interrupt the browsing experience.'},
+                        {'icon': '🖼️', 'name': 'Image & Media Adaptation', 'description': 'Images, icons, and graphic elements automatically adjust to the active mode, optimizing contrast and readability in each context.'},
+                    ],
+                },
+                {
+                    'id': 'live_chat_module',
+                    'icon': '💬',
+                    'title': 'First-Party Live Chat',
+                    'is_visible': True,
+                    'description': (
+                        'Real-time chat system fully hosted on the client\'s infrastructure '
+                        '— no Intercom, Drift, or LiveChat — where agents respond '
+                        'from the same admin panel. Data is 100% owned, with no growing '
+                        'subscription costs or risk of the tool displaying competitor ads.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'price_percent': 40,
+                    'items': [
+                        {'icon': '🔌', 'name': 'Embedded Chat Widget', 'description': 'Floating component integrated into the website that allows the visitor to start a real-time conversation without leaving the page they are browsing.'},
+                        {'icon': '🖥️', 'name': 'Agent Panel in Admin', 'description': 'Agents handle conversations directly from the site\'s admin panel, without needing external applications or additional accounts.'},
+                        {'icon': '📡', 'name': 'Real-time Communication (WebSocket)', 'description': 'Instant bidirectional messages between visitor and agent via persistent connection, with no delays or page reloads needed.'},
+                        {'icon': '🗄️', 'name': 'Owned Conversation History', 'description': 'All conversations are stored in the client\'s database, with search, date filters, and export. Data is 100% client-owned.'},
+                        {'icon': '🤖', 'name': 'Configurable Auto-responses', 'description': 'Welcome messages, after-hours responses, and automated FAQs that keep support active even when no agents are available.'},
+                        {'icon': '🔔', 'name': 'New Chat Notifications', 'description': 'Real-time alerts to the agent when a visitor starts a conversation or sends a new message, ensuring minimal response times.'},
                     ],
                 },
             ],

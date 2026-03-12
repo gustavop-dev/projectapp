@@ -66,9 +66,10 @@ function setupMock(page) {
 
 test.describe('@flow: proposal-summary-kpis — Proposal Summary KPI Cards', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('renders KPI cards with value, label, and source', {
@@ -76,12 +77,9 @@ test.describe('@flow: proposal-summary-kpis — Proposal Summary KPI Cards', () 
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('.proposal-wrapper')).toBeVisible({ timeout: 15000 });
-
     // Navigate to summary section (second section)
     const nextBtn = page.getByTestId('nav-next');
-    await expect(nextBtn).toBeVisible({ timeout: 5000 });
+    await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
 
     // KPI values should be visible
@@ -95,11 +93,8 @@ test.describe('@flow: proposal-summary-kpis — Proposal Summary KPI Cards', () 
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('.proposal-wrapper')).toBeVisible({ timeout: 15000 });
-
     const nextBtn = page.getByTestId('nav-next');
-    await expect(nextBtn).toBeVisible({ timeout: 5000 });
+    await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
 
     // Labels
@@ -116,11 +111,8 @@ test.describe('@flow: proposal-summary-kpis — Proposal Summary KPI Cards', () 
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('.proposal-wrapper')).toBeVisible({ timeout: 15000 });
-
     const nextBtn = page.getByTestId('nav-next');
-    await expect(nextBtn).toBeVisible({ timeout: 5000 });
+    await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
 
     // Standard cards should still render

@@ -14,7 +14,7 @@ test.describe('Contact Form Submit', () => {
     await page.goto('/contact');
 
     // Contact page heading should be visible
-    await expect(page.locator('h1').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 15000 });
 
     // Form inputs should be present
     await expect(page.locator('form')).toBeAttached();
@@ -40,9 +40,10 @@ test.describe('Contact Form Submit', () => {
     });
 
     await page.goto('/contact');
-    await expect(page.locator('h1').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 15000 });
 
     // Fill in form fields
+    // quality: allow-fragile-selector (first text input is the name field, no label/placeholder available)
     await page.locator('input[type="text"]').first().fill('Test User');
     await page.locator('input[type="tel"]').fill('+573001234567');
     await page.locator('input[type="email"]').fill('test@example.com');

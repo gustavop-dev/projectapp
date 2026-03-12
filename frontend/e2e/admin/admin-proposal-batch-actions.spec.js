@@ -65,8 +65,8 @@ test.describe('@flow: admin-proposal-batch-actions — Batch Actions on Proposal
     await page.waitForLoadState('networkidle');
     await expect(page.getByText('Proposal Alpha')).toBeVisible({ timeout: 10000 });
 
-    // Click the first row checkbox
     const checkboxes = page.locator('tbody input[type="checkbox"]');
+    // quality: allow-fragile-selector (table row checkboxes have no testid, first row is the target)
     await checkboxes.first().check();
 
     // Batch bar should appear with count
@@ -82,6 +82,7 @@ test.describe('@flow: admin-proposal-batch-actions — Batch Actions on Proposal
     await expect(page.getByText('Proposal Alpha')).toBeVisible({ timeout: 10000 });
 
     const checkboxes = page.locator('tbody input[type="checkbox"]');
+    // quality: allow-fragile-selector (table row checkboxes have no testid, first row is the target)
     await checkboxes.first().check();
 
     // Scope assertions to the sticky batch bar (bg-gray-900 container)
@@ -102,6 +103,7 @@ test.describe('@flow: admin-proposal-batch-actions — Batch Actions on Proposal
     await expect(page.getByText('Proposal Alpha')).toBeVisible({ timeout: 10000 });
 
     const checkboxes = page.locator('tbody input[type="checkbox"]');
+    // quality: allow-fragile-selector (table row checkboxes have no testid, first row is the target)
     await checkboxes.first().check();
     await expect(page.getByText('1 seleccionada(s)')).toBeVisible({ timeout: 5000 });
 

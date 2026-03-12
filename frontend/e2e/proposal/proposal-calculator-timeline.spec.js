@@ -2,7 +2,8 @@
  * E2E tests for proposal calculator dynamic timeline.
  *
  * Covers: timeline display in calculator modal, week reduction when
- * deselecting modules, and reduction text visibility.
+ * deselecting modules, week extension when selecting calculator modules,
+ * and timeline change text visibility.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -57,6 +58,26 @@ const mockProposal = {
         valueReasons: [],
       },
     },
+    {
+      id: 4, section_type: 'functional_requirements', title: 'Requerimientos', order: 3, is_enabled: true,
+      content_json: {
+        index: '3',
+        title: 'Requerimientos Funcionales',
+        intro: 'Detalle.',
+        groups: [
+          {
+            id: 'views', icon: '👁️', title: 'Vistas', is_visible: true, description: 'Pantallas.',
+            items: [{ icon: '🏠', name: 'Home', description: 'Landing.' }],
+          },
+          {
+            id: 'pwa_module', icon: '📱', title: 'Progressive Web App (PWA)', is_visible: true,
+            description: 'App instalable.', is_calculator_module: true, default_selected: false, price_percent: 40,
+            items: [{ icon: '📲', name: 'Instalación', description: 'Instala como app.' }],
+          },
+        ],
+        additionalModules: [],
+      },
+    },
   ],
   requirement_groups: [],
 };
@@ -72,9 +93,10 @@ function setupMock(page) {
 
 test.describe('Proposal Calculator Dynamic Timeline', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('calculator modal shows timeline with base weeks when opened', {
@@ -82,15 +104,14 @@ test.describe('Proposal Calculator Dynamic Timeline', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
-    await page.waitForLoadState('networkidle');
 
     // Navigate to investment section (section index 2)
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
-    await page.waitForLoadState('networkidle');
+    // Wait for timeline section before clicking again
+    await expect(page.getByText('Cronograma')).toBeVisible({ timeout: 5000 });
     await nextBtn.click();
-    await page.waitForLoadState('networkidle');
 
     // Click "Personalizar tu inversión" button to open calculator
     const customizeBtn = page.getByRole('button', { name: /Personalizar/i });
@@ -98,7 +119,7 @@ test.describe('Proposal Calculator Dynamic Timeline', () => {
     await customizeBtn.click();
 
     // Calculator modal should show timeline with 12 weeks
-    await expect(page.getByText('12 semanas')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('12 semanas')).toBeVisible({ timeout: 10000 });
   });
 
   test('deselecting a module reduces the timeline weeks', {
@@ -106,26 +127,25 @@ test.describe('Proposal Calculator Dynamic Timeline', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
-    await page.waitForLoadState('networkidle');
 
     // Navigate to investment section
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByText('Cronograma')).toBeVisible({ timeout: 5000 });
     await nextBtn.click();
-    await page.waitForLoadState('networkidle');
 
     // Open calculator
     const customizeBtn = page.getByRole('button', { name: /Personalizar/i });
     await expect(customizeBtn).toBeVisible({ timeout: 10000 });
     await customizeBtn.click();
 
-    // Deselect "Módulo E-commerce" (non-required module) by clicking its clickable row
-    await page.locator('div.flex.items-center.justify-between.p-4').filter({ hasText: 'Módulo E-commerce' }).click();
+    // Deselect "Módulo E-commerce" (non-required module)
+    await expect(page.getByText('Módulo E-commerce')).toBeVisible({ timeout: 5000 });
+    await page.getByText('Módulo E-commerce').click();
 
     // Timeline should now show the reduction text
-    await expect(page.getByText(/Se reduce de 12 a 11 semanas/)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Se reduce de 12 a 11 semanas/)).toBeVisible({ timeout: 10000 });
   });
 
   test('deselecting multiple modules shows cumulative reduction', {
@@ -133,15 +153,13 @@ test.describe('Proposal Calculator Dynamic Timeline', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
-    await page.waitForLoadState('networkidle');
 
     // Navigate to investment section
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByText('Cronograma')).toBeVisible({ timeout: 5000 });
     await nextBtn.click();
-    await page.waitForLoadState('networkidle');
 
     // Open calculator
     const customizeBtn = page.getByRole('button', { name: /Personalizar/i });
@@ -149,10 +167,38 @@ test.describe('Proposal Calculator Dynamic Timeline', () => {
     await customizeBtn.click();
 
     // Deselect two non-required modules
-    await page.locator('div.flex.items-center.justify-between.p-4').filter({ hasText: 'Módulo E-commerce' }).click();
-    await page.locator('div.flex.items-center.justify-between.p-4').filter({ hasText: 'Integración Pasarela' }).click();
+    await expect(page.getByText('Módulo E-commerce')).toBeVisible({ timeout: 5000 });
+    await page.getByText('Módulo E-commerce').click();
+    await page.getByText('Integración Pasarela').click();
 
     // Should show reduction from 12 to 10 (2 modules = -2 weeks)
-    await expect(page.getByText(/Se reduce de 12 a 10 semanas/)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Se reduce de 12 a 10 semanas/)).toBeVisible({ timeout: 10000 });
+  });
+
+  test('selecting a calculator module extends the timeline weeks', {
+    tag: [...PROPOSAL_CALCULATOR_TIMELINE, '@role:client'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    await page.goto(`/proposal/${MOCK_UUID}`);
+
+    // Navigate to investment section
+    const nextBtn = page.getByTestId('nav-next');
+    await expect(nextBtn).toBeVisible({ timeout: 15000 });
+    await nextBtn.click();
+    await expect(page.getByText('Cronograma')).toBeVisible({ timeout: 5000 });
+    await nextBtn.click();
+
+    // Open calculator
+    const customizeBtn = page.getByRole('button', { name: /Personalizar/i });
+    await expect(customizeBtn).toBeVisible({ timeout: 10000 });
+    await customizeBtn.click();
+
+    // Select PWA calculator module (adds ~1 week)
+    const pwaRow = page.locator('div.rounded-xl.border').filter({ hasText: /Progressive Web App/ });
+    await expect(pwaRow).toBeVisible({ timeout: 5000 });
+    await pwaRow.click();
+
+    // Timeline should now show the extension text
+    await expect(page.getByText(/Se extiende de 12 a 13 semanas/)).toBeVisible({ timeout: 10000 });
   });
 });

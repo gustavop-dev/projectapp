@@ -74,9 +74,10 @@ function buildMockHandler() {
 
 test.describe('Proposal View Navigation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('ProposalIndex toggle button is visible on load', {

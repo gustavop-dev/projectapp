@@ -34,23 +34,25 @@ const mockSentProposal = {
 
 async function openClosingPanel(page) {
   await page.goto(`/proposal/${MOCK_UUID}`);
-  await expect(page.locator('.proposal-wrapper')).toBeVisible({ timeout: 15000 });
 
   const nextBtn = page.getByTestId('nav-next');
+  await expect(nextBtn).toBeVisible({ timeout: 15000 });
+
   let safetyLimit = 10;
   while (safetyLimit-- > 0) {
-    const isVisible = await nextBtn.isVisible({ timeout: 500 }).catch(() => false);
-    if (!isVisible) break;
     await nextBtn.click();
-    await expect(page.locator('.panel-container')).toBeVisible();
+    await page.waitForTimeout(500);
+    const stillVisible = await nextBtn.isVisible().catch(() => false);
+    if (!stillVisible) break;
   }
 }
 
 test.describe('Proposal Negotiate (Accept with Changes)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('negotiate button opens modal with textarea', {
@@ -65,7 +67,7 @@ test.describe('Proposal Negotiate (Accept with Changes)', () => {
 
     await openClosingPanel(page);
 
-    const negotiateBtn = page.getByRole('button', { name: /Aceptar con cambios/i });
+    const negotiateBtn = page.getByRole('button', { name: /Necesito ajustes/i });
     await expect(negotiateBtn).toBeVisible();
 
     await negotiateBtn.click();
@@ -85,7 +87,7 @@ test.describe('Proposal Negotiate (Accept with Changes)', () => {
 
     await openClosingPanel(page);
 
-    await page.getByRole('button', { name: /Aceptar con cambios/i }).click();
+    await page.getByRole('button', { name: /Necesito ajustes/i }).click();
     await expect(page.getByText(/negociemos alcance/i)).toBeVisible();
 
     const submitBtn = page.getByRole('button', { name: /Enviar solicitud de ajustes/i });
@@ -110,7 +112,7 @@ test.describe('Proposal Negotiate (Accept with Changes)', () => {
 
     await openClosingPanel(page);
 
-    await page.getByRole('button', { name: /Aceptar con cambios/i }).click();
+    await page.getByRole('button', { name: /Necesito ajustes/i }).click();
     await expect(page.getByText(/negociemos alcance/i)).toBeVisible();
 
     await page.locator('textarea').fill('Me gustaría reducir el número de módulos y ajustar el timeline.');

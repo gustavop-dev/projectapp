@@ -52,6 +52,10 @@ class BusinessProposal(models.Model):
     currency = models.CharField(
         max_length=3, choices=Currency.choices, default=Currency.COP
     )
+    hosting_percent = models.PositiveIntegerField(
+        default=30,
+        help_text='Percentage of total investment charged for annual hosting.',
+    )
 
     # Status & lifecycle
     status = models.CharField(
@@ -121,6 +125,7 @@ class BusinessProposal(models.Model):
     followup_scheduled_at = models.DateTimeField(null=True, blank=True)
     stakeholder_alert_sent_at = models.DateTimeField(null=True, blank=True)
     post_expiration_alert_sent_at = models.DateTimeField(null=True, blank=True)
+    calculator_followup_sent_at = models.DateTimeField(null=True, blank=True)
 
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -179,6 +184,9 @@ class ProposalAlert(models.Model):
         ('custom', 'Personalizado'),
         ('discount_suggestion', 'Sugerencia de descuento'),
         ('post_expiration_visit', 'Visita post-expiración'),
+        ('high_engagement_today', 'Alta actividad hoy'),
+        ('whatsapp_suggestion', 'Sugerencia de WhatsApp'),
+        ('calculator_followup', 'Seguimiento calculadora'),
     ]
 
     proposal = models.ForeignKey(

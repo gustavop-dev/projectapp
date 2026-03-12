@@ -35,9 +35,9 @@
             <div class="text-sm text-esmerald-light/70">{{ item.description }}</div>
           </div>
         </div>
-        <!-- Customize investment button -->
+        <!-- Customize investment button (detailed mode only) -->
         <button
-          v-if="modules && modules.length"
+          v-if="modules && modules.length && props.viewMode !== 'executive'"
           ref="customizeBtnRef"
           class="mt-4 mx-auto block px-6 py-3 bg-lemon text-esmerald rounded-xl font-bold text-sm hover:bg-lemon/90 transition-all shadow-lg"
           :class="{ 'btn-pulse': btnPulse }"
@@ -45,6 +45,12 @@
         >
           🧮 {{ t.customizeBtn }}
         </button>
+        <!-- Teaser for executive mode: invite user to explore full proposal -->
+        <InvestmentDetailedTeaser
+          v-if="props.viewMode === 'executive'"
+          :language="props.language"
+          @switchToDetailed="$emit('switchToDetailed')"
+        />
       </div>
 
       <!-- WhatsApp rescue button -->
@@ -112,16 +118,16 @@
           </div>
         </div>
 
-        <div v-if="hostingPlan.monthlyPrice || hostingPlan.annualPrice" class="mt-6 pl-0 sm:pl-16">
+        <div v-if="computedMonthlyPrice || computedAnnualPrice" class="mt-6 pl-0 sm:pl-16">
           <div class="grid md:grid-cols-2 gap-4">
-            <div v-if="hostingPlan.monthlyPrice" class="bg-esmerald-light/60 border border-esmerald/10 rounded-xl p-5">
+            <div v-if="computedMonthlyPrice" class="bg-esmerald-light/60 border border-esmerald/10 rounded-xl p-5">
               <div class="text-sm text-green-light font-medium">{{ t.specialPrice }}</div>
-              <div class="text-2xl font-bold text-esmerald">{{ hostingPlan.monthlyPrice }}</div>
+              <div class="text-2xl font-bold text-esmerald">{{ computedMonthlyPrice }}</div>
               <div v-if="hostingPlan.monthlyLabel" class="text-sm text-esmerald/70">{{ hostingPlan.monthlyLabel }}</div>
             </div>
-            <div v-if="hostingPlan.annualPrice" class="bg-esmerald/5 border border-esmerald/10 rounded-xl p-5">
+            <div v-if="computedAnnualPrice" class="bg-esmerald/5 border border-esmerald/10 rounded-xl p-5">
               <div class="text-sm text-green-light font-medium">{{ t.annualPayment }}</div>
-              <div class="text-2xl font-bold text-esmerald">{{ hostingPlan.annualPrice }}</div>
+              <div class="text-2xl font-bold text-esmerald">{{ computedAnnualPrice }}</div>
               <div v-if="hostingPlan.annualLabel" class="text-sm text-esmerald/70">{{ hostingPlan.annualLabel }}</div>
             </div>
           </div>
@@ -203,8 +209,9 @@ import { useSectionAnimations } from '~/composables/useSectionAnimations';
 import { useExpirationTimer } from '~/composables/useExpirationTimer';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import InvestmentCalculatorModal from './InvestmentCalculatorModal.vue';
+import InvestmentDetailedTeaser from './InvestmentDetailedTeaser.vue';
 
-defineEmits(['navigateToRequirements', 'updateCalculatorModules']);
+defineEmits(['navigateToRequirements', 'updateCalculatorModules', 'switchToDetailed']);
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
@@ -272,9 +279,8 @@ const props = defineProps({
         { icon: '📍', label: 'Centros de datos', value: 'EE.UU., Brasil, Francia, Lituania e India' },
         { icon: '🧬', label: 'Compatibilidad', value: 'Linux (Ubuntu)' }
       ],
-      monthlyPrice: '$49.999 COP',
+      hostingPercent: 30,
       monthlyLabel: 'por mes',
-      annualPrice: '$680.000 COP',
       annualLabel: 'Hosting anual — Año 1',
       renewalNote: '',
       coverageNote: ''
@@ -323,6 +329,10 @@ const props = defineProps({
   sentAt: {
     type: String,
     default: ''
+  },
+  viewMode: {
+    type: String,
+    default: 'detailed'
   }
 });
 
@@ -356,7 +366,7 @@ onMounted(() => {
       }
     } catch (_e) { /* ignore */ }
   }
-  if (props.modules?.length) {
+  if (props.modules?.length && props.viewMode !== 'executive') {
     setTimeout(() => {
       btnPulse.value = true;
       setTimeout(() => { btnPulse.value = false; }, 4000);
@@ -468,6 +478,30 @@ function formatCurrency(value) {
   if (isNaN(num)) return value;
   return '$' + num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
+
+const hostingAnnualAmount = computed(() => {
+  const hp = props.hostingPlan;
+  if (hp?.hostingPercent > 0) {
+    const base = parseInvestment(props.totalInvestment);
+    if (base > 0) return Math.round(base * hp.hostingPercent / 100);
+  }
+  return null;
+});
+
+const computedAnnualPrice = computed(() => {
+  if (hostingAnnualAmount.value !== null) {
+    return formatCurrency(hostingAnnualAmount.value) + ' ' + props.currency;
+  }
+  return props.hostingPlan?.annualPrice || '';
+});
+
+const computedMonthlyPrice = computed(() => {
+  if (hostingAnnualAmount.value !== null) {
+    const monthly = Math.round(hostingAnnualAmount.value / 12);
+    return formatCurrency(monthly) + ' ' + props.currency;
+  }
+  return props.hostingPlan?.monthlyPrice || '';
+});
 
 const filteredSpecs = computed(() => {
   return (props.hostingPlan?.specs || []).filter(s => s.label || s.value);

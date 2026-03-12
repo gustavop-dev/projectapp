@@ -3,7 +3,7 @@
     <!-- Top navigation bar -->
     <nav class="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
       <div class="flex items-center justify-between">
-        <NuxtLink to="/panel" class="text-lg sm:text-xl font-bold text-emerald-600 hover:text-emerald-700 transition-colors">
+        <NuxtLink :to="localePath('/panel')" class="text-lg sm:text-xl font-bold text-emerald-600 hover:text-emerald-700 transition-colors">
           ProjectApp Admin
         </NuxtLink>
         <div class="flex items-center gap-3">
@@ -18,7 +18,7 @@
           <div class="hidden sm:flex items-center gap-4">
             <span class="text-gray-300">|</span>
             <NuxtLink
-              to="/panel/proposals"
+              :to="localePath('/panel/proposals')"
               class="text-sm font-medium transition-colors border-b-2 pb-0.5"
               :class="isModule('proposals')
                 ? 'text-emerald-600 border-emerald-600'
@@ -27,7 +27,7 @@
               Propuestas
             </NuxtLink>
             <NuxtLink
-              to="/panel/clients"
+              :to="localePath('/panel/clients')"
               class="text-sm font-medium transition-colors border-b-2 pb-0.5"
               :class="isModule('clients')
                 ? 'text-emerald-600 border-emerald-600'
@@ -36,7 +36,7 @@
               Clientes
             </NuxtLink>
             <NuxtLink
-              to="/panel/blog"
+              :to="localePath('/panel/blog')"
               class="text-sm font-medium transition-colors border-b-2 pb-0.5"
               :class="isModule('blog')
                 ? 'text-emerald-600 border-emerald-600'
@@ -45,7 +45,7 @@
               Blog
             </NuxtLink>
             <NuxtLink
-              to="/panel/portfolio"
+              :to="localePath('/panel/portfolio')"
               class="text-sm font-medium transition-colors border-b-2 pb-0.5"
               :class="isModule('portfolio')
                 ? 'text-emerald-600 border-emerald-600'
@@ -72,7 +72,7 @@
       <!-- Mobile menu -->
       <div v-if="mobileMenuOpen" class="sm:hidden mt-3 pt-3 border-t border-gray-100 flex flex-col gap-2">
         <NuxtLink
-          to="/panel/proposals"
+          :to="localePath('/panel/proposals')"
           class="text-sm font-medium px-2 py-1.5 rounded-lg transition-colors"
           :class="isModule('proposals')
             ? 'text-emerald-600 bg-emerald-50'
@@ -82,7 +82,7 @@
           Propuestas
         </NuxtLink>
         <NuxtLink
-          to="/panel/clients"
+          :to="localePath('/panel/clients')"
           class="text-sm font-medium px-2 py-1.5 rounded-lg transition-colors"
           :class="isModule('clients')
             ? 'text-emerald-600 bg-emerald-50'
@@ -92,7 +92,7 @@
           Clientes
         </NuxtLink>
         <NuxtLink
-          to="/panel/blog"
+          :to="localePath('/panel/blog')"
           class="text-sm font-medium px-2 py-1.5 rounded-lg transition-colors"
           :class="isModule('blog')
             ? 'text-emerald-600 bg-emerald-50'
@@ -102,7 +102,7 @@
           Blog
         </NuxtLink>
         <NuxtLink
-          to="/panel/portfolio"
+          :to="localePath('/panel/portfolio')"
           class="text-sm font-medium px-2 py-1.5 rounded-lg transition-colors"
           :class="isModule('portfolio')
             ? 'text-emerald-600 bg-emerald-50'
@@ -127,6 +127,7 @@
 <script setup>
 import { ref } from 'vue';
 
+const localePath = useLocalePath();
 const route = useRoute();
 const mobileMenuOpen = ref(false);
 

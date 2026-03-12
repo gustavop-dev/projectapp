@@ -856,7 +856,7 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
 
     groups = _safe(data, 'groups', [])
     additional = _safe(data, 'additionalModules', [])
-    all_groups = list(groups) + list(additional)
+    all_groups = [g for g in list(groups) + list(additional) if _safe(g, 'is_visible', True) is not False]
 
     db_groups = list(proposal.requirement_groups.all().order_by('order'))
     for grp in db_groups:
@@ -1284,7 +1284,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             for m in deselected:
                 src = _safe(m, '_source') or m.get('_source', '')
                 gid = _safe(m, 'groupId') or m.get('groupId', '')
-                if src == 'investment' or gid == 'integrations_api':
+                if src == 'investment' or gid.startswith('integration_'):
                     reduction += 1
                 elif gid == 'views':
                     views_removed += 1
@@ -1312,7 +1312,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         calc_items = ps.get('_calc_module_items', [])
         sel_check = ps.get('selected_modules')
         for ci in calc_items:
-            if ci.get('is_ai_invite') and (
+            if ci.get('is_invite') and (
                 sel_check is None or ci.get('id') in sel_check
             ):
                 y = _check_y(c, y, ps, need=30)
@@ -1959,7 +1959,7 @@ class ProposalPdfService:
                             'group_id': _gid,
                             'price_percent': _pp,
                             'price': 0,  # will be computed below
-                            'is_ai_invite': bool(_safe(_grp, 'is_ai_invite')),
+                            'is_invite': bool(_safe(_grp, 'is_invite')),
                         })
                 # Compute prices based on base investment total
                 if _calc_module_items:
@@ -2053,7 +2053,8 @@ class ProposalPdfService:
                     parent_idx = data.get('index', '')
                     sel_ids = ps.get('selected_modules')
                     if stype == 'functional_requirements' and func_groups:
-                        # Filter out calculator-module groups not selected
+                        # Filter out hidden groups and calculator-module groups not selected
+                        func_groups = [g for g in func_groups if _safe(g, 'is_visible', True) is not False]
                         if sel_ids is not None:
                             func_groups = [
                                 g for g in func_groups

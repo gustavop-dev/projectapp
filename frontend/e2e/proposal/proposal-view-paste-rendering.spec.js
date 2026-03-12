@@ -125,9 +125,10 @@ async function navigateToPanel(page, panelIndex) {
 
 test.describe('Proposal View — Paste Mode Rendering', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('paste-mode section renders RawContentSection with markdown', {

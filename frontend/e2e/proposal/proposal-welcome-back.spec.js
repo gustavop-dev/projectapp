@@ -52,9 +52,10 @@ test.describe('Proposal Welcome Back', () => {
   test('navigating sections persists progress to localStorage', {
     tag: [...PROPOSAL_WELCOME_BACK, '@role:client'],
   }, async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
     await page.waitForLoadState('networkidle');
@@ -79,9 +80,10 @@ test.describe('Proposal Welcome Back', () => {
   test('welcome-back does not appear on first visit', {
     tag: [...PROPOSAL_WELCOME_BACK, '@role:client'],
   }, async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
 
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);

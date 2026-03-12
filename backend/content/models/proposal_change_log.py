@@ -28,6 +28,10 @@ class ProposalChangeLog(models.Model):
         NOTE = 'note', 'Note'
         CALCULATOR_CONFIRMED = 'calc_confirmed', 'Calculator Confirmed'
         CALCULATOR_ABANDONED = 'calc_abandoned', 'Calculator Abandoned'
+        AUTO_ARCHIVED = 'auto_archived', 'Auto Archived'
+        STATUS_CHANGE = 'status_change', 'Status Change'
+        CONDITIONAL_ACCEPT = 'cond_accepted', 'Conditional Acceptance'
+        CALCULATOR_FOLLOWUP = 'calc_followup', 'Calculator Follow-up Sent'
 
     proposal = models.ForeignKey(
         'BusinessProposal',

@@ -54,7 +54,8 @@ test.describe('Admin Portfolio List', () => {
 
     const createLink = page.getByRole('link', { name: /Nuevo Proyecto/ });
     await expect(createLink).toBeVisible();
-    await expect(createLink).toHaveAttribute('href', '/panel/portfolio/create');
+    const href = await createLink.getAttribute('href');
+    expect(href).toContain('/panel/portfolio/create');
   });
 
   test('shows empty state when no works exist', {

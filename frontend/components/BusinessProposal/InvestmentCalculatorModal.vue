@@ -22,6 +22,23 @@
 
           <!-- Body -->
           <div class="overflow-y-auto px-6 py-6 flex-1">
+            <!-- Informational badge -->
+            <div class="mb-4 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+              <p class="text-[11px] text-blue-700 leading-relaxed">
+                💡 {{ t.optionalItemsBadge }}
+              </p>
+              <button
+                type="button"
+                class="mt-1.5 text-[11px] text-blue-600 font-semibold hover:text-blue-800 transition-colors flex items-center gap-1"
+                @click="$emit('navigateToRequirements')"
+              >
+                📋 {{ t.viewRequirements }}
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+
             <template v-for="(group, gKey) in groupedModules" :key="gKey">
               <div class="mb-1 mt-4 first:mt-0">
                 <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">{{ group.label }}</h4>
@@ -56,24 +73,33 @@
                           {{ mod.name }}
                         </span>
                         <span v-if="mod._locked" class="ml-2 text-[10px] text-esmerald/50 font-medium uppercase">{{ t.required }}</span>
-                        <span v-if="mod._freeActive" class="ml-2 text-[10px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded-full">🎁 {{ t.freeLabel }}</span>
-                        <p v-if="!mod.selected && !mod._locked && !mod.is_ai_invite" class="text-[11px] text-amber-600 leading-snug mt-0.5">
+                        <p v-if="!mod.selected && !mod._locked && !mod.is_invite" class="text-[11px] text-amber-600 leading-snug mt-0.5">
                           ⚠ {{ impactMessage(mod) }}
                         </p>
                       </div>
                     </div>
-                    <span v-if="mod.is_ai_invite" class="text-[11px] font-semibold text-purple-600 flex-shrink-0">
-                      {{ t.aiScheduleCall }}
+                    <span v-if="mod.is_invite" class="text-[11px] font-semibold text-purple-600 flex-shrink-0">
+                      {{ t.scheduleCall }}
                     </span>
                     <span v-else class="font-bold text-sm flex-shrink-0" :class="mod.selected ? 'text-esmerald' : 'text-gray-400'">
                       {{ mod.price ? (mod._source === 'calculator_module' && mod.selected ? '+' : '') + formatPrice(mod.price) : t.included }}
                     </span>
+                    <!-- Micro-feedback badge -->
+                    <Transition name="micro-feedback">
+                      <span
+                        v-if="priceFeedback[mod.id]"
+                        class="ml-2 text-xs font-bold flex-shrink-0 whitespace-nowrap"
+                        :class="priceFeedback[mod.id].startsWith('+') ? 'text-emerald-600' : 'text-red-500'"
+                      >
+                        {{ priceFeedback[mod.id] }}
+                      </span>
+                    </Transition>
                   </div>
-                  <!-- AI invite creative note -->
-                  <div v-if="mod.is_ai_invite" class="px-4 pb-4 -mt-1">
+                  <!-- Invite creative note -->
+                  <div v-if="mod.is_invite" class="px-4 pb-4 -mt-1">
                     <div class="bg-purple-50 border border-purple-100 rounded-lg px-3 py-2.5">
                       <p class="text-[11px] text-purple-700 leading-relaxed">
-                        {{ mod.invite_note || t.aiInviteNote }}
+                        {{ mod.invite_note || t.inviteNote }}
                       </p>
                     </div>
                   </div>
@@ -109,23 +135,6 @@
                 </div>
               </div>
             </template>
-
-            <!-- Informational badge -->
-            <div class="mt-4 mb-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
-              <p class="text-[11px] text-blue-700 leading-relaxed">
-                💡 {{ t.optionalItemsBadge }}
-              </p>
-              <button
-                type="button"
-                class="mt-1.5 text-[11px] text-blue-600 font-semibold hover:text-blue-800 transition-colors flex items-center gap-1"
-                @click="$emit('navigateToRequirements')"
-              >
-                📋 {{ t.viewRequirements }}
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
           </div>
 
           <!-- Footer with total -->
@@ -155,7 +164,7 @@
               <div class="text-right">
                 <span class="text-lg font-bold" :class="timelineChanged ? 'text-blue-600' : 'text-esmerald'">{{ dynamicWeeks }} {{ t.weeks }}</span>
                 <span v-if="timelineChanged" class="block text-[11px] text-blue-500 font-medium">
-                  {{ t.reducedFrom }} {{ baseWeeks }} {{ t.to }} {{ dynamicWeeks }} {{ t.weeks }}
+                  {{ dynamicWeeks > baseWeeks ? t.extendedFrom : t.reducedFrom }} {{ baseWeeks }} {{ t.to }} {{ dynamicWeeks }} {{ t.weeks }}
                 </span>
               </div>
             </div>
@@ -204,16 +213,19 @@ const emit = defineEmits(['close', 'update:selection', 'navigateToRequirements',
 
 const hasInteracted = ref(false);
 const confirmed = ref(false);
+const openedAt = ref(null);
 
 function trackCalculatorEvent(event) {
   if (!props.proposalUuid) return;
   const selectedIds = localModules.value.filter(m => m.selected).map(m => m.id);
   const deselectedIds = localModules.value.filter(m => !m.selected && !m._locked).map(m => m.id);
+  const elapsedSeconds = openedAt.value ? Math.round((Date.now() - openedAt.value) / 1000) : 0;
   create_request(`proposals/${props.proposalUuid}/track-calculator/`, {
     event,
     selected: selectedIds,
     deselected: deselectedIds,
     total: dynamicTotal.value,
+    elapsed_seconds: elapsedSeconds,
   }).catch(() => { /* silent */ });
 }
 
@@ -230,19 +242,21 @@ const i18n = {
     estimatedDuration: 'Duración estimada',
     weeks: 'semanas',
     reducedFrom: 'Se reduce de',
+    extendedFrom: 'Se extiende de',
     to: 'a',
     impactModule: 'Sin este módulo, tu proyecto tendrá menos cobertura en esta área.',
     impactView: 'Esta vista no estará disponible en la versión final.',
     impactFeature: 'Esta funcionalidad no se incluirá en el alcance.',
     impactIntegration: 'Esta integración no estará conectada al sistema.',
     impactGeneric: 'Este componente no se incluirá en el proyecto.',
-    impactWeeks: 'Se reduce ~1 semana del cronograma.',
+    impactWeeksReduce: 'Se reduce ~1 semana del cronograma.',
+    impactWeeksAdd: 'Aumenta ~1 semana el cronograma si se selecciona.',
     discountApplied: 'Descuento aplicado al confirmar',
     freeLabel: 'Gratis',
     viewDetail: 'Ver detalle',
     hideDetail: 'Ocultar detalle',
-    aiScheduleCall: 'Agendar llamada',
-    aiInviteNote: '🤝 Te invitamos a una llamada personalizada donde exploraremos juntos cómo la inteligencia artificial puede transformar tu negocio. Conocerás nuestras soluciones, cómo las adaptamos a tu caso particular, y los costos asociados — sin compromiso.',
+    scheduleCall: 'Agendar llamada',
+    inviteNote: '🤝 Te invitamos a una llamada personalizada para explorar juntos cómo podemos transformar tu negocio. Conocerás nuestras soluciones, cómo las adaptamos a tu caso particular, y los costos asociados — sin compromiso.',
     optionalItemsBadge: 'Los elementos aquí son opcionales y pueden modificar el valor de la inversión y el tiempo de desarrollo. Para ver los requerimientos completos de tu proyecto, visítalos en la sección de Requerimientos Funcionales.',
   },
   en: {
@@ -257,19 +271,21 @@ const i18n = {
     estimatedDuration: 'Estimated duration',
     weeks: 'weeks',
     reducedFrom: 'Reduced from',
+    extendedFrom: 'Extended from',
     to: 'to',
     impactModule: 'Without this module, your project will have less coverage in this area.',
     impactView: 'This view will not be available in the final version.',
     impactFeature: 'This feature will not be included in the scope.',
     impactIntegration: 'This integration will not be connected to the system.',
     impactGeneric: 'This component will not be included in the project.',
-    impactWeeks: 'Reduces ~1 week from the timeline.',
+    impactWeeksReduce: 'Reduces ~1 week from the timeline.',
+    impactWeeksAdd: 'Adds ~1 week to the timeline if selected.',
     discountApplied: 'Discount applied on confirmation',
     freeLabel: 'Free',
     viewDetail: 'View detail',
     hideDetail: 'Hide detail',
-    aiScheduleCall: 'Schedule a call',
-    aiInviteNote: '🤝 We invite you to a personalized call where we\'ll explore together how artificial intelligence can transform your business. You\'ll learn about our solutions, how we tailor them to your specific case, and associated costs — no commitment required.',
+    scheduleCall: 'Schedule a call',
+    inviteNote: '🤝 We invite you to a personalized call where we\'ll explore together how we can transform your business. You\'ll learn about our solutions, how we tailor them to your specific case, and associated costs — no commitment required.',
     optionalItemsBadge: 'The items here are optional and may change the investment amount and development timeline. To see the full requirements for your project, visit the Functional Requirements section.',
   },
 };
@@ -287,22 +303,13 @@ watch(() => props.visible, (val) => {
       if (raw) saved = JSON.parse(raw);
     } catch (_e) { /* ignore */ }
 
-    const now = new Date();
     localModules.value = props.modules.map(m => {
       const locked = m.is_required === true;
-      // Compute free promotion status
-      let freeActive = false;
-      if (m.is_free && m.free_days && props.sentAt) {
-        const sentDate = new Date(props.sentAt);
-        const expiresAt = new Date(sentDate.getTime() + m.free_days * 86400000);
-        freeActive = now < expiresAt;
-      }
       const defaultSel = m.default_selected !== false;
       return {
         ...m,
         selected: locked ? true : (saved ? saved.includes(m.id) : defaultSel),
         _locked: locked,
-        _freeActive: freeActive,
       };
     });
   }
@@ -322,22 +329,26 @@ function toggleDetail(modId) {
 }
 
 const groupLabels = {
-  investment: { es: 'Módulos de inversión', en: 'Investment modules' },
-  views: { es: 'Vistas', en: 'Views' },
-  components: { es: 'Componentes', en: 'Components' },
-  features: { es: 'Funcionalidades', en: 'Features' },
-  integrations_api: { es: 'Integraciones', en: 'Integrations' },
-  admin_module: { es: 'Módulo administrativo', en: 'Admin module' },
-  analytics_dashboard: { es: 'Analítica', en: 'Analytics' },
-  pwa_module: { es: 'Aplicación Móvil Instalable (PWA)', en: 'Installable Mobile App (PWA)' },
+  investment: { es: '💰 Módulos de inversión', en: '💰 Investment modules' },
+  views: { es: '🖥️ Vistas', en: '🖥️ Views' },
+  components: { es: '🧩 Componentes', en: '🧩 Components' },
+  features: { es: '⚙️ Funcionalidades', en: '⚙️ Features' },
+  integration_international_payments: { es: '🌎 Pasarela de Pago Internacional (Integración API)', en: '🌎 International Payment Gateway (API Integration)' },
+  integration_regional_payments: { es: '🇨🇴 Pasarela de Pago Regional (Integración API)', en: '🇨🇴 Regional Payment Gateway (API Integration)' },
+  integration_electronic_invoicing: { es: '🧾 Facturación Electrónica (Integración API)', en: '🧾 Electronic Invoicing (API Integration)' },
+  integration_conversion_tracking: { es: '📡 Conversiones Inteligentes (Integración API)', en: '📡 Smart Conversions (API Integration)' },
+  admin_module: { es: '🛠️ Módulo administrativo', en: '🛠️ Admin module' },
+  analytics_dashboard: { es: '📊 Analítica', en: '📊 Analytics' },
+  pwa_module: { es: '📱 Aplicación Móvil Instalable (PWA)', en: '📱 Installable Mobile App (PWA)' },
   ai_module: { es: '🤖 Integración con IA', en: '🤖 AI Integration' },
-  reports_alerts_module: { es: 'Reportes y Alertas', en: 'Reports & Alerts' },
-  kpi_dashboard_module: { es: 'Dashboard de KPIs', en: 'KPI Dashboard' },
-  email_marketing_module: { es: 'Email Marketing', en: 'Email Marketing' },
-  conversion_tracking_module: { es: '📡 Conversiones Inteligentes', en: '📡 Smart Conversions' },
+  reports_alerts_module: { es: '📬 Reportes y Alertas', en: '📬 Reports & Alerts' },
+  kpi_dashboard_module: { es: '📊 Dashboard de KPIs', en: '📊 KPI Dashboard' },
+  email_marketing_module: { es: '📧 Email Marketing', en: '📧 Email Marketing' },
   i18n_module: { es: '🌍 Multi-idioma', en: '🌍 Multi-language' },
   gift_cards_module: { es: '🎁 Gift Cards', en: '🎁 Gift Cards' },
-  _other: { es: 'Otros', en: 'Other' },
+  dark_mode_module: { es: '🌙 Dark Mode', en: '🌙 Dark Mode' },
+  live_chat_module: { es: '💬 Chat en Vivo', en: '💬 Live Chat' },
+  _other: { es: '🧩 Otros', en: '🧩 Other' },
 };
 
 const groupedModules = computed(() => {
@@ -359,19 +370,16 @@ const dynamicTotal = computed(() => {
   const deselectedSum = localModules.value
     .filter(m => !m.selected && m._source !== 'calculator_module')
     .reduce((sum, m) => sum + (m.price || 0), 0);
-  const freeSum = localModules.value
-    .filter(m => m.selected && m._freeActive && m.price)
-    .reduce((sum, m) => sum + (m.price || 0), 0);
   const addedSum = localModules.value
     .filter(m => m.selected && m._source === 'calculator_module' && m.price)
     .reduce((sum, m) => sum + (m.price || 0), 0);
-  return baseTotalInvestment.value - deselectedSum - freeSum + addedSum;
+  return baseTotalInvestment.value - deselectedSum + addedSum;
 });
 
 const { animated: animatedTotal } = useAnimatedNumber(dynamicTotal, 500);
 
-// Dynamic timeline: week reduction based on deselected items
-// Rule: 1 module/integration removed = -1 week; every 3 views or 3 features removed = -1 week
+// Dynamic timeline: week changes based on module selection
+// Deselecting investment modules reduces weeks; selecting calculator modules adds weeks
 const weeksReduction = computed(() => {
   const deselected = localModules.value.filter(m => !m.selected && !m._locked);
   let reduction = 0;
@@ -379,7 +387,7 @@ const weeksReduction = computed(() => {
   let featuresRemoved = 0;
 
   for (const mod of deselected) {
-    if (mod._source === 'investment' || mod.groupId === 'integrations_api') {
+    if (mod._source === 'investment') {
       reduction += 1;
     } else if (mod.groupId === 'views') {
       viewsRemoved += 1;
@@ -392,9 +400,20 @@ const weeksReduction = computed(() => {
   return reduction;
 });
 
+const weeksAddition = computed(() => {
+  const selected = localModules.value.filter(m => m.selected && m._source === 'calculator_module' && !m.is_invite);
+  let addition = 0;
+  for (const mod of selected) {
+    if (mod.groupId?.startsWith('integration_') || mod._source === 'calculator_module') {
+      addition += 1;
+    }
+  }
+  return addition;
+});
+
 const dynamicWeeks = computed(() => {
   if (!props.baseWeeks) return 0;
-  return Math.max(1, props.baseWeeks - weeksReduction.value);
+  return Math.max(1, props.baseWeeks - weeksReduction.value + weeksAddition.value);
 });
 
 const timelineChanged = computed(() => {
@@ -416,21 +435,37 @@ function impactMessage(mod) {
     msg = t.value.impactView;
   } else if (groupId === 'features') {
     msg = t.value.impactFeature;
-  } else if (groupId === 'integrations_api') {
+  } else if (groupId?.startsWith('integration_')) {
     msg = t.value.impactIntegration;
   } else {
     msg = t.value.impactGeneric;
   }
-  if (source === 'investment' || groupId === 'integrations_api') {
-    msg += ' ' + t.value.impactWeeks;
+  if (source === 'investment') {
+    msg += ' ' + t.value.impactWeeksReduce;
+  } else if (source === 'calculator_module' || groupId?.startsWith('integration_')) {
+    msg += ' ' + t.value.impactWeeksAdd;
   }
   return msg;
 }
+
+const priceFeedback = ref({});
+const feedbackTimers = {};
 
 function toggleModule(mod) {
   if (mod._locked) return;
   mod.selected = !mod.selected;
   hasInteracted.value = true;
+
+  if (mod.price && !mod.is_invite) {
+    const sign = mod.selected ? '+' : '-';
+    priceFeedback.value = { ...priceFeedback.value, [mod.id]: `${sign}${formatPrice(mod.price)}` };
+    clearTimeout(feedbackTimers[mod.id]);
+    feedbackTimers[mod.id] = setTimeout(() => {
+      const copy = { ...priceFeedback.value };
+      delete copy[mod.id];
+      priceFeedback.value = copy;
+    }, 1500);
+  }
 }
 
 function confirmSelection() {
@@ -463,6 +498,7 @@ watch(() => props.visible, (val) => {
   if (val) {
     hasInteracted.value = false;
     confirmed.value = false;
+    openedAt.value = Date.now();
   }
 });
 </script>
@@ -505,4 +541,9 @@ watch(() => props.visible, (val) => {
 .total-pulse {
   animation: pulse-scale 0.35s ease-in-out;
 }
+
+.micro-feedback-enter-active { transition: all 0.2s ease; }
+.micro-feedback-leave-active { transition: all 0.3s ease; }
+.micro-feedback-enter-from { opacity: 0; transform: translateX(-4px); }
+.micro-feedback-leave-to { opacity: 0; transform: translateX(4px); }
 </style>

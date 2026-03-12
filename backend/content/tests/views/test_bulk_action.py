@@ -8,6 +8,7 @@ from unittest.mock import patch
 import pytest
 from django.urls import reverse
 from django.utils import timezone
+from freezegun import freeze_time
 
 from content.models import BusinessProposal
 
@@ -17,9 +18,11 @@ BULK_URL = reverse('bulk-action')
 
 
 class TestBulkActionDelete:
-    """POST /api/proposals/bulk-action/ with action=delete"""
+    """POST /api/proposals/bulk-action/ with action=delete."""
 
+    @freeze_time('2026-03-01 12:00:00')
     def test_deletes_selected_proposals(self, admin_client, db):
+        """Bulk delete removes selected proposals and returns affected count."""
         p1 = BusinessProposal.objects.create(
             title='Delete Me 1', client_name='A', client_email='a@test.com',
             status='draft', expires_at=timezone.now() + timezone.timedelta(days=30),
@@ -47,8 +50,9 @@ class TestBulkActionDelete:
 
 
 class TestBulkActionExpire:
-    """POST /api/proposals/bulk-action/ with action=expire"""
+    """POST /api/proposals/bulk-action/ with action=expire."""
 
+    @freeze_time('2026-03-01 12:00:00')
     def test_expires_non_expired_proposals(self, admin_client, db):
         p1 = BusinessProposal.objects.create(
             title='Expire Me', client_name='C', client_email='c@test.com',
@@ -74,7 +78,7 @@ class TestBulkActionExpire:
 
 
 class TestBulkActionResend:
-    """POST /api/proposals/bulk-action/ with action=resend"""
+    """POST /api/proposals/bulk-action/ with action=resend."""
 
     @patch('content.services.proposal_service.ProposalService.resend_proposal')
     def test_resends_sent_proposals(self, mock_resend, admin_client, sent_proposal):
@@ -96,6 +100,7 @@ class TestBulkActionResend:
         assert response.data['affected'] == 0
         mock_resend.assert_not_called()
 
+    @freeze_time('2026-03-01 12:00:00')
     @patch('content.services.proposal_service.ProposalService.resend_proposal')
     def test_skips_proposals_without_email(self, mock_resend, admin_client, db):
         p = BusinessProposal.objects.create(

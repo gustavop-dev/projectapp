@@ -5,6 +5,7 @@ happy path, 404s, validation errors, permission checks.
 """
 import pytest
 from django.urls import reverse
+from freezegun import freeze_time
 
 from content.models import BlogPost
 
@@ -465,6 +466,72 @@ class TestBlogSitemapData:
         slugs = [item['slug'] for item in response.data]
         assert blog_post.slug in slugs
         assert draft_blog_post.slug not in slugs
+
+
+# ---------------------------------------------------------------------------
+# Blog calendar endpoint (lines 438-502)
+# ---------------------------------------------------------------------------
+
+class TestBlogCalendar:
+    def _url(self):
+        return reverse('blog-calendar')
+
+    def test_returns_401_for_unauthenticated(self, api_client):
+        """Unauthenticated users cannot access the blog calendar."""
+        response = api_client.get(self._url())
+        assert response.status_code in (401, 403)
+
+    def test_returns_400_when_start_missing(self, admin_client):
+        """Missing start param returns 400."""
+        response = admin_client.get(self._url(), {'end': '2026-03-31'})
+        assert response.status_code == 400
+        assert 'start' in response.data['detail'].lower()
+
+    def test_returns_400_when_end_missing(self, admin_client):
+        """Missing end param returns 400."""
+        response = admin_client.get(self._url(), {'start': '2026-03-01'})
+        assert response.status_code == 400
+
+    def test_returns_400_for_invalid_date_format(self, admin_client):
+        """Invalid date format returns 400."""
+        response = admin_client.get(self._url(), {'start': 'not-a-date', 'end': '2026-03-31'})
+        assert response.status_code == 400
+        assert 'invalid' in response.data['detail'].lower()
+
+    @freeze_time('2026-03-15 12:00:00')
+    def test_returns_published_posts_in_range(self, admin_client, blog_post):
+        """Published posts within the date range are returned."""
+        response = admin_client.get(self._url(), {
+            'start': '2026-03-01',
+            'end': '2026-03-31',
+        })
+        assert response.status_code == 200
+        assert len(response.data) >= 1
+        post = response.data[0]
+        assert 'title_es' in post
+        assert 'calendar_status' in post
+        assert post['calendar_status'] == 'published'
+
+    @freeze_time('2026-03-15 12:00:00')
+    def test_returns_draft_posts_created_in_range(self, admin_client, draft_blog_post):
+        """Drafts created within the date range are returned with status 'draft'."""
+        response = admin_client.get(self._url(), {
+            'start': '2026-03-01',
+            'end': '2026-03-31',
+        })
+        assert response.status_code == 200
+        drafts = [p for p in response.data if p['calendar_status'] == 'draft']
+        assert len(drafts) >= 1
+
+    @freeze_time('2026-03-15 12:00:00')
+    def test_returns_empty_list_for_range_without_posts(self, admin_client, db):
+        """Returns empty list when no posts exist in the date range."""
+        response = admin_client.get(self._url(), {
+            'start': '2020-01-01',
+            'end': '2020-01-31',
+        })
+        assert response.status_code == 200
+        assert response.data == []
 
 
 class TestUploadBlogCoverImage:

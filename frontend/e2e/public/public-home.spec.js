@@ -14,9 +14,9 @@ test.describe('Home Page', () => {
     await page.goto('/');
 
     // Hero section renders
-    await expect(page.locator('h1').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15000 });
 
-    // Page has meaningful content
+    // quality: allow-fragile-selector (page has no testid sections, first section confirms meaningful content)
     await expect(page.locator('section').first()).toBeAttached();
   });
 
@@ -25,7 +25,7 @@ test.describe('Home Page', () => {
   }, async ({ page }) => {
     await page.goto('/es-co');
     await expect(page).toHaveURL(/\/es-co/);
-    await expect(page.locator('h1').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15000 });
   });
 
   test('renders with English locale', {
@@ -33,6 +33,6 @@ test.describe('Home Page', () => {
   }, async ({ page }) => {
     await page.goto('/en-us');
     await expect(page).toHaveURL(/\/en-us/);
-    await expect(page.locator('h1').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible({ timeout: 15000 });
   });
 });

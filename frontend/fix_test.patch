@@ -1,0 +1,24 @@
+--- test/composables/useGtagConversions.test.js
++++ test/composables/useGtagConversions.test.js
+@@ -99,11 +99,16 @@
+       trackFormSubmission('https://example.com');
+ 
+       const callArgs = mockGtag.mock.calls[0][2];
+-      const originalLocation = window.location;
+-      delete window.location;
+-      window.location = '';
++      const originalLocation = window.location;
++      Object.defineProperty(window, 'location', {
++        writable: true,
++        value: { href: '', assign: jest.fn() }
++      });
+       callArgs.event_callback();
+-      expect(window.location).toBe('https://example.com');
+-      window.location = originalLocation;
++      // Since composable uses window.location = url, which overwrites our mock value
++      expect(window.location).toBe('https://example.com');
++      Object.defineProperty(window, 'location', {
++        writable: true,
++        value: originalLocation
++      });
+     });

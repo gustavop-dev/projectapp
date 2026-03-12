@@ -81,14 +81,10 @@ function buildMockHandler() {
 
 async function navigateToInvestment(page) {
   await page.goto(`/proposal/${MOCK_UUID}`);
-  await page.waitForLoadState('networkidle');
 
   // Wait for proposal content to render after preloader
-  await expect(page.locator('.proposal-wrapper')).toBeVisible({ timeout: 15000 });
-
-  // Navigate forward: greeting (0) → investment (1)
   const nextBtn = page.getByTestId('nav-next');
-  await expect(nextBtn).toBeVisible({ timeout: 3000 });
+  await expect(nextBtn).toBeVisible({ timeout: 15000 });
   await nextBtn.click();
 
   // Wait for the customize button to confirm we're on the investment section
@@ -97,9 +93,10 @@ async function navigateToInvestment(page) {
 
 test.describe('Proposal Investment Calculator', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('customize button opens calculator modal', {

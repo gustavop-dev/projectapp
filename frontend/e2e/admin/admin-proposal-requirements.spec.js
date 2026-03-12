@@ -297,8 +297,11 @@ test.describe('Functional Requirements — Paste Content Mode', () => {
     await expect(groupTextarea).toBeVisible();
     await groupTextarea.fill('Custom pasted views content.');
 
-    // Save the section
-    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+    // Save the section and wait for the API call to complete
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('sections') && r.url().includes('update')),
+      editor.getByRole('button', { name: 'Guardar Sección' }).click(),
+    ]);
     await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     expect(captured.length).toBeGreaterThanOrEqual(1);

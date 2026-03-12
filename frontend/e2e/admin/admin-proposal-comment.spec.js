@@ -78,8 +78,9 @@ test.describe('Admin Proposal Comment / Activity', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
 
+    // Wait for page content instead of networkidle
+    await expect(page.getByRole('button', { name: 'Actividad' })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: 'Actividad' }).click();
 
     await expect(page.getByText('Registrar actividad')).toBeVisible();
@@ -91,8 +92,8 @@ test.describe('Admin Proposal Comment / Activity', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
 
+    await expect(page.getByRole('button', { name: 'Actividad' })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: 'Actividad' }).click();
 
     await expect(page.getByText('Registrar actividad')).toBeVisible();
@@ -106,11 +107,14 @@ test.describe('Admin Proposal Comment / Activity', () => {
     const captured = [];
     await setupMock(page, captured);
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
 
+    await expect(page.getByRole('button', { name: 'Actividad' })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: 'Actividad' }).click();
 
-    await page.getByPlaceholder('Descripción de la actividad...').fill('Llamada de seguimiento con cliente');
+    // Wait for the input to be ready before filling
+    const descInput = page.getByPlaceholder('Descripción de la actividad...');
+    await expect(descInput).toBeVisible();
+    await descInput.fill('Llamada de seguimiento con cliente');
     await page.getByRole('button', { name: 'Agregar' }).click();
 
     // Wait for form to clear (indicates successful submission)

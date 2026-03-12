@@ -259,3 +259,163 @@ describe('localStorage round-trip', () => {
     expect(modules[1].selected).toBe(false);
   });
 });
+
+
+// ── Timeline logic (weeksReduction / weeksAddition / dynamicWeeks) ──────────
+
+/**
+ * Mirrors weeksReduction computed from InvestmentCalculatorModal.vue.
+ * Deselecting investment modules reduces ~1 week each.
+ * Views/features reduce 1 week per 3 deselected.
+ */
+function computeWeeksReduction(localModules) {
+  const deselected = localModules.filter(m => !m.selected && !m._locked);
+  let reduction = 0;
+  let viewsRemoved = 0;
+  let featuresRemoved = 0;
+
+  for (const mod of deselected) {
+    if (mod._source === 'investment') {
+      reduction += 1;
+    } else if (mod.groupId === 'views') {
+      viewsRemoved += 1;
+    } else if (mod.groupId === 'features') {
+      featuresRemoved += 1;
+    }
+  }
+  reduction += Math.floor(viewsRemoved / 3);
+  reduction += Math.floor(featuresRemoved / 3);
+  return reduction;
+}
+
+/**
+ * Mirrors weeksAddition computed from InvestmentCalculatorModal.vue.
+ * Selecting calculator modules (non-invite) adds ~1 week each.
+ */
+function computeWeeksAddition(localModules) {
+  const selected = localModules.filter(m => m.selected && m._source === 'calculator_module' && !m.is_invite);
+  let addition = 0;
+  for (const mod of selected) {
+    if (mod.groupId?.startsWith('integration_') || mod._source === 'calculator_module') {
+      addition += 1;
+    }
+  }
+  return addition;
+}
+
+/**
+ * Mirrors dynamicWeeks computed from InvestmentCalculatorModal.vue.
+ */
+function computeDynamicWeeks(baseWeeks, localModules) {
+  if (!baseWeeks) return 0;
+  return Math.max(1, baseWeeks - computeWeeksReduction(localModules) + computeWeeksAddition(localModules));
+}
+
+const TIMELINE_MODULES = [
+  { id: 'mod-a', name: 'CRM', _source: 'investment', selected: true, _locked: false },
+  { id: 'mod-b', name: 'E-commerce', _source: 'investment', selected: true, _locked: false },
+  { id: 'mod-c', name: 'Core', _source: 'investment', selected: true, _locked: true },
+];
+
+const CALCULATOR_MODULES = [
+  { id: 'pwa', name: 'PWA', _source: 'calculator_module', groupId: 'pwa_module', selected: false, _locked: false, is_invite: false },
+  { id: 'ai', name: 'AI', _source: 'calculator_module', groupId: 'ai_module', selected: false, _locked: false, is_invite: true },
+  { id: 'reports', name: 'Reports', _source: 'calculator_module', groupId: 'reports_alerts_module', selected: true, _locked: false, is_invite: false },
+];
+
+describe('computeWeeksReduction', () => {
+  it('returns 0 when all investment modules are selected', () => {
+    expect(computeWeeksReduction(TIMELINE_MODULES)).toBe(0);
+  });
+
+  it('returns 1 when one investment module is deselected', () => {
+    const mods = TIMELINE_MODULES.map(m => m.id === 'mod-a' ? { ...m, selected: false } : { ...m });
+    expect(computeWeeksReduction(mods)).toBe(1);
+  });
+
+  it('returns 2 when two investment modules are deselected', () => {
+    const mods = TIMELINE_MODULES.map(m => m._locked ? { ...m } : { ...m, selected: false });
+    expect(computeWeeksReduction(mods)).toBe(2);
+  });
+
+  it('does not count locked modules as deselected', () => {
+    const mods = TIMELINE_MODULES.map(m => ({ ...m, selected: false }));
+    expect(computeWeeksReduction(mods)).toBe(2);
+  });
+
+  it('reduces 1 week per 3 deselected views', () => {
+    const views = [
+      { id: 'v1', groupId: 'views', selected: false, _locked: false },
+      { id: 'v2', groupId: 'views', selected: false, _locked: false },
+      { id: 'v3', groupId: 'views', selected: false, _locked: false },
+    ];
+    expect(computeWeeksReduction(views)).toBe(1);
+  });
+
+  it('reduces 0 for 2 deselected views (less than 3)', () => {
+    const views = [
+      { id: 'v1', groupId: 'views', selected: false, _locked: false },
+      { id: 'v2', groupId: 'views', selected: false, _locked: false },
+    ];
+    expect(computeWeeksReduction(views)).toBe(0);
+  });
+});
+
+describe('computeWeeksAddition', () => {
+  it('returns 0 when no calculator modules are selected', () => {
+    const mods = CALCULATOR_MODULES.map(m => ({ ...m, selected: false }));
+    expect(computeWeeksAddition(mods)).toBe(0);
+  });
+
+  it('returns 1 when one non-invite calculator module is selected', () => {
+    expect(computeWeeksAddition(CALCULATOR_MODULES)).toBe(1);
+  });
+
+  it('does not count invite modules (AI)', () => {
+    const mods = CALCULATOR_MODULES.map(m => ({ ...m, selected: true }));
+    expect(computeWeeksAddition(mods)).toBe(2);
+  });
+
+  it('returns 2 when two non-invite calculator modules are selected', () => {
+    const mods = CALCULATOR_MODULES.map(m => m.id === 'pwa' ? { ...m, selected: true } : { ...m });
+    expect(computeWeeksAddition(mods)).toBe(2);
+  });
+});
+
+describe('computeDynamicWeeks', () => {
+  it('returns 0 when baseWeeks is 0', () => {
+    expect(computeDynamicWeeks(0, TIMELINE_MODULES)).toBe(0);
+  });
+
+  it('returns baseWeeks when no changes', () => {
+    expect(computeDynamicWeeks(12, TIMELINE_MODULES)).toBe(12);
+  });
+
+  it('reduces weeks when investment modules deselected', () => {
+    const mods = TIMELINE_MODULES.map(m => m.id === 'mod-a' ? { ...m, selected: false } : { ...m });
+    expect(computeDynamicWeeks(12, mods)).toBe(11);
+  });
+
+  it('adds weeks when calculator modules selected', () => {
+    const mods = [
+      ...TIMELINE_MODULES,
+      ...CALCULATOR_MODULES.map(m => m.id === 'pwa' ? { ...m, selected: true } : { ...m }),
+    ];
+    expect(computeDynamicWeeks(12, mods)).toBe(14);
+  });
+
+  it('combines reduction and addition', () => {
+    const mods = [
+      ...TIMELINE_MODULES.map(m => m.id === 'mod-a' ? { ...m, selected: false } : { ...m }),
+      ...CALCULATOR_MODULES.map(m => m.id === 'pwa' ? { ...m, selected: true } : { ...m }),
+    ];
+    expect(computeDynamicWeeks(12, mods)).toBe(13);
+  });
+
+  it('never goes below 1', () => {
+    const manyDeselected = Array.from({ length: 10 }, (_, i) => ({
+      id: `m${i}`, _source: 'investment', selected: false, _locked: false,
+    }));
+    expect(computeDynamicWeeks(3, manyDeselected)).toBe(1);
+  });
+});

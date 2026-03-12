@@ -98,8 +98,8 @@ test.describe('Blog Post Detail', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog/ai-trends-2026');
-    await page.waitForLoadState('networkidle');
 
+    await expect(page.getByRole('heading', { name: 'AI Trends 2026' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('8 min')).toBeVisible();
   });
 
@@ -108,8 +108,8 @@ test.describe('Blog Post Detail', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog/ai-trends-2026');
-    await page.waitForLoadState('networkidle');
 
+    await expect(page.getByRole('heading', { name: 'AI Trends 2026' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('Sources consulted')).toBeVisible();
     await expect(page.getByText('OpenAI')).toBeVisible();
   });
@@ -140,7 +140,9 @@ test.describe('Blog Post Detail', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog/ai-trends-2026');
-    await page.waitForLoadState('networkidle');
+
+    // Wait for page content instead of networkidle to save time budget
+    await expect(page.getByRole('heading', { name: 'AI Trends 2026' })).toBeVisible({ timeout: 15000 });
 
     await page.getByText('Back to blog').first().click();
     await expect(page).toHaveURL(/\/blog/);

@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="mb-8">
-      <NuxtLink to="/panel/proposals" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+      <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
         ← Volver a propuestas
       </NuxtLink>
       <div v-if="proposal" class="flex flex-wrap items-center gap-3 sm:gap-4 mt-2">
@@ -192,6 +192,18 @@
             </div>
           </div>
           <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Hosting (% de inversión total)</label>
+            <div class="flex items-center gap-3">
+              <input v-model.number="form.hosting_percent" type="number" min="0" max="100"
+                class="w-32 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              <span class="text-sm text-gray-500">%</span>
+              <span v-if="form.hosting_percent > 0 && form.total_investment > 0" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
+                ☁️ ${{ Math.round(form.total_investment * form.hosting_percent / 100).toLocaleString() }} {{ form.currency }} / año
+              </span>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">Se sincroniza con el % del Plan de Hosting en la sección "Tu inversión y cómo pagar".</p>
+          </div>
+          <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de expiración</label>
             <input v-model="form.expires_at" type="datetime-local"
               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
@@ -298,6 +310,26 @@
 
       <!-- Tab: Sections -->
       <div v-show="activeTab === 'sections'">
+        <!-- F10: Section completeness indicator -->
+        <div v-if="allSections.length" class="mb-4 bg-white rounded-xl shadow-sm border border-gray-100 px-5 py-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Completitud de secciones</span>
+            <span class="text-sm font-bold" :class="sectionCompleteness >= 80 ? 'text-emerald-600' : sectionCompleteness >= 50 ? 'text-amber-600' : 'text-red-500'">
+              {{ sectionCompleteness }}%
+            </span>
+          </div>
+          <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              class="h-full rounded-full transition-all duration-500"
+              :class="sectionCompleteness >= 80 ? 'bg-emerald-500' : sectionCompleteness >= 50 ? 'bg-amber-500' : 'bg-red-400'"
+              :style="{ width: sectionCompleteness + '%' }"
+            />
+          </div>
+          <p class="text-[11px] text-gray-400 mt-1.5">
+            {{ sectionsWithContent }}/{{ enabledSectionsCount }} secciones habilitadas tienen contenido
+          </p>
+        </div>
+
         <div class="space-y-3">
           <div
             v-for="section in allSections"
@@ -340,6 +372,7 @@
                 :section="section"
                 :proposalData="proposal"
                 @save="handleSaveSection"
+                @syncHostingPercent="handleSyncHostingPercent"
               />
             </div>
           </div>
@@ -372,28 +405,40 @@
       </div>
     </template>
 
-    <!-- Pre-send checklist modal -->
+    <!-- Pre-send scorecard modal -->
     <Teleport to="body">
       <div v-if="showSendChecklist" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="showSendChecklist = false">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 sm:p-8">
-          <h3 class="text-lg font-bold text-gray-900 mb-1">Checklist pre-envío</h3>
-          <p class="text-sm text-gray-500 mb-5">Verifica que todo esté listo antes de enviar.</p>
-          <ul class="space-y-3 mb-6">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="text-lg font-bold text-gray-900">Scorecard pre-envío</h3>
+            <span v-if="scorecardData" class="text-sm font-bold px-2.5 py-1 rounded-full"
+              :class="scorecardData.score >= 8 ? 'bg-emerald-100 text-emerald-700' : scorecardData.score >= 5 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'">
+              {{ scorecardData.score }}/10
+            </span>
+          </div>
+          <p class="text-sm text-gray-500 mb-5">{{ scorecardLoading ? 'Verificando...' : 'Verifica que todo esté listo antes de enviar.' }}</p>
+          <ul v-if="!scorecardLoading" class="space-y-3 mb-6">
             <li v-for="(item, idx) in sendChecklist" :key="idx" class="flex items-center gap-3">
               <span class="w-6 h-6 rounded-full flex items-center justify-center text-sm flex-shrink-0"
-                :class="item.pass ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-500'">
+                :class="item.pass ? 'bg-emerald-100 text-emerald-600' : item.blocker ? 'bg-red-100 text-red-500' : 'bg-amber-100 text-amber-500'">
                 {{ item.pass ? '✓' : '✗' }}
               </span>
-              <span class="text-sm" :class="item.pass ? 'text-gray-700' : 'text-red-600 font-medium'">{{ item.label }}</span>
+              <div class="flex-1 min-w-0">
+                <span class="text-sm" :class="item.pass ? 'text-gray-700' : item.blocker ? 'text-red-600 font-medium' : 'text-amber-600'">{{ item.label }}</span>
+                <span v-if="!item.pass && item.blocker" class="ml-1 text-[10px] text-red-400 font-semibold uppercase">bloqueante</span>
+              </div>
             </li>
           </ul>
+          <div v-else class="flex items-center justify-center py-8">
+            <span class="text-sm text-gray-400">Cargando scorecard...</span>
+          </div>
           <div class="flex gap-3 justify-end">
             <button class="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showSendChecklist = false">
               Cancelar
             </button>
             <button
               class="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
-              :disabled="!allChecksPassing"
+              :disabled="!allChecksPassing || scorecardLoading"
               @click="confirmSend"
             >
               Enviar al Cliente
@@ -410,6 +455,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
 
+const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const route = useRoute();
@@ -419,6 +465,26 @@ const proposal = computed(() => proposalStore.currentProposal);
 const allSections = computed(() =>
   [...(proposal.value?.sections || [])].sort((a, b) => a.order - b.order)
 );
+
+const enabledSectionsCount = computed(() =>
+  allSections.value.filter(s => s.is_enabled).length
+);
+
+const sectionsWithContent = computed(() => {
+  return allSections.value.filter(s => {
+    if (!s.is_enabled) return false;
+    let cj = s.content_json;
+    if (typeof cj === 'string') {
+      try { cj = JSON.parse(cj); } catch { cj = null; }
+    }
+    return cj && typeof cj === 'object' && Object.keys(cj).length > 0;
+  }).length;
+});
+
+const sectionCompleteness = computed(() => {
+  if (enabledSectionsCount.value === 0) return 0;
+  return Math.round(sectionsWithContent.value / enabledSectionsCount.value * 100);
+});
 
 const activeTab = ref('general');
 const tabs = [
@@ -443,6 +509,7 @@ const form = reactive({
   language: 'es',
   total_investment: 0,
   currency: 'COP',
+  hosting_percent: 30,
   expires_at: '',
   reminder_days: 10,
   urgency_reminder_days: 15,
@@ -466,6 +533,7 @@ onMounted(async () => {
       language: proposal.value.language || 'es',
       total_investment: Number(proposal.value.total_investment),
       currency: proposal.value.currency,
+      hosting_percent: proposal.value.hosting_percent ?? 30,
       expires_at: proposal.value.expires_at
         ? proposal.value.expires_at.slice(0, 16)
         : '',
@@ -513,20 +581,44 @@ async function handleUpdate() {
 }
 
 const showSendChecklist = ref(false);
-const sendChecklist = computed(() => {
-  const checks = [
-    { label: 'Email del cliente configurado', pass: !!form.client_email?.trim() },
-    { label: 'Nombre del cliente', pass: !!form.client_name?.trim() },
-    { label: 'Inversión > $0', pass: Number(form.total_investment) > 0 },
-    { label: 'Fecha de expiración futura', pass: !!form.expires_at && new Date(form.expires_at) > new Date() },
-    { label: 'Al menos 1 sección habilitada', pass: allSections.value?.some(s => s.is_enabled) },
-  ];
-  return checks;
-});
-const allChecksPassing = computed(() => sendChecklist.value.every(c => c.pass));
+const scorecardData = ref(null);
+const scorecardLoading = ref(false);
 
-function handleSend() {
+const sendChecklist = computed(() => {
+  if (scorecardData.value?.checks) {
+    return scorecardData.value.checks.map(c => ({
+      label: c.label,
+      pass: c.passed,
+      blocker: c.blocker,
+    }));
+  }
+  // Fallback to local checks if scorecard hasn't loaded
+  return [
+    { label: 'Email del cliente configurado', pass: !!form.client_email?.trim(), blocker: true },
+    { label: 'Nombre del cliente', pass: !!form.client_name?.trim(), blocker: true },
+    { label: 'Inversión > $0', pass: Number(form.total_investment) > 0, blocker: true },
+    { label: 'Fecha de expiración futura', pass: !!form.expires_at && new Date(form.expires_at) > new Date(), blocker: true },
+    { label: 'Al menos 1 sección habilitada', pass: allSections.value?.some(s => s.is_enabled), blocker: true },
+  ];
+});
+
+const allChecksPassing = computed(() => {
+  if (scorecardData.value) {
+    return scorecardData.value.can_send !== false;
+  }
+  return sendChecklist.value.filter(c => c.blocker).every(c => c.pass);
+});
+
+async function handleSend() {
   showSendChecklist.value = true;
+  scorecardLoading.value = true;
+  try {
+    const result = await proposalStore.fetchScorecard(proposal.value.id);
+    if (result.success) {
+      scorecardData.value = result.data;
+    }
+  } catch (_e) { /* use local fallback */ }
+  scorecardLoading.value = false;
 }
 
 async function confirmSend() {
@@ -574,6 +666,13 @@ async function toggleEnabled(section) {
 
 async function handleSaveSection({ sectionId, payload }) {
   await proposalStore.updateSection(sectionId, payload);
+}
+
+async function handleSyncHostingPercent(percent) {
+  if (form.hosting_percent !== percent) {
+    form.hosting_percent = percent;
+    await proposalStore.updateProposal(proposal.value.id, { hosting_percent: percent });
+  }
 }
 
 function statusClass(status) {

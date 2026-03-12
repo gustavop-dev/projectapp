@@ -39,29 +39,28 @@ const mockSentProposal = {
  */
 async function openClosingPanel(page) {
   await page.goto(`/proposal/${MOCK_UUID}`);
-  await page.waitForLoadState('networkidle');
 
-  // Wait for proposal content to render after preloader animation completes
-  // The proposal-wrapper div only appears once showContent=true
-  await expect(page.locator('.proposal-wrapper')).toBeVisible({ timeout: 15000 });
-
-  // Navigate through all panels to reach the closing panel
+  // Wait for proposal to finish loading
   const nextBtn = page.getByTestId('nav-next');
+  await expect(nextBtn).toBeVisible({ timeout: 15000 });
+
+  // Click through sections until nav-next disappears (closing panel)
   let safetyLimit = 10;
   while (safetyLimit-- > 0) {
-    const isVisible = await nextBtn.isVisible({ timeout: 500 }).catch(() => false);
-    if (!isVisible) break;
     await nextBtn.click();
-    await expect(page.locator('.panel-container')).toBeVisible();
+    await page.waitForTimeout(500);
+    const stillVisible = await nextBtn.isVisible().catch(() => false);
+    if (!stillVisible) break;
   }
 }
 
 test.describe('Proposal Respond', () => {
   test.beforeEach(async ({ page }) => {
     // Skip onboarding overlay so buttons are clickable
-    await page.addInitScript(() => {
+    await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-    });
+      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
+    }, MOCK_UUID);
   });
 
   test('accept button opens confirmation modal', {
@@ -82,8 +81,8 @@ test.describe('Proposal Respond', () => {
 
     // Click accept opens confirmation modal (force due to CSS pulse animation)
     await acceptBtn.click({ force: true });
-    await expect(page.getByText('¿Confirmar aceptación?')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Sí, acepto/i })).toBeVisible();
+    await expect(page.getByText(/Perfecto/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /Confirmar/i })).toBeVisible();
   });
 
   test('confirming accept calls respond API and shows success state', {
@@ -106,7 +105,7 @@ test.describe('Proposal Respond', () => {
 
     // Click accept → open modal → confirm (force due to CSS pulse animation)
     await page.getByRole('button', { name: /Acepto la propuesta/i }).click({ force: true });
-    await page.getByRole('button', { name: /Sí, acepto/i }).click();
+    await page.getByRole('button', { name: /Confirmar/i }).click();
 
     // Verify success state appears
     await expect(page.getByText('¡Propuesta aceptada!')).toBeVisible({ timeout: 5000 });
@@ -126,7 +125,7 @@ test.describe('Proposal Respond', () => {
     await openClosingPanel(page);
 
     // Reject button should be visible
-    const rejectBtn = page.getByRole('button', { name: /No me interesa por ahora/i });
+    const rejectBtn = page.getByRole('button', { name: /No es el momento/i });
     await expect(rejectBtn).toBeVisible();
 
     // Click reject opens modal

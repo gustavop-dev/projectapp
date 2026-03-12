@@ -3,7 +3,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
       <h1 class="text-2xl font-light text-gray-900">Dashboard</h1>
       <NuxtLink
-        to="/panel/proposals/create"
+        :to="localePath('/panel/proposals/create')"
         class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
                font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm w-fit"
       >
@@ -221,7 +221,7 @@
       <div class="bg-white rounded-xl shadow-sm border border-gray-100">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 class="text-sm font-medium text-gray-700">Propuestas recientes</h2>
-          <NuxtLink to="/panel/proposals" class="text-xs text-emerald-600 hover:text-emerald-700">Ver todas →</NuxtLink>
+          <NuxtLink :to="localePath('/panel/proposals')" class="text-xs text-emerald-600 hover:text-emerald-700">Ver todas →</NuxtLink>
         </div>
         <div v-if="recentProposals.length === 0" class="px-6 py-12 text-center text-gray-400 text-sm">
           No hay propuestas aún. Crea la primera.
@@ -234,7 +234,7 @@
           >
             <div>
               <NuxtLink
-                :to="`/panel/proposals/${p.id}/edit`"
+                :to="localePath(`/panel/proposals/${p.id}/edit`)"
                 class="text-sm font-medium text-gray-900 hover:text-emerald-600 transition-colors"
               >
                 {{ p.title }}
@@ -257,6 +257,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 
+const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const proposalStore = useProposalStore();

@@ -168,9 +168,8 @@ const investmentJson = {
       { icon: '🧠', label: 'vCPU', value: '1 núcleo' },
       { icon: '🧮', label: 'RAM', value: '1 GB' },
     ],
-    monthlyPrice: '$49.999 COP',
+    hostingPercent: 30,
     monthlyLabel: 'por mes',
-    annualPrice: '$680.000 COP',
     annualLabel: 'Hosting anual — Año 1',
     renewalNote: 'Renovación con SMLMV.',
     coverageNote: 'Cubre mantenimiento, soporte y recursos.',
@@ -426,6 +425,33 @@ describe('buildFormFromJson', () => {
       const form = buildFormFromJson({}, 'investment');
       expect(form.currency).toBe('COP');
     });
+
+    it('reads hostingPercent from hostingPlan', () => {
+      const form = buildFormFromJson(investmentJson, 'investment');
+      expect(form.hostingPlan.hostingPercent).toBe(30);
+    });
+
+    it('defaults hostingPercent to 30 when missing', () => {
+      const json = { ...investmentJson, hostingPlan: { title: 'Hosting' } };
+      const form = buildFormFromJson(json, 'investment');
+      expect(form.hostingPlan.hostingPercent).toBe(30);
+    });
+
+    it('backward compat: ignores legacy monthlyPrice/annualPrice in buildFormFromJson', () => {
+      const legacyJson = {
+        ...investmentJson,
+        hostingPlan: {
+          ...investmentJson.hostingPlan,
+          monthlyPrice: '$49.999 COP',
+          annualPrice: '$680.000 COP',
+          hostingPercent: undefined,
+        },
+      };
+      const form = buildFormFromJson(legacyJson, 'investment');
+      expect(form.hostingPlan.hostingPercent).toBe(30);
+      expect(form.hostingPlan).not.toHaveProperty('monthlyPrice');
+      expect(form.hostingPlan).not.toHaveProperty('annualPrice');
+    });
   });
 
   describe('final_note', () => {
@@ -593,6 +619,25 @@ describe('formToJson', () => {
       expect(json.paymentMethods).toEqual(['Transferencia', 'Nequi']);
       expect(json.valueReasons).toEqual(['Diseño a medida', 'Código optimizado']);
     });
+
+    it('serializes hostingPercent in hostingPlan', () => {
+      const form = buildFormFromJson(investmentJson, 'investment');
+      const json = formToJson(form, 'investment');
+      expect(json.hostingPlan.hostingPercent).toBe(30);
+    });
+
+    it('does not include monthlyPrice or annualPrice in serialized hostingPlan', () => {
+      const form = buildFormFromJson(investmentJson, 'investment');
+      const json = formToJson(form, 'investment');
+      expect(json.hostingPlan).not.toHaveProperty('monthlyPrice');
+      expect(json.hostingPlan).not.toHaveProperty('annualPrice');
+    });
+
+    it('defaults hostingPercent to 30 during serialization when missing', () => {
+      const form = buildFormFromJson({ hostingPlan: { title: 'H' } }, 'investment');
+      const json = formToJson(form, 'investment');
+      expect(json.hostingPlan.hostingPercent).toBe(30);
+    });
   });
 
   describe('final_note', () => {
@@ -743,6 +788,12 @@ describe('formToReadableText', () => {
     const text = formToReadableText(form, 'investment');
     expect(text).toContain('$3.500.000');
     expect(text).toContain('Qué incluye:');
+  });
+
+  it('generates text for investment with hostingPercent', () => {
+    const form = buildFormFromJson(investmentJson, 'investment');
+    const text = formToReadableText(form, 'investment');
+    expect(text).toContain('Hosting: 30% de la inversión total');
   });
 
   it('generates text for final_note', () => {
@@ -901,6 +952,53 @@ describe('edge cases', () => {
     const json = formToJson(form, 'functional_requirements');
     expect(json.groups).toEqual([]);
     expect(json.additionalModules).toEqual([]);
+  });
+
+  it('buildFormFromJson preserves is_visible and calculator metadata for groups', () => {
+    const json = {
+      index: '1', title: 'Reqs', intro: '',
+      groups: [{
+        id: 'gift_cards_module', icon: '🎁', title: 'Gift Cards',
+        description: 'Desc', is_visible: false,
+        is_calculator_module: true, default_selected: false,
+        price_percent: 20, is_invite: false, invite_note: '',
+        items: [],
+      }],
+      additionalModules: [{
+        icon: '📬', title: 'Reports', description: 'Desc',
+        is_visible: true, is_calculator_module: true,
+        default_selected: true, price_percent: 15,
+        is_invite: true, invite_note: 'Invite only',
+        items: [],
+      }],
+    };
+    const form = buildFormFromJson(json, 'functional_requirements');
+    expect(form.groups[0].is_visible).toBe(false);
+    expect(form.groups[0].is_calculator_module).toBe(true);
+    expect(form.groups[0].default_selected).toBe(false);
+    expect(form.groups[0].price_percent).toBe(20);
+    expect(form.additionalModules[0].is_visible).toBe(true);
+    expect(form.additionalModules[0].is_invite).toBe(true);
+    expect(form.additionalModules[0].invite_note).toBe('Invite only');
+  });
+
+  it('formToJson preserves is_visible and calculator metadata through round-trip', () => {
+    const json = {
+      index: '1', title: 'Reqs', intro: '',
+      groups: [{
+        id: 'gift_cards_module', icon: '🎁', title: 'Gift Cards',
+        description: 'Desc', is_visible: false,
+        is_calculator_module: true, default_selected: false,
+        price_percent: 20, items: [],
+      }],
+      additionalModules: [],
+    };
+    const form = buildFormFromJson(json, 'functional_requirements');
+    const output = formToJson(form, 'functional_requirements');
+    expect(output.groups[0].is_visible).toBe(false);
+    expect(output.groups[0].is_calculator_module).toBe(true);
+    expect(output.groups[0].default_selected).toBe(false);
+    expect(output.groups[0].price_percent).toBe(20);
   });
 
   it('buildSavePayload for executive_summary in paste mode preserves structured data', () => {
