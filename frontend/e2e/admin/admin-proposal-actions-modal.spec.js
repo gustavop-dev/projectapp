@@ -69,7 +69,7 @@ test.describe('Admin Proposal Actions Modal', () => {
     await page.waitForLoadState('networkidle');
 
     // Wait for the table to render
-    await expect(page.getByText('Actions Modal Test')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Test Client')).toBeVisible({ timeout: 10000 });
 
     // quality: allow-fragile-selector (table actions button has no testid, last SVG button in row is the actions trigger)
     const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
@@ -85,7 +85,7 @@ test.describe('Admin Proposal Actions Modal', () => {
     await mockApi(page, buildMockHandler([mockDraftProposal]));
     await page.goto('/panel/proposals');
 
-    await page.getByText('Actions Modal Test').waitFor({ state: 'visible', timeout: 15000 });
+    await page.getByText('Test Client').waitFor({ state: 'visible', timeout: 15000 });
 
     // quality: allow-fragile-selector (table actions button has no testid)
     const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
@@ -108,7 +108,7 @@ test.describe('Admin Proposal Actions Modal', () => {
     await mockApi(page, buildMockHandler([mockSentProposal]));
     await page.goto('/panel/proposals');
 
-    await expect(page.getByText('Actions Modal Test')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Test Client')).toBeVisible({ timeout: 15000 });
 
     // quality: allow-fragile-selector (table actions button has no testid)
     const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
@@ -125,7 +125,7 @@ test.describe('Admin Proposal Actions Modal', () => {
     await mockApi(page, buildMockHandler([mockDraftProposal]));
     await page.goto('/panel/proposals');
 
-    await expect(page.getByText('Actions Modal Test')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Test Client')).toBeVisible({ timeout: 15000 });
 
     // quality: allow-fragile-selector (table actions button has no testid)
     const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();

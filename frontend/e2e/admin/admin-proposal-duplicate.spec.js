@@ -60,7 +60,7 @@ test.describe('Admin Proposal Duplicate', () => {
     await page.waitForLoadState('networkidle');
 
     // Wait for the table to render with proposal data
-    await expect(page.getByText('Propuesta Original')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Carlos')).toBeVisible({ timeout: 10000 });
 
     // quality: allow-fragile-selector (table actions button has no testid, same pattern as actions-modal spec)
     const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();

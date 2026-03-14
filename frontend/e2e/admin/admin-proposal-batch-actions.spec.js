@@ -51,7 +51,7 @@ test.describe('@flow: admin-proposal-batch-actions — Batch Actions on Proposal
     await page.waitForLoadState('networkidle');
 
     // Table should render
-    await expect(page.getByText('Proposal Alpha')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
     // Batch bar should NOT be visible (no selections)
     await expect(page.getByText(/seleccionada\(s\)/)).not.toBeVisible();
@@ -63,7 +63,7 @@ test.describe('@flow: admin-proposal-batch-actions — Batch Actions on Proposal
     await setupMock(page);
     await page.goto('/panel/proposals');
     await page.waitForLoadState('networkidle');
-    await expect(page.getByText('Proposal Alpha')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
     const checkboxes = page.locator('tbody input[type="checkbox"]');
     // quality: allow-fragile-selector (table row checkboxes have no testid, first row is the target)
@@ -79,7 +79,7 @@ test.describe('@flow: admin-proposal-batch-actions — Batch Actions on Proposal
     await setupMock(page);
     await page.goto('/panel/proposals');
     await page.waitForLoadState('networkidle');
-    await expect(page.getByText('Proposal Alpha')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
     const checkboxes = page.locator('tbody input[type="checkbox"]');
     // quality: allow-fragile-selector (table row checkboxes have no testid, first row is the target)
@@ -100,7 +100,7 @@ test.describe('@flow: admin-proposal-batch-actions — Batch Actions on Proposal
     await setupMock(page);
     await page.goto('/panel/proposals');
     await page.waitForLoadState('networkidle');
-    await expect(page.getByText('Proposal Alpha')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
     const checkboxes = page.locator('tbody input[type="checkbox"]');
     // quality: allow-fragile-selector (table row checkboxes have no testid, first row is the target)
@@ -120,7 +120,7 @@ test.describe('@flow: admin-proposal-batch-actions — Batch Actions on Proposal
     await setupMock(page);
     await page.goto('/panel/proposals');
     await page.waitForLoadState('networkidle');
-    await expect(page.getByText('Proposal Alpha')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
     // Click header checkbox (select all)
     const headerCheckbox = page.locator('thead input[type="checkbox"]');

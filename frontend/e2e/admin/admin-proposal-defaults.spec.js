@@ -54,6 +54,9 @@ function buildApiHandler(apiPath, method) {
   if (apiPath === 'proposals/defaults/reset/' && method === 'POST') {
     return { status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'reset', deleted: true }) };
   }
+  if (apiPath === 'email-templates/' && method === 'GET') {
+    return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+  }
   return null;
 }
 
@@ -66,7 +69,7 @@ test.describe('Admin Proposal Defaults Config', () => {
     tag: [...ADMIN_PROPOSAL_DEFAULTS_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
-    await page.goto('/panel/proposals/defaults');
+    await page.goto('/panel/proposals/defaults?tab=sections');
 
     // Page title renders
     await expect(page.locator('h1')).toContainText('Valores por Defecto', { timeout: 15000 });
@@ -84,7 +87,7 @@ test.describe('Admin Proposal Defaults Config', () => {
     tag: [...ADMIN_PROPOSAL_DEFAULTS_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
-    await page.goto('/panel/proposals/defaults');
+    await page.goto('/panel/proposals/defaults?tab=sections');
     await page.waitForLoadState('networkidle');
 
     // Click on greeting section header to expand
@@ -98,7 +101,7 @@ test.describe('Admin Proposal Defaults Config', () => {
     tag: [...ADMIN_PROPOSAL_DEFAULTS_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
-    await page.goto('/panel/proposals/defaults');
+    await page.goto('/panel/proposals/defaults?tab=sections');
     await page.waitForLoadState('networkidle');
 
     const saveBtn = page.getByRole('button', { name: 'Guardar Todos los Cambios' });
@@ -109,7 +112,7 @@ test.describe('Admin Proposal Defaults Config', () => {
     tag: [...ADMIN_PROPOSAL_DEFAULTS_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
-    await page.goto('/panel/proposals/defaults');
+    await page.goto('/panel/proposals/defaults?tab=sections');
     await page.waitForLoadState('networkidle');
 
     // Click reset button

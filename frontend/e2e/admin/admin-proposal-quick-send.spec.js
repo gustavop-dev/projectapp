@@ -57,7 +57,7 @@ test.describe('Admin Proposal Quick Send', () => {
     await page.goto('/panel/proposals');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Quick Send Test')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Test Client')).toBeVisible({ timeout: 10000 });
 
     // Hide the MetricsManual floating button that intercepts pointer events
     await page.evaluate(() => {
@@ -86,7 +86,7 @@ test.describe('Admin Proposal Quick Send', () => {
     await page.goto('/panel/proposals');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Sent Proposal')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Test Client')).toBeVisible({ timeout: 10000 });
 
     // Hide the MetricsManual floating button that intercepts pointer events
     await page.evaluate(() => {

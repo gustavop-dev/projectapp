@@ -74,6 +74,9 @@ function buildApiHandler(apiPath, method) {
   if (apiPath === 'auth/check/') {
     return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
   }
+  if (apiPath === 'proposals/defaults/' && method === 'GET') {
+    return { status: 200, contentType: 'application/json', body: JSON.stringify({ id: null, language: 'es', sections_json: [], created_at: null, updated_at: null }) };
+  }
   if (apiPath === 'email-templates/' && method === 'GET') {
     return { status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_TEMPLATES_LIST) };
   }
@@ -101,11 +104,11 @@ test.describe('Admin Email Templates Config', () => {
     tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
-    await page.goto('/panel/proposals/email-templates');
+    await page.goto('/panel/proposals/defaults?tab=emails');
     await page.waitForLoadState('networkidle');
 
     // Page title renders
-    await expect(page.locator('h1')).toContainText('Plantillas de Email');
+    await expect(page.locator('h1')).toContainText('Valores por Defecto');
 
     // Category filter buttons render
     await expect(page.getByRole('button', { name: /Todos/ })).toBeVisible();
@@ -118,7 +121,7 @@ test.describe('Admin Email Templates Config', () => {
     tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
-    await page.goto('/panel/proposals/email-templates');
+    await page.goto('/panel/proposals/defaults?tab=emails');
     await page.waitForLoadState('networkidle');
 
     // Template rows render
@@ -132,7 +135,7 @@ test.describe('Admin Email Templates Config', () => {
     tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
-    await page.goto('/panel/proposals/email-templates');
+    await page.goto('/panel/proposals/defaults?tab=emails');
     await page.waitForLoadState('networkidle');
 
     // Click "Interno" filter
@@ -148,7 +151,7 @@ test.describe('Admin Email Templates Config', () => {
     tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
-    await page.goto('/panel/proposals/email-templates');
+    await page.goto('/panel/proposals/defaults?tab=emails');
     await page.waitForLoadState('networkidle');
 
     // Reminder template has "Personalizado" badge
@@ -159,7 +162,7 @@ test.describe('Admin Email Templates Config', () => {
     tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
-    await page.goto('/panel/proposals/email-templates');
+    await page.goto('/panel/proposals/defaults?tab=emails');
     await page.waitForLoadState('networkidle');
 
     // Click on template to expand
@@ -181,7 +184,7 @@ test.describe('Admin Email Templates Config', () => {
     tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
-    await page.goto('/panel/proposals/email-templates');
+    await page.goto('/panel/proposals/defaults?tab=emails');
     await page.waitForLoadState('networkidle');
 
     // Click on template to expand
@@ -191,8 +194,8 @@ test.describe('Admin Email Templates Config', () => {
     // Active toggle renders
     await expect(page.locator('text=Estado del email')).toBeVisible();
 
-    // Action buttons render
-    await expect(page.getByRole('button', { name: /Vista previa/ })).toBeVisible();
+    // Action buttons render (use exact emoji text to avoid matching row preview icons)
+    await expect(page.getByRole('button', { name: '👁 Vista previa' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Restaurar/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /Guardar Cambios/ })).toBeVisible();
   });
@@ -201,15 +204,15 @@ test.describe('Admin Email Templates Config', () => {
     tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
-    await page.goto('/panel/proposals/email-templates');
+    await page.goto('/panel/proposals/defaults?tab=emails');
     await page.waitForLoadState('networkidle');
 
     // Expand template
     await page.locator('text=Propuesta Enviada').click();
     await page.waitForLoadState('networkidle');
 
-    // Click preview button
-    await page.getByRole('button', { name: /Vista previa/ }).click();
+    // Click preview button (use exact emoji text to avoid matching row preview icons)
+    await page.getByRole('button', { name: '👁 Vista previa' }).click();
     await page.waitForLoadState('networkidle');
 
     // Preview modal renders
@@ -224,7 +227,7 @@ test.describe('Admin Email Templates Config', () => {
     tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => buildApiHandler(apiPath, method));
-    await page.goto('/panel/proposals/email-templates');
+    await page.goto('/panel/proposals/defaults?tab=emails');
     await page.waitForLoadState('networkidle');
 
     // Expand template
@@ -245,13 +248,14 @@ test.describe('Admin Email Templates Config', () => {
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method: _method }) => {
       if (apiPath === 'auth/check/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      if (apiPath === 'proposals/defaults/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ id: null, language: 'es', sections_json: [], created_at: null, updated_at: null }) };
       if (apiPath === 'email-templates/') return { status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_TEMPLATES_LIST) };
       if (apiPath === 'proposals/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
       if (apiPath === 'proposals/alerts/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
       if (apiPath === 'proposals/dashboard/') return { status: 200, contentType: 'application/json', body: JSON.stringify({}) };
       return null;
     });
-    await page.goto('/panel/proposals/email-templates');
+    await page.goto('/panel/proposals/defaults');
     await page.waitForLoadState('networkidle');
 
     // Click back link

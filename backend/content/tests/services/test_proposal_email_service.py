@@ -10,7 +10,7 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from content.models import BusinessProposal
+from content.models import BusinessProposal, EmailTemplateConfig, ProposalShareLink
 from content.services.proposal_email_service import ProposalEmailService
 
 pytestmark = pytest.mark.django_db
@@ -797,3 +797,160 @@ class TestSendDailyPipelineDigest:
         }
         result = ProposalEmailService.send_daily_pipeline_digest(digest_data)
         assert result is False
+
+
+# ---------------------------------------------------------------------------
+# _log_email exception handling (lines 40-41)
+# ---------------------------------------------------------------------------
+
+class TestLogEmailExceptionHandling:
+    @patch('content.services.proposal_email_service.logger')
+    @patch('content.models.EmailLog.objects.create', side_effect=Exception('DB error'))
+    def test_logs_exception_when_email_log_creation_fails(self, mock_create, mock_logger):
+        """_log_email catches exception and logs it when EmailLog.objects.create fails."""
+        ProposalEmailService._log_email(
+            'proposal_sent_client', 'test@example.com',
+            subject='Test', proposal=None, status='sent',
+        )
+
+        assert mock_logger.exception.call_count == 1
+        mock_logger.exception.assert_called_once_with('Failed to create EmailLog entry')
+
+
+# ---------------------------------------------------------------------------
+# _is_template_active with existing config (line 52)
+# ---------------------------------------------------------------------------
+
+class TestIsTemplateActiveWithConfig:
+    def test_returns_false_when_config_exists_and_inactive(self):
+        """_is_template_active returns False when EmailTemplateConfig.is_active is False."""
+        EmailTemplateConfig.objects.create(
+            template_key='proposal_sent_client',
+            is_active=False,
+        )
+
+        result = ProposalEmailService._is_template_active('proposal_sent_client')
+
+        assert result is False
+
+    def test_returns_true_when_config_exists_and_active(self):
+        """_is_template_active returns True when EmailTemplateConfig.is_active is True."""
+        EmailTemplateConfig.objects.create(
+            template_key='proposal_sent_client',
+            is_active=True,
+        )
+
+        result = ProposalEmailService._is_template_active('proposal_sent_client')
+
+        assert result is True
+
+
+# ---------------------------------------------------------------------------
+# Template-disabled early returns (lines 99-100, 181-182, ... 1454-1455)
+# ---------------------------------------------------------------------------
+
+class TestTemplateDisabledReturnsEarly:
+    """Each send method returns False when its template is disabled via EmailTemplateConfig."""
+
+    def _disable_template(self, template_key):
+        EmailTemplateConfig.objects.create(
+            template_key=template_key,
+            is_active=False,
+        )
+
+    def test_send_proposal_to_client_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_sent_client')
+        assert ProposalEmailService.send_proposal_to_client(email_proposal) is False
+
+    def test_send_reminder_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_reminder')
+        assert ProposalEmailService.send_reminder(email_proposal) is False
+
+    def test_send_urgency_email_returns_false_when_discount_template_disabled(self, email_proposal):
+        self._disable_template('proposal_urgency')
+        assert ProposalEmailService.send_urgency_email(email_proposal) is False
+
+    def test_send_urgency_email_returns_false_when_no_discount_template_disabled(self, email_proposal):
+        email_proposal.discount_percent = 0
+        email_proposal.save(update_fields=['discount_percent'])
+        self._disable_template('proposal_urgency_no_discount')
+        assert ProposalEmailService.send_urgency_email(email_proposal) is False
+
+    def test_send_response_notification_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_response_notification')
+        assert ProposalEmailService.send_response_notification(email_proposal, 'accepted') is False
+
+    def test_send_acceptance_confirmation_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_accepted_client')
+        assert ProposalEmailService.send_acceptance_confirmation(email_proposal) is False
+
+    def test_send_rejection_thank_you_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_rejected_client')
+        assert ProposalEmailService.send_rejection_thank_you(email_proposal) is False
+
+    def test_send_first_view_notification_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_first_view_notification')
+        assert ProposalEmailService.send_first_view_notification(email_proposal) is False
+
+    def test_send_comment_notification_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_comment_notification')
+        assert ProposalEmailService.send_comment_notification(email_proposal, 'test') is False
+
+    def test_send_rejection_reengagement_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_reengagement')
+        assert ProposalEmailService.send_rejection_reengagement(email_proposal) is False
+
+    def test_send_revisit_alert_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_revisit_alert')
+        assert ProposalEmailService.send_revisit_alert(email_proposal, visit_count=3) is False
+
+    def test_send_abandonment_followup_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_abandonment_followup')
+        assert ProposalEmailService.send_abandonment_followup(email_proposal) is False
+
+    def test_send_investment_interest_followup_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_investment_interest_followup')
+        assert ProposalEmailService.send_investment_interest_followup(email_proposal) is False
+
+    def test_send_share_notification_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_share_notification')
+        share = ProposalShareLink.objects.create(
+            proposal=email_proposal, shared_by_name='Alice',
+        )
+        assert ProposalEmailService.send_share_notification(email_proposal, share) is False
+
+    def test_send_scheduled_followup_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_scheduled_followup')
+        assert ProposalEmailService.send_scheduled_followup(email_proposal) is False
+
+    def test_send_stakeholder_detected_notification_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_stakeholder_detected')
+        assert ProposalEmailService.send_stakeholder_detected_notification(email_proposal, 3) is False
+
+    def test_send_seller_inactivity_escalation_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('seller_inactivity_escalation')
+        assert ProposalEmailService.send_seller_inactivity_escalation(email_proposal, 7) is False
+
+    def test_send_negotiation_notification_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_negotiation_notification')
+        assert ProposalEmailService.send_negotiation_notification(email_proposal) is False
+
+    def test_send_negotiation_confirmation_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_negotiation_confirmation')
+        assert ProposalEmailService.send_negotiation_confirmation(email_proposal) is False
+
+    def test_send_post_rejection_revisit_alert_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('post_rejection_revisit_alert')
+        assert ProposalEmailService.send_post_rejection_revisit_alert(email_proposal) is False
+
+    def test_send_daily_pipeline_digest_returns_false_when_disabled(self):
+        self._disable_template('daily_pipeline_digest')
+        digest_data = {
+            'viewed_yesterday': [], 'inactive': [], 'expiring_soon': [],
+            'total_active': 0, 'date': '2026-03-10',
+        }
+        assert ProposalEmailService.send_daily_pipeline_digest(digest_data) is False
+
+    def test_send_post_expiration_visit_alert_returns_false_when_disabled(self, email_proposal):
+        self._disable_template('proposal_post_expiration_visit')
+        assert ProposalEmailService.send_post_expiration_visit_alert(email_proposal) is False
