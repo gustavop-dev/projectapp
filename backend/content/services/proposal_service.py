@@ -2113,9 +2113,27 @@ class ProposalService:
         return proposal.is_expired
 
     @staticmethod
+    def get_hardcoded_defaults(language='es'):
+        """
+        Return a deep copy of the hardcoded default sections (no DB lookup).
+
+        Args:
+            language: 'es' for Spanish (default), 'en' for English.
+
+        Returns:
+            list[dict]: Deep copy of DEFAULT_SECTIONS or DEFAULT_SECTIONS_EN.
+        """
+        import copy
+        source = DEFAULT_SECTIONS_EN if language == 'en' else DEFAULT_SECTIONS
+        return copy.deepcopy(source)
+
+    @staticmethod
     def get_default_sections(language='es'):
         """
         Return the default section configurations for a new proposal.
+
+        Checks the DB-backed ProposalDefaultConfig first; falls back to
+        the hardcoded DEFAULT_SECTIONS / DEFAULT_SECTIONS_EN.
 
         Args:
             language: 'es' for Spanish (default), 'en' for English.
@@ -2125,5 +2143,11 @@ class ProposalService:
                         is_wide_panel, and content_json.
         """
         import copy
+        from content.models import ProposalDefaultConfig
+
+        config = ProposalDefaultConfig.objects.filter(language=language).first()
+        if config and config.sections_json:
+            return copy.deepcopy(config.sections_json)
+
         source = DEFAULT_SECTIONS_EN if language == 'en' else DEFAULT_SECTIONS
         return copy.deepcopy(source)

@@ -50,6 +50,24 @@
         </div>
       </div>
 
+      <!-- F4: Kickoff Plan — first 5 days after approval -->
+      <div v-if="kickoffPlan && kickoffPlan.length" data-animate="fade-up" class="mt-16 mb-12">
+        <h3 class="text-2xl font-bold text-esmerald mb-2 text-center">{{ kickoffTitle }}</h3>
+        <p class="text-sm text-esmerald/60 text-center mb-8">{{ kickoffSubtitle }}</p>
+        <div class="relative">
+          <div class="absolute left-6 sm:left-8 top-0 bottom-0 w-0.5 bg-emerald-200"></div>
+          <div v-for="(step, kIdx) in kickoffPlan" :key="kIdx" class="relative flex items-start gap-4 sm:gap-6 mb-6 last:mb-0">
+            <div class="relative z-10 flex-shrink-0 w-12 h-12 sm:w-16 sm:h-16 bg-esmerald text-lemon rounded-full flex items-center justify-center font-bold text-sm sm:text-base shadow-md">
+              {{ step.day || `D${kIdx + 1}` }}
+            </div>
+            <div class="pt-1 sm:pt-3">
+              <h4 class="font-bold text-esmerald text-sm sm:text-base">{{ step.title }}</h4>
+              <p class="text-xs sm:text-sm text-esmerald/60 leading-relaxed mt-1">{{ step.description }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Next Steps (merged from next_steps section) -->
       <template v-if="nextSteps && nextSteps.length">
         <div data-animate="fade-up" class="mt-16 mb-8 text-center" v-if="nextStepsIntro">
@@ -112,7 +130,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
 
 const sectionRef = ref(null);
@@ -202,7 +220,25 @@ const props = defineProps({
   contactMethods: {
     type: Array,
     default: () => []
+  },
+  kickoffPlan: {
+    type: Array,
+    default: () => []
+  },
+  language: {
+    type: String,
+    default: 'es'
   }
+});
+
+const kickoffTitle = computed(() => {
+  return props.language === 'en' ? 'Kickoff Plan' : 'Plan de Kickoff';
+});
+
+const kickoffSubtitle = computed(() => {
+  return props.language === 'en'
+    ? 'What happens in the first days after you approve'
+    : 'Qué sucede en los primeros días después de aprobar';
 });
 </script>
 

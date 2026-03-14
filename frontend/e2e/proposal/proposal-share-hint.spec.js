@@ -41,7 +41,6 @@ test.describe('Proposal Share Button Hint', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 
@@ -49,7 +48,7 @@ test.describe('Proposal Share Button Hint', () => {
     tag: [...PROPOSAL_SHARE_HINT, '@role:client'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Wait for the hint to auto-show (2s delay)
@@ -64,7 +63,7 @@ test.describe('Proposal Share Button Hint', () => {
     }, MOCK_UUID);
 
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Wait for page to render, then verify hint is not shown

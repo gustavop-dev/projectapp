@@ -76,7 +76,6 @@ test.describe('Proposal View Navigation', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 
@@ -84,7 +83,7 @@ test.describe('Proposal View Navigation', () => {
     tag: [...PROPOSAL_VIEW_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // The hamburger toggle button for ProposalIndex should always be visible
@@ -95,7 +94,7 @@ test.describe('Proposal View Navigation', () => {
     tag: [...PROPOSAL_VIEW_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Index panel is hidden initially (translate-x-[-120%])
@@ -113,7 +112,7 @@ test.describe('Proposal View Navigation', () => {
     tag: [...PROPOSAL_VIEW_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Open the index
@@ -136,7 +135,7 @@ test.describe('Proposal View Navigation', () => {
     tag: [...PROPOSAL_VIEW_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // First navigate to section 2 so prev button would normally show
@@ -159,7 +158,7 @@ test.describe('Proposal View Navigation', () => {
     tag: [...PROPOSAL_VIEW_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Navigate through all sections

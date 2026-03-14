@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
+from freezegun import freeze_time
 
 from content.models import BusinessProposal
 from content.services.proposal_email_service import ProposalEmailService
@@ -691,4 +692,108 @@ class TestSendPostExpirationVisitAlert:
     def test_returns_false_on_exception(self, mock_render, email_proposal):
         """Returns False when template rendering fails."""
         result = ProposalEmailService.send_post_expiration_visit_alert(email_proposal)
+        assert result is False
+
+
+class TestSendProposalToClient:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_email_successfully(self, mock_render, mock_email_cls, email_proposal):
+        """Sends initial proposal email to client."""
+        mock_render.return_value = '<html>Proposal</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_proposal_to_client(email_proposal)
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        assert mock_render.call_count == 2
+
+    def test_returns_false_when_no_client_email(self, no_email_proposal):
+        """Returns False when proposal has no client_email."""
+        result = ProposalEmailService.send_proposal_to_client(no_email_proposal)
+        assert result is False
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        """Returns False when template rendering fails."""
+        result = ProposalEmailService.send_proposal_to_client(email_proposal)
+        assert result is False
+
+
+class TestSendPostRejectionRevisitAlert:
+    @freeze_time('2026-03-10 12:00:00')
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_alert_successfully(self, mock_render, mock_email_cls, email_proposal):
+        """Post-rejection revisit alert sent to notification address."""
+        mock_render.return_value = '<html>Revisit</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+        email_proposal.status = 'rejected'
+        email_proposal.responded_at = timezone.now() - timezone.timedelta(days=10)
+        email_proposal.save(update_fields=['status', 'responded_at'])
+
+        result = ProposalEmailService.send_post_rejection_revisit_alert(email_proposal)
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        assert mock_render.call_count == 2
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_calculates_days_since_rejection(self, mock_render, mock_email_cls, email_proposal):
+        """Days since rejection is computed from responded_at."""
+        mock_render.return_value = '<html>Revisit</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+        email_proposal.responded_at = timezone.now() - timezone.timedelta(days=15)
+        email_proposal.save(update_fields=['responded_at'])
+
+        result = ProposalEmailService.send_post_rejection_revisit_alert(email_proposal)
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        call_ctx = mock_render.call_args_list[0][0][1]
+        assert call_ctx['days_since_rejection'] == 15
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render, email_proposal):
+        """Returns False when template rendering fails."""
+        result = ProposalEmailService.send_post_rejection_revisit_alert(email_proposal)
+        assert result is False
+
+
+class TestSendDailyPipelineDigest:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_digest_successfully(self, mock_render, mock_email_cls):
+        """Daily pipeline digest sent to notification address."""
+        mock_render.return_value = '<html>Digest</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+        digest_data = {
+            'viewed_yesterday': [],
+            'inactive': [],
+            'expiring_soon': [],
+            'total_active': 5,
+            'date': '2026-03-10',
+        }
+
+        result = ProposalEmailService.send_daily_pipeline_digest(digest_data)
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        assert mock_render.call_count == 2
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('err'))
+    def test_returns_false_on_exception(self, mock_render):
+        """Returns False when template rendering fails."""
+        digest_data = {
+            'viewed_yesterday': [], 'inactive': [], 'expiring_soon': [],
+            'total_active': 0, 'date': '2026-03-10',
+        }
+        result = ProposalEmailService.send_daily_pipeline_digest(digest_data)
         assert result is False

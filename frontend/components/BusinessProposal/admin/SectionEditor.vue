@@ -503,6 +503,38 @@
         <FieldTextarea v-model="form.validityMessage" label="Mensaje de vigencia" :rows="2" :isSingle="true" />
         <FieldTextarea v-model="form.thankYouMessage" label="Mensaje de agradecimiento" :rows="2" :isSingle="true" />
       </template>
+
+      <!-- PROCESS METHODOLOGY -->
+      <template v-else-if="sectionType === 'process_methodology'">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FieldInput v-model="form.index" label="Índice" placeholder="5" />
+          <FieldInput v-model="form.title" label="Título" />
+        </div>
+        <FieldTextarea v-model="form.intro" label="Introducción" :rows="3" :isSingle="true" />
+        <div>
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Pasos del proceso</label>
+          <draggable v-model="form.steps" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
+            <template #item="{ element: step, index: idx }">
+              <div class="mb-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+                <div class="flex items-center justify-between mb-1">
+                  <div class="flex items-center gap-2">
+                    <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
+                    <span class="text-xs text-gray-400">Paso {{ idx + 1 }}</span>
+                  </div>
+                  <button type="button" class="text-xs text-red-500" @click="form.steps.splice(idx, 1)">Eliminar</button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <EmojiIconField v-model="step.icon" label="Icono" placeholder="🔍" />
+                  <FieldInput v-model="step.title" label="Título" />
+                </div>
+                <FieldInput v-model="step.description" label="Descripción" class="mt-1" />
+                <FieldInput v-model="step.clientAction" label="Acción del cliente (opcional)" class="mt-1" />
+              </div>
+            </template>
+          </draggable>
+          <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.steps.push({ icon: '', title: '', description: '', clientAction: '' })">+ Agregar paso</button>
+        </div>
+      </template>
     </div>
 
     <!-- Functional requirements groups: always visible regardless of paste mode -->

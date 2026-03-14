@@ -127,7 +127,6 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 
@@ -136,7 +135,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Navigate from greeting (panel 0) to executive_summary paste (panel 1)
@@ -156,7 +155,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Navigate to executive_summary paste panel (index 1)
@@ -178,7 +177,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Navigate to executive_summary paste panel (index 1)
@@ -198,7 +197,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Navigate to context_diagnostic form panel (index 2)
@@ -217,7 +216,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Navigate to executive_summary paste panel (index 1)
@@ -236,7 +235,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Navigate to executive_summary paste panel (index 1)
@@ -253,7 +252,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Navigate to conversion_strategy paste panel (index 3)
@@ -273,7 +272,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Panel 0: greeting (form) — should NOT have raw-content
@@ -293,7 +292,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Navigate to executive_summary paste panel (index 1)
@@ -333,7 +332,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
     };
 
     await mockApi(page, buildMockHandler(allFormProposal));
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Panel 0: greeting (form) — no raw-content

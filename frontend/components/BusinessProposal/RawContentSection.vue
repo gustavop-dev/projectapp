@@ -1,5 +1,5 @@
 <template>
-  <section ref="sectionRef" class="raw-content w-full bg-white py-16" data-testid="raw-content">
+  <section ref="sectionRef" class="raw-content min-h-screen w-full bg-white py-16" data-testid="raw-content">
     <div class="w-full px-6 md:px-12 lg:px-24">
       <div class="max-w-4xl mx-auto">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">

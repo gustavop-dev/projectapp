@@ -35,7 +35,6 @@ test.describe('Proposal Countdown Realtime', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 
@@ -53,7 +52,7 @@ test.describe('Proposal Countdown Realtime', () => {
       return null;
     });
 
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // ExpirationBadge should show with "Expira en" text and HH:MM format
@@ -74,7 +73,7 @@ test.describe('Proposal Countdown Realtime', () => {
       return null;
     });
 
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Should show standard "Expira en X días" instead of HH:MM

@@ -1,9 +1,11 @@
 <template>
-  <div class="business-proposal bg-white">
+  <div class="business-proposal" :class="(proposalDarkMode && viewMode) ? 'bg-[#0a1f1c]' : 'bg-white'">
     <!-- Loading state -->
     <PreloaderAnimation
       v-if="!showContent && !loadError"
       :active="true"
+      :clientName="proposal?.client_name || ''"
+      :language="pLang"
       @animationComplete="onAnimationComplete"
     />
 
@@ -23,6 +25,7 @@
       v-else-if="showContent && proposal"
       ref="proposalContainer"
       class="proposal-wrapper"
+      data-proposal-wrapper
       @touchstart.passive="onTouchStart"
       @touchend.passive="onTouchEnd"
     >
@@ -61,20 +64,20 @@
           :language="proposal?.language || 'es'"
         />
 
+        <!-- Dark mode toggle -->
+        <button
+          v-if="viewMode"
+          class="fixed bottom-6 left-6 z-[9990] w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-lg transition-all hover:scale-110"
+          :class="proposalDarkMode ? 'bg-gray-700 text-yellow-300 hover:bg-gray-600' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'"
+          :title="pLang === 'es' ? 'Cambiar tema' : 'Toggle theme'"
+          @click="toggleProposalDarkMode"
+        >
+          {{ proposalDarkMode ? '☀️' : '🌙' }}
+        </button>
+
         <!-- Onboarding tutorial tooltips -->
         <ProposalOnboarding ref="onboardingRef" :language="pLang" @complete="showReadingTimePopup" />
 
-        <!-- Sticky response bar (visible before reaching closing section) -->
-        <ProposalResponseButtons
-          :proposal="proposal"
-          :visible="showStickyBar"
-          :language="pLang"
-          :whatsappLink="extractedWhatsappLink"
-          :proposalTitle="proposal?.title || ''"
-          :currentSectionTitle="currentPanel?.title || ''"
-          @negotiate="navigateToClosing"
-          @reject="navigateToClosing"
-        />
 
 
       <!-- Welcome-back toast (non-blocking) -->
@@ -95,6 +98,9 @@
                 </h3>
               </div>
               <p class="text-xs text-esmerald/70 font-light leading-relaxed mb-4">
+                <span v-if="welcomeBack.lastVisitTimestamp" class="block text-[10px] text-gray-400 mb-1">
+                  {{ formatRelativeTime(welcomeBack.lastVisitTimestamp, pLang) }}
+                </span>
                 {{ pLang === 'es' ? 'La última vez llegaste hasta' : 'Last time you reached' }} <strong>{{ welcomeBack.sectionTitle }}</strong>.
               </p>
               <button
@@ -103,6 +109,12 @@
                 @click="navigateTo(welcomeBack.sectionIndex); welcomeBack = null"
               >
                 {{ pLang === 'es' ? 'Continuar donde lo dejé' : 'Continue where I left off' }}
+              </button>
+              <button
+                class="w-full mt-2 px-4 py-2 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                @click="navigateTo(0); welcomeBack = null"
+              >
+                {{ pLang === 'es' ? 'Ver desde el inicio' : 'Start from the beginning' }}
               </button>
             </div>
           </div>
@@ -206,7 +218,7 @@ import ProposalOnboarding from '~/components/BusinessProposal/ProposalOnboarding
 import ShareProposalButton from '~/components/BusinessProposal/ShareProposalButton.vue';
 import WhatsAppFloatingButton from '~/components/BusinessProposal/WhatsAppFloatingButton.vue';
 import ProposalViewGateway from '~/components/BusinessProposal/ProposalViewGateway.vue';
-import ProposalResponseButtons from '~/components/BusinessProposal/ProposalResponseButtons.vue';
+import { useProposalDarkMode } from '~/composables/useProposalDarkMode';
 
 definePageMeta({ layout: false });
 
@@ -218,6 +230,8 @@ const isPreviewMode = computed(() => route.query.preview === '1' || route.query.
 function exitPreview() {
   router.back();
 }
+
+const { isDark: proposalDarkMode, toggle: toggleProposalDarkMode, applyTheme: applyProposalTheme } = useProposalDarkMode();
 
 const pLang = computed(() => proposal.value?.language || 'es');
 const browserLang = computed(() => {
@@ -338,6 +352,7 @@ watch(currentPanel, (panel) => {
         sectionIndex: currentIndex.value,
         sectionTitle: panel.title || '',
         clientName: proposal.value.client_name || '',
+        lastVisitTimestamp: Date.now(),
       }));
     } catch (_e) { /* ignore */ }
   }
@@ -345,10 +360,25 @@ watch(currentPanel, (panel) => {
 
 // Section engagement tracking
 const proposalUuidRef = computed(() => proposal.value?.uuid || route.params.uuid);
-useProposalTracking(proposalUuidRef, currentPanel);
+useProposalTracking(proposalUuidRef, currentPanel, viewMode);
 
 function showReadingTimePopup() {
   readingPopupVisible.value = true;
+}
+
+function formatRelativeTime(timestamp, lang) {
+  const diff = Date.now() - timestamp;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (lang === 'es') {
+    if (minutes < 60) return `Hace ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
+    if (hours < 24) return `Hace ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+    return `Hace ${days} ${days === 1 ? 'día' : 'días'}`;
+  }
+  if (minutes < 60) return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+  if (hours < 24) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+  return `${days} ${days === 1 ? 'day' : 'days'} ago`;
 }
 // Extract WhatsApp link from next_steps section primaryCTA if it contains wa.me
 const extractedWhatsappLink = computed(() => {
@@ -564,8 +594,26 @@ function getSectionProps(section) {
   if (section.section_type === 'final_note') {
     const nextStepsSection = enabledSections.value.find(s => s.section_type === 'next_steps');
     const nsContent = nextStepsSection?.content_json || {};
+    const lang = proposal.value?.language || 'es';
+    const defaultKickoff = lang === 'en'
+      ? [
+          { day: 'D1', title: 'Contract signing', description: 'We formalize the agreement and send you access credentials.' },
+          { day: 'D2', title: 'Onboarding call', description: 'Your Project Manager contacts you to align expectations and priorities.' },
+          { day: 'D3', title: 'Access & setup', description: 'We configure the technical environment and shared tools.' },
+          { day: 'D4', title: 'Technical kickoff', description: 'The development team reviews the architecture and starts the first tasks.' },
+          { day: 'D5', title: 'Sprint planning', description: 'We define the first sprint goals and deliverables together.' },
+        ]
+      : [
+          { day: 'D1', title: 'Firma de contrato', description: 'Formalizamos el acuerdo y te enviamos credenciales de acceso.' },
+          { day: 'D2', title: 'Llamada de onboarding', description: 'Tu Project Manager te contacta para alinear expectativas y prioridades.' },
+          { day: 'D3', title: 'Accesos y setup', description: 'Configuramos el entorno técnico y herramientas compartidas.' },
+          { day: 'D4', title: 'Kickoff técnico', description: 'El equipo de desarrollo revisa la arquitectura e inicia las primeras tareas.' },
+          { day: 'D5', title: 'Sprint planning', description: 'Definimos juntos los objetivos y entregables del primer sprint.' },
+        ];
     return {
       ...content,
+      language: lang,
+      kickoffPlan: content.kickoffPlan || defaultKickoff,
       nextSteps: nsContent.steps || [],
       nextStepsIntro: nsContent.introMessage || '',
       ctaMessage: nsContent.ctaMessage || '',
@@ -633,29 +681,21 @@ function handleNavigateToRequirements() {
   if (idx !== -1) navigateTo(idx);
 }
 
-const showStickyBar = computed(() => {
-  if (!proposal.value) return false;
-  const s = proposal.value.status;
-  if (s !== 'sent' && s !== 'viewed') return false;
-  // Hide when already on the closing panel (it has its own buttons)
-  return currentPanel.value?.section_type !== 'proposal_closing';
-});
-
-function navigateToClosing() {
-  const idx = displayPanels.value.findIndex(p => p.section_type === 'proposal_closing');
-  if (idx !== -1) navigateTo(idx);
-}
 
 function handleViewModeSelect(mode) {
   viewMode.value = mode;
   currentIndex.value = 0;
-  // Persist choice
+  // Persist choice for tracking
   if (proposal.value?.uuid) {
     try {
       localStorage.setItem(`proposal-${proposal.value.uuid}-viewMode`, mode);
     } catch (_e) { /* ignore */ }
   }
-  // Start onboarding after gateway selection
+  // Show welcome-back toast if returning client, otherwise start onboarding
+  if (welcomeBack.value) {
+    // welcomeBack was pre-loaded on mount; now that viewMode is set, it will display
+    return;
+  }
   nextTick(() => {
     onboardingRef.value?.start();
   });
@@ -734,20 +774,18 @@ const onAnimationComplete = () => {
     }
   } catch (_e) { /* ignore */ }
   showContent.value = true;
+  nextTick(() => applyProposalTheme(false));
   window.addEventListener('keydown', handleKeydown);
 
-  // Restore viewMode from localStorage for returning visitors
-  if (proposal.value?.uuid) {
-    try {
-      const savedMode = localStorage.getItem(`proposal-${proposal.value.uuid}-viewMode`);
-      if (savedMode === 'executive' || savedMode === 'detailed') {
-        viewMode.value = savedMode;
-      }
-    } catch (_e) { /* ignore */ }
+  // Allow bypassing gateway via URL query param (used by E2E tests and direct links)
+  const queryMode = route.query.mode;
+  if (queryMode === 'executive' || queryMode === 'detailed') {
+    viewMode.value = queryMode;
   }
 
-  // Check for returning client (welcome-back) — only if viewMode is already set
-  if (viewMode.value && !isPreviewMode.value && proposal.value?.uuid) {
+  // Check for returning client (welcome-back) — viewMode is null here so gateway always shows first
+  // The welcome-back data is stored so we can show it after the user picks a view mode
+  if (!isPreviewMode.value && proposal.value?.uuid) {
     try {
       const key = `proposal-${proposal.value.uuid}-progress`;
       const saved = localStorage.getItem(key);
@@ -776,7 +814,6 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .business-proposal {
-  background-color: white;
   overflow-x: hidden;
 }
 
@@ -860,5 +897,399 @@ onBeforeUnmount(() => {
 .fade-popup-enter-from,
 .fade-popup-leave-to {
   opacity: 0;
+}
+
+/* ── Proposal Dark Mode Overrides ── */
+/* All selectors use :deep() to penetrate into child section components */
+
+[data-theme="dark"] {
+  background-color: #0a1f1c;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(16, 185, 129, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(16, 185, 129, 0.04) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+[data-theme="dark"] :deep(section),
+[data-theme="dark"] :deep(.proposal-summary),
+[data-theme="dark"] :deep(.process-methodology),
+[data-theme="dark"] :deep(.proposal-closing) {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* White & light backgrounds → dark (elevated for contrast) */
+[data-theme="dark"] :deep(.bg-white) {
+  background-color: #143d35 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+[data-theme="dark"] :deep(.bg-esmerald\/5),
+[data-theme="dark"] :deep(.bg-esmerald\/10) {
+  background-color: #133832 !important;
+}
+[data-theme="dark"] :deep(.bg-gray-50) {
+  background-color: #112e29 !important;
+}
+
+/* Yellow notice backgrounds (validity notice in ProposalClosing) */
+[data-theme="dark"] :deep(.bg-yellow-50) {
+  background-color: rgba(202, 138, 4, 0.28) !important;
+}
+[data-theme="dark"] :deep(.border-yellow-200) {
+  border-color: rgba(202, 138, 4, 0.45) !important;
+}
+[data-theme="dark"] :deep(.text-yellow-600) {
+  color: #fbbf24 !important;
+}
+
+/* Amber backgrounds (discount banners) */
+[data-theme="dark"] :deep(.bg-amber-50),
+[data-theme="dark"] :deep(.from-amber-50),
+[data-theme="dark"] :deep(.to-orange-50) {
+  background-color: rgba(217, 119, 6, 0.28) !important;
+}
+[data-theme="dark"] :deep(.border-amber-300) {
+  border-color: rgba(217, 119, 6, 0.50) !important;
+}
+
+/* Green notice backgrounds (accepted state, recovery) */
+[data-theme="dark"] :deep(.bg-green-50) {
+  background-color: rgba(16, 185, 129, 0.22) !important;
+}
+[data-theme="dark"] :deep(.border-green-200) {
+  border-color: rgba(16, 185, 129, 0.30) !important;
+}
+
+/* Esmerald text → light */
+[data-theme="dark"] :deep(.text-esmerald) {
+  color: #E6EFEF !important;
+}
+[data-theme="dark"] :deep(.text-esmerald\/80) {
+  color: rgba(230, 239, 239, 0.8) !important;
+}
+[data-theme="dark"] :deep(.text-esmerald\/70) {
+  color: rgba(230, 239, 239, 0.72) !important;
+}
+[data-theme="dark"] :deep(.text-esmerald\/60) {
+  color: rgba(230, 239, 239, 0.62) !important;
+}
+[data-theme="dark"] :deep(.text-esmerald\/40) {
+  color: rgba(230, 239, 239, 0.4) !important;
+}
+
+/* Esmerald-light text (used inside dark-bg asides) */
+[data-theme="dark"] :deep(.text-esmerald-light) {
+  color: #c8ddd8 !important;
+}
+[data-theme="dark"] :deep(.text-esmerald-light\/80) {
+  color: rgba(200, 221, 216, 0.8) !important;
+}
+
+/* Green-light text */
+[data-theme="dark"] :deep(.text-green-light) {
+  color: #a0b8b2 !important;
+}
+
+/* Esmerald-light backgrounds (timeline duration box, icon badges) */
+[data-theme="dark"] :deep(.bg-esmerald-light\/60) {
+  background-color: rgba(16, 185, 129, 0.30) !important;
+}
+
+/* Borders — esmerald shades */
+[data-theme="dark"] :deep(.border-esmerald\/10) {
+  border-color: rgba(16, 185, 129, 0.18) !important;
+}
+[data-theme="dark"] :deep(.border-esmerald\/15) {
+  border-color: rgba(16, 185, 129, 0.22) !important;
+}
+[data-theme="dark"] :deep(.border-esmerald\/20) {
+  border-color: rgba(16, 185, 129, 0.28) !important;
+}
+[data-theme="dark"] :deep(.border-esmerald\/30) {
+  border-color: rgba(16, 185, 129, 0.38) !important;
+}
+
+/* Borders — gray shades */
+[data-theme="dark"] :deep(.border-gray-100) {
+  border-color: rgba(230, 239, 239, 0.20) !important;
+}
+[data-theme="dark"] :deep(.border-gray-200) {
+  border-color: rgba(230, 239, 239, 0.25) !important;
+}
+
+/* Borders — emerald shades (stages, methodology, timeline) */
+[data-theme="dark"] :deep(.border-emerald-100) {
+  border-color: rgba(16, 185, 129, 0.30) !important;
+}
+[data-theme="dark"] :deep(.border-emerald-200) {
+  border-color: rgba(16, 185, 129, 0.40) !important;
+}
+
+/* Cards and surfaces — elevated with shadow + emerald glow */
+[data-theme="dark"] :deep(.summary-card),
+[data-theme="dark"] :deep(.gateway-card) {
+  background-color: #16423a !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 18px rgba(16, 185, 129, 0.14), inset 0 1px 0 rgba(16, 185, 129, 0.08) !important;
+}
+
+/* Gray text adjustments */
+[data-theme="dark"] :deep(.text-gray-400) {
+  color: rgba(230, 239, 239, 0.45) !important;
+}
+[data-theme="dark"] :deep(.text-gray-500),
+[data-theme="dark"] :deep(.text-gray-600) {
+  color: rgba(230, 239, 239, 0.55) !important;
+}
+[data-theme="dark"] :deep(.text-gray-700) {
+  color: rgba(230, 239, 239, 0.65) !important;
+}
+[data-theme="dark"] :deep(.text-gray-800),
+[data-theme="dark"] :deep(.text-gray-900) {
+  color: rgba(230, 239, 239, 0.9) !important;
+}
+
+/* Lemon stays visible on dark */
+[data-theme="dark"] :deep(.bg-lemon) {
+  background-color: #F0FF3D !important;
+}
+
+/* Emerald backgrounds in sections */
+[data-theme="dark"] :deep(.bg-emerald-50),
+[data-theme="dark"] :deep(.bg-emerald-100) {
+  background-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Client-action badges (ProcessMethodology "Tu aporte" pills) */
+[data-theme="dark"] :deep(.bg-emerald-50.text-emerald-600) {
+  background-color: rgba(16, 185, 129, 0.18) !important;
+  color: #6ee7b7 !important;
+  border: 1px solid rgba(16, 185, 129, 0.30);
+}
+
+/* Timeline, stages connectors */
+[data-theme="dark"] :deep(.bg-emerald-200) {
+  background-color: rgba(16, 185, 129, 0.40) !important;
+}
+
+/* Modals keep their own styling, override outer bg */
+[data-theme="dark"] :deep(.fixed.inset-0 .bg-white) {
+  background-color: #1a3d36 !important;
+}
+
+/* Welcome-back & reading-time popups */
+[data-theme="dark"] :deep(.shadow-2xl.border.border-gray-100) {
+  background-color: #16423a !important;
+  border-color: rgba(16, 185, 129, 0.22) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), 0 0 24px rgba(16, 185, 129, 0.15) !important;
+}
+
+/* Overlay components (nav buttons, counters, badges) */
+[data-theme="dark"] :deep(.bg-white\/80) {
+  background-color: rgba(15, 43, 38, 0.8) !important;
+}
+[data-theme="dark"] :deep(.bg-white\/90) {
+  background-color: rgba(15, 43, 38, 0.9) !important;
+}
+[data-theme="dark"] :deep(.bg-white\/95) {
+  background-color: rgba(15, 43, 38, 0.95) !important;
+}
+[data-theme="dark"] :deep(.bg-white\/60) {
+  background-color: rgba(15, 43, 38, 0.6) !important;
+}
+
+/* SectionCounter, PdfDownloadButton, ShareButton text in dark */
+[data-theme="dark"] :deep(.text-emerald-600) {
+  color: #6ee7b7 !important;
+}
+[data-theme="dark"] :deep(.text-emerald-700) {
+  color: #6ee7b7 !important;
+}
+
+/* Nav buttons (SectionNavButtons uses scoped CSS with inline rgba) */
+[data-theme="dark"] :deep(.nav-side) {
+  background: rgba(15, 43, 38, 0.92) !important;
+  color: #a0b8b2 !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+[data-theme="dark"] :deep(.nav-side:hover) {
+  background: rgba(15, 43, 38, 1) !important;
+  color: #6ee7b7 !important;
+}
+
+/* Index panel in dark */
+[data-theme="dark"] :deep(.index-panel) {
+  background-color: rgba(10, 31, 28, 0.95) !important;
+}
+[data-theme="dark"] :deep(.index-toggle) {
+  background-color: rgba(15, 43, 38, 0.9) !important;
+}
+
+/* Expiration badge dark variants */
+[data-theme="dark"] :deep(.bg-emerald-50\/90) {
+  background-color: rgba(16, 185, 129, 0.28) !important;
+}
+[data-theme="dark"] :deep(.bg-yellow-50\/90) {
+  background-color: rgba(202, 138, 4, 0.28) !important;
+}
+[data-theme="dark"] :deep(.bg-orange-50\/90) {
+  background-color: rgba(234, 88, 12, 0.28) !important;
+}
+[data-theme="dark"] :deep(.bg-red-50\/90) {
+  background-color: rgba(220, 38, 38, 0.28) !important;
+}
+
+/* Share & PDF buttons */
+[data-theme="dark"] :deep(.share-btn) {
+  background-color: rgba(15, 43, 38, 0.9) !important;
+  border-color: rgba(230, 239, 239, 0.15) !important;
+}
+[data-theme="dark"] :deep(.pdf-download) {
+  background-color: rgba(15, 43, 38, 0.9) !important;
+  border-color: rgba(230, 239, 239, 0.15) !important;
+}
+
+/* RawContentSection prose overrides */
+[data-theme="dark"] :deep(.raw-content-card) {
+  background-color: #143d35 !important;
+  border-color: rgba(16, 185, 129, 0.22) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 18px rgba(16, 185, 129, 0.14), inset 0 1px 0 rgba(16, 185, 129, 0.08) !important;
+}
+[data-theme="dark"] :deep(.prose h1),
+[data-theme="dark"] :deep(.prose h2),
+[data-theme="dark"] :deep(.prose h3),
+[data-theme="dark"] :deep(.prose h4) {
+  color: #E6EFEF !important;
+}
+[data-theme="dark"] :deep(.prose p),
+[data-theme="dark"] :deep(.prose ul),
+[data-theme="dark"] :deep(.prose ol) {
+  color: rgba(230, 239, 239, 0.7) !important;
+}
+[data-theme="dark"] :deep(.prose strong) {
+  color: #E6EFEF !important;
+}
+[data-theme="dark"] :deep(.prose a) {
+  color: #6ee7b7 !important;
+}
+
+/* FinalNote badge-card and note-content */
+[data-theme="dark"] :deep(.badge-card) {
+  background-color: #143d35 !important;
+  border-color: rgba(16, 185, 129, 0.20) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 18px rgba(16, 185, 129, 0.14), inset 0 1px 0 rgba(16, 185, 129, 0.08) !important;
+}
+[data-theme="dark"] :deep(.note-content) {
+  background-color: #143d35 !important;
+  border-color: rgba(16, 185, 129, 0.20) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 18px rgba(16, 185, 129, 0.14), inset 0 1px 0 rgba(16, 185, 129, 0.08) !important;
+}
+
+/* ProposalIndex items in dark */
+[data-theme="dark"] :deep(.bg-gray-200) {
+  background-color: rgba(230, 239, 239, 0.18) !important;
+}
+[data-theme="dark"] :deep(.bg-gray-100) {
+  background-color: rgba(230, 239, 239, 0.12) !important;
+}
+[data-theme="dark"] :deep(.hover\:bg-gray-50:hover) {
+  background-color: rgba(230, 239, 239, 0.08) !important;
+}
+
+/* Box-shadows on interactive cards — dual layer: depth + emerald glow */
+[data-theme="dark"] :deep(.overview-card),
+[data-theme="dark"] :deep(.payment-option-card),
+[data-theme="dark"] :deep(.step-card),
+[data-theme="dark"] :deep(.contact-card) {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 18px rgba(16, 185, 129, 0.15), inset 0 1px 0 rgba(16, 185, 129, 0.08) !important;
+}
+[data-theme="dark"] :deep(.overview-card:hover),
+[data-theme="dark"] :deep(.payment-option-card:hover),
+[data-theme="dark"] :deep(.step-card:hover),
+[data-theme="dark"] :deep(.contact-card:hover) {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 28px rgba(16, 185, 129, 0.20), inset 0 1px 0 rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+/* Timeline phase cards get shadow */
+[data-theme="dark"] :deep(.timeline-item .bg-white) {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 18px rgba(16, 185, 129, 0.14) !important;
+}
+
+/* DevelopmentStages cards */
+[data-theme="dark"] :deep(.development-stages .border-emerald-100) {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55), 0 0 16px rgba(16, 185, 129, 0.12), inset 0 1px 0 rgba(16, 185, 129, 0.06) !important;
+}
+
+/* ProposalClosing recovery/notice cards */
+[data-theme="dark"] :deep(.validity-notice) {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55), 0 0 16px rgba(16, 185, 129, 0.12) !important;
+}
+
+/* Blue recovery cards (ProposalClosing — "not the right time") */
+[data-theme="dark"] :deep(.bg-blue-50) {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+}
+[data-theme="dark"] :deep(.border-blue-200) {
+  border-color: rgba(59, 130, 246, 0.30) !important;
+}
+
+/* Purple recovery cards (ProposalClosing — "does not meet expectations") */
+[data-theme="dark"] :deep(.bg-purple-50) {
+  background-color: rgba(139, 92, 246, 0.15) !important;
+}
+[data-theme="dark"] :deep(.border-purple-200) {
+  border-color: rgba(139, 92, 246, 0.30) !important;
+}
+
+/* Keep checkmark strokes dark inside lemon boxes */
+[data-theme="dark"] :deep(.bg-lemon .text-esmerald) {
+  color: #064e3b !important;
+}
+/* Keep text dark on lemon-bg elements (e.g. customize investment button) */
+[data-theme="dark"] :deep(.bg-lemon.text-esmerald) {
+  color: #064e3b !important;
+}
+[data-theme="dark"] :deep(button.bg-lemon) {
+  background-color: #F0FF3D !important;
+  color: #064e3b !important;
+  box-shadow: 0 4px 16px rgba(240, 255, 61, 0.15), 0 0 12px rgba(240, 255, 61, 0.10) !important;
+}
+
+/* Pricing card — intensify shadow for premium feel */
+[data-theme="dark"] :deep(.pricing-card) {
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7), 0 0 32px rgba(16, 185, 129, 0.18) !important;
+}
+
+/* Value proposition dark-bg sections — subtle inner glow */
+[data-theme="dark"] :deep(.bg-esmerald) {
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.2), 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Section dividers — subtle gradient line between sections */
+[data-theme="dark"] :deep(section + section)::before {
+  content: '';
+  display: block;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.20) 30%, rgba(16, 185, 129, 0.20) 70%, transparent);
+  margin: 0 auto;
+  width: 80%;
+}
+
+/* Nav buttons & overlays — stronger glass effect */
+[data-theme="dark"] :deep(.nav-side) {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Index panel — deeper backdrop */
+[data-theme="dark"] :deep(.index-panel) {
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Share & PDF buttons — subtle glow on hover */
+[data-theme="dark"] :deep(.share-btn:hover),
+[data-theme="dark"] :deep(.pdf-download:hover) {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 12px rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.30) !important;
 }
 </style>

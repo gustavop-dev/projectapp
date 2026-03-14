@@ -7,6 +7,9 @@
  * updateSection, reorderSections, respondToProposal, commentOnProposal,
  * trackSectionViews, fetchProposalAnalytics, fetchProposalDashboard,
  * scheduleFollowup, shareProposal, fetchSharedProposal, checkAdminAuth,
+ * fetchProposalDefaults, saveProposalDefaults, resetProposalDefaults,
+ * fetchEmailTemplates, fetchEmailTemplateDetail, saveEmailTemplate,
+ * previewEmailTemplate, resetEmailTemplate, fetchEmailDeliverability,
  * getters: getProposalById, enabledSections, totalSections.
  */
 import { setActivePinia, createPinia } from 'pinia';
@@ -15,12 +18,13 @@ import { useProposalStore } from '../../stores/proposals';
 jest.mock('../../stores/services/request_http', () => ({
   get_request: jest.fn(),
   create_request: jest.fn(),
+  put_request: jest.fn(),
   patch_request: jest.fn(),
   delete_request: jest.fn(),
 }));
 
 const {
-  get_request, create_request, patch_request, delete_request,
+  get_request, create_request, put_request, patch_request, delete_request,
 } = require('../../stores/services/request_http');
 
 describe('useProposalStore', () => {
@@ -1074,6 +1078,58 @@ describe('useProposalStore', () => {
     });
   });
 
+  describe('updateProposalStatus', () => {
+    it('updates status and returns success', async () => {
+      patch_request.mockResolvedValue({ data: { id: 1, status: 'viewed' } });
+      store.proposals = [{ id: 1, status: 'sent' }];
+
+      const result = await store.updateProposalStatus(1, 'viewed');
+
+      expect(patch_request).toHaveBeenCalledWith('proposals/1/update-status/', { status: 'viewed' });
+      expect(result.success).toBe(true);
+      expect(store.proposals[0].status).toBe('viewed');
+    });
+
+    it('updates currentProposal when it matches', async () => {
+      patch_request.mockResolvedValue({ data: { id: 5, status: 'expired' } });
+      store.currentProposal = { id: 5, status: 'sent' };
+
+      const result = await store.updateProposalStatus(5, 'expired');
+
+      expect(result.success).toBe(true);
+      expect(store.currentProposal).toEqual({ id: 5, status: 'expired' });
+    });
+
+    it('returns success false on error', async () => {
+      patch_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.updateProposalStatus(1, 'viewed');
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('update_status_failed');
+    });
+  });
+
+  describe('fetchScorecard', () => {
+    it('fetches scorecard and returns data', async () => {
+      get_request.mockResolvedValue({ data: { score: 8, checks: [] } });
+
+      const result = await store.fetchScorecard(1);
+
+      expect(get_request).toHaveBeenCalledWith('proposals/1/scorecard/');
+      expect(result.success).toBe(true);
+      expect(result.data.score).toBe(8);
+    });
+
+    it('returns success false on error', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.fetchScorecard(1);
+
+      expect(result.success).toBe(false);
+    });
+  });
+
   describe('bulkAction', () => {
     it('performs bulk action and returns data', async () => {
       create_request.mockResolvedValue({ data: { affected: 3, action: 'delete' } });
@@ -1091,6 +1147,231 @@ describe('useProposalStore', () => {
       const result = await store.bulkAction([], 'expire');
 
       expect(result.success).toBe(false);
+    });
+  });
+
+  describe('fetchProposalDefaults', () => {
+    it('fetches defaults for given language', async () => {
+      const data = { sections: [{ section_type: 'greeting' }] };
+      get_request.mockResolvedValue({ data });
+
+      const result = await store.fetchProposalDefaults('en');
+
+      expect(get_request).toHaveBeenCalledWith('proposals/defaults/?lang=en');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+    });
+
+    it('defaults to es language', async () => {
+      get_request.mockResolvedValue({ data: {} });
+
+      await store.fetchProposalDefaults();
+
+      expect(get_request).toHaveBeenCalledWith('proposals/defaults/?lang=es');
+    });
+
+    it('sets error on failure', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.fetchProposalDefaults();
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('fetch_defaults_failed');
+    });
+  });
+
+  describe('saveProposalDefaults', () => {
+    it('saves defaults and returns data', async () => {
+      const data = { id: 1, language: 'es' };
+      put_request.mockResolvedValue({ data });
+
+      const sections = [{ section_type: 'greeting', title: 'Saludo' }];
+      const result = await store.saveProposalDefaults('es', sections);
+
+      expect(put_request).toHaveBeenCalledWith('proposals/defaults/', {
+        language: 'es',
+        sections_json: sections,
+      });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+    });
+
+    it('sets error on failure', async () => {
+      put_request.mockRejectedValue({
+        response: { data: { sections_json: ['Required'] } },
+      });
+
+      const result = await store.saveProposalDefaults('es', []);
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('save_defaults_failed');
+      expect(result.errors).toEqual({ sections_json: ['Required'] });
+    });
+  });
+
+  describe('resetProposalDefaults', () => {
+    it('resets defaults for given language', async () => {
+      const data = { sections: [{ section_type: 'greeting' }] };
+      create_request.mockResolvedValue({ data });
+
+      const result = await store.resetProposalDefaults('en');
+
+      expect(create_request).toHaveBeenCalledWith('proposals/defaults/reset/', { language: 'en' });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+    });
+
+    it('defaults to es language', async () => {
+      create_request.mockResolvedValue({ data: {} });
+
+      await store.resetProposalDefaults();
+
+      expect(create_request).toHaveBeenCalledWith('proposals/defaults/reset/', { language: 'es' });
+    });
+
+    it('sets error on failure', async () => {
+      create_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.resetProposalDefaults();
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('reset_defaults_failed');
+    });
+  });
+
+  describe('fetchEmailTemplates', () => {
+    it('fetches all email templates', async () => {
+      const data = [{ template_key: 'proposal_sent' }];
+      get_request.mockResolvedValue({ data });
+
+      const result = await store.fetchEmailTemplates();
+
+      expect(get_request).toHaveBeenCalledWith('email-templates/');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+    });
+
+    it('sets error on failure', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.fetchEmailTemplates();
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('fetch_email_templates_failed');
+    });
+  });
+
+  describe('fetchEmailTemplateDetail', () => {
+    it('fetches single template by key', async () => {
+      const data = { template_key: 'proposal_sent', editable_fields: [] };
+      get_request.mockResolvedValue({ data });
+
+      const result = await store.fetchEmailTemplateDetail('proposal_sent');
+
+      expect(get_request).toHaveBeenCalledWith('email-templates/proposal_sent/');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+    });
+
+    it('sets error on failure', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.fetchEmailTemplateDetail('proposal_sent');
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('fetch_email_template_detail_failed');
+    });
+  });
+
+  describe('saveEmailTemplate', () => {
+    it('saves template overrides and returns data', async () => {
+      const data = { template_key: 'proposal_sent', is_active: true };
+      put_request.mockResolvedValue({ data });
+
+      const payload = { content_overrides: { greeting: 'Hi' }, is_active: true };
+      const result = await store.saveEmailTemplate('proposal_sent', payload);
+
+      expect(put_request).toHaveBeenCalledWith('email-templates/proposal_sent/', payload);
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+    });
+
+    it('sets error on failure', async () => {
+      put_request.mockRejectedValue({
+        response: { data: { content_overrides: ['Invalid'] } },
+      });
+
+      const result = await store.saveEmailTemplate('proposal_sent', {});
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('save_email_template_failed');
+      expect(result.errors).toEqual({ content_overrides: ['Invalid'] });
+    });
+  });
+
+  describe('previewEmailTemplate', () => {
+    it('fetches HTML preview for template', async () => {
+      const data = { html: '<h1>Preview</h1>' };
+      get_request.mockResolvedValue({ data });
+
+      const result = await store.previewEmailTemplate('proposal_sent');
+
+      expect(get_request).toHaveBeenCalledWith('email-templates/proposal_sent/preview/');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+    });
+
+    it('sets error on failure', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.previewEmailTemplate('proposal_sent');
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('preview_email_template_failed');
+    });
+  });
+
+  describe('resetEmailTemplate', () => {
+    it('resets template to defaults', async () => {
+      const data = { template_key: 'proposal_sent', content_overrides: {} };
+      create_request.mockResolvedValue({ data });
+
+      const result = await store.resetEmailTemplate('proposal_sent');
+
+      expect(create_request).toHaveBeenCalledWith('email-templates/proposal_sent/reset/');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+    });
+
+    it('sets error on failure', async () => {
+      create_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.resetEmailTemplate('proposal_sent');
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('reset_email_template_failed');
+    });
+  });
+
+  describe('fetchEmailDeliverability', () => {
+    it('fetches deliverability dashboard stats', async () => {
+      const data = { total_sent: 50, delivered: 48 };
+      get_request.mockResolvedValue({ data });
+
+      const result = await store.fetchEmailDeliverability();
+
+      expect(get_request).toHaveBeenCalledWith('email-deliverability/');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+    });
+
+    it('sets error on failure', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.fetchEmailDeliverability();
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('fetch_email_deliverability_failed');
     });
   });
 });

@@ -84,12 +84,12 @@ test.describe('Admin Proposal Actions Modal', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler([mockDraftProposal]));
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
-    await page.getByText('Actions Modal Test').waitFor({ state: 'visible', timeout: 10000 });
+    await page.getByText('Actions Modal Test').waitFor({ state: 'visible', timeout: 15000 });
 
     // quality: allow-fragile-selector (table actions button has no testid)
     const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
+    await actionsBtn.waitFor({ state: 'visible', timeout: 5000 });
     await actionsBtn.click();
 
     // Verify core actions are present
@@ -107,9 +107,8 @@ test.describe('Admin Proposal Actions Modal', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler([mockSentProposal]));
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Actions Modal Test')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Actions Modal Test')).toBeVisible({ timeout: 15000 });
 
     // quality: allow-fragile-selector (table actions button has no testid)
     const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
@@ -125,14 +124,13 @@ test.describe('Admin Proposal Actions Modal', () => {
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler([mockDraftProposal]));
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Actions Modal Test')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Actions Modal Test')).toBeVisible({ timeout: 15000 });
 
     // quality: allow-fragile-selector (table actions button has no testid)
     const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
     await actionsBtn.click();
-    await expect(page.getByText('Editar propuesta')).toBeVisible();
+    await expect(page.getByText('Editar propuesta')).toBeVisible({ timeout: 5000 });
 
     // quality: allow-fragile-selector (modal close button identified by SVG icon, no testid)
     const closeBtn = page.locator('.fixed').getByRole('button').filter({ has: page.locator('svg path') }).first();

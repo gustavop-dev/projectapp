@@ -47,12 +47,12 @@ test.describe('Proposal Onboarding', () => {
     tag: [...PROPOSAL_VIEW_ONBOARDING, '@role:client'],
   }, async ({ page }) => {
     // Do NOT set proposal_onboarding_seen — let onboarding show
-    await page.addInitScript((uuid) => {
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
-    }, MOCK_UUID);
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
     await page.waitForLoadState('networkidle');
+
+    // Gateway shows first — pick detailed view
+    await page.getByText('Propuesta Completa').click();
 
     // Onboarding tooltip should appear with first step
     await expect(page.getByText('Índice de secciones')).toBeVisible({ timeout: 15000 });
@@ -62,12 +62,12 @@ test.describe('Proposal Onboarding', () => {
   test('clicking Omitir dismisses onboarding', {
     tag: [...PROPOSAL_VIEW_ONBOARDING, '@role:client'],
   }, async ({ page }) => {
-    await page.addInitScript((uuid) => {
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
-    }, MOCK_UUID);
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
     await page.waitForLoadState('networkidle');
+
+    // Gateway shows first — pick detailed view
+    await page.getByText('Propuesta Completa').click();
 
     await expect(page.getByText('Índice de secciones')).toBeVisible({ timeout: 15000 });
 
@@ -84,14 +84,13 @@ test.describe('Proposal Onboarding', () => {
     // Set localStorage as if onboarding was already seen
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
 
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
-    // Onboarding should NOT appear
+    // Onboarding should NOT appear (already seen)
     await expect(page.getByText('Índice de secciones')).not.toBeVisible({ timeout: 5000 });
   });
 });

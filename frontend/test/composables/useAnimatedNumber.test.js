@@ -100,6 +100,18 @@ describe('useAnimatedNumber', () => {
     expect(animated.value).toBe(200);
   });
 
+  it('skips animation when resolved from and to are equal', async () => {
+    const target = ref(null);
+    const { animated } = useAnimatedNumber(target, 600);
+    expect(animated.value).toBe(0);
+
+    target.value = 0;
+    await nextTick();
+
+    expect(animated.value).toBe(0);
+    expect(requestAnimationFrame).not.toHaveBeenCalled();
+  });
+
   it('handles target changing to null', async () => {
     const target = ref(100);
     const { animated } = useAnimatedNumber(target, 600);

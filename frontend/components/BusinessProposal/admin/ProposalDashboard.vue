@@ -3,7 +3,7 @@
     <!-- Toggle button + refresh -->
     <div class="flex items-center gap-3 mb-4">
       <button
-        class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+        class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
         @click="isOpen = !isOpen"
       >
         <svg
@@ -38,36 +38,36 @@
         <template v-else-if="data">
           <!-- KPI summary cards -->
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
               <p class="text-xs text-gray-400 uppercase tracking-wider">Total propuestas</p>
-              <p class="text-3xl font-light text-gray-900 mt-1">{{ data.total_proposals }}</p>
+              <p class="text-3xl font-light text-gray-900 dark:text-gray-100 mt-1">{{ data.total_proposals }}</p>
             </div>
-            <div class="bg-white rounded-xl border border-emerald-100 shadow-sm p-4">
+            <div class="bg-white rounded-xl border border-emerald-100 shadow-sm p-4 dark:bg-gray-800 dark:border-emerald-800">
               <p class="text-xs text-emerald-600 uppercase tracking-wider">Tasa conversión</p>
               <p class="text-3xl font-light text-emerald-700 mt-1">{{ data.conversion_rate }}%</p>
             </div>
-            <div class="bg-white rounded-xl border border-blue-100 shadow-sm p-4">
+            <div class="bg-white rounded-xl border border-blue-100 shadow-sm p-4 dark:bg-gray-800 dark:border-blue-800">
               <p class="text-xs text-blue-600 uppercase tracking-wider">Tasa revisita</p>
               <p class="text-2xl font-light text-blue-700 mt-1">
                 {{ data.pct_revisit != null ? data.pct_revisit + '%' : '—' }}
               </p>
               <p class="text-[10px] text-gray-400 mt-0.5">Clientes que volvieron</p>
             </div>
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
               <p class="text-xs text-gray-400 uppercase tracking-wider">Avg tiempo 1ra vista</p>
-              <p class="text-2xl font-light text-gray-900 mt-1">
+              <p class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-1">
                 {{ data.avg_time_to_first_view_hours != null ? data.avg_time_to_first_view_hours + 'h' : '—' }}
               </p>
             </div>
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
               <p class="text-xs text-gray-400 uppercase tracking-wider">Avg tiempo respuesta</p>
-              <p class="text-2xl font-light text-gray-900 mt-1">
+              <p class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-1">
                 {{ data.avg_time_to_response_hours != null ? data.avg_time_to_response_hours + 'h' : '—' }}
               </p>
             </div>
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
               <p class="text-xs text-gray-400 uppercase tracking-wider">Avg valor aceptadas</p>
-              <p class="text-xl font-light text-gray-900 mt-1">
+              <p class="text-xl font-light text-gray-900 dark:text-gray-100 mt-1">
                 ${{ formatNumber(data.avg_value_by_status?.accepted || 0) }}
               </p>
             </div>
@@ -76,8 +76,8 @@
           <!-- Status distribution + Rejection reasons side by side -->
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <!-- Status distribution -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-              <h3 class="text-sm font-medium text-gray-900 mb-3">Distribución por estado</h3>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
+              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Distribución por estado</h3>
               <div class="space-y-2">
                 <div v-for="(count, statusKey) in data.by_status" :key="statusKey" class="flex items-center gap-3">
                   <span class="text-xs w-16 text-gray-500 capitalize">{{ statusKey }}</span>
@@ -94,8 +94,8 @@
             </div>
 
             <!-- Top rejection reasons -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-              <h3 class="text-sm font-medium text-gray-900 mb-3">Top motivos de rechazo</h3>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
+              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Top motivos de rechazo</h3>
               <div v-if="data.top_rejection_reasons?.length" class="space-y-2">
                 <div v-for="reason in data.top_rejection_reasons" :key="reason.rejection_reason" class="flex items-center gap-3">
                   <span class="text-xs text-gray-600 flex-1 truncate">{{ reason.rejection_reason }}</span>
@@ -113,12 +113,12 @@
           </div>
 
           <!-- Monthly trend -->
-          <div v-if="data.monthly_trend?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-            <h3 class="text-sm font-medium text-gray-900 mb-3">Tendencia mensual (últimos 6 meses)</h3>
+          <div v-if="data.monthly_trend?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
+            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Tendencia mensual (últimos 6 meses)</h3>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
-                  <tr class="text-left text-xs text-gray-500 uppercase tracking-wider">
+                  <tr class="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     <th class="px-3 py-2">Mes</th>
                     <th class="px-3 py-2 text-center">Creadas</th>
                     <th class="px-3 py-2 text-center">Enviadas</th>
@@ -126,8 +126,8 @@
                     <th class="px-3 py-2 text-center">Rechazadas</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
-                  <tr v-for="row in data.monthly_trend" :key="row.month" class="hover:bg-gray-50/50">
+                <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
+                  <tr v-for="row in data.monthly_trend" :key="row.month" class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50">
                     <td class="px-3 py-2 text-gray-700">{{ formatMonth(row.month) }}</td>
                     <td class="px-3 py-2 text-center text-gray-600">{{ row.created }}</td>
                     <td class="px-3 py-2 text-center text-blue-600">{{ row.sent }}</td>
@@ -140,20 +140,20 @@
           </div>
 
           <!-- Avg value by status -->
-          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-            <h3 class="text-sm font-medium text-gray-900 mb-3">Valor promedio por estado</h3>
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
+            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Valor promedio por estado</h3>
             <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              <div v-for="(val, key) in data.avg_value_by_status" :key="key" class="text-center p-3 rounded-lg bg-gray-50">
+              <div v-for="(val, key) in data.avg_value_by_status" :key="key" class="text-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
                 <p class="text-xs text-gray-400 uppercase capitalize">{{ key }}</p>
-                <p class="text-sm font-medium text-gray-900 mt-1">${{ formatNumber(val) }}</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">${{ formatNumber(val) }}</p>
               </div>
             </div>
           </div>
 
           <!-- Win rate by project type + market type -->
           <div v-if="data.win_rate_by_project_type?.length || data.win_rate_by_market_type?.length" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div v-if="data.win_rate_by_project_type?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-              <h3 class="text-sm font-medium text-gray-900 mb-3">Win rate por tipo de proyecto</h3>
+            <div v-if="data.win_rate_by_project_type?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
+              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Win rate por tipo de proyecto</h3>
               <div class="space-y-2">
                 <div v-for="item in data.win_rate_by_project_type" :key="item.type" class="flex items-center gap-3">
                   <span class="text-xs w-20 text-gray-500 capitalize truncate">{{ projectTypeLabel(item.type) }}</span>
@@ -168,8 +168,8 @@
                 </div>
               </div>
             </div>
-            <div v-if="data.win_rate_by_market_type?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-              <h3 class="text-sm font-medium text-gray-900 mb-3">Win rate por tipo de mercado</h3>
+            <div v-if="data.win_rate_by_market_type?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
+              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Win rate por tipo de mercado</h3>
               <div class="space-y-2">
                 <div v-for="item in data.win_rate_by_market_type" :key="item.type" class="flex items-center gap-3">
                   <span class="text-xs w-20 text-gray-500 capitalize truncate">{{ marketTypeLabel(item.type) }}</span>
@@ -187,20 +187,20 @@
           </div>
 
           <!-- Win rate by combination -->
-          <div v-if="data.win_rate_by_combination?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-            <h3 class="text-sm font-medium text-gray-900 mb-3">Mejor combinación proyecto × mercado</h3>
+          <div v-if="data.win_rate_by_combination?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
+            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Mejor combinación proyecto × mercado</h3>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
-                  <tr class="text-left text-xs text-gray-500 uppercase tracking-wider">
+                  <tr class="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     <th class="px-3 py-2">Proyecto</th>
                     <th class="px-3 py-2">Mercado</th>
                     <th class="px-3 py-2 text-center">Win Rate</th>
                     <th class="px-3 py-2 text-center">Aceptadas / Total</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
-                  <tr v-for="(row, idx) in data.win_rate_by_combination" :key="idx" class="hover:bg-gray-50/50">
+                <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
+                  <tr v-for="(row, idx) in data.win_rate_by_combination" :key="idx" class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50">
                     <td class="px-3 py-2 text-gray-700 capitalize">{{ projectTypeLabel(row.project_type) }}</td>
                     <td class="px-3 py-2 text-gray-700 capitalize">{{ marketTypeLabel(row.market_type) }}</td>
                     <td class="px-3 py-2 text-center font-medium" :class="idx === 0 ? 'text-emerald-600' : 'text-gray-600'">{{ row.win_rate }}%</td>
@@ -212,8 +212,8 @@
           </div>
           <!-- Engagement / Value insight + Calculator metrics -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div v-if="data.engagement_value_insight" class="bg-white rounded-xl border border-emerald-100 shadow-sm p-4">
-              <h3 class="text-sm font-medium text-gray-900 mb-2">Engagement vs Valor de cierre</h3>
+            <div v-if="data.engagement_value_insight" class="bg-white rounded-xl border border-emerald-100 shadow-sm p-4 dark:bg-gray-800 dark:border-emerald-800">
+              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Engagement vs Valor de cierre</h3>
               <div class="space-y-1.5">
                 <div class="flex justify-between text-xs">
                   <span class="text-gray-500">Alto engagement ({{ data.engagement_value_insight.high_count }})</span>
@@ -229,8 +229,8 @@
               </div>
             </div>
 
-            <div v-if="data.calc_abandonment_rate != null" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-              <h3 class="text-sm font-medium text-gray-900 mb-2">Calculadora</h3>
+            <div v-if="data.calc_abandonment_rate != null" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
+              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Calculadora</h3>
               <div class="flex items-baseline gap-2">
                 <span class="text-2xl font-light" :class="data.calc_abandonment_rate > 50 ? 'text-red-600' : 'text-gray-900'">{{ data.calc_abandonment_rate }}%</span>
                 <span class="text-xs text-gray-400">abandono</span>
@@ -238,8 +238,8 @@
               <p class="text-[10px] text-gray-400 mt-1">Abrieron el calculador pero no confirmaron</p>
             </div>
 
-            <div v-if="data.top_dropped_modules?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-              <h3 class="text-sm font-medium text-gray-900 mb-2">Módulos más descartados</h3>
+            <div v-if="data.top_dropped_modules?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
+              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Módulos más descartados</h3>
               <div class="space-y-1">
                 <div v-for="mod in data.top_dropped_modules.slice(0, 5)" :key="mod.module_id" class="flex items-center justify-between text-xs">
                   <span class="text-gray-600 truncate">{{ mod.module_id }}</span>

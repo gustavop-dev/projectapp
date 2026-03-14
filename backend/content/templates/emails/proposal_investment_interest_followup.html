@@ -29,16 +29,13 @@
           <tr>
             <td style="padding:40px 40px 24px;">
               <h2 style="margin:0;color:#1f2937;font-size:22px;font-weight:600;">
-                Hola {{ client_name }} 💰
+                {{ greeting }}
               </h2>
               <p style="margin:16px 0 0;color:#4b5563;font-size:16px;line-height:1.6;">
-                Noté que estás evaluando la inversión de la propuesta
-                <strong>"{{ title }}"</strong>. Es una decisión importante y
-                queremos que te sientas totalmente cómodo/a con ella.
+                {{ body }}
               </p>
               <p style="margin:16px 0 0;color:#4b5563;font-size:16px;line-height:1.6;">
-                ¿Qué tal si hablamos sobre <strong>opciones de pago flexibles</strong>?
-                Podemos ajustar el plan de pagos a tu presupuesto y tiempos.
+                {{ body_secondary }}
               </p>
             </td>
           </tr>
@@ -68,7 +65,7 @@
             <td style="padding:0 40px 16px;text-align:center;">
               <a href="https://wa.me/573238122373?text=Hola%2C%20me%20interesa%20la%20propuesta%20y%20quiero%20hablar%20sobre%20opciones%20de%20pago"
                  style="display:inline-block;background-color:#059669;color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:600;letter-spacing:-0.01em;">
-                💬 Hablar sobre opciones de pago
+                {{ cta_text }}
               </a>
             </td>
           </tr>

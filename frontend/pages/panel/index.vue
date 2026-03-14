@@ -230,23 +230,24 @@
           <li
             v-for="p in recentProposals"
             :key="p.id"
-            class="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
           >
-            <div>
-              <NuxtLink
-                :to="localePath(`/panel/proposals/${p.id}/edit`)"
-                class="text-sm font-medium text-gray-900 hover:text-emerald-600 transition-colors"
-              >
-                {{ p.title }}
-              </NuxtLink>
-              <p class="text-xs text-gray-400 mt-0.5">{{ p.client_name }}</p>
-            </div>
-            <span
-              class="text-xs px-2.5 py-1 rounded-full font-medium"
-              :class="pillClass(p.status)"
+            <NuxtLink
+              :to="localePath(`/panel/proposals/${p.id}/edit`)"
+              class="block px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
             >
-              {{ statusLabel(p.status) }}
-            </span>
+              <div>
+                <span class="text-sm font-medium text-gray-900 group-hover:text-emerald-600 transition-colors">
+                  {{ p.title }}
+                </span>
+                <p class="text-xs text-gray-400 mt-0.5">{{ p.client_name }}</p>
+              </div>
+              <span
+                class="text-xs px-2.5 py-1 rounded-full font-medium"
+                :class="pillClass(p.status)"
+              >
+                {{ statusLabel(p.status) }}
+              </span>
+            </NuxtLink>
           </li>
         </ul>
       </div>

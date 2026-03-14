@@ -33,7 +33,7 @@ const mockSentProposal = {
 };
 
 async function openClosingPanel(page) {
-  await page.goto(`/proposal/${MOCK_UUID}`);
+  await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
 
   // Wait for proposal to finish loading
   const nextBtn = page.getByTestId('nav-next');
@@ -53,11 +53,10 @@ test.describe('Proposal Comment from Closing Panel', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 
-  test('comment button opens modal with textarea', {
+  test('comment tab opens textarea inside negotiate modal', {
     tag: [...PROPOSAL_COMMENT_FROM_CLOSING, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
@@ -69,8 +68,9 @@ test.describe('Proposal Comment from Closing Panel', () => {
 
     await openClosingPanel(page);
 
-    await page.getByRole('button', { name: /Tengo comentarios por escrito/i }).click();
-    await expect(page.getByText(/Tus comentarios nos ayudan/i)).toBeVisible();
+    // Open negotiate modal then switch to comment tab
+    await page.getByRole('button', { name: /Necesito ajustes|I need adjustments/i }).click();
+    await page.getByRole('button', { name: /Tengo comentarios por escrito|I have written comments/i }).click();
     await expect(page.locator('textarea')).toBeVisible();
   });
 
@@ -86,10 +86,11 @@ test.describe('Proposal Comment from Closing Panel', () => {
 
     await openClosingPanel(page);
 
-    await page.getByRole('button', { name: /Tengo comentarios por escrito/i }).click();
-    await expect(page.getByText(/Tus comentarios nos ayudan/i)).toBeVisible();
+    // Open negotiate modal then switch to comment tab
+    await page.getByRole('button', { name: /Necesito ajustes|I need adjustments/i }).click();
+    await page.getByRole('button', { name: /Tengo comentarios por escrito|I have written comments/i }).click();
 
-    const sendBtn = page.getByRole('button', { name: /Enviar mensaje/i });
+    const sendBtn = page.getByRole('button', { name: /Enviar mensaje|Send message/i });
     await expect(sendBtn).toBeDisabled();
   });
 
@@ -111,18 +112,19 @@ test.describe('Proposal Comment from Closing Panel', () => {
 
     await openClosingPanel(page);
 
-    await page.getByRole('button', { name: /Tengo comentarios por escrito/i }).click();
-    await expect(page.getByText(/Tus comentarios nos ayudan/i)).toBeVisible();
+    // Open negotiate modal then switch to comment tab
+    await page.getByRole('button', { name: /Necesito ajustes|I need adjustments/i }).click();
+    await page.getByRole('button', { name: /Tengo comentarios por escrito|I have written comments/i }).click();
 
     await page.locator('textarea').fill('Me gustaría saber más sobre los tiempos de entrega.');
 
     const [commentResponse] = await Promise.all([
       page.waitForResponse(r => r.url().includes(`proposals/${MOCK_UUID}/comment/`)),
-      page.getByRole('button', { name: /Enviar mensaje/i }).click(),
+      page.getByRole('button', { name: /Enviar mensaje|Send message/i }).click(),
     ]);
     await commentResponse.finished();
 
-    await expect(page.getByText(/Mensaje enviado/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Mensaje enviado|Message sent/i)).toBeVisible({ timeout: 5000 });
     expect(commentCalled).toBe(true);
   });
 });

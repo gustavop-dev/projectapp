@@ -62,7 +62,9 @@ async function openQuickLogModal(page) {
   await logAction.click();
 
   // Quick-log modal should now be visible (different modal with form)
-  await expect(page.locator('select')).toBeVisible({ timeout: 5000 });
+  // Scope to the quick-log modal to avoid matching the inline status <select> in the table
+  const quickLogModal = page.locator('div.fixed.inset-0').filter({ has: page.getByText('Registrar') });
+  await expect(quickLogModal.locator('select')).toBeVisible({ timeout: 5000 });
 }
 
 test.describe('@flow: admin-proposal-quick-log — Quick Log Activity from Proposals List', () => {
@@ -86,7 +88,9 @@ test.describe('@flow: admin-proposal-quick-log — Quick Log Activity from Propo
     await setupMock(page);
     await openQuickLogModal(page);
 
-    const select = page.locator('select');
+    // Scope to the quick-log modal to avoid the inline status <select>
+    const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByText('Registrar') });
+    const select = modal.locator('select');
     await expect(select).toBeVisible();
 
     // Verify 4 options
@@ -100,8 +104,8 @@ test.describe('@flow: admin-proposal-quick-log — Quick Log Activity from Propo
     await setupMock(page);
     await openQuickLogModal(page);
 
-    // Scope to the quick-log modal form area (contains select + input)
-    const modal = page.locator('div.fixed.inset-0').filter({ has: page.locator('select') });
+    // Scope to the quick-log modal form area
+    const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByText('Registrar') });
     const submitBtn = modal.getByRole('button', { name: 'Registrar', exact: true });
     await expect(submitBtn).toBeDisabled();
   });
@@ -116,7 +120,7 @@ test.describe('@flow: admin-proposal-quick-log — Quick Log Activity from Propo
     const input = page.locator('input[placeholder*="Llamada de seguimiento"]');
     await input.fill('Llamada de seguimiento con el cliente');
 
-    const modal = page.locator('div.fixed.inset-0').filter({ has: page.locator('select') });
+    const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByText('Registrar') });
     const submitBtn = modal.getByRole('button', { name: 'Registrar', exact: true });
     await expect(submitBtn).toBeEnabled();
   });
@@ -130,7 +134,7 @@ test.describe('@flow: admin-proposal-quick-log — Quick Log Activity from Propo
     const input = page.locator('input[placeholder*="Llamada de seguimiento"]');
     await input.fill('Seguimiento telefónico exitoso');
 
-    const modal = page.locator('div.fixed.inset-0').filter({ has: page.locator('select') });
+    const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByText('Registrar') });
     const submitBtn = modal.getByRole('button', { name: 'Registrar', exact: true });
 
     // Wait for API response before asserting modal closure

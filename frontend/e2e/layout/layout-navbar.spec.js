@@ -12,16 +12,16 @@ test.describe('Navbar Navigation', () => {
 
     const nav = page.getByRole('navigation', { name: 'Main navigation' });
     await expect(nav).toBeVisible({ timeout: 15000 });
-    await expect(nav.getByRole('link', { name: 'Home', exact: true })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /Custom Software|Software a la medida/i })).toBeVisible();
   });
 
   test('navbar is visible on subpage', {
     tag: [...LAYOUT_NAVBAR_NAVIGATION, '@role:guest'],
   }, async ({ page }) => {
-    await page.goto('/about-us');
+    await page.goto('/blog');
 
     const nav = page.getByRole('navigation', { name: 'Main navigation' });
     await expect(nav).toBeVisible({ timeout: 15000 });
-    await expect(nav.getByRole('link', { name: /About/i })).toBeVisible();
+    await expect(nav.getByRole('link', { name: /Blog/i })).toBeVisible();
   });
 });

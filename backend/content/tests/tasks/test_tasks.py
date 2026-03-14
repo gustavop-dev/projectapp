@@ -1039,3 +1039,787 @@ class TestAutomationsPausedPaths:
         assert mock_send.call_count == 0
         proposal.refresh_from_db()
         assert proposal.urgency_email_sent_at is None
+
+
+class TestSuggestActionForProposal:
+    """Tests for the _suggest_action_for_proposal helper function."""
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_negotiating_proposal_returns_negotiation_action(self):
+        """Negotiating proposals get a follow-up negotiation suggestion."""
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Negotiating', client_name='Client', status='negotiating',
+        )
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'negociación' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_high_view_count_returns_call_action(self):
+        """Proposals with 3+ views get a call suggestion."""
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='High Views', client_name='Client', status='viewed',
+            view_count=5,
+        )
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'Llamar hoy' in result
+        assert '5' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_expiring_soon_without_discount_returns_discount_suggestion(self):
+        """Proposals expiring in <=3 days without discount get discount suggestion."""
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Expiring', client_name='Client', status='sent',
+            view_count=0, discount_percent=0,
+            expires_at=now + timedelta(days=2),
+        )
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'descuento' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_expiring_soon_with_discount_returns_urgency_reminder(self):
+        """Proposals expiring in <=3 days with discount get urgency reminder."""
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Expiring Discount', client_name='Client', status='sent',
+            view_count=0, discount_percent=10,
+            expires_at=now + timedelta(days=2),
+        )
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'urgencia' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_viewed_with_old_activity_returns_whatsapp_suggestion(self):
+        """Viewed proposals with no response >2 days get WhatsApp suggestion."""
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Old Viewed', client_name='Client', status='viewed',
+            view_count=1,
+            last_activity_at=now - timedelta(days=4),
+        )
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'WhatsApp' in result
+        assert '4d' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_viewed_recently_returns_wait_suggestion(self):
+        """Recently viewed proposals get a wait/reinforce suggestion."""
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Recent Viewed', client_name='Client', status='viewed',
+            view_count=1,
+            last_activity_at=now - timedelta(hours=12),
+        )
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'Visto recientemente' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_sent_old_returns_resend_suggestion(self):
+        """Sent proposals not opened after >3 days get re-send suggestion."""
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Old Sent', client_name='Client', status='sent',
+            view_count=0,
+            sent_at=now - timedelta(days=5),
+        )
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'Sin abrir' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_sent_recently_returns_wait_suggestion(self):
+        """Recently sent proposals get a wait suggestion."""
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Recent Sent', client_name='Client', status='sent',
+            view_count=0,
+            sent_at=now - timedelta(hours=12),
+        )
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'Enviada recientemente' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_fallback_returns_generic_followup(self):
+        """Other statuses get the generic follow-up string."""
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Draft', client_name='Client', status='draft',
+            view_count=0,
+        )
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'Revisar estado' in result
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_viewed_with_first_viewed_at_fallback(self):
+        """When last_activity_at is None, falls back to first_viewed_at."""
+        from content.tasks import _suggest_action_for_proposal
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='First View Fallback', client_name='Client', status='viewed',
+            view_count=1,
+            last_activity_at=None,
+            first_viewed_at=now - timedelta(days=3),
+        )
+        result = _suggest_action_for_proposal(proposal, now)
+        assert 'WhatsApp' in result
+
+
+class TestSendDailyPipelineDigestTask:
+    """Tests for the send_daily_pipeline_digest periodic task."""
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_daily_pipeline_digest',
+        return_value=True,
+    )
+    def test_sends_digest_with_viewed_yesterday(self, mock_send):
+        """Digest includes proposals that were viewed yesterday."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Viewed Yesterday', client_name='Client',
+            status='viewed', view_count=1,
+            sent_at=now - timedelta(days=3),
+        )
+        yesterday = now - timedelta(hours=18)
+        ve = ProposalViewEvent.objects.create(
+            proposal=proposal, session_id='sess-digest',
+        )
+        ProposalViewEvent.objects.filter(pk=ve.pk).update(viewed_at=yesterday)
+
+        import content.tasks as tasks_module
+        tasks_module.send_daily_pipeline_digest.call_local()
+
+        mock_send.assert_called_once()
+        digest = mock_send.call_args[0][0]
+        assert digest['date'] == '2026-03-10'
+        assert digest['total_active'] >= 1
+        assert len(digest['viewed_yesterday']) == 1
+        assert digest['viewed_yesterday'][0]['client_name'] == 'Client'
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_daily_pipeline_digest',
+        return_value=True,
+    )
+    def test_includes_inactive_proposals(self, mock_send):
+        """Digest includes proposals with no activity >3 days."""
+        now = timezone.now()
+        BusinessProposal.objects.create(
+            title='Inactive Digest', client_name='Inactive Client',
+            status='sent',
+            sent_at=now - timedelta(days=5),
+            last_activity_at=now - timedelta(days=4),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_daily_pipeline_digest.call_local()
+
+        mock_send.assert_called_once()
+        digest = mock_send.call_args[0][0]
+        assert len(digest['inactive']) >= 1
+        assert digest['inactive'][0]['client_name'] == 'Inactive Client'
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_daily_pipeline_digest',
+        return_value=True,
+    )
+    def test_includes_expiring_soon_proposals(self, mock_send):
+        """Digest includes proposals expiring within 5 days."""
+        now = timezone.now()
+        BusinessProposal.objects.create(
+            title='Expiring Digest', client_name='Expiring Client',
+            status='viewed', view_count=1,
+            expires_at=now + timedelta(days=3),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_daily_pipeline_digest.call_local()
+
+        mock_send.assert_called_once()
+        digest = mock_send.call_args[0][0]
+        assert len(digest['expiring_soon']) >= 1
+        assert digest['expiring_soon'][0]['client_name'] == 'Expiring Client'
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_daily_pipeline_digest',
+        return_value=True,
+    )
+    def test_empty_digest_when_no_active_proposals(self, mock_send):
+        """Digest is sent even when there are no active proposals."""
+        import content.tasks as tasks_module
+        tasks_module.send_daily_pipeline_digest.call_local()
+
+        mock_send.assert_called_once()
+        digest = mock_send.call_args[0][0]
+        assert digest['total_active'] == 0
+        assert digest['viewed_yesterday'] == []
+        assert digest['inactive'] == []
+        assert digest['expiring_soon'] == []
+
+
+class TestDetectHighEngagementTodayTask:
+    """Tests for the detect_high_engagement_today periodic task."""
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_creates_alert_for_3_sessions_today(self):
+        """Alert created when proposal has 3+ unique sessions today."""
+        from content.models import ProposalAlert
+        proposal = BusinessProposal.objects.create(
+            title='High Engagement', client_name='Engaged Client',
+            status='viewed',
+        )
+        for i in range(3):
+            ProposalViewEvent.objects.create(
+                proposal=proposal, session_id=f'sess-he-{i}',
+            )
+
+        import content.tasks as tasks_module
+        tasks_module.detect_high_engagement_today.call_local()
+
+        alert = ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='high_engagement_today',
+        ).first()
+        assert alert is not None
+        assert 'Engaged Client' in alert.message
+        assert '3' in alert.message
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_no_alert_for_fewer_than_3_sessions(self):
+        """No alert when proposal has fewer than 3 sessions today."""
+        from content.models import ProposalAlert
+        proposal = BusinessProposal.objects.create(
+            title='Low Engagement', client_name='Client',
+            status='viewed',
+        )
+        for i in range(2):
+            ProposalViewEvent.objects.create(
+                proposal=proposal, session_id=f'sess-low-{i}',
+            )
+
+        import content.tasks as tasks_module
+        tasks_module.detect_high_engagement_today.call_local()
+
+        assert not ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='high_engagement_today',
+        ).exists()
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_no_duplicate_alert_same_day(self):
+        """No duplicate alert when one already exists today."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Already Alerted', client_name='Client',
+            status='viewed',
+        )
+        for i in range(3):
+            ProposalViewEvent.objects.create(
+                proposal=proposal, session_id=f'sess-dup-{i}',
+            )
+        ProposalAlert.objects.create(
+            proposal=proposal, alert_type='high_engagement_today',
+            message='Existing', alert_date=now,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.detect_high_engagement_today.call_local()
+
+        assert ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='high_engagement_today',
+        ).count() == 1
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_skips_inactive_proposals(self):
+        """No alert for inactive proposals."""
+        from content.models import ProposalAlert
+        proposal = BusinessProposal.objects.create(
+            title='Inactive', client_name='Client',
+            status='viewed', is_active=False,
+        )
+        for i in range(3):
+            ProposalViewEvent.objects.create(
+                proposal=proposal, session_id=f'sess-inact-{i}',
+            )
+
+        import content.tasks as tasks_module
+        tasks_module.detect_high_engagement_today.call_local()
+
+        assert not ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='high_engagement_today',
+        ).exists()
+
+
+class TestCheckCalculatorAbandonmentFollowupTask:
+    """Tests for the check_calculator_abandonment_followup periodic task."""
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_creates_followup_for_abandoned_calculator(self):
+        """Alert created when calculator was abandoned >24h ago."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Calc Abandoned', client_name='Calc Client',
+            client_email='calc@test.com',
+            status='viewed',
+        )
+        log = ProposalChangeLog.objects.create(
+            proposal=proposal, change_type='calc_abandoned',
+            description='{}',
+        )
+        ProposalChangeLog.objects.filter(pk=log.pk).update(
+            created_at=now - timedelta(hours=30),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_calculator_abandonment_followup.call_local()
+
+        alert = ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='calculator_followup',
+        ).first()
+        assert alert is not None
+        assert 'abandonó' in alert.message
+        proposal.refresh_from_db()
+        assert proposal.calculator_followup_sent_at is not None
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_high_intent_message_for_long_calculator_session(self):
+        """High-intent message when calculator session was >5 minutes."""
+        import json
+
+        from content.models import ProposalAlert
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='High Intent Calc', client_name='Intent Client',
+            status='viewed',
+        )
+        log = ProposalChangeLog.objects.create(
+            proposal=proposal, change_type='calc_abandoned',
+            description=json.dumps({'elapsed_seconds': 400}),
+        )
+        ProposalChangeLog.objects.filter(pk=log.pk).update(
+            created_at=now - timedelta(hours=30),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_calculator_abandonment_followup.call_local()
+
+        alert = ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='calculator_followup',
+        ).first()
+        assert alert is not None
+        assert 'alta intención' in alert.message
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_skips_when_calc_confirmed_after(self):
+        """No alert when calculator was confirmed after abandonment."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Confirmed Calc', client_name='Client',
+            status='viewed',
+        )
+        log = ProposalChangeLog.objects.create(
+            proposal=proposal, change_type='calc_abandoned',
+            description='{}',
+        )
+        ProposalChangeLog.objects.filter(pk=log.pk).update(
+            created_at=now - timedelta(hours=30),
+        )
+        ProposalChangeLog.objects.create(
+            proposal=proposal, change_type='calc_confirmed',
+            description='Confirmed',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_calculator_abandonment_followup.call_local()
+
+        assert not ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='calculator_followup',
+        ).exists()
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_skips_when_no_abandoned_logs(self):
+        """No alert when there are no calc_abandoned logs."""
+        from content.models import ProposalAlert
+        proposal = BusinessProposal.objects.create(
+            title='No Logs', client_name='Client',
+            status='viewed',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_calculator_abandonment_followup.call_local()
+
+        assert not ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='calculator_followup',
+        ).exists()
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_skips_when_automations_paused(self):
+        """No alert when automations are paused."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Paused Calc', client_name='Client',
+            status='viewed', automations_paused=True,
+        )
+        log = ProposalChangeLog.objects.create(
+            proposal=proposal, change_type='calc_abandoned',
+            description='{}',
+        )
+        ProposalChangeLog.objects.filter(pk=log.pk).update(
+            created_at=now - timedelta(hours=30),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_calculator_abandonment_followup.call_local()
+
+        assert not ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='calculator_followup',
+        ).exists()
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_skips_when_followup_already_sent(self):
+        """No alert when calculator_followup_sent_at is already set."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Already Sent Calc', client_name='Client',
+            status='viewed',
+            calculator_followup_sent_at=now - timedelta(hours=2),
+        )
+        log = ProposalChangeLog.objects.create(
+            proposal=proposal, change_type='calc_abandoned',
+            description='{}',
+        )
+        ProposalChangeLog.objects.filter(pk=log.pk).update(
+            created_at=now - timedelta(hours=30),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_calculator_abandonment_followup.call_local()
+
+        assert not ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='calculator_followup',
+        ).exists()
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_handles_invalid_json_in_description(self):
+        """Alert still created when description contains invalid JSON."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Bad JSON', client_name='Client',
+            status='viewed',
+        )
+        log = ProposalChangeLog.objects.create(
+            proposal=proposal, change_type='calc_abandoned',
+            description='not-valid-json',
+        )
+        ProposalChangeLog.objects.filter(pk=log.pk).update(
+            created_at=now - timedelta(hours=30),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_calculator_abandonment_followup.call_local()
+
+        assert ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='calculator_followup',
+        ).exists()
+
+
+class TestGenerateWhatsappSuggestionsTask:
+    """Tests for the generate_whatsapp_suggestions periodic task."""
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_creates_suggestion_for_viewed_proposal_with_phone(self):
+        """WhatsApp suggestion created for viewed >48h proposal with phone."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='WhatsApp Target', client_name='WA Client',
+            status='viewed',
+            client_phone='+573001234567',
+            first_viewed_at=now - timedelta(hours=50),
+        )
+        ve = ProposalViewEvent.objects.create(
+            proposal=proposal, session_id='sess-wa',
+        )
+        ProposalSectionView.objects.create(
+            view_event=ve, section_type='investment',
+            time_spent_seconds=60,
+            entered_at=now - timedelta(hours=50),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.generate_whatsapp_suggestions.call_local()
+
+        alert = ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='whatsapp_suggestion',
+        ).first()
+        assert alert is not None
+        assert 'WA Client' in alert.message
+        assert 'inversión' in alert.message
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_uses_section_type_as_fallback_when_not_in_labels(self):
+        """Uses raw section_type when not found in section_labels map."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Unknown Section', client_name='Client',
+            status='viewed',
+            client_phone='+573001234567',
+            first_viewed_at=now - timedelta(hours=50),
+        )
+        ve = ProposalViewEvent.objects.create(
+            proposal=proposal, session_id='sess-wa-unk',
+        )
+        ProposalSectionView.objects.create(
+            view_event=ve, section_type='custom_section',
+            time_spent_seconds=60,
+            entered_at=now - timedelta(hours=50),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.generate_whatsapp_suggestions.call_local()
+
+        alert = ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='whatsapp_suggestion',
+        ).first()
+        assert alert is not None
+        assert 'custom_section' in alert.message
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_no_suggestion_when_no_phone(self):
+        """No suggestion for proposals without client_phone."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        BusinessProposal.objects.create(
+            title='No Phone', client_name='Client',
+            status='viewed', client_phone='',
+            first_viewed_at=now - timedelta(hours=50),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.generate_whatsapp_suggestions.call_local()
+
+        assert not ProposalAlert.objects.filter(
+            alert_type='whatsapp_suggestion',
+        ).exists()
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_no_duplicate_suggestion(self):
+        """No duplicate suggestion when one already exists."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Already Suggested', client_name='Client',
+            status='viewed',
+            client_phone='+573001234567',
+            first_viewed_at=now - timedelta(hours=50),
+        )
+        ProposalAlert.objects.create(
+            proposal=proposal, alert_type='whatsapp_suggestion',
+            message='Existing', alert_date=now,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.generate_whatsapp_suggestions.call_local()
+
+        assert ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='whatsapp_suggestion',
+        ).count() == 1
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_skips_recently_viewed_proposals(self):
+        """No suggestion for proposals viewed <48h ago."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        BusinessProposal.objects.create(
+            title='Recent View', client_name='Client',
+            status='viewed',
+            client_phone='+573001234567',
+            first_viewed_at=now - timedelta(hours=20),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.generate_whatsapp_suggestions.call_local()
+
+        assert not ProposalAlert.objects.filter(
+            alert_type='whatsapp_suggestion',
+        ).exists()
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_skips_automations_paused(self):
+        """No suggestion when automations are paused."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        BusinessProposal.objects.create(
+            title='Paused WA', client_name='Client',
+            status='viewed',
+            client_phone='+573001234567',
+            first_viewed_at=now - timedelta(hours=50),
+            automations_paused=True,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.generate_whatsapp_suggestions.call_local()
+
+        assert not ProposalAlert.objects.filter(
+            alert_type='whatsapp_suggestion',
+        ).exists()
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_fallback_label_when_no_section_views(self):
+        """Uses 'la propuesta' when there are no section view records."""
+        from content.models import ProposalAlert
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='No Sections', client_name='Client',
+            status='viewed',
+            client_phone='+573001234567',
+            first_viewed_at=now - timedelta(hours=50),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.generate_whatsapp_suggestions.call_local()
+
+        alert = ProposalAlert.objects.filter(
+            proposal=proposal, alert_type='whatsapp_suggestion',
+        ).first()
+        assert alert is not None
+        assert 'la propuesta' in alert.message
+
+
+class TestAutoArchiveZombieProposalsTask:
+    """Tests for the auto_archive_zombie_proposals periodic task."""
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_archives_expired_proposal_with_no_recent_activity(self):
+        """Expired proposal with no activity in 30+ days gets archived."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Zombie', client_name='Client',
+            status='expired',
+        )
+        BusinessProposal.objects.filter(pk=proposal.pk).update(
+            created_at=now - timedelta(days=60),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.auto_archive_zombie_proposals.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.is_active is False
+        assert ProposalChangeLog.objects.filter(
+            proposal=proposal, change_type='auto_archived',
+        ).exists()
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_does_not_archive_recent_expired_proposal(self):
+        """Expired proposal with recent activity is not archived."""
+        proposal = BusinessProposal.objects.create(
+            title='Recent Zombie', client_name='Client',
+            status='expired',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.auto_archive_zombie_proposals.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.is_active is True
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_does_not_archive_non_expired_proposal(self):
+        """Non-expired proposals are not archived regardless of age."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Old Active', client_name='Client',
+            status='sent',
+        )
+        BusinessProposal.objects.filter(pk=proposal.pk).update(
+            created_at=now - timedelta(days=60),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.auto_archive_zombie_proposals.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.is_active is True
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_does_not_archive_already_inactive_proposal(self):
+        """Already inactive proposals are not processed."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Already Inactive', client_name='Client',
+            status='expired', is_active=False,
+        )
+        BusinessProposal.objects.filter(pk=proposal.pk).update(
+            created_at=now - timedelta(days=60),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.auto_archive_zombie_proposals.call_local()
+
+        assert not ProposalChangeLog.objects.filter(
+            proposal=proposal, change_type='auto_archived',
+        ).exists()
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_keeps_expired_proposal_with_recent_view(self):
+        """Expired proposal with a view in last 30 days is not archived."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Recent View Zombie', client_name='Client',
+            status='expired',
+        )
+        BusinessProposal.objects.filter(pk=proposal.pk).update(
+            created_at=now - timedelta(days=60),
+        )
+        ve = ProposalViewEvent.objects.create(
+            proposal=proposal, session_id='sess-zombie',
+        )
+        ProposalViewEvent.objects.filter(pk=ve.pk).update(
+            viewed_at=now - timedelta(days=10),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.auto_archive_zombie_proposals.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.is_active is True
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_keeps_expired_proposal_with_recent_changelog(self):
+        """Expired proposal with a changelog in last 30 days is not archived."""
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Recent Log Zombie', client_name='Client',
+            status='expired',
+        )
+        BusinessProposal.objects.filter(pk=proposal.pk).update(
+            created_at=now - timedelta(days=60),
+        )
+        ProposalChangeLog.objects.create(
+            proposal=proposal, change_type='note',
+            description='Recent activity',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.auto_archive_zombie_proposals.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.is_active is True

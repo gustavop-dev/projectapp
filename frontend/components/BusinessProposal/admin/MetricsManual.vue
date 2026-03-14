@@ -171,6 +171,102 @@ const metrics = [
     calculation: 'Propuestas con section_views de tipo "investment" / total propuestas vistas.',
     action: 'Si es bajo, el contenido anterior no está reteniendo. Si es alto pero no cierran, revisar pricing.',
   },
+  {
+    id: 'lead_score', icon: '⭐', name: 'Lead Score (0-100)',
+    description: 'Score de priorización comercial mostrado en la tabla de propuestas. Versión escalada del heat score para facilitar comparación.',
+    calculation: 'heat_score × 10, máximo 100. Propuestas aceptadas = 100 automáticamente.',
+    action: 'Priorizar contacto con leads de score >70. Score <30 requiere re-evaluación de la estrategia de follow-up.',
+  },
+  {
+    id: 'pipeline_value', icon: '💵', name: 'Valor del pipeline',
+    description: 'Suma total de la inversión de todas las propuestas activas en estado enviada o vista. Representa el valor potencial de negocios en curso.',
+    calculation: 'Suma de total_investment donde status=sent/viewed e is_active=true.',
+    action: 'Monitorear para asegurar un pipeline saludable. Si baja, crear más propuestas o hacer follow-up a las existentes.',
+  },
+  {
+    id: 'pct_revisit', icon: '🔁', name: 'Tasa de revisita',
+    description: 'Porcentaje de propuestas vistas donde el cliente regresó a ver la propuesta más de una vez.',
+    calculation: 'Propuestas con sesiones únicas > 1 / total propuestas vistas × 100.',
+    action: 'Una tasa alta indica interés. Propuestas con revisitas son candidatas prioritarias para follow-up.',
+  },
+  {
+    id: 'pct_viewed_within_24h', icon: '⚡', name: '% vistas dentro de 24h',
+    description: 'Porcentaje de propuestas enviadas que fueron abiertas por el cliente dentro de las primeras 24 horas.',
+    calculation: '(first_viewed_at - sent_at ≤ 24h) / total con ambos timestamps × 100.',
+    action: 'Si es bajo, revisar el asunto del email, la hora de envío o el canal de comunicación.',
+  },
+  {
+    id: 'top_dropoff_section', icon: '🚪', name: 'Top sección de abandono',
+    description: 'Sección con el mayor porcentaje de abandono global (cross-portfolio). Indica dónde los clientes dejan de navegar con más frecuencia.',
+    calculation: '(1 - sesiones que vieron la sección / total sesiones globales) × 100, por cada section_type.',
+    action: 'Mejorar el contenido o reposicionar la sección problemática. Puede indicar contenido poco relevante o muy extenso.',
+  },
+  {
+    id: 'win_rate_combination', icon: '🧩', name: 'Win rate combinación proyecto × mercado',
+    description: 'Tasa de aceptación cruzando tipo de proyecto y tipo de mercado. Identifica las combinaciones más rentables.',
+    calculation: 'aceptadas / terminales por cada par (project_type, market_type) con ≥2 propuestas terminales.',
+    action: 'Enfocar esfuerzo comercial en las combinaciones con mayor win rate. Ajustar oferta donde se pierde más.',
+  },
+  {
+    id: 'engagement_value_insight', icon: '📊', name: 'Engagement vs Valor de cierre',
+    description: 'Compara el valor promedio de cierre entre propuestas aceptadas con alto engagement vs bajo engagement.',
+    calculation: 'Promedio de total_investment para propuestas aceptadas con tiempo de engagement sobre/bajo la mediana.',
+    action: 'Si hay gran diferencia, invertir en mejorar el engagement (contenido, interactividad) puede aumentar el ticket promedio.',
+  },
+  {
+    id: 'top_dropped_modules', icon: '🧮', name: 'Módulos más descartados (calculadora)',
+    description: 'Módulos que los clientes eliminan con más frecuencia al usar el calculador interactivo de inversión.',
+    calculation: 'Conteo de módulos en el campo "deselected" de los ChangeLogs tipo calc_confirmed.',
+    action: 'Revisar si esos módulos son percibidos como innecesarios o caros. Considerar hacerlos opcionales por defecto.',
+  },
+  {
+    id: 'calc_abandonment_rate', icon: '🚫', name: 'Tasa de abandono calculadora',
+    description: 'Porcentaje de clientes que abrieron el calculador interactivo pero no confirmaron su selección.',
+    calculation: 'calc_abandoned / (calc_confirmed + calc_abandoned) × 100.',
+    action: 'Si es >50%, simplificar la experiencia del calculador o reducir la cantidad de opciones.',
+  },
+  {
+    id: 'monthly_trend', icon: '📅', name: 'Tendencia mensual',
+    description: 'Evolución mensual de propuestas creadas, enviadas, aceptadas y rechazadas en los últimos 6 meses.',
+    calculation: 'Conteo agrupado por mes (TruncMonth) de created_at, filtrado por status.',
+    action: 'Detectar tendencias estacionales y medir el impacto de cambios en el proceso comercial.',
+  },
+  {
+    id: 'avg_value_by_status', icon: '💲', name: 'Valor promedio por estado',
+    description: 'Inversión promedio de las propuestas agrupadas por su estado actual (aceptadas, rechazadas, enviadas, etc.).',
+    calculation: 'Promedio de total_investment por cada status.',
+    action: 'Si las rechazadas tienen valor muy alto, puede haber un problema de pricing. Si las aceptadas son bajas, buscar subir el ticket.',
+  },
+  {
+    id: 'top_rejection_reasons', icon: '❌', name: 'Top motivos de rechazo',
+    description: 'Los motivos de rechazo más frecuentes reportados por los clientes al declinar una propuesta.',
+    calculation: 'Conteo de rejection_reason agrupado, ordenado por frecuencia (top 10).',
+    action: 'Abordar los motivos más comunes: si es precio, revisar estructura; si es timing, mejorar urgencia.',
+  },
+  {
+    id: 'comparison', icon: '📐', name: 'Comparación con promedio global',
+    description: 'Badges por propuesta que comparan sus métricas (tiempo a 1ra vista, tiempo a respuesta, vistas) contra el promedio de todas las propuestas.',
+    calculation: 'Valores individuales vs promedios globales de time_to_first_view, time_to_response y total_views.',
+    action: 'Propuestas por debajo del promedio en vistas necesitan más visibilidad. Por encima en tiempo indica lentitud.',
+  },
+  {
+    id: 'share_links', icon: '🔗', name: 'Enlaces compartidos (stakeholders)',
+    description: 'Tracking de cuando un cliente comparte la propuesta con otros miembros de su equipo. Cada enlace tiene su propio conteo de vistas.',
+    calculation: 'ProposalShareLink por propuesta: compartido por, destinatario, vistas, primera vista.',
+    action: 'Múltiples stakeholders viendo la propuesta es señal de decisión grupal. Preparar materiales para diferentes perfiles.',
+  },
+  {
+    id: 'skipped_sections', icon: '⚠️', name: 'Secciones no visitadas',
+    description: 'Secciones habilitadas de la propuesta que el cliente nunca visitó durante ninguna de sus sesiones.',
+    calculation: 'Secciones con is_enabled=true que no tienen registros en ProposalSectionView.',
+    action: 'Mencionar esas secciones en el follow-up. Si inversión no fue vista, enviar resumen de precios directamente.',
+  },
+  {
+    id: 'post_expiration_visit', icon: '🔥🕰️', name: 'Visita post-expiración',
+    description: 'Alerta cuando un cliente visita una propuesta que ya ha expirado. Indica interés renovado.',
+    calculation: 'ProposalViewEvent registrado después de expires_at con status=expired.',
+    action: 'Contactar inmediatamente — el cliente quiere retomar. Ofrecer extender la vigencia o crear nueva propuesta.',
+  },
 ];
 
 const filteredMetrics = computed(() => {

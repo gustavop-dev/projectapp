@@ -37,7 +37,6 @@ test.describe('@flow: proposal-expired-graceful — Expired Proposal Graceful Pa
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 
@@ -45,7 +44,7 @@ test.describe('@flow: proposal-expired-graceful — Expired Proposal Graceful Pa
     tag: [...PROPOSAL_EXPIRED_GRACEFUL, '@role:guest'],
   }, async ({ page }) => {
     await setup410Mock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     await expect(page.getByText(/María García, esta propuesta ha expirado/)).toBeVisible({ timeout: 10000 });
@@ -55,7 +54,7 @@ test.describe('@flow: proposal-expired-graceful — Expired Proposal Graceful Pa
     tag: [...PROPOSAL_EXPIRED_GRACEFUL, '@role:guest'],
   }, async ({ page }) => {
     await setup410Mock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     await expect(page.getByText(/Landing Profesional — María/)).toBeVisible({ timeout: 10000 });
@@ -65,7 +64,7 @@ test.describe('@flow: proposal-expired-graceful — Expired Proposal Graceful Pa
     tag: [...PROPOSAL_EXPIRED_GRACEFUL, '@role:guest'],
   }, async ({ page }) => {
     await setup410Mock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     const whatsappLink = page.getByRole('link', { name: /Solicitar reactivación/ });
@@ -80,7 +79,7 @@ test.describe('@flow: proposal-expired-graceful — Expired Proposal Graceful Pa
     tag: [...PROPOSAL_EXPIRED_GRACEFUL, '@role:guest'],
   }, async ({ page }) => {
     await setup410Mock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     const emailLink = page.getByRole('link', { name: /Email/ });
@@ -94,7 +93,7 @@ test.describe('@flow: proposal-expired-graceful — Expired Proposal Graceful Pa
     tag: [...PROPOSAL_EXPIRED_GRACEFUL, '@role:guest'],
   }, async ({ page }) => {
     await setup410Mock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // quality: allow-fragile-selector (checking proposal-wrapper absence confirms expired state renders instead of proposal)

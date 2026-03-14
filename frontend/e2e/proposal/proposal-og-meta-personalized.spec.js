@@ -40,7 +40,6 @@ test.describe('Proposal OG Meta Personalized', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 
@@ -48,7 +47,7 @@ test.describe('Proposal OG Meta Personalized', () => {
     tag: ['@flow:proposal-og-meta-personalized', '@module:proposal', '@priority:P3', '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await expect(page.getByTestId('nav-next')).toBeVisible({ timeout: 15000 });
 
     // Page title should include client name
@@ -59,7 +58,7 @@ test.describe('Proposal OG Meta Personalized', () => {
     tag: ['@flow:proposal-og-meta-personalized', '@module:proposal', '@priority:P3', '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await expect(page.getByTestId('nav-next')).toBeVisible({ timeout: 15000 });
 
     // og:title meta should contain "Propuesta para María García"
@@ -71,7 +70,7 @@ test.describe('Proposal OG Meta Personalized', () => {
     tag: ['@flow:proposal-og-meta-personalized', '@module:proposal', '@priority:P3', '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await expect(page.getByTestId('nav-next')).toBeVisible({ timeout: 15000 });
 
     // og:description should contain both client name and proposal title

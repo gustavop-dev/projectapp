@@ -36,6 +36,12 @@ describe('useExpirationTimer', () => {
       expect(hoursRemaining.value).toBeNull();
     });
 
+    it('returns null for minutesRemaining', () => {
+      const { minutesRemaining } = useExpirationTimer(undefined);
+
+      expect(minutesRemaining.value).toBeNull();
+    });
+
     it('returns false for isExpired', () => {
       const { isExpired } = useExpirationTimer(undefined);
 
@@ -61,6 +67,13 @@ describe('useExpirationTimer', () => {
       const { daysRemaining } = useExpirationTimer(expiresAt);
 
       expect(daysRemaining.value).toBe(9);
+    });
+
+    it('returns correct minutesRemaining', () => {
+      const expiresAt = ref('2026-03-10T12:00:00Z');
+      const { minutesRemaining } = useExpirationTimer(expiresAt);
+
+      expect(minutesRemaining.value).toBe(9 * 24 * 60);
     });
 
     it('returns calm urgencyLevel', () => {
@@ -205,6 +218,27 @@ describe('useExpirationTimer', () => {
       const { formattedCountdown } = useExpirationTimer(expiresAt);
 
       expect(formattedCountdown.value).toBe('3 días');
+    });
+  });
+
+  describe('countdown mode interval switch', () => {
+    it('switches to 1s interval when entering countdown mode', () => {
+      const expiresAt = ref('2026-03-10T12:00:00Z');
+      const { isCountdownMode } = useExpirationTimer(expiresAt);
+
+      expect(isCountdownMode.value).toBe(false);
+
+      expiresAt.value = '2026-03-02T00:00:00Z';
+    });
+  });
+
+  describe('edge case: exactly 0 days but totalHours >= 48', () => {
+    it('returns Menos de 1 hora when diffMs is positive but days is 0 and hours >= 48', () => {
+      jest.setSystemTime(new Date('2026-03-01T12:00:00Z'));
+      const expiresAt = ref('2026-03-01T12:00:01Z');
+      const { formattedCountdown } = useExpirationTimer(expiresAt);
+
+      expect(formattedCountdown.value).toBe('00:00');
     });
   });
 

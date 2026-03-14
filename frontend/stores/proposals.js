@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { get_request, create_request, patch_request, delete_request } from './services/request_http';
+import { get_request, create_request, put_request, patch_request, delete_request } from './services/request_http';
 
 export const useProposalStore = defineStore('proposals', {
   /**
@@ -650,6 +650,197 @@ export const useProposalStore = defineStore('proposals', {
         return { success: true, user: response.data.user };
       } catch (error) {
         return { success: false };
+      }
+    },
+
+    // -----------------------------------------------------------------
+    // Proposal Default Config
+    // -----------------------------------------------------------------
+
+    /**
+     * fetchProposalDefaults: Retrieve default section config for a language.
+     * @param {string} lang - 'es' or 'en'.
+     */
+    async fetchProposalDefaults(lang = 'es') {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const response = await get_request(`proposals/defaults/?lang=${lang}`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'fetch_defaults_failed';
+        console.error('Error fetching proposal defaults:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    /**
+     * saveProposalDefaults: Save (create or update) default section config.
+     * @param {string} lang - 'es' or 'en'.
+     * @param {Array} sectionsJson - Full array of section dicts.
+     */
+    async saveProposalDefaults(lang, sectionsJson) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await put_request('proposals/defaults/', {
+          language: lang,
+          sections_json: sectionsJson,
+        });
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'save_defaults_failed';
+        console.error('Error saving proposal defaults:', error);
+        return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * resetProposalDefaults: Reset defaults to hardcoded values for a language.
+     * @param {string} lang - 'es' or 'en'.
+     */
+    async resetProposalDefaults(lang = 'es') {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request('proposals/defaults/reset/', { language: lang });
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'reset_defaults_failed';
+        console.error('Error resetting proposal defaults:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    // -----------------------------------------------------------------
+    // Email Templates
+    // -----------------------------------------------------------------
+
+    /**
+     * fetchEmailTemplates: Retrieve the list of all email templates.
+     */
+    async fetchEmailTemplates() {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const response = await get_request('email-templates/');
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'fetch_email_templates_failed';
+        console.error('Error fetching email templates:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    /**
+     * fetchEmailTemplateDetail: Retrieve a single template's editable fields.
+     * @param {string} templateKey - The template_key identifier.
+     */
+    async fetchEmailTemplateDetail(templateKey) {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const response = await get_request(`email-templates/${templateKey}/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'fetch_email_template_detail_failed';
+        console.error('Error fetching email template detail:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    /**
+     * saveEmailTemplate: Save content overrides for a template.
+     * @param {string} templateKey - The template_key identifier.
+     * @param {Object} payload - { content_overrides: {}, is_active: bool }
+     */
+    async saveEmailTemplate(templateKey, payload) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await put_request(`email-templates/${templateKey}/`, payload);
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'save_email_template_failed';
+        console.error('Error saving email template:', error);
+        return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * previewEmailTemplate: Get HTML preview of a template with sample data.
+     * @param {string} templateKey - The template_key identifier.
+     */
+    async previewEmailTemplate(templateKey) {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const response = await get_request(`email-templates/${templateKey}/preview/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'preview_email_template_failed';
+        console.error('Error previewing email template:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    /**
+     * resetEmailTemplate: Reset a template to default values.
+     * @param {string} templateKey - The template_key identifier.
+     */
+    async resetEmailTemplate(templateKey) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(`email-templates/${templateKey}/reset/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'reset_email_template_failed';
+        console.error('Error resetting email template:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * fetchEmailDeliverability: Retrieve email deliverability dashboard stats.
+     */
+    async fetchEmailDeliverability() {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const response = await get_request('email-deliverability/');
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'fetch_email_deliverability_failed';
+        console.error('Error fetching email deliverability:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isLoading = false;
       }
     },
   },

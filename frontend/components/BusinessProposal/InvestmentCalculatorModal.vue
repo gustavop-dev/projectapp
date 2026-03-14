@@ -23,8 +23,8 @@
           <!-- Body -->
           <div class="overflow-y-auto px-6 py-6 flex-1">
             <!-- Informational badge -->
-            <div class="mb-4 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
-              <p class="text-[11px] text-blue-700 leading-relaxed">
+            <div class="mb-5 bg-amber-50 border-l-4 border-amber-400 rounded-xl px-5 py-4 shadow-sm">
+              <p class="text-sm text-amber-800 leading-relaxed font-medium">
                 💡 {{ t.optionalItemsBadge }}
               </p>
               <button

@@ -58,16 +58,15 @@ test.describe('Admin Proposal Section Completeness', () => {
     });
 
     await page.goto('/panel/proposals/1/edit');
-    await page.waitForLoadState('networkidle');
+    await page.waitForResponse(resp => resp.url().includes('/detail/') && resp.status() === 200);
 
     // Navigate to sections tab
     const sectionsTab = page.getByRole('button', { name: /Secciones/i });
     if (await sectionsTab.isVisible().catch(() => false)) {
       await sectionsTab.click();
-      await page.waitForTimeout(500);
 
       // Completeness indicator should be visible
-      await expect(page.getByText('Completitud de secciones')).toBeVisible();
+      await expect(page.getByText('Completitud de secciones')).toBeVisible({ timeout: 5000 });
     }
   });
 
@@ -85,15 +84,14 @@ test.describe('Admin Proposal Section Completeness', () => {
     });
 
     await page.goto('/panel/proposals/1/edit');
-    await page.waitForLoadState('networkidle');
+    await page.waitForResponse(resp => resp.url().includes('/detail/') && resp.status() === 200);
 
     const sectionsTab = page.getByRole('button', { name: /Secciones/i });
     if (await sectionsTab.isVisible().catch(() => false)) {
       await sectionsTab.click();
-      await page.waitForTimeout(500);
 
       // Should show a percentage (exact value depends on empty content_json check)
-      await expect(page.getByText('Completitud de secciones')).toBeVisible();
+      await expect(page.getByText('Completitud de secciones')).toBeVisible({ timeout: 5000 });
     }
   });
 });

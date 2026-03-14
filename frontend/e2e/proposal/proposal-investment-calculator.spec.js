@@ -80,7 +80,7 @@ function buildMockHandler() {
 }
 
 async function navigateToInvestment(page) {
-  await page.goto(`/proposal/${MOCK_UUID}`);
+  await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
 
   // Wait for proposal content to render after preloader
   const nextBtn = page.getByTestId('nav-next');
@@ -95,7 +95,6 @@ test.describe('Proposal Investment Calculator', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 

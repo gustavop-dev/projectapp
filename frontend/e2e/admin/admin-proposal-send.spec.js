@@ -81,8 +81,8 @@ test.describe('Admin Proposal Send', () => {
     // Click the send button — opens the pre-send checklist modal
     await page.getByRole('button', { name: 'Enviar al Cliente' }).first().click();
 
-    // Checklist modal should appear
-    await expect(page.getByText('Checklist pre-envío')).toBeVisible();
+    // Scorecard modal should appear
+    await expect(page.getByText('Scorecard pre-envío')).toBeVisible();
 
     // Click the modal's send button to confirm
     const [sendResponse] = await Promise.all([

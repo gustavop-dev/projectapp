@@ -1,5 +1,5 @@
 <template>
-  <section ref="sectionRef" class="proposal-summary py-16 md:py-24 bg-white">
+  <section ref="sectionRef" class="proposal-summary min-h-screen py-16 md:py-24 bg-white">
     <div class="container mx-auto px-6 md:px-12 lg:px-24 max-w-5xl">
       <div class="section-header mb-12">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
@@ -13,19 +13,6 @@
         <p v-if="content.subtitle" data-animate="fade-up" class="text-esmerald/70 font-light text-lg md:text-xl leading-relaxed">
           {{ content.subtitle }}
         </p>
-      </div>
-
-      <!-- Custom KPI highlight cards -->
-      <div v-if="content.kpis?.length" data-animate="fade-up" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div
-          v-for="(kpi, idx) in content.kpis"
-          :key="'kpi-' + idx"
-          class="bg-esmerald/10 border border-esmerald/20 rounded-2xl p-5 text-center hover:border-esmerald/40 transition-all"
-        >
-          <p class="text-3xl font-bold text-esmerald mb-1">{{ kpi.value }}</p>
-          <p class="text-sm font-medium text-esmerald/80">{{ kpi.label }}</p>
-          <p v-if="kpi.source" class="text-[10px] text-esmerald/40 mt-1">{{ kpi.source }}</p>
-        </div>
       </div>
 
       <div data-animate="fade-up" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">

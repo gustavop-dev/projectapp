@@ -1,0 +1,1021 @@
+"""
+Registry of all email templates used by ProposalEmailService and contact utils.
+
+Each entry defines:
+- name: Human-readable name shown in the admin UI.
+- description: Short explanation of when this email is sent.
+- category: 'client' | 'internal' | 'contact'
+- html_template: Path to the Django HTML template (None for plain-text only).
+- txt_template: Path to the Django plain-text template (None for plain-text only).
+- editable_fields: List of dicts defining admin-editable text blocks.
+- available_variables: List of variable names the admin can use in text.
+- sample_context: Dict of sample values for preview rendering.
+"""
+
+
+def _client_sample():
+    """Common sample context for client-facing proposal emails."""
+    return {
+        'client_name': 'Carlos Rodríguez',
+        'title': 'Plataforma E-commerce Premium',
+        'proposal_url': 'https://projectapp.co/proposal/abc-123/',
+        'days_remaining': 12,
+        'expires_at': '2026-04-15',
+        'total_investment': '15,000,000',
+        'currency': 'COP',
+    }
+
+
+def _internal_sample():
+    """Common sample context for internal notification emails."""
+    return {
+        'client_name': 'Carlos Rodríguez',
+        'title': 'Plataforma E-commerce Premium',
+        'proposal_title': 'Plataforma E-commerce Premium',
+        'total_investment': '15,000,000',
+        'currency': 'COP',
+        'proposal_uuid': 'abc-123-def-456',
+    }
+
+
+EMAIL_TEMPLATE_REGISTRY = {
+    # -----------------------------------------------------------------------
+    # Client-facing emails (sent to client_email)
+    # -----------------------------------------------------------------------
+    'proposal_sent_client': {
+        'name': 'Propuesta Enviada',
+        'description': 'Se envía cuando el vendedor envía la propuesta al cliente por primera vez.',
+        'category': 'client',
+        'html_template': 'emails/proposal_sent_client.html',
+        'txt_template': 'emails/proposal_sent_client.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\U0001f4cb {client_name}, tu propuesta está lista — Project App',
+            },
+            {
+                'key': 'greeting',
+                'label': 'Saludo',
+                'type': 'text',
+                'default': 'Hola {client_name} \U0001f44b',
+            },
+            {
+                'key': 'body',
+                'label': 'Cuerpo del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'Hemos preparado una propuesta personalizada para tu proyecto. '
+                    'Dentro encontrarás todos los detalles: alcance, inversión, '
+                    'cronograma y próximos pasos.'
+                ),
+            },
+            {
+                'key': 'cta_text',
+                'label': 'Texto del botón',
+                'type': 'text',
+                'default': '\U0001f4cb Ver mi propuesta',
+            },
+        ],
+        'available_variables': [
+            'client_name', 'title', 'total_investment', 'currency',
+            'days_remaining',
+        ],
+        'sample_context': {
+            **_client_sample(),
+        },
+    },
+
+    'proposal_reminder': {
+        'name': 'Recordatorio de Propuesta',
+        'description': 'Se envía N días después del envío si el cliente no ha respondido.',
+        'category': 'client',
+        'html_template': 'emails/proposal_reminder.html',
+        'txt_template': 'emails/proposal_reminder.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\U0001f4cb {client_name}, tu propuesta te espera — Project App',
+            },
+            {
+                'key': 'greeting',
+                'label': 'Saludo',
+                'type': 'text',
+                'default': 'Hola {client_name} \U0001f44b',
+            },
+            {
+                'key': 'body',
+                'label': 'Cuerpo del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'Preparamos una propuesta personalizada para tu proyecto y queremos '
+                    'asegurarnos de que no se te pase revisarla.'
+                ),
+            },
+            {
+                'key': 'cta_text',
+                'label': 'Texto del botón',
+                'type': 'text',
+                'default': '\U0001f449 Ver mi propuesta',
+            },
+        ],
+        'available_variables': [
+            'client_name', 'title', 'total_investment', 'currency',
+            'days_remaining',
+        ],
+        'sample_context': {
+            **_client_sample(),
+        },
+    },
+
+    'proposal_urgency': {
+        'name': 'Urgencia con Descuento',
+        'description': 'Se envía al día 15 cuando hay descuento activo.',
+        'category': 'client',
+        'html_template': 'emails/proposal_urgency.html',
+        'txt_template': 'emails/proposal_urgency.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': (
+                    '\U0001f525 {client_name}, tu propuesta expira pronto — '
+                    '{discount_percent}% de descuento si accedes hoy'
+                ),
+            },
+            {
+                'key': 'greeting',
+                'label': 'Saludo',
+                'type': 'text',
+                'default': '{client_name}, no dejes pasar esta oportunidad',
+            },
+            {
+                'key': 'body',
+                'label': 'Cuerpo del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'Tu propuesta {title} está por expirar. '
+                    'Para que no pierdas esta oportunidad, te ofrecemos un '
+                    '{discount_percent}% de descuento si accedes hoy.'
+                ),
+            },
+            {
+                'key': 'cta_text',
+                'label': 'Texto del botón',
+                'type': 'text',
+                'default': '\U0001f525 Acceder a mi propuesta con descuento',
+            },
+        ],
+        'available_variables': [
+            'client_name', 'title', 'total_investment', 'currency',
+            'days_remaining', 'discount_percent', 'discounted_investment',
+        ],
+        'sample_context': {
+            **_client_sample(),
+            'discount_percent': 15,
+            'discounted_investment': '12,750,000',
+        },
+    },
+
+    'proposal_urgency_no_discount': {
+        'name': 'Urgencia sin Descuento',
+        'description': 'Se envía al día 15 cuando NO hay descuento activo.',
+        'category': 'client',
+        'html_template': 'emails/proposal_urgency_no_discount.html',
+        'txt_template': 'emails/proposal_urgency_no_discount.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\u23f0 {client_name}, tu propuesta expira pronto — Project App',
+            },
+            {
+                'key': 'greeting',
+                'label': 'Saludo',
+                'type': 'text',
+                'default': '{client_name}, tu propuesta está por expirar',
+            },
+            {
+                'key': 'body',
+                'label': 'Cuerpo del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'Tu propuesta {title} expira pronto. '
+                    'No queremos que pierdas esta oportunidad de transformar '
+                    'tu presencia digital.'
+                ),
+            },
+            {
+                'key': 'cta_text',
+                'label': 'Texto del botón',
+                'type': 'text',
+                'default': '\U0001f449 Ver mi propuesta',
+            },
+        ],
+        'available_variables': [
+            'client_name', 'title', 'total_investment', 'currency',
+            'days_remaining',
+        ],
+        'sample_context': {
+            **_client_sample(),
+        },
+    },
+
+    'proposal_accepted_client': {
+        'name': 'Confirmación de Aceptación',
+        'description': 'Se envía al cliente cuando acepta la propuesta.',
+        'category': 'client',
+        'html_template': 'emails/proposal_accepted_client.html',
+        'txt_template': 'emails/proposal_accepted_client.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\u2705 {client_name}, tu propuesta ha sido aceptada — Project App',
+            },
+            {
+                'key': 'greeting',
+                'label': 'Saludo',
+                'type': 'text',
+                'default': '\u00a1Excelente, {client_name}! \U0001f389',
+            },
+            {
+                'key': 'body',
+                'label': 'Cuerpo del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'Hemos recibido tu confirmación para la propuesta {title}. '
+                    'Estamos emocionados de comenzar este proyecto contigo.'
+                ),
+            },
+            {
+                'key': 'cta_text',
+                'label': 'Texto del botón',
+                'type': 'text',
+                'default': '\U0001f4c4 Ver mi propuesta',
+            },
+        ],
+        'available_variables': [
+            'client_name', 'title', 'total_investment', 'currency',
+        ],
+        'sample_context': {
+            **_client_sample(),
+        },
+    },
+
+    'proposal_rejected_client': {
+        'name': 'Agradecimiento por Rechazo',
+        'description': 'Se envía al cliente cuando rechaza la propuesta.',
+        'category': 'client',
+        'html_template': 'emails/proposal_rejected_client.html',
+        'txt_template': 'emails/proposal_rejected_client.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': 'Gracias por tu tiempo, {client_name} — Project App',
+            },
+            {
+                'key': 'greeting',
+                'label': 'Saludo',
+                'type': 'text',
+                'default': 'Gracias por tu tiempo, {client_name} \U0001f64f',
+            },
+            {
+                'key': 'body',
+                'label': 'Cuerpo del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'Lamentamos que la propuesta {title} no se ajuste a lo que '
+                    'buscas en este momento. Tu opinión es muy valiosa para nosotros '
+                    'y nos ayuda a seguir mejorando.'
+                ),
+            },
+            {
+                'key': 'inspirational_text',
+                'label': 'Mensaje inspiracional',
+                'type': 'textarea',
+                'default': (
+                    'En Project App creemos que cada proyecto tiene su momento perfecto. '
+                    'Cuando estés listo para dar el siguiente paso en tu transformación digital, '
+                    'estaremos aquí como tu aliado estratégico. No dudes en contactarnos '
+                    'para explorar nuevas ideas o retomar esta conversación.'
+                ),
+            },
+            {
+                'key': 'cta_text',
+                'label': 'Texto del botón',
+                'type': 'text',
+                'default': '\U0001f4ac Conversemos cuando estés listo',
+            },
+        ],
+        'available_variables': ['client_name', 'title'],
+        'sample_context': {
+            'client_name': 'Carlos Rodríguez',
+            'title': 'Plataforma E-commerce Premium',
+        },
+    },
+
+    'proposal_reengagement': {
+        'name': 'Re-engagement post Rechazo',
+        'description': 'Se envía 48h después de un rechazo por presupuesto.',
+        'category': 'client',
+        'html_template': 'emails/proposal_reengagement.html',
+        'txt_template': 'emails/proposal_reengagement.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': (
+                    '{client_name}, ¿podemos encontrar una solución '
+                    'que se ajuste a tu presupuesto?'
+                ),
+            },
+            {
+                'key': 'greeting',
+                'label': 'Saludo',
+                'type': 'text',
+                'default': '{client_name}, ¿podemos encontrar una solución? \U0001f91d',
+            },
+            {
+                'key': 'body',
+                'label': 'Cuerpo del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'Hace un par de días recibimos tu decisión sobre la propuesta '
+                    '{title}. Entendemos completamente que el presupuesto es un '
+                    'factor clave, y queremos explorar contigo si hay una forma de '
+                    'hacer que esto funcione.'
+                ),
+            },
+            {
+                'key': 'cta_text',
+                'label': 'Texto del botón',
+                'type': 'text',
+                'default': '\U0001f4ac Hablemos por WhatsApp',
+            },
+        ],
+        'available_variables': [
+            'client_name', 'title', 'total_investment', 'currency',
+            'discount_percent', 'discounted_investment',
+        ],
+        'sample_context': {
+            'client_name': 'Carlos Rodríguez',
+            'title': 'Plataforma E-commerce Premium',
+            'proposal_title': 'Plataforma E-commerce Premium',
+            'total_investment': '15,000,000',
+            'currency': 'COP',
+            'discount_percent': 10,
+            'discounted_investment': '13,500,000',
+        },
+    },
+
+    'proposal_abandonment_followup': {
+        'name': 'Seguimiento por Abandono',
+        'description': 'Se envía cuando el cliente vio la propuesta pero no llegó a la sección de inversión.',
+        'category': 'client',
+        'html_template': 'emails/proposal_abandonment_followup.html',
+        'txt_template': 'emails/proposal_abandonment_followup.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\U0001f4cb {client_name}, ¿te quedaron dudas sobre la propuesta? — Project App',
+            },
+            {
+                'key': 'greeting',
+                'label': 'Saludo',
+                'type': 'text',
+                'default': 'Hola {client_name} \U0001f44b',
+            },
+            {
+                'key': 'body',
+                'label': 'Cuerpo del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'Noté que revisaste la propuesta "{title}" pero no alcanzaste a ver '
+                    'todas las secciones. ¡Es totalmente normal! A veces hay mucho que procesar.'
+                ),
+            },
+            {
+                'key': 'body_secondary',
+                'label': 'Segundo párrafo',
+                'type': 'textarea',
+                'default': (
+                    '¿Te gustaría agendar una llamada rápida de 15 minutos para resolver '
+                    'cualquier duda? Podemos repasar la propuesta juntos y ajustarla a lo que necesites.'
+                ),
+            },
+            {
+                'key': 'cta_text',
+                'label': 'Texto del botón principal',
+                'type': 'text',
+                'default': '\U0001f449 Continuar revisando la propuesta',
+            },
+        ],
+        'available_variables': ['client_name', 'title', 'proposal_url'],
+        'sample_context': {
+            **_client_sample(),
+        },
+    },
+
+    'proposal_investment_interest_followup': {
+        'name': 'Seguimiento por Interés en Inversión',
+        'description': 'Se envía cuando el cliente pasó tiempo significativo en la sección de inversión.',
+        'category': 'client',
+        'html_template': 'emails/proposal_investment_interest_followup.html',
+        'txt_template': 'emails/proposal_investment_interest_followup.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\U0001f4b0 {client_name}, hablemos sobre opciones de inversión — Project App',
+            },
+            {
+                'key': 'greeting',
+                'label': 'Saludo',
+                'type': 'text',
+                'default': 'Hola {client_name} \U0001f4b0',
+            },
+            {
+                'key': 'body',
+                'label': 'Cuerpo del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'Noté que estás evaluando la inversión de la propuesta '
+                    '"{title}". Es una decisión importante y queremos que te '
+                    'sientas totalmente cómodo/a con ella.'
+                ),
+            },
+            {
+                'key': 'body_secondary',
+                'label': 'Segundo párrafo',
+                'type': 'textarea',
+                'default': (
+                    '¿Qué tal si hablamos sobre opciones de pago flexibles? '
+                    'Podemos ajustar el plan de pagos a tu presupuesto y tiempos.'
+                ),
+            },
+            {
+                'key': 'cta_text',
+                'label': 'Texto del botón principal',
+                'type': 'text',
+                'default': '\U0001f4ac Hablar sobre opciones de pago',
+            },
+        ],
+        'available_variables': [
+            'client_name', 'title', 'total_investment', 'currency',
+            'time_on_investment',
+        ],
+        'sample_context': {
+            **_client_sample(),
+            'time_on_investment': '3m 45s',
+        },
+    },
+
+    'proposal_scheduled_followup': {
+        'name': 'Seguimiento Programado',
+        'description': 'Se envía como follow-up programado tras rechazo por "no es el momento".',
+        'category': 'client',
+        'html_template': 'emails/proposal_scheduled_followup.html',
+        'txt_template': 'emails/proposal_scheduled_followup.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\U0001f44b {client_name}, ¿es buen momento para retomar tu proyecto? — Project App',
+            },
+            {
+                'key': 'greeting',
+                'label': 'Saludo',
+                'type': 'text',
+                'default': 'Hola {client_name} \U0001f44b',
+            },
+            {
+                'key': 'body',
+                'label': 'Cuerpo del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'Hace un tiempo nos pediste que te recordáramos sobre la propuesta '
+                    '"{title}". ¡Aquí estamos!'
+                ),
+            },
+            {
+                'key': 'body_secondary',
+                'label': 'Segundo párrafo',
+                'type': 'textarea',
+                'default': (
+                    'Nos encantaría saber cómo va todo y si ahora es un buen momento '
+                    'para retomar el proyecto. La propuesta sigue disponible y podemos '
+                    'actualizarla según tus necesidades actuales.'
+                ),
+            },
+            {
+                'key': 'cta_text',
+                'label': 'Texto del botón principal',
+                'type': 'text',
+                'default': '\U0001f449 Revisar la propuesta',
+            },
+        ],
+        'available_variables': ['client_name', 'title', 'proposal_url'],
+        'sample_context': {
+            **_client_sample(),
+        },
+    },
+
+    'proposal_negotiation_confirmation': {
+        'name': 'Confirmación de Negociación',
+        'description': 'Se envía al cliente cuando elige "Aceptar con cambios".',
+        'category': 'client',
+        'html_template': 'emails/proposal_negotiation_confirmation.html',
+        'txt_template': 'emails/proposal_negotiation_confirmation.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\U0001f91d {client_name}, recibimos tu solicitud de ajustes — Project App',
+            },
+            {
+                'key': 'greeting',
+                'label': 'Saludo',
+                'type': 'text',
+                'default': 'Hola {client_name},',
+            },
+            {
+                'key': 'body',
+                'label': 'Cuerpo del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'Recibimos tu solicitud para ajustar el alcance de la propuesta '
+                    '"{title}". Nuestro equipo revisará tus notas y te contactará '
+                    'en las próximas horas para conversar sobre las opciones.'
+                ),
+            },
+            {
+                'key': 'body_secondary',
+                'label': 'Segundo párrafo',
+                'type': 'textarea',
+                'default': 'Mientras tanto, puedes seguir revisando la propuesta en cualquier momento:',
+            },
+            {
+                'key': 'cta_text',
+                'label': 'Texto del botón',
+                'type': 'text',
+                'default': '\U0001f4c4 Ver mi propuesta',
+            },
+        ],
+        'available_variables': ['client_name', 'title', 'total_investment', 'currency'],
+        'sample_context': {
+            **_client_sample(),
+        },
+    },
+
+    # -----------------------------------------------------------------------
+    # Internal/Team emails (sent to NOTIFICATION_EMAIL)
+    # -----------------------------------------------------------------------
+    'proposal_response_notification': {
+        'name': 'Notificación de Respuesta',
+        'description': 'Se envía al equipo cuando el cliente acepta, rechaza o negocia.',
+        'category': 'internal',
+        'html_template': 'emails/proposal_response_notification.html',
+        'txt_template': 'emails/proposal_response_notification.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '[{action_tag}] Propuesta: {title} — {client_name}',
+            },
+        ],
+        'available_variables': [
+            'client_name', 'title', 'total_investment', 'currency',
+            'action', 'action_label', 'action_tag',
+            'rejection_reason', 'rejection_comment',
+        ],
+        'sample_context': {
+            **_internal_sample(),
+            'action': 'accepted',
+            'action_label': 'ACEPTADA',
+            'action_tag': 'ACCEPTED',
+            'rejection_reason': '',
+            'rejection_comment': '',
+        },
+    },
+
+    'proposal_first_view_notification': {
+        'name': 'Primera Vista',
+        'description': 'Se envía al equipo cuando el cliente abre la propuesta por primera vez.',
+        'category': 'internal',
+        'html_template': 'emails/proposal_first_view_notification.html',
+        'txt_template': 'emails/proposal_first_view_notification.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\U0001f441 [OPENED] Propuesta: {title} — {client_name}',
+            },
+            {
+                'key': 'body',
+                'label': 'Texto principal',
+                'type': 'textarea',
+                'default': (
+                    '{client_name} acaba de abrir la propuesta por primera vez. '
+                    'Tiene la propuesta frente a él/ella en este momento.'
+                ),
+            },
+        ],
+        'available_variables': [
+            'client_name', 'proposal_title', 'total_investment', 'currency',
+            'client_email', 'viewed_at',
+        ],
+        'sample_context': {
+            **_internal_sample(),
+            'client_email': 'carlos@empresa.com',
+            'viewed_at': '2026-03-13 14:30',
+        },
+    },
+
+    'proposal_comment_notification': {
+        'name': 'Notificación de Comentario',
+        'description': 'Se envía al equipo cuando el cliente envía un comentario de negociación.',
+        'category': 'internal',
+        'html_template': 'emails/proposal_comment_notification.html',
+        'txt_template': 'emails/proposal_comment_notification.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '[COMENTARIO] Propuesta: {title} — {client_name}',
+            },
+        ],
+        'available_variables': [
+            'client_name', 'proposal_title', 'total_investment', 'currency',
+            'comment',
+        ],
+        'sample_context': {
+            **_internal_sample(),
+            'comment': 'Me interesa pero necesito revisar el alcance del módulo de facturación.',
+        },
+    },
+
+    'proposal_revisit_alert': {
+        'name': 'Alerta de Revisitas',
+        'description': 'Se envía al equipo cuando el cliente revisita la propuesta múltiples veces.',
+        'category': 'internal',
+        'html_template': 'emails/proposal_revisit_alert.html',
+        'txt_template': 'emails/proposal_revisit_alert.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\U0001f525 [HOT LEAD] {client_name} revisó la propuesta {visit_count} veces',
+            },
+        ],
+        'available_variables': [
+            'client_name', 'proposal_title', 'total_investment', 'currency',
+            'visit_count', 'top_section', 'top_section_time',
+        ],
+        'sample_context': {
+            **_internal_sample(),
+            'visit_count': 5,
+            'top_section': 'Inversión',
+            'top_section_time': '4m 20s',
+        },
+    },
+
+    'proposal_share_notification': {
+        'name': 'Propuesta Compartida',
+        'description': 'Se envía al equipo cuando el cliente comparte la propuesta con alguien.',
+        'category': 'internal',
+        'html_template': 'emails/proposal_share_notification.html',
+        'txt_template': 'emails/proposal_share_notification.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\U0001f517 [SHARED] {client_name} compartió la propuesta "{title}"',
+            },
+            {
+                'key': 'body',
+                'label': 'Texto principal',
+                'type': 'textarea',
+                'default': (
+                    '{client_name} ha compartido la propuesta "{title}" con alguien más. '
+                    'Esto es una señal positiva: el cliente está involucrando a más personas en la decisión.'
+                ),
+            },
+        ],
+        'available_variables': [
+            'client_name', 'proposal_title', 'shared_by_name', 'shared_by_email',
+        ],
+        'sample_context': {
+            **_internal_sample(),
+            'shared_by_name': 'María López',
+            'shared_by_email': 'maria@empresa.com',
+        },
+    },
+
+    'proposal_stakeholder_detected': {
+        'name': 'Stakeholder Detectado',
+        'description': 'Se envía al equipo cuando se detecta acceso desde una nueva IP.',
+        'category': 'internal',
+        'html_template': 'emails/proposal_stakeholder_detected.html',
+        'txt_template': 'emails/proposal_stakeholder_detected.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\U0001f465 [NUEVO LECTOR] Propuesta: {title} — {client_name}',
+            },
+        ],
+        'available_variables': [
+            'client_name', 'proposal_title', 'total_investment', 'currency',
+            'known_ips_count',
+        ],
+        'sample_context': {
+            **_internal_sample(),
+            'known_ips_count': 3,
+        },
+    },
+
+    'seller_inactivity_escalation': {
+        'name': 'Escalación por Inactividad',
+        'description': 'Se envía al equipo cuando una propuesta lleva 5+ días sin seguimiento del vendedor.',
+        'category': 'internal',
+        'html_template': 'emails/seller_inactivity_escalation.html',
+        'txt_template': 'emails/seller_inactivity_escalation.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\u26a0\ufe0f Propuesta sin seguimiento: {client_name} — {title}',
+            },
+            {
+                'key': 'body',
+                'label': 'Texto principal',
+                'type': 'textarea',
+                'default': (
+                    'La propuesta para {client_name} lleva {days_inactive} días sin ninguna '
+                    'actividad de seguimiento. El cliente ya revisó la propuesta — cada día '
+                    'sin contacto reduce las probabilidades de cierre.'
+                ),
+            },
+        ],
+        'available_variables': [
+            'client_name', 'proposal_title', 'total_investment', 'currency',
+            'days_inactive', 'edit_url', 'status',
+        ],
+        'sample_context': {
+            **_internal_sample(),
+            'days_inactive': 7,
+            'edit_url': 'https://projectapp.co/panel/proposals/1/edit',
+            'status': 'viewed',
+        },
+    },
+
+    'proposal_negotiation_notification': {
+        'name': 'Notificación de Negociación',
+        'description': 'Se envía al equipo cuando el cliente quiere aceptar con cambios.',
+        'category': 'internal',
+        'html_template': 'emails/proposal_negotiation_notification.html',
+        'txt_template': 'emails/proposal_negotiation_notification.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\U0001f91d [NEGOCIANDO] {client_name} quiere ajustar la propuesta "{title}"',
+            },
+        ],
+        'available_variables': [
+            'client_name', 'proposal_title', 'total_investment', 'currency',
+            'comment', 'edit_url',
+        ],
+        'sample_context': {
+            **_internal_sample(),
+            'comment': 'Necesito ajustar el alcance del módulo de pagos.',
+            'edit_url': 'https://projectapp.co/panel/proposals/1/edit',
+        },
+    },
+
+    'post_rejection_revisit_alert': {
+        'name': 'Revisita Post-Rechazo',
+        'description': 'Se envía al equipo cuando un cliente rechazado revisita la propuesta.',
+        'category': 'internal',
+        'html_template': 'emails/post_rejection_revisit_alert.html',
+        'txt_template': 'emails/post_rejection_revisit_alert.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': (
+                    '\U0001f504 [RECONSIDERACIÓN] {client_name} revisitó la propuesta '
+                    'rechazada "{title}" ({days_since_rejection}d después)'
+                ),
+            },
+            {
+                'key': 'body',
+                'label': 'Texto principal',
+                'type': 'textarea',
+                'default': (
+                    '{client_name} revisitó la propuesta "{title}" que había rechazado hace '
+                    '{days_since_rejection} días. Este comportamiento sugiere que el cliente está '
+                    'reconsiderando y es un excelente momento para retomar contacto.'
+                ),
+            },
+        ],
+        'available_variables': [
+            'client_name', 'proposal_title', 'total_investment', 'currency',
+            'days_since_rejection', 'edit_url',
+        ],
+        'sample_context': {
+            **_internal_sample(),
+            'days_since_rejection': 12,
+            'edit_url': 'https://projectapp.co/panel/proposals/1/edit',
+        },
+    },
+
+    'daily_pipeline_digest': {
+        'name': 'Resumen Diario de Pipeline',
+        'description': 'Se envía todos los días a las 7 AM con resumen de propuestas.',
+        'category': 'internal',
+        'html_template': 'emails/daily_pipeline_digest.html',
+        'txt_template': 'emails/daily_pipeline_digest.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\U0001f4ca Pipeline Diario — {date} — {total_active} propuestas activas',
+            },
+        ],
+        'available_variables': [
+            'date', 'total_active', 'viewed_yesterday', 'inactive',
+            'expiring_soon',
+        ],
+        'sample_context': {
+            'date': '2026-03-13',
+            'total_active': 8,
+            'viewed_yesterday': [
+                {'client_name': 'Carlos', 'title': 'E-commerce', 'status': 'viewed'},
+            ],
+            'inactive': [
+                {'client_name': 'Ana', 'title': 'App Móvil', 'days_inactive': 5},
+            ],
+            'expiring_soon': [
+                {'client_name': 'Luis', 'title': 'SaaS', 'expires_at': '2026-03-18'},
+            ],
+        },
+    },
+
+    'proposal_post_expiration_visit': {
+        'name': 'Visita Post-Expiración',
+        'description': 'Se envía al equipo cuando un cliente abre una propuesta ya expirada.',
+        'category': 'internal',
+        'html_template': 'emails/proposal_post_expiration_visit.html',
+        'txt_template': 'emails/proposal_post_expiration_visit.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': (
+                    '\U0001f525 {client_name} abrió la propuesta expirada '
+                    '"{title}" — ¡Alto interés!'
+                ),
+            },
+        ],
+        'available_variables': [
+            'client_name', 'proposal_title', 'total_investment', 'currency',
+            'edit_url',
+        ],
+        'sample_context': {
+            **_internal_sample(),
+            'edit_url': 'https://projectapp.co/panel/proposals/1/edit',
+        },
+    },
+
+    # -----------------------------------------------------------------------
+    # Contact (plain text)
+    # -----------------------------------------------------------------------
+    'contact_notification': {
+        'name': 'Notificación de Contacto',
+        'description': 'Se envía al equipo cuando alguien envía el formulario de contacto.',
+        'category': 'contact',
+        'html_template': None,
+        'txt_template': None,
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': 'Nuevo mensaje de contacto: {subject}',
+            },
+            {
+                'key': 'body',
+                'label': 'Cuerpo del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'Nuevo mensaje de contacto recibido:\n\n'
+                    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+                    'Email: {email}\n'
+                    'Teléfono: {phone}\n'
+                    'Presupuesto: {budget}\n'
+                    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
+                    'Asunto: {subject}\n\n'
+                    'Mensaje:\n{message}\n\n'
+                    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+                    'Este mensaje fue enviado desde el formulario de contacto de projectapp.co'
+                ),
+            },
+        ],
+        'available_variables': [
+            'email', 'phone', 'budget', 'subject', 'message',
+        ],
+        'sample_context': {
+            'email': 'ejemplo@empresa.com',
+            'phone': '+57 312 345 6789',
+            'budget': '$10,000,000 COP',
+            'subject': 'Consulta sobre desarrollo web',
+            'message': 'Hola, me interesa desarrollar una plataforma para mi empresa.',
+        },
+    },
+}
+
+
+def get_registry():
+    """Return the full email template registry."""
+    return EMAIL_TEMPLATE_REGISTRY
+
+
+def get_template_entry(template_key):
+    """Return a single registry entry or None."""
+    return EMAIL_TEMPLATE_REGISTRY.get(template_key)
+
+
+def get_all_keys():
+    """Return all registered template keys."""
+    return list(EMAIL_TEMPLATE_REGISTRY.keys())
+
+
+def get_default_field_values(template_key):
+    """
+    Return a dict of {field_key: default_value} for a given template.
+    """
+    entry = EMAIL_TEMPLATE_REGISTRY.get(template_key)
+    if not entry:
+        return {}
+    return {
+        field['key']: field['default']
+        for field in entry.get('editable_fields', [])
+    }
+
+
+def resolve_field_values(template_key, overrides=None):
+    """
+    Merge defaults with overrides, returning the final {field_key: value} dict.
+    """
+    defaults = get_default_field_values(template_key)
+    if overrides:
+        for key, value in overrides.items():
+            if key in defaults and value:
+                defaults[key] = value
+    return defaults
+
+
+def substitute_variables(text, context):
+    """
+    Replace {variable} placeholders in text with actual context values.
+
+    Uses str.format_map with a defaultdict so missing keys are left as-is.
+    """
+    if not text or not context:
+        return text or ''
+
+    class SafeDict(dict):
+        def __missing__(self, key):
+            return '{' + key + '}'
+
+    try:
+        return text.format_map(SafeDict(**{k: str(v) for k, v in context.items()}))
+    except (KeyError, ValueError, IndexError):
+        return text

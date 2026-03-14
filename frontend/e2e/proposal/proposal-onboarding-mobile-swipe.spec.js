@@ -46,11 +46,13 @@ test.describe('Proposal Onboarding Mobile Swipe', () => {
     // Ensure onboarding has NOT been seen (remove storage flag)
     await page.addInitScript((uuid) => {
       localStorage.removeItem('proposal_onboarding_seen');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
 
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
+
+    // Gateway shows first — pick detailed view
+    await page.getByText('Propuesta Completa').click();
 
     // Wait for proposal to load and onboarding to appear
     await expect(page.getByTestId('nav-next')).toBeVisible({ timeout: 20000 });
@@ -70,11 +72,13 @@ test.describe('Proposal Onboarding Mobile Swipe', () => {
   }, async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.removeItem('proposal_onboarding_seen');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
 
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
+
+    // Gateway shows first
+    await page.getByText('Propuesta Completa').click();
 
     await expect(page.getByTestId('nav-next')).toBeVisible({ timeout: 20000 });
     await expect(page.getByText(/Desliza o usa los botones/i)).toBeVisible({ timeout: 10000 });
@@ -94,11 +98,13 @@ test.describe('Proposal Onboarding Mobile Swipe', () => {
   }, async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.removeItem('proposal_onboarding_seen');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
 
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
+
+    // Gateway shows first
+    await page.getByText('Propuesta Completa').click();
 
     await expect(page.getByTestId('nav-next')).toBeVisible({ timeout: 20000 });
     await expect(page.getByText(/Desliza o usa los botones/i)).toBeVisible({ timeout: 10000 });

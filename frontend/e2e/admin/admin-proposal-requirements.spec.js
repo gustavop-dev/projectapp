@@ -173,7 +173,10 @@ test.describe('Functional Requirements — Form Mode', () => {
     await openRequirementsEditor(page, captured);
 
     const editor = page.getByTestId('section-editor');
-    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('sections') && r.url().includes('update')),
+      editor.getByRole('button', { name: 'Guardar Sección' }).click(),
+    ]);
     await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
@@ -190,7 +193,10 @@ test.describe('Functional Requirements — Form Mode', () => {
     await openRequirementsEditor(page, captured);
 
     const editor = page.getByTestId('section-editor');
-    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('sections') && r.url().includes('update')),
+      editor.getByRole('button', { name: 'Guardar Sección' }).click(),
+    ]);
     await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     const last = captured[captured.length - 1];
@@ -207,7 +213,10 @@ test.describe('Functional Requirements — Form Mode', () => {
     await openRequirementsEditor(page, captured);
 
     const editor = page.getByTestId('section-editor');
-    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('sections') && r.url().includes('update')),
+      editor.getByRole('button', { name: 'Guardar Sección' }).click(),
+    ]);
     await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
@@ -225,7 +234,10 @@ test.describe('Functional Requirements — Form Mode', () => {
     await openRequirementsEditor(page, captured);
 
     const editor = page.getByTestId('section-editor');
-    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('sections') && r.url().includes('update')),
+      editor.getByRole('button', { name: 'Guardar Sección' }).click(),
+    ]);
     await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
@@ -327,7 +339,10 @@ test.describe('Functional Requirements — Paste Content Mode', () => {
     const editor = page.getByTestId('section-editor');
 
     // Save with default (all form mode) — verify all groups have _editMode: form
-    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('sections') && r.url().includes('update')),
+      editor.getByRole('button', { name: 'Guardar Sección' }).click(),
+    ]);
     await expect(editor.getByText('✓ Guardado')).toBeVisible();
 
     expect(captured.length).toBeGreaterThanOrEqual(1);

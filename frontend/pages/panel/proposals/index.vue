@@ -1,17 +1,34 @@
 <template>
   <div>
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
-      <h1 class="text-2xl font-light text-gray-900">Propuestas</h1>
-      <NuxtLink
-        :to="localePath('/panel/proposals/create')"
-        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
-               font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        Nueva Propuesta
-      </NuxtLink>
+      <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Propuestas</h1>
+      <div class="flex items-center gap-3">
+        <NuxtLink
+          :to="localePath('/panel/proposals/defaults')"
+          class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-gray-600 border border-gray-200 rounded-xl
+                 font-medium text-sm hover:bg-gray-50 hover:border-gray-300 transition-colors
+                 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-500"
+          title="Configurar valores por defecto de las propuestas"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Valores por Defecto
+        </NuxtLink>
+        <NuxtLink
+          :to="localePath('/panel/proposals/create')"
+          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
+                 font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm
+                 dark:bg-emerald-700 dark:hover:bg-emerald-600"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Nueva Propuesta
+        </NuxtLink>
+      </div>
     </div>
 
     <!-- KPI Dashboard -->
@@ -43,17 +60,17 @@
               <span class="text-xs text-gray-400 ml-2">{{ alert.title }}</span>
             </div>
           </div>
-          <span class="text-xs text-gray-400 font-medium">{{ alert.message }}</span>
+          <span class="text-xs text-gray-400 font-medium dark:text-gray-500">{{ alert.message }}</span>
         </div>
       </div>
     </div>
 
     <!-- Alerts panel -->
-    <div v-if="activeAlerts.length || showAlertForm" class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
+    <div v-if="activeAlerts.length || showAlertForm" class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 dark:bg-amber-900/20 dark:border-amber-700">
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
           <span class="text-lg">⚠️</span>
-          <h3 class="text-sm font-semibold text-amber-800">Propuestas que necesitan atención ({{ activeAlerts.length }})</h3>
+          <h3 class="text-sm font-semibold text-amber-800 dark:text-amber-300">Propuestas que necesitan atención ({{ activeAlerts.length }})</h3>
         </div>
         <button
           type="button"
@@ -65,7 +82,7 @@
       </div>
 
       <!-- Create alert form -->
-      <div v-if="showAlertForm" class="mb-4 bg-white rounded-lg border border-amber-100 p-4 space-y-3">
+      <div v-if="showAlertForm" class="mb-4 bg-white rounded-lg border border-amber-100 p-4 space-y-3 dark:bg-gray-800 dark:border-gray-600">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label class="block text-xs text-gray-500 mb-1">Propuesta</label>
@@ -110,18 +127,18 @@
         <div
           v-for="alert in activeAlerts"
           :key="`${alert.id}-${alert.alert_type}-${alert.manual_alert_id || ''}`"
-          class="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border border-amber-100 cursor-pointer hover:border-amber-300 transition-colors"
+          class="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border border-amber-100 cursor-pointer hover:border-amber-300 transition-colors dark:bg-gray-800 dark:border-gray-600 dark:hover:border-amber-500"
           @click="router.push(localePath(`/panel/proposals/${alert.id}/edit`))"
         >
           <div class="flex items-center gap-3">
             <span class="text-sm">{{ alertIcon(alert.alert_type) }}</span>
             <div>
-              <span class="text-sm font-medium text-gray-800">{{ alert.client_name }}</span>
+              <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ alert.client_name }}</span>
               <span class="text-xs text-gray-400 ml-2">{{ alert.title }}</span>
             </div>
           </div>
           <div class="flex items-center gap-3">
-            <span class="text-xs text-amber-700 font-medium">{{ alert.message }}</span>
+            <span class="text-xs text-amber-700 font-medium dark:text-amber-400">{{ alert.message }}</span>
             <button
               v-if="alert.manual_alert_id"
               type="button"
@@ -144,7 +161,8 @@
           v-model="searchQuery"
           type="text"
           placeholder="Buscar por título o cliente..."
-          class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+          class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none
+                 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
         />
       </div>
       <div class="flex gap-2 flex-wrap">
@@ -154,7 +172,7 @@
           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border"
           :class="activeFilter === opt.value
             ? 'bg-emerald-600 text-white border-emerald-600'
-            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'"
+            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:border-gray-500'"
           @click="filterByStatus(opt.value)"
         >
           {{ opt.label }}
@@ -163,12 +181,12 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="proposalStore.isLoading" class="text-center py-12 text-gray-400 text-sm">
+    <div v-if="proposalStore.isLoading" class="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">
       Cargando...
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="proposals.length === 0" class="text-center py-16">
+    <div v-else-if="proposals.length === 0" class="text-center py-16 dark:text-gray-400">
       <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
         <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -215,51 +233,45 @@
     </Transition>
 
     <!-- Table -->
-    <div v-if="!proposalStore.isLoading && proposals.length > 0" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+    <div v-if="!proposalStore.isLoading && proposals.length > 0" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto dark:bg-gray-800 dark:border-gray-700">
       <table class="w-full min-w-[800px]">
         <thead>
-          <tr class="border-b border-gray-100 text-left">
+          <tr class="border-b border-gray-100 dark:border-gray-700 text-left">
             <th class="px-3 py-3 w-10">
               <input type="checkbox" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" :checked="selectedIds.size === paginatedProposals.length && paginatedProposals.length > 0" @change="toggleSelectAll" @click.stop />
             </th>
             <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-12">ID</th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-emerald-600" @click="toggleSort('title')">
-              Título <span v-if="sortKey === 'title'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
-            </th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-emerald-600" @click="toggleSort('client_name')">
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-emerald-600" @click="toggleSort('client_name')">
               Cliente <span v-if="sortKey === 'client_name'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
             </th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-emerald-600" @click="toggleSort('total_investment')">
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-emerald-600" @click="toggleSort('total_investment')">
               Inversión <span v-if="sortKey === 'total_investment'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
             </th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-emerald-600" @click="toggleSort('last_activity_at')">
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-emerald-600" @click="toggleSort('last_activity_at')">
               Última actividad <span v-if="sortKey === 'last_activity_at'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
             </th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Vistas</th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center" title="Score de calor (1-10)">🔥</th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center cursor-pointer hover:text-emerald-600" title="Lead Score (0-100)" @click="toggleSort('lead_score')">
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vistas</th>
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">
+              <UiTooltip position="bottom" backgroundColor="bg-gray-900" width="max-w-[220px]">
+                <template #trigger><span class="cursor-help">🔥</span></template>
+                <p class="text-xs">Heat Score (1-10): indicador rápido de "temperatura" de engagement del cliente con la propuesta.</p>
+              </UiTooltip>
+            </th>
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center cursor-pointer hover:text-emerald-600" title="Lead Score (0-100)" @click="toggleSort('lead_score')">
               Score <span v-if="sortKey === 'lead_score'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
             </th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-50">
-          <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="[p.is_active ? 'hover:bg-gray-50' : 'bg-gray-50 opacity-60', selectedIds.has(p.id) ? 'bg-emerald-50/50' : '']" @click="navigateToProposal(p.id)">
+        <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
+          <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="[p.is_active ? 'hover:bg-gray-50 dark:hover:bg-gray-700/50' : 'bg-gray-50 dark:bg-gray-700/30 opacity-60', selectedIds.has(p.id) ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : '']" @click="navigateToProposal(p.id)">
             <td class="px-3 py-4" @click.stop>
               <input type="checkbox" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" :checked="selectedIds.has(p.id)" @change="toggleSelect(p.id)" />
             </td>
             <td class="px-4 py-4 text-xs text-gray-400 tabular-nums">#{{ p.id }}</td>
             <td class="px-6 py-4">
-              <NuxtLink
-                :to="localePath(`/panel/proposals/${p.id}/edit`)"
-                class="text-sm font-medium text-gray-900 hover:text-emerald-600"
-              >
-                {{ p.title }}
-              </NuxtLink>
-            </td>
-            <td class="px-6 py-4">
-              <div class="text-sm text-gray-600">{{ p.client_name }}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-300">{{ p.client_name }}</div>
               <div v-if="p.client_phone" class="text-[10px] text-gray-400">📱 {{ p.client_phone }}</div>
             </td>
             <td class="px-6 py-4">
@@ -273,11 +285,16 @@
                 <option v-for="s in allStatuses" :key="s" :value="s">{{ s }}</option>
               </select>
             </td>
-            <td class="px-6 py-4 text-sm text-gray-600 tabular-nums">
+            <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 tabular-nums">
               ${{ Number(p.total_investment).toLocaleString() }} {{ p.currency }}
             </td>
-            <td class="px-6 py-4 text-sm text-gray-500">
-              <template v-if="p.last_activity_at">
+            <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+              <template v-if="isInactive(p)">
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700">
+                  {{ inactiveDays(p) }}d sin actividad
+                </span>
+              </template>
+              <template v-else-if="p.last_activity_at">
                 {{ timeAgo(p.last_activity_at) }}
               </template>
               <template v-else-if="p.created_at">
@@ -285,39 +302,56 @@
                 <span class="text-[10px] text-gray-300 ml-1">(creada)</span>
               </template>
               <span v-else class="text-gray-300">—</span>
-              <span v-if="isInactive(p)" class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700">
-                {{ inactiveDays(p) }}d sin actividad
-              </span>
             </td>
-            <td class="px-6 py-4 text-sm text-gray-600 tabular-nums">{{ p.view_count }}</td>
+            <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 tabular-nums">{{ p.view_count }}</td>
             <td class="px-6 py-4 text-center">
-              <span v-if="p.heat_score > 0" class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white" :class="heatScoreColor(p.heat_score)">
+              <UiTooltip v-if="p.heat_score > 0 && p.engagement_summary" position="left" backgroundColor="bg-gray-900" width="max-w-[260px]">
+                <template #trigger>
+                  <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white cursor-help" :class="heatScoreColor(p.heat_score)">
+                    {{ p.heat_score }}
+                  </span>
+                </template>
+                <div class="space-y-1.5 text-xs">
+                  <div class="flex justify-between gap-3">
+                    <span class="text-gray-400">Vistas</span>
+                    <span class="font-medium">{{ p.engagement_summary.views }}</span>
+                  </div>
+                  <div v-if="p.engagement_summary.last_activity" class="flex justify-between gap-3">
+                    <span class="text-gray-400">Última visita</span>
+                    <span class="font-medium">{{ p.engagement_summary.last_activity }}</span>
+                  </div>
+                  <div class="flex justify-between gap-3">
+                    <span class="text-gray-400">Inversión</span>
+                    <span class="font-medium">{{ formatInvestmentTime(p.engagement_summary.investment_time_sec) }}</span>
+                  </div>
+                  <div v-if="p.engagement_summary.unique_devices > 1" class="flex justify-between gap-3">
+                    <span class="text-gray-400">Dispositivos</span>
+                    <span class="font-medium">{{ p.engagement_summary.unique_devices }}</span>
+                  </div>
+                  <div v-if="p.engagement_summary.skipped_sections && p.engagement_summary.skipped_sections.length" class="pt-1 border-t border-gray-700">
+                    <span class="text-gray-400">No revisó:</span>
+                    <span class="text-amber-400 ml-1">{{ p.engagement_summary.skipped_sections.map(s => sectionLabel(s)).join(', ') }}</span>
+                  </div>
+                </div>
+              </UiTooltip>
+              <span v-else-if="p.heat_score > 0" class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white" :class="heatScoreColor(p.heat_score)">
                 {{ p.heat_score }}
               </span>
               <span v-else class="text-gray-300 text-xs">—</span>
             </td>
             <td class="px-6 py-4 text-center">
-              <span v-if="p.lead_score > 0" class="text-xs font-bold tabular-nums" :class="leadScoreColor(p.lead_score)">
-                {{ p.lead_score }}
-              </span>
+              <UiTooltip v-if="p.lead_score > 0" position="left" backgroundColor="bg-gray-900" width="max-w-[240px]">
+                <template #trigger>
+                  <span class="text-xs font-bold tabular-nums cursor-help" :class="leadScoreColor(p.lead_score)">
+                    {{ p.lead_score }}
+                  </span>
+                </template>
+                <p class="text-xs">Lead Score (0-100): probabilidad de conversión basada en el engagement del cliente con la propuesta.</p>
+              </UiTooltip>
               <span v-else class="text-gray-300 text-xs">—</span>
             </td>
             <td class="px-6 py-4">
               <div class="flex items-center gap-2">
-                <button
-                  v-if="p.status === 'draft' && p.client_email"
-                  class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200"
-                  @click.stop="handleSend(p.id)"
-                >
-                  📤 Enviar
-                </button>
-                <button
-                  v-else-if="['sent', 'viewed'].includes(p.status) && p.client_email"
-                  class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200"
-                  @click.stop="handleResend(p.id)"
-                >
-                  🔄 Re-enviar
-                </button>
                 <button
                   class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
                   @click.stop="actionsModalProposal = p"
@@ -340,11 +374,11 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="actionsModalProposal = null"
         >
-          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full dark:bg-gray-800">
             <!-- Header -->
-            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
               <div>
-                <h3 class="text-base font-bold text-gray-900 truncate">{{ actionsModalProposal.title }}</h3>
+                <h3 class="text-base font-bold text-gray-900 dark:text-gray-100 truncate">{{ actionsModalProposal.title }}</h3>
                 <p class="text-xs text-gray-500 mt-0.5">{{ actionsModalProposal.client_name }}</p>
               </div>
               <button class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors" @click="actionsModalProposal = null">
@@ -394,10 +428,10 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="sendConfirmId = null"
         >
-          <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+          <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center dark:bg-gray-800">
             <div class="text-4xl mb-3">📤</div>
-            <h3 class="text-lg font-bold text-gray-900 mb-2">¿Enviar esta propuesta?</h3>
-            <p class="text-sm text-gray-500 mb-6">Se enviará un email al cliente con el enlace de la propuesta.</p>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">¿Enviar esta propuesta?</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Se enviará un email al cliente con el enlace de la propuesta.</p>
             <div class="flex gap-3 justify-center">
               <button
                 class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors"
@@ -426,9 +460,9 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="quickLogProposal = null"
         >
-          <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+          <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 dark:bg-gray-800">
             <div class="flex items-center justify-between mb-4">
-              <h3 class="text-base font-bold text-gray-900">Registrar actividad</h3>
+              <h3 class="text-base font-bold text-gray-900 dark:text-gray-100">Registrar actividad</h3>
               <button class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors" @click="quickLogProposal = null">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
@@ -470,7 +504,7 @@
     </Teleport>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-gray-100">
+      <div v-if="totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-gray-700">
         <span class="text-xs text-gray-400">{{ filteredProposals.length }} propuestas</span>
         <div class="flex gap-1">
           <button
@@ -899,6 +933,24 @@ function heatScoreColor(score) {
   if (score >= 5) return 'bg-orange-400';
   if (score >= 2) return 'bg-yellow-400 text-gray-800';
   return 'bg-gray-300 text-gray-700';
+}
+
+function formatInvestmentTime(seconds) {
+  if (!seconds || seconds === 0) return '0s';
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+}
+
+function sectionLabel(sectionType) {
+  const labels = {
+    investment: 'Inversión',
+    timeline: 'Timeline',
+    functional_requirements: 'Requerimientos',
+    final_note: 'Nota final',
+  };
+  return labels[sectionType] || sectionType;
 }
 
 function leadScoreColor(score) {

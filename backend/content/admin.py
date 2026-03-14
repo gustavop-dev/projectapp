@@ -4,6 +4,7 @@ from .models import (
     Contact, Design, Model3D, Product, Category, Item, Hosting, PortfolioWork,
     BusinessProposal, ProposalSection, ProposalRequirementGroup, ProposalRequirementItem,
     BlogPost, ProposalViewEvent, ProposalSectionView, ProposalChangeLog,
+    ProposalDefaultConfig, EmailTemplateConfig,
 )
 
 class PortfolioWorkAdmin(admin.ModelAdmin):
@@ -186,6 +187,25 @@ class BusinessProposalAdmin(admin.ModelAdmin):
     )
 
 
+class ProposalDefaultConfigAdmin(admin.ModelAdmin):
+    """
+    Admin configuration for the ProposalDefaultConfig model.
+    """
+    list_display = ('language', 'updated_at', 'created_at')
+    list_filter = ('language',)
+    readonly_fields = ('created_at', 'updated_at')
+
+
+class EmailTemplateConfigAdmin(admin.ModelAdmin):
+    """
+    Admin configuration for the EmailTemplateConfig model.
+    """
+    list_display = ('template_key', 'is_active', 'updated_at', 'created_at')
+    list_filter = ('is_active',)
+    search_fields = ('template_key',)
+    readonly_fields = ('created_at', 'updated_at')
+
+
 class ProposalRequirementItemAdmin(admin.ModelAdmin):
     """
     Custom admin configuration for the ProposalRequirementItem model.
@@ -263,7 +283,8 @@ class ProjectAppAdminSite(admin.AdminSite):
                         'BusinessProposal', 'ProposalSection',
                         'ProposalRequirementGroup', 'ProposalRequirementItem',
                         'ProposalViewEvent', 'ProposalSectionView',
-                        'ProposalChangeLog',
+                        'ProposalChangeLog', 'ProposalDefaultConfig',
+                        'EmailTemplateConfig',
                     ]
                 ]
             },
@@ -296,3 +317,5 @@ admin_site.register(BlogPost, BlogPostAdmin)
 admin_site.register(ProposalViewEvent)
 admin_site.register(ProposalSectionView)
 admin_site.register(ProposalChangeLog)
+admin_site.register(ProposalDefaultConfig, ProposalDefaultConfigAdmin)
+admin_site.register(EmailTemplateConfig, EmailTemplateConfigAdmin)

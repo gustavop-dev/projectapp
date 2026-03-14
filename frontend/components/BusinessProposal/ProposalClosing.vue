@@ -191,6 +191,15 @@
         <div class="text-5xl mb-4">🎉</div>
         <h3 class="text-xl font-bold text-gray-900 mb-2">{{ confirmTitleText }}</h3>
         <p class="text-gray-600 text-sm mb-4">{{ t.confirmText }}</p>
+        <div v-if="scopeSummary.length" class="text-left mb-4 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+          <p class="text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-2">{{ t.scopeSummaryTitle }}</p>
+          <div class="space-y-1.5">
+            <div v-for="item in scopeSummary" :key="item.label" class="flex items-baseline justify-between gap-2">
+              <span class="text-xs text-emerald-600">{{ item.label }}</span>
+              <span class="text-sm font-medium text-emerald-900 text-right">{{ item.value }}</span>
+            </div>
+          </div>
+        </div>
         <div class="text-left mb-4">
           <label class="block text-xs text-gray-500 mb-1">{{ t.conditionLabel }}</label>
           <textarea
@@ -267,7 +276,7 @@
             :disabled="isSubmitting || (!negotiateComment.trim() && !selectedAdjustments.length)"
             @click="confirmNegotiate"
           >
-            {{ isSubmitting ? t.sending : t.negotiateConfirm }}
+            {{ negotiateCtaText }}
           </button>
           <button
             v-else
@@ -391,12 +400,20 @@ const i18nStrings = {
     conditionLabel: '¿Aceptas con alguna condición? (opcional)',
     conditionPlaceholder: 'Ej: Acepto, pero necesito que se incluya X...',
     adjustmentReasons: [
-      'Reducir alcance / módulos',
-      'Ajustar timeline',
-      'Explorar precio diferente',
-      'Cambiar prioridades',
+      'El presupuesto es alto para este momento',
+      'Necesito ajustar el alcance o quitar módulos',
+      'Los tiempos de entrega no me funcionan',
+      'Quiero agregar o cambiar funcionalidades',
+      'Necesito aprobación de otro decisor',
       'Otro ajuste',
     ],
+    negotiateConfirmOne: 'Enviar solicitud de ajuste',
+    negotiateConfirmMultiple: 'Enviar {count} ajustes',
+    scopeSummaryTitle: 'Estás aprobando:',
+    scopeProject: 'Proyecto',
+    scopeInvestment: 'Inversión',
+    scopeModules: 'Módulos',
+    scopeStart: 'Inicio estimado',
     recovery: {
       budgetTitle: '¿Qué tal una versión más enfocada?',
       budgetText: 'Entendemos. Podemos ajustar el alcance del proyecto para adaptarnos a tu presupuesto. ¿Te gustaría explorar opciones?',
@@ -461,12 +478,20 @@ const i18nStrings = {
     conditionLabel: 'Accept with a condition? (optional)',
     conditionPlaceholder: 'E.g.: I accept, but I need X to be included...',
     adjustmentReasons: [
-      'Reduce scope / modules',
-      'Adjust timeline',
-      'Explore different price',
-      'Change priorities',
+      'The budget is high for right now',
+      'I need to adjust the scope or remove modules',
+      'The delivery timeline doesn\'t work for me',
+      'I want to add or change features',
+      'I need approval from another decision-maker',
       'Other adjustment',
     ],
+    negotiateConfirmOne: 'Send adjustment request',
+    negotiateConfirmMultiple: 'Send {count} adjustments',
+    scopeSummaryTitle: 'You are approving:',
+    scopeProject: 'Project',
+    scopeInvestment: 'Investment',
+    scopeModules: 'Modules',
+    scopeStart: 'Estimated start',
     recovery: {
       budgetTitle: 'How about a more focused version?',
       budgetText: 'We understand. We can adjust the project scope to fit your budget. Would you like to explore options?',
@@ -553,6 +578,27 @@ const isScheduling = ref(false);
 const conditionNote = ref('');
 const selectedAdjustments = ref([]);
 const negotiateTab = ref('adjust');
+
+const negotiateCtaText = computed(() => {
+  const count = selectedAdjustments.value.length;
+  if (isSubmitting.value) return t.value.sending;
+  if (count <= 1) return t.value.negotiateConfirmOne || t.value.negotiateConfirm;
+  return (t.value.negotiateConfirmMultiple || t.value.negotiateConfirm).replace('{count}', count);
+});
+
+const scopeSummary = computed(() => {
+  const p = props.proposal;
+  if (!p) return [];
+  const items = [];
+  if (p.title) items.push({ label: t.value.scopeProject, value: p.title });
+  const inv = p.total_investment || p.investment;
+  if (inv) items.push({ label: t.value.scopeInvestment, value: typeof inv === 'number' ? formatCurrency(inv) + ' ' + (p.currency || '') : inv + ' ' + (p.currency || '') });
+  const mods = p.selected_modules || p.modules;
+  if (Array.isArray(mods) && mods.length) items.push({ label: t.value.scopeModules, value: String(mods.length) });
+  const start = p.estimated_start || p.start_date;
+  if (start) items.push({ label: t.value.scopeStart, value: start });
+  return items;
+});
 
 const paymentMilestones = computed(() => {
   const opts = props.proposal?.payment_options;

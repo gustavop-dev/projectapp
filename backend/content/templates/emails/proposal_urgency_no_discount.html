@@ -27,11 +27,10 @@
           <tr>
             <td style="padding:40px 40px 24px;">
               <h2 style="margin:0;color:#1f2937;font-size:22px;font-weight:600;">
-                {{ client_name }}, tu propuesta está por expirar
+                {{ greeting }}
               </h2>
               <p style="margin:16px 0 0;color:#4b5563;font-size:16px;line-height:1.6;">
-                Tu propuesta <strong>{{ title }}</strong> expira pronto.
-                No queremos que pierdas esta oportunidad de transformar tu presencia digital.
+                {{ body }}
               </p>
             </td>
           </tr>
@@ -92,7 +91,7 @@
             <td style="padding:0 40px 32px;text-align:center;">
               <a href="{{ proposal_url }}"
                  style="display:inline-block;background-color:#059669;color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:600;letter-spacing:-0.01em;">
-                👉 Ver mi propuesta
+                {{ cta_text }}
               </a>
             </td>
           </tr>

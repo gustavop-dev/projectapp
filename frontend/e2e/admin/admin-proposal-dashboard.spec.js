@@ -81,7 +81,9 @@ test.describe('Admin Proposal Dashboard', () => {
     await setupMock(page);
     await page.goto('/panel/proposals');
 
-    await expect(page.getByText('Top motivos de rechazo')).toBeVisible({ timeout: 15000 });
+    // Wait for KPI cards to render first to confirm dashboard data loaded
+    await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Top motivos de rechazo')).toBeVisible();
     await expect(page.getByText('Precio alto')).toBeVisible();
     await expect(page.getByText('Sin presupuesto')).toBeVisible();
   });
@@ -95,11 +97,15 @@ test.describe('Admin Proposal Dashboard', () => {
     await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 15000 });
 
     // Hide dashboard
-    await page.getByText('Ocultar Dashboard').click();
+    const hideBtn = page.getByText('Ocultar Dashboard');
+    await hideBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await hideBtn.click();
     await expect(page.getByText('Total propuestas')).not.toBeVisible();
 
     // Show dashboard
-    await page.getByText('Mostrar Dashboard KPI').click();
-    await expect(page.getByText('Total propuestas')).toBeVisible();
+    const showBtn = page.getByText('Mostrar Dashboard KPI');
+    await showBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await showBtn.click();
+    await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 10000 });
   });
 });

@@ -34,7 +34,7 @@ const mockAcceptedProposal = {
 };
 
 async function openClosingPanel(page) {
-  await page.goto(`/proposal/${MOCK_UUID}`);
+  await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
   const nextBtn = page.getByTestId('nav-next');
   await expect(nextBtn).toBeVisible({ timeout: 15000 });
   let safetyLimit = 15;
@@ -50,7 +50,6 @@ test.describe('Proposal Post-Acceptance Welcome Kit', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 

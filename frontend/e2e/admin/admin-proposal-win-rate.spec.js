@@ -51,7 +51,7 @@ test.describe('Admin Proposal Win Rate Dashboard', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
+    await page.waitForResponse(resp => resp.url().includes('/proposals/') && resp.status() === 200);
 
     // Expand dashboard only if collapsed (button says "Mostrar")
     const expandBtn = page.getByRole('button', { name: /Mostrar Dashboard/i });
@@ -66,7 +66,7 @@ test.describe('Admin Proposal Win Rate Dashboard', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
+    await page.waitForResponse(resp => resp.url().includes('/proposals/') && resp.status() === 200);
 
     const expandBtn = page.getByRole('button', { name: /Mostrar Dashboard/i });
     if (await expandBtn.isVisible({ timeout: 3000 }).catch(() => false)) await expandBtn.click();
@@ -80,7 +80,7 @@ test.describe('Admin Proposal Win Rate Dashboard', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
+    await page.waitForResponse(resp => resp.url().includes('/proposals/') && resp.status() === 200);
 
     const expandBtn = page.getByRole('button', { name: /Mostrar Dashboard/i });
     if (await expandBtn.isVisible({ timeout: 3000 }).catch(() => false)) await expandBtn.click();

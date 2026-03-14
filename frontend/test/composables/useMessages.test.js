@@ -42,12 +42,12 @@ describe('useMessages', () => {
   });
 
   describe('with route-based resolution', () => {
-    it('maps index route to softwareHome', () => {
+    it('maps index route to landingSoftware', () => {
       mockRouteName = 'index___en-us';
       const { messages } = useMessages();
 
       messages.value;
-      expect(mockTm).toHaveBeenCalledWith('softwareHome');
+      expect(mockTm).toHaveBeenCalledWith('landingSoftware');
     });
 
     it('maps landing-web-design route to home', () => {

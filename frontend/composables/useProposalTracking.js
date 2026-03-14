@@ -15,8 +15,9 @@ function _getCsrfToken() {
  *
  * @param {import('vue').Ref<string>} proposalUuid - Reactive proposal UUID.
  * @param {import('vue').Ref<object>} currentPanel - Reactive current panel object.
+ * @param {import('vue').Ref<string>} [viewMode] - Reactive view mode ('executive' or 'detailed').
  */
-export function useProposalTracking(proposalUuid, currentPanel) {
+export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
   const FLUSH_INTERVAL_MS = 30_000;
 
   const sessionId = ref('');
@@ -62,12 +63,14 @@ export function useProposalTracking(proposalUuid, currentPanel) {
   }
 
   function buildPayload() {
+    const mode = viewMode?.value || 'unknown';
     // Finalize current section before flushing
     if (currentEntry) {
       const elapsed = (performance.now() - currentEntry._startTime) / 1000;
       // Don't stop the timer, just snapshot
       return {
         session_id: sessionId.value,
+        view_mode: mode,
         sections: [
           ...sectionLog.value,
           {
@@ -81,6 +84,7 @@ export function useProposalTracking(proposalUuid, currentPanel) {
     }
     return {
       session_id: sessionId.value,
+      view_mode: mode,
       sections: [...sectionLog.value],
     };
   }

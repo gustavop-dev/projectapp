@@ -6,7 +6,6 @@ validate_content_json_en on CreateUpdate and FromJSON serializers.
 import pytest
 from rest_framework import serializers as drf_serializers
 
-from content.models import PortfolioWork
 from content.serializers.portfolio_works import (
     PortfolioWorkCreateUpdateSerializer,
     PortfolioWorkDetailSerializer,

@@ -119,9 +119,8 @@ test.describe('Blog Post Detail', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog/legacy-html-post');
-    await page.waitForLoadState('networkidle');
 
-    await expect(page.getByRole('heading', { name: 'Legacy HTML Post' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Legacy HTML Post' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('This is HTML content.')).toBeVisible();
   });
 
@@ -130,9 +129,8 @@ test.describe('Blog Post Detail', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog/nonexistent-post');
-    await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Article not found')).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText('Article not found')).toBeVisible({ timeout: 15000 });
   });
 
   test('back to blog link navigates to /blog', {

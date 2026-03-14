@@ -24,6 +24,60 @@ class ProposalEmailService:
         )
 
     @classmethod
+    def _log_email(cls, template_key, recipient, subject='', proposal=None,
+                   status='sent', error_message=''):
+        """Log an email send attempt to the EmailLog model."""
+        try:
+            from content.models import EmailLog
+            EmailLog.objects.create(
+                proposal=proposal,
+                template_key=template_key,
+                recipient=recipient,
+                subject=subject[:500] if subject else '',
+                status=status,
+                error_message=error_message,
+            )
+        except Exception:
+            logger.exception('Failed to create EmailLog entry')
+
+    @classmethod
+    def _is_template_active(cls, template_key):
+        """Check if a template is active (not disabled by admin)."""
+        from content.models import EmailTemplateConfig
+        config = EmailTemplateConfig.objects.filter(
+            template_key=template_key,
+        ).first()
+        if config is None:
+            return True
+        return config.is_active
+
+    @classmethod
+    def _resolve_content(cls, template_key, context):
+        """
+        Resolve editable field values for a template, merging DB overrides
+        with registry defaults, then substituting {variable} placeholders
+        with actual context values.
+
+        Returns a dict of {field_key: resolved_value}.
+        """
+        from content.models import EmailTemplateConfig
+        from content.services.email_template_registry import (
+            resolve_field_values,
+            substitute_variables,
+        )
+
+        config = EmailTemplateConfig.objects.filter(
+            template_key=template_key,
+        ).first()
+        overrides = config.content_overrides if config else {}
+        field_values = resolve_field_values(template_key, overrides)
+
+        resolved = {}
+        for key, value in field_values.items():
+            resolved[key] = substitute_variables(value, context)
+        return resolved
+
+    @classmethod
     def send_proposal_to_client(cls, proposal):
         """
         Send the initial proposal email to the client with a link to view it.
@@ -41,6 +95,10 @@ class ProposalEmailService:
             )
             return False
 
+        if not cls._is_template_active('proposal_sent_client'):
+            logger.info('Skipping proposal_sent_client: template disabled')
+            return False
+
         context = {
             'client_name': proposal.client_name,
             'proposal_url': proposal.public_url,
@@ -51,6 +109,9 @@ class ProposalEmailService:
             'title': proposal.title,
         }
 
+        resolved = cls._resolve_content('proposal_sent_client', context)
+        context.update(resolved)
+
         try:
             html_content = render_to_string(
                 'emails/proposal_sent_client.html', context
@@ -59,10 +120,10 @@ class ProposalEmailService:
                 'emails/proposal_sent_client.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'📋 {proposal.client_name}, tu propuesta está lista — '
                 f'Project App'
-            )
+            ))
 
             email = EmailMultiAlternatives(
                 subject=subject,
@@ -73,13 +134,22 @@ class ProposalEmailService:
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
 
+            cls._log_email(
+                'proposal_sent_client', proposal.client_email,
+                subject=subject, proposal=proposal, status='sent',
+            )
             logger.info(
                 'Sent proposal email for %s to %s',
                 proposal.uuid, proposal.client_email,
             )
             return True
 
-        except Exception:
+        except Exception as exc:
+            cls._log_email(
+                'proposal_sent_client', proposal.client_email,
+                subject='', proposal=proposal, status='failed',
+                error_message=str(exc)[:1000],
+            )
             logger.exception(
                 'Failed to send proposal email for %s',
                 proposal.uuid,
@@ -107,6 +177,10 @@ class ProposalEmailService:
             )
             return False
 
+        if not cls._is_template_active('proposal_reminder'):
+            logger.info('Skipping proposal_reminder: template disabled')
+            return False
+
         context = {
             'client_name': proposal.client_name,
             'proposal_url': proposal.public_url,
@@ -117,6 +191,9 @@ class ProposalEmailService:
             'title': proposal.title,
         }
 
+        resolved = cls._resolve_content('proposal_reminder', context)
+        context.update(resolved)
+
         try:
             html_content = render_to_string(
                 'emails/proposal_reminder.html', context
@@ -125,10 +202,10 @@ class ProposalEmailService:
                 'emails/proposal_reminder.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'📋 {proposal.client_name}, tu propuesta te espera — '
                 f'Project App'
-            )
+            ))
 
             email = EmailMultiAlternatives(
                 subject=subject,
@@ -142,13 +219,22 @@ class ProposalEmailService:
             proposal.reminder_sent_at = timezone.now()
             proposal.save(update_fields=['reminder_sent_at'])
 
+            cls._log_email(
+                'proposal_reminder', proposal.client_email,
+                subject=subject, proposal=proposal, status='sent',
+            )
             logger.info(
                 'Sent reminder email for proposal %s to %s',
                 proposal.uuid, proposal.client_email,
             )
             return True
 
-        except Exception:
+        except Exception as exc:
+            cls._log_email(
+                'proposal_reminder', proposal.client_email,
+                subject='', proposal=proposal, status='failed',
+                error_message=str(exc)[:1000],
+            )
             logger.exception(
                 'Failed to send reminder email for proposal %s',
                 proposal.uuid,
@@ -176,6 +262,15 @@ class ProposalEmailService:
             proposal.discount_percent and proposal.discount_percent > 0
         )
 
+        template_key = (
+            'proposal_urgency' if has_discount
+            else 'proposal_urgency_no_discount'
+        )
+
+        if not cls._is_template_active(template_key):
+            logger.info('Skipping %s: template disabled', template_key)
+            return False
+
         context = {
             'client_name': proposal.client_name,
             'proposal_url': proposal.public_url,
@@ -198,17 +293,13 @@ class ProposalEmailService:
             })
             html_template = 'emails/proposal_urgency.html'
             txt_template = 'emails/proposal_urgency.txt'
-            subject = (
-                f'🔥 {proposal.client_name}, tu propuesta expira pronto — '
-                f'{proposal.discount_percent}% de descuento si accedes hoy'
-            )
         else:
             html_template = 'emails/proposal_urgency_no_discount.html'
             txt_template = 'emails/proposal_urgency_no_discount.txt'
-            subject = (
-                f'⏰ {proposal.client_name}, tu propuesta expira pronto — '
-                f'Project App'
-            )
+
+        resolved = cls._resolve_content(template_key, context)
+        context.update(resolved)
+        subject = resolved.get('subject', f'{proposal.client_name}, tu propuesta expira pronto')
 
         try:
             html_content = render_to_string(html_template, context)
@@ -245,9 +336,19 @@ class ProposalEmailService:
         Send notification email to team@projectapp.co when a client
         accepts or rejects a proposal.
         """
+        if not cls._is_template_active('proposal_response_notification'):
+            logger.info('Skipping proposal_response_notification: template disabled')
+            return False
+
+        action_tag = (
+            'ACCEPTED' if action == 'accepted'
+            else 'NEGOTIATING' if action == 'negotiating'
+            else 'REJECTED'
+        )
         context = {
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
+            'title': proposal.title,
             'total_investment': proposal.total_investment,
             'currency': proposal.currency,
             'action': action,
@@ -256,10 +357,14 @@ class ProposalEmailService:
                 else 'NEGOCIANDO' if action == 'negotiating'
                 else 'RECHAZADA'
             ),
+            'action_tag': action_tag,
             'proposal_uuid': str(proposal.uuid),
             'rejection_reason': getattr(proposal, 'rejection_reason', ''),
             'rejection_comment': getattr(proposal, 'rejection_comment', ''),
         }
+
+        resolved = cls._resolve_content('proposal_response_notification', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -269,15 +374,10 @@ class ProposalEmailService:
                 'emails/proposal_response_notification.txt', context
             )
 
-            action_tag = (
-                'ACCEPTED' if action == 'accepted'
-                else 'NEGOTIATING' if action == 'negotiating'
-                else 'REJECTED'
-            )
-            subject = (
+            subject = resolved.get('subject', (
                 f'[{action_tag}] Propuesta: {proposal.title} — '
                 f'{proposal.client_name}'
-            )
+            ))
 
             notification_email = getattr(
                 settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
@@ -315,6 +415,10 @@ class ProposalEmailService:
         if not proposal.client_email:
             return False
 
+        if not cls._is_template_active('proposal_accepted_client'):
+            logger.info('Skipping proposal_accepted_client: template disabled')
+            return False
+
         context = {
             'client_name': proposal.client_name,
             'proposal_url': proposal.public_url,
@@ -322,6 +426,9 @@ class ProposalEmailService:
             'total_investment': proposal.total_investment,
             'currency': proposal.currency,
         }
+
+        resolved = cls._resolve_content('proposal_accepted_client', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -331,10 +438,10 @@ class ProposalEmailService:
                 'emails/proposal_accepted_client.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'✅ {proposal.client_name}, tu propuesta ha sido aceptada — '
                 f'Project App'
-            )
+            ))
 
             email = EmailMultiAlternatives(
                 subject=subject,
@@ -389,10 +496,17 @@ class ProposalEmailService:
         if not proposal.client_email:
             return False
 
+        if not cls._is_template_active('proposal_rejected_client'):
+            logger.info('Skipping proposal_rejected_client: template disabled')
+            return False
+
         context = {
             'client_name': proposal.client_name,
             'title': proposal.title,
         }
+
+        resolved = cls._resolve_content('proposal_rejected_client', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -402,10 +516,10 @@ class ProposalEmailService:
                 'emails/proposal_rejected_client.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'Gracias por tu tiempo, {proposal.client_name} — '
                 f'Project App'
-            )
+            ))
 
             email = EmailMultiAlternatives(
                 subject=subject,
@@ -436,15 +550,23 @@ class ProposalEmailService:
         opens a proposal for the first time. This is the ideal moment
         for the sales team to do follow-up.
         """
+        if not cls._is_template_active('proposal_first_view_notification'):
+            logger.info('Skipping proposal_first_view_notification: template disabled')
+            return False
+
         context = {
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
+            'title': proposal.title,
             'total_investment': proposal.total_investment,
             'currency': proposal.currency,
             'proposal_uuid': str(proposal.uuid),
             'viewed_at': proposal.first_viewed_at or timezone.now(),
             'client_email': proposal.client_email or '',
         }
+
+        resolved = cls._resolve_content('proposal_first_view_notification', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -454,10 +576,10 @@ class ProposalEmailService:
                 'emails/proposal_first_view_notification.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'\U0001f441 [OPENED] Propuesta: {proposal.title} — '
                 f'{proposal.client_name}'
-            )
+            ))
 
             notification_email = getattr(
                 settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
@@ -492,14 +614,22 @@ class ProposalEmailService:
         submits a negotiation comment ("Tengo comentarios antes de decidir").
         This is a high-intent signal — client is not rejecting, just negotiating.
         """
+        if not cls._is_template_active('proposal_comment_notification'):
+            logger.info('Skipping proposal_comment_notification: template disabled')
+            return False
+
         context = {
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
+            'title': proposal.title,
             'total_investment': proposal.total_investment,
             'currency': proposal.currency,
             'comment': comment,
             'proposal_uuid': str(proposal.uuid),
         }
+
+        resolved = cls._resolve_content('proposal_comment_notification', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -509,10 +639,10 @@ class ProposalEmailService:
                 'emails/proposal_comment_notification.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'[COMENTARIO] Propuesta: {proposal.title} — '
                 f'{proposal.client_name}'
-            )
+            ))
 
             notification_email = getattr(
                 settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
@@ -550,11 +680,16 @@ class ProposalEmailService:
         if not proposal.client_email:
             return False
 
+        if not cls._is_template_active('proposal_reengagement'):
+            logger.info('Skipping proposal_reengagement: template disabled')
+            return False
+
         from decimal import Decimal
         has_discount = bool(proposal.discount_percent and proposal.discount_percent > 0)
         context = {
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
+            'title': proposal.title,
             'total_investment': proposal.total_investment,
             'currency': proposal.currency,
         }
@@ -565,6 +700,9 @@ class ProposalEmailService:
             context['discounted_investment'] = proposal.total_investment * discount_factor
             context['discount_percent'] = proposal.discount_percent
 
+        resolved = cls._resolve_content('proposal_reengagement', context)
+        context.update(resolved)
+
         try:
             html_content = render_to_string(
                 'emails/proposal_reengagement.html', context
@@ -573,10 +711,10 @@ class ProposalEmailService:
                 'emails/proposal_reengagement.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'{proposal.client_name}, ¿podemos encontrar una solución '
                 f'que se ajuste a tu presupuesto?'
-            )
+            ))
 
             email = EmailMultiAlternatives(
                 subject=subject,
@@ -607,12 +745,17 @@ class ProposalEmailService:
         shows strong engagement signals (multiple revisits or high time on
         key sections like Investment).
         """
+        if not cls._is_template_active('proposal_revisit_alert'):
+            logger.info('Skipping proposal_revisit_alert: template disabled')
+            return False
+
         top_section_display = top_section or 'N/A'
         top_time_display = f'{int(top_section_time // 60)}m {int(top_section_time % 60)}s'
 
         context = {
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
+            'title': proposal.title,
             'total_investment': proposal.total_investment,
             'currency': proposal.currency,
             'visit_count': visit_count,
@@ -620,6 +763,9 @@ class ProposalEmailService:
             'top_section_time': top_time_display,
             'proposal_uuid': str(proposal.uuid),
         }
+
+        resolved = cls._resolve_content('proposal_revisit_alert', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -629,10 +775,10 @@ class ProposalEmailService:
                 'emails/proposal_revisit_alert.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'\U0001f525 [HOT LEAD] {proposal.client_name} revisó la propuesta '
                 f'{visit_count} veces'
-            )
+            ))
 
             notification_email = getattr(
                 settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
@@ -672,11 +818,18 @@ class ProposalEmailService:
         if not proposal.client_email:
             return False
 
+        if not cls._is_template_active('proposal_abandonment_followup'):
+            logger.info('Skipping proposal_abandonment_followup: template disabled')
+            return False
+
         context = {
             'client_name': proposal.client_name,
             'proposal_url': proposal.public_url,
             'title': proposal.title,
         }
+
+        resolved = cls._resolve_content('proposal_abandonment_followup', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -686,10 +839,10 @@ class ProposalEmailService:
                 'emails/proposal_abandonment_followup.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'📋 {proposal.client_name}, ¿te quedaron dudas sobre '
                 f'la propuesta? — Project App'
-            )
+            ))
 
             email = EmailMultiAlternatives(
                 subject=subject,
@@ -725,6 +878,10 @@ class ProposalEmailService:
         if not proposal.client_email:
             return False
 
+        if not cls._is_template_active('proposal_investment_interest_followup'):
+            logger.info('Skipping proposal_investment_interest_followup: template disabled')
+            return False
+
         time_display = f'{int(time_on_investment // 60)}m {int(time_on_investment % 60)}s'
 
         context = {
@@ -736,6 +893,9 @@ class ProposalEmailService:
             'time_on_investment': time_display,
         }
 
+        resolved = cls._resolve_content('proposal_investment_interest_followup', context)
+        context.update(resolved)
+
         try:
             html_content = render_to_string(
                 'emails/proposal_investment_interest_followup.html', context
@@ -744,10 +904,10 @@ class ProposalEmailService:
                 'emails/proposal_investment_interest_followup.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'💰 {proposal.client_name}, hablemos sobre opciones '
                 f'de inversión — Project App'
-            )
+            ))
 
             email = EmailMultiAlternatives(
                 subject=subject,
@@ -780,13 +940,21 @@ class ProposalEmailService:
         Notify the sales team when a client shares the proposal
         with another person (multi-stakeholder signal).
         """
+        if not cls._is_template_active('proposal_share_notification'):
+            logger.info('Skipping proposal_share_notification: template disabled')
+            return False
+
         context = {
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
+            'title': proposal.title,
             'shared_by_name': share_link.shared_by_name,
             'shared_by_email': share_link.shared_by_email,
             'proposal_uuid': str(proposal.uuid),
         }
+
+        resolved = cls._resolve_content('proposal_share_notification', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -796,10 +964,10 @@ class ProposalEmailService:
                 'emails/proposal_share_notification.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'🔗 [SHARED] {proposal.client_name} compartió la propuesta '
                 f'"{proposal.title}"'
-            )
+            ))
 
             notification_email = getattr(
                 settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
@@ -836,11 +1004,18 @@ class ProposalEmailService:
         if not proposal.client_email:
             return False
 
+        if not cls._is_template_active('proposal_scheduled_followup'):
+            logger.info('Skipping proposal_scheduled_followup: template disabled')
+            return False
+
         context = {
             'client_name': proposal.client_name,
             'proposal_url': proposal.public_url,
             'title': proposal.title,
         }
+
+        resolved = cls._resolve_content('proposal_scheduled_followup', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -850,10 +1025,10 @@ class ProposalEmailService:
                 'emails/proposal_scheduled_followup.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'👋 {proposal.client_name}, ¿es buen momento para '
                 f'retomar tu proyecto? — Project App'
-            )
+            ))
 
             email = EmailMultiAlternatives(
                 subject=subject,
@@ -883,14 +1058,22 @@ class ProposalEmailService:
         Notify the sales team when the proposal is accessed from a new
         IP address, suggesting a secondary decision-maker is reviewing it.
         """
+        if not cls._is_template_active('proposal_stakeholder_detected'):
+            logger.info('Skipping proposal_stakeholder_detected: template disabled')
+            return False
+
         context = {
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
+            'title': proposal.title,
             'total_investment': proposal.total_investment,
             'currency': proposal.currency,
             'proposal_uuid': str(proposal.uuid),
             'known_ips_count': known_ips_count,
         }
+
+        resolved = cls._resolve_content('proposal_stakeholder_detected', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -900,10 +1083,10 @@ class ProposalEmailService:
                 'emails/proposal_stakeholder_detected.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'\U0001f465 [NUEVO LECTOR] Propuesta: {proposal.title} — '
                 f'{proposal.client_name}'
-            )
+            ))
 
             notification_email = getattr(
                 settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
@@ -944,6 +1127,10 @@ class ProposalEmailService:
         Returns:
             bool: True if the email was sent successfully.
         """
+        if not cls._is_template_active('seller_inactivity_escalation'):
+            logger.info('Skipping seller_inactivity_escalation: template disabled')
+            return False
+
         frontend_base = getattr(
             settings, 'FRONTEND_BASE_URL', 'http://localhost:3000'
         )
@@ -952,6 +1139,7 @@ class ProposalEmailService:
         context = {
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
+            'title': proposal.title,
             'total_investment': proposal.total_investment,
             'currency': proposal.currency,
             'days_inactive': days_inactive,
@@ -959,6 +1147,9 @@ class ProposalEmailService:
             'proposal_uuid': str(proposal.uuid),
             'status': proposal.status,
         }
+
+        resolved = cls._resolve_content('seller_inactivity_escalation', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -968,10 +1159,10 @@ class ProposalEmailService:
                 'emails/seller_inactivity_escalation.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'\u26a0\ufe0f Propuesta sin seguimiento: '
                 f'{proposal.client_name} — {proposal.title}'
-            )
+            ))
 
             notification_email = getattr(
                 settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
@@ -1005,6 +1196,10 @@ class ProposalEmailService:
         Send notification to the sales team when a client wants to
         accept with changes (negotiating status).
         """
+        if not cls._is_template_active('proposal_negotiation_notification'):
+            logger.info('Skipping proposal_negotiation_notification: template disabled')
+            return False
+
         frontend_base = getattr(
             settings, 'FRONTEND_BASE_URL', 'http://localhost:3000'
         )
@@ -1013,12 +1208,16 @@ class ProposalEmailService:
         context = {
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
+            'title': proposal.title,
             'total_investment': proposal.total_investment,
             'currency': proposal.currency,
             'comment': comment,
             'edit_url': edit_url,
             'proposal_uuid': str(proposal.uuid),
         }
+
+        resolved = cls._resolve_content('proposal_negotiation_notification', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -1028,10 +1227,10 @@ class ProposalEmailService:
                 'emails/proposal_negotiation_notification.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'🤝 [NEGOCIANDO] {proposal.client_name} quiere '
                 f'ajustar la propuesta "{proposal.title}"'
-            )
+            ))
 
             notification_email = getattr(
                 settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
@@ -1068,6 +1267,10 @@ class ProposalEmailService:
         if not proposal.client_email:
             return False
 
+        if not cls._is_template_active('proposal_negotiation_confirmation'):
+            logger.info('Skipping proposal_negotiation_confirmation: template disabled')
+            return False
+
         context = {
             'client_name': proposal.client_name,
             'proposal_url': proposal.public_url,
@@ -1075,6 +1278,9 @@ class ProposalEmailService:
             'total_investment': proposal.total_investment,
             'currency': proposal.currency,
         }
+
+        resolved = cls._resolve_content('proposal_negotiation_confirmation', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -1084,10 +1290,10 @@ class ProposalEmailService:
                 'emails/proposal_negotiation_confirmation.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'🤝 {proposal.client_name}, recibimos tu solicitud '
                 f'de ajustes — Project App'
-            )
+            ))
 
             email = EmailMultiAlternatives(
                 subject=subject,
@@ -1117,6 +1323,10 @@ class ProposalEmailService:
         Send immediate alert to the sales team when a rejected client
         revisits the proposal after 7+ days — high-intent reconsideration signal.
         """
+        if not cls._is_template_active('post_rejection_revisit_alert'):
+            logger.info('Skipping post_rejection_revisit_alert: template disabled')
+            return False
+
         frontend_base = getattr(
             settings, 'FRONTEND_BASE_URL', 'http://localhost:3000'
         )
@@ -1129,12 +1339,16 @@ class ProposalEmailService:
         context = {
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
+            'title': proposal.title,
             'total_investment': proposal.total_investment,
             'currency': proposal.currency,
             'edit_url': edit_url,
             'proposal_uuid': str(proposal.uuid),
             'days_since_rejection': days_since,
         }
+
+        resolved = cls._resolve_content('post_rejection_revisit_alert', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -1144,10 +1358,10 @@ class ProposalEmailService:
                 'emails/post_rejection_revisit_alert.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'🔄 [RECONSIDERACIÓN] {proposal.client_name} revisitó la '
                 f'propuesta rechazada "{proposal.title}" ({days_since}d después)'
-            )
+            ))
 
             notification_email = getattr(
                 settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
@@ -1188,7 +1402,14 @@ class ProposalEmailService:
                 - total_active: int
                 - date: str
         """
+        if not cls._is_template_active('daily_pipeline_digest'):
+            logger.info('Skipping daily_pipeline_digest: template disabled')
+            return False
+
         context = digest_data
+
+        resolved = cls._resolve_content('daily_pipeline_digest', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -1198,10 +1419,10 @@ class ProposalEmailService:
                 'emails/daily_pipeline_digest.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'📊 Pipeline Diario — {digest_data["date"]} — '
                 f'{digest_data["total_active"]} propuestas activas'
-            )
+            ))
 
             notification_email = getattr(
                 settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
@@ -1229,6 +1450,10 @@ class ProposalEmailService:
         Send immediate alert to the sales team when a client opens
         an expired proposal — high-intent signal.
         """
+        if not cls._is_template_active('proposal_post_expiration_visit'):
+            logger.info('Skipping proposal_post_expiration_visit: template disabled')
+            return False
+
         frontend_base = getattr(
             settings, 'FRONTEND_BASE_URL', 'http://localhost:3000'
         )
@@ -1237,11 +1462,15 @@ class ProposalEmailService:
         context = {
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
+            'title': proposal.title,
             'total_investment': proposal.total_investment,
             'currency': proposal.currency,
             'edit_url': edit_url,
             'proposal_uuid': str(proposal.uuid),
         }
+
+        resolved = cls._resolve_content('proposal_post_expiration_visit', context)
+        context.update(resolved)
 
         try:
             html_content = render_to_string(
@@ -1251,10 +1480,10 @@ class ProposalEmailService:
                 'emails/proposal_post_expiration_visit.txt', context
             )
 
-            subject = (
+            subject = resolved.get('subject', (
                 f'🔥 {proposal.client_name} abrió la propuesta expirada '
                 f'"{proposal.title}" — ¡Alto interés!'
-            )
+            ))
 
             notification_email = getattr(
                 settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'

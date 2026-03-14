@@ -123,3 +123,6 @@ export const PROPOSAL_CONDITIONAL_ACCEPTANCE = ['@flow:proposal-conditional-acce
 export const ADMIN_PROPOSAL_INLINE_STATUS_CHANGE = ['@flow:admin-proposal-inline-status-change', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_SCORECARD = ['@flow:admin-proposal-scorecard', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_SECTION_COMPLETENESS = ['@flow:admin-proposal-section-completeness', '@module:admin', '@priority:P3'];
+export const ADMIN_PROPOSAL_DEFAULTS_CONFIG = ['@flow:admin-proposal-defaults-config', '@module:admin', '@priority:P2'];
+export const ADMIN_EMAIL_TEMPLATES_CONFIG = ['@flow:admin-email-templates-config', '@module:admin', '@priority:P2'];
+// PROPOSAL_STICKY_BAR_ACCEPT removed — feature deleted (ProposalResponseButtons removed)

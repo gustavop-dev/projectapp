@@ -33,7 +33,7 @@ const mockSentProposal = {
 };
 
 async function openClosingPanel(page) {
-  await page.goto(`/proposal/${MOCK_UUID}`);
+  await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
 
   const nextBtn = page.getByTestId('nav-next');
   await expect(nextBtn).toBeVisible({ timeout: 15000 });
@@ -45,13 +45,15 @@ async function openClosingPanel(page) {
     const stillVisible = await nextBtn.isVisible().catch(() => false);
     if (!stillVisible) break;
   }
+
+  // Wait for slide transition to finish so buttons become stable
+  await page.locator('[data-section-type="proposal_closing"]').waitFor({ state: 'visible', timeout: 5000 });
 }
 
 test.describe('Proposal Negotiate (Accept with Changes)', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 
@@ -90,7 +92,7 @@ test.describe('Proposal Negotiate (Accept with Changes)', () => {
     await page.getByRole('button', { name: /Necesito ajustes/i }).click();
     await expect(page.getByText(/negociemos alcance/i)).toBeVisible();
 
-    const submitBtn = page.getByRole('button', { name: /Enviar solicitud de ajustes/i });
+    const submitBtn = page.getByRole('button', { name: /Enviar solicitud de ajuste/i });
     await expect(submitBtn).toBeDisabled();
   });
 
@@ -119,7 +121,7 @@ test.describe('Proposal Negotiate (Accept with Changes)', () => {
 
     const [respondResponse] = await Promise.all([
       page.waitForResponse(r => r.url().includes(`proposals/${MOCK_UUID}/respond/`)),
-      page.getByRole('button', { name: /Enviar solicitud de ajustes/i }).click(),
+      page.getByRole('button', { name: /Enviar solicitud de ajuste/i }).click(),
     ]);
     await respondResponse.finished();
 

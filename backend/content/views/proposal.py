@@ -12,10 +12,12 @@ from content.models import (
     BusinessProposal, ProposalAlert, ProposalSection,
     ProposalViewEvent, ProposalSectionView,
     ProposalChangeLog, ProposalShareLink,
+    ProposalDefaultConfig,
 )
 from content.serializers.proposal import (
     ProposalAlertSerializer,
     ProposalCreateUpdateSerializer,
+    ProposalDefaultConfigSerializer,
     ProposalDetailSerializer,
     ProposalFromJSONSerializer,
     ProposalListSerializer,
@@ -229,19 +231,22 @@ def list_proposals(request):
     serializer = ProposalListSerializer(qs, many=True)
     data = serializer.data
 
-    # Compute heat scores and lead scores for non-draft active proposals
+    # Compute heat scores, lead scores, and engagement summaries
     now = timezone.now()
     for item in data:
         if item['status'] in ('sent', 'viewed') and item['is_active']:
-            heat = _compute_heat_score_for_proposal(item['id'], now)
-            item['heat_score'] = heat
-            item['lead_score'] = min(100, heat * 10)
+            result = _compute_heat_score_with_summary(item['id'], now)
+            item['heat_score'] = result['score']
+            item['lead_score'] = min(100, result['score'] * 10)
+            item['engagement_summary'] = result['engagement_summary']
         elif item['status'] == 'accepted':
             item['heat_score'] = 0
             item['lead_score'] = 100
+            item['engagement_summary'] = None
         else:
             item['heat_score'] = 0
             item['lead_score'] = 0
+            item['engagement_summary'] = None
 
     return Response(data, status=status.HTTP_200_OK)
 
@@ -1184,6 +1189,9 @@ def track_proposal_engagement(request, proposal_uuid):
     # Get or create the view event for this session
     ip_address = _get_client_ip(request)
     user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]
+    view_mode = request.data.get('view_mode', 'unknown')
+    if view_mode not in ('executive', 'detailed'):
+        view_mode = 'unknown'
 
     view_event, _created = ProposalViewEvent.objects.get_or_create(
         proposal=proposal,
@@ -1191,8 +1199,13 @@ def track_proposal_engagement(request, proposal_uuid):
         defaults={
             'ip_address': ip_address,
             'user_agent': user_agent,
+            'view_mode': view_mode,
         },
     )
+    # Update view_mode if it was unknown and now we have a value
+    if not _created and view_event.view_mode == 'unknown' and view_mode != 'unknown':
+        view_event.view_mode = view_mode
+        view_event.save(update_fields=['view_mode'])
 
     # --- Stakeholder detection ---
     # If this is a new session from a different IP than previous sessions,
@@ -1247,7 +1260,8 @@ def track_proposal_engagement(request, proposal_uuid):
         if existing:
             existing.time_spent_seconds = time_spent
             existing.section_title = section_title
-            existing.save(update_fields=['time_spent_seconds', 'section_title'])
+            existing.view_mode = view_mode
+            existing.save(update_fields=['time_spent_seconds', 'section_title', 'view_mode'])
         else:
             ProposalSectionView.objects.create(
                 view_event=view_event,
@@ -1255,6 +1269,7 @@ def track_proposal_engagement(request, proposal_uuid):
                 section_title=section_title,
                 time_spent_seconds=time_spent,
                 entered_at=entered_at,
+                view_mode=view_mode,
             )
 
     # --- 3.5 Engagement decay between sessions ---
@@ -1465,7 +1480,17 @@ def _compute_heat_score_for_proposal(proposal_id, now=None):
     Compute heat score (1-10) for a single proposal for the list view.
     Lightweight version of engagement score.
     """
+    result = _compute_heat_score_with_summary(proposal_id, now)
+    return result['score']
+
+
+def _compute_heat_score_with_summary(proposal_id, now=None):
+    """
+    Compute heat score (1-10) and engagement summary for the tooltip.
+    Returns dict with 'score' and 'engagement_summary'.
+    """
     from datetime import timedelta
+    from django.db.models import Sum, Max
     if now is None:
         now = timezone.now()
 
@@ -1481,7 +1506,6 @@ def _compute_heat_score_for_proposal(proposal_id, now=None):
     score += min(3, recent)
 
     # Time on investment section — max 2 pts
-    from django.db.models import Sum
     inv_time = (
         ProposalSectionView.objects
         .filter(
@@ -1507,9 +1531,9 @@ def _compute_heat_score_for_proposal(proposal_id, now=None):
     # Total views — max 2 pts
     from content.models import BusinessProposal as _BP
     try:
-        p = _BP.objects.values('view_count', 'first_viewed_at').get(pk=proposal_id)
+        p = _BP.objects.values('view_count', 'first_viewed_at', 'last_activity_at').get(pk=proposal_id)
     except _BP.DoesNotExist:
-        return 1
+        return {'score': 1, 'engagement_summary': None}
     if p['view_count'] >= 5:
         score += 2
     elif p['view_count'] >= 2:
@@ -1519,7 +1543,39 @@ def _compute_heat_score_for_proposal(proposal_id, now=None):
     if p['first_viewed_at'] and (now - p['first_viewed_at']).days <= 3:
         score += 1
 
-    return max(1, min(10, score))
+    # Build engagement summary for tooltip
+    last_activity = p.get('last_activity_at')
+    last_activity_str = None
+    if last_activity:
+        delta = now - last_activity
+        if delta.days == 0:
+            hours = delta.seconds // 3600
+            last_activity_str = f"hace {hours}h" if hours > 0 else "hace menos de 1h"
+        else:
+            last_activity_str = f"hace {delta.days}d"
+
+    # Sections viewed vs total enabled
+    viewed_types = set(
+        ProposalSectionView.objects
+        .filter(view_event__proposal_id=proposal_id)
+        .values_list('section_type', flat=True)
+        .distinct()
+    )
+    key_sections = {'investment', 'timeline', 'functional_requirements', 'final_note'}
+    skipped = [s for s in key_sections if s not in viewed_types]
+
+    engagement_summary = {
+        'views': p['view_count'],
+        'last_activity': last_activity_str,
+        'investment_time_sec': round(inv_time),
+        'unique_devices': unique_ips,
+        'skipped_sections': skipped,
+    }
+
+    return {
+        'score': max(1, min(10, score)),
+        'engagement_summary': engagement_summary,
+    }
 
 
 def _get_client_ip(request):
@@ -1806,6 +1862,7 @@ def retrieve_proposal_analytics(request, proposal_id):
             'viewed_at': event.viewed_at.isoformat(),
             'sections_viewed': sections_viewed,
             'total_time_seconds': round(total_time, 1),
+            'view_mode': event.view_mode,
         })
 
     # Change log timeline
@@ -1898,6 +1955,33 @@ def retrieve_proposal_analytics(request, proposal_id):
         proposal, view_events, sections_data, unique_sessions,
     )
 
+    # --- F6: View mode breakdown (executive vs detailed) ---
+    by_view_mode = {}
+    for mode in ('executive', 'detailed'):
+        mode_events = view_events.filter(view_mode=mode)
+        mode_sessions = mode_events.values('session_id').distinct().count()
+        mode_section_stats = (
+            ProposalSectionView.objects
+            .filter(view_event__proposal=proposal, view_mode=mode)
+            .values('section_type')
+            .annotate(
+                visit_count=Count('id'),
+                total_time_seconds=Sum('time_spent_seconds'),
+            )
+            .order_by('section_type')
+        )
+        by_view_mode[mode] = {
+            'sessions': mode_sessions,
+            'sections': [
+                {
+                    'section_type': s['section_type'],
+                    'visit_count': s['visit_count'],
+                    'total_time_seconds': round(s['total_time_seconds'] or 0, 1),
+                }
+                for s in mode_section_stats
+            ],
+        }
+
     return Response({
         'total_views': total_views,
         'unique_sessions': unique_sessions,
@@ -1920,6 +2004,7 @@ def retrieve_proposal_analytics(request, proposal_id):
         'comparison': comparison,
         'share_links': share_links,
         'engagement_score': engagement_score,
+        'by_view_mode': by_view_mode,
     }, status=status.HTTP_200_OK)
 
 
@@ -2714,3 +2799,161 @@ def dismiss_proposal_alert(request, alert_id):
     alert.is_dismissed = True
     alert.save(update_fields=['is_dismissed'])
     return Response({'status': 'dismissed'}, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------------------------
+# Proposal Default Config
+# ---------------------------------------------------------------------------
+
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAdminUser])
+def proposal_defaults(request):
+    """
+    GET  — Retrieve the default section config for a language.
+           Falls back to the hardcoded defaults when no DB config exists.
+    PUT  — Save (create or update) the default section config for a language.
+    """
+    from content.services.proposal_service import ProposalService
+
+    lang = request.query_params.get('lang', request.data.get('language', 'es'))
+    if lang not in ('es', 'en'):
+        return Response(
+            {'detail': 'lang must be "es" or "en".'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if request.method == 'GET':
+        config = ProposalDefaultConfig.objects.filter(language=lang).first()
+        if config:
+            serializer = ProposalDefaultConfigSerializer(config)
+            return Response(serializer.data)
+        # Return hardcoded defaults wrapped in the same shape
+        hardcoded = ProposalService.get_hardcoded_defaults(lang)
+        return Response({
+            'id': None,
+            'language': lang,
+            'sections_json': hardcoded,
+            'created_at': None,
+            'updated_at': None,
+        })
+
+    # PUT
+    config = ProposalDefaultConfig.objects.filter(language=lang).first()
+    if config:
+        serializer = ProposalDefaultConfigSerializer(config, data=request.data)
+    else:
+        serializer = ProposalDefaultConfigSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def reset_proposal_defaults(request):
+    """
+    Delete the DB-backed default config for a language, reverting to hardcoded defaults.
+    """
+    lang = request.data.get('language', 'es')
+    if lang not in ('es', 'en'):
+        return Response(
+            {'detail': 'language must be "es" or "en".'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    deleted_count, _ = ProposalDefaultConfig.objects.filter(language=lang).delete()
+    return Response(
+        {'status': 'reset', 'deleted': deleted_count > 0},
+        status=status.HTTP_200_OK,
+    )
+
+
+# ---------------------------------------------------------------------------
+# F11: Email Deliverability Dashboard
+# ---------------------------------------------------------------------------
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def email_deliverability_dashboard(request):
+    """
+    Return aggregated email deliverability stats for the admin dashboard.
+
+    Includes: total sent, success rate, per-template breakdown,
+    daily trend (last 30 days), and recent failures.
+    """
+    from datetime import timedelta
+    from django.db.models import Count, Q
+    from django.db.models.functions import TruncDate
+    from content.models import EmailLog
+
+    now = timezone.now()
+    thirty_days_ago = now - timedelta(days=30)
+
+    all_logs = EmailLog.objects.all()
+    recent_logs = all_logs.filter(sent_at__gte=thirty_days_ago)
+
+    # Overall counts
+    total = recent_logs.count()
+    by_status = dict(
+        recent_logs.values('status')
+        .annotate(count=Count('id'))
+        .values_list('status', 'count')
+    )
+    sent_count = by_status.get('sent', 0) + by_status.get('delivered', 0)
+    failed_count = by_status.get('failed', 0) + by_status.get('bounced', 0)
+    success_rate = round((sent_count / total) * 100, 1) if total > 0 else 0
+
+    # Per-template breakdown
+    template_stats = list(
+        recent_logs
+        .values('template_key')
+        .annotate(
+            total=Count('id'),
+            sent=Count('id', filter=Q(status__in=['sent', 'delivered'])),
+            failed=Count('id', filter=Q(status__in=['failed', 'bounced'])),
+        )
+        .order_by('-total')
+    )
+    for stat in template_stats:
+        stat['success_rate'] = (
+            round((stat['sent'] / stat['total']) * 100, 1)
+            if stat['total'] > 0 else 0
+        )
+
+    # Daily trend (last 30 days)
+    daily_trend = list(
+        recent_logs
+        .annotate(date=TruncDate('sent_at'))
+        .values('date')
+        .annotate(
+            total=Count('id'),
+            sent=Count('id', filter=Q(status__in=['sent', 'delivered'])),
+            failed=Count('id', filter=Q(status__in=['failed', 'bounced'])),
+        )
+        .order_by('date')
+    )
+    for entry in daily_trend:
+        entry['date'] = entry['date'].isoformat()
+
+    # Recent failures
+    recent_failures = list(
+        recent_logs.filter(status__in=['failed', 'bounced'])
+        .order_by('-sent_at')[:20]
+        .values(
+            'template_key', 'recipient', 'status',
+            'error_message', 'sent_at',
+        )
+    )
+    for f in recent_failures:
+        f['sent_at'] = f['sent_at'].isoformat()
+
+    return Response({
+        'total_emails_30d': total,
+        'success_rate': success_rate,
+        'sent_count': sent_count,
+        'failed_count': failed_count,
+        'by_template': template_stats,
+        'daily_trend': daily_trend,
+        'recent_failures': recent_failures,
+    }, status=status.HTTP_200_OK)

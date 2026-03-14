@@ -63,7 +63,6 @@ test.describe('Proposal View', () => {
     // Skip onboarding overlay so nav buttons are clickable
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 
@@ -71,7 +70,7 @@ test.describe('Proposal View', () => {
     tag: [...PROPOSAL_VIEW, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposalTwoSections));
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Page loaded without errors
@@ -82,7 +81,7 @@ test.describe('Proposal View', () => {
     tag: [...PROPOSAL_VIEW, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposalTwoSections));
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Wait for next button to appear (not on last panel)
@@ -100,7 +99,7 @@ test.describe('Proposal View', () => {
     tag: [...PROPOSAL_VIEW, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposalTwoSections));
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Go forward
@@ -126,7 +125,7 @@ test.describe('Proposal View', () => {
       ...mockProposalTwoSections,
       sections: [mockProposalTwoSections.sections[0]],
     }));
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Single section proposal: only closing panel remains → navigate to it
@@ -156,7 +155,7 @@ test.describe('Proposal View', () => {
       return null;
     });
 
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Expired state component should be rendered
@@ -177,7 +176,7 @@ test.describe('Proposal View', () => {
       return null;
     });
 
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('body')).toContainText('404');

@@ -22,7 +22,7 @@ test.describe('Admin Proposal Inline Status Change', () => {
   test('changing status via dropdown triggers API call', {
     tag: [...ADMIN_PROPOSAL_INLINE_STATUS_CHANGE, '@role:admin'],
   }, async ({ page }) => {
-    let statusUpdateCalled = false;
+    let _statusUpdateCalled = false;
     let statusUpdateBody = null;
 
     await mockApi(page, async ({ apiPath, route }) => {
@@ -39,7 +39,7 @@ test.describe('Admin Proposal Inline Status Change', () => {
         return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
       }
       if (apiPath === '1/update-status/' || apiPath === 'proposals/1/update-status/') {
-        statusUpdateCalled = true;
+        _statusUpdateCalled = true;
         statusUpdateBody = JSON.parse(route.request().postData() || '{}');
         return {
           status: 200,
@@ -51,13 +51,15 @@ test.describe('Admin Proposal Inline Status Change', () => {
     });
 
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
+    await page.waitForResponse(resp => resp.url().includes('/proposals') && resp.status() === 200);
 
-    // Find the first status dropdown
-    const statusSelect = page.locator('select').first();
+    // Find the status dropdown for Proposal A by scoping to its table row
+    const row = page.getByRole('row').filter({ hasText: 'Proposal A' });
+    const statusSelect = row.getByRole('combobox');
     if (await statusSelect.isVisible().catch(() => false)) {
+      const responsePromise = page.waitForResponse(resp => resp.url().includes('update-status') && resp.status() === 200);
       await statusSelect.selectOption('accepted');
-      await page.waitForTimeout(1000);
+      await responsePromise;
     }
   });
 
@@ -81,10 +83,11 @@ test.describe('Admin Proposal Inline Status Change', () => {
     });
 
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
+    await page.waitForResponse(resp => resp.url().includes('/proposals') && resp.status() === 200);
 
     // Check that the status select has expected options
-    const statusSelect = page.locator('select').first();
+    const row = page.getByRole('row').filter({ hasText: 'Proposal A' });
+    const statusSelect = row.getByRole('combobox');
     if (await statusSelect.isVisible().catch(() => false)) {
       const options = await statusSelect.locator('option').allTextContents();
       expect(options).toContain('draft');

@@ -38,7 +38,7 @@ const mockSentProposal = {
  * (showContent becomes true), then clicks nav-next until closing panel.
  */
 async function openClosingPanel(page) {
-  await page.goto(`/proposal/${MOCK_UUID}`);
+  await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
 
   // Wait for proposal to finish loading
   const nextBtn = page.getByTestId('nav-next');
@@ -59,7 +59,6 @@ test.describe('Proposal Respond', () => {
     // Skip onboarding overlay so buttons are clickable
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 

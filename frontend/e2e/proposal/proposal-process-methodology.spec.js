@@ -45,7 +45,6 @@ test.describe('Proposal Process & Methodology', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 
@@ -53,7 +52,7 @@ test.describe('Proposal Process & Methodology', () => {
     tag: [...PROPOSAL_PROCESS_METHODOLOGY, '@role:client'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     // Navigate to process methodology section (section index 1)
@@ -74,7 +73,7 @@ test.describe('Proposal Process & Methodology', () => {
     tag: [...PROPOSAL_PROCESS_METHODOLOGY, '@role:client'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     const nextBtn = page.getByTestId('nav-next');

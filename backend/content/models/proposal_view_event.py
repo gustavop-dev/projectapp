@@ -21,6 +21,12 @@ class ProposalViewEvent(models.Model):
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.TextField(blank=True, default='')
     viewed_at = models.DateTimeField(auto_now_add=True)
+    view_mode = models.CharField(
+        max_length=20,
+        choices=[('executive', 'Executive'), ('detailed', 'Detailed'), ('unknown', 'Unknown')],
+        default='unknown',
+        help_text='Whether the client viewed in executive or detailed mode.',
+    )
 
     class Meta:
         ordering = ['-viewed_at']

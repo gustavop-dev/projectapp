@@ -6,7 +6,8 @@ export function getApiPath(requestUrl) {
 export async function mockApi(page, handler) {
   await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
     const apiPath = getApiPath(route.request().url());
-    const result = await handler({ route, apiPath });
+    const method = route.request().method();
+    const result = await handler({ route, apiPath, method });
 
     if (result) {
       return route.fulfill(result);

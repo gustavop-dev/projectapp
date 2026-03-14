@@ -48,18 +48,17 @@ const mockProposal = {
 };
 
 async function openInvestmentSection(page) {
-  await page.goto(`/proposal/${MOCK_UUID}`);
+  await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
   const nextBtn = page.getByTestId('nav-next');
   await expect(nextBtn).toBeVisible({ timeout: 15000 });
   await nextBtn.click();
-  await page.waitForTimeout(500);
+  await expect(page.getByText(/Inversi[oó]n/i)).toBeVisible({ timeout: 5000 });
 }
 
 test.describe('Proposal Calculator Micro-Feedback', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 
@@ -79,7 +78,6 @@ test.describe('Proposal Calculator Micro-Feedback', () => {
     const calcBtn = page.getByRole('button', { name: /Personalizar/i });
     if (await calcBtn.isVisible().catch(() => false)) {
       await calcBtn.click();
-      await page.waitForTimeout(500);
 
       // Find a module toggle and click it
       const moduleToggle = page.locator('[data-testid="calc-module-toggle"]').first();

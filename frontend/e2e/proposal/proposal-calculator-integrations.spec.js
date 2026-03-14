@@ -159,7 +159,7 @@ function setupMock(page) {
 }
 
 async function openCalculatorModal(page) {
-  await page.goto(`/proposal/${MOCK_UUID}`);
+  await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
   await page.waitForLoadState('domcontentloaded');
 
   const nextBtn = page.getByTestId('nav-next');
@@ -181,7 +181,6 @@ test.describe('@flow: proposal-calculator-integrations — Integration Calculato
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 

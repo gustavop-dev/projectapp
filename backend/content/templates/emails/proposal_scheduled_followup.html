@@ -29,16 +29,13 @@
           <tr>
             <td style="padding:40px 40px 24px;">
               <h2 style="margin:0;color:#1f2937;font-size:22px;font-weight:600;">
-                Hola {{ client_name }} 👋
+                {{ greeting }}
               </h2>
               <p style="margin:16px 0 0;color:#4b5563;font-size:16px;line-height:1.6;">
-                Hace un tiempo nos pediste que te recordáramos sobre la propuesta
-                <strong>"{{ title }}"</strong>. ¡Aquí estamos!
+                {{ body }}
               </p>
               <p style="margin:16px 0 0;color:#4b5563;font-size:16px;line-height:1.6;">
-                Nos encantaría saber cómo va todo y si ahora es un buen momento
-                para retomar el proyecto. La propuesta sigue disponible y podemos
-                actualizarla según tus necesidades actuales.
+                {{ body_secondary }}
               </p>
             </td>
           </tr>
@@ -48,7 +45,7 @@
             <td style="padding:0 40px 16px;text-align:center;">
               <a href="{{ proposal_url }}"
                  style="display:inline-block;background-color:#059669;color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:600;letter-spacing:-0.01em;">
-                👉 Revisar la propuesta
+                {{ cta_text }}
               </a>
             </td>
           </tr>

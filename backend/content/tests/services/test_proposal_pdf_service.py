@@ -1716,8 +1716,6 @@ class TestFontFallbackKeyError:
 class TestCleanUrlDisplayException:
     def test_returns_input_on_parse_failure(self, monkeypatch):
         """_clean_url_display returns the original string when urlparse raises."""
-        import content.services.proposal_pdf_service as mod
-
         def _exploding_parse(url):
             raise ValueError('bad url')
 
@@ -1754,7 +1752,7 @@ class TestDrawBulletListNoPs:
 
 class TestSectionRendererNoPsBreaks:
     @pytest.fixture
-    def _proposal(self, db):
+    def proposal_obj(self, db):
         return BusinessProposal.objects.create(
             title='NoPsBreak', client_name='Test',
             client_email='t@t.com', language='es',
@@ -1762,7 +1760,7 @@ class TestSectionRendererNoPsBreaks:
             status='sent',
         )
 
-    def test_conversion_strategy_breaks_at_low_y_without_ps(self, pdf_canvas, _proposal):
+    def test_conversion_strategy_breaks_at_low_y_without_ps(self, pdf_canvas, proposal_obj):
         """Conversion strategy loop breaks when y is below margin and no ps."""
         data = {
             'index': '3', 'title': 'Strategy',
@@ -1774,11 +1772,11 @@ class TestSectionRendererNoPsBreaks:
             'resultTitle': 'Result', 'result': 'More.',
         }
         y = SECTION_RENDERERS['conversion_strategy'](
-            pdf_canvas, data, _proposal, y=MARGIN_B + 60,
+            pdf_canvas, data, proposal_obj, y=MARGIN_B + 60,
         )
         assert isinstance(y, (int, float))
 
-    def test_development_stages_breaks_at_low_y_without_ps(self, pdf_canvas, _proposal):
+    def test_development_stages_breaks_at_low_y_without_ps(self, pdf_canvas, proposal_obj):
         """Development stages loop breaks when y is below margin and no ps."""
         data = {
             'title': 'Stages',
@@ -1788,11 +1786,11 @@ class TestSectionRendererNoPsBreaks:
             ],
         }
         y = SECTION_RENDERERS['development_stages'](
-            pdf_canvas, data, _proposal, y=MARGIN_B + 60,
+            pdf_canvas, data, proposal_obj, y=MARGIN_B + 60,
         )
         assert isinstance(y, (int, float))
 
-    def test_timeline_breaks_at_low_y_without_ps(self, pdf_canvas, _proposal):
+    def test_timeline_breaks_at_low_y_without_ps(self, pdf_canvas, proposal_obj):
         """Timeline phases loop breaks when y is below margin and no ps."""
         data = {
             'index': '8', 'title': 'Timeline',
@@ -1805,11 +1803,11 @@ class TestSectionRendererNoPsBreaks:
             ],
         }
         y = SECTION_RENDERERS['timeline'](
-            pdf_canvas, data, _proposal, y=MARGIN_B + 60,
+            pdf_canvas, data, proposal_obj, y=MARGIN_B + 60,
         )
         assert isinstance(y, (int, float))
 
-    def test_next_steps_breaks_at_low_y_without_ps(self, pdf_canvas, _proposal):
+    def test_next_steps_breaks_at_low_y_without_ps(self, pdf_canvas, proposal_obj):
         """Next steps loop breaks when y is below margin and no ps."""
         data = {
             'index': '11', 'title': 'Next Steps',
@@ -1821,11 +1819,11 @@ class TestSectionRendererNoPsBreaks:
             'ctaMessage': '', 'contactMethods': [],
         }
         y = SECTION_RENDERERS['next_steps'](
-            pdf_canvas, data, _proposal, y=MARGIN_B + 50,
+            pdf_canvas, data, proposal_obj, y=MARGIN_B + 50,
         )
         assert isinstance(y, (int, float))
 
-    def test_functional_requirements_card_break_at_low_y(self, pdf_canvas, _proposal):
+    def test_functional_requirements_card_break_at_low_y(self, pdf_canvas, proposal_obj):
         """FR overview cards break when y is too low for the next card."""
         data = {
             'index': '7', 'title': 'Reqs',
@@ -1838,7 +1836,7 @@ class TestSectionRendererNoPsBreaks:
             'additionalModules': [],
         }
         y = SECTION_RENDERERS['functional_requirements'](
-            pdf_canvas, data, _proposal, y=MARGIN_B + 80,
+            pdf_canvas, data, proposal_obj, y=MARGIN_B + 80,
         )
         assert isinstance(y, (int, float))
 
@@ -1847,7 +1845,7 @@ class TestSectionRendererNoPsBreaks:
 
 class TestInvestmentSelectedModulesAdv:
     @pytest.fixture
-    def _proposal(self, db):
+    def proposal_obj(self, db):
         return BusinessProposal.objects.create(
             title='InvSelMod', client_name='Test',
             client_email='t@t.com', language='es',
@@ -1855,7 +1853,7 @@ class TestInvestmentSelectedModulesAdv:
             status='sent',
         )
 
-    def test_adjusted_total_recalculates_payment_options(self, pdf_canvas, _proposal):
+    def test_adjusted_total_recalculates_payment_options(self, pdf_canvas, proposal_obj):
         """Payment option amounts are recalculated when selected_modules changes the total."""
         from content.services.proposal_pdf_service import _render_investment
 
@@ -1877,10 +1875,10 @@ class TestInvestmentSelectedModulesAdv:
                 {'id': 'seo', 'name': 'SEO', 'price': 2000000},
             ],
         )
-        y = _render_investment(pdf_canvas, data, _proposal, ps=ps)
+        y = _render_investment(pdf_canvas, data, proposal_obj, ps=ps)
         assert isinstance(y, (int, float))
 
-    def test_adjusted_duration_renders_when_modules_deselected(self, pdf_canvas, _proposal):
+    def test_adjusted_duration_renders_when_modules_deselected(self, pdf_canvas, proposal_obj):
         """Adjusted duration text renders when base_weeks > 0 and modules are removed."""
         from content.services.proposal_pdf_service import _render_investment
 
@@ -1903,10 +1901,10 @@ class TestInvestmentSelectedModulesAdv:
                 {'id': 'mod2', 'name': 'Mod2', 'price': 500000, '_source': 'investment'},
             ],
         )
-        y = _render_investment(pdf_canvas, data, _proposal, ps=ps)
+        y = _render_investment(pdf_canvas, data, proposal_obj, ps=ps)
         assert isinstance(y, (int, float))
 
-    def test_ai_scope_note_renders_for_invite_module(self, pdf_canvas, _proposal):
+    def test_ai_scope_note_renders_for_invite_module(self, pdf_canvas, proposal_obj):
         """AI scope note renders when a calculator module with is_invite is selected."""
         from content.services.proposal_pdf_service import _render_investment
 
@@ -1925,7 +1923,7 @@ class TestInvestmentSelectedModulesAdv:
             paymentOptions=[],
             modules=[],
         )
-        y = _render_investment(pdf_canvas, data, _proposal, ps=ps)
+        y = _render_investment(pdf_canvas, data, proposal_obj, ps=ps)
         assert isinstance(y, (int, float))
 
 

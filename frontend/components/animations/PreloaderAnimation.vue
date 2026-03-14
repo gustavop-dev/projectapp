@@ -136,6 +136,18 @@
           <span ref="progressText">0%</span>
         </div>
       </div>
+
+      <!-- F9: Personalized greeting overlay -->
+      <div
+        v-if="clientName"
+        ref="personalizedOverlay"
+        class="absolute inset-0 z-20 flex items-center justify-center bg-white opacity-0 pointer-events-none"
+      >
+        <p class="text-2xl sm:text-3xl md:text-4xl font-light text-esmerald text-center px-8 leading-relaxed">
+          <span class="block text-base sm:text-lg text-esmerald/50 mb-2 font-light tracking-wider">{{ personalizedSubtext }}</span>
+          <span class="font-medium text-esmerald">{{ clientName }}</span>
+        </p>
+      </div>
     </div>
 
     <!-- White overlay for transition animation - Removed when completely finished -->
@@ -168,8 +180,24 @@ const props = defineProps({
   revealClass: {
     type: String,
     default: '.animate-on-reveal'
+  },
+  // Client name for personalized greeting
+  clientName: {
+    type: String,
+    default: ''
+  },
+  // Language for personalized text
+  language: {
+    type: String,
+    default: 'es'
   }
 })
+
+const personalizedSubtext = computed(() => {
+  return props.language === 'en' ? 'Prepared especially for' : 'Preparado especialmente para'
+})
+
+const personalizedOverlay = ref(null)
 
 // Events emitted to parent component
 const emit = defineEmits(['animationComplete'])
@@ -466,20 +494,26 @@ const animatePreloader = () => {
   // Mark that the animation has started
   animationStarted.value = true;
   
-  // Set a maximum timeout to ensure animation ends after 2 seconds
+  const hasPersonalizedGreeting = !!(props.clientName && personalizedOverlay.value);
+  const forceTimeout = hasPersonalizedGreeting ? 3500 : 2000;
+
+  // Set a maximum timeout to ensure animation ends
   const forceFinishTimeout = setTimeout(() => {
     if (isLoading.value) {
       console.log('Forcing preloader to finish after timeout');
       finishAnimation();
     }
-  }, 2000);
+  }, forceTimeout);
   
   // Main timeline
   const mainTimeline = gsap.timeline({
     onComplete: () => {
-      // When the main timeline completes, run the finish animation immediately
-      clearTimeout(forceFinishTimeout); // Clear the timeout if animation completes naturally
-      finishAnimation();
+      clearTimeout(forceFinishTimeout);
+      if (hasPersonalizedGreeting) {
+        showPersonalizedGreeting();
+      } else {
+        finishAnimation();
+      }
     }
   });
 
@@ -684,6 +718,41 @@ const startFloatingAnimation = () => {
       ease: 'sine.inOut',
     }, 1.5);
   }
+}
+
+// F9: Show personalized greeting overlay for 1.5s before finishing
+const showPersonalizedGreeting = () => {
+  if (!personalizedOverlay.value) {
+    finishAnimation();
+    return;
+  }
+
+  // Stop arrow animation during greeting
+  if (arrowInterval) {
+    clearInterval(arrowInterval);
+    arrowInterval = null;
+  }
+
+  const greetingTl = gsap.timeline({
+    onComplete: () => {
+      finishAnimation();
+    }
+  });
+
+  // Fade in the personalized overlay over existing content
+  greetingTl.to(personalizedOverlay.value, {
+    opacity: 1,
+    duration: 0.4,
+    ease: 'power2.out'
+  });
+
+  // Hold for 1.5s then fade out
+  greetingTl.to(personalizedOverlay.value, {
+    opacity: 0,
+    duration: 0.3,
+    ease: 'power2.in',
+    delay: 1.5
+  });
 }
 
 // Separate function to handle the end of the animation

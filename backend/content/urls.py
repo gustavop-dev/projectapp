@@ -28,6 +28,12 @@ from content.views.proposal import (
     list_clients, log_activity, proposal_alerts,
     create_proposal_alert, dismiss_proposal_alert,
     update_proposal_status, proposal_scorecard,
+    proposal_defaults, reset_proposal_defaults,
+    email_deliverability_dashboard,
+)
+from content.views.email_templates import (
+    email_template_list, email_template_detail,
+    email_template_preview, email_template_reset,
 )
 from content.views.blog import (
     list_blog_posts, retrieve_blog_post, blog_sitemap_data,
@@ -87,6 +93,19 @@ urlpatterns = [
 
     # Proposals — section editing
     path('proposals/sections/<int:section_id>/update/', update_proposal_section, name='update-proposal-section'),
+
+    # Proposals — default config
+    path('proposals/defaults/', proposal_defaults, name='proposal-defaults'),
+    path('proposals/defaults/reset/', reset_proposal_defaults, name='reset-proposal-defaults'),
+
+    # Email deliverability
+    path('email-deliverability/', email_deliverability_dashboard, name='email-deliverability-dashboard'),
+
+    # Email templates
+    path('email-templates/', email_template_list, name='email-template-list'),
+    path('email-templates/<str:template_key>/', email_template_detail, name='email-template-detail'),
+    path('email-templates/<str:template_key>/preview/', email_template_preview, name='email-template-preview'),
+    path('email-templates/<str:template_key>/reset/', email_template_reset, name='email-template-reset'),
 
     # Blog — admin CRUD (must come before slug catch-all)
     path('blog/admin/', list_admin_blog_posts, name='list-admin-blog-posts'),

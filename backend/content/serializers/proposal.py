@@ -2,11 +2,13 @@ from rest_framework import serializers
 
 from content.models import (
     BusinessProposal,
+    EmailTemplateConfig,
     ProposalAlert,
     ProposalSection,
     ProposalRequirementGroup,
     ProposalRequirementItem,
     ProposalShareLink,
+    ProposalDefaultConfig,
 )
 
 
@@ -325,3 +327,60 @@ class ProposalShareLinkSerializer(serializers.ModelSerializer):
         read_only_fields = (
             'id', 'uuid', 'view_count', 'first_viewed_at', 'created_at',
         )
+
+
+class ProposalDefaultConfigSerializer(serializers.ModelSerializer):
+    """
+    Serializer for retrieving and updating proposal default configurations.
+    """
+
+    class Meta:
+        model = ProposalDefaultConfig
+        fields = ('id', 'language', 'sections_json', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+    def validate_language(self, value):
+        if value not in ('es', 'en'):
+            raise serializers.ValidationError(
+                'Language must be "es" or "en".'
+            )
+        return value
+
+    def validate_sections_json(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError(
+                'sections_json must be a JSON array (list).'
+            )
+        required_keys = {'section_type', 'title', 'order', 'content_json'}
+        for i, section in enumerate(value):
+            if not isinstance(section, dict):
+                raise serializers.ValidationError(
+                    f'Each section must be a dict (index {i}).'
+                )
+            missing = required_keys - set(section.keys())
+            if missing:
+                raise serializers.ValidationError(
+                    f'Section at index {i} is missing keys: {missing}'
+                )
+        return value
+
+
+class EmailTemplateConfigSerializer(serializers.ModelSerializer):
+    """
+    Serializer for retrieving and updating email template configurations.
+    """
+
+    class Meta:
+        model = EmailTemplateConfig
+        fields = (
+            'id', 'template_key', 'content_overrides', 'is_active',
+            'created_at', 'updated_at',
+        )
+        read_only_fields = ('id', 'template_key', 'created_at', 'updated_at')
+
+    def validate_content_overrides(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError(
+                'content_overrides must be a JSON object (dict).'
+            )
+        return value

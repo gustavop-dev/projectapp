@@ -71,7 +71,7 @@ test.describe('Admin Proposal Scorecard', () => {
   test('edit page loads proposal and scorecard endpoint is accessible', {
     tag: [...ADMIN_PROPOSAL_SCORECARD, '@role:admin'],
   }, async ({ page }) => {
-    let scorecardCalled = false;
+    let _scorecardCalled = false;
 
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') {
@@ -81,14 +81,14 @@ test.describe('Admin Proposal Scorecard', () => {
         return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
       }
       if (apiPath === 'proposals/1/scorecard/') {
-        scorecardCalled = true;
+        _scorecardCalled = true;
         return { status: 200, contentType: 'application/json', body: JSON.stringify(mockScorecardPass) };
       }
       return null;
     });
 
     await page.goto('/panel/proposals/1/edit');
-    await page.waitForLoadState('networkidle');
+    await page.waitForResponse(resp => resp.url().includes('/detail/') && resp.status() === 200);
   });
 
   test('scorecard with blockers prevents sending', {
@@ -108,18 +108,15 @@ test.describe('Admin Proposal Scorecard', () => {
     });
 
     await page.goto('/panel/proposals/1/edit');
-    await page.waitForLoadState('networkidle');
+    await page.waitForResponse(resp => resp.url().includes('/detail/') && resp.status() === 200);
 
     // Try to find send button — it should be disabled or show blocker info
     const sendBtn = page.getByRole('button', { name: /Enviar al Cliente/i });
     if (await sendBtn.isVisible().catch(() => false)) {
       await sendBtn.click();
-      await page.waitForTimeout(500);
       // The scorecard modal should show blockers
       const blockerText = page.getByText('Email del cliente');
-      if (await blockerText.isVisible().catch(() => false)) {
-        await expect(blockerText).toBeVisible();
-      }
+      await expect(blockerText).toBeVisible({ timeout: 5000 });
     }
   });
 });

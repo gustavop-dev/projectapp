@@ -1,5 +1,5 @@
 <template>
-  <section ref="sectionRef" class="process-methodology py-16 md:py-24 bg-white">
+  <section ref="sectionRef" class="process-methodology min-h-screen py-16 md:py-24 bg-white">
     <div class="container mx-auto px-6 md:px-12 lg:px-24 max-w-5xl">
       <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
         <span class="text-green-light font-light tracking-[0.25em] text-xs md:text-sm">

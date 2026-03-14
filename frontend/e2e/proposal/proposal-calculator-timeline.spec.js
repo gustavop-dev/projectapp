@@ -95,7 +95,6 @@ test.describe('Proposal Calculator Dynamic Timeline', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 
@@ -103,7 +102,7 @@ test.describe('Proposal Calculator Dynamic Timeline', () => {
     tag: [...PROPOSAL_CALCULATOR_TIMELINE, '@role:client'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
 
     // Navigate to investment section (section index 2)
     const nextBtn = page.getByTestId('nav-next');
@@ -126,7 +125,7 @@ test.describe('Proposal Calculator Dynamic Timeline', () => {
     tag: [...PROPOSAL_CALCULATOR_TIMELINE, '@role:client'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
 
     // Navigate to investment section
     const nextBtn = page.getByTestId('nav-next');
@@ -152,7 +151,7 @@ test.describe('Proposal Calculator Dynamic Timeline', () => {
     tag: [...PROPOSAL_CALCULATOR_TIMELINE, '@role:client'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
 
     // Navigate to investment section
     const nextBtn = page.getByTestId('nav-next');
@@ -179,7 +178,7 @@ test.describe('Proposal Calculator Dynamic Timeline', () => {
     tag: [...PROPOSAL_CALCULATOR_TIMELINE, '@role:client'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
 
     // Navigate to investment section
     const nextBtn = page.getByTestId('nav-next');

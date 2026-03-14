@@ -1,5 +1,5 @@
 <template>
-  <section ref="sectionRef" class="fr-group w-full bg-white py-16">
+  <section ref="sectionRef" class="fr-group min-h-screen w-full bg-white py-16">
     <div class="w-full px-6 md:px-12 lg:px-24">
       <div class="max-w-5xl mx-auto">
         <!-- Sub-section number + title -->

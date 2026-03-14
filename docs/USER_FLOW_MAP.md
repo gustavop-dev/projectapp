@@ -72,7 +72,7 @@
 - **Description:** Navigate between pages using the glassmorphism pill navbar with sliding lemon indicator.
 - **Steps:**
   1. User sees the glassmorphism pill navbar fixed at the top of the page.
-  2. User clicks a navigation link (Home, About, Our work/Portfolio, Blog, Contact/WhatsApp).
+  2. User clicks a navigation link (Custom Software, App Development, Our work, Blog, Contact/WhatsApp).
   3. Page navigates to the selected route.
   4. Lemon pill indicator slides to highlight the active section.
 - **Branches:**
@@ -182,18 +182,15 @@
 > `public-web-designs`, `public-3d-animations`, `public-hosting`, `public-ecommerce-prices`, `public-custom-software`.
 > They were previously covered by `e2e/public/public-pages.spec.js`.
 
-### FLOW: `public-about-us`
+### FLOW: `public-about-us` *(ARCHIVED)*
 
 - **Module:** public
 - **Role:** guest
 - **Priority:** P3
-- **Routes:** `/about-us`, `/en-us/about-us`, `/es-co/about-us`
+- **Routes:** `/about-us` *(page exists but is no longer linked from navigation)*
 - **Description:** View the about us page with team and company information.
-- **Steps:**
-  1. User navigates to the about us page.
-  2. About us content renders.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/public/public-pages.spec.js`
+- **Status:** ARCHIVED — removed from navbar and footer. No internal links point to this page.
+- **Coverage:** ❌ E2E test removed (flow archived)
 
 ### FLOW: `public-landing-web-design`
 
@@ -715,6 +712,54 @@
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-dashboard.spec.js`
 
+### FLOW: `admin-proposal-defaults-config`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/defaults`
+- **Description:** Admin manages the default section configurations used when creating new proposals. Supports both ES and EN languages. Changes are saved to a DB-backed config and applied to all future proposals. Includes reset-to-hardcoded functionality.
+- **Steps:**
+  1. Admin navigates to `/panel/proposals/defaults` via the "Valores por Defecto" button on the proposals list page.
+  2. Default sections load from API (`GET /api/proposals/defaults/?lang=es`).
+  3. Language selector allows switching between Español and English.
+  4. Section accordion list renders with all default sections (same structure as proposal edit).
+  5. Admin expands a section and edits its content using SectionEditor (form or paste mode).
+  6. Section is marked as "Modificado" locally.
+  7. Admin clicks "Guardar Todos los Cambios".
+  8. API call to `PUT /api/proposals/defaults/` with the full sections_json array.
+  9. Success feedback displays.
+- **Branches:**
+  - [Branch A — Reset] Admin clicks "Restaurar valores originales" → confirmation modal → `POST /api/proposals/defaults/reset/` → sections reload from hardcoded defaults.
+  - [Branch B — Language switch with unsaved changes] Confirmation prompt warns about losing changes.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-defaults.spec.js`
+- **Backend Tests:** `content/tests/views/test_proposal_defaults_views.py`, `content/tests/models/test_proposal_default_config.py`, `content/tests/services/test_proposal_service.py::TestGetDefaultSectionsFromDB`
+
+### FLOW: `admin-email-templates-config`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/email-templates`
+- **Description:** Admin manages email template content customization. Lists all email templates (client, internal, contact) with category filter. Admin can edit text fields (greeting, body, CTA, subject), toggle templates on/off, preview rendered HTML with sample data, and reset to defaults.
+- **Steps:**
+  1. Admin navigates to `/panel/proposals/email-templates`.
+  2. Template list loads from API (`GET /api/email-templates/`).
+  3. Category filter buttons (Todos, Cliente, Interno, Contacto) allow filtering.
+  4. Admin clicks a template row to expand the editor.
+  5. Template detail loads from API (`GET /api/email-templates/:key/`).
+  6. Admin edits text fields (greeting, body, cta_text, subject) and toggles active/inactive.
+  7. Admin clicks "Guardar Cambios" → `PUT /api/email-templates/:key/`.
+  8. Success feedback displays.
+- **Branches:**
+  - [Branch A — Preview] Admin clicks "Vista previa" → `GET /api/email-templates/:key/preview/` → modal with rendered HTML iframe.
+  - [Branch B — Reset] Admin clicks "Restaurar" → confirmation modal → `POST /api/email-templates/:key/reset/` → template reverts to defaults.
+  - [Branch C — Disable] Admin toggles template off → emails of this type stop being sent.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-email-templates.spec.js`
+- **Backend Tests:** `content/tests/views/test_email_template_views.py`
+
 ### FLOW: `admin-mini-crm-clients`
 
 - **Module:** admin
@@ -1020,8 +1065,8 @@
   5. Admin enters a description.
   6. Admin clicks "Registrar" → API call to `POST /api/proposals/:id/log-activity/`.
   7. Success: modal closes, proposal list refreshes with updated `last_activity_at`.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-quick-log.spec.js`
 
 ### FLOW: `proposal-discount-multi-section`
 
@@ -1035,8 +1080,8 @@
   2. Investment section shows a discount banner with percentage and days remaining.
   3. Calculator modal shows a discount badge in the footer.
   4. Closing section shows a "Precio especial" badge above the accept button.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-discount-multi-section.spec.js`
 
 ### FLOW: `proposal-onboarding-mobile-swipe`
 
@@ -1051,8 +1096,8 @@
   3. User swipes left/right or taps navigation buttons to progress through steps.
   4. On completion, onboarding emits `@complete` and sets localStorage flag.
   5. Reading time popup appears.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-onboarding-mobile-swipe.spec.js`
 
 ### FLOW: `proposal-og-meta-personalized`
 
@@ -1066,8 +1111,8 @@
   2. `useHead` sets `og:title` to "Propuesta para {client_name}".
   3. `og:description` includes client name and proposal title in the appropriate language.
   4. When the proposal URL is shared on WhatsApp/social media, the personalized preview is shown.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-og-meta-personalized.spec.js`
 
 ### FLOW: `admin-proposal-dashboard-auto-refresh`
 
@@ -1083,8 +1128,8 @@
   4. "Actualizar" button triggers manual refresh with spin animation.
   5. "justo ahora" / "hace Xs" label shows time since last refresh.
   6. Collapsing the dashboard stops auto-refresh; expanding resumes it.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-dashboard-auto-refresh.spec.js`
 
 ### FLOW: `proposal-summary-kpis`
 
@@ -1098,8 +1143,8 @@
   2. KPI cards render from `content.kpis` array with value, label, and source.
   3. Below KPIs, standard summary cards (investment, timeline, etc.) render.
   4. Admin can add/edit/remove KPIs in the SectionEditor for proposal_summary.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-summary-kpis.spec.js`
 
 ### FLOW: `admin-proposal-log-activity`
 
@@ -1114,8 +1159,8 @@
   3. Admin submits → API call to `POST /api/proposals/:id/log-activity/`.
   4. Backend creates a ProposalChangeLog entry and updates `last_activity_at`.
   5. Activity timeline refreshes with the new entry.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-log-activity.spec.js`
 
 ### FLOW: `proposal-calculator-new-modules`
 
@@ -1332,6 +1377,23 @@
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-portfolio-delete.spec.js`
 
+### FLOW: `proposal-sticky-bar-accept`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** Client accepts the proposal from the sticky bottom bar (ProposalResponseButtons) while browsing any section. The acceptance modal shows a scope summary (project, investment, modules, estimated start) and an optional condition note textarea. Confirming calls the respond API and triggers confetti.
+- **Steps:**
+  1. Client scrolls through proposal sections; sticky bar appears at the bottom.
+  2. Client clicks "Acepto" button on the sticky bar.
+  3. Acceptance modal opens with personalized title, scope summary panel, and condition note textarea.
+  4. Client optionally types a condition.
+  5. Client clicks "¡Confirmar!" → API call to `POST /api/proposals/:uuid/respond/` with `{action: 'accepted', condition: '...'}` (condition only if provided).
+  6. Success: modal closes, confetti fires, sticky bar shows "¡Propuesta aceptada!".
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-sticky-bar-accept.spec.js`
+
 ---
 
 ## 7. E2E Coverage Index
@@ -1411,39 +1473,40 @@
 | `admin-proposal-json-import-warnings` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `proposal-negotiate` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-respond.spec.js` |
 | `admin-proposal-quick-send` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
-| `admin-proposal-quick-log` | admin | admin | P2 | ❌ Missing | — |
+| `admin-proposal-quick-log` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-quick-log.spec.js` |
 | `proposal-calculator-timeline-impact` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-timeline.spec.js` |
-| `proposal-discount-multi-section` | proposal | guest | P2 | ❌ Missing | — |
-| `proposal-onboarding-mobile-swipe` | proposal | guest | P3 | ❌ Missing | — |
-| `proposal-og-meta-personalized` | proposal | guest | P3 | ❌ Missing | — |
-| `admin-proposal-dashboard-auto-refresh` | admin | admin | P3 | ❌ Missing | — |
-| `proposal-summary-kpis` | proposal | guest | P2 | ❌ Missing | — |
-| `admin-proposal-log-activity` | admin | admin | P2 | ❌ Missing | — |
+| `proposal-discount-multi-section` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-discount-multi-section.spec.js` |
+| `proposal-onboarding-mobile-swipe` | proposal | guest | P3 | ✅ Covered | `e2e/proposal/proposal-onboarding-mobile-swipe.spec.js` |
+| `proposal-og-meta-personalized` | proposal | guest | P3 | ✅ Covered | `e2e/proposal/proposal-og-meta-personalized.spec.js` |
+| `admin-proposal-dashboard-auto-refresh` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-dashboard-auto-refresh.spec.js` |
+| `proposal-summary-kpis` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-summary-kpis.spec.js` |
+| `admin-proposal-log-activity` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-log-activity.spec.js` |
 | `proposal-calculator-new-modules` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-new-modules.spec.js` |
-| `admin-proposal-inline-status-change` | admin | admin | P2 | ❌ Missing | — |
-| `admin-proposal-scorecard` | admin | admin | P2 | ❌ Missing | — |
-| `admin-proposal-section-completeness` | admin | admin | P3 | ❌ Missing | — |
+| `admin-proposal-inline-status-change` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-inline-status.spec.js` |
+| `admin-proposal-scorecard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-scorecard.spec.js` |
+| `admin-proposal-section-completeness` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-section-completeness.spec.js` |
 | `admin-daily-pipeline-digest` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests |
 | `admin-high-engagement-alert` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests |
 | `admin-calculator-followup-alert` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests |
 | `admin-whatsapp-suggestion` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests |
 | `admin-auto-archive-zombie` | admin | system | P3 | ⚠️ Backend-only | Backend unit tests |
-| `proposal-calculator-micro-feedback` | proposal | guest | P2 | ❌ Missing | — |
-| `proposal-payment-plan-closing` | proposal | guest | P2 | ❌ Missing | — |
-| `proposal-post-acceptance-welcome` | proposal | guest | P1 | ❌ Missing | — |
-| `proposal-structured-negotiation` | proposal | guest | P2 | ❌ Missing | — |
-| `proposal-conditional-acceptance` | proposal | guest | P2 | ❌ Missing | — |
+| `proposal-calculator-micro-feedback` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-micro-feedback.spec.js` |
+| `proposal-payment-plan-closing` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-payment-plan-closing.spec.js` |
+| `proposal-post-acceptance-welcome` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-post-acceptance-welcome.spec.js` |
+| `proposal-structured-negotiation` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-structured-negotiation.spec.js` |
+| `proposal-conditional-acceptance` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-conditional-acceptance.spec.js` |
+| `proposal-sticky-bar-accept` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-sticky-bar-accept.spec.js` |
 
 ### Summary
 
-- **Total flows:** 98
+- **Total flows:** 99
 - **P1 (Critical):** 20
 - **P2 (High):** 62
 - **P3 (Medium):** 16
-- **Covered (full):** 69 (70%)
+- **Covered (full):** 87 (88%)
 - **Backend-only:** 10 (10%) — system-triggered alerts and automation covered by backend unit tests
 - **Partial:** 2 (2%)
-- **Missing:** 17 (17%) — pending E2E specs
+- **Missing:** 0 (0%)
 
 ### Unit Test Coverage
 

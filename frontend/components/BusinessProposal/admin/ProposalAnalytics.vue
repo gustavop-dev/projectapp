@@ -25,14 +25,14 @@
       </div>
 
       <!-- Engagement score -->
-      <div v-if="analytics.engagement_score != null" class="bg-white rounded-xl border shadow-sm p-5 flex items-center gap-5"
+      <div v-if="analytics.engagement_score != null" class="bg-white rounded-xl border shadow-sm p-5 flex items-center gap-5 dark:bg-gray-800"
         :class="analytics.engagement_score >= 70 ? 'border-emerald-200' : analytics.engagement_score >= 40 ? 'border-yellow-200' : 'border-red-200'">
         <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white"
           :class="analytics.engagement_score >= 70 ? 'bg-emerald-500' : analytics.engagement_score >= 40 ? 'bg-yellow-500' : 'bg-red-400'">
           {{ analytics.engagement_score }}
         </div>
         <div>
-          <p class="text-sm font-semibold text-gray-900">Engagement Score</p>
+          <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Engagement Score</p>
           <p class="text-xs text-gray-500 mt-0.5">
             {{ analytics.engagement_score >= 70 ? 'Alto engagement — prioridad de follow-up' : analytics.engagement_score >= 40 ? 'Engagement moderado' : 'Bajo engagement — necesita atención' }}
           </p>
@@ -41,43 +41,80 @@
 
       <!-- Summary cards -->
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
           <p class="text-xs text-gray-400 uppercase tracking-wider">Vistas</p>
-          <p class="text-2xl font-light text-gray-900 mt-1">{{ analytics.total_views }}</p>
+          <p class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-1">{{ analytics.total_views }}</p>
         </div>
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
           <p class="text-xs text-gray-400 uppercase tracking-wider">Sesiones</p>
-          <p class="text-2xl font-light text-gray-900 mt-1">{{ analytics.unique_sessions }}</p>
+          <p class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-1">{{ analytics.unique_sessions }}</p>
         </div>
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
           <p class="text-xs text-gray-400 uppercase tracking-wider">Primera vista</p>
-          <p class="text-sm font-light text-gray-900 mt-1">
+          <p class="text-sm font-light text-gray-900 dark:text-gray-100 mt-1">
             {{ analytics.first_viewed_at ? formatDate(analytics.first_viewed_at) : '—' }}
           </p>
         </div>
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
           <p class="text-xs text-gray-400 uppercase tracking-wider">Tiempo a 1ra vista</p>
-          <p class="text-2xl font-light text-gray-900 mt-1">
+          <p class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-1">
             {{ analytics.time_to_first_view_hours != null ? analytics.time_to_first_view_hours + 'h' : '—' }}
           </p>
         </div>
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
           <p class="text-xs text-gray-400 uppercase tracking-wider">Tiempo a respuesta</p>
-          <p class="text-2xl font-light text-gray-900 mt-1">
+          <p class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-1">
             {{ analytics.time_to_response_hours != null ? analytics.time_to_response_hours + 'h' : '—' }}
           </p>
         </div>
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
           <p class="text-xs text-gray-400 uppercase tracking-wider">Respondida</p>
-          <p class="text-sm font-light text-gray-900 mt-1">
+          <p class="text-sm font-light text-gray-900 dark:text-gray-100 mt-1">
             {{ analytics.responded_at ? formatDate(analytics.responded_at) : '—' }}
           </p>
         </div>
       </div>
 
+      <!-- F6: View mode breakdown (executive vs detailed) -->
+      <div v-if="analytics.by_view_mode && Object.keys(analytics.by_view_mode).length" class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden dark:bg-gray-800 dark:border-gray-700">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">📊 Comparación por Modo de Vista</h3>
+          <p class="text-xs text-gray-400 mt-0.5">Engagement separado entre vista ejecutiva y detallada</p>
+        </div>
+        <div class="px-4 sm:px-6 py-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div v-for="mode in ['executive', 'detailed']" :key="mode"
+              class="rounded-xl border p-4"
+              :class="mode === 'executive'
+                ? 'border-purple-200 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-900/20'
+                : 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20'"
+            >
+              <div class="flex items-center gap-2 mb-3">
+                <span class="text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
+                  :class="mode === 'executive'
+                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400'
+                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'"
+                >{{ mode }}</span>
+                <span class="text-xs text-gray-400">{{ analytics.by_view_mode[mode]?.sessions || 0 }} sesiones</span>
+              </div>
+              <div v-if="analytics.by_view_mode[mode]?.sections?.length" class="space-y-2">
+                <div v-for="sec in analytics.by_view_mode[mode].sections" :key="sec.section_type" class="flex items-center gap-2">
+                  <span class="text-xs text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{{ sec.section_title || sec.section_type }}</span>
+                  <span class="text-xs text-gray-400 tabular-nums flex-shrink-0">{{ sec.visit_count }}×</span>
+                  <span class="text-xs font-medium tabular-nums flex-shrink-0"
+                    :class="mode === 'executive' ? 'text-purple-600 dark:text-purple-400' : 'text-blue-600 dark:text-blue-400'"
+                  >{{ viewModeFormatTime(sec.total_time_seconds) }}</span>
+                </div>
+              </div>
+              <p v-else class="text-xs text-gray-400 italic">Sin datos aún</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Comparison badges (Feature 13) -->
       <div v-if="analytics.comparison" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-        <h3 class="text-sm font-medium text-gray-900 mb-3">Comparación con promedio global</h3>
+        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Comparación con promedio global</h3>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div class="flex items-center gap-3 p-3 rounded-lg" :class="comparisonClass('ttfv')">
             <div class="text-2xl">{{ comparisonEmoji('ttfv') }}</div>
@@ -119,14 +156,14 @@
       </div>
 
       <!-- Funnel visualization (Feature 13) -->
-      <div v-if="analytics.funnel?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div class="px-4 sm:px-6 py-4 border-b border-gray-100">
-          <h3 class="text-sm font-medium text-gray-900">Funnel de navegación</h3>
-          <p class="text-xs text-gray-400 mt-0.5">Porcentaje de sesiones que alcanzaron cada sección</p>
+      <div v-if="analytics.funnel?.length" class="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Funnel de navegación</h3>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Porcentaje de sesiones que alcanzaron cada sección</p>
         </div>
         <div class="px-4 sm:px-6 py-4 space-y-3">
           <div v-for="(step, idx) in analytics.funnel" :key="step.section_type" class="flex items-center gap-3">
-            <span class="text-xs text-gray-400 w-5 text-right">{{ idx + 1 }}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500 w-5 text-right">{{ idx + 1 }}</span>
             <div class="flex-1">
               <div class="flex items-center justify-between mb-1">
                 <span class="text-sm text-gray-700 font-medium truncate">{{ step.section_title }}</span>
@@ -150,9 +187,9 @@
       </div>
 
       <!-- Share links (Feature 13) -->
-      <div v-if="analytics.share_links?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div class="px-4 sm:px-6 py-4 border-b border-gray-100">
-          <h3 class="text-sm font-medium text-gray-900">Enlaces compartidos</h3>
+      <div v-if="analytics.share_links?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden dark:bg-gray-800 dark:border-gray-700">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Enlaces compartidos</h3>
           <p class="text-xs text-gray-400 mt-0.5">Tracking de propuestas compartidas con otros stakeholders</p>
         </div>
         <div class="overflow-x-auto">
@@ -186,7 +223,7 @@
 
       <!-- Device breakdown -->
       <div v-if="hasDeviceData" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-        <h3 class="text-sm font-medium text-gray-900 mb-3">Dispositivos</h3>
+        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Dispositivos</h3>
         <div class="flex gap-6 text-sm">
           <div class="flex items-center gap-2">
             <span class="text-lg">🖥️</span>
@@ -234,9 +271,9 @@
       </div>
 
       <!-- Section time heatmap -->
-      <div v-if="sortedSections.length" class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div class="px-4 sm:px-6 py-4 border-b border-gray-100">
-          <h3 class="text-sm font-medium text-gray-900">🔥 Heatmap de Interés</h3>
+      <div v-if="sortedSections.length" class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden dark:bg-gray-800 dark:border-gray-700">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">🔥 Heatmap de Interés</h3>
           <p class="text-xs text-gray-400 mt-0.5">Secciones ordenadas por tiempo total — las más calientes son las que más le importan al cliente</p>
         </div>
         <div class="px-4 sm:px-6 py-4 space-y-3">
@@ -274,15 +311,15 @@
       </div>
 
       <!-- Section engagement table -->
-      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div class="px-4 sm:px-6 py-4 border-b border-gray-100">
-          <h3 class="text-sm font-medium text-gray-900">Engagement por sección</h3>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden dark:bg-gray-800 dark:border-gray-700">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Engagement por sección</h3>
           <p class="text-xs text-gray-400 mt-0.5">Tiempo que el cliente pasó en cada sección</p>
         </div>
         <div v-if="analytics.sections.length" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="bg-gray-50 text-left text-xs text-gray-500 uppercase tracking-wider">
+              <tr class="bg-gray-50 dark:bg-gray-700/50 text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 <th class="px-4 sm:px-6 py-3">Sección</th>
                 <th class="px-4 py-3 text-center">Visitas</th>
                 <th class="px-4 py-3 text-right">Tiempo total</th>
@@ -290,10 +327,10 @@
                 <th class="px-4 sm:px-6 py-3">Engagement</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
-              <tr v-for="section in analytics.sections" :key="section.section_type" class="hover:bg-gray-50/50">
+            <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
+              <tr v-for="section in analytics.sections" :key="section.section_type" class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50">
                 <td class="px-4 sm:px-6 py-3">
-                  <span class="font-medium text-gray-900">{{ section.section_title }}</span>
+                  <span class="font-medium text-gray-900 dark:text-gray-100">{{ section.section_title }}</span>
                   <span class="text-xs text-gray-400 ml-1">({{ section.section_type }})</span>
                 </td>
                 <td class="px-4 py-3 text-center text-gray-600">{{ section.visit_count }}</td>
@@ -320,9 +357,9 @@
       </div>
 
       <!-- Activity Timeline -->
-      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div class="px-4 sm:px-6 py-4 border-b border-gray-100">
-          <h3 class="text-sm font-medium text-gray-900">Historial de actividad</h3>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden dark:bg-gray-800 dark:border-gray-700">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Historial de actividad</h3>
           <p class="text-xs text-gray-400 mt-0.5">Timeline cronológico de eventos de la propuesta</p>
         </div>
         <div v-if="analytics.timeline?.length" class="px-4 sm:px-6 py-4">
@@ -346,30 +383,38 @@
       </div>
 
       <!-- Sessions history -->
-      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div class="px-4 sm:px-6 py-4 border-b border-gray-100">
-          <h3 class="text-sm font-medium text-gray-900">Historial de sesiones</h3>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden dark:bg-gray-800 dark:border-gray-700">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Historial de sesiones</h3>
           <p class="text-xs text-gray-400 mt-0.5">Últimas 50 sesiones de navegación</p>
         </div>
         <div v-if="analytics.sessions.length" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="bg-gray-50 text-left text-xs text-gray-500 uppercase tracking-wider">
+              <tr class="bg-gray-50 dark:bg-gray-700/50 text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 <th class="px-4 sm:px-6 py-3">Sesión</th>
                 <th class="px-4 py-3">Fecha</th>
                 <th class="px-4 py-3 text-center">Secciones vistas</th>
+                <th class="px-4 py-3 text-center">Modo</th>
                 <th class="px-4 sm:px-6 py-3 text-right">Tiempo total</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
-              <tr v-for="session in analytics.sessions" :key="session.session_id" class="hover:bg-gray-50/50">
+            <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
+              <tr v-for="session in analytics.sessions" :key="session.session_id" class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50">
                 <td class="px-4 sm:px-6 py-3">
                   <span class="font-mono text-xs text-gray-500">{{ session.session_id.slice(0, 12) }}...</span>
                   <span v-if="session.ip_address" class="text-xs text-gray-400 ml-2">{{ session.ip_address }}</span>
                 </td>
                 <td class="px-4 py-3 text-gray-600">{{ formatDate(session.viewed_at) }}</td>
-                <td class="px-4 py-3 text-center text-gray-600">{{ session.sections_viewed }}</td>
-                <td class="px-4 sm:px-6 py-3 text-right text-gray-600">{{ formatTime(session.total_time_seconds) }}</td>
+                <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ session.sections_viewed }}</td>
+                <td class="px-4 py-3 text-center">
+                  <span v-if="session.view_mode" class="text-xs px-2 py-0.5 rounded-full font-medium"
+                    :class="session.view_mode === 'executive' ? 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : session.view_mode === 'detailed' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'">
+                    {{ session.view_mode }}
+                  </span>
+                  <span v-else class="text-xs text-gray-400">—</span>
+                </td>
+                <td class="px-4 sm:px-6 py-3 text-right text-gray-600 dark:text-gray-300">{{ formatTime(session.total_time_seconds) }}</td>
               </tr>
             </tbody>
           </table>
@@ -507,6 +552,13 @@ onMounted(async () => {
 function downloadCSV() {
   const url = `/api/proposals/${props.proposalId}/analytics/csv/`;
   window.open(url, '_blank');
+}
+
+function viewModeFormatTime(seconds) {
+  if (!seconds || seconds < 1) return '< 1s';
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const mins = Math.floor(seconds / 60);
+  return mins > 0 ? `${mins}m` : `${Math.round(seconds)}s`;
 }
 
 function formatTime(seconds) {

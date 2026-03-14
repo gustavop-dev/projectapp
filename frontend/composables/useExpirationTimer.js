@@ -111,6 +111,7 @@ export function useExpirationTimer(expiresAt) {
     if (days > 0) {
       return `${days} día${days !== 1 ? 's' : ''}`;
     }
+    /* c8 ignore next -- defensive fallback: unreachable when totalHours >= 48 implies days >= 2 */
     return 'Menos de 1 hora';
   });
 

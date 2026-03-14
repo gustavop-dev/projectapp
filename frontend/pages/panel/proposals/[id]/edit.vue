@@ -5,7 +5,7 @@
         ← Volver a propuestas
       </NuxtLink>
       <div v-if="proposal" class="flex flex-wrap items-center gap-3 sm:gap-4 mt-2">
-        <h1 class="text-2xl font-light text-gray-900">{{ proposal.title }}</h1>
+        <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">{{ proposal.title }}</h1>
         <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(proposal.status)">
           {{ proposal.status }}
         </span>
@@ -343,7 +343,7 @@
             >
               <div class="flex items-center gap-4">
                 <span class="text-xs text-gray-400 font-mono w-6">{{ section.order + 1 }}</span>
-                <span class="text-sm font-medium text-gray-900">{{ section.title }}</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ section.title }}</span>
                 <span class="text-xs text-gray-400">({{ section.section_type }})</span>
               </div>
               <div class="flex items-center gap-3">
@@ -410,7 +410,7 @@
       <div v-if="showSendChecklist" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="showSendChecklist = false">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 sm:p-8">
           <div class="flex items-center justify-between mb-1">
-            <h3 class="text-lg font-bold text-gray-900">Scorecard pre-envío</h3>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Scorecard pre-envío</h3>
             <span v-if="scorecardData" class="text-sm font-bold px-2.5 py-1 rounded-full"
               :class="scorecardData.score >= 8 ? 'bg-emerald-100 text-emerald-700' : scorecardData.score >= 5 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'">
               {{ scorecardData.score }}/10

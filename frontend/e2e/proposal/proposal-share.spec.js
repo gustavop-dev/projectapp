@@ -50,7 +50,6 @@ test.describe('Proposal Share', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 
@@ -58,7 +57,7 @@ test.describe('Proposal Share', () => {
     tag: [...PROPOSAL_SHARE, '@role:client'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     await expect(page.getByTestId('share-proposal-btn')).toBeVisible({ timeout: 15000 });
@@ -68,7 +67,7 @@ test.describe('Proposal Share', () => {
     tag: [...PROPOSAL_SHARE, '@role:client'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
     await page.waitForLoadState('networkidle');
 
     const shareBtn = page.getByTestId('share-proposal-btn');

@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = process.env.E2E_PORT ? Number(process.env.E2E_PORT) : 5173;
+const PORT = process.env.E2E_PORT ? Number(process.env.E2E_PORT) : 3000;
 const baseURL = process.env.E2E_BASE_URL || `http://localhost:${PORT}`;
 const reuseExistingServer = !process.env.CI;
 

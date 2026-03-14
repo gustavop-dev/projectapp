@@ -1,15 +1,15 @@
 /**
  * E2E tests for public service pages.
  *
- * Covers: portfolio listing, about us, landing web design.
+ * Covers: portfolio listing, landing web design.
  * Note: web-designs, 3d-animations, hosting, e-commerce-prices, custom-software
  * were archived and are no longer accessible via navigation.
+ * about-us was removed from navigation (no internal links) — flow archived.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import {
   PUBLIC_PORTFOLIO,
-  PUBLIC_ABOUT_US,
   PUBLIC_LANDING_WEB_DESIGN,
 } from '../helpers/flow-tags.js';
 
@@ -27,16 +27,6 @@ test.describe('Portfolio Works', () => {
     await page.goto('/portfolio-works');
     await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
     await expect(page).toHaveURL(/portfolio-works/);
-  });
-});
-
-test.describe('About Us', () => {
-  test('renders about us page', {
-    tag: [...PUBLIC_ABOUT_US, '@role:guest'],
-  }, async ({ page }) => {
-    await page.goto('/about-us');
-    await expect(page.locator('body')).toBeVisible({ timeout: 15000 });
-    await expect(page).toHaveURL(/about-us/);
   });
 });
 

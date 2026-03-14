@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from freezegun import freeze_time
 
-from content.models import BusinessProposal
+from content.models import BusinessProposal, ProposalDefaultConfig
 from content.services.proposal_service import ProposalService
 
 pytestmark = pytest.mark.django_db
@@ -390,6 +390,66 @@ class TestGetDefaultSections:
         assert len(sections) == 14
 
 
+CUSTOM_SECTIONS = [
+    {
+        'section_type': 'greeting',
+        'title': 'Custom Greeting',
+        'order': 0,
+        'is_wide_panel': False,
+        'content_json': {'proposalTitle': '', 'clientName': '', 'inspirationalQuote': 'Custom quote'},
+    },
+    {
+        'section_type': 'executive_summary',
+        'title': 'Custom Summary',
+        'order': 1,
+        'is_wide_panel': True,
+        'content_json': {'index': '02', 'title': 'Custom'},
+    },
+]
+
+
+class TestGetDefaultSectionsFromDB:
+    """Verify get_default_sections reads from DB when config exists."""
+
+    def test_returns_db_config_when_exists_es(self):
+        ProposalDefaultConfig.objects.create(language='es', sections_json=CUSTOM_SECTIONS)
+        sections = ProposalService.get_default_sections('es')
+        assert len(sections) == 2
+        assert sections[0]['title'] == 'Custom Greeting'
+
+    def test_returns_db_config_when_exists_en(self):
+        ProposalDefaultConfig.objects.create(language='en', sections_json=CUSTOM_SECTIONS)
+        sections = ProposalService.get_default_sections('en')
+        assert len(sections) == 2
+        assert sections[0]['title'] == 'Custom Greeting'
+
+    def test_falls_back_to_hardcoded_when_no_db_config(self):
+        sections = ProposalService.get_default_sections('es')
+        assert len(sections) == 14
+
+    def test_falls_back_when_db_config_has_empty_sections(self):
+        ProposalDefaultConfig.objects.create(language='es', sections_json=[])
+        sections = ProposalService.get_default_sections('es')
+        assert len(sections) == 14
+
+    def test_db_config_returns_independent_copy(self):
+        ProposalDefaultConfig.objects.create(language='es', sections_json=CUSTOM_SECTIONS)
+        s1 = ProposalService.get_default_sections('es')
+        s2 = ProposalService.get_default_sections('es')
+        s1[0]['title'] = 'MUTATED'
+        assert s2[0]['title'] == 'Custom Greeting'
+
+    def test_es_db_config_does_not_affect_en(self):
+        ProposalDefaultConfig.objects.create(language='es', sections_json=CUSTOM_SECTIONS)
+        en_sections = ProposalService.get_default_sections('en')
+        assert len(en_sections) == 14
+
+    def test_get_hardcoded_defaults_always_returns_hardcoded(self):
+        ProposalDefaultConfig.objects.create(language='es', sections_json=CUSTOM_SECTIONS)
+        hardcoded = ProposalService.get_hardcoded_defaults('es')
+        assert len(hardcoded) == 14
+
+
 class TestSendProposal:
     def test_raises_error_without_client_email(self):
         proposal = BusinessProposal.objects.create(
@@ -619,6 +679,22 @@ class TestRecordView:
         ProposalService.record_view(proposal)
         proposal.refresh_from_db()
         assert proposal.status == 'draft'
+
+
+class TestSendInitialEmailExceptionPath:
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_proposal_to_client',
+        side_effect=Exception('SMTP error'),
+    )
+    def test_exception_in_send_initial_email_is_caught(self, mock_send):
+        """Exception in _send_initial_email is caught and logged, not raised."""
+        proposal = BusinessProposal.objects.create(
+            title='Email Error', client_name='Client',
+            client_email='client@test.com', status='sent',
+        )
+        ProposalService._send_initial_email(proposal)
+        assert mock_send.call_count == 1
+        mock_send.assert_called_once_with(proposal)
 
 
 class TestCheckExpiration:

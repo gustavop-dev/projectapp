@@ -2298,9 +2298,12 @@ class TestDismissProposalAlert:
 # ---------------------------------------------------------------------------
 
 class TestPostRejectionRevisitAlert:
+    @freeze_time('2026-03-01 12:00:00')
     def test_creates_alert_on_rejected_proposal_visit(self, api_client, rejected_proposal):
         """Visiting a rejected proposal creates a post_rejection_revisit alert."""
         from content.models import ProposalAlert
+        rejected_proposal.responded_at = timezone.now() - timezone.timedelta(days=10)
+        rejected_proposal.save(update_fields=['responded_at'])
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': rejected_proposal.uuid})
         response = api_client.get(url)
         assert response.status_code == 200
@@ -2408,14 +2411,15 @@ class TestCreateFromJsonUnmappedKeys:
 # ---------------------------------------------------------------------------
 
 class TestPostRejectionRevisitException:
-    @patch('content.models.ProposalAlert.objects.filter')
-    def test_returns_200_when_revisit_alert_creation_raises(self, mock_filter, api_client, rejected_proposal):
+    @freeze_time('2026-03-01 12:00:00')
+    @patch('content.models.ProposalAlert.objects.create', side_effect=Exception('DB error'))
+    def test_returns_200_when_revisit_alert_creation_raises(self, mock_create, api_client, rejected_proposal):
         """Proposal retrieval succeeds even when post-rejection alert creation raises."""
-        mock_filter.return_value.exists.return_value = False
-        with patch('content.models.ProposalAlert.objects.create', side_effect=Exception('DB error')):
-            url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': rejected_proposal.uuid})
-            response = api_client.get(url)
-            assert response.status_code == 200
+        rejected_proposal.responded_at = timezone.now() - timezone.timedelta(days=10)
+        rejected_proposal.save(update_fields=['responded_at'])
+        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': rejected_proposal.uuid})
+        response = api_client.get(url)
+        assert response.status_code == 200
 
 
 # ---------------------------------------------------------------------------
@@ -2593,6 +2597,7 @@ class TestConditionalAcceptance:
 # ---------------------------------------------------------------------------
 
 class TestScorecardReadsFromSectionContent:
+    @freeze_time('2026-03-01 12:00:00')
     def test_scorecard_passes_payment_options_from_investment_section(self, admin_client, db):
         """Scorecard payment_options check reads from investment section content_json."""
         p = BusinessProposal.objects.create(
@@ -2616,6 +2621,7 @@ class TestScorecardReadsFromSectionContent:
         assert checks_by_key['payment_options']['passed'] is True
         assert checks_by_key['estimated_weeks']['passed'] is True
 
+    @freeze_time('2026-03-01 12:00:00')
     def test_scorecard_fails_when_no_investment_section(self, admin_client, db):
         """Scorecard gracefully handles missing investment section."""
         p = BusinessProposal.objects.create(
@@ -2635,6 +2641,7 @@ class TestScorecardReadsFromSectionContent:
         assert checks_by_key['payment_options']['passed'] is False
         assert checks_by_key['estimated_weeks']['passed'] is False
 
+    @freeze_time('2026-03-01 12:00:00')
     def test_scorecard_handles_empty_investment_content(self, admin_client, db):
         """Scorecard handles investment section with empty content_json."""
         p = BusinessProposal.objects.create(
@@ -2701,3 +2708,161 @@ class TestInlineStatusChange:
         url = reverse('update-proposal-status', kwargs={'proposal_id': sent_proposal.id})
         response = admin_client.patch(url, {'status': ''}, format='json')
         assert response.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# ProposalAlert.__str__ (model line 213)
+# ---------------------------------------------------------------------------
+
+class TestProposalAlertStr:
+    @freeze_time('2026-03-10 12:00:00')
+    def test_str_representation(self, db):
+        """ProposalAlert.__str__ returns formatted alert string."""
+        from content.models import ProposalAlert
+        proposal = BusinessProposal.objects.create(
+            title='Str Test', client_name='Alert Client',
+        )
+        alert = ProposalAlert.objects.create(
+            proposal=proposal, alert_type='reminder',
+            message='Follow up with the client about their proposal',
+            alert_date=timezone.now(),
+        )
+        result = str(alert)
+        assert 'Alert Client' in result
+        assert 'Follow up' in result
+
+
+# ---------------------------------------------------------------------------
+# Scorecard: content_json stored as JSON string (view lines 799-802, 832-835)
+# ---------------------------------------------------------------------------
+
+class TestScorecardStringContentJson:
+    @freeze_time('2026-03-01 12:00:00')
+    def test_scorecard_parses_string_content_json_in_sections(self, admin_client, db):
+        """Scorecard parses content_json when stored as a JSON string."""
+        import json
+        p = BusinessProposal.objects.create(
+            title='String JSON', client_name='Client', client_email='c@t.com',
+            total_investment=5000000, status='draft',
+            expires_at=timezone.now() + timezone.timedelta(days=10),
+        )
+        ProposalSection.objects.create(
+            proposal=p, section_type='greeting', title='Greeting',
+            order=0, is_enabled=True,
+            content_json=json.dumps({'clientName': 'Client'}),
+        )
+        ProposalSection.objects.create(
+            proposal=p, section_type='investment', title='Inversión',
+            order=1, is_enabled=True,
+            content_json=json.dumps({
+                'paymentOptions': [{'label': 'P1'}],
+                'estimatedWeeks': 10,
+            }),
+        )
+        url = reverse('proposal-scorecard', kwargs={'proposal_id': p.id})
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        checks_by_key = {c['key']: c for c in response.data['checks']}
+        assert checks_by_key['sections_content']['passed'] is True
+        assert checks_by_key['payment_options']['passed'] is True
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_scorecard_handles_invalid_string_content_json(self, admin_client, db):
+        """Scorecard handles invalid JSON string in content_json gracefully."""
+        p = BusinessProposal.objects.create(
+            title='Bad JSON', client_name='Client', client_email='c@t.com',
+            total_investment=5000000, status='draft',
+            expires_at=timezone.now() + timezone.timedelta(days=10),
+        )
+        ProposalSection.objects.create(
+            proposal=p, section_type='greeting', title='Greeting',
+            order=0, is_enabled=True,
+            content_json='not-valid-json',
+        )
+        ProposalSection.objects.create(
+            proposal=p, section_type='investment', title='Inversión',
+            order=1, is_enabled=True,
+            content_json='also-invalid',
+        )
+        url = reverse('proposal-scorecard', kwargs={'proposal_id': p.id})
+        response = admin_client.get(url)
+        assert response.status_code == 200
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_scorecard_handles_non_integer_estimated_weeks(self, admin_client, db):
+        """Scorecard handles estimatedWeeks that cannot be cast to int."""
+        p = BusinessProposal.objects.create(
+            title='Bad Weeks', client_name='Client', client_email='c@t.com',
+            total_investment=5000000, status='draft',
+            expires_at=timezone.now() + timezone.timedelta(days=10),
+        )
+        ProposalSection.objects.create(
+            proposal=p, section_type='investment', title='Inversión',
+            order=1, is_enabled=True,
+            content_json={'paymentOptions': [], 'estimatedWeeks': 'not-a-number'},
+        )
+        url = reverse('proposal-scorecard', kwargs={'proposal_id': p.id})
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        checks_by_key = {c['key']: c for c in response.data['checks']}
+        assert checks_by_key['estimated_weeks']['passed'] is False
+
+
+# ---------------------------------------------------------------------------
+# Revisit alert exception path (view lines 1349-1350)
+# ---------------------------------------------------------------------------
+
+class TestRevisitAlertExceptionPath:
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_revisit_alert',
+        side_effect=Exception('SMTP error'),
+    )
+    def test_returns_200_when_revisit_alert_send_fails(self, mock_send, api_client, sent_proposal):
+        """Engagement tracking succeeds even when revisit alert send fails."""
+        now = timezone.now()
+        sent_proposal.first_viewed_at = now - timezone.timedelta(days=5)
+        sent_proposal.save(update_fields=['first_viewed_at'])
+        for i in range(3):
+            ve = ProposalViewEvent.objects.create(
+                proposal=sent_proposal, session_id=f'revisit-exc-{i}',
+                ip_address=f'10.0.0.{i}',
+            )
+            ProposalViewEvent.objects.filter(pk=ve.pk).update(
+                viewed_at=now - timezone.timedelta(days=4 - i),
+            )
+        payload = {
+            'session_id': 'revisit-exc-new',
+            'sections': [
+                {'section_type': 'greeting', 'section_title': 'Hi',
+                 'time_spent_seconds': 5, 'entered_at': '2026-03-10T12:00:00Z'},
+            ],
+        }
+        url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.post(url, payload, format='json')
+        assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Heat score: now=None default (view line 1470) and DoesNotExist (lines 1511-1512)
+# ---------------------------------------------------------------------------
+
+class TestComputeHeatScoreEdgeCases:
+    @freeze_time('2026-03-10 12:00:00')
+    def test_heat_score_with_now_none_uses_current_time(self, db):
+        """_compute_heat_score_for_proposal defaults to timezone.now() when now=None."""
+        from content.views.proposal import _compute_heat_score_for_proposal
+        p = BusinessProposal.objects.create(
+            title='Heat None', client_name='Client', status='sent',
+            view_count=2, first_viewed_at=timezone.now() - timezone.timedelta(days=1),
+        )
+        score = _compute_heat_score_for_proposal(p.id, now=None)
+        assert isinstance(score, int)
+        assert score >= 1
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_heat_score_returns_1_for_nonexistent_proposal(self, db):
+        """_compute_heat_score_for_proposal returns 1 when proposal does not exist."""
+        from content.views.proposal import _compute_heat_score_for_proposal
+        score = _compute_heat_score_for_proposal(99999, now=timezone.now())
+        assert score == 1

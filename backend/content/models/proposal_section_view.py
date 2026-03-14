@@ -23,6 +23,12 @@ class ProposalSectionView(models.Model):
     entered_at = models.DateTimeField(
         help_text='Timestamp when the client navigated to this section.',
     )
+    view_mode = models.CharField(
+        max_length=20,
+        choices=[('executive', 'Executive'), ('detailed', 'Detailed'), ('unknown', 'Unknown')],
+        default='unknown',
+        help_text='Whether this section was viewed in executive or detailed mode.',
+    )
 
     class Meta:
         ordering = ['entered_at']

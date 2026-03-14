@@ -33,23 +33,25 @@ const mockSentProposal = {
 };
 
 async function openClosingPanel(page) {
-  await page.goto(`/proposal/${MOCK_UUID}`);
+  await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
   const nextBtn = page.getByTestId('nav-next');
   await expect(nextBtn).toBeVisible({ timeout: 15000 });
   let safetyLimit = 15;
   while (safetyLimit-- > 0) {
     await nextBtn.click();
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
     const stillVisible = await nextBtn.isVisible().catch(() => false);
     if (!stillVisible) break;
   }
+
+  // Wait for slide transition to finish so buttons become stable
+  await page.locator('[data-section-type="proposal_closing"]').waitFor({ state: 'visible', timeout: 5000 });
 }
 
 test.describe('Proposal Structured Negotiation Modal', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 
@@ -72,10 +74,11 @@ test.describe('Proposal Structured Negotiation Modal', () => {
 
     // Modal opens with structured checkboxes
     await expect(page.getByText(/negociemos alcance/i)).toBeVisible({ timeout: 3000 });
-    await expect(page.getByText('Reducir alcance / módulos')).toBeVisible();
-    await expect(page.getByText('Ajustar timeline')).toBeVisible();
-    await expect(page.getByText('Explorar precio diferente')).toBeVisible();
-    await expect(page.getByText('Cambiar prioridades')).toBeVisible();
+    await expect(page.getByText('El presupuesto es alto para este momento')).toBeVisible();
+    await expect(page.getByText('Necesito ajustar el alcance o quitar módulos')).toBeVisible();
+    await expect(page.getByText('Los tiempos de entrega no me funcionan')).toBeVisible();
+    await expect(page.getByText('Quiero agregar o cambiar funcionalidades')).toBeVisible();
+    await expect(page.getByText('Necesito aprobación de otro decisor')).toBeVisible();
     await expect(page.getByText('Otro ajuste')).toBeVisible();
   });
 
@@ -92,7 +95,7 @@ test.describe('Proposal Structured Negotiation Modal', () => {
     await openClosingPanel(page);
 
     await page.getByRole('button', { name: /Necesito ajustes/i }).click();
-    await page.waitForTimeout(500);
+    await expect(page.getByText(/negociemos alcance/i)).toBeVisible({ timeout: 5000 });
 
     // Both tabs should be visible inside the modal
     const modal = page.locator('.fixed.inset-0').filter({ hasText: /negociemos alcance/i });
@@ -103,7 +106,6 @@ test.describe('Proposal Structured Negotiation Modal', () => {
 
     // Switch to comment tab
     await commentTab.click();
-    await page.waitForTimeout(300);
 
     // Cancel button visible on both tabs
     await expect(modal.getByRole('button', { name: /Cancelar/i })).toBeVisible();
@@ -112,14 +114,14 @@ test.describe('Proposal Structured Negotiation Modal', () => {
   test('selecting checkboxes and sending negotiation calls API', {
     tag: [...PROPOSAL_STRUCTURED_NEGOTIATION, '@role:guest'],
   }, async ({ page }) => {
-    let respondPayload = null;
+    let _respondPayload = null;
 
     await mockApi(page, async ({ apiPath, route }) => {
       if (apiPath === `proposals/${MOCK_UUID}/`) {
         return { status: 200, contentType: 'application/json', body: JSON.stringify(mockSentProposal) };
       }
       if (apiPath === `proposals/${MOCK_UUID}/respond/`) {
-        respondPayload = JSON.parse(route.request().postData() || '{}');
+        _respondPayload = JSON.parse(route.request().postData() || '{}');
         return { status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'negotiating' }) };
       }
       return null;
@@ -128,14 +130,14 @@ test.describe('Proposal Structured Negotiation Modal', () => {
     await openClosingPanel(page);
 
     await page.getByRole('button', { name: /Necesito ajustes/i }).click();
-    await page.waitForTimeout(500);
+    await expect(page.getByText(/negociemos alcance/i)).toBeVisible({ timeout: 5000 });
 
     // Select two checkboxes
-    await page.getByText('Ajustar timeline').click();
-    await page.getByText('Explorar precio diferente').click();
+    await page.getByText('Los tiempos de entrega no me funcionan').click();
+    await page.getByText('El presupuesto es alto para este momento').click();
 
     // Submit
-    const sendBtn = page.getByRole('button', { name: /Enviar solicitud de ajustes/i });
+    const sendBtn = page.getByRole('button', { name: /Enviar 2 ajustes/i });
     await expect(sendBtn).toBeEnabled();
     await sendBtn.click();
 

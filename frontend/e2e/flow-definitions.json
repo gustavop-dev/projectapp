@@ -51,12 +51,13 @@
       "expectedSpecs": 1
     },
     "public-about-us": {
-      "name": "About Us",
+      "name": "About Us (archived)",
       "module": "public",
       "roles": ["guest"],
       "priority": "P3",
-      "description": "View the about us page with team and company information.",
-      "expectedSpecs": 1
+      "description": "ARCHIVED — page removed from navigation, no internal links. View the about us page with team and company information.",
+      "expectedSpecs": 0,
+      "knownGaps": "Page exists but is unreachable from navigation. Flow archived."
     },
     "public-landing-web-design": {
       "name": "Landing Web Design",
@@ -705,6 +706,22 @@
       "roles": ["admin"],
       "priority": "P2",
       "description": "Change proposal status directly from the proposals table via inline dropdown.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-defaults-config": {
+      "name": "Admin Proposal Defaults Config",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Manage default section configurations for new proposals (ES/EN), with save and reset-to-hardcoded.",
+      "expectedSpecs": 1
+    },
+    "admin-email-templates-config": {
+      "name": "Admin Email Templates Config",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Manage email template text customization with category filter, inline editing, HTML preview, active toggle, and reset to defaults.",
       "expectedSpecs": 1
     },
     "admin-proposal-scorecard": {

@@ -1,5 +1,5 @@
 <template>
-  <div class="mt-6 bg-esmerald-light/60 border border-esmerald/15 rounded-2xl p-5 sm:p-6 text-center">
+  <div class="mt-6 bg-white border-2 border-esmerald/20 rounded-2xl p-5 sm:p-6 text-center shadow-sm">
     <div class="mb-3">
       <span class="text-2xl">🔍</span>
     </div>
@@ -39,13 +39,13 @@ const i18n = {
   es: {
     title: 'Hay más por descubrir',
     description:
-      'En la Propuesta Completa puedes explorar funcionalidades adicionales como inteligencia artificial, aplicaciones móviles, integración con Meta y Google Ads, pasarelas de pago y más.',
+      'En la Propuesta Completa encontrarás el detalle de cada elemento incluido en tu proyecto, además de funcionalidades adicionales opcionales que podrías incorporar.',
     cta: 'Ver Propuesta Completa',
   },
   en: {
     title: 'There\'s more to discover',
     description:
-      'In the Full Proposal you can explore additional features like artificial intelligence, mobile apps, Meta & Google Ads integration, payment gateways, and more.',
+      'In the Full Proposal you\'ll find the details of every element included in your project, plus optional additional features you could incorporate.',
     cta: 'View Full Proposal',
   },
 };

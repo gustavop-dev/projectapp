@@ -1,10 +1,10 @@
 /**
- * E2E tests for Proposal Summary KPI cards.
+ * E2E tests for Proposal Summary cards.
  *
  * @flow: proposal-summary-kpis
  *
- * Covers: KPI cards render with value, label, source citation;
- * standard summary cards still render below KPIs.
+ * Covers: standard summary cards render correctly.
+ * Note: KPI highlight cards (+40%, 3x, -60%) were removed from ProposalSummary.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -40,11 +40,6 @@ const mockProposal = {
         index: '1',
         title: 'Resumen de la Propuesta',
         subtitle: 'Detalles clave de esta propuesta:',
-        kpis: [
-          { value: '+40%', label: 'Incremento esperado en conversión web', source: 'HubSpot 2024' },
-          { value: '3x', label: 'Retorno estimado de inversión a 12 meses', source: 'Análisis interno' },
-          { value: '-60%', label: 'Reducción en tiempo de gestión manual', source: 'McKinsey Digital 2023' },
-        ],
         cards: [
           { icon: '💰', title: 'Inversión Total', description: '$8.000.000 COP', source: 'static' },
           { icon: '⏳', title: 'Duración', description: '4 semanas', source: 'static' },
@@ -64,59 +59,29 @@ function setupMock(page) {
   });
 }
 
-test.describe('@flow: proposal-summary-kpis — Proposal Summary KPI Cards', () => {
+test.describe('@flow: proposal-summary-kpis — Proposal Summary Cards', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
-      localStorage.setItem(`proposal-${uuid}-viewMode`, 'detailed');
     }, MOCK_UUID);
   });
 
-  test('renders KPI cards with value, label, and source', {
+  test('renders standard summary cards', {
     tag: [...PROPOSAL_SUMMARY_KPIS, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
+
+    // Gateway should show — pick detailed view
+    await page.getByText('Propuesta Completa').click();
+
     // Navigate to summary section (second section)
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
 
-    // KPI values should be visible
-    await expect(page.getByText('+40%')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('3x')).toBeVisible();
-    await expect(page.getByText('-60%')).toBeVisible();
-  });
-
-  test('renders KPI labels and sources', {
-    tag: [...PROPOSAL_SUMMARY_KPIS, '@role:guest'],
-  }, async ({ page }) => {
-    await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
-    const nextBtn = page.getByTestId('nav-next');
-    await expect(nextBtn).toBeVisible({ timeout: 15000 });
-    await nextBtn.click();
-
-    // Labels
-    await expect(page.getByText(/Incremento esperado en conversión web/)).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/Retorno estimado de inversión/)).toBeVisible();
-
-    // Sources
-    await expect(page.getByText('HubSpot 2024')).toBeVisible();
-    await expect(page.getByText('McKinsey Digital 2023')).toBeVisible();
-  });
-
-  test('renders standard summary cards below KPIs', {
-    tag: [...PROPOSAL_SUMMARY_KPIS, '@role:guest'],
-  }, async ({ page }) => {
-    await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
-    const nextBtn = page.getByTestId('nav-next');
-    await expect(nextBtn).toBeVisible({ timeout: 15000 });
-    await nextBtn.click();
-
-    // Standard cards should still render
+    // Standard cards should render
     await expect(page.getByText('Inversión Total')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('$8.000.000 COP')).toBeVisible();
+    await expect(page.getByText('Inversión Total').locator('..').getByText('$8.000.000 COP')).toBeVisible();
   });
 });
