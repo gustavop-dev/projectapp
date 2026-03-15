@@ -85,7 +85,8 @@ export default {
                 name: 'G&M Platform',
                 designation: 'Legal operations and internal flow',
                 quote: 'Centralized processes, client management and internal operations on a single platform, reducing friction across the team.',
-                url: 'https://www.gmconsultoresjuridicos.com/'
+                url: 'https://www.gmconsultoresjuridicos.com/',
+                watch_video: 'Watch project video'
             },
             {
                 name: 'Constance Hotels',

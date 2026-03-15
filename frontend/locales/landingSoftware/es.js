@@ -108,7 +108,8 @@ export default {
                 name: 'G&M Platform',
                 designation: 'Operación legal y flujo interno',
                 quote: 'Llevábamos meses intentando centralizar nuestra operación. Projectapp construyó una plataforma que unificó gestión de clientes, procesos internos y reportes. Hoy todo el equipo trabaja desde un solo sistema.',
-                url: 'https://www.gmconsultoresjuridicos.com/'
+                url: 'https://www.gmconsultoresjuridicos.com/',
+                watch_video: 'Ver video del proyecto'
             },
             {
                 name: 'Constance Hotels',

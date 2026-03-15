@@ -374,7 +374,8 @@ export default {
                 name: "G&M Platform",
                 designation: "Legal Tech y Desarrollo Personalizado",
                 quote: "Portal personalizado de clientes redujo el tiempo administrativo en 60%. 3.2 min de tiempo promedio de sesión con UX intuitiva. La plataforma ahora maneja 500+ casos mensuales sin problemas.",
-                url: "https://www.gmconsultoresjuridicos.com/"
+                url: "https://www.gmconsultoresjuridicos.com/",
+                watch_video: "Ver video del proyecto"
             },
             {
                 name: "Constance Hotels",

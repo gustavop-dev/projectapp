@@ -52,10 +52,10 @@
   align-items: center;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 20px;
-  padding: 24px 28px;
+  gap: 16px 20px;
+  padding: 16px 20px;
   background: #ffffff;
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: 
     0 8px 16px rgba(0, 0, 0, 0.08),
     0 4px 8px rgba(0, 0, 0, 0.06),
@@ -64,12 +64,20 @@
   cursor: default;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 640px) {
+  .tech-bubble {
+    gap: 16px 28px;
+    padding: 20px 32px;
+    border-radius: 28px;
+  }
+}
+
+@media (min-width: 1024px) {
   .tech-bubble {
     flex-wrap: nowrap;
-    gap: 40px;
-    padding: 36px 60px;
-    border-radius: 80px;
+    gap: 32px;
+    padding: 20px 48px;
+    border-radius: 60px;
   }
 }
 
@@ -82,19 +90,13 @@
 
 @media (min-width: 640px) {
   .tech-icon {
-    height: 34px;
-  }
-}
-
-@media (min-width: 768px) {
-  .tech-icon {
-    height: 40px;
+    height: 32px;
   }
 }
 
 @media (min-width: 1024px) {
   .tech-icon {
-    height: 48px;
+    height: 36px;
   }
 }
 

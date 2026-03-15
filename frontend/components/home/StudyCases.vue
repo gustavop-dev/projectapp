@@ -26,7 +26,7 @@
     <!-- Video Modal (lazy: src only set when open) -->
     <VideoModal
       :is-open="isVideoOpen"
-      :video-src="isVideoOpen ? portfolioVideo : ''"
+      :video-src="isVideoOpen ? currentVideo : ''"
       @close="isVideoOpen = false"
     />
   </section>
@@ -39,24 +39,32 @@ import VideoModal from '~/components/VideoModal.vue'
 import { useMessages } from '~/composables/useMessages'
 
 import portfolioVideo from '~/assets/videos/portfolio/portfolio-showcase.mp4'
+import gmVideo from '~/assets/videos/studyCases/gm-platform-testimonial.webm'
 import videoPoster from '~/assets/images/home/hero/video-poster.jpg'
 import mockupTaptag from '~/assets/images/home/hero/mockup-taptag.png'
-import imgGM from '~/assets/images/studyCases/G&M-Platform.png'
+import imgGMPoster from '~/assets/images/studyCases/gm-platform-video-poster.webp'
+import imgGMPlatform from '~/assets/images/studyCases/gm-platform-testimonial.webp'
 import imgConstance from '~/assets/images/studyCases/Constance-Hotels.png'
 
 const { messages } = useMessages()
 const isVideoOpen = ref(false)
+const currentVideo = ref('')
 
-const openVideoModal = () => {
+const openVideoModal = (testimonial) => {
+  const videoMap = {
+    'TapTag': portfolioVideo,
+    'G&M Platform': gmVideo
+  }
+  currentVideo.value = videoMap[testimonial?.name] || portfolioVideo
   isVideoOpen.value = true
 }
 
 const allCaseStudies = computed(() => {
   const taptag = messages.value?.study_cases?.taptag
-  const cases = messages.value?.study_cases?.cases || []
+  const gm = messages.value?.study_cases?.cases?.find(c => c.name === 'G&M Platform')
+  const otherCases = (messages.value?.study_cases?.cases || []).filter(c => c.name !== 'G&M Platform')
 
   const imageMap = {
-    'G&M Platform': imgGM,
     'Constance Hotels': imgConstance
   }
 
@@ -67,15 +75,27 @@ const allCaseStudies = computed(() => {
     url: taptag.url || '',
     src: videoPoster,
     mockupSrc: mockupTaptag,
-    watchVideo: true
+    watchVideo: true,
+    watchVideoText: taptag.watch_video || 'Watch video'
   } : null
 
-  const otherCases = cases.map(caseItem => ({
+  const gmItem = gm ? {
+    name: gm.name || 'G&M Platform',
+    designation: gm.designation || '',
+    quote: gm.quote || '',
+    url: gm.url || '',
+    src: imgGMPoster,
+    mockupSrc: imgGMPlatform,
+    watchVideo: true,
+    watchVideoText: gm.watch_video || 'Watch video'
+  } : null
+
+  const mappedOther = otherCases.map(caseItem => ({
     ...caseItem,
     src: imageMap[caseItem.name] || ''
   }))
 
-  return taptagItem ? [taptagItem, ...otherCases] : otherCases
+  return [taptagItem, gmItem, ...mappedOther].filter(Boolean)
 })
 </script>
 

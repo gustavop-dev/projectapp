@@ -20,7 +20,7 @@
               class="relative w-full h-full flex items-center justify-center"
             >
               <div class="showcase-stack">
-                <div class="showcase-card showcase-video" @click="emit('watch-video')">
+                <div class="showcase-card showcase-video" @click="emit('watch-video', testimonials[active])">
                   <img :src="testimonial.src" :alt="testimonial.name" class="w-full h-full object-cover rounded-2xl" />
                   <div class="play-overlay">
                     <div class="play-btn">
@@ -92,11 +92,11 @@
             </a>
             <button
               v-if="testimonials[active].watchVideo"
-              @click="emit('watch-video')"
+              @click="emit('watch-video', testimonials[active])"
               class="inline-flex items-center gap-2 text-green-light font-medium text-base hover:text-esmerald transition-colors cursor-pointer"
             >
               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-              {{ watchVideoText }}
+              {{ testimonials[active].watchVideoText || watchVideoText }}
             </button>
           </div>
         </div>

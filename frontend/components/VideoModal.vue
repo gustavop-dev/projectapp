@@ -68,13 +68,21 @@ const handleEscape = (e) => {
   }
 }
 
-// When modal opens, ensure video is ready to play with audio
+// When modal opens, auto-play video with audio
 watch(() => props.isOpen, async (newVal) => {
   if (newVal) {
     await nextTick()
     if (!videoPlayer.value) return
+    videoPlayer.value.currentTime = 0
     videoPlayer.value.volume = 1
     videoPlayer.value.muted = false
+    try {
+      await videoPlayer.value.play()
+    } catch {
+      // Browsers may block unmuted autoplay; fallback to muted autoplay
+      videoPlayer.value.muted = true
+      videoPlayer.value.play().catch(() => {})
+    }
   } else if (videoPlayer.value) {
     videoPlayer.value.pause()
     videoPlayer.value.currentTime = 0

@@ -157,7 +157,8 @@ export default {
                 name: 'G&M Platform',
                 designation: 'Operación legal y flujo interno',
                 quote: 'Desarrollamos una plataforma personalizada para centralizar procesos, gestión de clientes y operación interna, reduciendo fricción en todo el equipo.',
-                url: 'https://www.gmconsultoresjuridicos.com/'
+                url: 'https://www.gmconsultoresjuridicos.com/',
+                watch_video: 'Ver video del proyecto'
             },
             {
                 name: 'Constance Hotels',
