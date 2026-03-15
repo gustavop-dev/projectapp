@@ -52,7 +52,7 @@ async function openInvestmentSection(page) {
   const nextBtn = page.getByTestId('nav-next');
   await expect(nextBtn).toBeVisible({ timeout: 15000 });
   await nextBtn.click();
-  await expect(page.getByText(/Inversi[oó]n/i)).toBeVisible({ timeout: 5000 });
+  await expect(page.getByRole('heading', { name: /Inversi[oó]n y Formas de Pago/i })).toBeVisible({ timeout: 5000 });
 }
 
 test.describe('Proposal Calculator Micro-Feedback', () => {
