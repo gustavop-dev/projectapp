@@ -74,11 +74,15 @@ jobs:
         run: npm test -- --ci --forceExit
 
   # ───────────────────────────────────────────
-  # Frontend — Playwright E2E tests
+  # Frontend — Playwright E2E tests (sharded)
   # ───────────────────────────────────────────
   frontend-e2e-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ["1/3", "2/3", "3/3"]
     defaults:
       run:
         working-directory: frontend
@@ -102,33 +106,76 @@ jobs:
       - name: Install Playwright browsers with system deps
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright E2E tests
-        run: npx playwright test
+      - name: Run Playwright E2E tests (shard ${{ matrix.shard }})
+        run: npx playwright test --shard=${{ matrix.shard }} --reporter=blob
         env:
           CI: 'true'
 
-      - name: Upload Playwright report
+      - name: Upload blob report
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-blob-${{ strategy.job-index }}
+          path: frontend/blob-report/
+          retention-days: 1
+
+      - name: Upload test traces (failures only)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces-${{ strategy.job-index }}
+          path: frontend/test-results/
+          retention-days: 7
+
+  # ───────────────────────────────────────────
+  # Merge Playwright shard reports
+  # ───────────────────────────────────────────
+  merge-e2e-reports:
+    runs-on: ubuntu-latest
+    needs: frontend-e2e-tests
+    if: always()
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+      - name: Download all blob reports
+        uses: actions/download-artifact@v4
+        with:
+          path: all-blob-reports
+          pattern: playwright-blob-*
+          merge-multiple: true
+
+      - name: Merge shard reports into HTML
+        working-directory: frontend
+        run: npx playwright merge-reports --reporter html ../all-blob-reports
+
+      - name: Upload merged HTML report
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: frontend/playwright-report/
           retention-days: 14
 
-      - name: Upload test traces (failures only)
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-traces
-          path: frontend/test-results/
-          retention-days: 7
-
   # ───────────────────────────────────────────
   # Test Quality Gate
   # ───────────────────────────────────────────
   test-quality-gate:
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-unit-tests, frontend-e2e-tests]
+    needs: [backend-tests, frontend-unit-tests, merge-e2e-reports]
 
     steps:
       - name: Checkout

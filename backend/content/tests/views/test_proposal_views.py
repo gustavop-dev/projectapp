@@ -194,6 +194,7 @@ class TestRespondToProposal:
 class TestPostExpirationVisitAlert:
     @patch('content.services.proposal_email_service.ProposalEmailService.send_post_expiration_visit_alert')
     def test_creates_alert_on_expired_visit(self, mock_alert, api_client, expired_proposal):
+        """Visiting an expired proposal creates a post_expiration_visit alert and triggers the email service."""
         from content.models import ProposalAlert
         assert expired_proposal.post_expiration_alert_sent_at is None
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})

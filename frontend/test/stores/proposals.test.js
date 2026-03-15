@@ -140,6 +140,21 @@ describe('useProposalStore', () => {
       expect(result.success).toBe(true);
     });
 
+    it('returns expired flag when response contains expired_meta', async () => {
+      const data = {
+        id: 1, uuid: 'exp-uuid', title: 'Expired',
+        expired_meta: { seller_name: 'Seller', whatsapp_url: 'https://wa.me/123' },
+      };
+      get_request.mockResolvedValue({ data });
+
+      const result = await store.fetchPublicProposal('exp-uuid');
+
+      expect(result.success).toBe(true);
+      expect(result.expired).toBe(true);
+      expect(result.data).toEqual(data);
+      expect(store.currentProposal).toEqual(data);
+    });
+
     it('sets expired error on 410', async () => {
       get_request.mockRejectedValue({ response: { status: 410 } });
 
@@ -1354,6 +1369,26 @@ describe('useProposalStore', () => {
 
       expect(result.success).toBe(false);
       expect(store.error).toBe('reset_email_template_failed');
+    });
+  });
+
+  describe('requestMagicLink', () => {
+    it('returns success on successful request', async () => {
+      create_request.mockResolvedValue({});
+
+      const result = await store.requestMagicLink('client@test.com');
+
+      expect(create_request).toHaveBeenCalledWith('proposals/request-link/', { email: 'client@test.com' });
+      expect(result.success).toBe(true);
+    });
+
+    it('returns failure and logs error on rejection', async () => {
+      create_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.requestMagicLink('fail@test.com');
+
+      expect(result.success).toBe(false);
+      expect(console.error).toHaveBeenCalled();
     });
   });
 

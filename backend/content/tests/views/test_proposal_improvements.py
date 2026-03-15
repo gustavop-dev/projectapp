@@ -13,21 +13,22 @@ Covers:
 - proposal scorecard enhancements
 - alert priority sorting
 """
-from datetime import timedelta
+from datetime import datetime, timedelta
+from datetime import timezone as dt_tz
 from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
-from django.utils import timezone
 from freezegun import freeze_time
+
+FROZEN_NOW = datetime(2026, 1, 15, 10, 0, 0, tzinfo=dt_tz.utc)
 
 from content.models import (
     BusinessProposal,
     ProposalAlert,
     ProposalChangeLog,
     ProposalSection,
-    ProposalSectionView,
     ProposalViewEvent,
 )
 
@@ -37,9 +38,10 @@ pytestmark = pytest.mark.django_db
 # ── Fixtures ──
 
 @pytest.fixture
+@freeze_time('2026-01-15T10:00:00Z')
 def viewed_proposal(db):
     """A proposal in viewed status with future expiry."""
-    now = timezone.now()
+    now = FROZEN_NOW
     return BusinessProposal.objects.create(
         title='Viewed Project',
         client_name='Viewed Client',
@@ -59,9 +61,10 @@ def viewed_proposal(db):
 
 
 @pytest.fixture
+@freeze_time('2026-01-15T10:00:00Z')
 def about_to_expire_proposal(db):
     """A viewed proposal that's about to expire (expired 1 hour ago)."""
-    now = timezone.now()
+    now = FROZEN_NOW
     return BusinessProposal.objects.create(
         title='Almost Expired',
         client_name='Expiring Client',
@@ -79,6 +82,7 @@ def about_to_expire_proposal(db):
 
 # ── 1.1 engagement_decay alert type ──
 
+@freeze_time('2026-01-15T10:00:00Z')
 class TestEngagementDecayAlertType:
     def test_engagement_decay_is_valid_alert_type(self, viewed_proposal):
         """engagement_decay should be a valid choice for ProposalAlert.alert_type."""
@@ -86,7 +90,7 @@ class TestEngagementDecayAlertType:
             proposal=viewed_proposal,
             alert_type='engagement_decay',
             message='Test decay alert',
-            alert_date=timezone.now(),
+            alert_date=FROZEN_NOW,
         )
         alert.refresh_from_db()
         assert alert.alert_type == 'engagement_decay'
@@ -99,6 +103,7 @@ class TestEngagementDecayAlertType:
 
 # ── 1.2 lead_score removal ──
 
+@freeze_time('2026-01-15T10:00:00Z')
 class TestLeadScoreRemoval:
     def test_list_proposals_has_no_lead_score(self, admin_client, viewed_proposal):
         """list_proposals response should not contain lead_score."""
@@ -122,7 +127,7 @@ class TestLeadScoreRemoval:
             title='Accepted', client_name='Winner',
             client_email='w@t.com', status='accepted',
             total_investment=Decimal('5000.00'),
-            expires_at=timezone.now() + timedelta(days=5),
+            expires_at=FROZEN_NOW + timedelta(days=5),
         )
         url = reverse('list-proposals')
         response = admin_client.get(url)
@@ -133,6 +138,7 @@ class TestLeadScoreRemoval:
 
 # ── 2.1 ProposalAlert priority ──
 
+@freeze_time('2026-01-15T10:00:00Z')
 class TestAlertPriority:
     def test_auto_priority_critical_for_engagement_decay(self, viewed_proposal):
         """engagement_decay alerts should auto-set priority to critical."""
@@ -140,7 +146,7 @@ class TestAlertPriority:
             proposal=viewed_proposal,
             alert_type='engagement_decay',
             message='Decay detected',
-            alert_date=timezone.now(),
+            alert_date=FROZEN_NOW,
         )
         assert alert.priority == 'critical'
 
@@ -150,7 +156,7 @@ class TestAlertPriority:
             proposal=viewed_proposal,
             alert_type='post_expiration_visit',
             message='Post-expiration visit',
-            alert_date=timezone.now(),
+            alert_date=FROZEN_NOW,
         )
         assert alert.priority == 'critical'
 
@@ -160,17 +166,17 @@ class TestAlertPriority:
             proposal=viewed_proposal,
             alert_type='discount_suggestion',
             message='Consider discount',
-            alert_date=timezone.now(),
+            alert_date=FROZEN_NOW,
         )
         assert alert.priority == 'high'
 
     def test_auto_priority_normal_for_reminder(self, viewed_proposal):
-        """reminder alerts should default to normal priority."""
+        """Reminder alerts should default to normal priority."""
         alert = ProposalAlert.objects.create(
             proposal=viewed_proposal,
             alert_type='reminder',
             message='Reminder',
-            alert_date=timezone.now(),
+            alert_date=FROZEN_NOW,
         )
         assert alert.priority == 'normal'
 
@@ -180,7 +186,7 @@ class TestAlertPriority:
             proposal=viewed_proposal,
             alert_type='engagement_decay',
             message='Test',
-            alert_date=timezone.now(),
+            alert_date=FROZEN_NOW,
             priority='high',
         )
         alert.save()
@@ -189,6 +195,7 @@ class TestAlertPriority:
 
 # ── 2.2 engagement_declining flag ──
 
+@freeze_time('2026-01-15T10:00:00Z')
 class TestEngagementDeclining:
     def test_new_proposal_not_declining(self, viewed_proposal):
         """New proposals should have engagement_declining=False."""
@@ -204,6 +211,7 @@ class TestEngagementDeclining:
 
 # ── 2.3 cached_heat_score ──
 
+@freeze_time('2026-01-15T10:00:00Z')
 class TestCachedHeatScore:
     def test_default_cached_heat_score_is_zero(self, viewed_proposal):
         """New proposals should have cached_heat_score=0."""
@@ -220,33 +228,33 @@ class TestCachedHeatScore:
         """engagement_declining should reduce heat score by 1."""
         from content.views.proposal import _compute_heat_score_with_summary
 
-        now = timezone.now()
         p = BusinessProposal.objects.create(
             title='Declining Test', client_name='Test',
             client_email='t@t.com', status='viewed',
             total_investment=Decimal('5000.00'),
-            view_count=3, first_viewed_at=now - timedelta(days=1),
-            last_activity_at=now - timedelta(hours=1),
+            view_count=3, first_viewed_at=FROZEN_NOW - timedelta(days=1),
+            last_activity_at=FROZEN_NOW - timedelta(hours=1),
             engagement_declining=False,
-            expires_at=now + timedelta(days=10),
+            expires_at=FROZEN_NOW + timedelta(days=10),
         )
-        result_normal = _compute_heat_score_with_summary(p.id, now)
+        result_normal = _compute_heat_score_with_summary(p.id, FROZEN_NOW)
 
         p.engagement_declining = True
         p.save(update_fields=['engagement_declining'])
-        result_declining = _compute_heat_score_with_summary(p.id, now)
+        result_declining = _compute_heat_score_with_summary(p.id, FROZEN_NOW)
 
         assert result_declining['score'] <= result_normal['score']
 
 
 # ── 2.4 Email cooldown ──
 
+@freeze_time('2026-01-15T10:00:00Z')
 class TestEmailCooldown:
     def test_cooldown_blocks_when_recent(self, viewed_proposal):
         """_check_cooldown should return False when email sent < 24h ago."""
         from content.services.proposal_email_service import ProposalEmailService
 
-        viewed_proposal.last_automated_email_at = timezone.now() - timedelta(hours=1)
+        viewed_proposal.last_automated_email_at = FROZEN_NOW - timedelta(hours=1)
         viewed_proposal.save(update_fields=['last_automated_email_at'])
 
         result = ProposalEmailService._check_cooldown(viewed_proposal)
@@ -266,7 +274,7 @@ class TestEmailCooldown:
         """_check_cooldown should return True when email sent > 24h ago."""
         from content.services.proposal_email_service import ProposalEmailService
 
-        viewed_proposal.last_automated_email_at = timezone.now() - timedelta(hours=25)
+        viewed_proposal.last_automated_email_at = FROZEN_NOW - timedelta(hours=25)
         viewed_proposal.save(update_fields=['last_automated_email_at'])
 
         result = ProposalEmailService._check_cooldown(viewed_proposal)
@@ -275,6 +283,7 @@ class TestEmailCooldown:
 
 # ── 2.5 Auto-extension ──
 
+@freeze_time('2026-01-15T10:00:00Z')
 class TestAutoExtension:
     def test_auto_extends_when_recent_activity(self, about_to_expire_proposal):
         """expire_stale_proposals should extend when client had recent views."""
@@ -284,14 +293,14 @@ class TestAutoExtension:
         ProposalViewEvent.objects.create(
             proposal=about_to_expire_proposal,
             session_id='recent-session',
-            viewed_at=timezone.now() - timedelta(hours=2),
+            viewed_at=FROZEN_NOW - timedelta(hours=2),
         )
 
         expire_stale_proposals()
 
         about_to_expire_proposal.refresh_from_db()
         assert about_to_expire_proposal.status == 'viewed'  # Not expired
-        assert about_to_expire_proposal.expires_at > timezone.now()
+        assert about_to_expire_proposal.expires_at > FROZEN_NOW
 
         # Verify changelog
         log = ProposalChangeLog.objects.filter(
@@ -312,6 +321,7 @@ class TestAutoExtension:
 
 # ── 3.1 Expired proposal 410 response ──
 
+@freeze_time('2026-01-15T10:00:00Z')
 class TestExpiredProposalResponse:
     def test_expired_includes_expired_meta_with_seller_and_whatsapp(self, api_client, db):
         """Expired proposal returns 200 with expired_meta containing seller_name and whatsapp_url."""
@@ -319,7 +329,7 @@ class TestExpiredProposalResponse:
             title='Expired Proposal', client_name='Client',
             client_email='c@t.com', status='expired',
             total_investment=Decimal('5000.00'), currency='COP',
-            expires_at=timezone.now() - timedelta(days=1),
+            expires_at=FROZEN_NOW - timedelta(days=1),
             is_active=True,
         )
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': p.uuid})
@@ -335,9 +345,10 @@ class TestExpiredProposalResponse:
 
 # ── 3.2 Magic link ──
 
+@freeze_time('2026-01-15T10:00:00Z')
 class TestMagicLink:
     def test_magic_link_returns_200_for_existing_email(self, api_client, viewed_proposal):
-        """magic link endpoint should return 200 for known email."""
+        """Magic link endpoint should return 200 for known email."""
         url = reverse('request-magic-link')
         with patch('content.services.proposal_email_service.ProposalEmailService.send_magic_link_email') as mock_send:
             mock_send.return_value = True
@@ -345,13 +356,13 @@ class TestMagicLink:
         assert response.status_code == 200
 
     def test_magic_link_returns_200_for_unknown_email(self, api_client):
-        """magic link endpoint should return 200 even for unknown email (no enumeration)."""
+        """Magic link endpoint should return 200 even for unknown email (no enumeration)."""
         url = reverse('request-magic-link')
         response = api_client.post(url, {'email': 'unknown@test.com'}, format='json')
         assert response.status_code == 200
 
     def test_magic_link_returns_400_without_email(self, api_client):
-        """magic link endpoint should return 400 when email is missing."""
+        """Magic link endpoint should return 400 when email is missing."""
         url = reverse('request-magic-link')
         response = api_client.post(url, {}, format='json')
         assert response.status_code == 400
@@ -359,6 +370,7 @@ class TestMagicLink:
 
 # ── 5.2 Proposal scorecard ──
 
+@freeze_time('2026-01-15T10:00:00Z')
 class TestProposalScorecardEnhanced:
     def test_scorecard_includes_phone_check(self, admin_client, db):
         """Scorecard should include client_phone check."""
@@ -366,7 +378,7 @@ class TestProposalScorecardEnhanced:
             title='Scorecard Test', client_name='SC Client',
             client_email='sc@t.com', client_phone='+573001234567',
             total_investment=Decimal('5000.00'),
-            expires_at=timezone.now() + timedelta(days=10),
+            expires_at=FROZEN_NOW + timedelta(days=10),
             status='draft',
         )
         ProposalSection.objects.create(
@@ -385,7 +397,7 @@ class TestProposalScorecardEnhanced:
             title='No Phone', client_name='No Phone',
             client_email='np@t.com', client_phone='',
             total_investment=Decimal('5000.00'),
-            expires_at=timezone.now() + timedelta(days=10),
+            expires_at=FROZEN_NOW + timedelta(days=10),
             status='draft',
         )
         ProposalSection.objects.create(
@@ -399,22 +411,21 @@ class TestProposalScorecardEnhanced:
 
 # ── Alert priority sorting ──
 
+@freeze_time('2026-01-15T10:00:00Z')
 class TestAlertPrioritySorting:
     def test_alerts_sorted_by_priority(self, admin_client, viewed_proposal):
         """Alerts should be sorted: critical first, then high, then normal."""
-        now = timezone.now()
-        # Create alerts of different types/priorities
         ProposalAlert.objects.create(
             proposal=viewed_proposal, alert_type='reminder',
-            message='Normal alert', alert_date=now,
+            message='Normal alert', alert_date=FROZEN_NOW,
         )
         ProposalAlert.objects.create(
             proposal=viewed_proposal, alert_type='engagement_decay',
-            message='Critical alert', alert_date=now,
+            message='Critical alert', alert_date=FROZEN_NOW,
         )
         ProposalAlert.objects.create(
             proposal=viewed_proposal, alert_type='discount_suggestion',
-            message='High alert', alert_date=now,
+            message='High alert', alert_date=FROZEN_NOW,
         )
 
         url = reverse('proposal-alerts')
