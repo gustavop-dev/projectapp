@@ -7,6 +7,7 @@ Tasks:
 """
 
 import logging
+from datetime import timedelta
 
 from django.utils import timezone
 from huey import crontab
@@ -227,19 +228,48 @@ def expire_stale_proposals():
     Daily task: mark proposals as EXPIRED when expires_at < now().
 
     Only affects active proposals with status SENT or VIEWED.
+    Auto-extends by 7 days if the client had recent activity (last 3 days).
     """
-    from content.models import BusinessProposal
+    from content.models import BusinessProposal, ProposalChangeLog
+    from content.models import ProposalViewEvent
 
     now = timezone.now()
-    expired_qs = BusinessProposal.objects.filter(
+    candidates = BusinessProposal.objects.filter(
         status__in=['sent', 'viewed'],
         is_active=True,
         expires_at__lt=now,
     )
-    count = expired_qs.update(status='expired')
 
-    if count > 0:
-        logger.info('Expired %d stale proposals.', count)
+    expired = 0
+    extended = 0
+    for proposal in candidates:
+        # Check for recent client activity (view event in last 3 days)
+        recent_activity = ProposalViewEvent.objects.filter(
+            proposal=proposal,
+            viewed_at__gte=now - timedelta(days=3),
+        ).exists()
+
+        if recent_activity:
+            # Auto-extend by 7 days
+            proposal.expires_at = now + timedelta(days=7)
+            proposal.save(update_fields=['expires_at'])
+            ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type='updated',
+                description=(
+                    'Auto-extended expiration by 7 days due to recent client activity.'
+                ),
+            )
+            extended += 1
+        else:
+            proposal.status = 'expired'
+            proposal.save(update_fields=['status'])
+            expired += 1
+
+    if expired > 0:
+        logger.info('Expired %d stale proposals.', expired)
+    if extended > 0:
+        logger.info('Auto-extended %d proposals with recent activity.', extended)
 
 
 @periodic_task(crontab(hour='9', minute='0'))
@@ -864,6 +894,34 @@ def auto_archive_zombie_proposals():
 
     if archived > 0:
         logger.info('Auto-archived %d zombie proposals.', archived)
+
+
+@periodic_task(crontab(minute='*/30'))
+def refresh_cached_heat_scores():
+    """
+    Periodic task (every 30 min): recompute cached_heat_score for all
+    active proposals in sent/viewed status.
+    """
+    from content.models import BusinessProposal
+    from content.views.proposal import _compute_heat_score_for_proposal
+
+    now = timezone.now()
+    proposals = BusinessProposal.objects.filter(
+        status__in=['sent', 'viewed'],
+        is_active=True,
+    ).values_list('id', 'cached_heat_score')
+
+    updated = 0
+    for pid, old_score in proposals:
+        new_score = _compute_heat_score_for_proposal(pid, now)
+        if new_score != old_score:
+            BusinessProposal.objects.filter(pk=pid).update(
+                cached_heat_score=new_score
+            )
+            updated += 1
+
+    if updated > 0:
+        logger.info('Refreshed cached_heat_score for %d proposals.', updated)
 
 
 @task()

@@ -12,7 +12,7 @@ import { setAuthLocalStorage } from '../helpers/auth.js';
 import { ADMIN_PROPOSAL_QUICK_LOG } from '../helpers/flow-tags.js';
 
 const mockProposals = [
-  { id: 1, title: 'Quick Log Proposal', client_name: 'Log Client', client_email: 'log@test.com', status: 'sent', total_investment: '5000000', currency: 'COP', view_count: 3, heat_score: 5, lead_score: 60, is_active: true },
+  { id: 1, title: 'Quick Log Proposal', client_name: 'Log Client', client_email: 'log@test.com', status: 'sent', total_investment: '5000000', currency: 'COP', view_count: 3, heat_score: 5, is_active: true },
 ];
 
 function setupMock(page) {

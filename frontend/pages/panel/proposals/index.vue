@@ -127,7 +127,8 @@
         <div
           v-for="alert in activeAlerts"
           :key="`${alert.id}-${alert.alert_type}-${alert.manual_alert_id || ''}`"
-          class="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border border-amber-100 cursor-pointer hover:border-amber-300 transition-colors dark:bg-gray-800 dark:border-gray-600 dark:hover:border-amber-500"
+          class="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border cursor-pointer transition-colors dark:bg-gray-800"
+          :class="alertBorderClass(alert.priority)"
           @click="router.push(localePath(`/panel/proposals/${alert.id}/edit`))"
         >
           <div class="flex items-center gap-3">
@@ -135,10 +136,11 @@
             <div>
               <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ alert.client_name }}</span>
               <span class="text-xs text-gray-400 ml-2">{{ alert.title }}</span>
+              <span v-if="alert.priority === 'critical'" class="ml-2 px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">urgente</span>
             </div>
           </div>
           <div class="flex items-center gap-3">
-            <span class="text-xs text-amber-700 font-medium dark:text-amber-400">{{ alert.message }}</span>
+            <span class="text-xs font-medium" :class="alert.priority === 'critical' ? 'text-red-600 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'">{{ alert.message }}</span>
             <button
               v-if="alert.manual_alert_id"
               type="button"
@@ -240,7 +242,7 @@
             <th class="px-3 py-3 w-10">
               <input type="checkbox" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" :checked="selectedIds.size === paginatedProposals.length && paginatedProposals.length > 0" @change="toggleSelectAll" @click.stop />
             </th>
-            <th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-12">ID</th>
+            <th class="px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12">ID</th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-emerald-600" @click="toggleSort('client_name')">
               Cliente <span v-if="sortKey === 'client_name'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
             </th>
@@ -257,9 +259,6 @@
                 <template #trigger><span class="cursor-help">🔥</span></template>
                 <p class="text-xs">Heat Score (1-10): indicador rápido de "temperatura" de engagement del cliente con la propuesta.</p>
               </UiTooltip>
-            </th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center cursor-pointer hover:text-emerald-600" title="Lead Score (0-100)" @click="toggleSort('lead_score')">
-              Score <span v-if="sortKey === 'lead_score'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
             </th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
           </tr>
@@ -337,17 +336,6 @@
               <span v-else-if="p.heat_score > 0" class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white" :class="heatScoreColor(p.heat_score)">
                 {{ p.heat_score }}
               </span>
-              <span v-else class="text-gray-300 text-xs">—</span>
-            </td>
-            <td class="px-6 py-4 text-center">
-              <UiTooltip v-if="p.lead_score > 0" position="left" backgroundColor="bg-gray-900" width="max-w-[240px]">
-                <template #trigger>
-                  <span class="text-xs font-bold tabular-nums cursor-help" :class="leadScoreColor(p.lead_score)">
-                    {{ p.lead_score }}
-                  </span>
-                </template>
-                <p class="text-xs">Lead Score (0-100): probabilidad de conversión basada en el engagement del cliente con la propuesta.</p>
-              </UiTooltip>
               <span v-else class="text-gray-300 text-xs">—</span>
             </td>
             <td class="px-6 py-4">
@@ -814,8 +802,15 @@ function alertIcon(type) {
     seller_inactive: '🏷️', zombie: '💀', late_return: '🔄',
     manual_discount_suggestion: '💰', discount_suggestion: '💰',
     manual_post_expiration_visit: '🔥🕰️', post_expiration_visit: '🔥🕰️',
+    manual_engagement_decay: '📉', engagement_decay: '📉',
   };
   return map[type] || '⚠️';
+}
+
+function alertBorderClass(priority) {
+  if (priority === 'critical') return 'border-red-300 hover:border-red-400 dark:border-red-700 dark:hover:border-red-500';
+  if (priority === 'high') return 'border-amber-200 hover:border-amber-300 dark:border-amber-700 dark:hover:border-amber-500';
+  return 'border-gray-200 hover:border-gray-300 dark:border-gray-600 dark:hover:border-gray-500';
 }
 
 async function handleCreateAlert() {
@@ -951,13 +946,6 @@ function sectionLabel(sectionType) {
     final_note: 'Nota final',
   };
   return labels[sectionType] || sectionType;
-}
-
-function leadScoreColor(score) {
-  if (score >= 80) return 'text-emerald-600';
-  if (score >= 50) return 'text-blue-600';
-  if (score >= 20) return 'text-amber-600';
-  return 'text-gray-500';
 }
 
 function openQuickLog(p) {

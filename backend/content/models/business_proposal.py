@@ -127,6 +127,20 @@ class BusinessProposal(models.Model):
     post_expiration_alert_sent_at = models.DateTimeField(null=True, blank=True)
     calculator_followup_sent_at = models.DateTimeField(null=True, blank=True)
 
+    # Engagement signals
+    engagement_declining = models.BooleanField(
+        default=False,
+        help_text='Set when engagement decay is detected; reset on normal session.',
+    )
+    cached_heat_score = models.PositiveSmallIntegerField(
+        default=0,
+        help_text='Pre-computed heat score (1-10), updated by tracking endpoint and periodic task.',
+    )
+    last_automated_email_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text='Timestamp of the last automated email sent to the client. Used for 24h cooldown.',
+    )
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -187,6 +201,8 @@ class ProposalAlert(models.Model):
         ('high_engagement_today', 'Alta actividad hoy'),
         ('whatsapp_suggestion', 'Sugerencia de WhatsApp'),
         ('calculator_followup', 'Seguimiento calculadora'),
+        ('engagement_decay', 'Pérdida de engagement'),
+        ('post_rejection_revisit', 'Revisita post-rechazo'),
     ]
 
     proposal = models.ForeignKey(
@@ -195,17 +211,40 @@ class ProposalAlert(models.Model):
         related_name='manual_alerts',
     )
     alert_type = models.CharField(
-        max_length=25, choices=ALERT_TYPE_CHOICES, default='reminder'
+        max_length=30, choices=ALERT_TYPE_CHOICES, default='reminder'
     )
     message = models.CharField(max_length=500)
     alert_date = models.DateTimeField(
         help_text='When this alert should become visible.'
     )
+    PRIORITY_CHOICES = [
+        ('critical', 'Alta urgencia'),
+        ('high', 'Alta'),
+        ('normal', 'Normal'),
+    ]
+    PRIORITY_BY_TYPE = {
+        'engagement_decay': 'critical',
+        'post_expiration_visit': 'critical',
+        'post_rejection_revisit': 'critical',
+        'discount_suggestion': 'high',
+        'high_engagement_today': 'high',
+        'calculator_followup': 'high',
+        'whatsapp_suggestion': 'high',
+    }
+    priority = models.CharField(
+        max_length=10, choices=PRIORITY_CHOICES, default='normal',
+        help_text='Auto-computed priority based on alert type.',
+    )
     is_dismissed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        if not self.priority or self.priority == 'normal':
+            self.priority = self.PRIORITY_BY_TYPE.get(self.alert_type, 'normal')
+        super().save(*args, **kwargs)
+
     class Meta:
-        ordering = ['alert_date']
+        ordering = ['-created_at']
         verbose_name = 'Proposal Alert'
         verbose_name_plural = 'Proposal Alerts'
 

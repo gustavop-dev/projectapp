@@ -54,10 +54,12 @@ class TestRetrievePublicProposal:
         sent_proposal.refresh_from_db()
         assert sent_proposal.status == 'viewed'
 
-    def test_returns_410_for_expired_proposal(self, api_client, expired_proposal):
+    def test_returns_200_with_expired_meta_for_expired_proposal(self, api_client, expired_proposal):
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})
         response = api_client.get(url)
-        assert response.status_code == 410
+        assert response.status_code == 200
+        assert 'expired_meta' in response.data
+        assert response.data['expired_meta']['seller_name']
 
     def test_returns_404_for_nonexistent_uuid(self, api_client):
         from uuid import UUID
@@ -66,12 +68,13 @@ class TestRetrievePublicProposal:
         response = api_client.get(url)
         assert response.status_code == 404
 
-    def test_expired_proposal_already_expired_status_returns_410(self, api_client, expired_proposal):
+    def test_expired_proposal_already_expired_status_returns_200_with_meta(self, api_client, expired_proposal):
         expired_proposal.status = 'expired'
         expired_proposal.save(update_fields=['status'])
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})
         response = api_client.get(url)
-        assert response.status_code == 410
+        assert response.status_code == 200
+        assert 'expired_meta' in response.data
 
     @freeze_time('2026-03-01 12:00:00')
     def test_expired_proposal_with_sent_status_updates_to_expired(self, api_client, db):
@@ -84,7 +87,8 @@ class TestRetrievePublicProposal:
         )
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': proposal.uuid})
         response = api_client.get(url)
-        assert response.status_code == 410
+        assert response.status_code == 200
+        assert 'expired_meta' in response.data
         proposal.refresh_from_db()
         assert proposal.status == 'expired'
 
@@ -194,7 +198,8 @@ class TestPostExpirationVisitAlert:
         assert expired_proposal.post_expiration_alert_sent_at is None
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})
         response = api_client.get(url)
-        assert response.status_code == 410
+        assert response.status_code == 200
+        assert 'expired_meta' in response.data
         alert = ProposalAlert.objects.filter(
             proposal=expired_proposal, alert_type='post_expiration_visit',
         ).first()
@@ -211,7 +216,8 @@ class TestPostExpirationVisitAlert:
         expired_proposal.save(update_fields=['post_expiration_alert_sent_at'])
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})
         response = api_client.get(url)
-        assert response.status_code == 410
+        assert response.status_code == 200
+        assert 'expired_meta' in response.data
         mock_alert.assert_not_called()
 
 
@@ -1822,11 +1828,12 @@ class TestPostExpirationAlertException:
         'content.services.proposal_email_service.ProposalEmailService.send_post_expiration_visit_alert',
         side_effect=Exception('SMTP down'),
     )
-    def test_returns_410_when_alert_creation_raises(self, mock_alert, api_client, expired_proposal):
-        """Expired proposal retrieval returns 410 even when alert pipeline raises."""
+    def test_returns_200_with_expired_meta_when_alert_creation_raises(self, mock_alert, api_client, expired_proposal):
+        """Expired proposal retrieval returns 200 with expired_meta even when alert pipeline raises."""
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': expired_proposal.uuid})
         response = api_client.get(url)
-        assert response.status_code == 410
+        assert response.status_code == 200
+        assert 'expired_meta' in response.data
         expired_proposal.refresh_from_db()
         assert expired_proposal.post_expiration_alert_sent_at is None
 
@@ -2503,8 +2510,8 @@ class TestPostRejectionRevisitAlert:
 
 class TestListProposalsHeatScore:
     @freeze_time('2026-03-10 12:00:00')
-    def test_accepted_proposal_has_lead_score_100(self, admin_client, db):
-        """Accepted proposals get heat_score=0 and lead_score=100."""
+    def test_accepted_proposal_has_heat_score_10(self, admin_client, db):
+        """Accepted proposals get heat_score=10."""
         BusinessProposal.objects.create(
             title='Accepted', client_name='A', status='accepted',
             total_investment=1000,
@@ -2512,8 +2519,7 @@ class TestListProposalsHeatScore:
         response = admin_client.get(reverse('list-proposals'))
         assert response.status_code == 200
         item = response.data[0]
-        assert item['heat_score'] == 0
-        assert item['lead_score'] == 100
+        assert item['heat_score'] == 10
 
 
 # ---------------------------------------------------------------------------
@@ -2591,46 +2597,31 @@ class TestPostRejectionRevisitException:
 class TestHeatScoreViaListProposals:
     @freeze_time('2026-03-10 12:00:00')
     def test_high_engagement_sent_proposal_has_heat_score(self, admin_client, db):
-        """Sent proposal with investment time, unique IPs, and views gets elevated heat score."""
+        """Sent proposal with cached_heat_score gets that value in list response."""
         p = BusinessProposal.objects.create(
             title='Hot', client_name='H', status='sent',
             total_investment=1000, view_count=5,
             first_viewed_at=timezone.now() - timezone.timedelta(days=1),
-        )
-        event = ProposalViewEvent.objects.create(
-            proposal=p, session_id='heat-s1', ip_address='1.1.1.1',
-        )
-        ProposalSectionView.objects.create(
-            view_event=event, section_type='investment',
-            section_title='Inv', time_spent_seconds=70,
-            entered_at=timezone.now(),
+            cached_heat_score=7,
         )
         response = admin_client.get(reverse('list-proposals'))
         assert response.status_code == 200
         item = next(i for i in response.data if i['id'] == p.id)
-        assert item['heat_score'] >= 1
-        assert item['lead_score'] >= 10
+        assert item['heat_score'] == 7
 
     @freeze_time('2026-03-10 12:00:00')
-    def test_moderate_investment_time_gives_1_point(self, admin_client, db):
-        """Investment time between 15-60s gives 1 point (line 1272)."""
+    def test_zero_cached_heat_score_returns_zero(self, admin_client, db):
+        """Sent proposal with cached_heat_score=0 returns 0 in list response."""
         p = BusinessProposal.objects.create(
             title='Moderate', client_name='M', status='sent',
             total_investment=1000, view_count=2,
             first_viewed_at=timezone.now() - timezone.timedelta(days=2),
-        )
-        event = ProposalViewEvent.objects.create(
-            proposal=p, session_id='heat-mod', ip_address='2.2.2.2',
-        )
-        ProposalSectionView.objects.create(
-            view_event=event, section_type='investment',
-            section_title='Inv', time_spent_seconds=30,
-            entered_at=timezone.now(),
+            cached_heat_score=0,
         )
         response = admin_client.get(reverse('list-proposals'))
         assert response.status_code == 200
         item = next(i for i in response.data if i['id'] == p.id)
-        assert item['heat_score'] >= 1
+        assert item['heat_score'] == 0
 
 
 # ---------------------------------------------------------------------------

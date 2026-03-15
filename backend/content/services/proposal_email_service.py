@@ -52,6 +52,28 @@ class ProposalEmailService:
         return config.is_active
 
     @classmethod
+    def _check_cooldown(cls, proposal, cooldown_hours=24):
+        """
+        Check if enough time has passed since the last automated email.
+        If cooldown has passed, update last_automated_email_at and return True.
+        Otherwise return False (email should be skipped).
+        """
+        from datetime import timedelta
+        now = timezone.now()
+        if (
+            proposal.last_automated_email_at
+            and (now - proposal.last_automated_email_at) < timedelta(hours=cooldown_hours)
+        ):
+            logger.info(
+                'Skipping automated email for %s: cooldown active (last sent %s)',
+                proposal.uuid, proposal.last_automated_email_at,
+            )
+            return False
+        proposal.last_automated_email_at = now
+        proposal.save(update_fields=['last_automated_email_at'])
+        return True
+
+    @classmethod
     def _resolve_content(cls, template_key, context):
         """
         Resolve editable field values for a template, merging DB overrides
@@ -181,6 +203,9 @@ class ProposalEmailService:
             logger.info('Skipping proposal_reminder: template disabled')
             return False
 
+        if not cls._check_cooldown(proposal):
+            return False
+
         context = {
             'client_name': proposal.client_name,
             'proposal_url': proposal.public_url,
@@ -269,6 +294,9 @@ class ProposalEmailService:
 
         if not cls._is_template_active(template_key):
             logger.info('Skipping %s: template disabled', template_key)
+            return False
+
+        if not cls._check_cooldown(proposal):
             return False
 
         context = {
@@ -822,6 +850,9 @@ class ProposalEmailService:
             logger.info('Skipping proposal_abandonment_followup: template disabled')
             return False
 
+        if not cls._check_cooldown(proposal):
+            return False
+
         context = {
             'client_name': proposal.client_name,
             'proposal_url': proposal.public_url,
@@ -880,6 +911,9 @@ class ProposalEmailService:
 
         if not cls._is_template_active('proposal_investment_interest_followup'):
             logger.info('Skipping proposal_investment_interest_followup: template disabled')
+            return False
+
+        if not cls._check_cooldown(proposal):
             return False
 
         time_display = f'{int(time_on_investment // 60)}m {int(time_on_investment % 60)}s'
@@ -1509,4 +1543,98 @@ class ProposalEmailService:
                 'Failed to send post-expiration visit alert for proposal %s',
                 proposal.uuid,
             )
+            return False
+
+    @classmethod
+    def send_magic_link_email(cls, email, proposals):
+        """
+        Send a magic link email containing links to the client's proposals.
+
+        Args:
+            email: Client email address.
+            proposals: List of BusinessProposal instances.
+        """
+        if not proposals:
+            return False
+
+        proposal_links = []
+        for p in proposals:
+            proposal_links.append({
+                'title': p.title,
+                'url': p.public_url,
+                'status': p.get_status_display(),
+                'created_at': p.created_at.strftime('%d/%m/%Y') if p.created_at else '',
+            })
+
+        client_name = proposals[0].client_name or ''
+        subject = f'Tus propuestas en Project App — {client_name}'
+
+        # Build simple HTML email
+        links_html = ''
+        for link in proposal_links:
+            links_html += (
+                f'<tr><td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;">'
+                f'<a href="{link["url"]}" style="color:#059669;text-decoration:none;'
+                f'font-weight:600;">{link["title"]}</a>'
+                f'<br><span style="color:#9ca3af;font-size:12px;">'
+                f'{link["status"]} — {link["created_at"]}</span>'
+                f'</td></tr>'
+            )
+
+        html_content = f"""
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+                     max-width:560px;margin:0 auto;padding:32px 24px;">
+            <h2 style="color:#111827;font-weight:400;margin-bottom:8px;">
+                Hola{(' ' + client_name) if client_name else ''},
+            </h2>
+            <p style="color:#6b7280;line-height:1.6;">
+                Solicitaste acceso a tus propuestas. Aquí están los enlaces:
+            </p>
+            <table style="width:100%;border-collapse:collapse;margin:24px 0;
+                          background:#fafafa;border-radius:8px;overflow:hidden;">
+                {links_html}
+            </table>
+            <p style="color:#9ca3af;font-size:13px;margin-top:24px;">
+                Si no solicitaste este email, puedes ignorarlo.
+            </p>
+            <p style="color:#d1d5db;font-size:12px;margin-top:32px;">
+                Project App — projectapp.co
+            </p>
+        </div>
+        """
+
+        text_content = (
+            f'Hola {client_name},\n\n'
+            f'Solicitaste acceso a tus propuestas:\n\n'
+            + '\n'.join(
+                f'- {l["title"]}: {l["url"]}' for l in proposal_links
+            )
+            + '\n\nProject App — projectapp.co'
+        )
+
+        try:
+            email_msg = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[email],
+            )
+            email_msg.attach_alternative(html_content, 'text/html')
+            email_msg.send(fail_silently=False)
+
+            cls._log_email(
+                'magic_link', email, subject=subject,
+                proposal=proposals[0],
+            )
+
+            logger.info('Sent magic link email to %s with %d proposals', email, len(proposals))
+            return True
+
+        except Exception:
+            cls._log_email(
+                'magic_link', email, subject=subject,
+                proposal=proposals[0], status='failed',
+                error_message='Send failed',
+            )
+            logger.exception('Failed to send magic link email to %s', email)
             return False

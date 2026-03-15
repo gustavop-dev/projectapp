@@ -44,6 +44,17 @@
         </div>
       </div>
 
+      <!-- Scope summary — visible before accept -->
+      <div v-if="canRespond && !submitted && scopeSummary.length" data-animate="fade-up" class="w-full max-w-md bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-left">
+        <p class="text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-2">{{ t.scopeSummaryTitle }}</p>
+        <div class="space-y-1.5">
+          <div v-for="item in scopeSummary" :key="item.label" class="flex items-baseline justify-between gap-2">
+            <span class="text-xs text-emerald-600">{{ item.label }}</span>
+            <span class="text-sm font-medium text-emerald-900 text-right">{{ item.value }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Accept / Adjust / Decline — simplified to 3 clear options -->
       <div v-if="canRespond && !submitted" data-animate="fade-up" class="flex flex-col items-center gap-3 pt-2">
         <button
@@ -55,7 +66,6 @@
         >
           <span>✅</span> {{ t.acceptBtn }}
         </button>
-        <!-- F14: Consolidated negotiate + comment CTA -->
         <button
           class="px-8 sm:px-12 py-3 bg-amber-50 border-2 border-amber-300 text-amber-800 rounded-xl font-medium text-sm
                  hover:bg-amber-100 transition-colors flex items-center gap-2"
@@ -63,6 +73,13 @@
           @click="showNegotiateModal = true"
         >
           🤝 {{ t.negotiateBtn }}
+        </button>
+        <button
+          class="px-6 py-2 text-sm text-gray-500 hover:text-emerald-600 transition-colors flex items-center gap-1.5"
+          :disabled="isSubmitting"
+          @click="showCommentModal = true"
+        >
+          💬 {{ t.commentBtn }}
         </button>
         <button
           class="text-xs text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2"
@@ -191,15 +208,9 @@
         <div class="text-5xl mb-4">🎉</div>
         <h3 class="text-xl font-bold text-gray-900 mb-2">{{ confirmTitleText }}</h3>
         <p class="text-gray-600 text-sm mb-4">{{ t.confirmText }}</p>
-        <div v-if="scopeSummary.length" class="text-left mb-4 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-          <p class="text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-2">{{ t.scopeSummaryTitle }}</p>
-          <div class="space-y-1.5">
-            <div v-for="item in scopeSummary" :key="item.label" class="flex items-baseline justify-between gap-2">
-              <span class="text-xs text-emerald-600">{{ item.label }}</span>
-              <span class="text-sm font-medium text-emerald-900 text-right">{{ item.value }}</span>
-            </div>
-          </div>
-        </div>
+        <p v-if="scopeSummary.length" class="text-xs text-emerald-600 mb-4">
+          {{ scopeSummary.map(i => `${i.label}: ${i.value}`).join(' · ') }}
+        </p>
         <div class="text-left mb-4">
           <label class="block text-xs text-gray-500 mb-1">{{ t.conditionLabel }}</label>
           <textarea
@@ -219,14 +230,14 @@
     </div>
   </teleport>
 
-  <!-- F14+F15: Consolidated negotiate/comment modal with structured checkboxes -->
+  <!-- Negotiate modal — adjustments only -->
   <teleport to="body">
     <div v-if="showNegotiateModal" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showNegotiateModal = false">
       <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 p-5 sm:p-8">
         <h3 class="text-xl font-bold text-gray-900 mb-2">{{ t.negotiateTitle }}</h3>
         <p class="text-gray-600 text-sm mb-4">{{ t.negotiateText }}</p>
 
-        <!-- F15: Structured adjustment reasons -->
+        <!-- Structured adjustment reasons -->
         <div class="space-y-2 mb-4">
           <label
             v-for="reason in t.adjustmentReasons"
@@ -239,29 +250,35 @@
           </label>
         </div>
 
-        <!-- Tab toggle: Negotiate vs Comment -->
-        <div class="flex gap-2 mb-3">
-          <button
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            :class="negotiateTab === 'adjust' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-500'"
-            @click="negotiateTab = 'adjust'"
-          >🤝 {{ t.negotiateBtn }}</button>
-          <button
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            :class="negotiateTab === 'comment' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'"
-            @click="negotiateTab = 'comment'"
-          >💬 {{ t.commentBtn }}</button>
-        </div>
-
         <textarea
-          v-if="negotiateTab === 'adjust'"
           v-model="negotiateComment"
           rows="3"
           :placeholder="t.negotiatePlaceholder"
           class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 outline-none resize-none"
         />
+
+        <div class="flex gap-3 justify-end mt-4">
+          <button class="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showNegotiateModal = false">{{ t.cancel }}</button>
+          <button
+            class="px-5 py-2 bg-amber-600 text-white rounded-xl text-sm font-medium hover:bg-amber-700 transition-colors"
+            :disabled="isSubmitting || (!negotiateComment.trim() && !selectedAdjustments.length)"
+            @click="confirmNegotiate"
+          >
+            {{ negotiateCtaText }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </teleport>
+
+  <!-- Comment modal — lightweight, separate from negotiate -->
+  <teleport to="body">
+    <div v-if="showCommentModal" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showCommentModal = false">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-5 sm:p-8">
+        <h3 class="text-lg font-bold text-gray-900 mb-2">💬 {{ t.commentBtn }}</h3>
+        <p class="text-gray-500 text-sm mb-4">{{ t.commentPlaceholder2 }}</p>
+
         <textarea
-          v-else
           v-model="negotiationComment"
           rows="3"
           :placeholder="t.commentPlaceholder2"
@@ -269,17 +286,8 @@
         />
 
         <div class="flex gap-3 justify-end mt-4">
-          <button class="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showNegotiateModal = false">{{ t.cancel }}</button>
+          <button class="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showCommentModal = false">{{ t.cancel }}</button>
           <button
-            v-if="negotiateTab === 'adjust'"
-            class="px-5 py-2 bg-amber-600 text-white rounded-xl text-sm font-medium hover:bg-amber-700 transition-colors"
-            :disabled="isSubmitting || (!negotiateComment.trim() && !selectedAdjustments.length)"
-            @click="confirmNegotiate"
-          >
-            {{ negotiateCtaText }}
-          </button>
-          <button
-            v-else
             class="px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
             :disabled="isCommenting || !negotiationComment.trim()"
             @click="submitComment"
@@ -577,7 +585,6 @@ const followupScheduled = ref(false);
 const isScheduling = ref(false);
 const conditionNote = ref('');
 const selectedAdjustments = ref([]);
-const negotiateTab = ref('adjust');
 
 const negotiateCtaText = computed(() => {
   const count = selectedAdjustments.value.length;
@@ -651,7 +658,7 @@ async function confirmAccept() {
     if (result.success) {
       submitted.value = true;
       showAcceptConfirm.value = false;
-      nextTick(() => fireConfetti());
+      setTimeout(() => fireConfetti(), 500);
     }
   } finally {
     isSubmitting.value = false;

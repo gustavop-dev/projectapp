@@ -80,15 +80,15 @@
               <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Distribución por estado</h3>
               <div class="space-y-2">
                 <div v-for="(count, statusKey) in data.by_status" :key="statusKey" class="flex items-center gap-3">
-                  <span class="text-xs w-16 text-gray-500 capitalize">{{ statusKey }}</span>
-                  <div class="flex-1 bg-gray-100 rounded-full h-3">
+                  <span class="text-xs w-16 text-gray-500 dark:text-gray-400 capitalize">{{ statusKey }}</span>
+                  <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-3">
                     <div
                       class="h-3 rounded-full transition-all"
                       :class="statusBarColor(statusKey)"
                       :style="{ width: statusPercent(count) + '%' }"
                     />
                   </div>
-                  <span class="text-xs text-gray-600 w-8 text-right font-medium">{{ count }}</span>
+                  <span class="text-xs text-gray-600 dark:text-gray-300 w-8 text-right font-medium">{{ count }}</span>
                 </div>
               </div>
             </div>
@@ -98,14 +98,14 @@
               <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Top motivos de rechazo</h3>
               <div v-if="data.top_rejection_reasons?.length" class="space-y-2">
                 <div v-for="reason in data.top_rejection_reasons" :key="reason.rejection_reason" class="flex items-center gap-3">
-                  <span class="text-xs text-gray-600 flex-1 truncate">{{ reason.rejection_reason }}</span>
-                  <div class="w-20 bg-gray-100 rounded-full h-2">
+                  <span class="text-xs text-gray-600 dark:text-gray-300 flex-1 truncate">{{ reason.rejection_reason }}</span>
+                  <div class="w-20 bg-gray-100 dark:bg-gray-700 rounded-full h-2">
                     <div
                       class="h-2 rounded-full bg-red-400 transition-all"
                       :style="{ width: rejectionPercent(reason.count) + '%' }"
                     />
                   </div>
-                  <span class="text-xs text-gray-500 w-6 text-right">{{ reason.count }}</span>
+                  <span class="text-xs text-gray-500 dark:text-gray-400 w-6 text-right">{{ reason.count }}</span>
                 </div>
               </div>
               <p v-else class="text-xs text-gray-400">Sin rechazos registrados.</p>
@@ -128,8 +128,8 @@
                 </thead>
                 <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
                   <tr v-for="row in data.monthly_trend" :key="row.month" class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50">
-                    <td class="px-3 py-2 text-gray-700">{{ formatMonth(row.month) }}</td>
-                    <td class="px-3 py-2 text-center text-gray-600">{{ row.created }}</td>
+                    <td class="px-3 py-2 text-gray-700 dark:text-gray-300">{{ formatMonth(row.month) }}</td>
+                    <td class="px-3 py-2 text-center text-gray-600 dark:text-gray-400">{{ row.created }}</td>
                     <td class="px-3 py-2 text-center text-blue-600">{{ row.sent }}</td>
                     <td class="px-3 py-2 text-center text-emerald-600 font-medium">{{ row.accepted }}</td>
                     <td class="px-3 py-2 text-center text-red-500">{{ row.rejected }}</td>
@@ -156,8 +156,8 @@
               <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Win rate por tipo de proyecto</h3>
               <div class="space-y-2">
                 <div v-for="item in data.win_rate_by_project_type" :key="item.type" class="flex items-center gap-3">
-                  <span class="text-xs w-20 text-gray-500 capitalize truncate">{{ projectTypeLabel(item.type) }}</span>
-                  <div class="flex-1 bg-gray-100 rounded-full h-3">
+                  <span class="text-xs w-20 text-gray-500 dark:text-gray-400 capitalize truncate">{{ projectTypeLabel(item.type) }}</span>
+                  <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-3">
                     <div
                       class="h-3 rounded-full transition-all"
                       :class="item.win_rate >= bestProjectWinRate ? 'bg-emerald-500' : 'bg-emerald-300'"
@@ -172,8 +172,8 @@
               <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Win rate por tipo de mercado</h3>
               <div class="space-y-2">
                 <div v-for="item in data.win_rate_by_market_type" :key="item.type" class="flex items-center gap-3">
-                  <span class="text-xs w-20 text-gray-500 capitalize truncate">{{ marketTypeLabel(item.type) }}</span>
-                  <div class="flex-1 bg-gray-100 rounded-full h-3">
+                  <span class="text-xs w-20 text-gray-500 dark:text-gray-400 capitalize truncate">{{ marketTypeLabel(item.type) }}</span>
+                  <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-3">
                     <div
                       class="h-3 rounded-full transition-all"
                       :class="item.win_rate >= bestMarketWinRate ? 'bg-blue-500' : 'bg-blue-300'"

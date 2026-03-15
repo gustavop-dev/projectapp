@@ -26,6 +26,7 @@ from content.views.proposal import (
     update_proposal_status, proposal_scorecard,
     proposal_defaults, reset_proposal_defaults,
     email_deliverability_dashboard,
+    request_magic_link,
 )
 from content.views.email_templates import (
     email_template_list, email_template_detail,
@@ -53,6 +54,7 @@ urlpatterns = [
     path('proposals/<uuid:proposal_uuid>/share/', create_share_link, name='create-share-link'),
     path('proposals/<uuid:proposal_uuid>/schedule-followup/', schedule_followup, name='schedule-followup'),
     path('proposals/shared/<uuid:share_uuid>/', retrieve_shared_proposal, name='retrieve-shared-proposal'),
+    path('proposals/request-link/', request_magic_link, name='request-magic-link'),
 
     # Proposals — admin auth check
     path('auth/check/', check_admin_auth, name='check-admin-auth'),

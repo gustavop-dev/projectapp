@@ -12,9 +12,19 @@
         {{ clientName ? `${clientName}, esta` : 'Esta' }} propuesta ha expirado
       </h1>
 
+      <p v-if="formattedExpiredAt" class="text-gray-400 text-sm mb-2">
+        Expiró el {{ formattedExpiredAt }}
+      </p>
+
       <p class="text-gray-500 text-lg mb-4 leading-relaxed">
         La propuesta <strong v-if="proposalTitle" class="text-gray-700">"{{ proposalTitle }}"</strong>
-        ya no está vigente, pero podemos reactivarla o preparar una versión actualizada.
+        ya no está vigente.
+        <template v-if="sellerName">
+          ¿Quieres que <strong class="text-gray-700">{{ sellerName }}</strong> te envíe una versión actualizada?
+        </template>
+        <template v-else>
+          Podemos reactivarla o preparar una versión actualizada para ti.
+        </template>
       </p>
 
       <p class="text-gray-400 text-sm mb-10">
@@ -23,7 +33,24 @@
 
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a
-          :href="whatsappReactivationUrl"
+          v-if="whatsappUrl"
+          :href="whatsappUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center justify-center gap-2 px-6 py-3
+                 bg-emerald-600 text-white rounded-xl font-medium
+                 hover:bg-emerald-700 transition-colors shadow-lg"
+        >
+          <svg class="w-5 h-5" viewBox="0 0 448 512" fill="currentColor">
+            <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222
+              0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1
+              c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157" />
+          </svg>
+          Solicitar versión actualizada
+        </a>
+        <a
+          v-else
+          :href="whatsappFallbackUrl"
           target="_blank"
           rel="noopener noreferrer"
           class="inline-flex items-center justify-center gap-2 px-6 py-3
@@ -52,7 +79,33 @@
         </a>
       </div>
 
-      <p class="mt-12 text-xs text-gray-400">
+      <!-- Magic link re-access -->
+      <div class="mt-10 pt-8 border-t border-gray-100 max-w-sm mx-auto">
+        <p class="text-gray-400 text-sm mb-3">¿Perdiste el enlace? Ingresa tu email para recibirlo.</p>
+        <form class="flex gap-2" @submit.prevent="handleMagicLink">
+          <input
+            v-model="magicEmail"
+            type="email"
+            placeholder="tu@email.com"
+            required
+            class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                   focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+          />
+          <button
+            type="submit"
+            :disabled="magicLoading"
+            class="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium
+                   hover:bg-gray-800 transition-colors disabled:opacity-50"
+          >
+            {{ magicLoading ? '...' : 'Enviar' }}
+          </button>
+        </form>
+        <p v-if="magicSent" class="text-emerald-600 text-xs mt-2">
+          Si tenemos propuestas asociadas a ese email, recibirás un enlace en breve.
+        </p>
+      </div>
+
+      <p class="mt-8 text-xs text-gray-400">
         Project App. — projectapp.co
       </p>
     </div>
@@ -60,7 +113,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { useProposalStore } from '~/stores/proposals';
 
 const props = defineProps({
   proposal: {
@@ -71,8 +125,21 @@ const props = defineProps({
 
 const clientName = computed(() => props.proposal?.client_name || '');
 const proposalTitle = computed(() => props.proposal?.title || '');
+const sellerName = computed(() => props.proposal?.seller_name || '');
 
-const whatsappReactivationUrl = computed(() => {
+const formattedExpiredAt = computed(() => {
+  const raw = props.proposal?.expired_at;
+  if (!raw) return '';
+  try {
+    return new Date(raw).toLocaleDateString('es-CO', {
+      day: 'numeric', month: 'long', year: 'numeric',
+    });
+  } catch { return ''; }
+});
+
+const whatsappUrl = computed(() => props.proposal?.whatsapp_url || '');
+
+const whatsappFallbackUrl = computed(() => {
   const title = proposalTitle.value;
   const name = clientName.value;
   const greeting = name ? `Hola, soy ${name}. ` : 'Hola. ';
@@ -81,4 +148,17 @@ const whatsappReactivationUrl = computed(() => {
     : `${greeting}Mi propuesta expiró y me gustaría reactivarla o recibir una versión actualizada.`;
   return `https://wa.me/573238122373?text=${encodeURIComponent(msg)}`;
 });
+
+const proposalStore = useProposalStore();
+const magicEmail = ref('');
+const magicLoading = ref(false);
+const magicSent = ref(false);
+
+async function handleMagicLink() {
+  if (!magicEmail.value) return;
+  magicLoading.value = true;
+  await proposalStore.requestMagicLink(magicEmail.value);
+  magicLoading.value = false;
+  magicSent.value = true;
+}
 </script>

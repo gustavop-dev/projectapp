@@ -57,12 +57,16 @@ export const useProposalStore = defineStore('proposals', {
       try {
         const response = await get_request(`proposals/${uuid}/`);
         this.currentProposal = response.data;
+        // Expired proposals now return 200 with full data + expired_meta
+        if (response.data?.expired_meta) {
+          return { success: true, data: response.data, expired: true };
+        }
         return { success: true, data: response.data };
       } catch (error) {
         const status = error.response?.status;
         if (status === 410) {
           this.error = 'expired';
-          // Store partial data from 410 response for ProposalExpired
+          // Legacy fallback: store partial data from 410 response
           const partial = error.response?.data;
           if (partial) {
             this.currentProposal = {
@@ -70,6 +74,10 @@ export const useProposalStore = defineStore('proposals', {
               title: partial.title || '',
               uuid: partial.uuid || uuid,
               expired_at: partial.expired_at || null,
+              seller_name: partial.seller_name || '',
+              whatsapp_url: partial.whatsapp_url || '',
+              total_investment: partial.total_investment || '',
+              currency: partial.currency || '',
             };
           }
         } else if (status === 404) {
@@ -841,6 +849,20 @@ export const useProposalStore = defineStore('proposals', {
       /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
+      }
+    },
+
+    /**
+     * requestMagicLink: Request proposal link(s) to be sent to a client email.
+     * @param {string} email - Client email address.
+     */
+    async requestMagicLink(email) {
+      try {
+        await create_request('proposals/request-link/', { email });
+        return { success: true };
+      } catch (error) {
+        console.error('Error requesting magic link:', error);
+        return { success: false };
       }
     },
   },

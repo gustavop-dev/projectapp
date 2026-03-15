@@ -70,6 +70,7 @@ class ProposalListSerializer(serializers.ModelSerializer):
             'is_active', 'automations_paused', 'responded_at', 'last_activity_at',
             'project_type', 'market_type', 'client_phone',
             'project_type_custom', 'market_type_custom',
+            'cached_heat_score', 'engagement_declining',
         )
 
     def get_days_remaining(self, obj):

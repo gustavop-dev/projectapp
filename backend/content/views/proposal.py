@@ -3,6 +3,7 @@ import logging
 import re
 from decimal import Decimal
 
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -55,7 +56,10 @@ def retrieve_public_proposal(request, proposal_uuid):
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if proposal.is_expired:
+    is_expired = proposal.is_expired
+    expired_meta = None
+
+    if is_expired:
         if proposal.status != BusinessProposal.Status.EXPIRED:
             proposal.status = BusinessProposal.Status.EXPIRED
             proposal.save(update_fields=['status'])
@@ -84,19 +88,24 @@ def retrieve_public_proposal(request, proposal_uuid):
                     proposal.uuid,
                 )
 
-        return Response(
-            {
-                'error': 'This proposal has expired.',
-                'client_name': proposal.client_name,
-                'title': proposal.title,
-                'uuid': str(proposal.uuid),
-                'expired_at': (
-                    proposal.expires_at.isoformat()
-                    if proposal.expires_at else None
-                ),
-            },
-            status=status.HTTP_410_GONE,
+        # Build WhatsApp link for recovery CTA
+        from urllib.parse import quote as _url_quote
+        wa_number = getattr(settings, 'WHATSAPP_CONTACT_NUMBER', '')
+        wa_msg = _url_quote(
+            f'Hola, me interesa retomar la propuesta "{proposal.title}". '
+            f'Link: {proposal.public_url}'
         )
+        wa_url = f'https://wa.me/{wa_number}?text={wa_msg}' if wa_number else ''
+        seller_name = getattr(settings, 'SELLER_DISPLAY_NAME', 'nuestro equipo')
+
+        expired_meta = {
+            'expired_at': (
+                proposal.expires_at.isoformat()
+                if proposal.expires_at else None
+            ),
+            'seller_name': seller_name,
+            'whatsapp_url': wa_url,
+        }
 
     # Only record views/metrics for proposals that have been sent (not drafts)
     is_first_view = False
@@ -169,7 +178,10 @@ def retrieve_public_proposal(request, proposal_uuid):
     serializer = ProposalDetailSerializer(
         proposal, context={'request': request, 'is_admin': False}
     )
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    response_data = serializer.data
+    if expired_meta:
+        response_data['expired_meta'] = expired_meta
+    return Response(response_data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
@@ -234,22 +246,18 @@ def list_proposals(request):
     serializer = ProposalListSerializer(qs, many=True)
     data = serializer.data
 
-    # Compute heat scores, lead scores, and engagement summaries
-    now = timezone.now()
+    # Use pre-computed cached_heat_score from the model instead of
+    # computing on-the-fly (avoids N+1 queries on every list load).
+    # Engagement summaries are set to None here; the frontend can
+    # fetch them on-demand via the analytics endpoint when needed.
     for item in data:
-        if item['status'] in ('sent', 'viewed') and item['is_active']:
-            result = _compute_heat_score_with_summary(item['id'], now)
-            item['heat_score'] = result['score']
-            item['lead_score'] = min(100, result['score'] * 10)
-            item['engagement_summary'] = result['engagement_summary']
-        elif item['status'] == 'accepted':
-            item['heat_score'] = 0
-            item['lead_score'] = 100
-            item['engagement_summary'] = None
+        if item['status'] == 'accepted':
+            item['heat_score'] = 10
+        elif item['status'] in ('sent', 'viewed') and item['is_active']:
+            item['heat_score'] = item.get('cached_heat_score', 0) or 0
         else:
             item['heat_score'] = 0
-            item['lead_score'] = 0
-            item['engagement_summary'] = None
+        item['engagement_summary'] = None
 
     return Response(data, status=status.HTTP_200_OK)
 
@@ -910,7 +918,25 @@ def proposal_scorecard(request, proposal_id):
         'blocker': False,
     })
 
-    # 8. Discount configured (optional quality check)
+    # 8. Client phone (useful for WhatsApp follow-ups)
+    has_phone = bool(proposal.client_phone and proposal.client_phone.strip())
+    checks.append({
+        'key': 'client_phone',
+        'label': 'Teléfono del cliente (para WhatsApp)',
+        'passed': has_phone,
+        'blocker': False,
+    })
+
+    # 9. Language configured
+    has_language = bool(proposal.language)
+    checks.append({
+        'key': 'language',
+        'label': 'Idioma configurado',
+        'passed': has_language,
+        'blocker': False,
+    })
+
+    # 10. Discount configured (optional quality check)
     has_discount_or_na = True  # Not a blocker
     checks.append({
         'key': 'discount_review',
@@ -919,7 +945,7 @@ def proposal_scorecard(request, proposal_id):
         'blocker': False,
     })
 
-    # 9. Payment options set (read from investment section content_json)
+    # 11. Payment options set (read from investment section content_json)
     investment_section = proposal.sections.filter(
         section_type='investment', is_enabled=True
     ).first()
@@ -1386,6 +1412,10 @@ def track_proposal_engagement(request, proposal_uuid):
             if prev_counts:
                 avg_prev = sum(prev_counts) / len(prev_counts)
                 if avg_prev > 0 and current_section_count < avg_prev * 0.5:
+                    # Set persistent declining flag
+                    if not proposal.engagement_declining:
+                        proposal.engagement_declining = True
+                        proposal.save(update_fields=['engagement_declining'])
                     # Check if we already created this alert recently
                     from datetime import timedelta as _td
                     recent_decay = ProposalAlert.objects.filter(
@@ -1409,6 +1439,10 @@ def track_proposal_engagement(request, proposal_uuid):
                                 'Failed to create engagement_decay alert for %s',
                                 proposal.uuid,
                             )
+                elif proposal.engagement_declining:
+                    # Normal engagement restored — reset flag
+                    proposal.engagement_declining = False
+                    proposal.save(update_fields=['engagement_declining'])
 
     # --- Smart follow-up alert ---
     # Trigger if: ≥3 unique sessions AND 3+ day gap between first and latest view
@@ -1459,6 +1493,18 @@ def track_proposal_engagement(request, proposal_uuid):
                     'Failed to send revisit alert for proposal %s',
                     proposal.uuid,
                 )
+
+    # --- Update cached heat score ---
+    try:
+        new_score = _compute_heat_score_for_proposal(proposal.id, timezone.now())
+        if new_score != proposal.cached_heat_score:
+            proposal.cached_heat_score = new_score
+            proposal.save(update_fields=['cached_heat_score'])
+    except Exception:
+        logger.exception(
+            'Failed to update cached_heat_score for proposal %s',
+            proposal.uuid,
+        )
 
     return Response({'status': 'ok'}, status=status.HTTP_200_OK)
 
@@ -1624,7 +1670,10 @@ def _compute_heat_score_with_summary(proposal_id, now=None):
     # Total views — max 2 pts
     from content.models import BusinessProposal as _BP
     try:
-        p = _BP.objects.values('view_count', 'first_viewed_at', 'last_activity_at').get(pk=proposal_id)
+        p = _BP.objects.values(
+            'view_count', 'first_viewed_at', 'last_activity_at',
+            'engagement_declining',
+        ).get(pk=proposal_id)
     except _BP.DoesNotExist:
         return {'score': 1, 'engagement_summary': None}
     if p['view_count'] >= 5:
@@ -1635,6 +1684,10 @@ def _compute_heat_score_with_summary(proposal_id, now=None):
     # Recency of last view — max 1 pt
     if p['first_viewed_at'] and (now - p['first_viewed_at']).days <= 3:
         score += 1
+
+    # Engagement declining penalty — -1 pt
+    if p.get('engagement_declining'):
+        score -= 1
 
     # Build engagement summary for tooltip
     last_activity = p.get('last_activity_at')
@@ -1669,6 +1722,62 @@ def _compute_heat_score_with_summary(proposal_id, now=None):
         'score': max(1, min(10, score)),
         'engagement_summary': engagement_summary,
     }
+
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def request_magic_link(request):
+    """
+    Magic link re-access: client provides their email and receives
+    a link to their most recent active proposal.
+
+    Rate-limited: 1 request per email per 5 minutes (via simple DB check).
+    Body: { "email": "client@example.com" }
+    """
+    from datetime import timedelta
+
+    email = (request.data.get('email') or '').strip().lower()
+    if not email:
+        return Response(
+            {'error': 'Email is required.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Rate limiting: check EmailLog for recent magic_link sends to this email
+    five_min_ago = timezone.now() - timedelta(minutes=5)
+    try:
+        from content.models import EmailLog
+        recent = EmailLog.objects.filter(
+            template_key='magic_link',
+            recipient=email,
+            sent_at__gte=five_min_ago,
+        ).exists()
+        if recent:
+            # Still return 200 to avoid email enumeration
+            return Response({'status': 'ok'}, status=status.HTTP_200_OK)
+    except Exception:
+        pass
+
+    # Find proposals for this email
+    proposals = BusinessProposal.objects.filter(
+        client_email__iexact=email,
+        is_active=True,
+    ).order_by('-created_at')[:5]
+
+    if proposals.exists():
+        try:
+            from content.services.proposal_email_service import (
+                ProposalEmailService,
+            )
+            ProposalEmailService.send_magic_link_email(email, list(proposals))
+        except Exception:
+            logger.exception(
+                'Failed to send magic link email to %s', email,
+            )
+
+    # Always return 200 to prevent email enumeration
+    return Response({'status': 'ok'}, status=status.HTTP_200_OK)
 
 
 def _get_client_ip(request):
@@ -2423,6 +2532,33 @@ def proposal_dashboard(request):
     calc_total = calc_confirmed + calc_abandoned
     calc_abandonment_rate = round(calc_abandoned / calc_total * 100, 1) if calc_total > 0 else None
 
+    # --- Win rate by predominant view_mode (executive vs detailed) ---
+    from content.models import ProposalViewEvent as _PVE_dm
+    terminal_proposals = all_proposals.filter(
+        status__in=['accepted', 'rejected', 'expired'],
+    )
+    view_mode_stats = {'executive': {'total': 0, 'accepted': 0}, 'detailed': {'total': 0, 'accepted': 0}}
+    for p in terminal_proposals:
+        mode_counts = (
+            _PVE_dm.objects
+            .filter(proposal=p, view_mode__in=['executive', 'detailed'])
+            .values('view_mode')
+            .annotate(cnt=Count('id'))
+        )
+        if not mode_counts:
+            continue
+        predominant = max(mode_counts, key=lambda m: m['cnt'])['view_mode']
+        view_mode_stats[predominant]['total'] += 1
+        if p.status == 'accepted':
+            view_mode_stats[predominant]['accepted'] += 1
+    win_rate_by_view_mode = {}
+    for mode, stats in view_mode_stats.items():
+        win_rate_by_view_mode[mode] = {
+            'total': stats['total'],
+            'accepted': stats['accepted'],
+            'win_rate': round(stats['accepted'] / stats['total'] * 100, 1) if stats['total'] > 0 else None,
+        }
+
     return Response({
         'total_proposals': total,
         'by_status': by_status,
@@ -2447,6 +2583,7 @@ def proposal_dashboard(request):
         'engagement_value_insight': engagement_value_insight,
         'top_dropped_modules': top_dropped_modules,
         'calc_abandonment_rate': calc_abandonment_rate,
+        'win_rate_by_view_mode': win_rate_by_view_mode,
     }, status=status.HTTP_200_OK)
 
 
@@ -2862,7 +2999,27 @@ def proposal_alerts(request):
             'message': a.message,
             'manual_alert_id': a.id,
             'alert_date': a.alert_date.isoformat(),
+            'priority': a.priority,
         })
+
+    # Assign default priority to computed alerts that don't have one
+    COMPUTED_PRIORITY = {
+        'expiring_soon': 'critical',
+        'late_return': 'critical',
+        'not_responded': 'high',
+        'seller_inactive': 'high',
+        'not_viewed': 'normal',
+        'zombie': 'normal',
+        'zombie_draft': 'normal',
+        'zombie_sent_stale': 'normal',
+    }
+    for a in alerts:
+        if 'priority' not in a:
+            a['priority'] = COMPUTED_PRIORITY.get(a['alert_type'], 'normal')
+
+    # Sort by priority: critical > high > normal
+    PRIORITY_ORDER = {'critical': 0, 'high': 1, 'normal': 2}
+    alerts.sort(key=lambda a: PRIORITY_ORDER.get(a.get('priority', 'normal'), 2))
 
     return Response(alerts, status=status.HTTP_200_OK)
 

@@ -17,7 +17,7 @@
       </div>
     </div>
 
-    <!-- Expired state -->
+    <!-- Expired state (legacy 410 fallback — no full data available) -->
     <ProposalExpired v-else-if="loadError === 'expired'" :proposal="proposal" />
 
     <!-- Main proposal view -->
@@ -29,6 +29,31 @@
       @touchstart.passive="onTouchStart"
       @touchend.passive="onTouchEnd"
     >
+      <!-- Expired proposal banner — persistent, shown over full proposal -->
+      <div v-if="isExpired" class="fixed top-0 left-0 right-0 z-[9998] bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+          <div class="flex items-center gap-2">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="text-sm font-medium">
+              {{ pLang === 'es'
+                ? `Esta propuesta expiró${expiredAtFormatted ? ' el ' + expiredAtFormatted : ''}. ¿Quieres que ${expiredSellerName} te envíe una versión actualizada?`
+                : `This proposal expired${expiredAtFormatted ? ' on ' + expiredAtFormatted : ''}. Want ${expiredSellerName} to send you an updated version?`
+              }}
+            </span>
+          </div>
+          <a
+            v-if="expiredWhatsappUrl"
+            :href="expiredWhatsappUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-white text-amber-700 rounded-lg text-sm font-semibold hover:bg-amber-50 transition-colors flex-shrink-0"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 448 512" fill="currentColor"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157"/></svg>
+            {{ pLang === 'es' ? 'Contactar por WhatsApp' : 'Contact via WhatsApp' }}
+          </a>
+        </div>
+      </div>
+
       <!-- Preview mode banner -->
       <div v-if="isPreviewMode" class="fixed top-0 left-0 right-0 z-[9999] bg-amber-500 text-white text-center py-2 text-xs font-semibold tracking-wide shadow-md">
         👁 {{ pLang === 'es' ? 'MODO PREVIEW — El cliente no ve este banner' : 'PREVIEW MODE — The client does not see this banner' }}
@@ -261,6 +286,22 @@ const sectionComponentMap = {
 const proposal = computed(() => proposalStore.currentProposal);
 const enabledSections = computed(() => proposalStore.enabledSections);
 
+// Expired proposal banner data (from expired_meta returned by backend)
+const expiredAtFormatted = computed(() => {
+  const raw = proposal.value?.expired_meta?.expired_at;
+  if (!raw) return '';
+  try {
+    const lang = pLang.value === 'es' ? 'es-CO' : 'en-US';
+    return new Date(raw).toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch { return ''; }
+});
+const expiredSellerName = computed(() => {
+  return proposal.value?.expired_meta?.seller_name || (pLang.value === 'es' ? 'nuestro equipo' : 'our team');
+});
+const expiredWhatsappUrl = computed(() => {
+  return proposal.value?.expired_meta?.whatsapp_url || '';
+});
+
 // 4.5 — Personalized OG meta tags for WhatsApp sharing
 useHead({
   title: computed(() => proposal.value ? `Propuesta para ${proposal.value.client_name}` : 'Propuesta'),
@@ -468,11 +509,15 @@ const nextPanelTitle = computed(() => {
 });
 
 // --- Fetch proposal on mount ---
+const isExpired = ref(false);
+
 onMounted(async () => {
   const uuid = route.params.uuid;
   const result = await proposalStore.fetchPublicProposal(uuid);
   if (!result.success) {
     loadError.value = result.error;
+  } else if (result.expired) {
+    isExpired.value = true;
   }
 });
 

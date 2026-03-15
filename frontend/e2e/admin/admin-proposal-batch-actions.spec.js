@@ -12,9 +12,9 @@ import { setAuthLocalStorage } from '../helpers/auth.js';
 import { ADMIN_PROPOSAL_BATCH_ACTIONS } from '../helpers/flow-tags.js';
 
 const mockProposals = [
-  { id: 1, title: 'Proposal Alpha', client_name: 'Client A', client_email: 'a@test.com', status: 'sent', total_investment: '5000000', currency: 'COP', view_count: 3, heat_score: 5, lead_score: 60, is_active: true },
-  { id: 2, title: 'Proposal Beta', client_name: 'Client B', client_email: 'b@test.com', status: 'viewed', total_investment: '8000000', currency: 'COP', view_count: 7, heat_score: 8, lead_score: 80, is_active: true },
-  { id: 3, title: 'Proposal Gamma', client_name: 'Client C', client_email: 'c@test.com', status: 'draft', total_investment: '3000000', currency: 'COP', view_count: 0, heat_score: 0, lead_score: 0, is_active: true },
+  { id: 1, title: 'Proposal Alpha', client_name: 'Client A', client_email: 'a@test.com', status: 'sent', total_investment: '5000000', currency: 'COP', view_count: 3, heat_score: 5, is_active: true },
+  { id: 2, title: 'Proposal Beta', client_name: 'Client B', client_email: 'b@test.com', status: 'viewed', total_investment: '8000000', currency: 'COP', view_count: 7, heat_score: 8, is_active: true },
+  { id: 3, title: 'Proposal Gamma', client_name: 'Client C', client_email: 'c@test.com', status: 'draft', total_investment: '3000000', currency: 'COP', view_count: 0, heat_score: 0, is_active: true },
 ];
 
 function setupMock(page) {

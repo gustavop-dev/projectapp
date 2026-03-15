@@ -172,12 +172,6 @@ const metrics = [
     action: 'Si es bajo, el contenido anterior no está reteniendo. Si es alto pero no cierran, revisar pricing.',
   },
   {
-    id: 'lead_score', icon: '⭐', name: 'Lead Score (0-100)',
-    description: 'Score de priorización comercial mostrado en la tabla de propuestas. Versión escalada del heat score para facilitar comparación.',
-    calculation: 'heat_score × 10, máximo 100. Propuestas aceptadas = 100 automáticamente.',
-    action: 'Priorizar contacto con leads de score >70. Score <30 requiere re-evaluación de la estrategia de follow-up.',
-  },
-  {
     id: 'pipeline_value', icon: '💵', name: 'Valor del pipeline',
     description: 'Suma total de la inversión de todas las propuestas activas en estado enviada o vista. Representa el valor potencial de negocios en curso.',
     calculation: 'Suma de total_investment donde status=sent/viewed e is_active=true.',
