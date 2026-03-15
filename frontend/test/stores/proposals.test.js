@@ -170,6 +170,10 @@ describe('useProposalStore', () => {
         title: 'Expired Proposal',
         uuid: 'exp-uuid-123',
         expired_at: '2026-03-01T00:00:00Z',
+        seller_name: '',
+        whatsapp_url: '',
+        total_investment: '',
+        currency: '',
       });
     });
 

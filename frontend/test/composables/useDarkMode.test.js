@@ -126,24 +126,9 @@ describe('useDarkMode', () => {
       expect(isDark.value).toBe(false);
     });
 
-    it('falls back to matchMedia system preference when no stored value', () => {
-      const mockMatchMedia = jest.fn(() => ({ matches: true }));
-      Object.defineProperty(window, 'matchMedia', { value: mockMatchMedia, writable: true });
-
+    it('defaults to light mode (false) when no stored value exists', () => {
       const { isDark } = useDarkMode();
-
-      mockMountedCbs[0]();
-
-      expect(isDark.value).toBe(true);
-      expect(mockMatchMedia).toHaveBeenCalledWith('(prefers-color-scheme: dark)');
-    });
-
-    it('defaults to false when matchMedia returns no match', () => {
-      Object.defineProperty(window, 'matchMedia', {
-        value: jest.fn(() => ({ matches: false })),
-        writable: true,
-      });
-      const { isDark } = useDarkMode();
+      isDark.value = true;
 
       mockMountedCbs[0]();
 
