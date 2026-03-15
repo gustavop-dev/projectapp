@@ -49,7 +49,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useFreeResources } from '~/composables/useFreeResources'
-import FooterSection from '~/views-legacy/partials/FooterSection.vue'
+import FooterSection from '~/components/sections/FooterSection.vue'
 import Hero from '~/components/home/Hero.vue'
 import TechStack from '~/components/home/TechStack.vue'
 import ServicesCards from '~/components/home/ServicesCards.vue'

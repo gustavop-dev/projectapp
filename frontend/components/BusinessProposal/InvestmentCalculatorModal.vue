@@ -361,7 +361,15 @@ const groupedModules = computed(() => {
     }
     groups[key].items.push(mod);
   }
-  return groups;
+  // Sort: groups with selected items first, preserving original order within tiers
+  const entries = Object.entries(groups);
+  entries.sort((a, b) => {
+    const aSelected = a[1].items.some(m => m.selected);
+    const bSelected = b[1].items.some(m => m.selected);
+    if (aSelected === bSelected) return 0;
+    return aSelected ? -1 : 1;
+  });
+  return Object.fromEntries(entries);
 });
 
 const baseTotalInvestment = computed(() => parseInvestment(props.totalInvestment));
@@ -455,6 +463,10 @@ function toggleModule(mod) {
   if (mod._locked) return;
   mod.selected = !mod.selected;
   hasInteracted.value = true;
+
+  // Live-sync selected calculator modules to functional requirements section
+  const selectedIds = localModules.value.filter(m => m.selected).map(m => m.id);
+  emit('updateCalculatorModules', selectedIds);
 
   if (mod.price && !mod.is_invite) {
     const sign = mod.selected ? '+' : '-';

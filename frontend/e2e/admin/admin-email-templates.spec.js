@@ -165,18 +165,21 @@ test.describe('Admin Email Templates Config', () => {
     await page.goto('/panel/proposals/defaults?tab=emails');
     await page.waitForLoadState('networkidle');
 
-    // Click on template to expand
-    await page.locator('text=Propuesta Enviada').click();
-    await page.waitForLoadState('networkidle');
+    // Click on template to expand and wait for detail API response
+    const [detailResponse] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('email-templates/proposal_sent_client/') && resp.status() === 200),
+      page.locator('text=Propuesta Enviada').click(),
+    ]);
+    await detailResponse;
 
     // Editable fields render
-    await expect(page.locator('text=Asunto del correo')).toBeVisible();
-    await expect(page.locator('text=Saludo')).toBeVisible();
-    await expect(page.locator('text=Cuerpo del mensaje')).toBeVisible();
-    await expect(page.locator('text=Texto del botón')).toBeVisible();
+    await expect(page.getByText('Asunto del correo')).toBeVisible();
+    await expect(page.getByText('Saludo')).toBeVisible();
+    await expect(page.getByText('Cuerpo del mensaje')).toBeVisible();
+    await expect(page.getByText('Texto del botón')).toBeVisible();
 
     // Available variables render
-    await expect(page.locator('text=Variables disponibles')).toBeVisible();
+    await expect(page.getByText('Variables disponibles')).toBeVisible();
     await expect(page.locator('code', { hasText: 'client_name' })).toBeVisible();
   });
 
@@ -187,12 +190,15 @@ test.describe('Admin Email Templates Config', () => {
     await page.goto('/panel/proposals/defaults?tab=emails');
     await page.waitForLoadState('networkidle');
 
-    // Click on template to expand
-    await page.locator('text=Propuesta Enviada').click();
-    await page.waitForLoadState('networkidle');
+    // Click on template to expand and wait for detail API response
+    const [detailResponse] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('email-templates/proposal_sent_client/') && resp.status() === 200),
+      page.locator('text=Propuesta Enviada').click(),
+    ]);
+    await detailResponse;
 
     // Active toggle renders
-    await expect(page.locator('text=Estado del email')).toBeVisible();
+    await expect(page.getByText('Estado del email')).toBeVisible();
 
     // Action buttons render (use exact emoji text to avoid matching row preview icons)
     await expect(page.getByRole('button', { name: '👁 Vista previa' })).toBeVisible();
@@ -207,13 +213,19 @@ test.describe('Admin Email Templates Config', () => {
     await page.goto('/panel/proposals/defaults?tab=emails');
     await page.waitForLoadState('networkidle');
 
-    // Expand template
-    await page.locator('text=Propuesta Enviada').click();
-    await page.waitForLoadState('networkidle');
+    // Expand template and wait for detail API response
+    const [detailResponse] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('email-templates/proposal_sent_client/') && resp.status() === 200),
+      page.locator('text=Propuesta Enviada').click(),
+    ]);
+    await detailResponse;
 
-    // Click preview button (use exact emoji text to avoid matching row preview icons)
-    await page.getByRole('button', { name: '👁 Vista previa' }).click();
-    await page.waitForLoadState('networkidle');
+    // Click preview button and wait for preview API response
+    const [previewResponse] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('email-templates/proposal_sent_client/preview/') && resp.status() === 200),
+      page.getByRole('button', { name: '👁 Vista previa' }).click(),
+    ]);
+    await previewResponse;
 
     // Preview modal renders
     await expect(page.getByRole('heading', { name: 'Vista Previa' })).toBeVisible();
@@ -230,9 +242,12 @@ test.describe('Admin Email Templates Config', () => {
     await page.goto('/panel/proposals/defaults?tab=emails');
     await page.waitForLoadState('networkidle');
 
-    // Expand template
-    await page.locator('text=Propuesta Enviada').click();
-    await page.waitForLoadState('networkidle');
+    // Expand template and wait for detail API response
+    const [detailResponse] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('email-templates/proposal_sent_client/') && resp.status() === 200),
+      page.locator('text=Propuesta Enviada').click(),
+    ]);
+    await detailResponse;
 
     // Click restore button
     await page.getByRole('button', { name: 'Restaurar' }).click();

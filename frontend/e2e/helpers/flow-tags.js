@@ -115,6 +115,7 @@ export const PROPOSAL_CALCULATOR_INTEGRATIONS = ['@flow:proposal-calculator-inte
 export const PROPOSAL_DISCOUNT_MULTI_SECTION = ['@flow:proposal-discount-multi-section', '@module:proposal', '@priority:P2'];
 
 // ── v1.8.0 audit flows ──
+export const PROPOSAL_CALCULATOR_SELECTED_FIRST = ['@flow:proposal-calculator-selected-first', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_CALCULATOR_MICRO_FEEDBACK = ['@flow:proposal-calculator-micro-feedback', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_PAYMENT_PLAN_CLOSING = ['@flow:proposal-payment-plan-closing', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_POST_ACCEPTANCE_WELCOME = ['@flow:proposal-post-acceptance-welcome', '@module:proposal', '@priority:P1'];

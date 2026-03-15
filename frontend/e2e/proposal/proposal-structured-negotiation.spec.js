@@ -50,12 +50,12 @@ async function openClosingPanel(page) {
 
 test.describe('Proposal Structured Negotiation Modal', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
   });
 
-  test('negotiate button opens modal with structured checkboxes', {
+  test('negotiate button opens structured negotiation modal', {
     tag: [...PROPOSAL_STRUCTURED_NEGOTIATION, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
@@ -72,8 +72,25 @@ test.describe('Proposal Structured Negotiation Modal', () => {
     await expect(negotiateBtn).toBeVisible();
     await negotiateBtn.click();
 
-    // Modal opens with structured checkboxes
+    // Modal opens with title
     await expect(page.getByText(/negociemos alcance/i)).toBeVisible({ timeout: 3000 });
+  });
+
+  test('negotiation modal renders all structured checkbox options', {
+    tag: [...PROPOSAL_STRUCTURED_NEGOTIATION, '@role:guest'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === `proposals/${MOCK_UUID}/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockSentProposal) };
+      }
+      return null;
+    });
+
+    await openClosingPanel(page);
+    await page.getByRole('button', { name: /Necesito ajustes/i }).click();
+    await expect(page.getByText(/negociemos alcance/i)).toBeVisible({ timeout: 3000 });
+
+    // All structured checkbox options render
     await expect(page.getByText('El presupuesto es alto para este momento')).toBeVisible();
     await expect(page.getByText('Necesito ajustar el alcance o quitar módulos')).toBeVisible();
     await expect(page.getByText('Los tiempos de entrega no me funcionan')).toBeVisible();

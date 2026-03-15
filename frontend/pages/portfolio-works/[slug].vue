@@ -196,7 +196,7 @@
 
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import FooterSection from '~/views-legacy/partials/FooterSection.vue';
+import FooterSection from '~/components/sections/FooterSection.vue';
 import { usePortfolioWorksStore } from '~/stores/portfolio_works';
 import { fadeUp } from '~/animations';
 import { usePageEntrance } from '~/composables/usePageEntrance';

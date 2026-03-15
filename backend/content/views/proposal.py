@@ -1,4 +1,7 @@
+import copy
 import logging
+import re
+from decimal import Decimal
 
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -381,6 +384,55 @@ def create_proposal_from_json(request):
             if general.get('inspirationalQuote'):
                 content_json['inspirationalQuote'] = general['inspirationalQuote']
 
+        # Protect default groups/modules in functional_requirements:
+        # merge JSON groups with defaults so the AI cannot remove them.
+        if section_type == 'functional_requirements' and json_key in sections_data:
+            default_cj = copy.deepcopy(section_cfg['content_json'])
+            default_groups = default_cj.get('groups', [])
+            default_modules = default_cj.get('additionalModules', [])
+            json_groups = content_json.get('groups', [])
+            json_modules = content_json.get('additionalModules', [])
+
+            # Build lookup of JSON groups by id for merging
+            json_groups_by_id = {
+                g['id']: g for g in json_groups if isinstance(g, dict) and g.get('id')
+            }
+            json_modules_by_id = {
+                m['id']: m for m in json_modules if isinstance(m, dict) and m.get('id')
+            }
+
+            # Merge: keep all default groups, update with JSON content if provided
+            merged_groups = []
+            for dg in default_groups:
+                gid = dg.get('id')
+                if gid and gid in json_groups_by_id:
+                    # Use JSON version but preserve the id and is_visible from default
+                    merged = json_groups_by_id.pop(gid)
+                    merged['id'] = gid
+                    merged.setdefault('is_visible', dg.get('is_visible', True))
+                    merged_groups.append(merged)
+                else:
+                    merged_groups.append(dg)
+            # Append any new groups from JSON that don't exist in defaults
+            for gid, g in json_groups_by_id.items():
+                merged_groups.append(g)
+
+            merged_modules = []
+            for dm in default_modules:
+                mid = dm.get('id')
+                if mid and mid in json_modules_by_id:
+                    merged = json_modules_by_id.pop(mid)
+                    merged['id'] = mid
+                    merged.setdefault('is_visible', dm.get('is_visible', True))
+                    merged_modules.append(merged)
+                else:
+                    merged_modules.append(dm)
+            for mid, m in json_modules_by_id.items():
+                merged_modules.append(m)
+
+            content_json['groups'] = merged_groups
+            content_json['additionalModules'] = merged_modules
+
         ProposalSection.objects.create(
             proposal=proposal,
             section_type=section_type,
@@ -417,7 +469,6 @@ def get_proposal_json_template(request):
     Query params:
         lang: 'es' (default) or 'en'
     """
-    import copy
     lang = request.query_params.get('lang', 'es')
 
     from content.services.proposal_service import ProposalService
@@ -441,6 +492,15 @@ def get_proposal_json_template(request):
             'expires_at': '2026-04-06T00:00:00Z',
         },
     }
+
+    # Add _do_not_remove annotations to functionalRequirements groups
+    fr_key = SECTION_TYPE_TO_KEY.get('functional_requirements', 'functionalRequirements')
+    if fr_key in template:
+        fr = template[fr_key]
+        for group in fr.get('groups', []):
+            group['_do_not_remove'] = True
+        for mod in fr.get('additionalModules', []):
+            mod['_do_not_remove'] = True
 
     template['_seller_prompt'] = {
         'role': (
@@ -473,6 +533,13 @@ def get_proposal_json_template(request):
             'Investment: lead with value, break down modules clearly.',
             'Timeline: realistic milestones tied to business outcomes.',
         ],
+        'CRITICAL_functionalRequirements': (
+            'Do NOT remove any groups or modules from the functionalRequirements section. '
+            'All default groups (marked with "_do_not_remove": true) MUST remain in the output. '
+            'You may modify their content (title, description, items) and add new groups, '
+            'but you must NEVER delete existing groups. The seller will remove them manually '
+            'after the proposal is created if needed.'
+        ),
     }
 
     return Response(template, status=status.HTTP_200_OK)
@@ -515,6 +582,32 @@ def update_proposal(request, proposal_id):
                 new_value=new_val,
                 description=f'{field}: {old_values[field]} → {new_val}',
             )
+
+    # Sync total_investment / currency into the investment section's content_json
+    investment_changed = (
+        old_values.get('total_investment') != str(proposal.total_investment)
+        or old_values.get('currency') != str(proposal.currency)
+    )
+    if investment_changed:
+        inv_section = proposal.sections.filter(
+            section_type='investment',
+        ).first()
+        if inv_section and inv_section.content_json:
+            total = int(proposal.total_investment)
+            formatted = f'${total:,}'.replace(',', '.')
+            cj = dict(inv_section.content_json)
+            cj['totalInvestment'] = formatted
+            cj['currency'] = proposal.currency
+            # Recalculate payment option descriptions based on new total
+            if cj.get('paymentOptions'):
+                for opt in cj['paymentOptions']:
+                    pct_match = re.search(r'(\d+)%', opt.get('label', ''))
+                    if pct_match:
+                        pct = Decimal(pct_match.group(1)) / Decimal(100)
+                        amount = int(proposal.total_investment * pct)
+                        opt['description'] = f'${amount:,}'.replace(',', '.') + f' {proposal.currency}'
+            inv_section.content_json = cj
+            inv_section.save(update_fields=['content_json'])
 
     detail = ProposalDetailSerializer(
         proposal, context={'request': request, 'is_admin': True}

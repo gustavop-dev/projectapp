@@ -177,9 +177,9 @@ async function openCalculatorModal(page) {
   await expect(page.getByText(/Selecciona los módulos/i)).toBeVisible({ timeout: 10000 });
 }
 
-test.describe('@flow: proposal-calculator-integrations — Integration Calculator Modules', () => {
+test.describe('Integration Calculator Modules', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
   });

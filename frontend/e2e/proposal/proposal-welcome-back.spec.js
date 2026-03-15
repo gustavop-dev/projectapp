@@ -52,7 +52,7 @@ test.describe('Proposal Welcome Back', () => {
   test('navigating sections persists progress to localStorage', {
     tag: [...PROPOSAL_WELCOME_BACK, '@role:client'],
   }, async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
     await setupMock(page);
@@ -79,7 +79,7 @@ test.describe('Proposal Welcome Back', () => {
   test('welcome-back does not appear on first visit', {
     tag: [...PROPOSAL_WELCOME_BACK, '@role:client'],
   }, async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
 

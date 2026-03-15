@@ -25,7 +25,7 @@ beforeEach(() => {
       onMounted: (cb) => { mountedCallbacks.push(cb); },
     };
   });
-  jest.doMock('../../service-legacy/CacheService', () => ({
+  jest.doMock('../../service/CacheService', () => ({
     __esModule: true,
     default: MockCacheService,
   }));

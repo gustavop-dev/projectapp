@@ -13,14 +13,8 @@ from rest_framework.test import APIClient
 from content.models import (
     BlogPost,
     BusinessProposal,
-    Category,
     Contact,
-    Design,
-    Hosting,
-    Item,
-    Model3D,
     PortfolioWork,
-    Product,
     ProposalRequirementGroup,
     ProposalRequirementItem,
     ProposalSection,
@@ -67,89 +61,6 @@ def contact(db):
         subject='Project inquiry',
         message='I need a web application.',
         budget='5-10K',
-    )
-
-
-@pytest.fixture
-def design(db):
-    """A sample design entry (without actual image files)."""
-    return Design.objects.create(
-        title_en='Modern Dashboard',
-        title_es='Dashboard Moderno',
-        category_title_en='Web Design',
-        category_title_es='Diseño Web',
-    )
-
-
-@pytest.fixture
-def model_3d(db):
-    """A sample 3D model entry (without actual files)."""
-    return Model3D.objects.create(
-        title_en='Product Viewer',
-        title_es='Visor de Producto',
-        category_title_en='3D Animation',
-        category_title_es='Animación 3D',
-    )
-
-
-@pytest.fixture
-def item(db):
-    """A sample item for product categories."""
-    return Item.objects.create(
-        name_en='Responsive Design',
-        name_es='Diseño Responsivo',
-    )
-
-
-@pytest.fixture
-def category(db, item):
-    """A sample product category with one item."""
-    cat = Category.objects.create(
-        name_en='Web Development',
-        name_es='Desarrollo Web',
-    )
-    cat.items.add(item)
-    return cat
-
-
-@pytest.fixture
-def product(db, category):
-    """A sample product with category (without actual image file)."""
-    prod = Product.objects.create(
-        title_en='E-Commerce Platform',
-        title_es='Plataforma E-Commerce',
-        description_en='Full e-commerce solution.',
-        description_es='Solución completa de e-commerce.',
-        price=Decimal('4999.99'),
-        development_time_en='8-12 weeks',
-        development_time_es='8-12 semanas',
-    )
-    prod.categories.add(category)
-    return prod
-
-
-@pytest.fixture
-def hosting(db):
-    """A sample hosting plan."""
-    return Hosting.objects.create(
-        title_en='Professional Plan',
-        title_es='Plan Profesional',
-        description_en='Best for growing businesses.',
-        description_es='Ideal para negocios en crecimiento.',
-        semi_annually_price=Decimal('149.99'),
-        annual_price=Decimal('249.99'),
-        cpu_cores_en='4 vCPUs',
-        cpu_cores_es='4 vCPUs',
-        ram_en='8 GB',
-        ram_es='8 GB',
-        storage_en='100 GB SSD',
-        storage_es='100 GB SSD',
-        bandwidth_en='Unlimited',
-        bandwidth_es='Ilimitado',
-        data_center_location_en='US East',
-        data_center_location_es='Este de EE.UU.',
-        operating_system_en='Ubuntu 22.04',
-        operating_system_es='Ubuntu 22.04',
     )
 
 

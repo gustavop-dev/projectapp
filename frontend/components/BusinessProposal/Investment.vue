@@ -71,7 +71,7 @@
         <button
           v-if="modules && modules.length && props.viewMode !== 'executive'"
           ref="customizeBtnRef"
-          class="mt-4 mx-auto block px-6 py-3 bg-lemon text-esmerald rounded-xl font-bold text-sm hover:bg-lemon/90 transition-all shadow-lg"
+          class="mt-4 mx-auto block px-6 py-3 bg-lemon text-esmerald rounded-xl font-bold text-sm hover:bg-lemon/90 transition-all shadow-lg relative overflow-visible"
           :class="{ 'btn-pulse': btnPulse }"
           @click="calculatorOpen = true"
         >
@@ -209,7 +209,7 @@
 </template>
 
 <script setup>
-import { ref, computed, toRef, onMounted } from 'vue';
+import { ref, computed, toRef, onMounted, nextTick } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
 import { useExpirationTimer } from '~/composables/useExpirationTimer';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
@@ -372,27 +372,23 @@ onMounted(() => {
     } catch (_e) { /* ignore */ }
   }
   if (props.modules?.length && props.viewMode !== 'executive') {
-    setTimeout(() => {
-      btnPulse.value = true;
-      setTimeout(() => { btnPulse.value = false; }, 4000);
-    }, 1500);
-    setTimeout(() => {
+    nextTick(() => {
       const el = customizeBtnRef.value;
       if (!el) return;
-      const targetY = el.getBoundingClientRect().top + window.scrollY - window.innerHeight / 2;
-      const startY = window.scrollY;
-      const diff = targetY - startY;
-      const duration = 1500;
-      let startTime = null;
-      function step(ts) {
-        if (!startTime) startTime = ts;
-        const progress = Math.min((ts - startTime) / duration, 1);
-        const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
-        window.scrollTo(0, startY + diff * ease);
-        if (progress < 1) requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
-    }, 2000);
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            btnPulse.value = false;
+            void el.offsetWidth;
+            btnPulse.value = true;
+          } else {
+            btnPulse.value = false;
+          }
+        },
+        { rootMargin: '-55% 0px -10% 0px', threshold: 0 }
+      );
+      observer.observe(el);
+    });
   }
 });
 
@@ -555,15 +551,15 @@ const normalizedReasons = computed(() => {
 }
 
 .btn-pulse {
-  animation: btnDoublePulse 3.6s ease-in-out;
+  animation: glowRays 4s ease-in-out;
 }
 
-@keyframes btnDoublePulse {
-  0%   { box-shadow: 0 0 0 0 rgba(225, 255, 0, 0.5); transform: scale(1); }
-  8%   { box-shadow: 0 0 20px 10px rgba(225, 255, 0, 0.45); transform: scale(1.05); }
-  20%  { box-shadow: 0 0 0 0 rgba(225, 255, 0, 0); transform: scale(1); }
-  34%  { box-shadow: 0 0 20px 10px rgba(225, 255, 0, 0.45); transform: scale(1.05); }
-  48%  { box-shadow: 0 0 0 0 rgba(225, 255, 0, 0); transform: scale(1); }
-  100% { box-shadow: none; transform: scale(1); }
+@keyframes glowRays {
+  0%   { filter: drop-shadow(0 0 0 rgba(225, 255, 0, 0)); }
+  12%  { filter: drop-shadow(0 0 14px rgba(225, 255, 0, 0.8)) drop-shadow(0 0 30px rgba(255, 255, 255, 0.35)); }
+  30%  { filter: drop-shadow(0 0 0 rgba(225, 255, 0, 0)); }
+  50%  { filter: drop-shadow(0 0 14px rgba(225, 255, 0, 0.8)) drop-shadow(0 0 30px rgba(255, 255, 255, 0.35)); }
+  68%  { filter: drop-shadow(0 0 0 rgba(225, 255, 0, 0)); }
+  100% { filter: drop-shadow(0 0 0 rgba(225, 255, 0, 0)); }
 }
 </style>

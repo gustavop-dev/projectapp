@@ -33,9 +33,9 @@ function setup410Mock(page) {
   });
 }
 
-test.describe('@flow: proposal-expired-graceful — Expired Proposal Graceful Page', () => {
+test.describe('Expired Proposal Graceful Page', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
   });

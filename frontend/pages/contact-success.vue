@@ -3,5 +3,5 @@
 </template>
 
 <script setup>
-import ContactSuccess from '~/views-legacy/ContactSuccess.vue'
+import ContactSuccess from '~/components/pages/ContactSuccess.vue'
 </script>

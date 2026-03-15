@@ -43,7 +43,8 @@ class FlowCoverageReporter {
     }
 
     for (const tag of flowTags) {
-      const flowId = tag.replace('@flow:', '');
+      const flowId = tag.replace('@flow:', '').trim();
+      if (!flowId) continue;
       let stats = this.flowStats.get(flowId);
       if (!stats) {
         stats = {
@@ -67,7 +68,7 @@ class FlowCoverageReporter {
 
   onEnd() {
     for (const stats of this.flowStats.values()) {
-      if (stats.tests.total === 0)                                          stats.status = 'missing';
+      if (stats.tests.total === 0)                                          stats.status = stats.definition.expectedSpecs === 0 ? 'covered' : 'missing';
       else if (stats.tests.failed > 0)                                      stats.status = 'failing';
       else if (stats.tests.passed > 0 && stats.tests.skipped === 0)        stats.status = 'covered';
       else                                                                   stats.status = 'partial';

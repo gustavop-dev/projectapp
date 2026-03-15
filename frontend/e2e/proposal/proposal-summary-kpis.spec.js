@@ -59,9 +59,9 @@ function setupMock(page) {
   });
 }
 
-test.describe('@flow: proposal-summary-kpis — Proposal Summary Cards', () => {
+test.describe('Proposal Summary Cards', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
   });

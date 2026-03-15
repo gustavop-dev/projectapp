@@ -1,13 +1,13 @@
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from content.models import BlogPost, BusinessProposal, Category, Contact, Design, Item, Model3D, Product
+from content.models import BlogPost, BusinessProposal, Contact
 
 User = get_user_model()
 
 
 class Command(BaseCommand):
-    help = 'Delete all fake data for contacts, designs, models3d, and products'
+    help = 'Delete all fake data for contacts, proposals, and blog posts'
 
     """
     To delete fake data via console, run:
@@ -19,31 +19,6 @@ class Command(BaseCommand):
         for contact in Contact.objects.all():
             contact.delete()
             self.stdout.write(self.style.SUCCESS(f'Contact "{contact}" deleted'))
-
-        # Delete all designs
-        for design in Design.objects.all():
-            design.delete()
-            self.stdout.write(self.style.SUCCESS(f'Design "{design}" deleted'))
-
-        # Delete all 3D models
-        for model3d in Model3D.objects.all():
-            model3d.delete()
-            self.stdout.write(self.style.SUCCESS(f'Model3D "{model3d}" deleted'))
-
-        # Delete all products
-        for product in Product.objects.all():
-            product.delete()
-            self.stdout.write(self.style.SUCCESS(f'Product "{product}" deleted'))
-
-        # Delete all categories
-        for category in Category.objects.all():
-            category.delete()
-            self.stdout.write(self.style.SUCCESS(f'Category "{category}" deleted'))
-
-        # Delete all items
-        for item in Item.objects.all():
-            item.delete()
-            self.stdout.write(self.style.SUCCESS(f'Item "{item}" deleted'))
 
         # Delete all business proposals (CASCADE deletes sections, groups, items)
         for proposal in BusinessProposal.objects.all():

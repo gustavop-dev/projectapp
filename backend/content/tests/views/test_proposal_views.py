@@ -5,6 +5,7 @@ bulk reorder, auth check, permission checks, edge cases.
 """
 from datetime import datetime
 from datetime import timezone as dt_tz
+from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
@@ -505,6 +506,167 @@ class TestCreateProposalFromJSON:
         url = reverse('create-proposal-from-json')
         response = api_client.post(url, self._minimal_payload(), format='json')
         assert response.status_code in (401, 403)
+
+    def test_preserves_default_groups_when_json_omits_them(self, admin_client):
+        """Default functional_requirements groups survive even if JSON omits them."""
+        url = reverse('create-proposal-from-json')
+        payload = self._minimal_payload()
+        # Provide functionalRequirements with only ONE group (views), omitting others
+        payload['sections']['functionalRequirements'] = {
+            'index': '9',
+            'title': 'Custom FR',
+            'intro': 'Custom intro',
+            'groups': [
+                {
+                    'id': 'views',
+                    'icon': '🖥️',
+                    'title': 'Custom Views',
+                    'description': 'Overridden description',
+                    'items': [{'icon': '🏠', 'name': 'Home', 'description': 'Landing page'}],
+                },
+            ],
+            'additionalModules': [],
+        }
+        response = admin_client.post(url, payload, format='json')
+        assert response.status_code == 201
+        sections = {s['section_type']: s for s in response.data['sections']}
+        fr = sections['functional_requirements']['content_json']
+        group_ids = [g['id'] for g in fr['groups']]
+        # The 'views' group should exist with overridden content
+        views_group = next(g for g in fr['groups'] if g['id'] == 'views')
+        assert views_group['title'] == 'Custom Views'
+        assert views_group['description'] == 'Overridden description'
+        # Default groups like 'components' and 'features' should still be present
+        assert 'components' in group_ids
+        assert 'features' in group_ids
+
+    def test_preserves_default_additional_modules_when_json_omits_them(self, admin_client):
+        """Default additionalModules survive even if JSON provides an empty list."""
+        url = reverse('create-proposal-from-json')
+        payload = self._minimal_payload()
+        payload['sections']['functionalRequirements'] = {
+            'index': '9',
+            'title': 'Requerimientos',
+            'intro': 'Intro',
+            'groups': [],
+            'additionalModules': [],
+        }
+        response = admin_client.post(url, payload, format='json')
+        assert response.status_code == 201
+        sections = {s['section_type']: s for s in response.data['sections']}
+        fr = sections['functional_requirements']['content_json']
+        # All default groups should be present despite empty JSON groups
+        group_ids = [g['id'] for g in fr['groups']]
+        assert 'views' in group_ids
+        assert 'components' in group_ids
+        assert 'features' in group_ids
+
+    def test_new_groups_from_json_are_appended(self, admin_client):
+        """New groups from JSON that don't exist in defaults are appended."""
+        url = reverse('create-proposal-from-json')
+        payload = self._minimal_payload()
+        payload['sections']['functionalRequirements'] = {
+            'index': '9',
+            'title': 'FR',
+            'intro': 'Intro',
+            'groups': [
+                {
+                    'id': 'custom_new_group',
+                    'icon': '🆕',
+                    'title': 'Brand New Group',
+                    'description': 'Added by AI',
+                    'items': [],
+                },
+            ],
+            'additionalModules': [],
+        }
+        response = admin_client.post(url, payload, format='json')
+        assert response.status_code == 201
+        sections = {s['section_type']: s for s in response.data['sections']}
+        fr = sections['functional_requirements']['content_json']
+        group_ids = [g['id'] for g in fr['groups']]
+        # New group should be appended after defaults
+        assert 'custom_new_group' in group_ids
+        # Default groups still present
+        assert 'views' in group_ids
+
+
+# ---------------------------------------------------------------------------
+# Investment sync on update
+# ---------------------------------------------------------------------------
+
+class TestInvestmentSyncOnUpdate:
+    """Verify that updating total_investment syncs to the investment section."""
+
+    @pytest.fixture
+    def proposal_with_investment_section(self, db):
+        """Proposal with an investment section containing content_json."""
+        p = BusinessProposal.objects.create(
+            title='Sync Test Proposal',
+            client_name='Sync Client',
+            client_email='sync@test.com',
+            total_investment=Decimal('1500000'),
+            currency='COP',
+            status='draft',
+            expires_at=timezone.now() + timezone.timedelta(days=30),
+        )
+        ProposalSection.objects.create(
+            proposal=p,
+            section_type='investment',
+            title='Inversión',
+            order=9,
+            content_json={
+                'totalInvestment': '$1.500.000',
+                'currency': 'COP',
+                'paymentOptions': [
+                    {'label': '40% al firmar ✍️', 'description': '$600.000 COP'},
+                    {'label': '30% al diseño ✅', 'description': '$450.000 COP'},
+                    {'label': '30% al deploy 🚀', 'description': '$450.000 COP'},
+                ],
+            },
+        )
+        return p
+
+    def test_updates_investment_section_total(self, admin_client, proposal_with_investment_section):
+        """Changing total_investment updates the investment section's content_json."""
+        p = proposal_with_investment_section
+        url = reverse('update-proposal', kwargs={'proposal_id': p.id})
+        response = admin_client.patch(
+            url, {'total_investment': '3000000'}, format='json'
+        )
+        assert response.status_code == 200
+        inv = ProposalSection.objects.get(proposal=p, section_type='investment')
+        assert inv.content_json['totalInvestment'] == '$3.000.000'
+
+    def test_updates_payment_option_descriptions(self, admin_client, proposal_with_investment_section):
+        """Changing total_investment recalculates payment option amounts."""
+        p = proposal_with_investment_section
+        url = reverse('update-proposal', kwargs={'proposal_id': p.id})
+        admin_client.patch(url, {'total_investment': '2000000'}, format='json')
+        inv = ProposalSection.objects.get(proposal=p, section_type='investment')
+        opts = inv.content_json['paymentOptions']
+        # 40% of 2,000,000 = 800,000
+        assert '$800.000' in opts[0]['description']
+        # 30% of 2,000,000 = 600,000
+        assert '$600.000' in opts[1]['description']
+
+    def test_updates_currency_in_section(self, admin_client, proposal_with_investment_section):
+        """Changing currency updates the investment section's content_json currency."""
+        p = proposal_with_investment_section
+        url = reverse('update-proposal', kwargs={'proposal_id': p.id})
+        admin_client.patch(url, {'currency': 'USD'}, format='json')
+        inv = ProposalSection.objects.get(proposal=p, section_type='investment')
+        assert inv.content_json['currency'] == 'USD'
+
+    def test_no_sync_when_investment_unchanged(self, admin_client, proposal_with_investment_section):
+        """Updating unrelated fields does not modify the investment section."""
+        p = proposal_with_investment_section
+        inv_before = ProposalSection.objects.get(proposal=p, section_type='investment')
+        original_total = inv_before.content_json['totalInvestment']
+        url = reverse('update-proposal', kwargs={'proposal_id': p.id})
+        admin_client.patch(url, {'title': 'New Title Only'}, format='json')
+        inv_after = ProposalSection.objects.get(proposal=p, section_type='investment')
+        assert inv_after.content_json['totalInvestment'] == original_total
 
 
 # ---------------------------------------------------------------------------

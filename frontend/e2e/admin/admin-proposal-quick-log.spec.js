@@ -67,7 +67,7 @@ async function openQuickLogModal(page) {
   await expect(quickLogModal.locator('select')).toBeVisible({ timeout: 5000 });
 }
 
-test.describe('@flow: admin-proposal-quick-log — Quick Log Activity from Proposals List', () => {
+test.describe('Quick Log Activity from Proposals List', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, { token: 'e2e-token', userAuth: { id: 8000, role: 'admin', is_staff: true } });
   });

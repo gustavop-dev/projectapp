@@ -38,7 +38,7 @@ function setupMock(page) {
   });
 }
 
-test.describe('@flow: admin-proposal-batch-actions — Batch Actions on Proposals', () => {
+test.describe('Batch Actions on Proposals', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, { token: 'e2e-token', userAuth: { id: 8000, role: 'admin', is_staff: true } });
   });

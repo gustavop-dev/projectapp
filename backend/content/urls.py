@@ -1,11 +1,7 @@
 from django.urls import path
 from content.views.contact import contact_list, new_contact
-from content.views.design import design_list
-from content.views.model_3d import model3d_list
-from content.views.product import product_list
-from content.views.hosting import hosting_list
 from content.views.portfolio_works import (
-    portfolio_works_list, list_portfolio_works, retrieve_portfolio_work,
+    list_portfolio_works, retrieve_portfolio_work,
     portfolio_sitemap_data,
     list_admin_portfolio_works, create_portfolio_work,
     create_portfolio_work_from_json, get_portfolio_json_template,
@@ -45,11 +41,6 @@ from content.views.blog import (
 
 urlpatterns = [
     path('contacts/', contact_list, name='contact-list'),
-    path('designs/', design_list, name='design-list'),
-    path('models3d/', model3d_list, name='model3d-list'),
-    path('products/', product_list, name='product-list'),
-    path('hostings/', hosting_list, name='hosting-list'),
-    path('portfolio_works/', portfolio_works_list, name='portfolio-works-list'),
     path('new-contact/', new_contact, name='new-contact'),
 
     # Proposals — public

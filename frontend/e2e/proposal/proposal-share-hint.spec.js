@@ -39,7 +39,7 @@ function setupMock(page) {
 
 test.describe('Proposal Share Button Hint', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
   });

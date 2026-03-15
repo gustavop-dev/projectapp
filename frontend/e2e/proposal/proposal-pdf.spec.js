@@ -11,7 +11,7 @@ test.describe('Proposal PDF Download', () => {
   test('PDF download returns 200 with PDF content', {
     tag: [...PROPOSAL_DOWNLOAD_PDF, '@role:guest'],
   }, async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
     await mockApi(page, async ({ apiPath }) => {

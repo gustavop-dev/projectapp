@@ -54,8 +54,8 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useFreeResources } from '~/composables/useFreeResources'
-import ContactSection from '~/views-legacy/partials/ContactSection.vue'
-import FooterSection from '~/views-legacy/partials/FooterSection.vue'
+import ContactSection from '~/components/sections/ContactSection.vue'
+import FooterSection from '~/components/sections/FooterSection.vue'
 import HeroApps from '~/components/landing/HeroApps.vue'
 import TechStackApps from '~/components/landing/TechStackApps.vue'
 import ServicesCardsApps from '~/components/landing/ServicesCardsApps.vue'

@@ -330,8 +330,8 @@
 
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import ContactSection from '~/views-legacy/partials/ContactSection.vue';
-import FooterSection from '~/views-legacy/partials/FooterSection.vue';
+import ContactSection from '~/components/sections/ContactSection.vue';
+import FooterSection from '~/components/sections/FooterSection.vue';
 import { useBlogStore } from '~/stores/blog';
 import { fadeUp, staggerFadeUp } from '~/animations';
 import { usePageEntrance } from '~/composables/usePageEntrance';

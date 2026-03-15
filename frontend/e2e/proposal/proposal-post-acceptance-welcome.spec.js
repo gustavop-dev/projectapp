@@ -48,7 +48,7 @@ async function openClosingPanel(page) {
 
 test.describe('Proposal Post-Acceptance Welcome Kit', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
   });

@@ -1,7 +1,7 @@
 <template>
-  <Contact />
+  <ContactPage />
 </template>
 
 <script setup>
-import Contact from '~/views-legacy/Contact.vue'
+import ContactPage from '~/components/pages/ContactPage.vue'
 </script>

@@ -57,7 +57,7 @@ async function openClosingPanel(page) {
 test.describe('Proposal Respond', () => {
   test.beforeEach(async ({ page }) => {
     // Skip onboarding overlay so buttons are clickable
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
   });

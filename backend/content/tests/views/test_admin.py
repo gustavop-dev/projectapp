@@ -23,26 +23,17 @@ class TestProjectAppAdminSiteGetAppList:
         request.user = user
         return request
 
-    def test_returns_8_custom_groups(self, db):
+    def test_returns_4_custom_groups(self, db):
         request = self._make_superuser_request(db)
         app_list = admin_site.get_app_list(request)
-        assert len(app_list) == 8
+        assert len(app_list) == 4
 
     def test_group_names_match_expected_labels(self, db):
         request = self._make_superuser_request(db)
         app_list = admin_site.get_app_list(request)
         names = {app['name'] for app in app_list}
         expected = {
-            'Contact Management', 'Design Management',
-            'Model3D Management', 'Portfolio Works Management',
-            'Product Management', 'Hosting Management',
+            'Contact Management', 'Portfolio Works Management',
             'Business Proposals', 'Blog',
         }
         assert names == expected
-
-    def test_product_management_group_includes_product_category_item(self, db):
-        request = self._make_superuser_request(db)
-        app_list = admin_site.get_app_list(request)
-        product_group = next(a for a in app_list if a['name'] == 'Product Management')
-        object_names = {m['object_name'] for m in product_group['models']}
-        assert {'Product', 'Category', 'Item'}.issubset(object_names)

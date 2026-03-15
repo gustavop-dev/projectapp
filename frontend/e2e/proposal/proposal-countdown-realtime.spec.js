@@ -33,7 +33,7 @@ function buildProposal(expiresAt) {
 
 test.describe('Proposal Countdown Realtime', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
   });

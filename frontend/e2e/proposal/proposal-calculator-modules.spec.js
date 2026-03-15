@@ -9,7 +9,7 @@
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
-import { PROPOSAL_CALCULATOR_MODULES } from '../helpers/flow-tags.js';
+import { PROPOSAL_CALCULATOR_MODULES, PROPOSAL_CALCULATOR_SELECTED_FIRST } from '../helpers/flow-tags.js';
 
 const MOCK_UUID = 'calc-modules-uuid-1234-5678-abcdef';
 
@@ -174,7 +174,7 @@ async function openCalculatorModal(page) {
 
 test.describe('Proposal Calculator Modules (PWA, AI, Reports)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
   });
@@ -275,5 +275,27 @@ test.describe('Proposal Calculator Modules (PWA, AI, Reports)', () => {
 
     // The "view requirements" link should be present
     await expect(page.getByText(/Ver detalle de requerimientos funcionales/)).toBeVisible();
+  });
+
+  test('default selected module group appears before unselected groups', {
+    tag: [...PROPOSAL_CALCULATOR_SELECTED_FIRST, '@role:guest'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    await openCalculatorModal(page);
+
+    // Collect all group headings (h4 elements) in DOM order
+    const headings = page.locator('h4.text-xs.font-semibold.text-gray-400');
+    const count = await headings.count();
+    const labels = [];
+    for (let i = 0; i < count; i++) {
+      labels.push(await headings.nth(i).textContent());
+    }
+
+    // Reports & Alerts (default_selected: true) should appear before PWA (default_selected: false)
+    const reportsIdx = labels.findIndex(l => /Reportes y Alertas/i.test(l));
+    const pwaIdx = labels.findIndex(l => /PWA|Aplicación Móvil/i.test(l));
+    expect(reportsIdx).toBeGreaterThanOrEqual(0);
+    expect(pwaIdx).toBeGreaterThanOrEqual(0);
+    expect(reportsIdx).toBeLessThan(pwaIdx);
   });
 });

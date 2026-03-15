@@ -61,7 +61,7 @@ function buildMockHandler(proposal) {
 test.describe('Proposal View', () => {
   test.beforeEach(async ({ page }) => {
     // Skip onboarding overlay so nav buttons are clickable
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
   });

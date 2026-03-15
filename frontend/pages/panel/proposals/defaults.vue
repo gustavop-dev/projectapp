@@ -149,6 +149,17 @@
                 v-if="savedSections.has(idx)"
                 class="text-xs text-emerald-600 font-medium"
               >✓ Modificado</span>
+              <button
+                type="button"
+                class="p-1.5 rounded-lg text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                title="Vista previa"
+                @click.stop="handleSectionPreview(idx)"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </button>
               <svg
                 class="w-4 h-4 text-gray-400 transition-transform"
                 :class="{ 'rotate-180': expandedSections.has(idx) }"
@@ -453,6 +464,14 @@
       </Transition>
     </Teleport>
 
+    <!-- Section preview modal -->
+    <SectionPreviewModal
+      :visible="showSectionPreview"
+      :section="previewSection"
+      :proposalData="{}"
+      @close="showSectionPreview = false"
+    />
+
     <!-- Feedback messages -->
     <Transition name="fade-modal">
       <div v-if="feedbackMsg" class="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium"
@@ -467,6 +486,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
+import SectionPreviewModal from '~/components/BusinessProposal/admin/SectionPreviewModal.vue';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -537,6 +557,15 @@ const isLoading = ref(false);
 const expandedSections = ref(new Set());
 const savedSections = ref(new Set());
 const showResetConfirm = ref(false);
+const showSectionPreview = ref(false);
+const previewSection = ref({});
+
+function handleSectionPreview(idx) {
+  if (idx >= 0 && idx < sections.value.length) {
+    previewSection.value = toVirtualSection(sections.value[idx], idx);
+    showSectionPreview.value = true;
+  }
+}
 
 function toVirtualSection(section, idx) {
   return {

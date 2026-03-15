@@ -23,7 +23,7 @@ module.exports = {
     ],
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/$1',
-        '^~/service/CacheService$': '<rootDir>/service-legacy/CacheService.js',
+        '^~/service/CacheService$': '<rootDir>/service/CacheService.js',
         '^~/(.*)$': '<rootDir>/$1',
         '#imports': '<rootDir>/test/shared/nuxt-imports-mock.js',
         '\\.(css|less|scss|sass|png|jpg|webp|ttf|woff|woff2)$': 'jest-transform-stub',

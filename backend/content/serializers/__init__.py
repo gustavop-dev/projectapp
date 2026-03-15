@@ -1,8 +1,4 @@
 from .contact import ContactSerializer
-from .design import DesignSerializer
-from .model_3d import Model3DSerializer
-from .product import ItemSerializer, CategorySerializer, ProductSerializer
-from .hosting import HostingSerializer
 from .portfolio_works import (
     PortfolioWorkListSerializer, PortfolioWorkDetailSerializer,
     PortfolioWorkAdminListSerializer, PortfolioWorkAdminDetailSerializer,

@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import AboutUs from '~/views-legacy/AboutUs.vue'
+import AboutUs from '~/components/pages/AboutUs.vue'
 
 useSeoHead('aboutUs')
 </script>

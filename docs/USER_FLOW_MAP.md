@@ -979,6 +979,21 @@
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-calculator-modules.spec.js`
 
+### FLOW: `proposal-calculator-selected-first`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** When the calculator modal opens, groups containing pre-selected (`default_selected`) modules are sorted to the top so the client sees included modules first without scrolling.
+- **Steps:**
+  1. Client opens the proposal and navigates to the Investment section.
+  2. Client clicks "Personalizar tu inversión".
+  3. Calculator modal opens with selected module groups sorted to the top.
+  4. Unselected module groups appear below.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-calculator-modules.spec.js`
+
 ### FLOW: `proposal-expired-graceful`
 
 - **Module:** proposal
@@ -1464,6 +1479,7 @@
 | `proposal-calculator-timeline` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-calculator-timeline.spec.js` |
 | `admin-discount-analysis-enhanced` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-discount-analysis.spec.js` |
 | `proposal-calculator-modules` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-calculator-modules.spec.js` |
+| `proposal-calculator-selected-first` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-modules.spec.js` |
 | `proposal-calculator-integrations` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-integrations.spec.js` |
 | `proposal-expired-graceful` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view.spec.js` |
 | `proposal-calculator-abandonment-tracking` | proposal | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
@@ -1499,11 +1515,11 @@
 
 ### Summary
 
-- **Total flows:** 99
+- **Total flows:** 100
 - **P1 (Critical):** 20
-- **P2 (High):** 62
+- **P2 (High):** 63
 - **P3 (Medium):** 16
-- **Covered (full):** 87 (88%)
+- **Covered (full):** 88 (88%)
 - **Backend-only:** 10 (10%) — system-triggered alerts and automation covered by backend unit tests
 - **Partial:** 2 (2%)
 - **Missing:** 0 (0%)

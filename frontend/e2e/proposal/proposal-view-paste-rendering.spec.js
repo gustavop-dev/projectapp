@@ -125,7 +125,7 @@ async function navigateToPanel(page, panelIndex) {
 
 test.describe('Proposal View — Paste Mode Rendering', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
   });

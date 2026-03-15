@@ -44,7 +44,7 @@ test.describe('Proposal Onboarding Mobile Swipe', () => {
     tag: ['@flow:proposal-onboarding-mobile-swipe', '@module:proposal', '@priority:P3', '@role:guest'],
   }, async ({ page }) => {
     // Ensure onboarding has NOT been seen (remove storage flag)
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.removeItem('proposal_onboarding_seen');
     }, MOCK_UUID);
 
@@ -70,7 +70,7 @@ test.describe('Proposal Onboarding Mobile Swipe', () => {
   test('tapping "Siguiente" advances to next onboarding step', {
     tag: ['@flow:proposal-onboarding-mobile-swipe', '@module:proposal', '@priority:P3', '@role:guest'],
   }, async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.removeItem('proposal_onboarding_seen');
     }, MOCK_UUID);
 
@@ -96,7 +96,7 @@ test.describe('Proposal Onboarding Mobile Swipe', () => {
   test('tapping "Omitir" dismisses onboarding', {
     tag: ['@flow:proposal-onboarding-mobile-swipe', '@module:proposal', '@priority:P3', '@role:guest'],
   }, async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.removeItem('proposal_onboarding_seen');
     }, MOCK_UUID);
 

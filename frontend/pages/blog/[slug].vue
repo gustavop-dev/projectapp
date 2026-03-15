@@ -258,8 +258,8 @@
 
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import ContactSection from '~/views-legacy/partials/ContactSection.vue';
-import FooterSection from '~/views-legacy/partials/FooterSection.vue';
+import ContactSection from '~/components/sections/ContactSection.vue';
+import FooterSection from '~/components/sections/FooterSection.vue';
 import BlogContentRenderer from '~/components/blog/BlogContentRenderer.vue';
 import ReadingProgressBar from '~/components/blog/ReadingProgressBar.vue';
 import { useBlogStore } from '~/stores/blog';

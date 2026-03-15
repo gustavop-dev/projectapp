@@ -1,11 +1,11 @@
 <template>
-  <section class="mt-16 relative">
-    <Footer />
+  <section class="mt-16">
+    <Contact />
   </section>
 </template>
 
 <script setup>
-import Footer from '~/components/layouts/Footer.vue'
+import Contact from '~/components/layouts/Contact.vue'
 </script>
 
 <style scoped>

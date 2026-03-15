@@ -71,7 +71,7 @@ function setupMock(page, proposal) {
 
 test.describe('Proposal Discount Multi-Section', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
   });
@@ -102,14 +102,14 @@ test.describe('Proposal Discount Multi-Section', () => {
     // Navigate to the closing panel (after all sections)
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
-    // quality: disable wait_for_timeout (section transition animation requires brief delay between nav clicks)
-    let limit = 10;
-    while (limit-- > 0) {
-      await nextBtn.click();
-      await page.waitForTimeout(500);
-      const stillVisible = await nextBtn.isVisible().catch(() => false);
-      if (!stillVisible) break;
-    }
+    // greeting → investment
+    await nextBtn.click();
+    await expect(page.getByRole('heading', { name: /Inversión/ })).toBeVisible({ timeout: 5000 });
+    // investment → requirements
+    await nextBtn.click();
+    await expect(page.getByRole('heading', { name: /Requerimientos/ })).toBeVisible({ timeout: 5000 });
+    // requirements → closing (next button disappears on last panel)
+    await nextBtn.click();
 
     // Closing panel discount badge should show "Precio especial disponible"
     await expect(page.getByText(/Precio especial disponible/i)).toBeVisible({ timeout: 10000 });

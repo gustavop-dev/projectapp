@@ -82,7 +82,7 @@ test.describe('Proposal Onboarding', () => {
     tag: [...PROPOSAL_VIEW_ONBOARDING, '@role:client'],
   }, async ({ page }) => {
     // Set localStorage as if onboarding was already seen
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
 

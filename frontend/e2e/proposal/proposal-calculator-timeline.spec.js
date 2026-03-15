@@ -93,7 +93,7 @@ function setupMock(page) {
 
 test.describe('Proposal Calculator Dynamic Timeline', () => {
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((uuid) => {
+    await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
   });
@@ -109,7 +109,7 @@ test.describe('Proposal Calculator Dynamic Timeline', () => {
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
     // Wait for timeline section before clicking again
-    await expect(page.getByText('Cronograma')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: 'Cronograma' })).toBeVisible({ timeout: 5000 });
     await nextBtn.click();
 
     // Click "Personalizar tu inversión" button to open calculator
@@ -131,7 +131,7 @@ test.describe('Proposal Calculator Dynamic Timeline', () => {
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
-    await expect(page.getByText('Cronograma')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: 'Cronograma' })).toBeVisible({ timeout: 5000 });
     await nextBtn.click();
 
     // Open calculator
@@ -157,7 +157,7 @@ test.describe('Proposal Calculator Dynamic Timeline', () => {
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
-    await expect(page.getByText('Cronograma')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: 'Cronograma' })).toBeVisible({ timeout: 5000 });
     await nextBtn.click();
 
     // Open calculator
@@ -184,7 +184,7 @@ test.describe('Proposal Calculator Dynamic Timeline', () => {
     const nextBtn = page.getByTestId('nav-next');
     await expect(nextBtn).toBeVisible({ timeout: 15000 });
     await nextBtn.click();
-    await expect(page.getByText('Cronograma')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: 'Cronograma' })).toBeVisible({ timeout: 5000 });
     await nextBtn.click();
 
     // Open calculator

@@ -6,7 +6,7 @@ User = get_user_model()
 
 
 class Command(BaseCommand):
-    help = 'Create all fake data (contacts, designs, models3d, products, proposals, blog posts)'
+    help = 'Create all fake data (contacts, proposals, blog posts)'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -36,18 +36,6 @@ class Command(BaseCommand):
         # Create fake data for contacts
         self.stdout.write(self.style.SUCCESS('Creating fake contacts...'))
         call_command('create_contacts', number_of_records)
-
-        # Create fake data for designs
-        self.stdout.write(self.style.SUCCESS('Creating fake designs...'))
-        call_command('create_designs', number_of_records)
-
-        # Create fake data for 3D models
-        self.stdout.write(self.style.SUCCESS('Creating fake 3D models...'))
-        call_command('create_models_3d', number_of_records)
-
-        # Create fake data for products
-        self.stdout.write(self.style.SUCCESS('Creating fake products...'))
-        call_command('create_products', number_of_records)
 
         # Create fake data for business proposals
         self.stdout.write(self.style.SUCCESS('Creating fake business proposals...'))

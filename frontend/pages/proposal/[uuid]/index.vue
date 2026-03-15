@@ -555,8 +555,16 @@ function getSectionProps(section) {
     const totalDuration = timelineSection?.content_json?.totalDuration || '';
     const weeksMatch = totalDuration.match(/(\d+)\s*(semana|week)/i);
     const baseWeeks = weeksMatch ? parseInt(weeksMatch[1], 10) : 0;
+    // Always use proposal.total_investment as the source of truth for display
+    const proposalTotal = Number(proposal.value?.total_investment || 0);
+    const proposalCurrency = proposal.value?.currency || content.currency || 'COP';
+    const formattedTotal = proposalTotal > 0
+      ? '$' + proposalTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+      : content.totalInvestment || '';
     return {
       ...content,
+      totalInvestment: formattedTotal,
+      currency: proposalCurrency,
       language: proposal.value?.language || 'es',
       discountPercent: proposal.value?.discount_percent || 0,
       discountedInvestment: proposal.value?.discounted_investment || '',
@@ -578,6 +586,11 @@ function getSectionProps(section) {
     const investContent = investmentSection?.content_json || {};
     const investmentModules = (investContent.modules || []).map(m => ({ ...m, _source: 'investment' }));
     const allCalculatorItems = [...investmentModules, ...configurableRequirementItems.value, ...calculatorModuleItems.value];
+    // Use proposal.total_investment as source of truth (same as investment section override)
+    const summaryTotal = Number(proposal.value?.total_investment || 0);
+    const formattedSummaryTotal = summaryTotal > 0
+      ? '$' + summaryTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+      : investContent.totalInvestment || '';
     return {
       content,
       proposal: proposal.value,
@@ -585,7 +598,7 @@ function getSectionProps(section) {
       language: proposal.value?.language || 'es',
       proposalUuid: proposal.value?.uuid || '',
       investmentModules: allCalculatorItems,
-      rawTotalInvestment: investContent.totalInvestment || '',
+      rawTotalInvestment: formattedSummaryTotal,
       paymentOptions: investContent.paymentOptions || [],
     };
   }
@@ -773,6 +786,13 @@ const onAnimationComplete = () => {
       }
     }
   } catch (_e) { /* ignore */ }
+  // Initialize calculator module selection so FR section shows default_selected modules immediately
+  const defaultCalcIds = calculatorModuleItems.value
+    .filter(m => m.default_selected)
+    .map(m => m.id);
+  if (defaultCalcIds.length) {
+    selectedCalculatorModuleIds.value = new Set(defaultCalcIds);
+  }
   showContent.value = true;
   nextTick(() => applyProposalTheme(false));
   window.addEventListener('keydown', handleKeydown);
