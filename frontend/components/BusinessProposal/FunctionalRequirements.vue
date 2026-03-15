@@ -30,7 +30,7 @@
               <span v-if="groupPrice(group)" class="ml-auto text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
                 💰 +{{ formatPrice(groupPrice(group)) }}
               </span>
-              <span v-else-if="group.items?.length" class="ml-auto badge-count text-xs font-bold text-white bg-esmerald/70 px-2.5 py-1 rounded-full group-hover:bg-esmerald group-hover:scale-110 transition-all">
+              <span v-else-if="group.items?.length" class="ml-auto badge-count text-xs font-bold text-white bg-esmerald/70 px-2.5 py-1 rounded-full group-hover:bg-esmerald group-hover:scale-110 transition-all" style="color: white">
                 {{ group.items.length }}
               </span>
             </div>

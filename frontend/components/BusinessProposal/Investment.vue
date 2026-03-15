@@ -18,20 +18,7 @@
         </p>
       </div>
 
-      <!-- F5: Payment options FIRST — show accessible entry point -->
-      <div v-if="paymentOptions && paymentOptions.length" data-animate="fade-up" class="payment-options mb-12">
-        <h3 class="text-2xl font-bold text-esmerald mb-6">{{ t.paymentOptions }}</h3>
-        <div class="space-y-4">
-          <div v-for="(option, index) in computedPaymentOptions" :key="index"
-               class="payment-option-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4 p-4 sm:p-5 bg-esmerald/5 rounded-xl border-2 border-esmerald/10 hover:border-esmerald/30 transition-all"
-               :class="{ 'ring-2 ring-emerald-400 border-emerald-300 bg-emerald-50/50': index === 0 }">
-            <span class="text-esmerald/80 font-medium text-sm sm:text-base">{{ option.label }}</span>
-            <span class="font-bold text-esmerald text-base sm:text-lg">{{ option.description }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- F5: Value proposition BEFORE pricing card — justify before revealing total -->
+      <!-- F5: Value proposition — why this investment is worth it -->
       <div v-if="valueReasons && valueReasons.length" data-animate="fade-up" class="value-proposition mb-12 bg-esmerald p-5 sm:p-8 md:p-12 rounded-2xl">
         <h3 class="text-2xl font-bold text-lemon mb-6">{{ t.whyWorthIt }}</h3>
         <div class="grid md:grid-cols-2 gap-6">
@@ -47,19 +34,56 @@
             </div>
           </div>
         </div>
+        <!-- CTA after value reasons -->
+        <div v-if="whatsappLink" class="text-center mt-8">
+          <a
+            :href="whatsappLink"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-lemon text-esmerald rounded-xl font-bold text-sm hover:bg-lemon/90 transition-colors shadow-lg"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            {{ t.whatsappCta }}
+          </a>
+        </div>
       </div>
 
-      <!-- F5: Pricing card — de-emphasized total (smaller font), what's included grid -->
+      <!-- F5: Pricing card — payment plan as hero, total secondary -->
       <div data-animate="fade-up" class="pricing-card bg-esmerald p-5 sm:p-8 md:p-12 rounded-3xl text-white mb-12 shadow-2xl">
-        <div class="text-center mb-8">
+        <!-- Payment plan as hero (if available) -->
+        <div v-if="paymentOptions && paymentOptions.length" class="mb-8">
+          <div class="text-center mb-6">
+            <div class="text-sm font-semibold uppercase tracking-wider text-green-light mb-1">{{ t.paymentOptions }}</div>
+            <div class="text-2xl sm:text-3xl font-bold text-lemon">{{ computedPaymentOptions.length }} {{ t.convenientPayments }}</div>
+          </div>
+          <div class="max-w-lg mx-auto space-y-3">
+            <div v-for="(option, idx) in computedPaymentOptions" :key="idx"
+                 class="payment-option-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 p-3 sm:p-4 bg-white/10 rounded-xl">
+              <span class="text-sm text-white/80">{{ option.label }}</span>
+              <span class="text-lg font-bold text-lemon">{{ option.description }}</span>
+            </div>
+          </div>
+          <!-- Total as secondary line -->
+          <div class="text-center mt-6 pt-5 border-t border-white/15">
+            <span class="text-sm text-green-light/70">{{ t.totalInvestment }}:</span>
+            <span v-if="customTotal !== null" class="text-xl font-bold text-lemon ml-2">{{ formatCurrency(displayTotal) }}</span>
+            <span v-else class="text-xl font-bold text-lemon ml-2">{{ totalInvestment }}</span>
+            <span class="text-sm text-green-light/70 ml-1">{{ currency }}</span>
+            <p v-if="customTotal !== null" class="text-xs text-green-light/50 mt-1">{{ t.customized }}</p>
+          </div>
+        </div>
+
+        <!-- Fallback: total as hero when no payment options -->
+        <div v-else class="text-center mb-8">
           <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-green-light">{{ t.totalInvestment }}</div>
           <div v-if="customTotal !== null" class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-lemon">{{ formatCurrency(displayTotal) }}</div>
           <div v-else class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-lemon">{{ totalInvestment }}</div>
           <div class="text-green-light">{{ currency }}</div>
           <p v-if="customTotal !== null" class="text-xs text-green-light/70 mt-2">{{ t.customized }}</p>
         </div>
-        
-        <div class="grid md:grid-cols-3 gap-6 mt-8">
+
+        <!-- What's included grid -->
+        <div class="grid md:grid-cols-3 gap-6">
           <div v-for="(item, index) in whatsIncluded" :key="index"
                class="text-center p-4 bg-white/10 backdrop-blur-sm rounded-xl">
             <div class="text-3xl mb-2">{{ item.icon }}</div>
@@ -67,16 +91,28 @@
             <div class="text-sm text-esmerald-light/70">{{ item.description }}</div>
           </div>
         </div>
-        <!-- Customize investment button (detailed mode only) -->
-        <button
-          v-if="modules && modules.length && props.viewMode !== 'executive'"
-          ref="customizeBtnRef"
-          class="mt-4 mx-auto block px-6 py-3 bg-lemon text-esmerald rounded-xl font-bold text-sm hover:bg-lemon/90 transition-all shadow-lg relative overflow-visible"
-          :class="{ 'btn-pulse': btnPulse }"
-          @click="calculatorOpen = true"
-        >
-          🧮 {{ t.customizeBtn }}
-        </button>
+        <!-- Customize investment + Contact CTA buttons -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6">
+          <button
+            v-if="modules && modules.length && props.viewMode !== 'executive'"
+            ref="customizeBtnRef"
+            class="customize-investment-btn px-6 py-3 bg-lemon text-esmerald rounded-xl font-bold text-sm hover:bg-lemon/90 transition-all shadow-lg relative overflow-visible"
+            :class="{ 'btn-pulse': btnPulse }"
+            @click="calculatorOpen = true"
+          >
+            🧮 {{ t.customizeBtn }}
+          </button>
+          <a
+            v-if="whatsappLink"
+            :href="whatsappLink"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-white/15 text-white rounded-xl font-medium text-sm hover:bg-white/25 transition-colors border border-white/20"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            {{ t.contactCta }}
+          </a>
+        </div>
         <!-- Teaser for executive mode: invite user to explore full proposal -->
         <InvestmentDetailedTeaser
           v-if="props.viewMode === 'executive'"
@@ -107,7 +143,7 @@
       </div>
 
       <!-- Hosting plan -->
-      <div v-if="hostingPlan.title" data-animate="fade-up" class="hosting-plan mt-12 bg-white p-5 sm:p-8 md:p-10 rounded-2xl border-2 border-esmerald/10">
+      <div v-if="hostingPlan.title" data-animate="fade-up" class="hosting-plan mt-12 mb-16 bg-white p-5 sm:p-8 md:p-10 rounded-2xl border-2 border-esmerald/10">
         <div class="flex items-center mb-4">
           <div class="w-12 h-12 bg-esmerald-light/60 rounded-xl flex items-center justify-center mr-4">
             <span class="text-2xl">☁️</span>
@@ -175,18 +211,6 @@
         </div>
       </div>
 
-      <!-- WhatsApp rescue button (moved to end) -->
-      <div v-if="whatsappLink" data-animate="fade-up" class="text-center mt-8 mb-4">
-        <a
-          :href="whatsappLink"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="inline-flex items-center gap-2 px-6 py-3 bg-[#25D366] text-white rounded-xl font-medium text-sm hover:bg-[#1ebe5d] transition-colors shadow-md"
-        >
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-          {{ t.whatsappCta }}
-        </a>
-      </div>
     </div>
 
     <InvestmentCalculatorModal
@@ -245,7 +269,7 @@ const props = defineProps({
   },
   introText: {
     type: String,
-    default: 'Costo total del desarrollo: $1.490.000 COP'
+    default: 'Conoce el detalle de tu inversión, las formas de pago disponibles y todo lo que incluye tu proyecto.'
   },
   totalInvestment: {
     type: String,
@@ -431,13 +455,15 @@ const i18n = {
     day: 'día',
     limitedTime: 'tiempo limitado',
     paymentOptions: 'Formas de Pago',
+    convenientPayments: 'pagos flexibles',
     specialPrice: 'Precio especial',
     annualPayment: 'Pago anual único',
     whyWorthIt: '¿Por Qué Esta Inversión Vale la Pena?',
     viewTechSpecs: 'Ver especificaciones técnicas',
     customizeBtn: 'Personalizar tu inversión',
     customized: 'Precio personalizado según tu selección',
-    whatsappCta: '¿Tienes dudas sobre la inversión? Hablemos',
+    contactCta: 'Comunícate con nosotros',
+    whatsappCta: '¿Tienes dudas? Hablemos',
     coverageCards: [
       { icon: '🔧', title: 'Mantenimiento técnico', description: 'Actualizaciones de seguridad, parches y optimización de base de datos' },
       { icon: '🛟', title: 'Soporte ante incidencias', description: 'Resolución de bugs y asistencia técnica continua' },
@@ -452,13 +478,15 @@ const i18n = {
     day: 'day',
     limitedTime: 'a limited time',
     paymentOptions: 'Payment Options',
+    convenientPayments: 'flexible payments',
     specialPrice: 'Special price',
     annualPayment: 'Annual payment',
     whyWorthIt: 'Why Is This Investment Worth It?',
     viewTechSpecs: 'View technical specs',
     customizeBtn: 'Customize your investment',
     customized: 'Custom price based on your selection',
-    whatsappCta: 'Have questions about the investment? Let\'s talk',
+    contactCta: 'Get in touch with us',
+    whatsappCta: 'Have questions? Let\'s talk',
     coverageCards: [
       { icon: '🔧', title: 'Technical Maintenance', description: 'Security updates, patches, and database optimization' },
       { icon: '🛟', title: 'Incident Support', description: 'Bug resolution and ongoing technical assistance' },

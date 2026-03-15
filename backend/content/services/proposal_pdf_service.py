@@ -409,6 +409,18 @@ def _draw_bullet_list(c, y, items, x=None, max_width=None,
     return y
 
 
+def _sidebar_box_height(items, sidebar_w=None):
+    """Pre-calculate the height a sidebar box would occupy (without drawing)."""
+    sw = sidebar_w or SIDEBAR_W
+    line_h = 13
+    header_h = 22
+    items_h = sum(
+        max(1, len(textwrap.wrap(str(it), width=int(sw / 5.2)))) * line_h + 2
+        for it in (items or [])
+    )
+    return header_h + items_h + 14
+
+
 def _draw_sidebar_box(c, y_start, title, items, sidebar_x=None,
                        sidebar_w=None):
     """Draw a branded sidebar box with a title and bullet items."""
@@ -605,7 +617,8 @@ def _render_executive_summary(c, data, _proposal, ps=None, y=None):
     content_top = y
 
     if highlights:
-        has_room = (content_top - MARGIN_B) > 200
+        sb_h = _sidebar_box_height(highlights)
+        has_room = (content_top - MARGIN_B) > max(200, sb_h + 20)
         if has_room:
             y = _draw_paragraphs(c, y, paragraphs, max_width=TEXT_AREA_W, ps=ps)
             sb = _draw_sidebar_box(c, content_top, hl_title, highlights)
@@ -632,7 +645,8 @@ def _render_context_diagnostic(c, data, _proposal, ps=None, y=None):
     content_top = y
 
     if issues:
-        has_room = (content_top - MARGIN_B) > 200
+        sb_h = _sidebar_box_height(issues)
+        has_room = (content_top - MARGIN_B) > max(200, sb_h + 20)
         if has_room:
             text_w = TEXT_AREA_W
             y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []),
@@ -879,71 +893,83 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
             or f"module-{_safe(g, 'id')}" in sel_ids
         ]
 
-    # Overview cards (2-column grid)
+    # Overview cards (2-column grid) — paginated
     col_w = (CONTENT_W - 16) / 2
     chars = int(col_w / 5.0)
-    last_card_bottom = y
-    for idx, grp in enumerate(all_groups):
-        col = idx % 2
-        row = idx // 2
-        card_x = MARGIN_L + col * (col_w + 16)
-        card_y = y - row * 62
-
-        if card_y < MARGIN_B + 30:
+    card_h = 50
+    row_step = card_h + 12  # card height + gap
+    row_y = y
+    idx = 0
+    while idx < len(all_groups):
+        # Page break check at the start of each row (pair of cards)
+        if ps:
+            row_y = _check_y(c, row_y, ps, need=card_h + 10)
+        elif row_y < MARGIN_B + card_h + 10:
             break
 
-        c.setFillColor(ESMERALD_LIGHT)
-        c.roundRect(card_x, card_y - 44, col_w, 50, 5, fill=1, stroke=0)
-        # Left accent bar
-        c.setFillColor(LEMON)
-        c.roundRect(card_x, card_y - 44, 3, 50, 1, fill=1, stroke=0)
+        # Draw up to 2 cards in this row
+        for col in range(2):
+            if idx >= len(all_groups):
+                break
+            grp = all_groups[idx]
+            card_x = MARGIN_L + col * (col_w + 16)
+            card_y = row_y
 
-        grp_title = _strip_emoji(_safe(grp, 'title'))
-        c.setFont(_font('bold'), 10)
-        c.setFillColor(ESMERALD)
-        c.drawString(card_x + 10, card_y - 10, grp_title)
+            c.setFillColor(ESMERALD_LIGHT)
+            c.roundRect(card_x, card_y - 44, col_w, card_h, 5, fill=1, stroke=0)
+            # Left accent bar
+            c.setFillColor(LEMON)
+            c.roundRect(card_x, card_y - 44, 3, card_h, 1, fill=1, stroke=0)
 
-        # Item count pill (filtered if selected_modules active)
-        grp_items = _safe(grp, 'items', [])
-        if sel_ids is not None and grp_items:
-            grp_key = (_safe(grp, 'id') or _safe(grp, 'title') or '')
-            kept = []
-            for it in grp_items:
-                is_req = _safe(it, 'is_required')
-                if is_req is True:
-                    kept.append(it)
-                else:
-                    configurable = _safe(it, 'price') or is_req is False
-                    if not configurable:
+            grp_title = _strip_emoji(_safe(grp, 'title'))
+            c.setFont(_font('bold'), 10)
+            c.setFillColor(ESMERALD)
+            c.drawString(card_x + 10, card_y - 10, grp_title)
+
+            # Item count pill (filtered if selected_modules active)
+            grp_items = _safe(grp, 'items', [])
+            if sel_ids is not None and grp_items:
+                grp_key = (_safe(grp, 'id') or _safe(grp, 'title') or '')
+                kept = []
+                for it in grp_items:
+                    is_req = _safe(it, 'is_required')
+                    if is_req is True:
                         kept.append(it)
                     else:
-                        fr_id = re.sub(r'\s+', '-', f'fr-{grp_key}-{_safe(it, "name") or ""}').lower()
-                        if fr_id in sel_ids:
+                        configurable = _safe(it, 'price') or is_req is False
+                        if not configurable:
                             kept.append(it)
-            grp_items = kept
-        if grp_items:
-            tw = c.stringWidth(grp_title, _font('bold'), 10)
-            _draw_pill(c, card_x + 10 + tw + 6, card_y - 10,
-                       str(len(grp_items)),
-                       bg_color=BONE, text_color=ESMERALD, font_size=6,
-                       padding_h=5, padding_v=2)
+                        else:
+                            fr_id = re.sub(r'\s+', '-', f'fr-{grp_key}-{_safe(it, "name") or ""}').lower()
+                            if fr_id in sel_ids:
+                                kept.append(it)
+                grp_items = kept
+            if grp_items:
+                tw = c.stringWidth(grp_title, _font('bold'), 10)
+                _draw_pill(c, card_x + 10 + tw + 6, card_y - 10,
+                           str(len(grp_items)),
+                           bg_color=BONE, text_color=ESMERALD, font_size=6,
+                           padding_h=5, padding_v=2)
 
-        desc = _safe(grp, 'description')
-        if desc:
-            c.setFont(_font('regular'), 8)
-            c.setFillColor(ESMERALD_80)
-            d_lines = textwrap.wrap(_strip_emoji(str(desc)), width=chars)
-            dy = card_y - 24
-            for dl in d_lines[:2]:
-                c.drawString(card_x + 10, dy, dl)
-                dy -= 11
-        last_card_bottom = min(last_card_bottom, card_y - 44)
+            desc = _safe(grp, 'description')
+            if desc:
+                c.setFont(_font('regular'), 8)
+                c.setFillColor(ESMERALD_80)
+                d_lines = textwrap.wrap(_strip_emoji(str(desc)), width=chars)
+                dy = card_y - 24
+                for dl in d_lines[:2]:
+                    c.drawString(card_x + 10, dy, dl)
+                    dy -= 11
+
+            idx += 1
+
+        row_y -= row_step
 
     # Store groups for generate() to render detail sub-sections
     if ps is not None:
         ps['_func_req_groups'] = all_groups
 
-    return last_card_bottom - 8
+    return row_y - 8
 
 
 def _render_requirement_group_page(c, grp, ps=None, y=None,
@@ -1188,65 +1214,121 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         y = _draw_paragraphs(c, y, [intro], ps=ps)
         y -= 10
 
-    # ── Two-column area: Formas de Pago (left) | Incluye (right) ──
+    # ── Layout: Formas de Pago + Incluye ──
     col_gap = 20
     left_w = CONTENT_W * 0.58
     right_w = CONTENT_W - left_w - col_gap
     right_x = MARGIN_L + left_w + col_gap
-    columns_top = y
 
-    # ── LEFT COLUMN: Formas de Pago ──────────────────────────────
-    left_y = columns_top
-    if options:
-        c.setFont(_font('bold'), 12)
-        c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L, left_y, 'Formas de Pago')
-        left_y -= 20
-
-        for opt in options:
-            label = _strip_emoji(_safe(opt, 'label'))
-            desc = _strip_emoji(_safe(opt, 'description'))
-
-            # Row background
-            c.setFillColor(ESMERALD_LIGHT)
-            c.roundRect(MARGIN_L, left_y - 6, left_w, 18, 4,
-                        fill=1, stroke=0)
-            c.setFont(_font('regular'), 8)
-            c.setFillColor(ESMERALD_80)
-            c.drawString(MARGIN_L + 8, left_y - 2, label)
-            # Amount pill on right edge of column — recalculate if total changed
-            pill_desc = desc
-            if adjusted is not None and base_num > 0 and desc:
-                desc_num = int(re.sub(r'[^\d]', '', str(desc)) or '0')
-                if desc_num > 0:
-                    ratio = adjusted / base_num
-                    new_amount = round(desc_num * ratio)
-                    pill_desc = re.sub(
-                        r'[\$]?[\d.,]+',
-                        _format_cop(new_amount).lstrip('$'),
-                        _strip_emoji(desc),
-                        count=1,
-                    )
-                    if not pill_desc.startswith('$'):
-                        pill_desc = '$' + pill_desc
-            if pill_desc:
-                _draw_pill(c, MARGIN_L + left_w - 80, left_y - 2, pill_desc,
-                           bg_color=ESMERALD, text_color=WHITE, font_size=7)
-            left_y -= 22
-
-    # ── RIGHT COLUMN: Incluye ────────────────────────────────────
-    right_bottom = columns_top
+    # Pre-calculate heights to decide two-column vs linear layout
+    left_need = 20 + len(options) * 22 if options else 0
+    items_text = []
     if included:
         items_text = [
             f'{_strip_emoji(_safe(it, "title"))} \u2014 '
             f'{_strip_emoji(_safe(it, "description"))}'
             for it in included
         ]
-        right_bottom = _draw_sidebar_box(c, columns_top, 'Incluye', items_text,
-                                          sidebar_x=right_x, sidebar_w=right_w)
+    right_need = _sidebar_box_height(items_text, sidebar_w=right_w) if items_text else 0
+    total_need = max(left_need, right_need)
+    use_two_col = (y - MARGIN_B) > total_need + 30
 
-    # Advance y past whichever column is taller
-    y = min(left_y, right_bottom) - 12
+    if use_two_col:
+        # ── Two-column layout ──
+        columns_top = y
+
+        # LEFT COLUMN: Formas de Pago
+        left_y = columns_top
+        if options:
+            c.setFont(_font('bold'), 12)
+            c.setFillColor(ESMERALD)
+            c.drawString(MARGIN_L, left_y, 'Formas de Pago')
+            left_y -= 20
+
+            for opt in options:
+                label = _strip_emoji(_safe(opt, 'label'))
+                desc = _strip_emoji(_safe(opt, 'description'))
+
+                c.setFillColor(ESMERALD_LIGHT)
+                c.roundRect(MARGIN_L, left_y - 6, left_w, 18, 4,
+                            fill=1, stroke=0)
+                c.setFont(_font('regular'), 8)
+                c.setFillColor(ESMERALD_80)
+                c.drawString(MARGIN_L + 8, left_y - 2, label)
+                pill_desc = desc
+                if adjusted is not None and base_num > 0 and desc:
+                    desc_num = int(re.sub(r'[^\d]', '', str(desc)) or '0')
+                    if desc_num > 0:
+                        ratio = adjusted / base_num
+                        new_amount = round(desc_num * ratio)
+                        pill_desc = re.sub(
+                            r'[\$]?[\d.,]+',
+                            _format_cop(new_amount).lstrip('$'),
+                            _strip_emoji(desc),
+                            count=1,
+                        )
+                        if not pill_desc.startswith('$'):
+                            pill_desc = '$' + pill_desc
+                if pill_desc:
+                    _draw_pill(c, MARGIN_L + left_w - 80, left_y - 2, pill_desc,
+                               bg_color=ESMERALD, text_color=WHITE, font_size=7)
+                left_y -= 22
+
+        # RIGHT COLUMN: Incluye
+        right_bottom = columns_top
+        if items_text:
+            right_bottom = _draw_sidebar_box(c, columns_top, 'Incluye', items_text,
+                                              sidebar_x=right_x, sidebar_w=right_w)
+
+        y = min(left_y, right_bottom) - 12
+    else:
+        # ── Linear layout (paginated) ──
+        if options:
+            if ps:
+                y = _check_y(c, y, ps, need=40)
+            c.setFont(_font('bold'), 12)
+            c.setFillColor(ESMERALD)
+            c.drawString(MARGIN_L, y, 'Formas de Pago')
+            y -= 20
+
+            for opt in options:
+                if ps:
+                    y = _check_y(c, y, ps, need=24)
+                label = _strip_emoji(_safe(opt, 'label'))
+                desc = _strip_emoji(_safe(opt, 'description'))
+
+                c.setFillColor(ESMERALD_LIGHT)
+                c.roundRect(MARGIN_L, y - 6, CONTENT_W, 18, 4,
+                            fill=1, stroke=0)
+                c.setFont(_font('regular'), 8)
+                c.setFillColor(ESMERALD_80)
+                c.drawString(MARGIN_L + 8, y - 2, label)
+                pill_desc = desc
+                if adjusted is not None and base_num > 0 and desc:
+                    desc_num = int(re.sub(r'[^\d]', '', str(desc)) or '0')
+                    if desc_num > 0:
+                        ratio = adjusted / base_num
+                        new_amount = round(desc_num * ratio)
+                        pill_desc = re.sub(
+                            r'[\$]?[\d.,]+',
+                            _format_cop(new_amount).lstrip('$'),
+                            _strip_emoji(desc),
+                            count=1,
+                        )
+                        if not pill_desc.startswith('$'):
+                            pill_desc = '$' + pill_desc
+                if pill_desc:
+                    _draw_pill(c, MARGIN_L + CONTENT_W - 80, y - 2, pill_desc,
+                               bg_color=ESMERALD, text_color=WHITE, font_size=7)
+                y -= 22
+
+        if items_text:
+            y -= 10
+            if ps:
+                y = _check_y(c, y, ps, need=right_need + 10)
+            y = _draw_sidebar_box(c, y, 'Incluye', items_text,
+                                   sidebar_x=MARGIN_L, sidebar_w=CONTENT_W)
+            y -= 8
 
     # ── Compact Inversión Total ──────────────────────────────────
     if total:

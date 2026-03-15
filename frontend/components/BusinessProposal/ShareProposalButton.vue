@@ -1,21 +1,13 @@
 <template>
   <div class="share-proposal">
-    <!-- Quick-copy toast -->
-    <Transition name="fade-toast">
-      <div v-if="quickCopied" class="fixed bottom-[12.5rem] right-4 z-40 bg-emerald-600 text-white text-xs font-medium px-4 py-2 rounded-xl shadow-lg whitespace-nowrap">
-        {{ t.copied }} ✅
-      </div>
-    </Transition>
-
-    <!-- Floating share button: click = copy link, long-press = open modal -->
+    <!-- Floating share button: click = open share modal -->
     <button
       data-testid="share-proposal-btn"
       class="share-btn fixed bottom-[8.5rem] right-4 z-40 w-12 h-12 bg-white border border-gray-200
              rounded-full shadow-lg flex items-center justify-center
              hover:bg-gray-50 transition-colors group"
       :title="t.shareTitle"
-      @click="quickCopyLink"
-      @contextmenu.prevent="showModal = true"
+      @click="showModal = true"
     >
       <svg class="w-5 h-5 text-gray-500 group-hover:text-emerald-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -23,109 +15,86 @@
       </svg>
     </button>
 
-    <!-- Share hint tooltip -->
-    <Transition name="fade-toast">
-      <div
-        v-if="showShareHint"
-        class="fixed bottom-[12rem] right-4 z-40 bg-gray-900 text-white text-xs font-medium px-3 py-2 rounded-xl shadow-lg max-w-[180px] text-center leading-snug"
-      >
-        {{ t.shareHint }}
-        <div class="absolute -top-1.5 right-5 w-3 h-3 bg-gray-900 rotate-45" />
-      </div>
-    </Transition>
-
     <!-- Share modal -->
     <teleport to="body">
-      <div
-        v-if="showModal"
-        class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-        @click.self="showModal = false"
-      >
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-5 sm:p-8">
-          <!-- Step 1: Enter info -->
-          <template v-if="!shareResult">
-            <div class="text-center mb-6">
-              <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+      <Transition name="share-modal">
+        <div
+          v-if="showModal"
+          class="fixed inset-0 z-[9990] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm"
+          @click.self="closeModal"
+        >
+          <div class="share-modal-card bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md sm:mx-4 p-6 sm:p-8">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-6">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+                  <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="text-lg font-bold text-gray-900">{{ t.shareTitle }}</h3>
+                  <p class="text-xs text-gray-400">{{ t.shareSubtitle }}</p>
+                </div>
+              </div>
+              <button
+                class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                @click="closeModal"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
+              </button>
+            </div>
+
+            <!-- Link display + copy -->
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 sm:p-4 flex items-center gap-3 mb-4">
+              <div class="flex-1 min-w-0">
+                <p class="text-[11px] text-gray-400 mb-0.5 font-medium uppercase tracking-wider">{{ t.linkLabel }}</p>
+                <p class="text-sm text-gray-700 truncate">{{ currentUrl }}</p>
               </div>
-              <h3 class="text-xl font-bold text-gray-900 mb-1">{{ t.shareTitle }}</h3>
-              <p class="text-sm text-gray-500">{{ t.shareSubtitle }}</p>
-            </div>
-
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">{{ t.nameLabel }} *</label>
-                <input
-                  v-model="shareName"
-                  type="text"
-                  :placeholder="t.namePlaceholder"
-                  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                         focus:ring-2 focus:ring-emerald-500 outline-none"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">{{ t.emailLabel }}</label>
-                <input
-                  v-model="shareEmail"
-                  type="email"
-                  :placeholder="t.emailPlaceholder"
-                  class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                         focus:ring-2 focus:ring-emerald-500 outline-none"
-                />
-              </div>
-            </div>
-
-            <div class="flex gap-3 justify-end mt-6">
               <button
-                class="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium
-                       hover:bg-gray-200 transition-colors"
-                @click="showModal = false"
-              >{{ t.cancel }}</button>
-              <button
-                class="px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium
-                       hover:bg-emerald-700 transition-colors"
-                :disabled="isSharing || !shareName.trim()"
-                @click="createShareLink"
-              >{{ isSharing ? t.creating : t.createLink }}</button>
-            </div>
-          </template>
-
-          <!-- Step 2: Show share link -->
-          <template v-else>
-            <div class="text-center mb-6">
-              <div class="text-5xl mb-3">🔗</div>
-              <h3 class="text-xl font-bold text-gray-900 mb-1">{{ t.linkReady }}</h3>
-              <p class="text-sm text-gray-500">{{ t.linkReadySub }}</p>
-            </div>
-
-            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center gap-3">
-              <input
-                ref="linkInput"
-                type="text"
-                :value="shareUrl"
-                readonly
-                class="flex-1 bg-transparent text-sm text-gray-700 outline-none truncate"
-              />
-              <button
-                class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium
-                       hover:bg-emerald-700 transition-colors whitespace-nowrap"
+                class="flex-shrink-0 px-4 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap"
+                :class="copied
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-700'"
                 @click="copyLink"
-              >{{ copied ? t.copied : t.copy }}</button>
+              >
+                <span v-if="copied" class="flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                  </svg>
+                  {{ t.copied }}
+                </span>
+                <span v-else class="flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  {{ t.copyLink }}
+                </span>
+              </button>
             </div>
 
-            <div class="flex justify-center mt-6">
-              <button
-                class="px-5 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium
-                       hover:bg-gray-200 transition-colors"
-                @click="closeAndReset"
-              >{{ t.done }}</button>
-            </div>
-          </template>
+            <!-- Native share button (Web Share API) -->
+            <button
+              v-if="canNativeShare"
+              class="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+              @click="nativeShare"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              {{ t.shareViaApps }}
+            </button>
+
+            <!-- Fallback: if no native share, show a helpful note -->
+            <p v-else class="text-center text-xs text-gray-400 mt-2">
+              {{ t.copyHint }}
+            </p>
+          </div>
         </div>
-      </div>
+      </Transition>
     </teleport>
   </div>
 </template>
@@ -141,37 +110,21 @@ const props = defineProps({
 const i18nStrings = {
   es: {
     shareTitle: 'Compartir propuesta',
-    shareSubtitle: 'Comparte esta propuesta con tu equipo para que puedan revisarla.',
-    nameLabel: 'Tu nombre',
-    namePlaceholder: 'Ej: Juan Pérez',
-    emailLabel: 'Tu email (opcional)',
-    emailPlaceholder: 'juan@empresa.com',
-    cancel: 'Cancelar',
-    createLink: 'Crear enlace',
-    creating: 'Creando...',
-    linkReady: '¡Enlace listo!',
-    linkReadySub: 'Comparte este enlace con quien quieras que revise la propuesta.',
-    copy: 'Copiar',
+    shareSubtitle: 'Envía esta propuesta a tu equipo',
+    linkLabel: 'Enlace',
+    copyLink: 'Copiar enlace',
     copied: '¡Copiado!',
-    done: 'Listo',
-    shareHint: 'Comparte con tu equipo',
+    shareViaApps: 'Compartir vía apps',
+    copyHint: 'Copia el enlace y compártelo por tu medio favorito',
   },
   en: {
     shareTitle: 'Share proposal',
-    shareSubtitle: 'Share this proposal with your team so they can review it.',
-    nameLabel: 'Your name',
-    namePlaceholder: 'e.g. John Doe',
-    emailLabel: 'Your email (optional)',
-    emailPlaceholder: 'john@company.com',
-    cancel: 'Cancel',
-    createLink: 'Create link',
-    creating: 'Creating...',
-    linkReady: 'Link ready!',
-    linkReadySub: 'Share this link with anyone you want to review the proposal.',
-    copy: 'Copy',
+    shareSubtitle: 'Send this proposal to your team',
+    linkLabel: 'Link',
+    copyLink: 'Copy link',
     copied: 'Copied!',
-    done: 'Done',
-    shareHint: 'Share with your team',
+    shareViaApps: 'Share via apps',
+    copyHint: 'Copy the link and share it through your preferred channel',
   },
 };
 
@@ -180,74 +133,63 @@ const t = computed(() => i18nStrings[props.language] || i18nStrings.es);
 const proposalStore = useProposalStore();
 
 const showModal = ref(false);
-const shareName = ref('');
-const shareEmail = ref('');
-const isSharing = ref(false);
-const shareResult = ref(null);
 const copied = ref(false);
-const linkInput = ref(null);
+const currentUrl = ref('');
 
-const quickCopied = ref(false);
-const showShareHint = ref(false);
+const canNativeShare = ref(false);
 
 onMounted(() => {
-  const hintKey = `proposal-${props.proposalUuid}-share-hint-seen`;
-  try {
-    if (!localStorage.getItem(hintKey)) {
-      setTimeout(() => { showShareHint.value = true; }, 2000);
-      setTimeout(() => {
-        showShareHint.value = false;
-        localStorage.setItem(hintKey, '1');
-      }, 7000);
-    }
-  } catch (_e) { /* ignore */ }
+  currentUrl.value = window.location.href;
+  canNativeShare.value = !!navigator?.share;
 });
 
-const shareUrl = computed(() => {
-  if (!shareResult.value?.uuid) return '';
-  const base = window.location.origin;
-  return `${base}/proposal/shared/${shareResult.value.uuid}`;
-});
-
-function quickCopyLink() {
-  const url = window.location.href;
-  navigator.clipboard.writeText(url).then(() => {
-    quickCopied.value = true;
-    setTimeout(() => { quickCopied.value = false; }, 2000);
+function copyLink() {
+  navigator.clipboard.writeText(currentUrl.value).then(() => {
+    copied.value = true;
+    setTimeout(() => { copied.value = false; }, 2500);
   });
-  // Track analytics
   proposalStore.trackProposalEvent?.(props.proposalUuid, 'share_link_copied');
 }
 
-async function createShareLink() {
-  if (!shareName.value.trim()) return;
-  isSharing.value = true;
-  try {
-    const result = await proposalStore.shareProposal(props.proposalUuid, {
-      name: shareName.value.trim(),
-      email: shareEmail.value.trim(),
-    });
-    if (result.success) {
-      shareResult.value = result.data;
-    }
-  } finally {
-    isSharing.value = false;
-  }
+function nativeShare() {
+  navigator.share({
+    title: document.title || '',
+    url: currentUrl.value,
+  }).catch(() => { /* user cancelled */ });
+  proposalStore.trackProposalEvent?.(props.proposalUuid, 'share_native');
 }
 
-function copyLink() {
-  if (shareUrl.value) {
-    navigator.clipboard.writeText(shareUrl.value);
-    copied.value = true;
-    setTimeout(() => { copied.value = false; }, 2000);
-  }
-}
-
-function closeAndReset() {
+function closeModal() {
   showModal.value = false;
-  shareResult.value = null;
-  shareName.value = '';
-  shareEmail.value = '';
   copied.value = false;
 }
 </script>
+
+<style scoped>
+.share-modal-enter-active {
+  transition: opacity 0.25s ease;
+}
+.share-modal-enter-active .share-modal-card {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+}
+.share-modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+.share-modal-leave-active .share-modal-card {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.share-modal-enter-from {
+  opacity: 0;
+}
+.share-modal-enter-from .share-modal-card {
+  opacity: 0;
+  transform: translateY(20px) scale(0.97);
+}
+.share-modal-leave-to {
+  opacity: 0;
+}
+.share-modal-leave-to .share-modal-card {
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+}
+</style>
