@@ -68,8 +68,7 @@ test.describe('Proposal Comment from Closing Panel', () => {
 
     await openClosingPanel(page);
 
-    // Open negotiate modal then switch to comment tab
-    await page.getByRole('button', { name: /Necesito ajustes|I need adjustments/i }).click();
+    // Open comment modal directly from closing panel
     await page.getByRole('button', { name: /Tengo comentarios por escrito|I have written comments/i }).click();
     await expect(page.locator('textarea')).toBeVisible();
   });
@@ -86,8 +85,7 @@ test.describe('Proposal Comment from Closing Panel', () => {
 
     await openClosingPanel(page);
 
-    // Open negotiate modal then switch to comment tab
-    await page.getByRole('button', { name: /Necesito ajustes|I need adjustments/i }).click();
+    // Open comment modal directly from closing panel
     await page.getByRole('button', { name: /Tengo comentarios por escrito|I have written comments/i }).click();
 
     const sendBtn = page.getByRole('button', { name: /Enviar mensaje|Send message/i });
@@ -112,8 +110,7 @@ test.describe('Proposal Comment from Closing Panel', () => {
 
     await openClosingPanel(page);
 
-    // Open negotiate modal then switch to comment tab
-    await page.getByRole('button', { name: /Necesito ajustes|I need adjustments/i }).click();
+    // Open comment modal directly from closing panel
     await page.getByRole('button', { name: /Tengo comentarios por escrito|I have written comments/i }).click();
 
     await page.locator('textarea').fill('Me gustaría saber más sobre los tiempos de entrega.');

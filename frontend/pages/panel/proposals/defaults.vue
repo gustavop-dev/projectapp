@@ -386,6 +386,87 @@
       </div>
     </div>
 
+    <!-- ═══ TAB: Prompt IA ═══ -->
+    <div v-show="activeTab === 'prompt'" class="max-w-4xl">
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+        Este prompt se usa con IA (ChatGPT, Claude, etc.) para generar propuestas comerciales personalizadas a partir del JSON plantilla.
+      </p>
+
+      <!-- Action bar -->
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <template v-if="!promptIsEditing">
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            @click="startEditPrompt"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            Editar
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            @click="handleCopyPrompt"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+            {{ promptCopied ? '¡Copiado!' : 'Copiar' }}
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            @click="promptDownload"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            Descargar .md
+          </button>
+          <button
+            v-if="promptText !== promptDefault"
+            type="button"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            @click="handleResetPrompt"
+          >
+            Restaurar original
+          </button>
+        </template>
+        <template v-else>
+          <button
+            type="button"
+            class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+            @click="saveEditPrompt"
+          >
+            Guardar cambios
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            @click="cancelEditPrompt"
+          >
+            Cancelar
+          </button>
+        </template>
+      </div>
+
+      <!-- Editing mode -->
+      <div v-if="promptIsEditing" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <textarea
+          v-model="promptEditBuffer"
+          rows="30"
+          class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 dark:text-gray-200 bg-transparent border-0 outline-none resize-y focus:ring-0"
+        ></textarea>
+      </div>
+
+      <!-- Read-only mode -->
+      <div v-else class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
+          <pre class="text-xs leading-relaxed text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono break-words">{{ promptText }}</pre>
+        </div>
+      </div>
+
+      <p v-if="promptText !== promptDefault" class="text-xs text-amber-600 mt-3">
+        Este prompt ha sido personalizado. Usa "Restaurar original" para volver al valor por defecto.
+      </p>
+    </div>
+
     <!-- ═══ Shared modals ═══ -->
 
     <!-- Email preview modal -->
@@ -487,6 +568,7 @@
 import { computed, onMounted, ref } from 'vue';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
 import SectionPreviewModal from '~/components/BusinessProposal/admin/SectionPreviewModal.vue';
+import { useSellerPrompt } from '~/composables/useSellerPrompt';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -497,9 +579,10 @@ const tabs = [
   { id: 'general', label: 'Vista General' },
   { id: 'sections', label: 'Secciones' },
   { id: 'emails', label: 'Plantillas de Email' },
+  { id: 'prompt', label: 'Prompt IA' },
 ];
 const route = useRoute();
-const initialTab = ['general', 'sections', 'emails'].includes(route.query.tab) ? route.query.tab : 'general';
+const initialTab = ['general', 'sections', 'emails', 'prompt'].includes(route.query.tab) ? route.query.tab : 'general';
 const activeTab = ref(initialTab);
 
 const languageOptions = [
@@ -814,8 +897,52 @@ async function loadEmailTemplates() {
   }
 }
 
+// ── Prompt IA ──
+const {
+  promptText,
+  isEditing: promptIsEditing,
+  DEFAULT_PROMPT: promptDefault,
+  loadSavedPrompt,
+  savePrompt: promptSave,
+  resetPrompt: promptReset,
+  copyPrompt: promptCopy,
+  downloadPrompt: promptDownload,
+} = useSellerPrompt();
+
+const promptEditBuffer = ref('');
+const promptCopied = ref(false);
+
+function startEditPrompt() {
+  promptEditBuffer.value = promptText.value;
+  promptIsEditing.value = true;
+}
+
+function cancelEditPrompt() {
+  promptIsEditing.value = false;
+}
+
+function saveEditPrompt() {
+  promptSave(promptEditBuffer.value);
+  promptIsEditing.value = false;
+  showFeedback('Prompt guardado correctamente.', 'success');
+}
+
+function handleResetPrompt() {
+  promptReset();
+  promptIsEditing.value = false;
+  showFeedback('Prompt restaurado al valor original.', 'success');
+}
+
+async function handleCopyPrompt() {
+  await promptCopy();
+  promptCopied.value = true;
+  setTimeout(() => { promptCopied.value = false; }, 2000);
+  showFeedback('Prompt copiado al portapapeles.', 'success');
+}
+
 onMounted(() => {
   loadDefaults(selectedLang.value);
   loadEmailTemplates();
+  loadSavedPrompt();
 });
 </script>

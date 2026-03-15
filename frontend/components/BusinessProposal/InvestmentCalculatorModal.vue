@@ -293,6 +293,7 @@ const i18n = {
 const t = computed(() => i18n[props.language] || i18n.es);
 
 const localModules = ref([]);
+const initialGroupOrder = ref([]);
 
 watch(() => props.visible, (val) => {
   if (val) {
@@ -312,6 +313,22 @@ watch(() => props.visible, (val) => {
         _locked: locked,
       };
     });
+
+    // Capture initial group order once so user interactions don't cause reordering
+    const groups = {};
+    for (const mod of localModules.value) {
+      const key = mod._source === 'investment' ? 'investment' : (mod.groupId || '_other');
+      if (!groups[key]) groups[key] = { hasSelected: false };
+      if (mod.selected) groups[key].hasSelected = true;
+    }
+    const keys = Object.keys(groups);
+    keys.sort((a, b) => {
+      const aS = groups[a].hasSelected;
+      const bS = groups[b].hasSelected;
+      if (aS === bS) return 0;
+      return aS ? -1 : 1;
+    });
+    initialGroupOrder.value = keys;
   }
 }, { immediate: true });
 
@@ -361,15 +378,17 @@ const groupedModules = computed(() => {
     }
     groups[key].items.push(mod);
   }
-  // Sort: groups with selected items first, preserving original order within tiers
-  const entries = Object.entries(groups);
-  entries.sort((a, b) => {
-    const aSelected = a[1].items.some(m => m.selected);
-    const bSelected = b[1].items.some(m => m.selected);
-    if (aSelected === bSelected) return 0;
-    return aSelected ? -1 : 1;
-  });
-  return Object.fromEntries(entries);
+  // Use frozen initial order so user interactions don't cause reordering
+  const order = initialGroupOrder.value;
+  const ordered = [];
+  for (const key of order) {
+    if (groups[key]) ordered.push([key, groups[key]]);
+  }
+  // Append any groups not in the initial order (safety fallback)
+  for (const key of Object.keys(groups)) {
+    if (!order.includes(key)) ordered.push([key, groups[key]]);
+  }
+  return Object.fromEntries(ordered);
 });
 
 const baseTotalInvestment = computed(() => parseInvestment(props.totalInvestment));

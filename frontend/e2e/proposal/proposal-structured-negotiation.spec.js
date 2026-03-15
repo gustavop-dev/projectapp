@@ -99,7 +99,7 @@ test.describe('Proposal Structured Negotiation Modal', () => {
     await expect(page.getByText('Otro ajuste')).toBeVisible();
   });
 
-  test('negotiate modal has tab toggle between adjust and comment', {
+  test('closing panel has separate negotiate and comment modals', {
     tag: [...PROPOSAL_STRUCTURED_NEGOTIATION, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
@@ -111,21 +111,22 @@ test.describe('Proposal Structured Negotiation Modal', () => {
 
     await openClosingPanel(page);
 
+    // Open negotiate modal and verify structure
     await page.getByRole('button', { name: /Necesito ajustes/i }).click();
-    await expect(page.getByText(/negociemos alcance/i)).toBeVisible({ timeout: 5000 });
+    const negotiateModal = page.locator('.fixed.inset-0').filter({ hasText: /negociemos alcance/i });
+    await expect(negotiateModal).toBeVisible({ timeout: 5000 });
+    await expect(negotiateModal.getByRole('button', { name: /Cancelar/i })).toBeVisible();
 
-    // Both tabs should be visible inside the modal
-    const modal = page.locator('.fixed.inset-0').filter({ hasText: /negociemos alcance/i });
-    const adjustTab = modal.getByRole('button', { name: /Necesito ajustes/i });
-    const commentTab = modal.getByRole('button', { name: /comentarios por escrito/i });
-    await expect(adjustTab).toBeVisible();
-    await expect(commentTab).toBeVisible();
+    // Close negotiate modal
+    await negotiateModal.getByRole('button', { name: /Cancelar/i }).click();
+    await expect(negotiateModal).not.toBeVisible({ timeout: 3000 });
 
-    // Switch to comment tab
-    await commentTab.click();
-
-    // Cancel button visible on both tabs
-    await expect(modal.getByRole('button', { name: /Cancelar/i })).toBeVisible();
+    // Open comment modal separately and verify structure
+    await page.getByRole('button', { name: /Tengo comentarios por escrito/i }).click();
+    const commentModal = page.locator('.fixed.inset-0').filter({ hasText: /comentarios por escrito/i });
+    await expect(commentModal).toBeVisible({ timeout: 3000 });
+    await expect(commentModal.locator('textarea')).toBeVisible();
+    await expect(commentModal.getByRole('button', { name: /Cancelar/i })).toBeVisible();
   });
 
   test('selecting checkboxes and sending negotiation calls API', {

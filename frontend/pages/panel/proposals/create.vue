@@ -8,7 +8,7 @@
     </div>
 
     <!-- Tab toggle -->
-    <div class="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 max-w-xs">
+    <div class="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 max-w-md">
       <button
         type="button"
         :class="[
@@ -28,6 +28,16 @@
         @click="mode = 'json'"
       >
         Importar JSON
+      </button>
+      <button
+        type="button"
+        :class="[
+          'flex-1 px-4 py-2 text-sm rounded-lg transition-all',
+          mode === 'prompt' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'
+        ]"
+        @click="mode = 'prompt'"
+      >
+        Prompt IA
       </button>
     </div>
 
@@ -284,7 +294,7 @@
     <!-- ============================================================ -->
     <!-- JSON IMPORT MODE -->
     <!-- ============================================================ -->
-    <div v-else class="max-w-3xl space-y-6">
+    <div v-else-if="mode === 'json'" class="max-w-3xl space-y-6">
 
       <!-- Download template row -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
@@ -526,6 +536,50 @@
       </form>
     </div>
 
+    <!-- ============================================================ -->
+    <!-- PROMPT IA MODE -->
+    <!-- ============================================================ -->
+    <div v-if="mode === 'prompt'" class="max-w-3xl space-y-6">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <div>
+            <h3 class="text-sm font-medium text-gray-900">Prompt para IA</h3>
+            <p class="text-xs text-gray-400 mt-0.5">Copia este prompt y úsalo con ChatGPT, Claude u otra IA junto con el JSON plantilla para generar propuestas personalizadas.</p>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              @click="handleCopyCreatePrompt"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              {{ createPromptCopied ? '¡Copiado!' : 'Copiar' }}
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              @click="createPromptDownload"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Descargar .md
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+          <div class="px-4 sm:px-6 py-4 max-h-[60vh] overflow-y-auto">
+            <pre class="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap font-mono break-words">{{ createPromptText }}</pre>
+          </div>
+        </div>
+
+        <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+          <p class="text-xs text-blue-700">
+            <strong>Flujo recomendado:</strong> 1) Descarga la plantilla JSON desde la pestaña "Importar JSON" → 2) Copia este prompt → 3) Pega ambos en tu IA favorita → 4) Pega el JSON resultante de vuelta en "Importar JSON".
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- Post-creation interstitial modal -->
     <teleport to="body">
       <div v-if="showPostCreateModal && createdProposal" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -568,8 +622,9 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed } from 'vue';
+import { reactive, ref, computed, onMounted } from 'vue';
 import { get_request } from '~/stores/services/request_http';
+import { useSellerPrompt } from '~/composables/useSellerPrompt';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -580,6 +635,26 @@ const errorMsg = ref('');
 const mode = ref('manual');
 const createdProposal = ref(null);
 const showPostCreateModal = ref(false);
+
+// ── Prompt IA ──
+const {
+  promptText: createPromptText,
+  loadSavedPrompt: createLoadPrompt,
+  copyPrompt: createCopyPrompt,
+  downloadPrompt: createPromptDownload,
+} = useSellerPrompt();
+
+const createPromptCopied = ref(false);
+
+async function handleCopyCreatePrompt() {
+  await createCopyPrompt();
+  createPromptCopied.value = true;
+  setTimeout(() => { createPromptCopied.value = false; }, 2000);
+}
+
+onMounted(() => {
+  createLoadPrompt();
+});
 
 // -------------------------------------------------------------------------
 // Shared helpers

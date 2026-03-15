@@ -38,8 +38,8 @@ export function useDarkMode() {
       if (stored !== null) {
         isDark.value = JSON.parse(stored);
       } else {
-        // Respect system preference
-        isDark.value = window.matchMedia?.('(prefers-color-scheme: dark)').matches || false;
+        // Default to light mode for panel views
+        isDark.value = false;
       }
     } catch (_e) { /* ignore */ }
     applyTheme(isDark.value);
