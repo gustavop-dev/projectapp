@@ -92,7 +92,7 @@
         <!-- Dark mode toggle -->
         <button
           v-if="viewMode"
-          class="fixed bottom-6 left-6 z-[9990] w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-lg transition-all hover:scale-110"
+          class="dark-mode-toggle fixed bottom-6 left-6 z-[9990] w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-lg transition-all hover:scale-110"
           :class="proposalDarkMode ? 'bg-gray-700 text-yellow-300 hover:bg-gray-600' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'"
           :title="pLang === 'es' ? 'Cambiar tema' : 'Toggle theme'"
           @click="toggleProposalDarkMode"
@@ -102,6 +102,21 @@
 
         <!-- Onboarding tutorial tooltips -->
         <ProposalOnboarding ref="onboardingRef" :language="pLang" @complete="showReadingTimePopup" />
+
+        <!-- Investment section onboarding (customize button tutorial) -->
+        <InvestmentOnboarding
+          ref="investmentOnboardingRef"
+          :language="pLang"
+          :proposalUuid="proposal?.uuid || ''"
+          :hasModules="investmentHasModules"
+        />
+
+        <!-- Functional requirements onboarding (click cards tutorial) -->
+        <RequirementsOnboarding
+          ref="requirementsOnboardingRef"
+          :language="pLang"
+          :proposalUuid="proposal?.uuid || ''"
+        />
 
 
 
@@ -240,6 +255,8 @@ import RawContentSection from '~/components/BusinessProposal/RawContentSection.v
 import ProposalClosing from '~/components/BusinessProposal/ProposalClosing.vue';
 import SectionNavButtons from '~/components/BusinessProposal/SectionNavButtons.vue';
 import ProposalOnboarding from '~/components/BusinessProposal/ProposalOnboarding.vue';
+import InvestmentOnboarding from '~/components/BusinessProposal/InvestmentOnboarding.vue';
+import RequirementsOnboarding from '~/components/BusinessProposal/RequirementsOnboarding.vue';
 import ShareProposalButton from '~/components/BusinessProposal/ShareProposalButton.vue';
 import WhatsAppFloatingButton from '~/components/BusinessProposal/WhatsAppFloatingButton.vue';
 import ProposalViewGateway from '~/components/BusinessProposal/ProposalViewGateway.vue';
@@ -326,7 +343,7 @@ useHead({
 
 const viewMode = ref(null); // null = gateway, 'executive', 'detailed'
 const EXECUTIVE_SECTION_TYPES = new Set([
-  'greeting', 'executive_summary', 'proposal_summary', 'investment', 'timeline', 'proposal_closing',
+  'greeting', 'executive_summary', 'proposal_summary', 'functional_requirements', 'investment', 'timeline', 'proposal_closing',
 ]);
 
 // Build display panels: skip next_steps (merged into final_note), no FR sub-panels
@@ -374,6 +391,8 @@ const navBlinkNext = ref(false);
 const navBlinkPrev = ref(false);
 let blinkTimer = null;
 const onboardingRef = ref(null);
+const investmentOnboardingRef = ref(null);
+const requirementsOnboardingRef = ref(null);
 const readingPopupVisible = ref(false);
 const welcomeBack = ref(null);
 
@@ -398,6 +417,40 @@ watch(currentPanel, (panel) => {
     } catch (_e) { /* ignore */ }
   }
 }, { immediate: true });
+
+// Investment onboarding: detect if investment section has modules (customize button)
+const investmentHasModules = computed(() => {
+  const inv = enabledSections.value.find(s => s.section_type === 'investment');
+  const modules = inv?.content_json?.modules || [];
+  return modules.length > 0 || configurableRequirementItems.value.length > 0 || calculatorModuleItems.value.length > 0;
+});
+
+// Trigger investment onboarding when user navigates to investment section
+let investmentOnboardingTriggered = false;
+let requirementsOnboardingTriggered = false;
+watch(currentPanel, (panel) => {
+  if (
+    panel?.section_type === 'investment' &&
+    !investmentOnboardingTriggered &&
+    investmentHasModules.value &&
+    viewMode.value === 'detailed'
+  ) {
+    investmentOnboardingTriggered = true;
+    setTimeout(() => {
+      investmentOnboardingRef.value?.start();
+    }, 800);
+  }
+  // Trigger requirements onboarding when user reaches functional_requirements section
+  if (
+    panel?.section_type === 'functional_requirements' &&
+    !requirementsOnboardingTriggered
+  ) {
+    requirementsOnboardingTriggered = true;
+    setTimeout(() => {
+      requirementsOnboardingRef.value?.start();
+    }, 800);
+  }
+});
 
 // Section engagement tracking
 const proposalUuidRef = computed(() => proposal.value?.uuid || route.params.uuid);
@@ -526,6 +579,8 @@ function getSectionProps(section) {
   const content = section.content_json || {};
 
   if (section.section_type === 'proposal_closing') {
+    const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
+    const investContent = investmentSection?.content_json || {};
     return {
       proposal: proposal.value,
       validityMessage: section._validityMessage || '',
@@ -533,6 +588,7 @@ function getSectionProps(section) {
       expiresAt: section._expiresAt || '',
       language: proposal.value?.language || 'es',
       whatsappLink: extractedWhatsappLink.value,
+      paymentOptions: investContent.paymentOptions || [],
     };
   }
 

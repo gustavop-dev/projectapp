@@ -2,131 +2,165 @@
   <section ref="sectionRef" class="proposal-closing min-h-screen w-full bg-white flex flex-col items-center justify-center py-8 px-6 md:px-12 lg:px-24">
     <div class="max-w-4xl w-full mx-auto text-center flex flex-col items-center gap-6">
       <!-- Validity notice -->
-      <div v-if="displayedValidity" ref="validityRef" data-animate="fade-up" class="validity-notice w-full bg-yellow-50 border-2 border-yellow-200 p-4 md:p-6 rounded-xl text-left">
+      <div v-if="displayedValidity" ref="validityRef" data-animate="fade-up" class="validity-notice w-full bg-esmerald/5 border border-esmerald/15 p-4 md:p-6 rounded-xl text-left">
         <div class="flex items-start">
-          <svg class="w-5 h-5 text-yellow-600 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+          <svg class="w-5 h-5 text-esmerald/60 mr-3 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
           </svg>
           <div>
-            <h4 class="font-bold text-gray-900 mb-1 text-sm md:text-base">{{ t.validityTitle }}</h4>
-            <p class="text-xs md:text-sm text-gray-600">{{ displayedValidity }}</p>
+            <h4 class="font-bold text-esmerald mb-1 text-sm md:text-base">{{ t.validityTitle }}</h4>
+            <p class="text-xs md:text-sm text-esmerald/70">{{ displayedValidity }}</p>
           </div>
         </div>
       </div>
 
       <!-- Thank you message -->
       <div v-if="thankYouMessage" data-animate="fade-up">
-        <h3 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{{ t.thankYouTitle }}</h3>
-        <p class="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">{{ thankYouMessage }}</p>
+        <h3 class="text-2xl md:text-3xl font-bold text-esmerald mb-2">{{ t.thankYouTitle }}</h3>
+        <p class="text-base md:text-lg text-esmerald/70 font-light max-w-2xl mx-auto">{{ thankYouMessage }}</p>
       </div>
 
       <!-- Discount badge near accept button -->
-      <div v-if="canRespond && !submitted && hasActiveDiscount" data-animate="fade-up" class="w-full max-w-md bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl p-4 text-center">
-        <p class="text-xs font-semibold text-amber-800 uppercase tracking-wider mb-1">🔥 {{ t.specialPrice }}</p>
+      <div v-if="canRespond && !submitted && hasActiveDiscount" data-animate="fade-up" class="w-full max-w-md bg-lemon/20 border border-lemon/50 rounded-xl p-4 text-center">
+        <p class="text-xs font-semibold text-esmerald uppercase tracking-wider mb-1">🔥 {{ t.specialPrice }}</p>
         <div class="flex items-baseline justify-center gap-2">
-          <span class="text-2xl font-bold text-amber-700">{{ formatCurrency(proposal?.discounted_investment) }}</span>
-          <span class="text-sm text-gray-400 line-through">{{ formatCurrency(proposal?.total_investment) }}</span>
-          <span class="text-xs text-amber-600">{{ proposal?.currency }}</span>
+          <span class="text-2xl font-bold text-esmerald">{{ formatCurrency(proposal?.discounted_investment) }}</span>
+          <span class="text-sm text-esmerald/40 line-through">{{ formatCurrency(proposal?.total_investment) }}</span>
+          <span class="text-xs text-esmerald/60">{{ proposal?.currency }}</span>
         </div>
       </div>
 
       <!-- F12: Payment plan milestones -->
-      <div v-if="canRespond && !submitted && paymentMilestones.length" data-animate="fade-up" class="w-full max-w-md bg-gray-50 border border-gray-200 rounded-xl p-4 text-left">
-        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{{ t.paymentPlanTitle }}</p>
+      <div v-if="canRespond && !submitted && paymentMilestones.length" data-animate="fade-up" class="w-full max-w-md bg-esmerald/5 border border-esmerald/15 rounded-xl p-4 text-left">
+        <p class="text-xs font-semibold text-green-light uppercase tracking-wider mb-2">{{ t.paymentPlanTitle }}</p>
         <div class="space-y-2">
           <div v-for="(m, i) in paymentMilestones" :key="i" class="flex items-center gap-3">
-            <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center flex-shrink-0">{{ i + 1 }}</span>
+            <span class="w-6 h-6 rounded-full bg-esmerald-light/60 text-esmerald text-xs font-bold flex items-center justify-center flex-shrink-0">{{ i + 1 }}</span>
             <div class="flex-1 min-w-0">
-              <span class="text-sm font-medium text-gray-700">{{ m.label }}</span>
-              <span class="text-sm text-emerald-600 font-bold ml-2">{{ m.amount }}</span>
+              <span class="text-sm font-medium text-esmerald/80">{{ m.label }}</span>
+              <span class="text-sm text-esmerald font-bold ml-2">{{ m.amount }}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Scope summary — visible before accept -->
-      <div v-if="canRespond && !submitted && scopeSummary.length" data-animate="fade-up" class="w-full max-w-md bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-left">
-        <p class="text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-2">{{ t.scopeSummaryTitle }}</p>
-        <div class="space-y-1.5">
-          <div v-for="item in scopeSummary" :key="item.label" class="flex items-baseline justify-between gap-2">
-            <span class="text-xs text-emerald-600">{{ item.label }}</span>
-            <span class="text-sm font-medium text-emerald-900 text-right">{{ item.value }}</span>
+      <!-- Payment options breakdown — visible before accept -->
+      <div v-if="canRespond && !submitted && closingPaymentOptions.length" data-animate="fade-up" class="w-full max-w-md bg-esmerald rounded-2xl p-5 text-left">
+        <p class="text-xs font-semibold text-green-light uppercase tracking-wider mb-1">{{ t.paymentPlanTitle }}</p>
+        <p class="text-lg font-bold text-lemon mb-3">{{ closingPaymentOptions.length }} {{ t.flexiblePayments }}</p>
+        <div class="space-y-2">
+          <div v-for="(opt, i) in closingPaymentOptions" :key="i" class="flex items-center justify-between gap-3 bg-white/10 rounded-xl px-4 py-3">
+            <span class="text-sm text-white/80">{{ opt.label }}</span>
+            <span class="text-sm font-bold text-lemon whitespace-nowrap">{{ opt.description }}</span>
           </div>
+        </div>
+        <div v-if="proposal?.total_investment" class="text-center mt-4 pt-3 border-t border-white/15">
+          <span class="text-xs text-green-light/70">{{ t.scopeInvestment }}:</span>
+          <span class="text-lg font-bold text-lemon ml-2">{{ formatCurrency(proposal.total_investment) }}</span>
+          <span class="text-xs text-green-light/70 ml-1">{{ proposal.currency }}</span>
         </div>
       </div>
 
-      <!-- Accept / Adjust / Decline — simplified to 3 clear options -->
-      <div v-if="canRespond && !submitted" data-animate="fade-up" class="flex flex-col items-center gap-3 pt-2">
+      <!-- Action buttons — professional B2B hierarchy -->
+      <div v-if="canRespond && !submitted" data-animate="fade-up" class="w-full max-w-md pt-2">
+        <!-- Primary CTA -->
         <button
-          class="px-10 sm:px-16 py-5 bg-emerald-600 text-white rounded-2xl font-bold text-lg sm:text-xl
-                 hover:bg-emerald-700 transition-all shadow-[0_0_30px_rgba(16,185,129,0.3)]
-                 hover:shadow-[0_0_40px_rgba(16,185,129,0.45)] flex items-center gap-2.5 accept-pulse"
+          class="w-full py-4 bg-esmerald text-lemon rounded-2xl font-bold text-lg
+                 hover:bg-esmerald/90 transition-all shadow-[0_0_24px_rgba(16,185,129,0.18)]
+                 hover:shadow-[0_0_32px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2.5 accept-pulse"
           :disabled="isSubmitting"
           @click="showAcceptConfirm = true"
         >
-          <span>✅</span> {{ t.acceptBtn }}
+          ✅ {{ t.acceptBtn }}
         </button>
-        <button
-          class="px-8 sm:px-12 py-3 bg-amber-50 border-2 border-amber-300 text-amber-800 rounded-xl font-medium text-sm
-                 hover:bg-amber-100 transition-colors flex items-center gap-2"
-          :disabled="isSubmitting"
-          @click="showNegotiateModal = true"
-        >
-          🤝 {{ t.negotiateBtn }}
-        </button>
-        <button
-          class="px-6 py-2 text-sm text-gray-500 hover:text-emerald-600 transition-colors flex items-center gap-1.5"
-          :disabled="isSubmitting"
-          @click="showCommentModal = true"
-        >
-          💬 {{ t.commentBtn }}
-        </button>
-        <button
-          class="text-xs text-gray-400 hover:text-gray-600 transition-colors underline underline-offset-2"
-          :disabled="isSubmitting"
-          @click="showRejectModal = true"
-        >
-          {{ t.rejectBtn }}
-        </button>
-        <a
-          v-if="whatsappTalkUrl"
-          :href="whatsappTalkUrl"
-          target="_blank"
-          class="text-xs text-green-600 hover:text-green-700 transition-colors mt-1 flex items-center gap-1"
-        >
-          📞 {{ t.talkBtn }}
-        </a>
+
+        <!-- Secondary actions — side by side -->
+        <div class="grid grid-cols-2 gap-3 mt-3">
+          <button
+            class="py-3 bg-esmerald/5 border border-esmerald/15 text-esmerald rounded-xl font-medium text-sm
+                   hover:bg-esmerald/10 transition-colors flex items-center justify-center gap-1.5"
+            :disabled="isSubmitting"
+            @click="showNegotiateModal = true"
+          >
+            🤝 {{ t.negotiateBtn }}
+          </button>
+          <button
+            class="py-3 bg-esmerald/5 border border-esmerald/15 text-esmerald rounded-xl font-medium text-sm
+                   hover:bg-esmerald/10 transition-colors flex items-center justify-center gap-1.5"
+            :disabled="isSubmitting"
+            @click="showCommentModal = true"
+          >
+            💬 {{ t.commentBtn }}
+          </button>
+        </div>
+
+        <!-- Tertiary links — inline, subtle -->
+        <div class="flex items-center justify-center gap-4 mt-4">
+          <button
+            class="text-xs text-esmerald/40 hover:text-esmerald/60 transition-colors"
+            :disabled="isSubmitting"
+            @click="showRejectModal = true"
+          >
+            {{ t.rejectBtn }}
+          </button>
+          <span v-if="whatsappTalkUrl" class="text-esmerald/20">·</span>
+          <a
+            v-if="whatsappTalkUrl"
+            :href="whatsappTalkUrl"
+            target="_blank"
+            class="text-xs text-esmerald/40 hover:text-esmerald/60 transition-colors flex items-center gap-1"
+          >
+            📞 {{ t.talkBtn }}
+          </a>
+        </div>
       </div>
 
       <!-- Comment submitted confirmation -->
-      <div v-if="commentSubmitted && canRespond && !submitted" data-animate="fade-up" class="w-full max-w-md bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
-        <p class="text-sm font-medium text-emerald-700">✅ {{ t.commentSent }}</p>
+      <div v-if="commentSubmitted && canRespond && !submitted" data-animate="fade-up" class="w-full max-w-md bg-esmerald/5 border border-esmerald/15 rounded-xl p-4 text-center">
+        <p class="text-sm font-medium text-esmerald">✅ {{ t.commentSent }}</p>
       </div>
 
       <!-- F13: Post-acceptance welcome kit -->
       <div v-if="submitted || proposal?.status === 'accepted'" data-animate="fade-up" class="py-4 w-full max-w-lg">
         <div class="text-5xl mb-3 celebration-bounce">🎉</div>
-        <p class="text-xl font-bold text-emerald-600">{{ t.accepted }}</p>
-        <p class="text-gray-500 mt-2 mb-6">{{ t.acceptedSub }}</p>
+        <p class="text-xl font-bold text-esmerald">{{ t.accepted }}</p>
+        <p class="text-esmerald/70 mt-2 mb-6">{{ t.acceptedSub }}</p>
+
+        <!-- Payment options breakdown -->
+        <div v-if="closingPaymentOptions.length" class="w-full bg-esmerald p-5 rounded-2xl text-left mb-6">
+          <p class="text-xs font-semibold text-green-light uppercase tracking-wider mb-1">{{ t.paymentPlanTitle }}</p>
+          <p class="text-lg font-bold text-lemon mb-3">{{ closingPaymentOptions.length }} {{ t.flexiblePayments }}</p>
+          <div class="space-y-2">
+            <div v-for="(opt, i) in closingPaymentOptions" :key="i" class="flex items-center justify-between gap-3 bg-white/10 rounded-xl px-4 py-3">
+              <span class="text-sm text-white/80">{{ opt.label }}</span>
+              <span class="text-sm font-bold text-lemon whitespace-nowrap">{{ opt.description }}</span>
+            </div>
+          </div>
+          <div v-if="proposal?.total_investment" class="text-center mt-4 pt-3 border-t border-white/15">
+            <span class="text-xs text-green-light/70">{{ t.scopeInvestment }}:</span>
+            <span class="text-lg font-bold text-lemon ml-2">{{ formatCurrency(proposal.total_investment) }}</span>
+            <span class="text-xs text-green-light/70 ml-1">{{ proposal.currency }}</span>
+          </div>
+        </div>
 
         <!-- PDF download -->
         <a
           v-if="proposal?.uuid"
           :href="`/api/proposals/${proposal.uuid}/pdf/`"
           target="_blank"
-          class="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors mb-6"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-esmerald text-lemon rounded-xl font-bold text-sm hover:bg-esmerald/90 transition-colors shadow-sm mb-6"
         >
           📄 {{ t.downloadPdf }}
         </a>
 
         <!-- Onboarding timeline -->
-        <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 text-left space-y-4">
-          <h4 class="font-bold text-gray-900 text-sm">{{ t.onboardingTitle }}</h4>
+        <div class="bg-esmerald/5 border border-esmerald/15 rounded-xl p-5 text-left space-y-4">
+          <h4 class="font-bold text-esmerald text-sm">{{ t.onboardingTitle }}</h4>
           <div v-for="(step, i) in onboardingSteps" :key="i" class="flex items-start gap-3">
-            <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{{ i + 1 }}</div>
+            <div class="w-8 h-8 rounded-full bg-lemon text-esmerald text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{{ i + 1 }}</div>
             <div>
-              <p class="text-sm font-medium text-gray-800">{{ step.title }}</p>
-              <p class="text-xs text-gray-500">{{ step.desc }}</p>
+              <p class="text-sm font-medium text-esmerald">{{ step.title }}</p>
+              <p class="text-xs text-esmerald/70">{{ step.desc }}</p>
             </div>
           </div>
         </div>
@@ -136,7 +170,7 @@
           v-if="whatsappTalkUrl"
           :href="whatsappTalkUrl"
           target="_blank"
-          class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm font-medium hover:bg-green-100 transition-colors mt-4"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-esmerald/5 border border-esmerald/15 text-esmerald rounded-xl text-sm font-medium hover:bg-esmerald/10 transition-colors mt-4"
         >
           💬 {{ t.contactPm }}
         </a>
@@ -206,25 +240,25 @@
     <div v-if="showAcceptConfirm" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm" @click.self="showAcceptConfirm = false">
       <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-5 sm:p-8 text-center">
         <div class="text-5xl mb-4">🎉</div>
-        <h3 class="text-xl font-bold text-gray-900 mb-2">{{ confirmTitleText }}</h3>
-        <p class="text-gray-600 text-sm mb-4">{{ t.confirmText }}</p>
-        <p v-if="scopeSummary.length" class="text-xs text-emerald-600 mb-4">
-          {{ scopeSummary.map(i => `${i.label}: ${i.value}`).join(' · ') }}
+        <h3 class="text-xl font-bold text-esmerald mb-2">{{ confirmTitleText }}</h3>
+        <p class="text-esmerald/70 text-sm mb-4">{{ t.confirmText }}</p>
+        <p v-if="scopeDisplay.length" class="text-xs text-green-light mb-4">
+          {{ scopeDisplay.map(i => `${i.label}: ${i.value}`).join(' · ') }}
         </p>
         <div class="text-left mb-4">
-          <label class="block text-xs text-gray-500 mb-1">{{ t.conditionLabel }}</label>
+          <label class="block text-xs text-esmerald/50 mb-1">{{ t.conditionLabel }}</label>
           <textarea
             v-model="conditionNote"
             rows="2"
             :placeholder="t.conditionPlaceholder"
-            class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
+            class="w-full px-3 py-2 border border-esmerald/15 rounded-xl text-sm focus:ring-2 focus:ring-esmerald/30 outline-none resize-none"
           />
         </div>
         <div class="flex gap-3 justify-center">
-          <button class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors" :disabled="isSubmitting" @click="confirmAccept">
+          <button class="px-6 py-2.5 bg-esmerald text-lemon rounded-xl font-medium text-sm hover:bg-esmerald/90 transition-colors" :disabled="isSubmitting" @click="confirmAccept">
             {{ isSubmitting ? t.sending : t.confirmYes }}
           </button>
-          <button class="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showAcceptConfirm = false">{{ t.cancel }}</button>
+          <button class="px-6 py-2.5 bg-esmerald/5 text-esmerald rounded-xl text-sm font-medium hover:bg-esmerald/10 transition-colors" @click="showAcceptConfirm = false">{{ t.cancel }}</button>
         </div>
       </div>
     </div>
@@ -348,6 +382,7 @@ const props = defineProps({
   expiresAt: { type: String, default: '' },
   language: { type: String, default: 'es' },
   whatsappLink: { type: String, default: '' },
+  paymentOptions: { type: Array, default: () => [] },
 });
 
 const whatsappTalkUrl = computed(() => {
@@ -401,7 +436,8 @@ const i18nStrings = {
     commentPlaceholder: 'Algún comentario adicional...',
     confirmReject: 'Confirmar rechazo',
     specialPrice: 'Precio especial disponible',
-    paymentPlanTitle: 'Plan de pagos',
+    paymentPlanTitle: 'Formas de pago',
+    flexiblePayments: 'pagos flexibles',
     downloadPdf: 'Descargar resumen PDF',
     onboardingTitle: '¿Qué sigue?',
     contactPm: 'Contactar a tu Project Manager',
@@ -479,7 +515,8 @@ const i18nStrings = {
     commentPlaceholder: 'Any additional comments...',
     confirmReject: 'Confirm rejection',
     specialPrice: 'Special price available',
-    paymentPlanTitle: 'Payment plan',
+    paymentPlanTitle: 'Payment options',
+    flexiblePayments: 'flexible payments',
     downloadPdf: 'Download PDF summary',
     onboardingTitle: 'What\'s next?',
     contactPm: 'Contact your Project Manager',
@@ -599,7 +636,39 @@ const scopeSummary = computed(() => {
   const items = [];
   if (p.title) items.push({ label: t.value.scopeProject, value: p.title });
   const inv = p.total_investment || p.investment;
-  if (inv) items.push({ label: t.value.scopeInvestment, value: typeof inv === 'number' ? formatCurrency(inv) + ' ' + (p.currency || '') : inv + ' ' + (p.currency || '') });
+  if (inv) {
+    const numVal = parseFloat(String(inv).replace(/[^\d.]/g, ''));
+    const formatted = !isNaN(numVal) && numVal > 0 ? formatCurrency(numVal) : inv;
+    items.push({ label: t.value.scopeInvestment, value: formatted + ' ' + (p.currency || '') });
+  }
+  const mods = p.selected_modules || p.modules;
+  if (Array.isArray(mods) && mods.length) items.push({ label: t.value.scopeModules, value: String(mods.length) });
+  const start = p.estimated_start || p.start_date;
+  if (start) items.push({ label: t.value.scopeStart, value: start });
+  return items;
+});
+
+// scopeDisplay: like scopeSummary but replaces raw price with payment plan reference
+const scopeDisplay = computed(() => {
+  const p = props.proposal;
+  if (!p) return [];
+  const items = [];
+  if (p.title) items.push({ label: t.value.scopeProject, value: p.title });
+  // If payment milestones exist, show payment count instead of raw total
+  const milestones = paymentMilestones.value;
+  if (milestones.length) {
+    const countLabel = props.language === 'en'
+      ? `${milestones.length} payments`
+      : `${milestones.length} pagos`;
+    items.push({ label: t.value.scopeInvestment, value: countLabel });
+  } else {
+    const inv = p.total_investment || p.investment;
+    if (inv) {
+      const numVal = parseFloat(String(inv).replace(/[^\d.]/g, ''));
+      const formatted = !isNaN(numVal) && numVal > 0 ? formatCurrency(numVal) : inv;
+      items.push({ label: t.value.scopeInvestment, value: formatted + ' ' + (p.currency || '') });
+    }
+  }
   const mods = p.selected_modules || p.modules;
   if (Array.isArray(mods) && mods.length) items.push({ label: t.value.scopeModules, value: String(mods.length) });
   const start = p.estimated_start || p.start_date;
@@ -613,6 +682,11 @@ const paymentMilestones = computed(() => {
   if (Array.isArray(opts)) return opts.map(o => ({ label: o.label || o.name || '', amount: o.amount || '' }));
   if (opts.milestones && Array.isArray(opts.milestones)) return opts.milestones;
   return [];
+});
+
+const closingPaymentOptions = computed(() => {
+  if (!props.paymentOptions || !Array.isArray(props.paymentOptions)) return [];
+  return props.paymentOptions.filter(o => o.label && o.description);
 });
 
 const onboardingSteps = computed(() => {

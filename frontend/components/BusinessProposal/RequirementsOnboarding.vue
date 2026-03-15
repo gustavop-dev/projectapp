@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
-    <!-- Backdrop overlay (blur + dark) -->
-    <Transition name="fade">
+    <!-- Backdrop overlay (blur + dim) -->
+    <Transition name="req-fade">
       <div
         v-if="visible"
         class="onb-backdrop fixed inset-0 z-[9998] bg-white/60 backdrop-blur-[2px]"
@@ -17,7 +17,7 @@
     />
 
     <!-- Spotlight ring around clone -->
-    <Transition name="fade">
+    <Transition name="req-fade">
       <div
         v-if="visible && spotlightRect"
         class="fixed z-[9999] pointer-events-none rounded-2xl
@@ -28,7 +28,7 @@
     </Transition>
 
     <!-- Desktop: Tooltip card -->
-    <Transition v-if="!isMobile" name="tooltip-pop" mode="out-in">
+    <Transition v-if="!isMobile" name="req-tooltip-pop" mode="out-in">
       <div
         v-if="visible"
         :key="currentStep"
@@ -95,7 +95,7 @@
     </Transition>
 
     <!-- Mobile: Fullscreen swipe carousel -->
-    <Transition v-if="isMobile" name="fade">
+    <Transition v-if="isMobile" name="req-fade">
       <div
         v-if="visible"
         class="fixed inset-0 z-[10000] flex items-end justify-center bg-black/50 p-4"
@@ -162,7 +162,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 
-const STORAGE_KEY = 'proposal_onboarding_seen';
+const STORAGE_KEY_PREFIX = 'requirements_onboarding_seen';
 const TOOLTIP_W = 296;
 const TOOLTIP_H_EST = 190;
 const GAP = 14;
@@ -190,6 +190,7 @@ function onTouchEnd(e) {
 
 const props = defineProps({
   language: { type: String, default: 'es' },
+  proposalUuid: { type: String, default: '' },
 });
 
 const emit = defineEmits(['complete']);
@@ -206,22 +207,10 @@ const arrowComputedStyle = ref({});
 
 const stepsI18n = {
   es: [
-    { target: '.dark-mode-toggle', title: 'Modo claro y oscuro', description: 'Cambia entre modo claro y oscuro para leer la propuesta como prefieras. Tu preferencia se guarda automáticamente.', prefer: 'right' },
-    { target: '.index-toggle', title: 'Índice de secciones', description: 'Abre el índice para navegar entre las secciones de la propuesta. Puedes saltar directamente a cualquier parte.', prefer: 'right' },
-    { target: '.nav-side--right', title: 'Navegar entre secciones', description: 'Usa las flechas laterales para avanzar o retroceder. También puedes usar las flechas del teclado o deslizar en móvil.', prefer: 'left' },
-    { target: '.section-counter', title: 'Progreso', description: 'Aquí puedes ver en qué sección estás y cuántas hay en total.', prefer: 'bottom' },
-    { target: '.expiration-badge', title: 'Vigencia de la propuesta', description: 'Esta propuesta tiene fecha de expiración. Aquí verás el tiempo restante para revisarla y tomar una decisión.', prefer: 'bottom', optional: true },
-    { target: '.share-btn', title: 'Compartir propuesta', description: 'Comparte el enlace de esta propuesta con tu equipo o socios para que puedan revisarla juntos.', prefer: 'top' },
-    { target: '.pdf-download', title: 'Descargar como PDF', description: 'Puedes descargar toda la propuesta en formato PDF para revisarla offline o compartirla con tu equipo.', prefer: 'top' },
+    { target: '.overview-card', title: 'Explora cada módulo', description: 'Haz clic en cualquiera de las tarjetas para ver el detalle completo de los requerimientos funcionales. Cada módulo describe las funcionalidades específicas de tu proyecto.', prefer: 'bottom' },
   ],
   en: [
-    { target: '.dark-mode-toggle', title: 'Light & Dark Mode', description: 'Switch between light and dark mode to read the proposal however you prefer. Your preference is saved automatically.', prefer: 'right' },
-    { target: '.index-toggle', title: 'Section Index', description: 'Open the index to navigate between proposal sections. You can jump directly to any part.', prefer: 'right' },
-    { target: '.nav-side--right', title: 'Navigate Sections', description: 'Use the side arrows to go forward or back. You can also use keyboard arrows or swipe on mobile.', prefer: 'left' },
-    { target: '.section-counter', title: 'Progress', description: 'See which section you are on and how many there are in total.', prefer: 'bottom' },
-    { target: '.expiration-badge', title: 'Proposal Validity', description: 'This proposal has an expiration date. Here you can see the remaining time to review and decide.', prefer: 'bottom', optional: true },
-    { target: '.share-btn', title: 'Share Proposal', description: 'Share the proposal link with your team or partners so they can review it together.', prefer: 'top' },
-    { target: '.pdf-download', title: 'Download as PDF', description: 'Download the entire proposal as a PDF to review offline or share with your team.', prefer: 'top' },
+    { target: '.overview-card', title: 'Explore each module', description: 'Click on any card to see the complete detail of the functional requirements. Each module describes the specific features of your project.', prefer: 'bottom' },
   ],
 };
 const steps = computed(() => stepsI18n[props.language] || stepsI18n.es);
@@ -259,9 +248,6 @@ function cloneTarget(rect) {
   if (!cloneContainerRef.value || !rect?.el) return;
   cloneContainerRef.value.innerHTML = '';
   const clone = rect.el.cloneNode(true);
-  clone.removeAttribute('class');
-  // Copy computed styles but strip positioning/transform
-  // getBoundingClientRect already accounts for transforms
   const cs = window.getComputedStyle(rect.el);
   const skip = new Set([
     'position', 'top', 'right', 'bottom', 'left',
@@ -291,14 +277,12 @@ function computePosition(rect, prefer) {
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;
 
-  // Try preferred side first, then fallback order
   const sides = [prefer, 'bottom', 'right', 'left', 'top'].filter((v, i, a) => a.indexOf(v) === i);
 
   for (const side of sides) {
     const pos = calcSidePosition(side, rect, vw, vh, cx, cy);
     if (pos) return pos;
   }
-  // Absolute fallback: center of screen
   return {
     style: { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' },
     arrow: { display: 'none' },
@@ -356,6 +340,15 @@ function clampHorizontal(left, vw) {
   return Math.max(VIEWPORT_PAD, Math.min(vw - TOOLTIP_W - VIEWPORT_PAD, left));
 }
 
+async function scrollAndPosition() {
+  // Scroll to top so the first card is naturally visible in the section
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  await new Promise(r => setTimeout(r, 600));
+  positionAll();
+  // Re-position after a short delay to correct for any late layout shifts
+  setTimeout(positionAll, 350);
+}
+
 function positionAll() {
   const step = currentStepData.value;
   const rect = getRect(step.target);
@@ -379,13 +372,13 @@ function positionAll() {
 function next() {
   if (isLastStep.value) { dismiss(); return; }
   currentStep.value++;
-  nextTick(positionAll);
+  nextTick(scrollAndPosition);
 }
 
 function prev() {
   if (currentStep.value > 0) {
     currentStep.value--;
-    nextTick(positionAll);
+    nextTick(scrollAndPosition);
   }
 }
 
@@ -395,21 +388,27 @@ function dismiss() {
   cloneStyle.value = { display: 'none' };
   tooltipStyle.value = { display: 'none' };
   visible.value = false;
-  try { localStorage.setItem(STORAGE_KEY, 'true'); } catch { /* noop */ }
+  const storageKey = props.proposalUuid
+    ? `${STORAGE_KEY_PREFIX}_${props.proposalUuid}`
+    : STORAGE_KEY_PREFIX;
+  try { localStorage.setItem(storageKey, 'true'); } catch { /* noop */ }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   emit('complete');
 }
 
 function start() {
-  try { if (localStorage.getItem(STORAGE_KEY)) return; } catch { /* noop */ }
+  const storageKey = props.proposalUuid
+    ? `${STORAGE_KEY_PREFIX}_${props.proposalUuid}`
+    : STORAGE_KEY_PREFIX;
+  try { if (localStorage.getItem(storageKey)) return; } catch { /* noop */ }
 
   setTimeout(() => {
-    // Compute active steps at runtime (some elements may not exist)
-    activeSteps.value = steps.value.filter((s) => !s.optional || document.querySelector(s.target));
+    activeSteps.value = steps.value.filter((s) => document.querySelector(s.target));
     if (!activeSteps.value.length) return;
     currentStep.value = 0;
     visible.value = true;
-    nextTick(positionAll);
-  }, 800);
+    nextTick(scrollAndPosition);
+  }, 1200);
 }
 
 function onResize() {
@@ -430,26 +429,26 @@ defineExpose({ start });
 </script>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
+.req-fade-enter-active,
+.req-fade-leave-active {
   transition: opacity 0.3s ease;
 }
-.fade-enter-from,
-.fade-leave-to {
+.req-fade-enter-from,
+.req-fade-leave-to {
   opacity: 0;
 }
 
-.tooltip-pop-enter-active {
+.req-tooltip-pop-enter-active {
   transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.tooltip-pop-leave-active {
+.req-tooltip-pop-leave-active {
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
-.tooltip-pop-enter-from {
+.req-tooltip-pop-enter-from {
   opacity: 0;
   transform: scale(0.92);
 }
-.tooltip-pop-leave-to {
+.req-tooltip-pop-leave-to {
   opacity: 0;
   transform: scale(0.96);
 }
