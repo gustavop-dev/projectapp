@@ -99,6 +99,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { smoothScrollToElement } from '~/composables/useSmoothScroll';
 
 const STORAGE_KEY_PREFIX = 'investment_onboarding_seen';
 const TOOLTIP_W = 296;
@@ -266,11 +267,10 @@ async function scrollAndPosition() {
   const step = currentStepData.value;
   const el = document.querySelector(step.target);
   if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    await new Promise(r => setTimeout(r, 800));
+    await smoothScrollToElement(el, { duration: 700, viewportOffset: 0.35 });
     positionAll();
     // Re-position after scroll settles to correct any layout shift
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 300));
     positionAll();
   } else {
     positionAll();

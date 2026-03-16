@@ -252,9 +252,7 @@
             v-else
             :is="sectionComponentMap[currentPanel.section_type]"
             v-bind="getSectionProps(currentPanel)"
-            @navigateToRequirements="handleNavigateToRequirements"
-            @updateCalculatorModules="onCalculatorModulesUpdate"
-            @switchToDetailed="handleSwitchToDetailed"
+            v-on="getSectionListeners(currentPanel)"
           />
         </div>
       </Transition>
@@ -794,6 +792,17 @@ function getSectionProps(section) {
   // For development_stages, timeline, etc.
   // Spread content_json as individual props
   return content;
+}
+
+function getSectionListeners(section) {
+  const type = section.section_type;
+  const listeners = {};
+  if (type === 'investment') {
+    listeners.navigateToRequirements = handleNavigateToRequirements;
+    listeners.updateCalculatorModules = onCalculatorModulesUpdate;
+    listeners.switchToDetailed = handleSwitchToDetailed;
+  }
+  return listeners;
 }
 
 function isPastePanel(panel) {
