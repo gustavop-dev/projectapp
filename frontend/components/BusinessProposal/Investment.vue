@@ -391,6 +391,7 @@ onMounted(() => {
           .reduce((sum, m) => sum + (m.price || 0), 0);
         if (deselectedSum > 0 || addedSum > 0) {
           customTotal.value = base - deselectedSum + addedSum;
+          try { localStorage.setItem(`proposal-${props.proposalUuid}-total`, String(customTotal.value)); } catch { /* noop */ }
         }
       }
     } catch (_e) { /* ignore */ }
@@ -419,6 +420,9 @@ onMounted(() => {
 function onSelectionUpdate({ total, weeks }) {
   customTotal.value = total;
   if (weeks !== undefined) customWeeks.value = weeks;
+  if (props.proposalUuid && total != null) {
+    try { localStorage.setItem(`proposal-${props.proposalUuid}-total`, String(total)); } catch { /* noop */ }
+  }
 }
 
 const computedPaymentOptions = computed(() => {

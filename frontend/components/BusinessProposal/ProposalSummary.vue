@@ -56,7 +56,7 @@ function parseInvestment(str) {
 }
 
 function formatCurrency(value) {
-  if (!value) return '';
+  if (value == null || value === '') return '';
   const num = Math.abs(parseFloat(value));
   if (isNaN(num)) return value;
   return '$' + num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -66,18 +66,15 @@ const customTotal = ref(null);
 const selectedModuleCount = ref(null);
 
 onMounted(() => {
-  if (props.proposalUuid && props.investmentModules?.length) {
+  if (props.proposalUuid) {
     try {
+      const storedTotal = localStorage.getItem(`proposal-${props.proposalUuid}-total`);
+      if (storedTotal != null) {
+        customTotal.value = Math.max(0, parseInt(storedTotal, 10) || 0);
+      }
       const raw = localStorage.getItem(`proposal-${props.proposalUuid}-modules`);
       if (raw) {
         const selectedIds = JSON.parse(raw);
-        const base = parseInvestment(props.rawTotalInvestment);
-        const deselectedSum = props.investmentModules
-          .filter(m => m.is_required !== true && !selectedIds.includes(m.id))
-          .reduce((sum, m) => sum + (m.price || 0), 0);
-        if (deselectedSum > 0) {
-          customTotal.value = Math.max(0, base - deselectedSum);
-        }
         selectedModuleCount.value = selectedIds.length;
       }
     } catch (_e) { /* ignore */ }
