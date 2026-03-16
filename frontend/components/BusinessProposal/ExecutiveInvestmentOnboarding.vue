@@ -320,6 +320,7 @@ function dismiss() {
     ? `${STORAGE_KEY_PREFIX}_${props.proposalUuid}`
     : STORAGE_KEY_PREFIX;
   try { localStorage.setItem(storageKey, 'true'); } catch { /* noop */ }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   emit('complete');
 }
 

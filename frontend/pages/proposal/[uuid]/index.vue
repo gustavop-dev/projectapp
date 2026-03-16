@@ -130,21 +130,28 @@
 
 
 
-      <!-- Switch-to-detailed transition overlay -->
+      <!-- View mode transition overlay (used for gateway selection + switch-to-detailed) -->
       <Teleport to="body">
         <Transition name="switch-mode-overlay">
           <div v-if="switchOverlayVisible" class="fixed inset-0 z-[10001] flex items-center justify-center bg-esmerald">
             <div class="text-center px-6">
               <div class="w-16 h-16 bg-lemon rounded-2xl flex items-center justify-center mx-auto mb-6 animate-bounce">
-                <svg class="w-8 h-8 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg v-if="switchOverlayMode === 'executive'" class="w-8 h-8 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <svg v-else class="w-8 h-8 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
               <h2 class="text-2xl sm:text-3xl font-bold text-lemon mb-3">
-                {{ pLang === 'es' ? 'Propuesta Completa' : 'Full Proposal' }}
+                {{ switchOverlayMode === 'executive'
+                  ? (pLang === 'es' ? 'Vista Ejecutiva' : 'Executive View')
+                  : (pLang === 'es' ? 'Propuesta Completa' : 'Full Proposal') }}
               </h2>
               <p class="text-sm text-lemon/70 font-light max-w-xs mx-auto">
-                {{ pLang === 'es' ? 'Ahora verás todos los detalles de tu proyecto' : 'Now you\'ll see all the details of your project' }}
+                {{ switchOverlayMode === 'executive'
+                  ? (pLang === 'es' ? 'Lo esencial de tu proyecto en un vistazo' : 'The essentials of your project at a glance')
+                  : (pLang === 'es' ? 'Ahora verás todos los detalles de tu proyecto' : 'Now you\'ll see all the details of your project') }}
               </p>
             </div>
           </div>
@@ -428,6 +435,7 @@ const executiveInvestmentOnboardingRef = ref(null);
 const requirementsOnboardingRef = ref(null);
 const readingPopupVisible = ref(false);
 const switchOverlayVisible = ref(false);
+const switchOverlayMode = ref('detailed');
 const welcomeBack = ref(null);
 
 // Current panel and neighbors
@@ -843,26 +851,33 @@ function handleNavigateToRequirements() {
 
 
 function handleViewModeSelect(mode) {
-  viewMode.value = mode;
-  currentIndex.value = 0;
-  // Persist choice for tracking
-  if (proposal.value?.uuid) {
-    try {
-      localStorage.setItem(`proposal-${proposal.value.uuid}-viewMode`, mode);
-    } catch (_e) { /* ignore */ }
-  }
-  // Show welcome-back toast if returning client, otherwise start onboarding
-  if (welcomeBack.value) {
-    // welcomeBack was pre-loaded on mount; now that viewMode is set, it will display
-    return;
-  }
-  nextTick(() => {
-    onboardingRef.value?.start();
-  });
+  // Show branded transition overlay before switching view mode
+  switchOverlayMode.value = mode;
+  switchOverlayVisible.value = true;
+  setTimeout(() => {
+    viewMode.value = mode;
+    currentIndex.value = 0;
+    // Persist choice for tracking
+    if (proposal.value?.uuid) {
+      try {
+        localStorage.setItem(`proposal-${proposal.value.uuid}-viewMode`, mode);
+      } catch (_e) { /* ignore */ }
+    }
+    // Hide overlay after content has rendered
+    setTimeout(() => {
+      switchOverlayVisible.value = false;
+      // Show welcome-back toast if returning client, otherwise start onboarding
+      if (welcomeBack.value) return;
+      nextTick(() => {
+        onboardingRef.value?.start();
+      });
+    }, 1200);
+  }, 1000);
 }
 
 function handleSwitchToDetailed() {
   // Show transition overlay so user understands they're switching to the full proposal
+  switchOverlayMode.value = 'detailed';
   switchOverlayVisible.value = true;
   setTimeout(() => {
     viewMode.value = 'detailed';
