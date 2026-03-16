@@ -1,5 +1,15 @@
 <template>
   <div>
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      @confirm="handleConfirmed"
+      @cancel="handleCancelled"
+    />
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
       <div>
         <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Valores por Defecto</h1>
@@ -70,6 +80,18 @@
                 class="w-32 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
               <span class="text-sm text-gray-500">%</span>
             </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dcto. semestral hosting (%)</label>
+            <input v-model.number="generalForm.hosting_discount_semiannual" type="number" min="0" max="100"
+              class="w-32 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Dcto. trimestral hosting (%)</label>
+            <input v-model.number="generalForm.hosting_discount_quarterly" type="number" min="0" max="100"
+              class="w-32 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
           </div>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -569,11 +591,13 @@ import { computed, onMounted, ref } from 'vue';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
 import SectionPreviewModal from '~/components/BusinessProposal/admin/SectionPreviewModal.vue';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
+import { useConfirmModal } from '~/composables/useConfirmModal';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const proposalStore = useProposalStore();
+const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
 const tabs = [
   { id: 'general', label: 'Vista General' },
@@ -613,6 +637,8 @@ const generalForm = ref({
   currency: 'COP',
   total_investment: 0,
   hosting_percent: 30,
+  hosting_discount_semiannual: 20,
+  hosting_discount_quarterly: 10,
   reminder_days: 3,
   urgency_reminder_days: 7,
   discount_percent: 0,
@@ -702,7 +728,17 @@ async function loadDefaults(lang) {
 async function switchLanguage(lang) {
   if (lang === selectedLang.value) return;
   if (savedSections.value.size > 0) {
-    if (!confirm('Tienes cambios sin guardar. ¿Deseas cambiar de idioma y perder los cambios?')) return;
+    requestConfirm({
+      title: 'Cambios sin guardar',
+      message: 'Tienes cambios sin guardar. ¿Deseas cambiar de idioma y perder los cambios?',
+      variant: 'warning',
+      confirmText: 'Cambiar idioma',
+      onConfirm: async () => {
+        selectedLang.value = lang;
+        await loadDefaults(lang);
+      },
+    });
+    return;
   }
   selectedLang.value = lang;
   await loadDefaults(lang);

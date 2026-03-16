@@ -100,4 +100,7 @@ const props = defineProps({
   color: #f0ff3d;
   text-decoration-color: rgba(240, 255, 61, 0.8);
 }
+:deep(b), :deep(strong) {
+  font-weight: 700;
+}
 </style>

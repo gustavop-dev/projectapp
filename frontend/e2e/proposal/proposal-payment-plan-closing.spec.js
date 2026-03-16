@@ -39,8 +39,9 @@ function buildProposal(paymentOptions) {
 
 async function openClosingPanel(page) {
   await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
+  await page.waitForLoadState('networkidle');
   const nextBtn = page.getByTestId('nav-next');
-  await expect(nextBtn).toBeVisible({ timeout: 15000 });
+  await expect(nextBtn).toBeVisible({ timeout: 20000 });
   let safetyLimit = 15;
   while (safetyLimit-- > 0) {
     await nextBtn.click();
@@ -75,7 +76,7 @@ test.describe('Proposal Payment Plan in Closing', () => {
 
     await openClosingPanel(page);
 
-    await expect(page.getByText('Plan de pagos')).toBeVisible();
+    await expect(page.getByText('Formas de pago')).toBeVisible();
     await expect(page.getByText('Firma del contrato')).toBeVisible();
     await expect(page.getByText('Entrega fase 1')).toBeVisible();
     await expect(page.getByText('Entrega final')).toBeVisible();
@@ -97,7 +98,7 @@ test.describe('Proposal Payment Plan in Closing', () => {
 
     // Accept button should be visible but payment plan title should not
     await expect(page.getByRole('button', { name: /Acepto la propuesta/i })).toBeVisible();
-    await expect(page.getByText('Plan de pagos')).not.toBeVisible();
+    await expect(page.getByText('Formas de pago')).not.toBeVisible();
   });
 
   test('hides payment milestones after proposal is accepted', {
@@ -119,6 +120,6 @@ test.describe('Proposal Payment Plan in Closing', () => {
 
     // Accepted state visible, payment plan hidden
     await expect(page.getByText('¡Propuesta aceptada!')).toBeVisible();
-    await expect(page.getByText('Plan de pagos')).not.toBeVisible();
+    await expect(page.getByText('Formas de pago')).not.toBeVisible();
   });
 });

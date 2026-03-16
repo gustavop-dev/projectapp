@@ -99,6 +99,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { smoothScrollTo, smoothScrollToElement } from '~/composables/useSmoothScroll';
 
 const STORAGE_KEY_PREFIX = 'executive_investment_onboarding_seen';
 const TOOLTIP_W = 296;
@@ -265,12 +266,9 @@ async function scrollAndPosition() {
   const el = document.querySelector(step.target);
   if (el) {
     // Place button near top of viewport so tooltip has room below
-    const rect = el.getBoundingClientRect();
-    const targetY = window.scrollY + rect.top - window.innerHeight * 0.15;
-    window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-    await new Promise(r => setTimeout(r, 800));
+    await smoothScrollToElement(el, { duration: 2200, viewportOffset: 0.15 });
     positionAll();
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 300));
     positionAll();
   } else {
     positionAll();
@@ -320,7 +318,7 @@ function dismiss() {
     ? `${STORAGE_KEY_PREFIX}_${props.proposalUuid}`
     : STORAGE_KEY_PREFIX;
   try { localStorage.setItem(storageKey, 'true'); } catch { /* noop */ }
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  smoothScrollTo(0, 2200);
   emit('complete');
 }
 

@@ -140,6 +140,21 @@ describe('useProposalStore', () => {
       expect(result.success).toBe(true);
     });
 
+    it('returns expired flag when response contains expired_meta', async () => {
+      const data = {
+        id: 1, uuid: 'exp-uuid', title: 'Expired',
+        expired_meta: { seller_name: 'Seller', whatsapp_url: 'https://wa.me/123' },
+      };
+      get_request.mockResolvedValue({ data });
+
+      const result = await store.fetchPublicProposal('exp-uuid');
+
+      expect(result.success).toBe(true);
+      expect(result.expired).toBe(true);
+      expect(result.data).toEqual(data);
+      expect(store.currentProposal).toEqual(data);
+    });
+
     it('sets expired error on 410', async () => {
       get_request.mockRejectedValue({ response: { status: 410 } });
 
@@ -170,6 +185,10 @@ describe('useProposalStore', () => {
         title: 'Expired Proposal',
         uuid: 'exp-uuid-123',
         expired_at: '2026-03-01T00:00:00Z',
+        seller_name: '',
+        whatsapp_url: '',
+        total_investment: '',
+        currency: '',
       });
     });
 
@@ -338,6 +357,79 @@ describe('useProposalStore', () => {
       });
 
       const result = await store.createProposalFromJSON({});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual({ sections: ['general key required'] });
+    });
+  });
+
+  describe('exportProposalJSON', () => {
+    it('fetches export JSON and returns data', async () => {
+      const exportData = { general: { clientName: 'Test' }, _meta: { title: 'Prop' } };
+      get_request.mockResolvedValue({ data: exportData });
+
+      const result = await store.exportProposalJSON(42);
+
+      expect(get_request).toHaveBeenCalledWith('proposals/42/export-json/');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(exportData);
+    });
+
+    it('returns failure on error', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.exportProposalJSON(42);
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('updateProposalFromJSON', () => {
+    it('calls update-from-json endpoint and sets currentProposal', async () => {
+      const responseData = { id: 1, title: 'Updated', sections: [] };
+      put_request.mockResolvedValue({ data: responseData });
+
+      const jsonData = {
+        title: 'Updated',
+        client_name: 'Client',
+        sections: { general: { clientName: 'Client' } },
+      };
+      const result = await store.updateProposalFromJSON(1, jsonData);
+
+      expect(put_request).toHaveBeenCalledWith('proposals/1/update-from-json/', jsonData);
+      expect(store.currentProposal).toEqual(responseData);
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(responseData);
+    });
+
+    it('sets isUpdating true during request and false after', async () => {
+      let capturedUpdating = false;
+      put_request.mockImplementation(() => {
+        capturedUpdating = store.isUpdating;
+        return Promise.resolve({ data: { id: 1, sections: [] } });
+      });
+
+      await store.updateProposalFromJSON(1, { title: 'X', sections: { general: { clientName: 'X' } } });
+
+      expect(capturedUpdating).toBe(true);
+      expect(store.isUpdating).toBe(false);
+    });
+
+    it('returns failure and sets error on network error', async () => {
+      put_request.mockRejectedValue(new Error('network error'));
+
+      const result = await store.updateProposalFromJSON(1, { sections: {} });
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('update_from_json_failed');
+    });
+
+    it('returns validation errors from response data on 400', async () => {
+      put_request.mockRejectedValue({
+        response: { data: { sections: ['general key required'] } },
+      });
+
+      const result = await store.updateProposalFromJSON(1, {});
 
       expect(result.success).toBe(false);
       expect(result.errors).toEqual({ sections: ['general key required'] });
@@ -1350,6 +1442,26 @@ describe('useProposalStore', () => {
 
       expect(result.success).toBe(false);
       expect(store.error).toBe('reset_email_template_failed');
+    });
+  });
+
+  describe('requestMagicLink', () => {
+    it('returns success on successful request', async () => {
+      create_request.mockResolvedValue({});
+
+      const result = await store.requestMagicLink('client@test.com');
+
+      expect(create_request).toHaveBeenCalledWith('proposals/request-link/', { email: 'client@test.com' });
+      expect(result.success).toBe(true);
+    });
+
+    it('returns failure and logs error on rejection', async () => {
+      create_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.requestMagicLink('fail@test.com');
+
+      expect(result.success).toBe(false);
+      expect(console.error).toHaveBeenCalled();
     });
   });
 

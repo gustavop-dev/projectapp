@@ -204,6 +204,18 @@
           </div>
           <p class="text-xs text-gray-400 mt-1">Se sincroniza con el % del Plan de Hosting en la sección "Tu inversión y cómo pagar".</p>
         </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Dcto. semestral (%)</label>
+            <input v-model.number="form.hosting_discount_semiannual" type="number" min="0" max="100"
+              class="w-32 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Dcto. trimestral (%)</label>
+            <input v-model.number="form.hosting_discount_quarterly" type="number" min="0" max="100"
+              class="w-32 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+          </div>
+        </div>
 
         <!-- Expires at -->
         <div>
@@ -574,7 +586,11 @@
 
         <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
           <p class="text-xs text-blue-700">
-            <strong>Flujo recomendado:</strong> 1) Descarga la plantilla JSON desde la pestaña "Importar JSON" → 2) Copia este prompt → 3) Pega ambos en tu IA favorita → 4) Pega el JSON resultante de vuelta en "Importar JSON".
+            <strong>Flujo recomendado:</strong><br/>
+            1) Descarga la plantilla JSON desde la pestaña "Importar JSON"<br/>
+            → 2) Copia este prompt<br/>
+            → 3) Pega ambos en tu IA favorita<br/>
+            → 4) Pega el JSON resultante de vuelta en "Importar JSON".
           </p>
         </div>
       </div>
@@ -695,6 +711,8 @@ const form = reactive({
   total_investment: 0,
   currency: 'COP',
   hosting_percent: 30,
+  hosting_discount_semiannual: 20,
+  hosting_discount_quarterly: 10,
   expires_at: defaultExpiryStr,
   reminder_days: 10,
   urgency_reminder_days: 15,
@@ -773,6 +791,8 @@ const jsonForm = reactive({
   total_investment: 0,
   currency: 'COP',
   hosting_percent: 30,
+  hosting_discount_semiannual: 20,
+  hosting_discount_quarterly: 10,
   expires_at: defaultExpiryStr,
   reminder_days: 10,
   urgency_reminder_days: 15,

@@ -1,5 +1,15 @@
 <template>
   <div>
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      @confirm="handleConfirmed"
+      @cancel="handleCancelled"
+    />
     <div class="flex items-center justify-between mb-8">
       <h1 class="text-2xl font-light text-gray-900">Blog Posts</h1>
       <div class="flex items-center gap-3">
@@ -180,6 +190,7 @@
 <script setup>
 import { computed, onMounted } from 'vue';
 import { useBlogStore } from '~/stores/blog';
+import { useConfirmModal } from '~/composables/useConfirmModal';
 
 const localePath = useLocalePath();
 
@@ -187,6 +198,7 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const blogStore = useBlogStore();
 const posts = computed(() => blogStore.posts);
+const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
 const visiblePages = computed(() => {
   const total = blogStore.adminPagination.totalPages;
@@ -233,14 +245,26 @@ function statusBadgeClass(post) {
   return 'bg-gray-100 text-gray-600';
 }
 
-async function handleDuplicate(post) {
-  if (!confirm(`¿Duplicar "${post.title_es}"?`)) return;
-  await blogStore.duplicatePost(post.id);
+function handleDuplicate(post) {
+  requestConfirm({
+    title: 'Duplicar post',
+    message: `¿Duplicar "${post.title_es}"?`,
+    variant: 'info',
+    confirmText: 'Duplicar',
+    onConfirm: () => blogStore.duplicatePost(post.id),
+  });
 }
 
-async function handleDelete(post) {
-  if (!confirm(`¿Eliminar "${post.title_es}"?`)) return;
-  await blogStore.deletePost(post.id);
-  blogStore.fetchAdminPosts(blogStore.adminPagination.page);
+function handleDelete(post) {
+  requestConfirm({
+    title: 'Eliminar post',
+    message: `¿Eliminar "${post.title_es}"?`,
+    variant: 'danger',
+    confirmText: 'Eliminar',
+    onConfirm: async () => {
+      await blogStore.deletePost(post.id);
+      blogStore.fetchAdminPosts(blogStore.adminPagination.page);
+    },
+  });
 }
 </script>

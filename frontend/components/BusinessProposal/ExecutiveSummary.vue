@@ -81,4 +81,7 @@ const props = defineProps({
 :deep(.linkify-link:hover) {
   text-decoration-color: rgba(5, 150, 105, 0.8);
 }
+:deep(b), :deep(strong) {
+  font-weight: 700;
+}
 </style>

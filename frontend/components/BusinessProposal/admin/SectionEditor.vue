@@ -326,14 +326,32 @@
               </draggable>
               <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.hostingPlan.specs.push({ icon: '', label: '', value: '' })">+ Agregar especificación</button>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FieldInput v-model.number="form.hostingPlan.hostingPercent" label="% de inversión total" type="number" placeholder="30" />
-              <FieldInput v-model="form.hostingPlan.monthlyLabel" label="Etiqueta mensual" placeholder="por mes" />
-              <FieldInput v-model="form.hostingPlan.annualLabel" label="Etiqueta anual" placeholder="Hosting anual — Año 1" />
             </div>
             <div v-if="form.hostingPlan.hostingPercent > 0 && proposalData?.total_investment" class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800">
               💡 <strong>Hosting anual estimado:</strong> ${{ Math.round(Number(proposalData.total_investment) * form.hostingPlan.hostingPercent / 100).toLocaleString() }} {{ proposalData?.currency || 'COP' }}
               <span class="text-xs text-blue-600 ml-2">({{ form.hostingPlan.hostingPercent }}% de ${{ Number(proposalData.total_investment).toLocaleString() }})</span>
+            </div>
+            <!-- Billing Tiers -->
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Frecuencias de pago del hosting</label>
+              <div class="space-y-3">
+                <div v-for="(tier, tIdx) in form.hostingPlan.billingTiers" :key="tIdx"
+                     class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 border border-gray-100 dark:border-gray-600">
+                  <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    <FieldInput v-model="tier.label" label="Etiqueta" :placeholder="tier.frequency === 'semiannual' ? 'Semestral' : tier.frequency === 'quarterly' ? 'Trimestral' : 'Mensual'" />
+                    <FieldInput v-model.number="tier.months" label="Meses" type="number" :placeholder="String(tier.months)" />
+                    <FieldInput v-model.number="tier.discountPercent" label="% Descuento" type="number" placeholder="0" />
+                    <FieldInput v-model="tier.badge" label="Badge" placeholder="Mejor precio" />
+                    <div class="flex items-end pb-1">
+                      <span v-if="form.hostingPlan.hostingPercent > 0 && proposalData?.total_investment" class="text-xs text-emerald-600 font-medium">
+                        ${{ Math.round(Math.round(Number(proposalData.total_investment) * form.hostingPlan.hostingPercent / 100 / 12) * (100 - (tier.discountPercent || 0)) / 100).toLocaleString() }} /mes
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
             <FieldTextarea v-model="form.hostingPlan.renewalNote" label="Nota de renovación (visible al cliente)" help="Fórmula de incremento anual, SMLMV, etc." :rows="4" :isSingle="true" />
             <FieldTextarea v-model="form.hostingPlan.coverageNote" label="Nota de cobertura (solo PDF)" help="Descripción de los 3 componentes del hosting (mantenimiento, soporte, recursos)" :rows="3" :isSingle="true" />
@@ -786,7 +804,7 @@ import {
 
 // --- Inline sub-components (render functions for prod compatibility) ---
 const FieldInput = {
-  props: { modelValue: String, label: String, placeholder: String },
+  props: { modelValue: [String, Number], label: String, placeholder: String },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
     return () => h('label', { class: 'block' }, [

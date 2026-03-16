@@ -155,7 +155,7 @@ test.describe('Admin Email Templates Config', () => {
     await page.waitForLoadState('networkidle');
 
     // Reminder template has "Personalizado" badge
-    await expect(page.locator('text=Personalizado')).toBeVisible();
+    await expect(page.getByText('Personalizado', { exact: true })).toBeVisible();
   });
 
   test('expands template and shows editable fields with variables', {

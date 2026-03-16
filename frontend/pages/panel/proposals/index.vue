@@ -1,5 +1,15 @@
 <template>
   <div>
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      @confirm="handleConfirmed"
+      @cancel="handleCancelled"
+    />
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
       <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Propuestas</h1>
       <div class="flex items-center gap-3">
@@ -514,6 +524,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import ProposalDashboard from '~/components/BusinessProposal/admin/ProposalDashboard.vue';
 import MetricsManual from '~/components/BusinessProposal/admin/MetricsManual.vue';
+import { useConfirmModal } from '~/composables/useConfirmModal';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -521,6 +532,7 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const proposalStore = useProposalStore();
 const proposals = computed(() => proposalStore.proposals);
 const activeFilter = ref('');
+const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 const actionsModalProposal = ref(null);
 const copiedId = ref(null);
 const sendConfirmId = ref(null);
@@ -561,17 +573,24 @@ function toggleSelect(id) {
   selectedIds.value = s;
 }
 
-async function handleBulkAction(action) {
+function handleBulkAction(action) {
   const ids = [...selectedIds.value];
   const labels = { delete: 'eliminar', expire: 'expirar', resend: 're-enviar' };
-  if (!confirm(`¿${labels[action] || action} ${ids.length} propuesta(s)?`)) return;
-  isBulkActing.value = true;
-  const result = await proposalStore.bulkAction(ids, action);
-  if (result.success) {
-    selectedIds.value = new Set();
-    proposalStore.fetchProposals(activeFilter.value || undefined);
-  }
-  isBulkActing.value = false;
+  requestConfirm({
+    title: `${(labels[action] || action).charAt(0).toUpperCase() + (labels[action] || action).slice(1)} propuestas`,
+    message: `¿${labels[action] || action} ${ids.length} propuesta(s)?`,
+    variant: action === 'delete' ? 'danger' : 'warning',
+    confirmText: labels[action] || action,
+    onConfirm: async () => {
+      isBulkActing.value = true;
+      const result = await proposalStore.bulkAction(ids, action);
+      if (result.success) {
+        selectedIds.value = new Set();
+        proposalStore.fetchProposals(activeFilter.value || undefined);
+      }
+      isBulkActing.value = false;
+    },
+  });
 }
 
 const ZOMBIE_TYPES = ['zombie', 'zombie_draft', 'zombie_sent_stale'];
@@ -865,16 +884,28 @@ async function confirmSend() {
   }
 }
 
-async function handleResend(id) {
-  if (!confirm('¿Re-enviar esta propuesta? Se mantendrá la misma fecha de expiración.')) return;
-  await proposalStore.resendProposal(id);
-  proposalStore.fetchProposals(activeFilter.value || undefined);
+function handleResend(id) {
+  requestConfirm({
+    title: 'Re-enviar propuesta',
+    message: '¿Re-enviar esta propuesta? Se mantendrá la misma fecha de expiración.',
+    variant: 'info',
+    confirmText: 'Re-enviar',
+    onConfirm: async () => {
+      await proposalStore.resendProposal(id);
+      proposalStore.fetchProposals(activeFilter.value || undefined);
+    },
+  });
 }
 
-async function handleToggleActive(id, currentlyActive) {
+function handleToggleActive(id, currentlyActive) {
   const label = currentlyActive ? 'desactivar' : 'activar';
-  if (!confirm(`¿${label.charAt(0).toUpperCase() + label.slice(1)} esta propuesta?`)) return;
-  await proposalStore.toggleProposalActive(id);
+  requestConfirm({
+    title: `${label.charAt(0).toUpperCase() + label.slice(1)} propuesta`,
+    message: `¿${label.charAt(0).toUpperCase() + label.slice(1)} esta propuesta?`,
+    variant: 'warning',
+    confirmText: label.charAt(0).toUpperCase() + label.slice(1),
+    onConfirm: () => proposalStore.toggleProposalActive(id),
+  });
 }
 
 async function handleDuplicate(id) {
@@ -892,9 +923,14 @@ function handleCopyLink(p) {
   });
 }
 
-async function handleDelete(id) {
-  if (!confirm('¿Eliminar esta propuesta? Esta acción no se puede deshacer.')) return;
-  await proposalStore.deleteProposal(id);
+function handleDelete(id) {
+  requestConfirm({
+    title: 'Eliminar propuesta',
+    message: '¿Eliminar esta propuesta? Esta acción no se puede deshacer.',
+    variant: 'danger',
+    confirmText: 'Eliminar',
+    onConfirm: () => proposalStore.deleteProposal(id),
+  });
 }
 
 function statusClass(status) {

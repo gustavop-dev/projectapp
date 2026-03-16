@@ -80,6 +80,7 @@ test.describe('Proposal Functional Requirements Modal', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
+      localStorage.setItem(`requirements_onboarding_seen_${_uuid}`, 'true');
     }, MOCK_UUID);
   });
 

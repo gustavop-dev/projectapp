@@ -1,6 +1,6 @@
 {
-  "version": "2.4.0",
-  "lastUpdated": "2026-03-12",
+  "version": "2.5.0",
+  "lastUpdated": "2026-03-16",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -437,14 +437,6 @@
       "description": "Dark-themed collapsible zombie alerts section for stale draft/sent proposals.",
       "expectedSpecs": 1
     },
-    "proposal-share-hint": {
-      "name": "Proposal Share Button Hint",
-      "module": "proposal",
-      "roles": ["guest"],
-      "priority": "P3",
-      "description": "Persistent tooltip below share button that auto-shows after 2s and auto-hides after 7s.",
-      "expectedSpecs": 1
-    },
     "proposal-countdown-realtime": {
       "name": "Proposal Countdown Realtime",
       "module": "proposal",
@@ -677,11 +669,11 @@
       "knownGaps": ["Backend-only, covered by backend unit tests"]
     },
     "proposal-onboarding-mobile-swipe": {
-      "name": "Proposal Onboarding Mobile Swipe",
+      "name": "Proposal Onboarding Mobile Viewport",
       "module": "proposal",
       "roles": ["guest"],
       "priority": "P3",
-      "description": "Mobile onboarding replaces tooltips with fullscreen swipe carousel overlay.",
+      "description": "Onboarding tooltip steps render correctly on mobile viewport with navigation buttons.",
       "expectedSpecs": 1
     },
     "proposal-og-meta-personalized": {
@@ -831,6 +823,22 @@
       "roles": ["guest"],
       "priority": "P2",
       "description": "Accept with an optional condition note (Acepto, pero...).",
+      "expectedSpecs": 1
+    },
+    "proposal-section-onboarding": {
+      "name": "Proposal Section Onboarding",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "Per-section spotlight onboarding tutorials (Investment, Requirements, Executive Investment) that trigger on first visit to each section.",
+      "expectedSpecs": 1
+    },
+    "proposal-executive-to-detailed": {
+      "name": "Proposal Executive to Detailed View Switch",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Client switches from executive view to full detailed proposal via 'Ver Propuesta Completa' button with branded transition overlay.",
       "expectedSpecs": 1
     }
   }
