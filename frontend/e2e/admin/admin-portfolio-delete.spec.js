@@ -58,14 +58,15 @@ test.describe('Admin Portfolio Delete', () => {
     await page.goto('/panel/portfolio');
     await page.waitForLoadState('networkidle');
 
-    page.on('dialog', async (dialog) => {
-      expect(dialog.message()).toContain('Proyecto a Borrar');
-      await dialog.accept();
-    });
-
     const table = page.locator('table');
-    const deletePromise = page.waitForResponse((resp) => resp.url().includes('portfolio/admin/1/delete') && resp.request().method() === 'DELETE');
     await table.getByText('Eliminar').click();
+
+    const modal = page.locator('.fixed.inset-0');
+    await expect(modal).toBeVisible();
+    await expect(modal.getByText('Proyecto a Borrar')).toBeVisible();
+
+    const deletePromise = page.waitForResponse((resp) => resp.url().includes('portfolio/admin/1/delete') && resp.request().method() === 'DELETE');
+    await modal.getByRole('button', { name: 'Eliminar' }).click();
     await deletePromise;
     expect(deleteApiCalled).toBe(true);
   });
