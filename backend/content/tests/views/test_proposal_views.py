@@ -599,6 +599,154 @@ class TestCreateProposalFromJSON:
 
 
 # ---------------------------------------------------------------------------
+# Export proposal JSON
+# ---------------------------------------------------------------------------
+
+class TestExportProposalJSON:
+    def _url(self, pk):
+        return reverse('export-proposal-json', kwargs={'proposal_id': pk})
+
+    def test_returns_200_for_admin(self, admin_client, proposal, proposal_section):
+        response = admin_client.get(self._url(proposal.id))
+        assert response.status_code == 200
+
+    def test_contains_meta_block(self, admin_client, proposal, proposal_section):
+        response = admin_client.get(self._url(proposal.id))
+        assert '_meta' in response.data
+        assert response.data['_meta']['title'] == proposal.title
+        assert response.data['_meta']['client_name'] == proposal.client_name
+
+    def test_contains_section_keys(self, admin_client, proposal, proposal_section):
+        response = admin_client.get(self._url(proposal.id))
+        assert 'general' in response.data
+
+    def test_returns_404_for_missing_proposal(self, admin_client):
+        response = admin_client.get(self._url(99999))
+        assert response.status_code == 404
+
+    def test_returns_401_for_unauthenticated(self, api_client, proposal):
+        response = api_client.get(self._url(proposal.id))
+        assert response.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+# Update proposal from JSON
+# ---------------------------------------------------------------------------
+
+class TestUpdateProposalFromJSON:
+    def _url(self, pk):
+        return reverse('update-proposal-from-json', kwargs={'proposal_id': pk})
+
+    def _minimal_payload(self):
+        return {
+            'title': 'Updated Title',
+            'client_name': 'Updated Client',
+            'sections': {
+                'general': {'clientName': 'Updated Client'},
+            },
+        }
+
+    def test_updates_proposal_returns_200(self, admin_client, proposal, proposal_section):
+        response = admin_client.put(
+            self._url(proposal.id), self._minimal_payload(), format='json',
+        )
+        assert response.status_code == 200
+
+    def test_updates_proposal_title(self, admin_client, proposal, proposal_section):
+        response = admin_client.put(
+            self._url(proposal.id), self._minimal_payload(), format='json',
+        )
+        assert response.data['title'] == 'Updated Title'
+
+    def test_updates_proposal_client_name(self, admin_client, proposal, proposal_section):
+        response = admin_client.put(
+            self._url(proposal.id), self._minimal_payload(), format='json',
+        )
+        assert response.data['client_name'] == 'Updated Client'
+
+    def test_updates_section_content_json(self, admin_client, proposal, proposal_section):
+        payload = self._minimal_payload()
+        payload['sections']['general'] = {
+            'clientName': 'Updated Client',
+            'proposalTitle': 'New Title',
+            'inspirationalQuote': 'Updated quote',
+        }
+        response = admin_client.put(
+            self._url(proposal.id), payload, format='json',
+        )
+        sections = {s['section_type']: s for s in response.data['sections']}
+        assert sections['greeting']['content_json']['inspirationalQuote'] == 'Updated quote'
+
+    def test_logs_changes(self, admin_client, proposal, proposal_section):
+        before_count = ProposalChangeLog.objects.filter(proposal=proposal).count()
+        admin_client.put(
+            self._url(proposal.id), self._minimal_payload(), format='json',
+        )
+        after_count = ProposalChangeLog.objects.filter(proposal=proposal).count()
+        assert after_count > before_count
+
+    def test_returns_400_for_missing_general_key(self, admin_client, proposal):
+        payload = {
+            'title': 'Bad',
+            'client_name': 'Client',
+            'sections': {'executiveSummary': {}},
+        }
+        response = admin_client.put(
+            self._url(proposal.id), payload, format='json',
+        )
+        assert response.status_code == 400
+
+    def test_returns_404_for_missing_proposal(self, admin_client):
+        response = admin_client.put(
+            self._url(99999), self._minimal_payload(), format='json',
+        )
+        assert response.status_code == 404
+
+    def test_returns_401_for_unauthenticated(self, api_client, proposal):
+        response = api_client.put(
+            self._url(proposal.id), self._minimal_payload(), format='json',
+        )
+        assert response.status_code in (401, 403)
+
+    def test_warns_about_unknown_section_keys(self, admin_client, proposal, proposal_section):
+        payload = self._minimal_payload()
+        payload['sections']['unknownSection'] = {'foo': 'bar'}
+        response = admin_client.put(
+            self._url(proposal.id), payload, format='json',
+        )
+        assert response.status_code == 200
+        assert 'warnings' in response.data
+        assert any('unknownSection' in w for w in response.data['warnings'])
+
+    def test_round_trip_export_import(self, admin_client, proposal, proposal_section):
+        """Export JSON and re-import it — proposal data should remain consistent."""
+        # Ensure greeting section has clientName for round-trip validity
+        proposal_section.content_json = {
+            'clientName': proposal.client_name,
+            'proposalTitle': proposal.title,
+        }
+        proposal_section.save(update_fields=['content_json'])
+
+        export_url = reverse('export-proposal-json', kwargs={'proposal_id': proposal.id})
+        export_resp = admin_client.get(export_url)
+        assert export_resp.status_code == 200
+
+        exported = export_resp.data
+        meta = exported.pop('_meta', {})
+
+        import_payload = {
+            'title': meta.get('title', proposal.title),
+            'client_name': meta.get('client_name', proposal.client_name),
+            'sections': exported,
+        }
+        import_resp = admin_client.put(
+            self._url(proposal.id), import_payload, format='json',
+        )
+        assert import_resp.status_code == 200
+        assert import_resp.data['title'] == proposal.title
+
+
+# ---------------------------------------------------------------------------
 # Investment sync on update
 # ---------------------------------------------------------------------------
 

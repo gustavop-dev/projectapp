@@ -43,19 +43,25 @@ function setupMock(page) {
 }
 
 test.describe('Proposal Onboarding', () => {
+  test.beforeEach(async ({ page }) => {
+    // Clear any residual localStorage that might block onboarding
+    await page.addInitScript((_uuid) => {
+      localStorage.removeItem('proposal_onboarding_seen');
+      localStorage.removeItem(`proposal-${_uuid}-progress`);
+      localStorage.removeItem(`proposal-${_uuid}-viewMode`);
+    }, MOCK_UUID);
+  });
+
   test('onboarding tooltip appears on first visit', {
     tag: [...PROPOSAL_VIEW_ONBOARDING, '@role:client'],
   }, async ({ page }) => {
     // Do NOT set proposal_onboarding_seen — let onboarding show
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
-    await page.waitForLoadState('networkidle');
-
-    // Gateway shows first — pick detailed view
-    await page.getByText('Propuesta Completa').click();
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
+    await page.waitForLoadState('domcontentloaded');
 
     // Onboarding tooltip should appear with first step
-    await expect(page.getByText('Índice de secciones')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'Modo claro y oscuro' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('Omitir')).toBeVisible();
   });
 
@@ -63,34 +69,31 @@ test.describe('Proposal Onboarding', () => {
     tag: [...PROPOSAL_VIEW_ONBOARDING, '@role:client'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto(`/proposal/${MOCK_UUID}`);
-    await page.waitForLoadState('networkidle');
+    await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
+    await page.waitForLoadState('domcontentloaded');
 
-    // Gateway shows first — pick detailed view
-    await page.getByText('Propuesta Completa').click();
-
-    await expect(page.getByText('Índice de secciones')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'Modo claro y oscuro' })).toBeVisible({ timeout: 15000 });
 
     // Click "Omitir" to dismiss
     await page.getByText('Omitir').click();
 
     // Onboarding should disappear
-    await expect(page.getByText('Índice de secciones')).not.toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: 'Modo claro y oscuro' })).not.toBeVisible({ timeout: 5000 });
   });
 
   test('onboarding does not appear on subsequent visits', {
     tag: [...PROPOSAL_VIEW_ONBOARDING, '@role:client'],
   }, async ({ page }) => {
-    // Set localStorage as if onboarding was already seen
+    // Override: set localStorage as if onboarding was already seen
     await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
     }, MOCK_UUID);
 
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Onboarding should NOT appear (already seen)
-    await expect(page.getByText('Índice de secciones')).not.toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: 'Modo claro y oscuro' })).not.toBeVisible({ timeout: 5000 });
   });
 });

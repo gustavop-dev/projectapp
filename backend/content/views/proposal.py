@@ -541,6 +541,19 @@ def get_proposal_json_template(request):
             'Investment: lead with value, break down modules clearly.',
             'Timeline: realistic milestones tied to business outcomes.',
         ],
+        'bold_formatting': (
+            'In the following sections, wrap important words, key phrases, and '
+            'mini-titles with <b>…</b> tags to highlight relevant information '
+            'and improve scannability. Apply bold sparingly — only to the most '
+            'impactful fragments (e.g. client benefits, metrics, key outcomes, '
+            'action verbs). Do NOT bold entire paragraphs or sentences. '
+            'Sections that MUST include bold highlights: '
+            'executiveSummary (paragraphs, highlights), '
+            'contextDiagnostic (paragraphs, issues, opportunity), '
+            'conversionStrategy (intro, bullets, result), '
+            'designUX (paragraphs, focusItems, objective), '
+            'creativeSupport (paragraphs, includes, closing).'
+        ),
         'CRITICAL_functionalRequirements': (
             'Do NOT remove any groups or modules from the functionalRequirements section. '
             'All default groups (marked with "_do_not_remove": true) MUST remain in the output. '
@@ -551,6 +564,151 @@ def get_proposal_json_template(request):
     }
 
     return Response(template, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def export_proposal_json(request, proposal_id):
+    """
+    Export an existing proposal as a JSON object compatible with
+    the ``create-from-json`` / ``update-from-json`` import format.
+
+    Returns a dict with camelCase section keys and a ``_meta`` block
+    containing proposal metadata.
+    """
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+
+    result = {}
+    for section in proposal.sections.all().order_by('order'):
+        json_key = SECTION_TYPE_TO_KEY.get(section.section_type)
+        if json_key:
+            result[json_key] = copy.deepcopy(section.content_json or {})
+
+    result['_meta'] = {
+        'title': proposal.title,
+        'client_name': proposal.client_name,
+        'client_email': proposal.client_email or '',
+        'client_phone': proposal.client_phone or '',
+        'project_type': proposal.project_type or '',
+        'market_type': proposal.market_type or '',
+        'project_type_custom': proposal.project_type_custom or '',
+        'market_type_custom': proposal.market_type_custom or '',
+        'language': proposal.language or 'es',
+        'total_investment': str(proposal.total_investment),
+        'currency': proposal.currency or 'COP',
+        'hosting_percent': proposal.hosting_percent,
+        'hosting_discount_semiannual': proposal.hosting_discount_semiannual,
+        'hosting_discount_quarterly': proposal.hosting_discount_quarterly,
+        'expires_at': (
+            proposal.expires_at.isoformat() if proposal.expires_at else None
+        ),
+        'reminder_days': proposal.reminder_days,
+        'urgency_reminder_days': proposal.urgency_reminder_days,
+        'discount_percent': proposal.discount_percent,
+    }
+
+    return Response(result, status=status.HTTP_200_OK)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAdminUser])
+def update_proposal_from_json(request, proposal_id):
+    """
+    Update an existing proposal from a complete JSON payload.
+
+    Accepts the same structure as ``create-from-json``: metadata fields
+    at the top level and a ``sections`` dict whose keys are camelCase
+    section names mapped to content_json dicts.
+
+    Metadata fields are updated on the proposal, and each section's
+    content_json is replaced by the matching key from the payload.
+    Sections not present in the payload are left unchanged.
+    """
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+
+    serializer = ProposalFromJSONSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    data = serializer.validated_data
+    sections_data = data.pop('sections')
+
+    # --- Update metadata fields ---
+    metadata_fields = [
+        'title', 'client_name', 'client_email', 'client_phone',
+        'project_type', 'market_type', 'project_type_custom',
+        'market_type_custom', 'language', 'total_investment', 'currency',
+        'reminder_days', 'urgency_reminder_days', 'discount_percent',
+    ]
+    tracked_old = {}
+    for field in metadata_fields:
+        tracked_old[field] = str(getattr(proposal, field, ''))
+        if field in data:
+            setattr(proposal, field, data[field])
+
+    if 'expires_at' in data:
+        tracked_old['expires_at'] = str(proposal.expires_at or '')
+        proposal.expires_at = data['expires_at']
+
+    proposal.save()
+
+    # Log field-level changes
+    for field in list(metadata_fields) + ['expires_at']:
+        new_val = str(getattr(proposal, field, ''))
+        old_val = tracked_old.get(field, '')
+        if old_val != new_val:
+            ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type='updated',
+                field_name=field,
+                old_value=old_val,
+                new_value=new_val,
+                description=f'JSON import — {field}: {old_val} → {new_val}',
+            )
+
+    # --- Update section content_json ---
+    updated_sections = []
+    for section in proposal.sections.all():
+        json_key = SECTION_TYPE_TO_KEY.get(section.section_type)
+        if json_key and json_key in sections_data:
+            new_content = sections_data[json_key]
+
+            # Special handling for greeting
+            if section.section_type == 'greeting':
+                general = sections_data.get('general', {})
+                new_content.setdefault('proposalTitle', proposal.title)
+                new_content.setdefault('clientName', proposal.client_name)
+                if general.get('inspirationalQuote'):
+                    new_content['inspirationalQuote'] = general['inspirationalQuote']
+
+            section.content_json = new_content
+            section.save(update_fields=['content_json'])
+            updated_sections.append(json_key)
+
+    ProposalChangeLog.objects.create(
+        proposal=proposal,
+        change_type='updated',
+        description=(
+            f'Proposal updated from JSON import. '
+            f'Sections updated: {", ".join(updated_sections) if updated_sections else "none"}.'
+        ),
+    )
+
+    # Detect unrecognized section keys
+    known_keys = set(SECTION_KEY_MAP.keys()) | {'_meta'}
+    provided_keys = set(sections_data.keys())
+    unmapped_keys = sorted(provided_keys - known_keys)
+
+    detail = ProposalDetailSerializer(
+        proposal, context={'request': request, 'is_admin': True}
+    )
+    response_data = detail.data
+    if unmapped_keys:
+        response_data['warnings'] = [
+            f'Unknown section keys ignored: {", ".join(unmapped_keys)}. '
+            f'Valid keys: {", ".join(sorted(SECTION_KEY_MAP.keys()))}.'
+        ]
+    return Response(response_data, status=status.HTTP_200_OK)
 
 
 @api_view(['PATCH'])

@@ -1520,7 +1520,6 @@
 | `admin-portfolio-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-delete.spec.js` |
 | `proposal-pre-expiration-discount-suggestion` | admin | system | P2 | ⚠️ Backend-only | Backend unit tests (`test_proposal_views.py`) |
 | `admin-proposal-zombie-segment` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-zombie-segment.spec.js` |
-| `proposal-share-hint` | proposal | guest | P3 | ✅ Covered | `e2e/proposal/proposal-share-hint.spec.js` |
 | `proposal-countdown-realtime` | proposal | guest | P3 | ✅ Covered | `e2e/proposal/proposal-countdown-realtime.spec.js` |
 | `admin-proposal-create-and-send` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-proposal-create-preview` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |

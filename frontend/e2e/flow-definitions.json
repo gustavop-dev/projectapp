@@ -437,14 +437,6 @@
       "description": "Dark-themed collapsible zombie alerts section for stale draft/sent proposals.",
       "expectedSpecs": 1
     },
-    "proposal-share-hint": {
-      "name": "Proposal Share Button Hint",
-      "module": "proposal",
-      "roles": ["guest"],
-      "priority": "P3",
-      "description": "Persistent tooltip below share button that auto-shows after 2s and auto-hides after 7s.",
-      "expectedSpecs": 1
-    },
     "proposal-countdown-realtime": {
       "name": "Proposal Countdown Realtime",
       "module": "proposal",
@@ -677,11 +669,11 @@
       "knownGaps": ["Backend-only, covered by backend unit tests"]
     },
     "proposal-onboarding-mobile-swipe": {
-      "name": "Proposal Onboarding Mobile Swipe",
+      "name": "Proposal Onboarding Mobile Viewport",
       "module": "proposal",
       "roles": ["guest"],
       "priority": "P3",
-      "description": "Mobile onboarding replaces tooltips with fullscreen swipe carousel overlay.",
+      "description": "Onboarding tooltip steps render correctly on mobile viewport with navigation buttons.",
       "expectedSpecs": 1
     },
     "proposal-og-meta-personalized": {

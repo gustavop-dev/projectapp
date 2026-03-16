@@ -78,11 +78,11 @@ jobs:
   # ───────────────────────────────────────────
   frontend-e2e-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 18
     strategy:
       fail-fast: false
       matrix:
-        shard: ["1/4", "2/4", "3/4", "4/4"]
+        shard: ["1/5", "2/5", "3/5", "4/5", "5/5"]
     defaults:
       run:
         working-directory: frontend

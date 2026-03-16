@@ -184,6 +184,42 @@ export const useProposalStore = defineStore('proposals', {
     },
 
     /**
+     * exportProposalJSON: Export a proposal as importable JSON.
+     * @param {number} id - Proposal ID.
+     */
+    async exportProposalJSON(id) {
+      try {
+        const response = await get_request(`proposals/${id}/export-json/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error exporting proposal JSON:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * updateProposalFromJSON: Update an existing proposal from a complete JSON payload.
+     * @param {number} id - Proposal ID.
+     * @param {object} jsonData - Full payload with metadata + sections.
+     */
+    async updateProposalFromJSON(id, jsonData) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await put_request(`proposals/${id}/update-from-json/`, jsonData);
+        this.currentProposal = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'update_from_json_failed';
+        console.error('Error updating proposal from JSON:', error);
+        return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
      * updateProposal: Update proposal metadata.
      * @param {number} id - Proposal ID.
      * @param {object} payload - Fields to update.

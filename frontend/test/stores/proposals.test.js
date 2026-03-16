@@ -363,6 +363,79 @@ describe('useProposalStore', () => {
     });
   });
 
+  describe('exportProposalJSON', () => {
+    it('fetches export JSON and returns data', async () => {
+      const exportData = { general: { clientName: 'Test' }, _meta: { title: 'Prop' } };
+      get_request.mockResolvedValue({ data: exportData });
+
+      const result = await store.exportProposalJSON(42);
+
+      expect(get_request).toHaveBeenCalledWith('proposals/42/export-json/');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(exportData);
+    });
+
+    it('returns failure on error', async () => {
+      get_request.mockRejectedValue(new Error('fail'));
+
+      const result = await store.exportProposalJSON(42);
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('updateProposalFromJSON', () => {
+    it('calls update-from-json endpoint and sets currentProposal', async () => {
+      const responseData = { id: 1, title: 'Updated', sections: [] };
+      put_request.mockResolvedValue({ data: responseData });
+
+      const jsonData = {
+        title: 'Updated',
+        client_name: 'Client',
+        sections: { general: { clientName: 'Client' } },
+      };
+      const result = await store.updateProposalFromJSON(1, jsonData);
+
+      expect(put_request).toHaveBeenCalledWith('proposals/1/update-from-json/', jsonData);
+      expect(store.currentProposal).toEqual(responseData);
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(responseData);
+    });
+
+    it('sets isUpdating true during request and false after', async () => {
+      let capturedUpdating = false;
+      put_request.mockImplementation(() => {
+        capturedUpdating = store.isUpdating;
+        return Promise.resolve({ data: { id: 1, sections: [] } });
+      });
+
+      await store.updateProposalFromJSON(1, { title: 'X', sections: { general: { clientName: 'X' } } });
+
+      expect(capturedUpdating).toBe(true);
+      expect(store.isUpdating).toBe(false);
+    });
+
+    it('returns failure and sets error on network error', async () => {
+      put_request.mockRejectedValue(new Error('network error'));
+
+      const result = await store.updateProposalFromJSON(1, { sections: {} });
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('update_from_json_failed');
+    });
+
+    it('returns validation errors from response data on 400', async () => {
+      put_request.mockRejectedValue({
+        response: { data: { sections: ['general key required'] } },
+      });
+
+      const result = await store.updateProposalFromJSON(1, {});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual({ sections: ['general key required'] });
+    });
+  });
+
   describe('updateProposal', () => {
     it('updates proposal metadata', async () => {
       const updated = { id: 1, title: 'Updated' };

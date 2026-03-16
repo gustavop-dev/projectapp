@@ -28,19 +28,10 @@ const mockProposal = {
   requirement_groups: [],
 };
 
-const mockShareResult = {
-  uuid: 'shared-link-uuid-9999',
-  shared_by_name: 'Juan Pérez',
-  shared_by_email: 'juan@test.com',
-};
-
 function setupMock(page) {
-  return mockApi(page, async ({ route, apiPath }) => {
+  return mockApi(page, async ({ apiPath }) => {
     if (apiPath === `proposals/${MOCK_UUID}/`) {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
-    }
-    if (apiPath === `proposals/${MOCK_UUID}/share/` && route.request().method() === 'POST') {
-      return { status: 201, contentType: 'application/json', body: JSON.stringify(mockShareResult) };
     }
     return null;
   });
@@ -63,7 +54,7 @@ test.describe('Proposal Share', () => {
     await expect(page.getByTestId('share-proposal-btn')).toBeVisible({ timeout: 15000 });
   });
 
-  test('share modal opens via context menu and creates link', {
+  test('share modal opens and shows copy link button', {
     tag: [...PROPOSAL_SHARE, '@role:client'],
   }, async ({ page }) => {
     await setupMock(page);
@@ -73,17 +64,11 @@ test.describe('Proposal Share', () => {
     const shareBtn = page.getByTestId('share-proposal-btn');
     await expect(shareBtn).toBeVisible({ timeout: 15000 });
 
-    // Right-click opens the modal (contextmenu event)
-    await shareBtn.dispatchEvent('contextmenu');
+    // Click opens the share modal
+    await shareBtn.click();
 
+    // Modal header and copy link button should be visible
     await expect(page.getByText('Compartir propuesta')).toBeVisible();
-    await expect(page.getByPlaceholder('Ej: Juan Pérez')).toBeVisible();
-
-    // Fill share form and create link
-    await page.getByPlaceholder('Ej: Juan Pérez').fill('Juan Pérez');
-    await page.getByPlaceholder('juan@empresa.com').fill('juan@test.com');
-    await page.getByRole('button', { name: 'Crear enlace' }).click();
-
-    await expect(page.getByText('¡Enlace listo!')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Copiar enlace')).toBeVisible();
   });
 });

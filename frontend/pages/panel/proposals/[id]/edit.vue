@@ -284,6 +284,122 @@
         </form>
       </div>
 
+      <!-- Tab: JSON -->
+      <div v-show="activeTab === 'json'" class="max-w-4xl">
+        <!-- Current JSON (read-only) -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-6">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+            <div>
+              <h3 class="text-sm font-medium text-gray-900">JSON de la propuesta</h3>
+              <p class="text-xs text-gray-400 mt-0.5">Representación JSON completa — se actualiza al guardar cambios en otras pestañas.</p>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                :disabled="jsonExportLoading"
+                @click="refreshExportJson"
+              >
+                <svg class="w-3.5 h-3.5" :class="{ 'animate-spin': jsonExportLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Actualizar
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                @click="copyExportJson"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                {{ jsonCopied ? '¡Copiado!' : 'Copiar' }}
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                @click="downloadExportJson"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Descargar
+              </button>
+            </div>
+          </div>
+
+          <div v-if="jsonExportLoading" class="text-center py-8 text-gray-400 text-sm">
+            Cargando JSON...
+          </div>
+          <textarea
+            v-else
+            :value="exportJsonString"
+            readonly
+            rows="18"
+            class="w-full px-4 py-3 border border-gray-200 rounded-xl text-xs font-mono leading-relaxed
+                   bg-gray-50 text-gray-700 outline-none resize-y cursor-text select-all"
+          />
+        </div>
+
+        <!-- Import JSON -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+          <h3 class="text-sm font-medium text-gray-900 mb-1">Importar JSON</h3>
+          <p class="text-xs text-gray-400 mb-4">Pega o sube un JSON para reemplazar el contenido de la propuesta (metadata + secciones).</p>
+
+          <div class="flex items-center gap-3 mb-3">
+            <label
+              class="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-xs
+                     text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Subir .json
+              <input type="file" accept=".json" class="hidden" @change="handleJsonFileUpload" />
+            </label>
+            <span v-if="jsonImportFileName" class="text-xs text-gray-500">{{ jsonImportFileName }}</span>
+          </div>
+
+          <textarea
+            v-model="jsonImportRaw"
+            rows="10"
+            placeholder='Pega aquí el JSON completo de la propuesta...'
+            class="w-full px-4 py-3 border border-gray-200 rounded-xl text-xs font-mono leading-relaxed
+                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y"
+            @input="parseImportJson"
+          />
+
+          <!-- Parse error -->
+          <div v-if="jsonImportError" class="mt-2 text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">
+            {{ jsonImportError }}
+          </div>
+
+          <!-- Preview -->
+          <div v-if="jsonImportParsed && !jsonImportError" class="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
+            <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+              <span><span class="text-gray-500">Cliente:</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.clientName }}</span></span>
+              <span><span class="text-gray-500">Secciones:</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.sectionCount }}</span></span>
+              <span v-if="jsonImportPreview.investment"><span class="text-gray-500">Inversión:</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.investment }}</span></span>
+            </div>
+          </div>
+
+          <!-- Apply button -->
+          <div v-if="jsonImportParsed && !jsonImportError" class="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              :disabled="proposalStore.isUpdating"
+              class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
+                     hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+              @click="handleApplyImportJson"
+            >
+              {{ proposalStore.isUpdating ? 'Aplicando...' : 'Aplicar JSON' }}
+            </button>
+            <p class="text-xs text-gray-400">Esto reemplazará la metadata y todas las secciones de la propuesta.</p>
+          </div>
+
+          <!-- Import result message -->
+          <div v-if="jsonImportMsg" class="mt-3 text-sm px-4 py-3 rounded-xl" :class="jsonImportMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'">
+            {{ jsonImportMsg.text }}
+          </div>
+        </div>
+      </div>
+
       <!-- Tab: Activity -->
       <div v-show="activeTab === 'activity'">
         <!-- Log activity form -->
@@ -473,7 +589,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
@@ -514,6 +630,7 @@ const activeTab = ref('general');
 const tabs = [
   { id: 'general', label: 'General' },
   { id: 'sections', label: 'Secciones' },
+  { id: 'json', label: 'JSON' },
   { id: 'activity', label: 'Actividad' },
   { id: 'analytics', label: 'Analytics' },
 ];
@@ -721,6 +838,216 @@ function statusClass(status) {
   };
   return map[status] || 'bg-gray-100 text-gray-600';
 }
+
+// --- JSON tab ---
+const EXPECTED_SECTION_KEYS = [
+  'general', 'executiveSummary', 'contextDiagnostic', 'conversionStrategy',
+  'designUX', 'creativeSupport', 'developmentStages', 'processMethodology',
+  'functionalRequirements', 'timeline', 'investment', 'proposalSummary',
+  'finalNote', 'nextSteps',
+];
+
+const jsonExportLoading = ref(false);
+const exportJsonData = ref(null);
+const jsonCopied = ref(false);
+
+const jsonImportRaw = ref('');
+const jsonImportParsed = ref(null);
+const jsonImportError = ref('');
+const jsonImportFileName = ref('');
+const jsonImportMsg = ref(null);
+
+const exportJsonString = computed(() => {
+  if (!exportJsonData.value) return '';
+  return JSON.stringify(exportJsonData.value, null, 2);
+});
+
+const jsonImportPreview = computed(() => {
+  if (!jsonImportParsed.value) return {};
+  const p = jsonImportParsed.value;
+  const clientName = p.general?.clientName || '';
+  const sectionCount = EXPECTED_SECTION_KEYS.filter((k) => k in p).length;
+  const investment = p.investment?.totalInvestment || '';
+  return { clientName, sectionCount, investment };
+});
+
+async function refreshExportJson() {
+  if (!proposal.value?.id) return;
+  jsonExportLoading.value = true;
+  try {
+    const result = await proposalStore.exportProposalJSON(proposal.value.id);
+    if (result.success) {
+      exportJsonData.value = result.data;
+    }
+  } finally {
+    jsonExportLoading.value = false;
+  }
+}
+
+async function copyExportJson() {
+  if (!exportJsonString.value) return;
+  try {
+    await navigator.clipboard.writeText(exportJsonString.value);
+    jsonCopied.value = true;
+    setTimeout(() => { jsonCopied.value = false; }, 2000);
+  } catch (e) {
+    console.error('Copy failed:', e);
+  }
+}
+
+function downloadExportJson() {
+  if (!exportJsonString.value || !proposal.value) return;
+  const blob = new Blob([exportJsonString.value], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `proposal-${proposal.value.uuid || proposal.value.id}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function parseImportJson() {
+  jsonImportError.value = '';
+  jsonImportParsed.value = null;
+  jsonImportMsg.value = null;
+
+  const raw = jsonImportRaw.value.trim();
+  if (!raw) return;
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    jsonImportError.value = 'JSON inválido. Revisa la sintaxis.';
+    return;
+  }
+
+  if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+    jsonImportError.value = 'El JSON debe ser un objeto, no un array.';
+    return;
+  }
+
+  if (!parsed.general || !parsed.general.clientName) {
+    jsonImportError.value = 'El JSON debe incluir "general" con "clientName".';
+    return;
+  }
+
+  jsonImportParsed.value = parsed;
+}
+
+function handleJsonFileUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  jsonImportFileName.value = file.name;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    jsonImportRaw.value = e.target.result;
+    parseImportJson();
+  };
+  reader.readAsText(file);
+}
+
+function parseInvestmentString(str) {
+  if (!str) return 0;
+  if (typeof str === 'number') return str;
+  const cleaned = String(str).replace(/[^0-9]/g, '');
+  return cleaned ? Number(cleaned) : 0;
+}
+
+async function handleApplyImportJson() {
+  if (!jsonImportParsed.value || !proposal.value?.id) return;
+
+  const confirmed = await requestConfirm({
+    title: 'Aplicar JSON',
+    message: 'Esto reemplazará la metadata y todas las secciones de la propuesta. ¿Continuar?',
+    variant: 'warning',
+    confirmText: 'Aplicar',
+    cancelText: 'Cancelar',
+  });
+  if (!confirmed) return;
+
+  jsonImportMsg.value = null;
+
+  const sections = { ...jsonImportParsed.value };
+  delete sections._meta;
+  delete sections._seller_prompt;
+
+  const meta = jsonImportParsed.value._meta || {};
+  const payload = {
+    title: meta.title || proposal.value.title,
+    client_name: jsonImportParsed.value.general?.clientName || proposal.value.client_name,
+    client_email: meta.client_email || proposal.value.client_email || '',
+    client_phone: meta.client_phone || proposal.value.client_phone || '',
+    project_type: meta.project_type || proposal.value.project_type || '',
+    market_type: meta.market_type || proposal.value.market_type || '',
+    project_type_custom: meta.project_type_custom || proposal.value.project_type_custom || '',
+    market_type_custom: meta.market_type_custom || proposal.value.market_type_custom || '',
+    language: meta.language || proposal.value.language || 'es',
+    total_investment: parseInvestmentString(meta.total_investment || jsonImportParsed.value.investment?.totalInvestment) || Number(proposal.value.total_investment) || 0,
+    currency: meta.currency || jsonImportParsed.value.investment?.currency || proposal.value.currency || 'COP',
+    expires_at: meta.expires_at || (proposal.value.expires_at ? proposal.value.expires_at : null),
+    reminder_days: meta.reminder_days || proposal.value.reminder_days || 10,
+    urgency_reminder_days: meta.urgency_reminder_days || proposal.value.urgency_reminder_days || 15,
+    discount_percent: meta.discount_percent ?? proposal.value.discount_percent ?? 0,
+    sections,
+  };
+
+  const result = await proposalStore.updateProposalFromJSON(proposal.value.id, payload);
+  if (result.success) {
+    jsonImportMsg.value = { type: 'success', text: 'Propuesta actualizada desde JSON.' };
+    jsonImportRaw.value = '';
+    jsonImportParsed.value = null;
+    jsonImportFileName.value = '';
+
+    // Sync local form with updated proposal
+    if (proposal.value) {
+      Object.assign(form, {
+        title: proposal.value.title,
+        client_name: proposal.value.client_name,
+        client_email: proposal.value.client_email || '',
+        client_phone: proposal.value.client_phone || '',
+        project_type: proposal.value.project_type || '',
+        market_type: proposal.value.market_type || '',
+        project_type_custom: proposal.value.project_type_custom || '',
+        market_type_custom: proposal.value.market_type_custom || '',
+        language: proposal.value.language || 'es',
+        total_investment: Number(proposal.value.total_investment),
+        currency: proposal.value.currency,
+        hosting_percent: proposal.value.hosting_percent ?? 30,
+        hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
+        hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
+        expires_at: proposal.value.expires_at ? proposal.value.expires_at.slice(0, 16) : '',
+        reminder_days: proposal.value.reminder_days,
+        urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
+        discount_percent: proposal.value.discount_percent ?? 0,
+        automations_paused: proposal.value.automations_paused ?? false,
+      });
+    }
+
+    // Refresh the export JSON view
+    await refreshExportJson();
+  } else {
+    const errors = result.errors;
+    jsonImportMsg.value = {
+      type: 'error',
+      text: errors
+        ? (typeof errors === 'object'
+          ? Object.entries(errors).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' | ')
+          : String(errors))
+        : 'Error al aplicar el JSON.',
+    };
+  }
+}
+
+// Auto-load JSON export when switching to json tab
+watch(activeTab, (newTab) => {
+  if (newTab === 'json' && proposal.value?.id) {
+    refreshExportJson();
+  }
+});
 
 // --- Activity timeline ---
 const activityForm = reactive({ change_type: 'note', description: '' });
