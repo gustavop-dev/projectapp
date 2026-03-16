@@ -265,6 +265,34 @@ class TestStripEmoji:
         assert '■' not in result
         assert '●' not in result
 
+    def test_br_tag_replaced_with_space(self):
+        """HTML <br> tags are replaced with a space."""
+        assert _strip_emoji('Line one<br>Line two') == 'Line one Line two'
+
+    def test_br_self_closing_replaced_with_space(self):
+        """Self-closing <br/> tags are replaced with a space."""
+        assert _strip_emoji('A<br/>B') == 'A B'
+
+    def test_br_with_space_replaced(self):
+        """Self-closing <br /> tags with space are replaced."""
+        assert _strip_emoji('A<br />B') == 'A B'
+
+    def test_br_case_insensitive(self):
+        """Uppercase <BR> tags are replaced with a space."""
+        assert _strip_emoji('A<BR>B') == 'A B'
+
+    def test_bold_html_converted_to_markdown(self):
+        """HTML <b> tags are converted to ** markdown bold markers."""
+        assert _strip_emoji('una <b>exigencia</b> clara') == 'una **exigencia** clara'
+
+    def test_italic_html_tags_stripped(self):
+        """HTML <i> and </i> italic tags are stripped from text."""
+        assert _strip_emoji('texto <i>importante</i> aquí') == 'texto importante aquí'
+
+    def test_mixed_html_bold_preserved_others_stripped(self):
+        """Bold <b> tags become ** markers; other HTML tags are stripped."""
+        assert _strip_emoji('<b>bold</b> and <i>italic</i>') == '**bold** and italic'
+
 
 # ── _safe tests ───────────────────────────────────────────────
 
@@ -437,6 +465,23 @@ class TestDrawParagraphs:
         end_y = _draw_paragraphs(pdf_canvas, start_y, [])
         assert end_y == start_y
 
+    def test_br_tags_not_rendered_as_text(self, pdf_canvas):
+        """Paragraph containing <br> tags renders without literal tag text."""
+        start_y = 500
+        end_y = _draw_paragraphs(
+            pdf_canvas, start_y, ['First line<br>Second line'],
+        )
+        assert end_y < start_y
+
+    def test_bold_html_tags_not_rendered_as_text(self, pdf_canvas):
+        """Paragraph containing <b> tags renders without literal tag text."""
+        start_y = 500
+        end_y = _draw_paragraphs(
+            pdf_canvas, start_y,
+            ['una <b>exigencia regulatoria</b> y una <b>oportunidad</b>'],
+        )
+        assert end_y < start_y
+
     def test_stops_at_page_bottom(self, pdf_canvas):
         end_y = _draw_paragraphs(pdf_canvas, MARGIN_B + 10, ['Text'])
         assert end_y == MARGIN_B + 10
@@ -452,6 +497,14 @@ class TestDrawBulletList:
         start_y = 400
         end_y = _draw_bullet_list(pdf_canvas, start_y, [])
         assert end_y == start_y
+
+    def test_br_tags_not_rendered_as_text(self, pdf_canvas):
+        """Bullet item containing <br> tags renders without literal tag text."""
+        start_y = 400
+        end_y = _draw_bullet_list(
+            pdf_canvas, start_y, ['Item with<br>line break'],
+        )
+        assert end_y < start_y
 
 
 class TestDrawSidebarBox:
@@ -664,6 +717,16 @@ class TestRenderRawText:
         _render_raw_text(pdf_canvas, data, proposal)
         assert pdf_canvas.getPageNumber() >= page_before
 
+    def test_br_tags_in_raw_text_converted(self, pdf_canvas, proposal):
+        """Raw text with <br> tags renders correctly without literal tags."""
+        data = {
+            'index': '1', 'title': 'BR Test',
+            'rawText': 'First line<br>Second line<br/>Third line',
+        }
+        page_before = pdf_canvas.getPageNumber()
+        _render_raw_text(pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
+
 
 class TestParseMarkdownLines:
     def test_parses_headings(self):
@@ -701,6 +764,29 @@ class TestParseMarkdownLines:
     def test_returns_empty_for_empty_string(self):
         """Empty string returns an empty token list."""
         assert _parse_markdown_lines('') == []
+
+    def test_br_tags_converted_to_newlines(self):
+        """HTML <br> tags are converted to newlines producing separate tokens."""
+        tokens = _parse_markdown_lines('Line one<br>Line two')
+        assert tokens == [
+            ('paragraph', 'Line one'),
+            ('paragraph', 'Line two'),
+        ]
+
+    def test_br_self_closing_converted(self):
+        """Self-closing <br/> tags produce separate paragraph tokens."""
+        tokens = _parse_markdown_lines('Alpha<br/>Beta')
+        assert tokens == [
+            ('paragraph', 'Alpha'),
+            ('paragraph', 'Beta'),
+        ]
+
+    def test_bold_html_converted_to_markdown_bold(self):
+        """HTML <b> tags are converted to ** markers in paragraph tokens."""
+        tokens = _parse_markdown_lines('una <b>exigencia regulatoria</b> clara')
+        assert tokens == [
+            ('paragraph', 'una **exigencia regulatoria** clara'),
+        ]
 
 
 class TestCleanInlineBold:
@@ -1349,6 +1435,26 @@ class TestDrawLineWithLinks:
         ops_before = len(pdf_canvas._code)
         _draw_line_with_links(
             pdf_canvas, 50, 500, 'See https://example.com/path here',
+            _font('regular'), 10, ESMERALD,
+        )
+        assert len(pdf_canvas._code) > ops_before
+
+    def test_draws_bold_segments(self, pdf_canvas):
+        """Text with **bold** markers renders with bold font segments."""
+        _register_fonts()
+        ops_before = len(pdf_canvas._code)
+        _draw_line_with_links(
+            pdf_canvas, 50, 500, 'normal **bold text** normal',
+            _font('regular'), 10, ESMERALD,
+        )
+        assert len(pdf_canvas._code) > ops_before
+
+    def test_draws_bold_and_link_combined(self, pdf_canvas):
+        """Text with both **bold** and URL renders both styles."""
+        _register_fonts()
+        ops_before = len(pdf_canvas._code)
+        _draw_line_with_links(
+            pdf_canvas, 50, 500, '**important** see example.com',
             _font('regular'), 10, ESMERALD,
         )
         assert len(pdf_canvas._code) > ops_before

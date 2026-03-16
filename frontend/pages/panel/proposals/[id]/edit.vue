@@ -207,9 +207,44 @@
               <input v-model.number="form.hosting_percent" type="number" min="0" max="100"
                 class="w-32 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               <span class="text-sm text-gray-500">%</span>
-              <span v-if="form.hosting_percent > 0 && form.total_investment > 0" class="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
-                ☁️ ${{ Math.round(form.total_investment * form.hosting_percent / 100).toLocaleString() }} {{ form.currency }} / año
-              </span>
+            </div>
+            <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-blue-50 border border-blue-200 rounded-xl overflow-hidden">
+              <div class="grid grid-cols-[1fr_auto] gap-x-4 text-sm divide-y divide-blue-100">
+                <div class="px-4 py-2 text-blue-700 font-medium">Mensual</div>
+                <div class="px-4 py-2 text-blue-800 font-semibold text-right">
+                  ${{ Math.round(form.total_investment * form.hosting_percent / 100 / 12).toLocaleString() }} {{ form.currency }}
+                </div>
+                <div class="px-4 py-2 text-blue-700 font-medium">Trimestral</div>
+                <div class="px-4 py-2 text-blue-800 font-semibold text-right">
+                  ${{ Math.round(form.total_investment * form.hosting_percent / 100 / 12 * 3).toLocaleString() }} {{ form.currency }}
+                </div>
+                <template v-if="form.hosting_discount_quarterly">
+                  <div class="px-4 py-2 text-blue-700 font-medium">
+                    Trimestral
+                    <span class="ml-1 text-xs text-emerald-600 font-normal">({{ form.hosting_discount_quarterly }}% dcto)</span>
+                  </div>
+                  <div class="px-4 py-2 text-emerald-700 font-semibold text-right">
+                    ${{ Math.round(Math.round(form.total_investment * form.hosting_percent / 100 / 12) * (100 - form.hosting_discount_quarterly) / 100 * 3).toLocaleString() }} {{ form.currency }}
+                  </div>
+                </template>
+                <div class="px-4 py-2 text-blue-700 font-medium">Semestral</div>
+                <div class="px-4 py-2 text-blue-800 font-semibold text-right">
+                  ${{ Math.round(form.total_investment * form.hosting_percent / 100 / 12 * 6).toLocaleString() }} {{ form.currency }}
+                </div>
+                <template v-if="form.hosting_discount_semiannual">
+                  <div class="px-4 py-2 text-blue-700 font-medium">
+                    Semestral
+                    <span class="ml-1 text-xs text-emerald-600 font-normal">({{ form.hosting_discount_semiannual }}% dcto)</span>
+                  </div>
+                  <div class="px-4 py-2 text-emerald-700 font-semibold text-right">
+                    ${{ Math.round(Math.round(form.total_investment * form.hosting_percent / 100 / 12) * (100 - form.hosting_discount_semiannual) / 100 * 6).toLocaleString() }} {{ form.currency }}
+                  </div>
+                </template>
+                <div class="px-4 py-2 text-blue-700 font-medium">☁️ Anual</div>
+                <div class="px-4 py-2 text-blue-800 font-semibold text-right">
+                  ${{ Math.round(form.total_investment * form.hosting_percent / 100).toLocaleString() }} {{ form.currency }}
+                </div>
+              </div>
             </div>
             <p class="text-xs text-gray-400 mt-1">Se sincroniza con el % del Plan de Hosting en la sección "Tu inversión y cómo pagar".</p>
           </div>
@@ -282,6 +317,87 @@
             </a>
           </div>
         </form>
+      </div>
+
+      <!-- Tab: Prompt Proposal -->
+      <div v-show="activeTab === 'prompt'" class="max-w-4xl">
+        <p class="text-sm text-gray-500 mb-6">
+          Este prompt se usa con IA (ChatGPT, Claude, etc.) para generar propuestas comerciales personalizadas a partir del JSON plantilla.
+        </p>
+
+        <!-- Action bar -->
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <template v-if="!promptIsEditing">
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              @click="startEditPrompt"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+              Editar
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              @click="handleCopyPrompt"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              {{ promptCopied ? '¡Copiado!' : 'Copiar' }}
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              @click="promptDownload"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Descargar .md
+            </button>
+            <button
+              v-if="promptText !== promptDefault"
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-gray-200 rounded-xl hover:bg-red-50 transition-colors"
+              @click="handleResetPrompt"
+            >
+              Restaurar original
+            </button>
+          </template>
+          <template v-else>
+            <button
+              type="button"
+              class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+              @click="saveEditPrompt"
+            >
+              Guardar cambios
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+              @click="cancelEditPrompt"
+            >
+              Cancelar
+            </button>
+          </template>
+        </div>
+
+        <!-- Editing mode -->
+        <div v-if="promptIsEditing" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <textarea
+            v-model="promptEditBuffer"
+            rows="30"
+            class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 bg-transparent border-0 outline-none resize-y focus:ring-0"
+          ></textarea>
+        </div>
+
+        <!-- Read-only mode -->
+        <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
+            <pre class="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap font-mono break-words">{{ promptText }}</pre>
+          </div>
+        </div>
+
+        <p v-if="promptText !== promptDefault" class="text-xs text-amber-600 mt-3">
+          Este prompt ha sido personalizado. Usa "Restaurar original" para volver al valor por defecto.
+        </p>
       </div>
 
       <!-- Tab: JSON -->
@@ -593,6 +709,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { useSellerPrompt } from '~/composables/useSellerPrompt';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -630,10 +747,46 @@ const activeTab = ref('general');
 const tabs = [
   { id: 'general', label: 'General' },
   { id: 'sections', label: 'Secciones' },
+  { id: 'prompt', label: 'Prompt Proposal' },
   { id: 'json', label: 'JSON' },
   { id: 'activity', label: 'Actividad' },
   { id: 'analytics', label: 'Analytics' },
 ];
+
+// ── Prompt Proposal ──
+const {
+  promptText,
+  isEditing: promptIsEditing,
+  DEFAULT_PROMPT: promptDefault,
+  loadSavedPrompt,
+  savePrompt: promptSave,
+  resetPrompt: promptReset,
+  copyPrompt: promptCopy,
+  downloadPrompt: promptDownload,
+} = useSellerPrompt();
+
+const promptEditBuffer = ref('');
+const promptCopied = ref(false);
+
+function startEditPrompt() {
+  promptEditBuffer.value = promptText.value;
+  promptIsEditing.value = true;
+}
+function cancelEditPrompt() {
+  promptIsEditing.value = false;
+}
+function saveEditPrompt() {
+  promptSave(promptEditBuffer.value);
+  promptIsEditing.value = false;
+}
+async function handleCopyPrompt() {
+  await promptCopy();
+  promptCopied.value = true;
+  setTimeout(() => { promptCopied.value = false; }, 2000);
+}
+function handleResetPrompt() {
+  promptReset();
+}
 
 const expandedSections = ref(new Set());
 const updateMsg = ref(null);
@@ -663,6 +816,7 @@ const form = reactive({
 onMounted(async () => {
   const id = route.params.id;
   await proposalStore.fetchProposal(id);
+  loadSavedPrompt();
   if (proposal.value) {
     Object.assign(form, {
       title: proposal.value.title,
