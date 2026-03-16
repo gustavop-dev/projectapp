@@ -92,6 +92,19 @@
           :language="proposal?.language || 'es'"
         />
 
+        <!-- Restart tutorial button -->
+        <button
+          v-if="viewMode"
+          class="restart-tutorial-btn fixed bottom-[68px] left-6 z-[9990] w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110"
+          :class="proposalDarkMode ? 'bg-gray-700 text-emerald-300 hover:bg-gray-600' : 'bg-white text-emerald-600 border border-gray-200 hover:bg-gray-50'"
+          :title="pLang === 'es' ? 'Reiniciar tutorial' : 'Restart tutorial'"
+          @click="onboardingRef?.forceStart()"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+
         <!-- Dark mode toggle -->
         <button
           v-if="viewMode"
@@ -100,7 +113,7 @@
           :title="pLang === 'es' ? 'Cambiar tema' : 'Toggle theme'"
           @click="toggleProposalDarkMode"
         >
-          {{ proposalDarkMode ? '☀️' : '🌙' }}
+          {{ proposalDarkMode ? '&#9728;&#65039;' : '&#127769;' }}
         </button>
 
         <!-- Onboarding tutorial tooltips -->

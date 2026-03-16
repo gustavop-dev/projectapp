@@ -136,7 +136,7 @@ test.describe('Admin Proposal Analytics', () => {
 
     await page.getByRole('button', { name: 'Analytics' }).click();
     await expect(page.getByText('Engagement Score')).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText('75')).toBeVisible();
+    await expect(page.getByText('75', { exact: true })).toBeVisible();
     await expect(page.getByText(/Alto engagement/)).toBeVisible();
   });
 

@@ -198,7 +198,7 @@ describe('useSellerPrompt', () => {
       const { downloadPrompt } = useSellerPrompt();
       downloadPrompt();
 
-      expect(mockAnchor.download).toBe('prompt-consultor-propuestas.md');
+      expect(mockAnchor.download).toBe('prompt-proposal.md');
 
       jest.restoreAllMocks();
     });
