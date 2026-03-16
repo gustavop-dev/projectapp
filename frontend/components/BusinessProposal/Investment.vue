@@ -163,40 +163,61 @@
           </div>
         </div>
 
-        <div v-if="computedBillingTiers.length" class="mt-6 pl-0 sm:pl-16">
-          <div class="grid sm:grid-cols-3 gap-4">
-            <div v-for="(tier, tIdx) in computedBillingTiers" :key="tIdx"
-                 class="relative rounded-xl p-5 border-2 transition-all"
-                 :class="tIdx === 0
-                   ? 'bg-esmerald/5 border-esmerald/30 ring-2 ring-emerald-400'
-                   : 'bg-white border-esmerald/10'">
-              <span v-if="tier.badge" class="absolute -top-3 left-4 bg-lemon text-esmerald text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full whitespace-nowrap">
+        <div v-if="computedBillingTiers.length" class="mt-8 pl-0 sm:pl-16">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-3 md:gap-5 items-stretch">
+            <div
+              v-for="(tier, tIdx) in computedBillingTiers"
+              :key="tIdx"
+              class="billing-tier-card relative rounded-2xl p-5 sm:p-4 md:p-6 border-2 transition-all flex flex-col"
+              :class="tIdx === 0
+                ? 'bg-gradient-to-b from-emerald-50 to-white border-emerald-400 ring-2 ring-emerald-400/40 shadow-lg sm:scale-[1.03] z-10'
+                : 'bg-white border-esmerald/10 hover:border-esmerald/25 hover:shadow-md'"
+            >
+              <!-- Badge -->
+              <span
+                v-if="tier.badge"
+                class="absolute -top-3 left-1/2 -translate-x-1/2 sm:left-4 sm:translate-x-0 bg-lemon text-esmerald text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap shadow-sm"
+              >
                 {{ tier.badge }}
               </span>
-              <div class="text-sm text-green-light font-medium mb-1">{{ tier.label }}</div>
-              <div class="text-2xl font-bold text-esmerald">{{ tier.monthlyPrice }}</div>
-              <div class="text-xs text-esmerald/60">{{ currency }} {{ t.perMonth }}</div>
-              <div v-if="tier.discountPercent > 0" class="text-xs text-emerald-600 mt-1 font-medium">
+
+              <!-- Label -->
+              <div class="text-xs uppercase tracking-widest font-semibold mb-3 mt-1"
+                   :class="tIdx === 0 ? 'text-emerald-600' : 'text-esmerald/50'">
+                {{ tier.label }}
+              </div>
+
+              <!-- Monthly price -->
+              <div class="flex items-baseline gap-1.5 mb-1">
+                <span class="text-3xl sm:text-2xl md:text-3xl font-bold text-esmerald leading-none">{{ tier.monthlyPrice }}</span>
+                <span class="text-sm text-esmerald/50 font-medium">{{ currency }}</span>
+              </div>
+              <div class="text-xs text-esmerald/45 font-medium mb-4">{{ t.perMonth }}</div>
+
+              <!-- Spacer to push bottom content down -->
+              <div class="flex-1"></div>
+
+              <!-- Discount badge -->
+              <div v-if="tier.discountPercent > 0"
+                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold mb-2 w-fit"
+                   :class="tIdx === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
                 {{ tier.discountPercent }}% {{ t.discount }}
               </div>
-              <div v-if="tier.savings" class="text-[11px] text-emerald-500 mt-2 font-medium">
+
+              <!-- Savings -->
+              <div v-if="tier.savings"
+                   class="text-[11px] font-semibold mb-2"
+                   :class="tIdx === 0 ? 'text-emerald-600' : 'text-emerald-500'">
                 {{ t.youSave }} {{ tier.savings }} {{ currency }}
               </div>
-            </div>
-          </div>
-        </div>
-        <!-- Legacy fallback for proposals without billingTiers -->
-        <div v-else-if="computedMonthlyPrice || computedAnnualPrice" class="mt-6 pl-0 sm:pl-16">
-          <div class="grid md:grid-cols-2 gap-4">
-            <div v-if="computedMonthlyPrice" class="bg-esmerald-light/60 border border-esmerald/10 rounded-xl p-5">
-              <div class="text-sm text-green-light font-medium">{{ t.specialPrice }}</div>
-              <div class="text-2xl font-bold text-esmerald">{{ computedMonthlyPrice }}</div>
-              <div v-if="hostingPlan.monthlyLabel" class="text-sm text-esmerald/70">{{ hostingPlan.monthlyLabel }}</div>
-            </div>
-            <div v-if="computedAnnualPrice" class="bg-esmerald/5 border border-esmerald/10 rounded-xl p-5">
-              <div class="text-sm text-green-light font-medium">{{ t.annualPayment }}</div>
-              <div class="text-2xl font-bold text-esmerald">{{ computedAnnualPrice }}</div>
-              <div v-if="hostingPlan.annualLabel" class="text-sm text-esmerald/70">{{ hostingPlan.annualLabel }}</div>
+
+              <!-- Billing frequency -->
+              <div class="text-[11px] text-esmerald/40 leading-snug">
+                {{ t.billedEvery }} {{ tier.months }} {{ tier.months === 1 ? t.month : t.months }}
+              </div>
             </div>
           </div>
         </div>
@@ -491,6 +512,8 @@ const i18n = {
     months: 'meses',
     month: 'mes',
     youSave: 'Te ahorras',
+    billedEvery: 'Facturado cada',
+    hostingPlans: 'Planes de hosting',
     whyWorthIt: '¿Por Qué Esta Inversión Vale la Pena?',
     viewTechSpecs: 'Ver especificaciones técnicas',
     customizeBtn: 'Personalizar tu inversión',
@@ -520,6 +543,8 @@ const i18n = {
     months: 'months',
     month: 'month',
     youSave: 'You save',
+    billedEvery: 'Billed every',
+    hostingPlans: 'Hosting plans',
     whyWorthIt: 'Why Is This Investment Worth It?',
     viewTechSpecs: 'View technical specs',
     customizeBtn: 'Customize your investment',
@@ -556,10 +581,17 @@ const hostingAnnualAmount = computed(() => {
   return null;
 });
 
+const DEFAULT_BILLING_TIERS = [
+  { frequency: 'semiannual', months: 6, discountPercent: 20, label: 'Semestral', badge: 'Mejor precio' },
+  { frequency: 'quarterly', months: 3, discountPercent: 10, label: 'Trimestral', badge: '10% dcto' },
+  { frequency: 'monthly', months: 1, discountPercent: 0, label: 'Mensual', badge: '' },
+];
+
 const computedBillingTiers = computed(() => {
   const hp = props.hostingPlan;
-  const tiers = hp?.billingTiers;
-  if (!tiers?.length || hostingAnnualAmount.value === null) return [];
+  if (hostingAnnualAmount.value === null) return [];
+
+  const tiers = hp?.billingTiers?.length ? hp.billingTiers : DEFAULT_BILLING_TIERS;
 
   const monthlyBase = Math.round(hostingAnnualAmount.value / 12);
   if (monthlyBase <= 0) return [];
@@ -578,20 +610,6 @@ const computedBillingTiers = computed(() => {
   });
 });
 
-const computedAnnualPrice = computed(() => {
-  if (hostingAnnualAmount.value !== null) {
-    return formatCurrency(hostingAnnualAmount.value) + ' ' + props.currency;
-  }
-  return props.hostingPlan?.annualPrice || '';
-});
-
-const computedMonthlyPrice = computed(() => {
-  if (hostingAnnualAmount.value !== null) {
-    const monthly = Math.round(hostingAnnualAmount.value / 12);
-    return formatCurrency(monthly) + ' ' + props.currency;
-  }
-  return props.hostingPlan?.monthlyPrice || '';
-});
 
 const filteredSpecs = computed(() => {
   return (props.hostingPlan?.specs || []).filter(s => s.label || s.value);
@@ -637,6 +655,14 @@ const normalizedReasons = computed(() => {
 .collapse-leave-from {
   opacity: 1;
   max-height: 600px;
+}
+
+.billing-tier-card {
+  transition: all 0.3s ease;
+}
+
+.billing-tier-card:hover {
+  transform: translateY(-2px);
 }
 
 .btn-pulse {
