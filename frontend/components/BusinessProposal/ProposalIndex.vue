@@ -86,6 +86,20 @@
           </button>
         </li>
       </ul>
+
+      <!-- Executive mode: switch to full proposal -->
+      <div v-if="viewMode === 'executive'" class="mt-4 px-2">
+        <button
+          class="sidebar-switch-detailed-btn w-full flex items-center gap-2 px-3 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium
+                 hover:bg-emerald-700 transition-colors shadow-sm"
+          @click="$emit('switchToDetailed'); isOpen = false"
+        >
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+          <span class="leading-tight">{{ language === 'en' ? 'View Full Proposal' : 'Ver Propuesta Completa' }}</span>
+        </button>
+      </div>
     </nav>
   </div>
 </template>
@@ -106,9 +120,17 @@ defineProps({
     type: Set,
     default: () => new Set(),
   },
+  viewMode: {
+    type: String,
+    default: '',
+  },
+  language: {
+    type: String,
+    default: 'es',
+  },
 });
 
-const emit = defineEmits(['navigate', 'update:open']);
+const emit = defineEmits(['navigate', 'update:open', 'switchToDetailed']);
 
 const isOpen = ref(false);
 

@@ -75,8 +75,11 @@
           :sections="displayPanels"
           :currentIndex="currentIndex"
           :visitedPanelIds="visitedPanelIds"
+          :viewMode="viewMode"
+          :language="pLang"
           @navigate="handleNavigate"
           @update:open="(val) => indexOpen = val"
+          @switchToDetailed="handleSwitchToDetailed"
         />
         <SectionCounter :current="currentIndex + 1" :total="totalSections" />
         <ExpirationBadge v-if="proposal.expires_at" :expiresAt="proposal.expires_at" />
@@ -109,6 +112,13 @@
           :language="pLang"
           :proposalUuid="proposal?.uuid || ''"
           :hasModules="investmentHasModules"
+        />
+
+        <!-- Executive mode: teaser button onboarding -->
+        <ExecutiveInvestmentOnboarding
+          ref="executiveInvestmentOnboardingRef"
+          :language="pLang"
+          :proposalUuid="proposal?.uuid || ''"
         />
 
         <!-- Functional requirements onboarding (click cards tutorial) -->
@@ -256,6 +266,7 @@ import ProposalClosing from '~/components/BusinessProposal/ProposalClosing.vue';
 import SectionNavButtons from '~/components/BusinessProposal/SectionNavButtons.vue';
 import ProposalOnboarding from '~/components/BusinessProposal/ProposalOnboarding.vue';
 import InvestmentOnboarding from '~/components/BusinessProposal/InvestmentOnboarding.vue';
+import ExecutiveInvestmentOnboarding from '~/components/BusinessProposal/ExecutiveInvestmentOnboarding.vue';
 import RequirementsOnboarding from '~/components/BusinessProposal/RequirementsOnboarding.vue';
 import ShareProposalButton from '~/components/BusinessProposal/ShareProposalButton.vue';
 import WhatsAppFloatingButton from '~/components/BusinessProposal/WhatsAppFloatingButton.vue';
@@ -392,6 +403,7 @@ const navBlinkPrev = ref(false);
 let blinkTimer = null;
 const onboardingRef = ref(null);
 const investmentOnboardingRef = ref(null);
+const executiveInvestmentOnboardingRef = ref(null);
 const requirementsOnboardingRef = ref(null);
 const readingPopupVisible = ref(false);
 const welcomeBack = ref(null);
@@ -427,6 +439,7 @@ const investmentHasModules = computed(() => {
 
 // Trigger investment onboarding when user navigates to investment section
 let investmentOnboardingTriggered = false;
+let executiveInvestmentOnboardingTriggered = false;
 let requirementsOnboardingTriggered = false;
 watch(currentPanel, (panel) => {
   if (
@@ -438,6 +451,17 @@ watch(currentPanel, (panel) => {
     investmentOnboardingTriggered = true;
     setTimeout(() => {
       investmentOnboardingRef.value?.start();
+    }, 800);
+  }
+  // Trigger executive investment onboarding (teaser button) in executive mode
+  if (
+    panel?.section_type === 'investment' &&
+    !executiveInvestmentOnboardingTriggered &&
+    viewMode.value === 'executive'
+  ) {
+    executiveInvestmentOnboardingTriggered = true;
+    setTimeout(() => {
+      executiveInvestmentOnboardingRef.value?.start();
     }, 800);
   }
   // Trigger requirements onboarding when user reaches functional_requirements section
