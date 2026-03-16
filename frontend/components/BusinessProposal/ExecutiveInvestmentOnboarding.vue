@@ -266,7 +266,7 @@ async function scrollAndPosition() {
   const el = document.querySelector(step.target);
   if (el) {
     // Place button near top of viewport so tooltip has room below
-    await smoothScrollToElement(el, { duration: 700, viewportOffset: 0.15 });
+    await smoothScrollToElement(el, { duration: 1400, viewportOffset: 0.15 });
     positionAll();
     await new Promise(r => setTimeout(r, 300));
     positionAll();

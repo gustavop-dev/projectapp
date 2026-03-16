@@ -181,6 +181,7 @@ test.describe('Integration Calculator Modules', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((_uuid) => {
       localStorage.setItem('proposal_onboarding_seen', 'true');
+      localStorage.setItem(`investment_onboarding_seen_${_uuid}`, 'true');
     }, MOCK_UUID);
   });
 

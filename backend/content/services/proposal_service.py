@@ -1154,6 +1154,29 @@ DEFAULT_SECTIONS_EN = [
                 'hostingPercent': 30,
                 'monthlyLabel': 'per month',
                 'annualLabel': 'annual payment',
+                'billingTiers': [
+                    {
+                        'frequency': 'semiannual',
+                        'months': 6,
+                        'discountPercent': 20,
+                        'label': 'Semiannual',
+                        'badge': 'Best price',
+                    },
+                    {
+                        'frequency': 'quarterly',
+                        'months': 3,
+                        'discountPercent': 10,
+                        'label': 'Quarterly',
+                        'badge': '10% off',
+                    },
+                    {
+                        'frequency': 'monthly',
+                        'months': 1,
+                        'discountPercent': 0,
+                        'label': 'Monthly',
+                        'badge': '',
+                    },
+                ],
             },
             'paymentMethods': [
                 'Bank transfer',

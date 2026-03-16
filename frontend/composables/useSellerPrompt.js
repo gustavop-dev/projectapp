@@ -310,6 +310,19 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 
 ---
 
+## FORMATO DE NEGRILLAS
+
+En las siguientes secciones, envuelve palabras importantes, frases clave y mini-títulos con etiquetas \`<b>…</b>\` para resaltar la información relevante y mejorar la lectura rápida. Aplica negrilla con moderación — solo a los fragmentos de mayor impacto (beneficios del cliente, métricas, resultados clave, verbos de acción). **NO** pongas en negrilla párrafos ni oraciones completas.
+
+Secciones que DEBEN incluir negrillas:
+- \`executiveSummary\`: en \`paragraphs\` y \`highlights\`
+- \`contextDiagnostic\`: en \`paragraphs\`, \`issues\` y \`opportunity\`
+- \`conversionStrategy\`: en \`intro\`, \`bullets\` y \`result\`
+- \`designUX\`: en \`paragraphs\`, \`focusItems\` y \`objective\`
+- \`creativeSupport\`: en \`paragraphs\`, \`includes\` y \`closing\`
+
+---
+
 ## FORMATO DE SALIDA
 
 Tu respuesta debe ser **únicamente** el JSON completo, válido, listo para importar. Sin texto antes ni después. Sin bloques de código markdown. Solo el JSON.

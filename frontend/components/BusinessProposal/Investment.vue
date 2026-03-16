@@ -179,8 +179,8 @@
               <div v-if="tier.discountPercent > 0" class="text-xs text-emerald-600 mt-1 font-medium">
                 {{ tier.discountPercent }}% {{ t.discount }}
               </div>
-              <div class="text-[11px] text-esmerald/50 mt-2">
-                {{ tier.periodTotal }} {{ currency }} {{ t.every }} {{ tier.months }} {{ tier.months > 1 ? t.months : t.month }}
+              <div v-if="tier.savings" class="text-[11px] text-emerald-500 mt-2 font-medium">
+                {{ t.youSave }} {{ tier.savings }} {{ currency }}
               </div>
             </div>
           </div>
@@ -490,6 +490,7 @@ const i18n = {
     every: 'cada',
     months: 'meses',
     month: 'mes',
+    youSave: 'Te ahorras',
     whyWorthIt: '¿Por Qué Esta Inversión Vale la Pena?',
     viewTechSpecs: 'Ver especificaciones técnicas',
     customizeBtn: 'Personalizar tu inversión',
@@ -518,6 +519,7 @@ const i18n = {
     every: 'every',
     months: 'months',
     month: 'month',
+    youSave: 'You save',
     whyWorthIt: 'Why Is This Investment Worth It?',
     viewTechSpecs: 'View technical specs',
     customizeBtn: 'Customize your investment',
@@ -566,12 +568,12 @@ const computedBillingTiers = computed(() => {
     const discount = tier.discountPercent || 0;
     const months = tier.months || 1;
     const monthlyDiscounted = Math.round(monthlyBase * (100 - discount) / 100);
-    const periodTotal = monthlyDiscounted * months;
+    const savingsPerPeriod = (monthlyBase - monthlyDiscounted) * months;
 
     return {
       ...tier,
       monthlyPrice: formatCurrency(monthlyDiscounted),
-      periodTotal: formatCurrency(periodTotal),
+      savings: savingsPerPeriod > 0 ? formatCurrency(savingsPerPeriod) : null,
     };
   });
 });

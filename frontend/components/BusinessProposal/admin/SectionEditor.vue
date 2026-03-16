@@ -804,7 +804,7 @@ import {
 
 // --- Inline sub-components (render functions for prod compatibility) ---
 const FieldInput = {
-  props: { modelValue: String, label: String, placeholder: String },
+  props: { modelValue: [String, Number], label: String, placeholder: String },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
     return () => h('label', { class: 'block' }, [

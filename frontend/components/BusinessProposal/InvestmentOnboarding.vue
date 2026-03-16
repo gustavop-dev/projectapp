@@ -267,7 +267,7 @@ async function scrollAndPosition() {
   const step = currentStepData.value;
   const el = document.querySelector(step.target);
   if (el) {
-    await smoothScrollToElement(el, { duration: 700, viewportOffset: 0.35 });
+    await smoothScrollToElement(el, { duration: 1400, viewportOffset: 0.35 });
     positionAll();
     // Re-position after scroll settles to correct any layout shift
     await new Promise(r => setTimeout(r, 300));

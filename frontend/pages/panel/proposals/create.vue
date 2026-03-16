@@ -586,7 +586,11 @@
 
         <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
           <p class="text-xs text-blue-700">
-            <strong>Flujo recomendado:</strong> 1) Descarga la plantilla JSON desde la pestaña "Importar JSON" → 2) Copia este prompt → 3) Pega ambos en tu IA favorita → 4) Pega el JSON resultante de vuelta en "Importar JSON".
+            <strong>Flujo recomendado:</strong><br/>
+            1) Descarga la plantilla JSON desde la pestaña "Importar JSON"<br/>
+            → 2) Copia este prompt<br/>
+            → 3) Pega ambos en tu IA favorita<br/>
+            → 4) Pega el JSON resultante de vuelta en "Importar JSON".
           </p>
         </div>
       </div>
