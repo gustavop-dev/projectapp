@@ -133,6 +133,7 @@ const stepsI18n = {
     { target: '.expiration-badge', title: 'Vigencia de la propuesta', description: 'Esta propuesta tiene fecha de expiración. Aquí verás el tiempo restante para revisarla y tomar una decisión.', prefer: 'bottom', optional: true },
     { target: '.share-btn', title: 'Compartir propuesta', description: 'Comparte el enlace de esta propuesta con tu equipo o socios para que puedan revisarla juntos.', prefer: 'top' },
     { target: '.pdf-download', title: 'Descargar como PDF', description: 'Puedes descargar toda la propuesta en formato PDF para revisarla offline o compartirla con tu equipo.', prefer: 'top' },
+    { target: '.restart-tutorial-btn', title: 'Repetir tutorial', description: 'Si necesitas recordar cómo navegar la propuesta, puedes reiniciar este tutorial en cualquier momento desde este botón.', prefer: 'right' },
   ],
   en: [
     { target: '.dark-mode-toggle', title: 'Light & Dark Mode', description: 'Switch between light and dark mode to read the proposal however you prefer. Your preference is saved automatically.', prefer: 'right' },
@@ -142,6 +143,7 @@ const stepsI18n = {
     { target: '.expiration-badge', title: 'Proposal Validity', description: 'This proposal has an expiration date. Here you can see the remaining time to review and decide.', prefer: 'bottom', optional: true },
     { target: '.share-btn', title: 'Share Proposal', description: 'Share the proposal link with your team or partners so they can review it together.', prefer: 'top' },
     { target: '.pdf-download', title: 'Download as PDF', description: 'Download the entire proposal as a PDF to review offline or share with your team.', prefer: 'top' },
+    { target: '.restart-tutorial-btn', title: 'Restart Tutorial', description: 'If you need a reminder on how to navigate the proposal, you can restart this tutorial anytime from this button.', prefer: 'right' },
   ],
 };
 const steps = computed(() => stepsI18n[props.language] || stepsI18n.es);
@@ -332,6 +334,17 @@ function start() {
   }, 800);
 }
 
+function forceStart() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
+  setTimeout(() => {
+    activeSteps.value = steps.value.filter((s) => !s.optional || document.querySelector(s.target));
+    if (!activeSteps.value.length) return;
+    currentStep.value = 0;
+    visible.value = true;
+    nextTick(positionAll);
+  }, 300);
+}
+
 function onResize() {
   if (visible.value) positionAll();
 }
@@ -343,7 +356,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', onResize);
 });
 
-defineExpose({ start });
+defineExpose({ start, forceStart });
 </script>
 
 <style scoped>

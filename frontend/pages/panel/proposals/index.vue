@@ -517,6 +517,19 @@
         </div>
       </div>
     </div>
+
+    <!-- Floating refresh button (above MetricsManual ? button) -->
+    <button
+      type="button"
+      class="fixed bottom-[76px] right-6 z-50 w-12 h-12 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 disabled:opacity-50 flex items-center justify-center dark:bg-emerald-700 dark:hover:bg-emerald-600"
+      :disabled="isRefreshing"
+      :title="isRefreshing ? 'Actualizando...' : 'Actualizar datos'"
+      @click="refreshData"
+    >
+      <svg class="w-5 h-5" :class="{ 'animate-spin': isRefreshing }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -557,6 +570,7 @@ const pageSize = 15;
 const zombieExpanded = ref(false);
 const selectedIds = ref(new Set());
 const isBulkActing = ref(false);
+const isRefreshing = ref(false);
 
 function toggleSelectAll() {
   if (selectedIds.value.size === paginatedProposals.value.length) {
@@ -806,6 +820,17 @@ async function handleInlineStatusChange(proposalId, newStatus) {
 }
 
 const alerts = ref([]);
+
+async function refreshData() {
+  isRefreshing.value = true;
+  try {
+    await proposalStore.fetchProposals(activeFilter.value || undefined);
+    const alertResult = await proposalStore.fetchAlerts();
+    if (alertResult.success) alerts.value = alertResult.data || [];
+  } finally {
+    isRefreshing.value = false;
+  }
+}
 
 onMounted(async () => {
   proposalStore.fetchProposals();

@@ -701,6 +701,19 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- Floating refresh button -->
+    <button
+      type="button"
+      class="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 disabled:opacity-50 flex items-center justify-center dark:bg-emerald-700 dark:hover:bg-emerald-600"
+      :disabled="isRefreshing"
+      :title="isRefreshing ? 'Actualizando...' : 'Actualizar datos'"
+      @click="refreshData"
+    >
+      <svg class="w-5 h-5" :class="{ 'animate-spin': isRefreshing }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -788,6 +801,7 @@ function handleResetPrompt() {
   promptReset();
 }
 
+const isRefreshing = ref(false);
 const expandedSections = ref(new Set());
 const updateMsg = ref(null);
 
@@ -843,6 +857,40 @@ onMounted(async () => {
     });
   }
 });
+
+async function refreshData() {
+  isRefreshing.value = true;
+  try {
+    await proposalStore.fetchProposal(route.params.id);
+    if (proposal.value) {
+      Object.assign(form, {
+        title: proposal.value.title,
+        client_name: proposal.value.client_name,
+        client_email: proposal.value.client_email || '',
+        client_phone: proposal.value.client_phone || '',
+        project_type: proposal.value.project_type || '',
+        market_type: proposal.value.market_type || '',
+        project_type_custom: proposal.value.project_type_custom || '',
+        market_type_custom: proposal.value.market_type_custom || '',
+        language: proposal.value.language || 'es',
+        total_investment: Number(proposal.value.total_investment),
+        currency: proposal.value.currency,
+        hosting_percent: proposal.value.hosting_percent ?? 30,
+        hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
+        hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
+        expires_at: proposal.value.expires_at
+          ? proposal.value.expires_at.slice(0, 16)
+          : '',
+        reminder_days: proposal.value.reminder_days,
+        urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
+        discount_percent: proposal.value.discount_percent ?? 0,
+        automations_paused: proposal.value.automations_paused ?? false,
+      });
+    }
+  } finally {
+    isRefreshing.value = false;
+  }
+}
 
 async function toggleAutomationsPaused() {
   form.automations_paused = !form.automations_paused;
