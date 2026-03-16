@@ -81,7 +81,7 @@ test.describe('Admin Proposal Dashboard Auto-Refresh', () => {
     await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 10000 });
 
     // Click refresh
-    await page.getByRole('button', { name: /Actualizar/i }).click();
+    await page.getByRole('button', { name: 'Actualizar', exact: true }).click();
 
     // Updated data should appear
     await expect(page.getByText('15')).toBeVisible({ timeout: 5000 });
