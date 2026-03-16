@@ -489,6 +489,56 @@
       </p>
     </div>
 
+    <!-- ═══ TAB: JSON ═══ -->
+    <div v-show="activeTab === 'json'" class="max-w-4xl">
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+        Representación JSON de la configuración por defecto (secciones plantilla). Se actualiza al guardar cambios en la pestaña Secciones.
+      </p>
+
+      <!-- Action bar -->
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          @click="refreshDefaultsJson"
+        >
+          <svg class="w-4 h-4" :class="{ 'animate-spin': defaultsJsonLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Actualizar
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          @click="copyDefaultsJson"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+          {{ defaultsJsonCopied ? '¡Copiado!' : 'Copiar' }}
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          @click="downloadDefaultsJson"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+          Descargar .json
+        </button>
+      </div>
+
+      <div v-if="defaultsJsonLoading" class="text-center py-8 text-gray-400 text-sm">
+        Cargando JSON...
+      </div>
+      <div v-else class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <textarea
+          :value="defaultsJsonString"
+          readonly
+          rows="18"
+          class="w-full px-4 py-3 border-0 text-xs font-mono leading-relaxed
+                 bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 outline-none resize-y cursor-text select-all"
+        />
+      </div>
+    </div>
+
     <!-- ═══ Shared modals ═══ -->
 
     <!-- Email preview modal -->
@@ -603,10 +653,11 @@ const tabs = [
   { id: 'general', label: 'Vista General' },
   { id: 'sections', label: 'Secciones' },
   { id: 'emails', label: 'Plantillas de Email' },
-  { id: 'prompt', label: 'Prompt IA' },
+  { id: 'prompt', label: 'Prompt Proposal' },
+  { id: 'json', label: 'JSON' },
 ];
 const route = useRoute();
-const initialTab = ['general', 'sections', 'emails', 'prompt'].includes(route.query.tab) ? route.query.tab : 'general';
+const initialTab = ['general', 'sections', 'emails', 'prompt', 'json'].includes(route.query.tab) ? route.query.tab : 'general';
 const activeTab = ref(initialTab);
 
 const languageOptions = [
@@ -974,6 +1025,53 @@ async function handleCopyPrompt() {
   promptCopied.value = true;
   setTimeout(() => { promptCopied.value = false; }, 2000);
   showFeedback('Prompt copiado al portapapeles.', 'success');
+}
+
+// ── JSON tab ──
+const defaultsJsonLoading = ref(false);
+const defaultsJsonCopied = ref(false);
+
+const defaultsJsonString = computed(() => {
+  try {
+    const payload = {
+      language: selectedLang.value,
+      general: generalForm.value,
+      sections: sections.value,
+    };
+    return JSON.stringify(payload, null, 2);
+  } catch {
+    return '{}';
+  }
+});
+
+async function refreshDefaultsJson() {
+  defaultsJsonLoading.value = true;
+  try {
+    await loadDefaults(selectedLang.value);
+  } finally {
+    defaultsJsonLoading.value = false;
+  }
+}
+
+async function copyDefaultsJson() {
+  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+    await navigator.clipboard.writeText(defaultsJsonString.value);
+    defaultsJsonCopied.value = true;
+    setTimeout(() => { defaultsJsonCopied.value = false; }, 2000);
+    showFeedback('JSON copiado al portapapeles.', 'success');
+  }
+}
+
+function downloadDefaultsJson() {
+  const blob = new Blob([defaultsJsonString.value], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `defaults-${selectedLang.value}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 onMounted(() => {

@@ -96,9 +96,9 @@ WHITE = colors.white
 ESMERALD_80 = colors.HexColor('#335550')  # esmerald at ~80% mixed with white
 
 # ── Cover / back-cover PDF paths ─────────────────────────────
-COVER_PDF = Path(settings.MEDIA_ROOT) / 'front_page' / 'Portada_ProjectApp.pdf'
+COVER_PDF = Path(settings.BASE_DIR) / 'static' / 'front_page' / 'Portada_Propuesta_ProjectApp.pdf'
 BACK_COVER_PDF = (
-    Path(settings.MEDIA_ROOT) / 'front_page' / 'Contraportada_ProjectApp.pdf'
+    Path(settings.BASE_DIR) / 'static' / 'front_page' / 'Contraportada_ProjectApp.pdf'
 )
 
 # ── Page dimensions (portrait A4) ────────────────────────────
@@ -135,13 +135,19 @@ _EMOJI_RE = re.compile(
     '\U0000FFFD'
     ']+',
 )
+_BR_TAG_RE = re.compile(r'<br\s*/?>', re.IGNORECASE)
+_BOLD_HTML_RE = re.compile(r'<b>(.*?)</b>', re.IGNORECASE | re.DOTALL)
+_HTML_TAG_RE = re.compile(r'</?[a-zA-Z][^>]*>', re.IGNORECASE)
 
 
 def _strip_emoji(text):
     """Remove emoji/symbol characters that the fonts cannot render."""
     if not text:
         return text
-    return _EMOJI_RE.sub('', str(text)).strip()
+    text = _BOLD_HTML_RE.sub(r'**\1**', str(text))
+    text = _BR_TAG_RE.sub(' ', text)
+    text = _HTML_TAG_RE.sub('', text)
+    return _EMOJI_RE.sub('', text).strip()
 
 
 def _format_cop(value):
@@ -205,15 +211,17 @@ def _replace_urls_with_placeholders(text):
 
 
 def _draw_line_with_links(c, x, y, line, font_name, font_size, text_color,
-                          link_color=None):
+                          link_color=None, bold_font_name=None):
     """Draw a single line of text, rendering detected URL display labels
-    as clickable links in *link_color*.
+    as clickable links in *link_color* and **bold** segments with bold font.
 
     This operates on *already wrapped* lines where full URLs have been
     replaced by their display labels via ``_replace_urls_with_placeholders``.
     """
     if link_color is None:
         link_color = colors.HexColor('#059669')  # emerald-600
+    if bold_font_name is None:
+        bold_font_name = _font('bold')
 
     # Split line into segments: text vs link-display-labels
     # We search for patterns that look like domain.tld or domain.tld/path
@@ -249,10 +257,17 @@ def _draw_line_with_links(c, x, y, line, font_name, font_size, text_color,
             c.line(cx, y - 1.5, cx + tw, y - 1.5)
             cx += tw
         else:
-            c.setFont(font_name, font_size)
-            c.setFillColor(text_color)
-            c.drawString(cx, y, part)
-            cx += c.stringWidth(part, font_name, font_size)
+            # Handle **bold** segments within non-link text
+            bold_segments = part.split('**')
+            for j, segment in enumerate(bold_segments):
+                if not segment:
+                    continue
+                is_bold = (j % 2 == 1)
+                fn = bold_font_name if is_bold else font_name
+                c.setFont(fn, font_size)
+                c.setFillColor(text_color)
+                c.drawString(cx, y, segment)
+                cx += c.stringWidth(segment, fn, font_size)
     return cx
 
 
@@ -1904,6 +1919,9 @@ def _parse_markdown_lines(raw):
     """
     if not raw:
         return []
+    raw = _BR_TAG_RE.sub('\n', raw)
+    raw = _BOLD_HTML_RE.sub(r'**\1**', raw)
+    raw = _HTML_TAG_RE.sub('', raw)
     result = []
     for line in raw.split('\n'):
         stripped = line.strip()
