@@ -163,7 +163,30 @@
           </div>
         </div>
 
-        <div v-if="computedMonthlyPrice || computedAnnualPrice" class="mt-6 pl-0 sm:pl-16">
+        <div v-if="computedBillingTiers.length" class="mt-6 pl-0 sm:pl-16">
+          <div class="grid sm:grid-cols-3 gap-4">
+            <div v-for="(tier, tIdx) in computedBillingTiers" :key="tIdx"
+                 class="relative rounded-xl p-5 border-2 transition-all"
+                 :class="tIdx === 0
+                   ? 'bg-esmerald/5 border-esmerald/30 ring-2 ring-emerald-400'
+                   : 'bg-white border-esmerald/10'">
+              <span v-if="tier.badge" class="absolute -top-3 left-4 bg-lemon text-esmerald text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full whitespace-nowrap">
+                {{ tier.badge }}
+              </span>
+              <div class="text-sm text-green-light font-medium mb-1">{{ tier.label }}</div>
+              <div class="text-2xl font-bold text-esmerald">{{ tier.monthlyPrice }}</div>
+              <div class="text-xs text-esmerald/60">{{ currency }} {{ t.perMonth }}</div>
+              <div v-if="tier.discountPercent > 0" class="text-xs text-emerald-600 mt-1 font-medium">
+                {{ tier.discountPercent }}% {{ t.discount }}
+              </div>
+              <div class="text-[11px] text-esmerald/50 mt-2">
+                {{ tier.periodTotal }} {{ currency }} {{ t.every }} {{ tier.months }} {{ tier.months > 1 ? t.months : t.month }}
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Legacy fallback for proposals without billingTiers -->
+        <div v-else-if="computedMonthlyPrice || computedAnnualPrice" class="mt-6 pl-0 sm:pl-16">
           <div class="grid md:grid-cols-2 gap-4">
             <div v-if="computedMonthlyPrice" class="bg-esmerald-light/60 border border-esmerald/10 rounded-xl p-5">
               <div class="text-sm text-green-light font-medium">{{ t.specialPrice }}</div>
@@ -462,6 +485,11 @@ const i18n = {
     convenientPayments: 'pagos flexibles',
     specialPrice: 'Precio especial',
     annualPayment: 'Pago anual único',
+    perMonth: '/ mes',
+    discount: 'de descuento',
+    every: 'cada',
+    months: 'meses',
+    month: 'mes',
     whyWorthIt: '¿Por Qué Esta Inversión Vale la Pena?',
     viewTechSpecs: 'Ver especificaciones técnicas',
     customizeBtn: 'Personalizar tu inversión',
@@ -485,6 +513,11 @@ const i18n = {
     convenientPayments: 'flexible payments',
     specialPrice: 'Special price',
     annualPayment: 'Annual payment',
+    perMonth: '/ month',
+    discount: 'discount',
+    every: 'every',
+    months: 'months',
+    month: 'month',
     whyWorthIt: 'Why Is This Investment Worth It?',
     viewTechSpecs: 'View technical specs',
     customizeBtn: 'Customize your investment',
@@ -519,6 +552,28 @@ const hostingAnnualAmount = computed(() => {
     if (base > 0) return Math.round(base * hp.hostingPercent / 100);
   }
   return null;
+});
+
+const computedBillingTiers = computed(() => {
+  const hp = props.hostingPlan;
+  const tiers = hp?.billingTiers;
+  if (!tiers?.length || hostingAnnualAmount.value === null) return [];
+
+  const monthlyBase = Math.round(hostingAnnualAmount.value / 12);
+  if (monthlyBase <= 0) return [];
+
+  return tiers.map(tier => {
+    const discount = tier.discountPercent || 0;
+    const months = tier.months || 1;
+    const monthlyDiscounted = Math.round(monthlyBase * (100 - discount) / 100);
+    const periodTotal = monthlyDiscounted * months;
+
+    return {
+      ...tier,
+      monthlyPrice: formatCurrency(monthlyDiscounted),
+      periodTotal: formatCurrency(periodTotal),
+    };
+  });
 });
 
 const computedAnnualPrice = computed(() => {

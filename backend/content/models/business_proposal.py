@@ -56,6 +56,14 @@ class BusinessProposal(models.Model):
         default=30,
         help_text='Percentage of total investment charged for annual hosting.',
     )
+    hosting_discount_semiannual = models.PositiveIntegerField(
+        default=20,
+        help_text='Default discount % for semiannual (6-month) hosting payments.',
+    )
+    hosting_discount_quarterly = models.PositiveIntegerField(
+        default=10,
+        help_text='Default discount % for quarterly (3-month) hosting payments.',
+    )
 
     # Status & lifecycle
     status = models.CharField(

@@ -101,6 +101,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'uuid', 'title', 'client_name', 'client_email', 'slug',
             'language', 'total_investment', 'currency', 'hosting_percent',
+            'hosting_discount_semiannual', 'hosting_discount_quarterly',
             'status', 'expires_at',
             'reminder_days', 'urgency_reminder_days', 'discount_percent',
             'is_active', 'automations_paused',
@@ -171,6 +172,7 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
         fields = (
             'title', 'client_name', 'client_email', 'slug',
             'language', 'total_investment', 'currency', 'hosting_percent',
+            'hosting_discount_semiannual', 'hosting_discount_quarterly',
             'status', 'expires_at', 'reminder_days', 'urgency_reminder_days',
             'discount_percent', 'is_active', 'automations_paused',
             'project_type', 'market_type', 'client_phone',

@@ -1,5 +1,15 @@
 <template>
   <div>
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      @confirm="handleConfirmed"
+      @cancel="handleCancelled"
+    />
     <div class="flex items-center justify-between mb-8">
       <h1 class="text-2xl font-light text-gray-900">Portfolio Works</h1>
       <NuxtLink
@@ -91,6 +101,7 @@
 <script setup>
 import { computed, onMounted } from 'vue';
 import { usePortfolioWorksStore } from '~/stores/portfolio_works';
+import { useConfirmModal } from '~/composables/useConfirmModal';
 
 const localePath = useLocalePath();
 
@@ -98,6 +109,7 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const portfolioStore = usePortfolioWorksStore();
 const works = computed(() => portfolioStore.works);
+const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
 onMounted(() => { portfolioStore.fetchAdminWorks(); });
 
@@ -114,13 +126,23 @@ function statusBadgeClass(work) {
   return work.is_published ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600';
 }
 
-async function handleDuplicate(work) {
-  if (!confirm(`¿Duplicar "${work.title_es}"?`)) return;
-  await portfolioStore.duplicateWork(work.id);
+function handleDuplicate(work) {
+  requestConfirm({
+    title: 'Duplicar trabajo',
+    message: `¿Duplicar "${work.title_es}"?`,
+    variant: 'info',
+    confirmText: 'Duplicar',
+    onConfirm: () => portfolioStore.duplicateWork(work.id),
+  });
 }
 
-async function handleDelete(work) {
-  if (!confirm(`¿Eliminar "${work.title_es}"?`)) return;
-  await portfolioStore.deleteWork(work.id);
+function handleDelete(work) {
+  requestConfirm({
+    title: 'Eliminar trabajo',
+    message: `¿Eliminar "${work.title_es}"?`,
+    variant: 'danger',
+    confirmText: 'Eliminar',
+    onConfirm: () => portfolioStore.deleteWork(work.id),
+  });
 }
 </script>

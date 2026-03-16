@@ -1,5 +1,15 @@
 <template>
   <div>
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      @confirm="handleConfirmed"
+      @cancel="handleCancelled"
+    />
     <div class="mb-8">
       <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
         ← Volver a propuestas
@@ -202,6 +212,18 @@
               </span>
             </div>
             <p class="text-xs text-gray-400 mt-1">Se sincroniza con el % del Plan de Hosting en la sección "Tu inversión y cómo pagar".</p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Dcto. semestral (%)</label>
+              <input v-model.number="form.hosting_discount_semiannual" type="number" min="0" max="100"
+                class="w-32 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Dcto. trimestral (%)</label>
+              <input v-model.number="form.hosting_discount_quarterly" type="number" min="0" max="100"
+                class="w-32 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+            </div>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de expiración</label>
@@ -454,12 +476,14 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
+import { useConfirmModal } from '~/composables/useConfirmModal';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const route = useRoute();
 const proposalStore = useProposalStore();
+const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
 const proposal = computed(() => proposalStore.currentProposal);
 const allSections = computed(() =>
@@ -510,6 +534,8 @@ const form = reactive({
   total_investment: 0,
   currency: 'COP',
   hosting_percent: 30,
+  hosting_discount_semiannual: 20,
+  hosting_discount_quarterly: 10,
   expires_at: '',
   reminder_days: 10,
   urgency_reminder_days: 15,
@@ -534,6 +560,8 @@ onMounted(async () => {
       total_investment: Number(proposal.value.total_investment),
       currency: proposal.value.currency,
       hosting_percent: proposal.value.hosting_percent ?? 30,
+      hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
+      hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
       expires_at: proposal.value.expires_at
         ? proposal.value.expires_at.slice(0, 16)
         : '',
@@ -631,14 +659,21 @@ async function confirmSend() {
   }
 }
 
-async function handleResend() {
-  if (!confirm('¿Re-enviar esta propuesta? Se mantendrá la misma fecha de expiración.')) return;
-  const result = await proposalStore.resendProposal(proposal.value.id);
-  if (result.success) {
-    updateMsg.value = { type: 'success', text: 'Propuesta re-enviada al cliente.' };
-  } else {
-    updateMsg.value = { type: 'error', text: result.errors?.error || 'Error al re-enviar.' };
-  }
+function handleResend() {
+  requestConfirm({
+    title: 'Re-enviar propuesta',
+    message: '¿Re-enviar esta propuesta? Se mantendrá la misma fecha de expiración.',
+    variant: 'info',
+    confirmText: 'Re-enviar',
+    onConfirm: async () => {
+      const result = await proposalStore.resendProposal(proposal.value.id);
+      if (result.success) {
+        updateMsg.value = { type: 'success', text: 'Propuesta re-enviada al cliente.' };
+      } else {
+        updateMsg.value = { type: 'error', text: result.errors?.error || 'Error al re-enviar.' };
+      }
+    },
+  });
 }
 
 async function handleToggleActive() {

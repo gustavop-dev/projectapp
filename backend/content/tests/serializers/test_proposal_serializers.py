@@ -169,6 +169,43 @@ class TestProposalCreateUpdateSerializerHostingPercent:
             serializer.validated_data['hosting_percent'] == 30
 
 
+class TestProposalHostingBillingDiscounts:
+    """Tests for hosting_discount_semiannual and hosting_discount_quarterly fields."""
+
+    def test_detail_serializer_includes_discount_fields(self, proposal):
+        serializer = ProposalDetailSerializer(
+            proposal, context={'is_admin': True}
+        )
+        assert 'hosting_discount_semiannual' in serializer.data
+        assert 'hosting_discount_quarterly' in serializer.data
+
+    def test_detail_serializer_discount_defaults(self, proposal):
+        serializer = ProposalDetailSerializer(
+            proposal, context={'is_admin': True}
+        )
+        assert serializer.data['hosting_discount_semiannual'] == 20
+        assert serializer.data['hosting_discount_quarterly'] == 10
+
+    def test_create_serializer_accepts_discount_fields(self):
+        payload = {
+            'title': 'Test',
+            'client_name': 'Client',
+            'client_email': 'c@test.com',
+            'total_investment': '1000.00',
+            'currency': 'COP',
+            'hosting_discount_semiannual': 15,
+            'hosting_discount_quarterly': 5,
+        }
+        serializer = ProposalCreateUpdateSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['hosting_discount_semiannual'] == 15
+        assert serializer.validated_data['hosting_discount_quarterly'] == 5
+
+    def test_model_defaults_for_discount_fields(self, proposal):
+        assert proposal.hosting_discount_semiannual == 20
+        assert proposal.hosting_discount_quarterly == 10
+
+
 class TestProposalFromJSONSerializer:
     """Validation tests for ProposalFromJSONSerializer."""
 

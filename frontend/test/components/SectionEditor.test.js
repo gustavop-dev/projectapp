@@ -169,13 +169,38 @@ const investmentJson = {
       { icon: '🧮', label: 'RAM', value: '1 GB' },
     ],
     hostingPercent: 30,
-    monthlyLabel: 'por mes',
-    annualLabel: 'Hosting anual — Año 1',
+    billingTiers: [
+      { frequency: 'semiannual', months: 6, discountPercent: 20, label: 'Semestral', badge: 'Mejor precio' },
+      { frequency: 'quarterly', months: 3, discountPercent: 10, label: 'Trimestral', badge: '10% dcto' },
+      { frequency: 'monthly', months: 1, discountPercent: 0, label: 'Mensual', badge: '' },
+    ],
     renewalNote: 'Renovación con SMLMV.',
     coverageNote: 'Cubre mantenimiento, soporte y recursos.',
   },
   paymentMethods: ['Transferencia', 'Nequi'],
   valueReasons: ['Diseño a medida', 'Código optimizado'],
+};
+
+const investmentJsonLegacy = {
+  index: '9',
+  title: 'Inversión',
+  introText: 'La inversión total es:',
+  totalInvestment: '$3.500.000',
+  currency: 'COP',
+  whatsIncluded: [],
+  paymentOptions: [],
+  hostingPlan: {
+    title: 'Hosting Legacy',
+    description: 'Infraestructura.',
+    specs: [],
+    hostingPercent: 30,
+    monthlyLabel: 'por mes',
+    annualLabel: 'Hosting anual — Año 1',
+    renewalNote: '',
+    coverageNote: '',
+  },
+  paymentMethods: [],
+  valueReasons: [],
 };
 
 const finalNoteJson = {
@@ -437,20 +462,32 @@ describe('buildFormFromJson', () => {
       expect(form.hostingPlan.hostingPercent).toBe(30);
     });
 
-    it('backward compat: ignores legacy monthlyPrice/annualPrice in buildFormFromJson', () => {
-      const legacyJson = {
-        ...investmentJson,
-        hostingPlan: {
-          ...investmentJson.hostingPlan,
-          monthlyPrice: '$49.999 COP',
-          annualPrice: '$680.000 COP',
-          hostingPercent: undefined,
-        },
-      };
-      const form = buildFormFromJson(legacyJson, 'investment');
+    it('reads billingTiers from hostingPlan', () => {
+      const form = buildFormFromJson(investmentJson, 'investment');
+      expect(form.hostingPlan.billingTiers).toHaveLength(3);
+      expect(form.hostingPlan.billingTiers[0].frequency).toBe('semiannual');
+      expect(form.hostingPlan.billingTiers[0].discountPercent).toBe(20);
+      expect(form.hostingPlan.billingTiers[1].frequency).toBe('quarterly');
+      expect(form.hostingPlan.billingTiers[1].discountPercent).toBe(10);
+      expect(form.hostingPlan.billingTiers[2].frequency).toBe('monthly');
+      expect(form.hostingPlan.billingTiers[2].discountPercent).toBe(0);
+    });
+
+    it('provides default billingTiers when missing from json', () => {
+      const json = { ...investmentJson, hostingPlan: { title: 'Hosting' } };
+      const form = buildFormFromJson(json, 'investment');
+      expect(form.hostingPlan.billingTiers).toHaveLength(3);
+      expect(form.hostingPlan.billingTiers[0].months).toBe(6);
+      expect(form.hostingPlan.billingTiers[1].months).toBe(3);
+      expect(form.hostingPlan.billingTiers[2].months).toBe(1);
+    });
+
+    it('backward compat: legacy json without billingTiers gets default tiers', () => {
+      const form = buildFormFromJson(investmentJsonLegacy, 'investment');
+      expect(form.hostingPlan.billingTiers).toHaveLength(3);
       expect(form.hostingPlan.hostingPercent).toBe(30);
-      expect(form.hostingPlan).not.toHaveProperty('monthlyPrice');
-      expect(form.hostingPlan).not.toHaveProperty('annualPrice');
+      expect(form.hostingPlan).not.toHaveProperty('monthlyLabel');
+      expect(form.hostingPlan).not.toHaveProperty('annualLabel');
     });
   });
 
@@ -626,11 +663,14 @@ describe('formToJson', () => {
       expect(json.hostingPlan.hostingPercent).toBe(30);
     });
 
-    it('does not include monthlyPrice or annualPrice in serialized hostingPlan', () => {
+    it('serializes billingTiers in hostingPlan', () => {
       const form = buildFormFromJson(investmentJson, 'investment');
       const json = formToJson(form, 'investment');
-      expect(json.hostingPlan).not.toHaveProperty('monthlyPrice');
-      expect(json.hostingPlan).not.toHaveProperty('annualPrice');
+      expect(json.hostingPlan.billingTiers).toHaveLength(3);
+      expect(json.hostingPlan.billingTiers[0].frequency).toBe('semiannual');
+      expect(json.hostingPlan.billingTiers[0].discountPercent).toBe(20);
+      expect(json.hostingPlan).not.toHaveProperty('monthlyLabel');
+      expect(json.hostingPlan).not.toHaveProperty('annualLabel');
     });
 
     it('defaults hostingPercent to 30 during serialization when missing', () => {

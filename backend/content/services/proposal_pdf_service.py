@@ -1500,48 +1500,119 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                     y -= spec_row_h + 4
             y -= 2
 
-        # Pricing row — monthly + annual side by side
-        m_price = _safe(hosting, 'monthlyPrice')
-        a_price = _safe(hosting, 'annualPrice')
-        if m_price or a_price:
+        # Billing tiers — 3 frequency options side by side
+        billing_tiers = _safe(hosting, 'billingTiers', [])
+        h_percent = _safe(hosting, 'hostingPercent', 0)
+        # Compute annual hosting amount from total investment
+        # Use adjusted total if modules were deselected, otherwise base_num
+        tier_base_num = adjusted if adjusted is not None else base_num
+        annual_hosting = round(tier_base_num * h_percent / 100) if h_percent and tier_base_num else 0
+
+        if billing_tiers and annual_hosting > 0:
             if ps:
-                y = _check_y(c, y, ps, need=40)
-            price_col_w = (CONTENT_W - 14) / 2
-            price_h = 34
-            price_y = y - price_h + 6
-            # Vertically centred text positions for price boxes
-            p_label_y = price_y + price_h - 11   # top line
-            p_price_y = price_y + 5               # bottom line
-            if m_price:
-                # Monthly — emerald bg, white text
-                c.setFillColor(ESMERALD)
-                c.roundRect(MARGIN_L, price_y, price_col_w, price_h, 5,
-                            fill=1, stroke=0)
+                y = _check_y(c, y, ps, need=56)
+            num_tiers = len(billing_tiers)
+            tier_gap = 10
+            tier_col_w = (CONTENT_W - tier_gap * (num_tiers - 1)) / num_tiers
+            tier_h = 48
+            tier_y = y - tier_h + 6
+
+            monthly_base = round(annual_hosting / 12)
+
+            for ti, tier in enumerate(billing_tiers):
+                tx = MARGIN_L + ti * (tier_col_w + tier_gap)
+                discount = _safe(tier, 'discountPercent', 0)
+                months = _safe(tier, 'months', 1) or 1
+                label = _strip_emoji(_safe(tier, 'label', ''))
+                badge = _strip_emoji(_safe(tier, 'badge', ''))
+                monthly_discounted = round(monthly_base * (100 - discount) / 100)
+                period_total = monthly_discounted * months
+
+                # First tier (best price) gets esmerald bg
+                if ti == 0:
+                    c.setFillColor(ESMERALD)
+                    c.roundRect(tx, tier_y, tier_col_w, tier_h, 5,
+                                fill=1, stroke=0)
+                    label_color = colors.HexColor('#A7F3D0')
+                    price_color = WHITE
+                    sub_color = colors.HexColor('#A7F3D0')
+                else:
+                    c.setFillColor(ESMERALD_LIGHT)
+                    c.roundRect(tx, tier_y, tier_col_w, tier_h, 5,
+                                fill=1, stroke=0)
+                    label_color = GREEN_LIGHT
+                    price_color = ESMERALD
+                    sub_color = ESMERALD_80
+
+                # Badge (top-right corner)
+                if badge:
+                    c.setFont(_font('medium'), 6)
+                    badge_w = c.stringWidth(badge, _font('medium'), 6) + 8
+                    badge_x = tx + tier_col_w - badge_w - 4
+                    badge_y = tier_y + tier_h - 12
+                    c.setFillColor(LEMON)
+                    c.roundRect(badge_x, badge_y, badge_w, 10, 3,
+                                fill=1, stroke=0)
+                    c.setFont(_font('medium'), 6)
+                    c.setFillColor(ESMERALD)
+                    c.drawString(badge_x + 4, badge_y + 2, badge)
+
+                # Label
                 c.setFont(_font('medium'), 7)
-                c.setFillColor(colors.HexColor('#A7F3D0'))
-                m_label = _strip_emoji(
-                    _safe(hosting, 'monthlyLabel', 'por mes'))
-                c.drawString(MARGIN_L + 10, p_label_y, m_label)
+                c.setFillColor(label_color)
+                c.drawString(tx + 10, tier_y + tier_h - 12, label)
+
+                # Price per month
                 c.setFont(_font('bold'), 11)
-                c.setFillColor(WHITE)
-                c.drawString(MARGIN_L + 10, p_price_y,
-                             _strip_emoji(str(m_price)))
-            if a_price:
-                # Annual — bone bg, esmerald text
-                ax = MARGIN_L + price_col_w + 14
-                c.setFillColor(BONE)
-                c.roundRect(ax, price_y, price_col_w, price_h, 5,
-                            fill=1, stroke=0)
-                c.setFont(_font('medium'), 7)
-                c.setFillColor(GRAY_500)
-                a_label = _strip_emoji(
-                    _safe(hosting, 'annualLabel', 'pago anual'))
-                c.drawString(ax + 10, p_label_y, a_label)
-                c.setFont(_font('bold'), 11)
-                c.setFillColor(ESMERALD)
-                c.drawString(ax + 10, p_price_y,
-                             _strip_emoji(str(a_price)))
-            y = price_y - 6
+                c.setFillColor(price_color)
+                price_str = _format_cop(monthly_discounted) + ' /mes'
+                c.drawString(tx + 10, tier_y + tier_h - 26, price_str)
+
+                # Period total
+                c.setFont(_font('regular'), 7)
+                c.setFillColor(sub_color)
+                sub_str = f'{_format_cop(period_total)} cada {months} mes{"es" if months > 1 else ""}'
+                c.drawString(tx + 10, tier_y + 5, sub_str)
+
+            y = tier_y - 6
+        else:
+            # Legacy fallback: monthlyPrice / annualPrice
+            m_price = _safe(hosting, 'monthlyPrice')
+            a_price = _safe(hosting, 'annualPrice')
+            if m_price or a_price:
+                if ps:
+                    y = _check_y(c, y, ps, need=40)
+                price_col_w = (CONTENT_W - 14) / 2
+                price_h = 34
+                price_y = y - price_h + 6
+                p_label_y = price_y + price_h - 11
+                p_price_y = price_y + 5
+                if m_price:
+                    c.setFillColor(ESMERALD)
+                    c.roundRect(MARGIN_L, price_y, price_col_w, price_h, 5,
+                                fill=1, stroke=0)
+                    c.setFont(_font('medium'), 7)
+                    c.setFillColor(colors.HexColor('#A7F3D0'))
+                    c.drawString(MARGIN_L + 10, p_label_y,
+                                 _strip_emoji(_safe(hosting, 'monthlyLabel', 'por mes')))
+                    c.setFont(_font('bold'), 11)
+                    c.setFillColor(WHITE)
+                    c.drawString(MARGIN_L + 10, p_price_y,
+                                 _strip_emoji(str(m_price)))
+                if a_price:
+                    ax = MARGIN_L + price_col_w + 14
+                    c.setFillColor(BONE)
+                    c.roundRect(ax, price_y, price_col_w, price_h, 5,
+                                fill=1, stroke=0)
+                    c.setFont(_font('medium'), 7)
+                    c.setFillColor(GRAY_500)
+                    c.drawString(ax + 10, p_label_y,
+                                 _strip_emoji(_safe(hosting, 'annualLabel', 'pago anual')))
+                    c.setFont(_font('bold'), 11)
+                    c.setFillColor(ESMERALD)
+                    c.drawString(ax + 10, p_price_y,
+                                 _strip_emoji(str(a_price)))
+                y = price_y - 6
 
         # Coverage note — pill-style block describing the 3 hosting components
         coverage = _safe(hosting, 'coverageNote')

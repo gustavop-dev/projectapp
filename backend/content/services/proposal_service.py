@@ -152,8 +152,29 @@ DEFAULT_SECTIONS = [
                     {'icon': '🧬', 'label': 'Compatibilidad', 'value': 'Linux (Ubuntu)'},
                 ],
                 'hostingPercent': 30,
-                'monthlyLabel': 'por mes',
-                'annualLabel': 'Hosting anual — Año 1',
+                'billingTiers': [
+                    {
+                        'frequency': 'semiannual',
+                        'months': 6,
+                        'discountPercent': 20,
+                        'label': 'Semestral',
+                        'badge': 'Mejor precio',
+                    },
+                    {
+                        'frequency': 'quarterly',
+                        'months': 3,
+                        'discountPercent': 10,
+                        'label': 'Trimestral',
+                        'badge': '10% dcto',
+                    },
+                    {
+                        'frequency': 'monthly',
+                        'months': 1,
+                        'discountPercent': 0,
+                        'label': 'Mensual',
+                        'badge': '',
+                    },
+                ],
                 'renewalNote': (
                     'Renovaciones a partir del segundo año: el costo se ajusta anualmente '
                     'con base en el SMLMV (Salario Mínimo Legal Mensual Vigente) del año '
