@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 1.8.0
-> **Last updated:** 2026-03-12
+> **Version:** 1.9.0
+> **Last updated:** 2026-03-16
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -325,6 +325,55 @@
   - [Branch A — Returning visitor] Onboarding is skipped if already seen (localStorage flag).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-onboarding.spec.js`
+
+### FLOW: `proposal-section-onboarding`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P3
+- **Routes:** `/proposal/:uuid`
+- **Description:** Per-section spotlight onboarding tutorials that trigger automatically the first time a client navigates to specific sections. Each section has its own component with a spotlight overlay (blur backdrop + cloned element), progress dots, and positioned tooltip card. Tutorials are skipped for returning visitors (localStorage flag per proposal UUID).
+- **Steps:**
+  1. Client navigates to the Investment section for the first time (detailed view, with calculator modules).
+  2. InvestmentOnboarding component triggers after 800ms delay.
+  3. Spotlight highlights the "Personalizar tu inversión" button with a tooltip explaining the calculator.
+  4. Client clicks through onboarding steps → completes → localStorage flag set.
+  5. [Separate trigger] Client navigates to functional_requirements section.
+  6. RequirementsOnboarding component triggers after 800ms delay.
+  7. Spotlight highlights requirement group cards with a tooltip explaining how to expand them.
+  8. [Separate trigger] Client in executive view navigates to investment section.
+  9. ExecutiveInvestmentOnboarding triggers, highlighting the "Ver detalle" teaser button.
+- **Branches:**
+  - [Branch A — Detailed Investment] InvestmentOnboarding triggers only in detailed view when calculator modules exist.
+  - [Branch B — Executive Investment] ExecutiveInvestmentOnboarding triggers only in executive view.
+  - [Branch C — Requirements] RequirementsOnboarding triggers in both view modes.
+  - [Branch D — Returning visitor] Each tutorial is skipped if already completed (per-UUID localStorage flag).
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+- **Components:** `InvestmentOnboarding.vue`, `RequirementsOnboarding.vue`, `ExecutiveInvestmentOnboarding.vue`
+
+### FLOW: `proposal-executive-to-detailed`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** Client switches from executive view to the full detailed proposal view via the "Ver Propuesta Completa" button in the ProposalIndex sidebar, or via the teaser button in the executive Investment section. A branded transition overlay (esmerald background with lemon icon + loading text) plays during the mode switch. The page scrolls to top and renders all sections.
+- **Steps:**
+  1. Client is viewing the proposal in executive mode (filtered sections).
+  2. Client opens the ProposalIndex sidebar menu.
+  3. Client clicks "Ver Propuesta Completa" button at the bottom of the sidebar.
+  4. ProposalIndex emits `switchToDetailed` event and closes.
+  5. Branded transition overlay appears (esmerald bg, lemon bouncing icon, "Cargando propuesta completa…").
+  6. After ~1s, `viewMode` switches from `'executive'` to `'detailed'`, all sections render.
+  7. Overlay fades out, page scrolls to top.
+  8. Client can now navigate all proposal sections.
+- **Branches:**
+  - [Branch A — From sidebar] Client clicks "Ver Propuesta Completa" in ProposalIndex.
+  - [Branch B — From Investment teaser] Executive Investment section has a teaser button that also triggers `switchToDetailed`.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** —
+- **Components:** `ProposalIndex.vue` (`switchToDetailed` emit), `[uuid]/index.vue` (`handleSwitchToDetailed`)
 
 ### FLOW: `proposal-respond`
 
@@ -1429,6 +1478,8 @@
 | `proposal-view` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view.spec.js` |
 | `proposal-view-navigation` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view-navigation.spec.js` |
 | `proposal-view-onboarding` | proposal | guest | P3 | ✅ Covered | `e2e/proposal/proposal-onboarding.spec.js` |
+| `proposal-section-onboarding` | proposal | guest | P3 | ❌ Missing | — |
+| `proposal-executive-to-detailed` | proposal | guest | P2 | ❌ Missing | — |
 | `proposal-respond` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-respond.spec.js` |
 | `proposal-download-pdf` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-pdf.spec.js` |
 | `proposal-share` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-share.spec.js` |
@@ -1515,14 +1566,14 @@
 
 ### Summary
 
-- **Total flows:** 100
+- **Total flows:** 102
 - **P1 (Critical):** 20
-- **P2 (High):** 63
-- **P3 (Medium):** 16
-- **Covered (full):** 88 (88%)
+- **P2 (High):** 64
+- **P3 (Medium):** 17
+- **Covered (full):** 88 (86%)
 - **Backend-only:** 10 (10%) — system-triggered alerts and automation covered by backend unit tests
 - **Partial:** 2 (2%)
-- **Missing:** 0 (0%)
+- **Missing:** 2 (2%) — `proposal-section-onboarding`, `proposal-executive-to-detailed`
 
 ### Unit Test Coverage
 

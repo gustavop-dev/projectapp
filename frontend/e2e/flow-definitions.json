@@ -1,6 +1,6 @@
 {
-  "version": "2.4.0",
-  "lastUpdated": "2026-03-12",
+  "version": "2.5.0",
+  "lastUpdated": "2026-03-16",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -831,6 +831,22 @@
       "roles": ["guest"],
       "priority": "P2",
       "description": "Accept with an optional condition note (Acepto, pero...).",
+      "expectedSpecs": 1
+    },
+    "proposal-section-onboarding": {
+      "name": "Proposal Section Onboarding",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "Per-section spotlight onboarding tutorials (Investment, Requirements, Executive Investment) that trigger on first visit to each section.",
+      "expectedSpecs": 1
+    },
+    "proposal-executive-to-detailed": {
+      "name": "Proposal Executive to Detailed View Switch",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Client switches from executive view to full detailed proposal via 'Ver Propuesta Completa' button with branded transition overlay.",
       "expectedSpecs": 1
     }
   }
