@@ -5,8 +5,8 @@
       data-testid="index-toggle"
       class="index-toggle absolute left-4 top-4 z-50 pointer-events-auto
              w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg
-             flex items-center justify-center text-emerald-600
-             hover:bg-emerald-50 transition-colors"
+             flex items-center justify-center text-esmerald
+             hover:bg-esmerald/5 transition-colors"
       @click="isOpen = !isOpen"
     >
       <svg v-if="!isOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -40,8 +40,8 @@
       <button
         class="sm:hidden absolute left-4 top-4 z-10
                w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg
-               flex items-center justify-center text-emerald-600
-               hover:bg-emerald-50 transition-colors"
+               flex items-center justify-center text-esmerald
+               hover:bg-esmerald/5 transition-colors"
         @click="isOpen = false"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -49,7 +49,7 @@
         </svg>
       </button>
 
-      <p class="text-[10px] uppercase tracking-[0.2em] text-emerald-600 font-medium mb-2 px-2 mt-14 sm:mt-0">
+      <p class="text-[10px] uppercase tracking-[0.2em] text-esmerald font-medium mb-2 px-2 mt-14 sm:mt-0">
         Índice
       </p>
       <ul class="space-y-0.5">
@@ -61,16 +61,16 @@
           <button
             class="w-full text-left px-2.5 py-2 sm:py-1.5 rounded-xl text-sm transition-all duration-200 flex items-center gap-2"
             :class="idx === currentIndex
-              ? 'bg-emerald-50 text-emerald-700 font-medium'
+              ? 'bg-esmerald/5 text-esmerald font-medium'
               : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'"
             @click="$emit('navigate', idx); isOpen = false"
           >
             <span
               class="w-6 h-6 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[11px] sm:text-[10px] font-medium flex-shrink-0 transition-colors"
               :class="idx === currentIndex
-                ? 'bg-emerald-600 text-white'
+                ? 'bg-esmerald text-lemon'
                 : visitedPanelIds.has(section.id)
-                  ? 'bg-emerald-100 text-emerald-600'
+                  ? 'bg-esmerald/10 text-esmerald'
                   : 'bg-gray-200 text-gray-500 group-hover:bg-gray-300'"
             >
               <svg
@@ -90,8 +90,8 @@
       <!-- Executive mode: switch to full proposal -->
       <div v-if="viewMode === 'executive'" class="mt-4 px-2">
         <button
-          class="sidebar-switch-detailed-btn w-full flex items-center gap-2 px-3 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium
-                 hover:bg-emerald-700 transition-colors shadow-sm"
+          class="sidebar-switch-detailed-btn w-full flex items-center gap-2 px-3 py-2.5 bg-esmerald text-lemon rounded-xl text-sm font-medium
+                 hover:bg-esmerald/90 transition-colors shadow-sm"
           @click="$emit('switchToDetailed'); isOpen = false"
         >
           <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

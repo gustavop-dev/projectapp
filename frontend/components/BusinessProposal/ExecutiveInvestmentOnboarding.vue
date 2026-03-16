@@ -264,7 +264,14 @@ async function scrollAndPosition() {
   const step = currentStepData.value;
   const el = document.querySelector(step.target);
   if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Scroll the button's parent teaser card into upper-center so there's room for the tooltip above
+    const parent = el.closest('.bg-white.border-2') || el;
+    parent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    await new Promise(r => setTimeout(r, 600));
+    // Fine-tune: scroll down a bit so the button is centered in the viewport
+    const rect = el.getBoundingClientRect();
+    const targetY = window.scrollY + rect.top - window.innerHeight * 0.35;
+    window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
     await new Promise(r => setTimeout(r, 800));
     positionAll();
     await new Promise(r => setTimeout(r, 400));
