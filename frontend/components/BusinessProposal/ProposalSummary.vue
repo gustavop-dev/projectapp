@@ -57,7 +57,7 @@ function parseInvestment(str) {
 
 function formatCurrency(value) {
   if (!value) return '';
-  const num = parseFloat(value);
+  const num = Math.abs(parseFloat(value));
   if (isNaN(num)) return value;
   return '$' + num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
@@ -76,7 +76,7 @@ onMounted(() => {
           .filter(m => m.is_required !== true && !selectedIds.includes(m.id))
           .reduce((sum, m) => sum + (m.price || 0), 0);
         if (deselectedSum > 0) {
-          customTotal.value = base - deselectedSum;
+          customTotal.value = Math.max(0, base - deselectedSum);
         }
         selectedModuleCount.value = selectedIds.length;
       }
