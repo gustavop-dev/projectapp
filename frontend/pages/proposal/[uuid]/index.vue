@@ -130,6 +130,27 @@
 
 
 
+      <!-- Switch-to-detailed transition overlay -->
+      <Teleport to="body">
+        <Transition name="switch-mode-overlay">
+          <div v-if="switchOverlayVisible" class="fixed inset-0 z-[10001] flex items-center justify-center bg-esmerald">
+            <div class="text-center px-6">
+              <div class="w-16 h-16 bg-lemon rounded-2xl flex items-center justify-center mx-auto mb-6 animate-bounce">
+                <svg class="w-8 h-8 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h2 class="text-2xl sm:text-3xl font-bold text-lemon mb-3">
+                {{ pLang === 'es' ? 'Propuesta Completa' : 'Full Proposal' }}
+              </h2>
+              <p class="text-sm text-lemon/70 font-light max-w-xs mx-auto">
+                {{ pLang === 'es' ? 'Ahora verás todos los detalles de tu proyecto' : 'Now you\'ll see all the details of your project' }}
+              </p>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
+
       <!-- Welcome-back toast (non-blocking) -->
       <Teleport to="body">
         <Transition name="fade-popup">
@@ -406,6 +427,7 @@ const investmentOnboardingRef = ref(null);
 const executiveInvestmentOnboardingRef = ref(null);
 const requirementsOnboardingRef = ref(null);
 const readingPopupVisible = ref(false);
+const switchOverlayVisible = ref(false);
 const welcomeBack = ref(null);
 
 // Current panel and neighbors
@@ -840,14 +862,22 @@ function handleViewModeSelect(mode) {
 }
 
 function handleSwitchToDetailed() {
-  viewMode.value = 'detailed';
-  currentIndex.value = 0;
-  window.scrollTo({ top: 0, behavior: 'auto' });
-  if (proposal.value?.uuid) {
-    try {
-      localStorage.setItem(`proposal-${proposal.value.uuid}-viewMode`, 'detailed');
-    } catch (_e) { /* ignore */ }
-  }
+  // Show transition overlay so user understands they're switching to the full proposal
+  switchOverlayVisible.value = true;
+  setTimeout(() => {
+    viewMode.value = 'detailed';
+    currentIndex.value = 0;
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    if (proposal.value?.uuid) {
+      try {
+        localStorage.setItem(`proposal-${proposal.value.uuid}-viewMode`, 'detailed');
+      } catch (_e) { /* ignore */ }
+    }
+    // Hide overlay after content has rendered
+    setTimeout(() => {
+      switchOverlayVisible.value = false;
+    }, 1200);
+  }, 1000);
 }
 
 function onCalculatorModulesUpdate(selectedIds) {
@@ -1042,6 +1072,22 @@ onBeforeUnmount(() => {
 .fade-popup-enter-from,
 .fade-popup-leave-to {
   opacity: 0;
+}
+
+/* Switch-to-detailed overlay transition */
+.switch-mode-overlay-enter-active {
+  transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.switch-mode-overlay-leave-active {
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.switch-mode-overlay-enter-from {
+  opacity: 0;
+  transform: scale(1.05);
+}
+.switch-mode-overlay-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
 }
 
 /* ── Proposal Dark Mode Overrides ── */

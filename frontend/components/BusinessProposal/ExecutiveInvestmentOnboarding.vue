@@ -126,10 +126,10 @@ const arrowComputedStyle = ref({});
 
 const stepsI18n = {
   es: [
-    { target: '.switch-to-detailed-btn', title: 'Descubre la propuesta completa', description: 'Este botón te lleva a la versión detallada donde encontrarás todos los módulos de tu proyecto, una calculadora interactiva para personalizar tu inversión, y mucho más.', prefer: 'top' },
+    { target: '.switch-to-detailed-btn', title: 'Descubre la propuesta completa', description: 'Este botón te lleva a la versión detallada donde encontrarás todos los módulos de tu proyecto, una calculadora interactiva para personalizar tu inversión, y mucho más.', prefer: 'bottom' },
   ],
   en: [
-    { target: '.switch-to-detailed-btn', title: 'Discover the full proposal', description: 'This button takes you to the detailed version where you\'ll find all your project modules, an interactive calculator to customize your investment, and much more.', prefer: 'top' },
+    { target: '.switch-to-detailed-btn', title: 'Discover the full proposal', description: 'This button takes you to the detailed version where you\'ll find all your project modules, an interactive calculator to customize your investment, and much more.', prefer: 'bottom' },
   ],
 };
 const steps = computed(() => stepsI18n[props.language] || stepsI18n.es);
@@ -264,13 +264,9 @@ async function scrollAndPosition() {
   const step = currentStepData.value;
   const el = document.querySelector(step.target);
   if (el) {
-    // Scroll the button's parent teaser card into upper-center so there's room for the tooltip above
-    const parent = el.closest('.bg-white.border-2') || el;
-    parent.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    await new Promise(r => setTimeout(r, 600));
-    // Fine-tune: scroll down a bit so the button is centered in the viewport
+    // Place button near top of viewport so tooltip has room below
     const rect = el.getBoundingClientRect();
-    const targetY = window.scrollY + rect.top - window.innerHeight * 0.35;
+    const targetY = window.scrollY + rect.top - window.innerHeight * 0.15;
     window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
     await new Promise(r => setTimeout(r, 800));
     positionAll();
