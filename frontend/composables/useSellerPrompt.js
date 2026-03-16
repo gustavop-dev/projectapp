@@ -239,17 +239,20 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 - El primer párrafo conecta emocionalmente: reconoce lo que el cliente ya ha logrado y abre la puerta a lo que sigue.
 - El segundo párrafo describe qué se va a construir en términos de resultado, no de tecnología.
 - \`highlights\`: Entregables concretos escritos como beneficios, no como tareas. "Tienda online con carrito de compras y pagos en línea", no "Desarrollo de módulo de carrito".
+- **Formato con negrillas:** Dentro de los \`paragraphs\`, usa etiquetas \`<b>texto</b>\` para resaltar palabras o fragmentos clave que refuercen el mensaje principal. Ejemplos de qué resaltar: el nombre del negocio, el tipo de proyecto, beneficios centrales, o frases de impacto. No abuses: máximo 2-3 fragmentos en negrilla por párrafo.
 
 ### \`contextDiagnostic\` 
 - Aquí demuestras que investigaste. Menciona el sector del cliente, el mercado colombiano (o el que aplique), competidores relevantes, y datos del sector.
 - \`issues\`: Desafíos reales y específicos, no genéricos. Evita "no tiene página web". Prefiere "las ventas dependen 100% del tráfico físico, limitando el alcance y los ingresos".
 - \`opportunity\`: Una oración potente que conecte el problema con la solución. Es el puente narrativo hacia la siguiente sección.
+- **Formato con negrillas:** En los \`paragraphs\`, usa etiquetas \`<b>texto</b>\` para destacar datos estadísticos, nombres de competidores, métricas del sector, y cifras de crecimiento. En \`issues\`, resalta el problema central de cada desafío. En \`opportunity\`, resalta la frase o concepto más potente. Máximo 2-3 fragmentos en negrilla por párrafo, y 1 por cada issue u opportunity.
 
 ### \`conversionStrategy\` 
 - Escribe como si explicaras el flujo del usuario en el sitio.
 - Cada \`step\` es una etapa del recorrido del visitante: captar atención → generar confianza → mostrar soluciones → facilitar la acción → mantener actualizado.
 - Los \`bullets\` dentro de cada step deben ser concretos y visualizables. El cliente debe poder "ver" su sitio mientras lee.
 - \`result\`: Una frase que cierre con visión. No solo "un sitio bonito", sino el resultado de negocio: más ventas, más clientes, más profesionalismo.
+- **Formato con negrillas:** En \`intro\`, usa \`<b>texto</b>\` para resaltar el concepto estratégico principal. En los \`title\` de cada step, resalta la acción clave con \`<b>\`. En \`result\`, destaca el resultado de negocio más impactante. Máximo 1-2 fragmentos en negrilla por campo.
 
 ### \`investment\` 
 - \`paymentOptions\`: Calcula los porcentajes (40% / 30% / 30%) sobre el monto total y escríbelos en la \`description\` de cada opción en formato "$X.XXX.XXX COP".
@@ -272,10 +275,12 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 ### \`designUX\` 
 - Describe la experiencia visual en términos del sector del cliente. Si es una pet shop, habla de "experiencia de compra cálida", "fotos de producto atractivas", "navegación por tipo de mascota".
 - \`focusItems\`: Lo que hará que este sitio destaque visualmente. Sé específico al sector.
+- **Formato con negrillas:** En los \`paragraphs\`, usa \`<b>texto</b>\` para destacar conceptos de diseño diferenciadores y la experiencia que vivirá el usuario. En \`focusItems\`, resalta el elemento visual clave de cada item. En \`objective\`, resalta el objetivo principal. Máximo 2 fragmentos en negrilla por párrafo y 1 por cada focusItem.
 
 ### \`creativeSupport\` 
 - Personaliza con el nombre del cliente. "Laura contará con acompañamiento...", no "el cliente contará con...".
 - Los \`includes\` (exactamente 4, cada uno con emoji al inicio) deben reflejar lo que realmente se hará en el acompañamiento creativo de este proyecto.
+- **Formato con negrillas:** En los \`paragraphs\`, usa \`<b>texto</b>\` para resaltar el nombre del cliente y los beneficios principales del acompañamiento. En \`includes\`, resalta la actividad clave de cada item. En \`closing\`, destaca la frase de cierre más motivadora. Máximo 2 fragmentos en negrilla por párrafo y 1 por cada include.
 
 ### \`proposalSummary\` 
 - \`kpis\`: 3 métricas relevantes para el sector del cliente con fuentes verificables reales. No inventes datos. Si no tienes el dato exacto, usa rangos conservadores y cita la fuente general.
@@ -307,19 +312,6 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 - No cambies los valores de \`circleColor\`, \`statusColor\`, \`index\`, \`source\` (en cards), \`hostingPercent\`, \`price_percent\`, \`activeStep\`, ni datos de contacto del equipo.
 - No agregues keys nuevas que no existan en la plantilla.
 - No cambies tipos de datos (un array de strings debe seguir siendo un array de strings).
-
----
-
-## FORMATO DE NEGRILLAS
-
-En las siguientes secciones, envuelve palabras importantes, frases clave y mini-títulos con etiquetas \`<b>…</b>\` para resaltar la información relevante y mejorar la lectura rápida. Aplica negrilla con moderación — solo a los fragmentos de mayor impacto (beneficios del cliente, métricas, resultados clave, verbos de acción). **NO** pongas en negrilla párrafos ni oraciones completas.
-
-Secciones que DEBEN incluir negrillas:
-- \`executiveSummary\`: en \`paragraphs\` y \`highlights\`
-- \`contextDiagnostic\`: en \`paragraphs\`, \`issues\` y \`opportunity\`
-- \`conversionStrategy\`: en \`intro\`, \`bullets\` y \`result\`
-- \`designUX\`: en \`paragraphs\`, \`focusItems\` y \`objective\`
-- \`creativeSupport\`: en \`paragraphs\`, \`includes\` y \`closing\`
 
 ---
 
