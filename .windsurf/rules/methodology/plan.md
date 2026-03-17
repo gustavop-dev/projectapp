@@ -3,7 +3,7 @@ description: Always include these rules.
 trigger: model_decision
 ---
 Before every Plan/Architect task ALWAYS do 3 things:
-a. Read the existing documentation in `docs/` : i. `docs/architecture.md`, ii. `docs/product_requirement_docs.md`, iii. `docs/technical.md`
+a. Read the existing documentation in `docs/methodology/` : i. `docs/methodology/architecture.md`, ii. `docs/methodology/product_requirement_docs.md`, iii. `docs/methodology/technical.md`
 b. Read the plans and related task planning & context in `tasks/`: i. `tasks/active_context.md`, ii. `tasks/tasks_plan.md`
 c. Get required solution context from the code files in `src` and other codes at other places.
 ---
@@ -72,5 +72,5 @@ d. `accurate`: Every aspect should be in sync with each other and individual com
 ---
 
 After every Plan/Architect task ALWAYS do 2 things:
-a. Document the plan into existing documentation and update files in `docs/` : i. `docs/architecture.md`, ii. `docs/product_requirement_docs.md`, iii. `docs/technical.md`
+a. Document the plan into existing documentation and update files in `docs/methodology/` : i. `docs/methodology/architecture.md`, ii. `docs/methodology/product_requirement_docs.md`, iii. `docs/methodology/technical.md`
 b. Document the plans and related task planning & context in `tasks/`: i. `tasks/active_context.md`, ii. `tasks/tasks_plan.md`

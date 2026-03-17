@@ -65,9 +65,9 @@
 
 | Document | Location | Status |
 |----------|----------|--------|
-| Product Requirements | `docs/product_requirement_docs.md` | ✅ Initialized |
-| Architecture | `docs/architecture.md` | ✅ Initialized |
-| Technical | `docs/technical.md` | ✅ Initialized |
+| Product Requirements | `docs/methodology/product_requirement_docs.md` | ✅ Initialized |
+| Architecture | `docs/methodology/architecture.md` | ✅ Initialized |
+| Technical | `docs/methodology/technical.md` | ✅ Initialized |
 | Task Plan | `tasks/tasks_plan.md` | ✅ Initialized |
 | Active Context | `tasks/active_context.md` | ✅ Initialized |
 | Error Documentation | `.windsurf/rules/methodology/error-documentation.md` | ✅ Initialized |

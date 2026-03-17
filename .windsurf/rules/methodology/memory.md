@@ -7,8 +7,8 @@ This outlines the fundamental principles, required files, workflow structure, an
 The Memory Files consists of required core files and optional context files. Files build upon each other in a clear hierarchy:
 ```mermaid
 flowchart TD
-    PB[ [product_requirement_docs.md](mdc:docs/product_requirement_docs.md) ] --> PC[ [technical.md](mdc:docs/technical.md) ]
-    PB --> SP[ [architecture.md](mdc:docs/architecture.md) ]
+    PB[ [product_requirement_docs.md](mdc:docs/methodology/product_requirement_docs.md) ] --> PC[ [technical.md](mdc:docs/methodology/technical.md) ]
+    PB --> SP[ [architecture.md](mdc:docs/methodology/architecture.md) ]
 
     SP --> TC[ [tasks_plan.md](mdc:tasks/tasks_plan.md) ]
     PC --> TC
@@ -35,7 +35,7 @@ flowchart TD
 ```
 ## Core Files (Required)
   7 files: 
-  1. [product_requirement_docs.md](mdc:docs/product_requirement_docs.md) (docs/product_requirement_docs.md): Product Requirement Document (PRD) for the project or an SOP. 
+  1. [product_requirement_docs.md](mdc:docs/methodology/product_requirement_docs.md) (docs/methodology/product_requirement_docs.md): Product Requirement Document (PRD) for the project or an SOP. 
   - Why this project exists
   - Problems it solves
   - Defines core requirements and goals
@@ -43,14 +43,14 @@ flowchart TD
   - Source of truth for project scope
   - Created at project start if it doesn't exist
 
-  2. [architecture.md](mdc:docs/architecture.md) (docs/architecture.md): System architecture
+  2. [architecture.md](mdc:docs/methodology/architecture.md) (docs/methodology/architecture.md): System architecture
   - How it should work
   - Component relationships
   - Dependencies
   - Work flow of the Solution
   - Mermaid diagram of solution overview: each component and code flow
 
-  3. [technical.md](mdc:docs/technical.md) (docs/technical.md): Development environment and stack
+  3. [technical.md](mdc:docs/methodology/technical.md) (docs/methodology/technical.md): Development environment and stack
   - Technologies used
   - Development setup
   - Key technical decisions
@@ -104,7 +104,7 @@ The system operates in distinct MODES: (PLAN/ACT) or analogously (Architect/Code
 ## PLAN or Architect MODE
 ```mermaid
 flowchart TD
-    Start[Start] --> ReadFiles[Read Memory Files ("docs/": (a)"docs/architecture.md" (b)"docs/product_requirement_docs.md" (c)"docs/technical.md". "tasks/" : (a)"tasks/active_context.md" (b)"tasks/tasks_plan.md". if needed further: "docs/literature" and "tasks/rfc") ]
+    Start[Start] --> ReadFiles[Read Memory Files ("docs/": (a)"docs/methodology/architecture.md" (b)"docs/methodology/product_requirement_docs.md" (c)"docs/methodology/technical.md". "tasks/" : (a)"tasks/active_context.md" (b)"tasks/tasks_plan.md". if needed further: "docs/literature" and "tasks/rfc") ]
     ReadFiles --> CheckFiles{Files Complete?}
     
     CheckFiles -->|No| Plan[Create Plan]
@@ -119,17 +119,17 @@ flowchart TD
     Verification -->|No| Clarify[Seek Clarification]
     Clarify --> Strategy[Develop Strategy]
 
-    Verification -->|Yes| DocumentMemory[Document in Memory Files ("docs/": (a)"docs/architecture.md" (b)"docs/product_requirement_docs.md" (c)"docs/technical.md". "tasks/" : (a)"tasks/active_context.md" (b)"tasks/tasks_plan.md" if needed further: "docs/literature" and "tasks/rfc")]
+    Verification -->|Yes| DocumentMemory[Document in Memory Files ("docs/": (a)"docs/methodology/architecture.md" (b)"docs/methodology/product_requirement_docs.md" (c)"docs/methodology/technical.md". "tasks/" : (a)"tasks/active_context.md" (b)"tasks/tasks_plan.md" if needed further: "docs/literature" and "tasks/rfc")]
 ```
 
 ## ACT or Code MODE
 ```mermaid
 flowchart TD
-    Start[Start] --> Context[Check Memory Files (Core Files always ("docs/": (a)"docs/architecture.md" (b)"docs/product_requirement_docs.md" (c)"docs/technical.md". "tasks/" : (a)"tasks/active_context.md" (b)"tasks/tasks_plan.md"), rest based on context (if needed further: "docs/literature" and "tasks/rfc")) ]
+    Start[Start] --> Context[Check Memory Files (Core Files always ("docs/": (a)"docs/methodology/architecture.md" (b)"docs/methodology/product_requirement_docs.md" (c)"docs/methodology/technical.md". "tasks/" : (a)"tasks/active_context.md" (b)"tasks/tasks_plan.md"), rest based on context (if needed further: "docs/literature" and "tasks/rfc")) ]
     Context --> Update[Update Documentation]
     Update --> Rules[Update [lessons-learned.md](mdc:.windsurf/rules/methodology/lessons-learned.md), [error-documentation.md](mdc:.windsurf/rules/methodology/error-documentation.md) if needed]
     Rules --> Execute[Execute Task]
-    Execute --> Document[Document Changes in Memory Files ("docs/": (a)"docs/architecture.md" (b)"docs/product_requirement_docs.md" (c)"docs/technical.md". "tasks/" : (a)"tasks/active_context.md" (b)"tasks/tasks_plan.md" if needed further: "docs/literature" and "tasks/rfc") ]
+    Execute --> Document[Document Changes in Memory Files ("docs/": (a)"docs/methodology/architecture.md" (b)"docs/methodology/product_requirement_docs.md" (c)"docs/methodology/technical.md". "tasks/" : (a)"tasks/active_context.md" (b)"tasks/tasks_plan.md" if needed further: "docs/literature" and "tasks/rfc") ]
 ```
 
 # Documentation Updates
@@ -150,7 +150,7 @@ flowchart TD
         P2[Document Current State in [active_context.md](mdc:tasks/active_context.md) and [tasks_plan.md](mdc:tasks/tasks_plan.md) ]
         P3[Clarify Next Steps and document in [tasks_plan.md](mdc:tasks/tasks_plan.md) ]
         P4[Update [lessons-learned.md](mdc:.windsurf/rules/methodology/lessons-learned.md), [error-documentation.md](mdc:.windsurf/rules/methodology/error-documentation.md)]
-        P5 Update [ [architecture.md](mdc:docs/architecture.md) ]
+        P5 Update [ [architecture.md](mdc:docs/methodology/architecture.md) ]
         
         P1 --> P2 --> P3 --> P4
     end
@@ -158,7 +158,7 @@ flowchart TD
     Start --> Process
 ```
 
-Note: When triggered by **update memory files**, I MUST review every Core memory  file, even if some don't require updates. Focus particularly on [active_context.md](mdc:tasks/active_context.md) and [tasks_plan.md](mdc:tasks/tasks_plan.md) as they track current state. And [architecture.md](mdc:docs/architecture.md) has a section of current workflow that also gets updated by any code updates.
+Note: When triggered by **update memory files**, I MUST review every Core memory  file, even if some don't require updates. Focus particularly on [active_context.md](mdc:tasks/active_context.md) and [tasks_plan.md](mdc:tasks/tasks_plan.md) as they track current state. And [architecture.md](mdc:docs/methodology/architecture.md) has a section of current workflow that also gets updated by any code updates.
 
 # Project Intelligence ( [lessons-learned.md](mdc:.windsurf/rules/methodology/lessons-learned.md) [.windsurf/rules/methodology/lessons-learned.md] )
 
