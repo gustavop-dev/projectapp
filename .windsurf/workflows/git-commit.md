@@ -10,5 +10,5 @@ Format rules:
 - Use `DOCS: [description]` if I only updated documentation (e.g., README or docstrings).
 
 Output:
-1) The exact `git add` command(s) to stage the changes.
-2) The exact command: `git commit -m "[message]"` (ready to run).
+1) The exact `git add` command(s) to stage the changes and run it.
+2) The exact command: `git commit -m "[message]"` and run it.
