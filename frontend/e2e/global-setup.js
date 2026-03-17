@@ -8,7 +8,7 @@ export default async function globalSetup() {
   execSync('npx playwright install chromium', { stdio: 'inherit' });
 
   // Pre-warm the dev server to trigger route compilation before tests start
-  const PORT = process.env.E2E_PORT ? Number(process.env.E2E_PORT) : 5173;
+  const PORT = process.env.E2E_PORT ? Number(process.env.E2E_PORT) : 3000;
   const baseURL = process.env.E2E_BASE_URL || `http://localhost:${PORT}`;
   const warmupRoutes = ['/', '/proposal/warmup-prefetch'];
   for (const route of warmupRoutes) {
