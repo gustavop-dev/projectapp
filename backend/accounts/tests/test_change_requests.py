@@ -766,5 +766,5 @@ class TestScreenshotOptimization:
             title='No screenshot', suggested_priority='medium',
         )
 
-        assert cr.screenshot.name == ''
+        assert not cr.screenshot
         assert cr.id is not None
