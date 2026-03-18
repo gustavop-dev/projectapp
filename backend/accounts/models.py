@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from accounts.services.image_utils import optimize_avatar
+from accounts.services.image_utils import optimize_avatar, optimize_image
 
 
 class UserProfile(models.Model):
@@ -338,3 +338,112 @@ class RequirementHistory(models.Model):
 
     def __str__(self):
         return f'{self.from_status} → {self.to_status}'
+
+
+class ChangeRequest(models.Model):
+    """
+    A client-initiated change request for a project.
+    The admin evaluates and responds with estimated cost/time.
+    """
+
+    STATUS_PENDING = 'pending'
+    STATUS_EVALUATING = 'evaluating'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+    STATUS_NEEDS_CLARIFICATION = 'needs_clarification'
+    STATUS_OUT_OF_SCOPE = 'out_of_scope'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pendiente'),
+        (STATUS_EVALUATING, 'En evaluación'),
+        (STATUS_APPROVED, 'Aprobada'),
+        (STATUS_REJECTED, 'Rechazada'),
+        (STATUS_NEEDS_CLARIFICATION, 'Requiere aclaración'),
+        (STATUS_OUT_OF_SCOPE, 'Fuera de alcance'),
+    ]
+
+    PRIORITY_CRITICAL = 'critical'
+    PRIORITY_HIGH = 'high'
+    PRIORITY_MEDIUM = 'medium'
+    PRIORITY_LOW = 'low'
+    PRIORITY_CHOICES = [
+        (PRIORITY_CRITICAL, 'Crítica'),
+        (PRIORITY_HIGH, 'Alta'),
+        (PRIORITY_MEDIUM, 'Media'),
+        (PRIORITY_LOW, 'Baja'),
+    ]
+
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, related_name='change_requests',
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='change_requests',
+    )
+    title = models.CharField(max_length=300)
+    description = models.TextField(blank=True, default='')
+    module_or_screen = models.CharField(max_length=200, blank=True, default='')
+    suggested_priority = models.CharField(
+        max_length=20, choices=PRIORITY_CHOICES, default=PRIORITY_MEDIUM,
+    )
+    is_urgent = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=25, choices=STATUS_CHOICES, default=STATUS_PENDING,
+    )
+    admin_response = models.TextField(blank=True, default='')
+    estimated_cost = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text='Estimated additional cost in project currency.',
+    )
+    estimated_time = models.CharField(
+        max_length=100, blank=True, default='',
+        help_text='Estimated time to implement (e.g. "2 semanas").',
+    )
+    linked_requirement = models.ForeignKey(
+        Requirement, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='source_change_request',
+        help_text='Requirement created from this change request.',
+    )
+    screenshot = models.ImageField(
+        upload_to='change_requests/', null=True, blank=True,
+        help_text='Optimized automatically on upload (WhatsApp-like compression).',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.title} [{self.get_status_display()}]'
+
+    def save(self, *args, **kwargs):
+        if self.screenshot and hasattr(self.screenshot.file, 'content_type'):
+            content_type = getattr(self.screenshot.file, 'content_type', '')
+            if content_type and content_type.startswith('image/'):
+                try:
+                    self.screenshot = optimize_image(self.screenshot, field_name='screenshot')
+                except Exception:
+                    pass
+        super().save(*args, **kwargs)
+
+
+class ChangeRequestComment(models.Model):
+    """Comment thread on a change request. Supports internal (admin-only) comments."""
+
+    change_request = models.ForeignKey(
+        ChangeRequest, on_delete=models.CASCADE, related_name='comments',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='change_request_comments',
+    )
+    content = models.TextField()
+    is_internal = models.BooleanField(
+        default=False, help_text='Internal comments are visible only to admins.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'Comment by {self.user.email} on CR #{self.change_request_id}'

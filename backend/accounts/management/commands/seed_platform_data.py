@@ -17,7 +17,7 @@ from datetime import date, timedelta
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from accounts.models import Project, Requirement, UserProfile
+from accounts.models import ChangeRequest, ChangeRequestComment, Project, Requirement, UserProfile
 
 User = get_user_model()
 
@@ -44,7 +44,7 @@ class Command(BaseCommand):
 
         admin_user = self._create_admin()
         client_user = self._create_client(created_by=admin_user)
-        self._create_projects(client_user)
+        self._create_projects(client_user, admin_user)
 
         self.stdout.write(self.style.SUCCESS('\nSeed data created successfully:'))
         self.stdout.write(f'  Admin  → {ADMIN_EMAIL} / (env SEED_ADMIN_PASSWORD or Admin1234!)')
@@ -111,9 +111,13 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'  Created client: {CLIENT_EMAIL}'))
         return user
 
-    def _create_projects(self, client_user):
+    def _create_projects(self, client_user, admin_user):
         if Project.objects.filter(client=client_user).exists():
             self.stdout.write(f'  Projects already exist for {client_user.email}')
+            ecommerce_project = Project.objects.filter(client=client_user, name='Plataforma E-commerce').first()
+            if ecommerce_project:
+                self._create_requirements(ecommerce_project)
+                self._create_change_requests(ecommerce_project, client_user, admin_user)
             return
 
         today = date.today()
@@ -141,6 +145,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'  Created 2 demo projects for {client_user.email}'))
 
         self._create_requirements(ecommerce_project)
+        self._create_change_requests(ecommerce_project, client_user, admin_user)
 
     def _create_requirements(self, project):
         if Requirement.objects.filter(project=project).exists():
@@ -173,3 +178,91 @@ class Command(BaseCommand):
             )
 
         self.stdout.write(self.style.SUCCESS(f'  Created {len(reqs)} requirements for {project.name}'))
+
+    def _create_change_requests(self, project, client_user, admin_user):
+        if ChangeRequest.objects.filter(project=project).exists():
+            self.stdout.write(f'  Change requests already exist for {project.name}')
+            return
+
+        crs = [
+            {
+                'title': 'Agregar filtro de rango de precio en catálogo',
+                'description': 'Los usuarios necesitan poder filtrar productos por un rango de precio mínimo y máximo, similar a lo que hace MercadoLibre.',
+                'module_or_screen': 'Catálogo / Filtros',
+                'suggested_priority': 'high',
+                'is_urgent': False,
+                'status': ChangeRequest.STATUS_APPROVED,
+                'admin_response': 'Buen punto, lo incluiremos en el sprint actual. Estimamos 2 días de trabajo.',
+                'estimated_cost': 0,
+                'estimated_time': '2 días',
+            },
+            {
+                'title': 'Cambiar color del botón de compra a verde',
+                'description': 'El botón "Agregar al carrito" actualmente es azul, pero creemos que verde genera más confianza para la acción de compra.',
+                'module_or_screen': 'Producto detalle',
+                'suggested_priority': 'low',
+                'is_urgent': False,
+                'status': ChangeRequest.STATUS_EVALUATING,
+                'admin_response': '',
+                'estimated_cost': None,
+                'estimated_time': '',
+            },
+            {
+                'title': 'Integrar login con Google',
+                'description': 'Queremos que los clientes puedan iniciar sesión con su cuenta de Google además del email/password.',
+                'module_or_screen': 'Autenticación',
+                'suggested_priority': 'medium',
+                'is_urgent': False,
+                'status': ChangeRequest.STATUS_PENDING,
+                'admin_response': '',
+                'estimated_cost': None,
+                'estimated_time': '',
+            },
+            {
+                'title': 'Agregar sección de productos recomendados',
+                'description': 'En la página de detalle de producto, mostrar una sección "También te puede interesar" con productos relacionados.',
+                'module_or_screen': 'Producto detalle',
+                'suggested_priority': 'medium',
+                'is_urgent': False,
+                'status': ChangeRequest.STATUS_REJECTED,
+                'admin_response': 'Este cambio requiere un motor de recomendaciones que está fuera del alcance actual. Lo evaluaremos para la fase 2.',
+                'estimated_cost': None,
+                'estimated_time': '',
+            },
+            {
+                'title': 'Notificación WhatsApp cuando hay pedido nuevo',
+                'description': 'Además del email, necesitamos una notificación por WhatsApp cuando un cliente realiza un pedido.',
+                'module_or_screen': 'Notificaciones',
+                'suggested_priority': 'high',
+                'is_urgent': True,
+                'status': ChangeRequest.STATUS_NEEDS_CLARIFICATION,
+                'admin_response': '¿Quieres recibir la notificación solo tú o también el equipo de bodega?',
+                'estimated_cost': None,
+                'estimated_time': '',
+            },
+        ]
+
+        for cr_data in crs:
+            cr = ChangeRequest.objects.create(
+                project=project,
+                created_by=client_user,
+                title=cr_data['title'],
+                description=cr_data['description'],
+                module_or_screen=cr_data.get('module_or_screen', ''),
+                suggested_priority=cr_data['suggested_priority'],
+                is_urgent=cr_data.get('is_urgent', False),
+                status=cr_data['status'],
+                admin_response=cr_data.get('admin_response', ''),
+                estimated_cost=cr_data.get('estimated_cost'),
+                estimated_time=cr_data.get('estimated_time', ''),
+            )
+
+            if cr_data['admin_response']:
+                ChangeRequestComment.objects.create(
+                    change_request=cr,
+                    user=admin_user,
+                    content=cr_data['admin_response'],
+                    is_internal=False,
+                )
+
+        self.stdout.write(self.style.SUCCESS(f'  Created {len(crs)} change requests for {project.name}'))

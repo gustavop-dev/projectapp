@@ -1,6 +1,12 @@
 from django.urls import path
 
 from accounts.views import (
+    change_request_all_view,
+    change_request_comment_view,
+    change_request_convert_view,
+    change_request_detail_view,
+    change_request_evaluate_view,
+    change_request_list_view,
     client_detail_view,
     client_list_view,
     client_resend_invite_view,
@@ -43,4 +49,12 @@ urlpatterns = [
     path('projects/<int:project_id>/requirements/<int:req_id>/', requirement_detail_view, name='platform-requirement-detail'),
     path('projects/<int:project_id>/requirements/<int:req_id>/move/', requirement_move_view, name='platform-requirement-move'),
     path('projects/<int:project_id>/requirements/<int:req_id>/comments/', requirement_comment_view, name='platform-requirement-comments'),
+
+    # Change Requests
+    path('change-requests/', change_request_all_view, name='platform-change-request-all'),
+    path('projects/<int:project_id>/change-requests/', change_request_list_view, name='platform-change-request-list'),
+    path('projects/<int:project_id>/change-requests/<int:cr_id>/', change_request_detail_view, name='platform-change-request-detail'),
+    path('projects/<int:project_id>/change-requests/<int:cr_id>/evaluate/', change_request_evaluate_view, name='platform-change-request-evaluate'),
+    path('projects/<int:project_id>/change-requests/<int:cr_id>/comments/', change_request_comment_view, name='platform-change-request-comments'),
+    path('projects/<int:project_id>/change-requests/<int:cr_id>/convert/', change_request_convert_view, name='platform-change-request-convert'),
 ]

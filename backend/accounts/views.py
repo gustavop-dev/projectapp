@@ -704,3 +704,269 @@ def requirement_comment_view(request, project_id, req_id):
 
     from accounts.serializers import RequirementCommentSerializer as RCS  # noqa: E402
     return Response(RCS(comment).data, status=status.HTTP_201_CREATED)
+
+
+# ==========================================================================
+# Change Requests
+# ==========================================================================
+
+from accounts.models import ChangeRequest, ChangeRequestComment  # noqa: E402
+from accounts.serializers import (  # noqa: E402
+    ChangeRequestCommentSerializer,
+    ChangeRequestDetailSerializer,
+    ChangeRequestListSerializer,
+    CreateChangeRequestCommentSerializer,
+    CreateChangeRequestSerializer,
+    EvaluateChangeRequestSerializer,
+)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def change_request_all_view(request):
+    """
+    GET — All change requests across all projects the user has access to.
+    Admin sees all; client sees only their projects.
+    """
+    profile = getattr(request.user, 'profile', None)
+    is_admin = profile and profile.is_admin
+
+    if is_admin:
+        qs = ChangeRequest.objects.select_related('created_by', 'project').all()
+    else:
+        qs = ChangeRequest.objects.select_related('created_by', 'project').filter(
+            project__client=request.user,
+        )
+
+    status_filter = request.query_params.get('status')
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+
+    serializer = ChangeRequestListSerializer(qs, many=True, context={'request': request})
+
+    data = serializer.data
+    for item, cr in zip(data, qs):
+        item['project_id'] = cr.project_id
+        item['project_name'] = cr.project.name
+
+    return Response(data)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def change_request_list_view(request, project_id):
+    """
+    GET  — All change requests for a project (both roles, filtered by status optionally).
+    POST — Both roles can create a change request.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    if request.method == 'GET':
+        qs = ChangeRequest.objects.filter(project=proj).select_related('created_by')
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        serializer = ChangeRequestListSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    serializer = CreateChangeRequestSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    cr = ChangeRequest(
+        project=proj,
+        created_by=request.user,
+        title=data['title'],
+        description=data.get('description', ''),
+        module_or_screen=data.get('module_or_screen', ''),
+        suggested_priority=data.get('suggested_priority', ChangeRequest.PRIORITY_MEDIUM),
+        is_urgent=data.get('is_urgent', False),
+    )
+    if data.get('screenshot'):
+        cr.screenshot = data['screenshot']
+    cr.save()
+
+    return Response(
+        ChangeRequestListSerializer(cr, context={'request': request}).data,
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['GET', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def change_request_detail_view(request, project_id, cr_id):
+    """
+    GET    — Detail with comments (both roles).
+    DELETE — Admin only.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        cr = ChangeRequest.objects.prefetch_related('comments__user').get(
+            id=cr_id, project=proj,
+        )
+    except ChangeRequest.DoesNotExist:
+        return Response(
+            {'detail': 'Solicitud de cambio no encontrada.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if request.method == 'GET':
+        return Response(
+            ChangeRequestDetailSerializer(cr, context={'request': request}).data,
+        )
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.is_admin:
+        return Response(
+            {'detail': 'Solo los administradores pueden eliminar solicitudes de cambio.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    cr.delete()
+    return Response({'detail': 'Solicitud de cambio eliminada.'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_request_evaluate_view(request, project_id, cr_id):
+    """
+    Admin evaluates a change request: update status, admin_response, estimated_cost/time.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.is_admin:
+        return Response(
+            {'detail': 'Solo los administradores pueden evaluar solicitudes de cambio.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    try:
+        cr = ChangeRequest.objects.get(id=cr_id, project=proj)
+    except ChangeRequest.DoesNotExist:
+        return Response(
+            {'detail': 'Solicitud de cambio no encontrada.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    serializer = EvaluateChangeRequestSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    upd_fields = ['updated_at']
+    for field in ('status', 'admin_response', 'estimated_cost', 'estimated_time'):
+        if field in data:
+            setattr(cr, field, data[field])
+            upd_fields.append(field)
+    cr.save(update_fields=upd_fields)
+
+    return Response(
+        ChangeRequestDetailSerializer(cr, context={'request': request}).data,
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_request_comment_view(request, project_id, cr_id):
+    """Add a comment to a change request. Both roles can comment."""
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        cr = ChangeRequest.objects.get(id=cr_id, project=proj)
+    except ChangeRequest.DoesNotExist:
+        return Response(
+            {'detail': 'Solicitud de cambio no encontrada.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    serializer = CreateChangeRequestCommentSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    profile = getattr(request.user, 'profile', None)
+    is_admin = profile and profile.is_admin
+    is_internal = data.get('is_internal', False) and is_admin
+
+    comment = ChangeRequestComment.objects.create(
+        change_request=cr,
+        user=request.user,
+        content=data['content'],
+        is_internal=is_internal,
+    )
+
+    return Response(
+        ChangeRequestCommentSerializer(comment).data,
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_request_convert_view(request, project_id, cr_id):
+    """
+    Admin converts an approved change request into a Kanban requirement.
+    Creates the requirement and links it back to the CR.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.is_admin:
+        return Response(
+            {'detail': 'Solo los administradores pueden convertir solicitudes en requerimientos.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    try:
+        cr = ChangeRequest.objects.get(id=cr_id, project=proj)
+    except ChangeRequest.DoesNotExist:
+        return Response(
+            {'detail': 'Solicitud de cambio no encontrada.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if cr.status != ChangeRequest.STATUS_APPROVED:
+        return Response(
+            {'detail': 'Solo se pueden convertir solicitudes aprobadas.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if cr.linked_requirement is not None:
+        return Response(
+            {'detail': 'Esta solicitud ya fue convertida en un requerimiento.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    max_order = Requirement.objects.filter(
+        project=proj, status=Requirement.STATUS_TODO,
+    ).count()
+
+    req = Requirement.objects.create(
+        project=proj,
+        title=cr.title,
+        description=cr.description,
+        status=Requirement.STATUS_TODO,
+        priority=cr.suggested_priority,
+        module=cr.module_or_screen,
+        order=max_order,
+    )
+
+    cr.linked_requirement = req
+    cr.save(update_fields=['linked_requirement', 'updated_at'])
+
+    _recalculate_project_progress(proj)
+
+    return Response(
+        ChangeRequestDetailSerializer(cr, context={'request': request}).data,
+        status=status.HTTP_201_CREATED,
+    )
