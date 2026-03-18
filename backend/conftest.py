@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 # Bar widths: per-file bars use MINI, the TOTAL row uses WIDE
 _MINI_W = 13
 _WIDE_W = 15
-_APP_NAME = "content"
+_APP_NAMES = ("content", "accounts")
 
 
 def _color_for(pct):
@@ -71,7 +71,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
     for filepath in measured:
         norm = filepath.replace("\\", "/")
-        if _APP_NAME not in norm or "/tests/" in norm:
+        if not any(app in norm for app in _APP_NAMES) or "/tests/" in norm:
             continue
         try:
             analysis = cov._analyze(filepath)
@@ -80,7 +80,11 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
                 continue
             missing = len(analysis.missing)
             pct = (stmts - missing) / stmts * 100
-            idx = norm.find(_APP_NAME)
+            idx = -1
+            for app in _APP_NAMES:
+                found = norm.find(app)
+                if found >= 0 and (idx < 0 or found < idx):
+                    idx = found
             short = norm[idx:] if idx >= 0 else norm
             results.append({"path": short, "stmts": stmts, "missing": missing, "pct": pct})
         except Exception:

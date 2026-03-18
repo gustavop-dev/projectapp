@@ -1,0 +1,340 @@
+import secrets
+import string
+
+from django.conf import settings
+from django.db import models
+from django.utils import timezone
+
+from accounts.services.image_utils import optimize_avatar
+
+
+class UserProfile(models.Model):
+    """
+    Extends auth.User with platform-specific fields.
+    One-to-one relationship to avoid changing AUTH_USER_MODEL.
+    """
+
+    ROLE_ADMIN = 'admin'
+    ROLE_CLIENT = 'client'
+    ROLE_CHOICES = [
+        (ROLE_ADMIN, 'Admin'),
+        (ROLE_CLIENT, 'Client'),
+    ]
+
+    GENDER_MALE = 'male'
+    GENDER_FEMALE = 'female'
+    GENDER_OTHER = 'other'
+    GENDER_PREFER_NOT = 'prefer_not_to_say'
+    GENDER_CHOICES = [
+        (GENDER_MALE, 'Masculino'),
+        (GENDER_FEMALE, 'Femenino'),
+        (GENDER_OTHER, 'Otro'),
+        (GENDER_PREFER_NOT, 'Prefiero no decir'),
+    ]
+
+    EDUCATION_PRIMARY = 'primaria'
+    EDUCATION_SECONDARY = 'secundaria'
+    EDUCATION_TECHNICAL = 'tecnico'
+    EDUCATION_UNIVERSITY = 'universitario'
+    EDUCATION_POSTGRADUATE = 'posgrado'
+    EDUCATION_OTHER = 'otro'
+    EDUCATION_CHOICES = [
+        (EDUCATION_PRIMARY, 'Primaria'),
+        (EDUCATION_SECONDARY, 'Secundaria'),
+        (EDUCATION_TECHNICAL, 'Técnico'),
+        (EDUCATION_UNIVERSITY, 'Universitario'),
+        (EDUCATION_POSTGRADUATE, 'Posgrado'),
+        (EDUCATION_OTHER, 'Otro'),
+    ]
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='profile',
+    )
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=ROLE_CLIENT)
+    is_onboarded = models.BooleanField(
+        default=False,
+        help_text='True after the client sets their own password.',
+    )
+    company_name = models.CharField(max_length=200, blank=True, default='')
+    phone = models.CharField(max_length=30, blank=True, default='')
+    cedula = models.CharField(max_length=20, blank=True, default='')
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(
+        max_length=20, choices=GENDER_CHOICES, blank=True, default='',
+    )
+    education_level = models.CharField(
+        max_length=20, choices=EDUCATION_CHOICES, blank=True, default='',
+    )
+    avatar = models.ImageField(
+        upload_to='avatars/', null=True, blank=True,
+        help_text='Optimized automatically on upload.',
+    )
+    avatar_url = models.URLField(
+        max_length=500, blank=True, default='',
+        help_text='Deprecated — use avatar ImageField instead.',
+    )
+    profile_completed = models.BooleanField(
+        default=False,
+        help_text='True after the client fills in their profile details.',
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_profiles',
+        help_text='Admin who created this client account.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user.email} ({self.get_role_display()})'
+
+    @property
+    def is_admin(self):
+        return self.role == self.ROLE_ADMIN
+
+    @property
+    def is_client(self):
+        return self.role == self.ROLE_CLIENT
+
+    @property
+    def avatar_display_url(self):
+        """Return the best available avatar URL."""
+        if self.avatar:
+            return self.avatar.url
+        return self.avatar_url or ''
+
+    def save(self, *args, **kwargs):
+        if self.avatar and hasattr(self.avatar.file, 'content_type'):
+            content_type = getattr(self.avatar.file, 'content_type', '')
+            if content_type and content_type.startswith('image/'):
+                try:
+                    self.avatar = optimize_avatar(self.avatar)
+                except Exception:
+                    pass
+        super().save(*args, **kwargs)
+
+
+class VerificationCode(models.Model):
+    """
+    Time-limited OTP for onboarding verification and password resets.
+    """
+
+    PURPOSE_ONBOARDING = 'onboarding'
+    PURPOSE_PASSWORD_RESET = 'password_reset'
+    PURPOSE_CHOICES = [
+        (PURPOSE_ONBOARDING, 'Onboarding'),
+        (PURPOSE_PASSWORD_RESET, 'Password Reset'),
+    ]
+
+    MAX_ATTEMPTS = 5
+    EXPIRY_MINUTES = 10
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='verification_codes',
+    )
+    code = models.CharField(max_length=6)
+    purpose = models.CharField(
+        max_length=20,
+        choices=PURPOSE_CHOICES,
+        default=PURPOSE_ONBOARDING,
+    )
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    attempts = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'OTP for {self.user.email} ({self.purpose}) — {"used" if self.is_used else "active"}'
+
+    @property
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    @property
+    def is_valid(self):
+        return not self.is_used and not self.is_expired and self.attempts < self.MAX_ATTEMPTS
+
+    def increment_attempts(self):
+        self.attempts += 1
+        self.save(update_fields=['attempts'])
+
+    def mark_used(self):
+        self.is_used = True
+        self.save(update_fields=['is_used'])
+
+    @classmethod
+    def generate_code(cls):
+        return ''.join(secrets.choice(string.digits) for _ in range(6))
+
+    @classmethod
+    def create_for_user(cls, user, purpose=PURPOSE_ONBOARDING):
+        """Invalidate previous codes and create a new one."""
+        cls.objects.filter(user=user, purpose=purpose, is_used=False).update(is_used=True)
+        return cls.objects.create(
+            user=user,
+            code=cls.generate_code(),
+            purpose=purpose,
+            expires_at=timezone.now() + timezone.timedelta(minutes=cls.EXPIRY_MINUTES),
+        )
+
+
+class Project(models.Model):
+    """
+    A client project managed through the platform.
+    Each project belongs to a single client (User with client role).
+    """
+
+    STATUS_ACTIVE = 'active'
+    STATUS_PAUSED = 'paused'
+    STATUS_COMPLETED = 'completed'
+    STATUS_ARCHIVED = 'archived'
+    STATUS_CHOICES = [
+        (STATUS_ACTIVE, 'Activo'),
+        (STATUS_PAUSED, 'Pausado'),
+        (STATUS_COMPLETED, 'Completado'),
+        (STATUS_ARCHIVED, 'Archivado'),
+    ]
+
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True, default='')
+    client = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='projects',
+        help_text='The client user this project belongs to.',
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE,
+    )
+    progress = models.PositiveIntegerField(
+        default=0,
+        help_text='Overall progress percentage (0-100).',
+    )
+    start_date = models.DateField(null=True, blank=True)
+    estimated_end_date = models.DateField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f'{self.name} — {self.client.email}'
+
+    @property
+    def status_display(self):
+        return dict(self.STATUS_CHOICES).get(self.status, self.status)
+
+
+class Requirement(models.Model):
+    """
+    A single requirement (card) on the project Kanban board.
+    """
+
+    STATUS_BACKLOG = 'backlog'
+    STATUS_TODO = 'todo'
+    STATUS_IN_PROGRESS = 'in_progress'
+    STATUS_IN_REVIEW = 'in_review'
+    STATUS_APPROVAL = 'approval'
+    STATUS_DONE = 'done'
+    STATUS_CHOICES = [
+        (STATUS_BACKLOG, 'Backlog'),
+        (STATUS_TODO, 'To do'),
+        (STATUS_IN_PROGRESS, 'In progress'),
+        (STATUS_IN_REVIEW, 'In review'),
+        (STATUS_APPROVAL, 'Aprobación'),
+        (STATUS_DONE, 'Done'),
+    ]
+
+    PRIORITY_CRITICAL = 'critical'
+    PRIORITY_HIGH = 'high'
+    PRIORITY_MEDIUM = 'medium'
+    PRIORITY_LOW = 'low'
+    PRIORITY_CHOICES = [
+        (PRIORITY_CRITICAL, 'Crítica'),
+        (PRIORITY_HIGH, 'Alta'),
+        (PRIORITY_MEDIUM, 'Media'),
+        (PRIORITY_LOW, 'Baja'),
+    ]
+
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, related_name='requirements',
+    )
+    title = models.CharField(max_length=300)
+    description = models.TextField(blank=True, default='')
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_BACKLOG,
+    )
+    priority = models.CharField(
+        max_length=20, choices=PRIORITY_CHOICES, default=PRIORITY_MEDIUM,
+    )
+    estimated_hours = models.DecimalField(
+        max_digits=6, decimal_places=1, null=True, blank=True,
+    )
+    module = models.CharField(max_length=100, blank=True, default='')
+    order = models.PositiveIntegerField(
+        default=0, help_text='Sort order within the column.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', '-created_at']
+
+    def __str__(self):
+        return f'{self.title} [{self.get_status_display()}]'
+
+
+class RequirementComment(models.Model):
+    """Comment on a requirement card — can be internal (admin-only) or public."""
+
+    requirement = models.ForeignKey(
+        Requirement, on_delete=models.CASCADE, related_name='comments',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='requirement_comments',
+    )
+    content = models.TextField()
+    is_internal = models.BooleanField(
+        default=False, help_text='Internal comments are visible only to admins.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'Comment by {self.user.email} on {self.requirement_id}'
+
+
+class RequirementHistory(models.Model):
+    """Tracks status changes of a requirement."""
+
+    requirement = models.ForeignKey(
+        Requirement, on_delete=models.CASCADE, related_name='history',
+    )
+    from_status = models.CharField(max_length=20, choices=Requirement.STATUS_CHOICES)
+    to_status = models.CharField(max_length=20, choices=Requirement.STATUS_CHOICES)
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.from_status} → {self.to_status}'

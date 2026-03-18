@@ -16,6 +16,7 @@ urlpatterns = [
     path('api/health/', health_check, name='health-check'),
     path('admin/', admin_site.urls),
     path('api/', include('content.urls')),
+    path('api/accounts/', include('accounts.urls')),
     path('sitemap.xml', serve_sitemap_xml, name='sitemap-xml'),
 ]
 
