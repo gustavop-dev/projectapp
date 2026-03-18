@@ -45,7 +45,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',
     'content',
+    'accounts',
     'corsheaders',
     # Third-party (operations)
     'dbbackup',
@@ -252,6 +254,32 @@ if ENABLE_SILK:
 
     SILKY_MAX_REQUEST_BODY_SIZE = 1024
     SILKY_MAX_RESPONSE_BODY_SIZE = 1024
+
+# ==============================================================================
+# DRF + JWT
+# ==============================================================================
+
+from datetime import timedelta  # noqa: E402
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': False,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+}
 
 SLOW_QUERY_THRESHOLD_MS = config('SLOW_QUERY_THRESHOLD_MS', default=500, cast=int)
 N_PLUS_ONE_THRESHOLD = config('N_PLUS_ONE_THRESHOLD', default=10, cast=int)

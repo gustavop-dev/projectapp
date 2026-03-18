@@ -1,0 +1,297 @@
+<template>
+  <div id="platform-complete-profile" :class="{ dark: isDark }" class="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 dark:bg-esmerald-dark">
+    <div class="w-full max-w-lg">
+      <!-- Logo -->
+      <div class="mb-8 text-center">
+        <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-esmerald text-lg font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
+          PA
+        </div>
+        <h1 class="text-2xl font-bold text-esmerald dark:text-white">
+          Completa tu perfil
+        </h1>
+        <p class="mt-2 text-sm text-green-light">
+          Necesitamos algunos datos antes de continuar.
+        </p>
+      </div>
+
+      <!-- Form card -->
+      <form
+        class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none sm:p-8"
+        @submit.prevent="handleSubmit"
+      >
+        <!-- Error message -->
+        <div
+          v-if="errorMessage"
+          class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
+        >
+          {{ errorMessage }}
+        </div>
+
+        <!-- Avatar upload -->
+        <div class="mb-6 flex flex-col items-center gap-3">
+          <div
+            class="relative flex h-20 w-20 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-esmerald/20 bg-esmerald-light transition hover:border-esmerald/40 dark:border-white/20 dark:bg-esmerald-dark dark:hover:border-white/40"
+            @click="triggerFileInput"
+          >
+            <img
+              v-if="avatarPreview"
+              :src="avatarPreview"
+              alt="Avatar"
+              class="h-full w-full object-cover"
+            />
+            <svg v-else class="h-8 w-8 text-green-light/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <input
+            ref="fileInput"
+            type="file"
+            accept="image/*"
+            class="hidden"
+            @change="handleFileChange"
+          />
+          <button
+            type="button"
+            class="text-xs text-green-light transition hover:text-esmerald dark:hover:text-white"
+            @click="triggerFileInput"
+          >
+            {{ avatarPreview ? 'Cambiar foto' : 'Subir foto (opcional)' }}
+          </button>
+        </div>
+
+        <!-- Name row -->
+        <div class="mb-4 grid grid-cols-2 gap-3">
+          <div>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Nombre</label>
+            <input
+              v-model="form.first_name"
+              type="text"
+              placeholder="Tu nombre"
+              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+            />
+          </div>
+          <div>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Apellido</label>
+            <input
+              v-model="form.last_name"
+              type="text"
+              placeholder="Tu apellido"
+              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+            />
+          </div>
+        </div>
+
+        <!-- Company -->
+        <div class="mb-4">
+          <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Empresa <span class="text-red-400">*</span></label>
+          <input
+            v-model="form.company_name"
+            type="text"
+            required
+            placeholder="Nombre de tu empresa"
+            class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+          />
+        </div>
+
+        <!-- Phone + Cedula row -->
+        <div class="mb-4 grid grid-cols-2 gap-3">
+          <div>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Teléfono <span class="text-red-400">*</span></label>
+            <input
+              v-model="form.phone"
+              type="tel"
+              required
+              placeholder="+57 300 000 0000"
+              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+            />
+          </div>
+          <div>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Cédula <span class="text-red-400">*</span></label>
+            <input
+              v-model="form.cedula"
+              type="text"
+              required
+              placeholder="1020304050"
+              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+            />
+          </div>
+        </div>
+
+        <!-- Date of birth -->
+        <div class="mb-4">
+          <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Fecha de nacimiento <span class="text-red-400">*</span></label>
+          <input
+            v-model="form.date_of_birth"
+            type="date"
+            required
+            class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+          />
+        </div>
+
+        <!-- Gender + Education row -->
+        <div class="mb-6 grid grid-cols-2 gap-3">
+          <div>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Sexo <span class="text-red-400">*</span></label>
+            <select
+              v-model="form.gender"
+              required
+              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+            >
+              <option value="" disabled>Selecciona</option>
+              <option value="male">Masculino</option>
+              <option value="female">Femenino</option>
+              <option value="other">Otro</option>
+              <option value="prefer_not_to_say">Prefiero no decir</option>
+            </select>
+          </div>
+          <div>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Nivel de educación <span class="text-red-400">*</span></label>
+            <select
+              v-model="form.education_level"
+              required
+              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+            >
+              <option value="" disabled>Selecciona</option>
+              <option value="primaria">Primaria</option>
+              <option value="secundaria">Secundaria</option>
+              <option value="tecnico">Técnico</option>
+              <option value="universitario">Universitario</option>
+              <option value="posgrado">Posgrado</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button
+          type="submit"
+          :disabled="!canSubmit || authStore.isLoading"
+          class="flex w-full items-center justify-center rounded-xl bg-lemon px-6 py-3.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50 disabled:hover:brightness-100"
+        >
+          <svg
+            v-if="authStore.isLoading"
+            class="mr-2 h-4 w-4 animate-spin"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          {{ authStore.isLoading ? 'Guardando...' : 'Completar perfil' }}
+        </button>
+      </form>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed, onMounted, reactive, ref } from 'vue'
+import { usePageEntrance } from '~/composables/usePageEntrance'
+import { usePlatformAuthStore } from '~/stores/platform-auth'
+import { usePlatformTheme } from '~/composables/usePlatformTheme'
+
+definePageMeta({
+  layout: false,
+  middleware: ['platform-auth'],
+})
+
+defineI18nRoute(false)
+
+useHead({
+  title: 'Completar perfil — ProjectApp',
+})
+
+const { isDark, hydrate: hydrateTheme } = usePlatformTheme()
+onMounted(() => hydrateTheme())
+
+usePageEntrance('#platform-complete-profile')
+
+const authStore = usePlatformAuthStore()
+authStore.hydrate()
+
+const fileInput = ref(null)
+const avatarFile = ref(null)
+const avatarPreview = ref('')
+const localError = ref('')
+
+const form = reactive({
+  first_name: authStore.user?.first_name || '',
+  last_name: authStore.user?.last_name || '',
+  company_name: authStore.user?.company_name || '',
+  phone: authStore.user?.phone || '',
+  cedula: '',
+  date_of_birth: '',
+  gender: '',
+  education_level: '',
+})
+
+const errorMessage = computed(() => localError.value || authStore.error)
+
+const canSubmit = computed(() =>
+  Boolean(form.company_name.trim())
+  && Boolean(form.phone.trim())
+  && Boolean(form.cedula.trim())
+  && Boolean(form.date_of_birth)
+  && Boolean(form.gender)
+  && Boolean(form.education_level),
+)
+
+function triggerFileInput() {
+  fileInput.value?.click()
+}
+
+function handleFileChange(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    localError.value = 'Solo se permiten archivos de imagen.'
+    return
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    localError.value = 'La imagen no puede pesar más de 10 MB.'
+    return
+  }
+
+  avatarFile.value = file
+  avatarPreview.value = URL.createObjectURL(file)
+  localError.value = ''
+}
+
+async function handleSubmit() {
+  localError.value = ''
+
+  if (!canSubmit.value) {
+    localError.value = 'Completa todos los campos obligatorios.'
+    return
+  }
+
+  const formData = new FormData()
+  formData.append('company_name', form.company_name.trim())
+  formData.append('phone', form.phone.trim())
+  formData.append('cedula', form.cedula.trim())
+  formData.append('date_of_birth', form.date_of_birth)
+  formData.append('gender', form.gender)
+  formData.append('education_level', form.education_level)
+
+  if (form.first_name.trim()) {
+    formData.append('first_name', form.first_name.trim())
+  }
+  if (form.last_name.trim()) {
+    formData.append('last_name', form.last_name.trim())
+  }
+  if (avatarFile.value) {
+    formData.append('avatar', avatarFile.value)
+  }
+
+  const result = await authStore.completeProfile(formData)
+  if (!result.success) {
+    localError.value = result.message
+    return
+  }
+
+  await navigateTo('/platform/dashboard')
+}
+</script>
