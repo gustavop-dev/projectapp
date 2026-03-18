@@ -1720,6 +1720,55 @@ def payment_generate_link_view(request, project_id, payment_id):
         )
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def payment_widget_data_view(request, project_id, payment_id):
+    """
+    Generate Wompi widget checkout data (integrity signature, reference, etc.)
+    for the frontend to open the Wompi widget with a custom branded button.
+    """
+    import hashlib
+
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        payment = Payment.objects.select_related('subscription__project').get(
+            id=payment_id, subscription__project=proj,
+        )
+    except Payment.DoesNotExist:
+        return Response(
+            {'detail': 'Pago no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if payment.status not in (Payment.STATUS_PENDING, Payment.STATUS_OVERDUE, Payment.STATUS_PROCESSING):
+        return Response(
+            {'detail': 'Este pago no está disponible para cobro.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    amount_in_cents = int(payment.amount * 100)
+    reference = f'PA-{payment.id}-{proj.id}'
+
+    integrity_str = f'{reference}{amount_in_cents}COP{settings.WOMPI_INTEGRITY_SECRET}'
+    integrity_signature = hashlib.sha256(integrity_str.encode()).hexdigest()
+
+    base_url = getattr(settings, 'FRONTEND_BASE_URL', 'http://localhost:3000')
+
+    return Response({
+        'public_key': settings.WOMPI_PUBLIC_KEY,
+        'currency': 'COP',
+        'amount_in_cents': amount_in_cents,
+        'reference': reference,
+        'integrity_signature': integrity_signature,
+        'redirect_url': f'{base_url}/platform/projects/{proj.id}/payments?payment={payment.id}',
+        'customer_email': proj.client.email,
+        'customer_full_name': f'{proj.client.first_name} {proj.client.last_name}'.strip(),
+    })
+
+
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([AllowAny])

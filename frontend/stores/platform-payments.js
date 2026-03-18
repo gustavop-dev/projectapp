@@ -107,6 +107,16 @@ export const usePlatformPaymentsStore = defineStore('platformPayments', {
       }
     },
 
+    async fetchWidgetData(projectId, paymentId) {
+      try {
+        const { get } = usePlatformApi()
+        const response = await get(`projects/${projectId}/payments/${paymentId}/widget-data/`)
+        return { success: true, data: response.data }
+      } catch (error) {
+        return { success: false, message: error.response?.data?.detail || 'Error obteniendo datos de pago.' }
+      }
+    },
+
     async generatePaymentLink(projectId, paymentId) {
       this.isUpdating = true
       this.error = ''

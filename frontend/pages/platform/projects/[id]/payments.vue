@@ -38,6 +38,26 @@
           </div>
         </div>
 
+        <!-- Accepted payment methods -->
+        <div class="mb-6 rounded-2xl border border-esmerald/[0.06] bg-white px-6 py-4 dark:border-white/[0.06] dark:bg-esmerald" data-enter>
+          <p class="mb-3 text-[10px] font-semibold uppercase tracking-wider text-green-light/60">Medios de pago aceptados</p>
+          <div class="flex items-center gap-4">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 p-1.5 dark:bg-white/[0.06]">
+              <img src="/images/payments/card.svg" alt="Tarjeta" class="h-6 w-6 text-green-light dark:invert dark:opacity-70" />
+            </div>
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]">
+              <img src="/images/payments/pse-seeklogo.png" alt="PSE" class="h-7 w-7 rounded object-contain" />
+            </div>
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]">
+              <img src="/images/payments/Nequi.jpeg" alt="Nequi" class="h-7 w-7 rounded object-contain" />
+            </div>
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]">
+              <img src="/images/payments/Bancolombia.png" alt="Bancolombia" class="h-7 w-7 rounded-full object-contain" />
+            </div>
+            <span class="text-[10px] text-green-light/50">Procesado de forma segura por Wompi</span>
+          </div>
+        </div>
+
         <!-- Payments list -->
         <div class="space-y-3" data-enter>
           <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-green-light/60">Historial de pagos</h3>
@@ -71,25 +91,16 @@
                   </span>
                 </div>
 
-                <!-- Pay button (client, pending/overdue) -->
+                <!-- Pay button (client/admin, pending/overdue) -->
                 <div v-if="canPay(payment)" class="shrink-0">
-                  <a
-                    v-if="payment.wompi_payment_link_url"
-                    :href="payment.wompi_payment_link_url"
-                    target="_blank"
-                    class="flex items-center gap-2 rounded-xl bg-lemon px-5 py-3 text-sm font-semibold text-esmerald-dark transition hover:brightness-105"
+                  <button
+                    type="button"
+                    :disabled="payStore.isUpdating"
+                    class="flex items-center gap-2 rounded-xl bg-lemon px-5 py-3 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50"
+                    @click="handleOpenPayment(payment)"
                   >
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
                     Pagar ahora
-                  </a>
-                  <button
-                    v-else-if="authStore.isAdmin"
-                    type="button"
-                    :disabled="payStore.isUpdating"
-                    class="flex items-center gap-2 rounded-xl border border-esmerald/10 px-4 py-2.5 text-xs font-medium text-esmerald transition hover:bg-esmerald-light dark:border-white/10 dark:text-white dark:hover:bg-white/[0.06]"
-                    @click="handleGenerateLink(payment)"
-                  >
-                    Generar link de pago
                   </button>
                 </div>
               </div>
@@ -120,7 +131,10 @@ import { usePlatformProjectsStore } from '~/stores/platform-projects'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
 defineI18nRoute(false)
-useHead({ title: 'Pagos — ProjectApp' })
+useHead({
+  title: 'Pagos — ProjectApp',
+  script: [{ src: 'https://checkout.wompi.co/widget.js', async: true }],
+})
 usePageEntrance('#platform-project-payments')
 
 const route = useRoute()
@@ -203,8 +217,31 @@ function formatDate(val) {
   return new Date(val).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-async function handleGenerateLink(payment) {
-  await payStore.generatePaymentLink(projectId.value, payment.id)
+async function handleOpenPayment(payment) {
+  const result = await payStore.fetchWidgetData(projectId.value, payment.id)
+  if (!result.success) return
+
+  const d = result.data
+  if (typeof window !== 'undefined' && window.WidgetCheckout) {
+    const checkout = new window.WidgetCheckout({
+      currency: d.currency,
+      amountInCents: d.amount_in_cents,
+      reference: d.reference,
+      publicKey: d.public_key,
+      redirectUrl: d.redirect_url,
+      signature: { integrity: d.integrity_signature },
+      customerData: {
+        email: d.customer_email,
+        fullName: d.customer_full_name,
+      },
+    })
+    checkout.open((result) => {
+      const txn = result.transaction
+      if (txn && txn.status === 'APPROVED') {
+        payStore.fetchProjectSubscription(projectId.value)
+      }
+    })
+  }
 }
 
 onMounted(async () => {
