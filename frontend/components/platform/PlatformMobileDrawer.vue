@@ -153,7 +153,7 @@ const projectItems = computed(() => {
       { label: 'Tablero', href: '/platform/board', icon: 'board' },
       { label: 'Solicitudes', href: '/platform/changes', icon: 'refresh' },
       { label: 'Bugs', href: '/platform/bugs', icon: 'bug' },
-      { label: 'Entregables', href: '/platform/deliverables', icon: 'file', disabled: true },
+      { label: 'Entregables', href: '/platform/deliverables', icon: 'file' },
     ]
   }
   return [
@@ -161,7 +161,7 @@ const projectItems = computed(() => {
     { label: 'Tablero', href: '/platform/board', icon: 'board' },
     { label: 'Solicitudes', href: '/platform/changes', icon: 'refresh' },
     { label: 'Bugs', href: '/platform/bugs', icon: 'bug' },
-    { label: 'Entregables', href: '/platform/deliverables', icon: 'file', disabled: true },
+    { label: 'Entregables', href: '/platform/deliverables', icon: 'file' },
   ]
 })
 

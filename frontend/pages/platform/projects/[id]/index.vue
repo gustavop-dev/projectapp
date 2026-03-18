@@ -281,6 +281,7 @@ const projectModules = computed(() => [
     icon: 'file',
     iconBg: 'bg-purple-500/10',
     iconColor: 'text-purple-500',
+    href: `/platform/projects/${route.params.id}/deliverables`,
   },
 ])
 

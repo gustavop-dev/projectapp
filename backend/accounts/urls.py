@@ -7,6 +7,10 @@ from accounts.views import (
     bug_report_evaluate_view,
     bug_report_list_view,
     change_request_all_view,
+    deliverable_all_view,
+    deliverable_detail_view,
+    deliverable_list_view,
+    deliverable_upload_version_view,
     change_request_comment_view,
     change_request_convert_view,
     change_request_detail_view,
@@ -69,4 +73,10 @@ urlpatterns = [
     path('projects/<int:project_id>/bug-reports/<int:bug_id>/', bug_report_detail_view, name='platform-bug-report-detail'),
     path('projects/<int:project_id>/bug-reports/<int:bug_id>/evaluate/', bug_report_evaluate_view, name='platform-bug-report-evaluate'),
     path('projects/<int:project_id>/bug-reports/<int:bug_id>/comments/', bug_report_comment_view, name='platform-bug-report-comments'),
+
+    # Deliverables
+    path('deliverables/', deliverable_all_view, name='platform-deliverable-all'),
+    path('projects/<int:project_id>/deliverables/', deliverable_list_view, name='platform-deliverable-list'),
+    path('projects/<int:project_id>/deliverables/<int:deliverable_id>/', deliverable_detail_view, name='platform-deliverable-detail'),
+    path('projects/<int:project_id>/deliverables/<int:deliverable_id>/upload-version/', deliverable_upload_version_view, name='platform-deliverable-upload-version'),
 ]

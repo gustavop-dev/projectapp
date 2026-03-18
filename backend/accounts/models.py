@@ -570,3 +570,93 @@ class BugComment(models.Model):
 
     def __str__(self):
         return f'Comment by {self.user.email} on Bug #{self.bug_report_id}'
+
+
+class Deliverable(models.Model):
+    """
+    A file deliverable for a project, organized by category.
+    Admin uploads, client downloads. Supports version history.
+    """
+
+    CATEGORY_DESIGNS = 'designs'
+    CATEGORY_CREDENTIALS = 'credentials'
+    CATEGORY_DOCUMENTS = 'documents'
+    CATEGORY_APKS = 'apks'
+    CATEGORY_OTHER = 'other'
+    CATEGORY_CHOICES = [
+        (CATEGORY_DESIGNS, 'Diseños'),
+        (CATEGORY_CREDENTIALS, 'Credenciales'),
+        (CATEGORY_DOCUMENTS, 'Documentos'),
+        (CATEGORY_APKS, 'APKs / Builds'),
+        (CATEGORY_OTHER, 'Otros'),
+    ]
+
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, related_name='deliverables',
+    )
+    category = models.CharField(
+        max_length=20, choices=CATEGORY_CHOICES, default=CATEGORY_OTHER,
+    )
+    title = models.CharField(max_length=300)
+    description = models.TextField(blank=True, default='')
+    file = models.FileField(upload_to='deliverables/')
+    current_version = models.PositiveIntegerField(default=1)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='uploaded_deliverables',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['category', '-updated_at']
+
+    def __str__(self):
+        return f'{self.title} v{self.current_version} [{self.get_category_display()}]'
+
+    @property
+    def file_name(self):
+        if self.file:
+            return self.file.name.split('/')[-1]
+        return ''
+
+    @property
+    def file_size(self):
+        try:
+            return self.file.size
+        except Exception:
+            return 0
+
+
+class DeliverableVersion(models.Model):
+    """Historical version of a deliverable file."""
+
+    deliverable = models.ForeignKey(
+        Deliverable, on_delete=models.CASCADE, related_name='versions',
+    )
+    file = models.FileField(upload_to='deliverables/versions/')
+    version_number = models.PositiveIntegerField()
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='deliverable_versions',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-version_number']
+
+    def __str__(self):
+        return f'{self.deliverable.title} v{self.version_number}'
+
+    @property
+    def file_name(self):
+        if self.file:
+            return self.file.name.split('/')[-1]
+        return ''
+
+    @property
+    def file_size(self):
+        try:
+            return self.file.size
+        except Exception:
+            return 0

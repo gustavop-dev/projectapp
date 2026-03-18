@@ -17,7 +17,7 @@ from datetime import date, timedelta
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from accounts.models import BugComment, BugReport, ChangeRequest, ChangeRequestComment, Project, Requirement, UserProfile
+from accounts.models import BugComment, BugReport, ChangeRequest, ChangeRequestComment, Deliverable, Project, Requirement, UserProfile
 
 User = get_user_model()
 
@@ -119,6 +119,7 @@ class Command(BaseCommand):
                 self._create_requirements(ecommerce_project)
                 self._create_change_requests(ecommerce_project, client_user, admin_user)
                 self._create_bug_reports(ecommerce_project, client_user, admin_user)
+                self._create_deliverables(ecommerce_project, admin_user)
             return
 
         today = date.today()
@@ -148,6 +149,7 @@ class Command(BaseCommand):
         self._create_requirements(ecommerce_project)
         self._create_change_requests(ecommerce_project, client_user, admin_user)
         self._create_bug_reports(ecommerce_project, client_user, admin_user)
+        self._create_deliverables(ecommerce_project, admin_user)
 
     def _create_requirements(self, project):
         if Requirement.objects.filter(project=project).exists():
@@ -391,3 +393,67 @@ class Command(BaseCommand):
                 )
 
         self.stdout.write(self.style.SUCCESS(f'  Created {len(bugs)} bug reports for {project.name}'))
+
+    def _create_deliverables(self, project, admin_user):
+        if Deliverable.objects.filter(project=project).exists():
+            self.stdout.write(f'  Deliverables already exist for {project.name}')
+            return
+
+        from django.core.files.base import ContentFile
+
+        deliverables = [
+            {
+                'title': 'Wireframes página principal',
+                'description': 'Wireframes de baja fidelidad para la estructura de la home page.',
+                'category': Deliverable.CATEGORY_DESIGNS,
+                'filename': 'wireframes-home-v1.pdf',
+            },
+            {
+                'title': 'Guía de estilos UI',
+                'description': 'Colores, tipografías, espaciados y componentes del sistema de diseño.',
+                'category': Deliverable.CATEGORY_DESIGNS,
+                'filename': 'style-guide-v1.pdf',
+            },
+            {
+                'title': 'Credenciales Wompi Sandbox',
+                'description': 'Llaves de API para pruebas en sandbox de la pasarela de pagos.',
+                'category': Deliverable.CATEGORY_CREDENTIALS,
+                'filename': 'wompi-sandbox-keys.txt',
+            },
+            {
+                'title': 'Manual de usuario',
+                'description': 'Documentación de uso del panel de administración de productos.',
+                'category': Deliverable.CATEGORY_DOCUMENTS,
+                'filename': 'manual-admin-v1.pdf',
+            },
+            {
+                'title': 'APK Android beta',
+                'description': 'Build de prueba para Android. Requiere permisos de instalación de fuentes desconocidas.',
+                'category': Deliverable.CATEGORY_APKS,
+                'filename': 'ecommerce-beta-v0.1.apk',
+            },
+        ]
+
+        from accounts.models import DeliverableVersion
+
+        for d_data in deliverables:
+            placeholder = ContentFile(b'placeholder content', name=d_data['filename'])
+
+            d = Deliverable.objects.create(
+                project=project,
+                uploaded_by=admin_user,
+                title=d_data['title'],
+                description=d_data['description'],
+                category=d_data['category'],
+                file=placeholder,
+                current_version=1,
+            )
+
+            DeliverableVersion.objects.create(
+                deliverable=d,
+                file=placeholder,
+                version_number=1,
+                uploaded_by=admin_user,
+            )
+
+        self.stdout.write(self.style.SUCCESS(f'  Created {len(deliverables)} deliverables for {project.name}'))

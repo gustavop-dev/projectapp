@@ -1,0 +1,181 @@
+import { defineStore } from 'pinia'
+import { usePlatformApi } from '~/composables/usePlatformApi'
+
+export const usePlatformDeliverablesStore = defineStore('platformDeliverables', {
+  state: () => ({
+    deliverables: [],
+    currentDeliverable: null,
+    projectId: null,
+    isLoading: false,
+    isUpdating: false,
+    error: '',
+  }),
+
+  getters: {
+    groupedByCategory: (state) => {
+      const groups = {}
+      const order = ['designs', 'documents', 'credentials', 'apks', 'other']
+      for (const d of state.deliverables) {
+        if (!groups[d.category]) groups[d.category] = []
+        groups[d.category].push(d)
+      }
+      return order
+        .filter((cat) => groups[cat]?.length)
+        .map((cat) => ({ category: cat, items: groups[cat] }))
+    },
+
+    totalCount: (state) => state.deliverables.length,
+  },
+
+  actions: {
+    async fetchDeliverables(projectId, category = null) {
+      this.isLoading = true
+      this.error = ''
+      this.projectId = projectId
+
+      try {
+        const { get } = usePlatformApi()
+        let url = `projects/${projectId}/deliverables/`
+        if (category) url += `?category=${category}`
+        const response = await get(url)
+        this.deliverables = response.data
+        return { success: true }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No pudimos cargar los entregables.'
+        this.error = message
+        return { success: false, message }
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async fetchAllDeliverables(category = null) {
+      this.isLoading = true
+      this.error = ''
+      this.projectId = null
+
+      try {
+        const { get } = usePlatformApi()
+        let url = 'deliverables/'
+        if (category) url += `?category=${category}`
+        const response = await get(url)
+        this.deliverables = response.data
+        return { success: true }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No pudimos cargar los entregables.'
+        this.error = message
+        return { success: false, message }
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async fetchDeliverable(projectId, deliverableId) {
+      this.isLoading = true
+      this.error = ''
+
+      try {
+        const { get } = usePlatformApi()
+        const response = await get(`projects/${projectId}/deliverables/${deliverableId}/`)
+        this.currentDeliverable = response.data
+        return { success: true, data: response.data }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No pudimos cargar el entregable.'
+        this.error = message
+        return { success: false, message }
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async createDeliverable(projectId, formData) {
+      this.isUpdating = true
+      this.error = ''
+
+      try {
+        const { post } = usePlatformApi()
+        const response = await post(`projects/${projectId}/deliverables/`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        this.deliverables.unshift(response.data)
+        return { success: true, data: response.data }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No pudimos subir el entregable.'
+        this.error = message
+        return { success: false, message }
+      } finally {
+        this.isUpdating = false
+      }
+    },
+
+    async updateDeliverable(projectId, deliverableId, payload) {
+      this.isUpdating = true
+      this.error = ''
+
+      try {
+        const { patch } = usePlatformApi()
+        const response = await patch(`projects/${projectId}/deliverables/${deliverableId}/`, payload)
+
+        const idx = this.deliverables.findIndex((d) => d.id === deliverableId)
+        if (idx !== -1) this.deliverables[idx] = { ...this.deliverables[idx], ...response.data }
+        if (this.currentDeliverable?.id === deliverableId) {
+          this.currentDeliverable = response.data
+        }
+
+        return { success: true, data: response.data }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No pudimos actualizar el entregable.'
+        this.error = message
+        return { success: false, message }
+      } finally {
+        this.isUpdating = false
+      }
+    },
+
+    async deleteDeliverable(projectId, deliverableId) {
+      this.isUpdating = true
+      this.error = ''
+
+      try {
+        const { delete: destroy } = usePlatformApi()
+        await destroy(`projects/${projectId}/deliverables/${deliverableId}/`)
+        this.deliverables = this.deliverables.filter((d) => d.id !== deliverableId)
+        return { success: true }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No pudimos eliminar el entregable.'
+        this.error = message
+        return { success: false, message }
+      } finally {
+        this.isUpdating = false
+      }
+    },
+
+    async uploadNewVersion(projectId, deliverableId, formData) {
+      this.isUpdating = true
+      this.error = ''
+
+      try {
+        const { post } = usePlatformApi()
+        const response = await post(
+          `projects/${projectId}/deliverables/${deliverableId}/upload-version/`,
+          formData,
+          { headers: { 'Content-Type': 'multipart/form-data' } },
+        )
+
+        const idx = this.deliverables.findIndex((d) => d.id === deliverableId)
+        if (idx !== -1) this.deliverables[idx] = { ...this.deliverables[idx], ...response.data }
+        if (this.currentDeliverable?.id === deliverableId) {
+          this.currentDeliverable = response.data
+        }
+
+        return { success: true, data: response.data }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No pudimos subir la nueva versión.'
+        this.error = message
+        return { success: false, message }
+      } finally {
+        this.isUpdating = false
+      }
+    },
+  },
+})

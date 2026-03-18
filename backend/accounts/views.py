@@ -1186,3 +1186,201 @@ def bug_report_comment_view(request, project_id, bug_id):
         BugCommentSerializer(comment).data,
         status=status.HTTP_201_CREATED,
     )
+
+
+# ==========================================================================
+# Deliverables
+# ==========================================================================
+
+from accounts.models import Deliverable, DeliverableVersion  # noqa: E402
+from accounts.serializers import (  # noqa: E402
+    CreateDeliverableSerializer,
+    DeliverableDetailSerializer,
+    DeliverableListSerializer,
+    UpdateDeliverableSerializer,
+    UploadNewVersionSerializer,
+)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def deliverable_all_view(request):
+    """
+    GET — All deliverables across all projects the user has access to.
+    Admin sees all; client sees only their projects.
+    """
+    profile = getattr(request.user, 'profile', None)
+    is_admin = profile and profile.is_admin
+
+    if is_admin:
+        qs = Deliverable.objects.select_related('uploaded_by', 'project').all()
+    else:
+        qs = Deliverable.objects.select_related('uploaded_by', 'project').filter(
+            project__client=request.user,
+        )
+
+    category_filter = request.query_params.get('category')
+    if category_filter:
+        qs = qs.filter(category=category_filter)
+
+    serializer = DeliverableListSerializer(qs, many=True, context={'request': request})
+
+    data = serializer.data
+    for item, d in zip(data, qs):
+        item['project_id'] = d.project_id
+        item['project_name'] = d.project.name
+
+    return Response(data)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def deliverable_list_view(request, project_id):
+    """
+    GET  — All deliverables for a project (both roles, filtered by category optionally).
+    POST — Admin uploads a new deliverable.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    if request.method == 'GET':
+        qs = Deliverable.objects.filter(project=proj).select_related('uploaded_by')
+        category_filter = request.query_params.get('category')
+        if category_filter:
+            qs = qs.filter(category=category_filter)
+        serializer = DeliverableListSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.is_admin:
+        return Response(
+            {'detail': 'Solo los administradores pueden subir entregables.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    serializer = CreateDeliverableSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    deliverable = Deliverable.objects.create(
+        project=proj,
+        uploaded_by=request.user,
+        title=data['title'],
+        description=data.get('description', ''),
+        category=data.get('category', Deliverable.CATEGORY_OTHER),
+        file=data['file'],
+        current_version=1,
+    )
+
+    DeliverableVersion.objects.create(
+        deliverable=deliverable,
+        file=data['file'],
+        version_number=1,
+        uploaded_by=request.user,
+    )
+
+    return Response(
+        DeliverableListSerializer(deliverable, context={'request': request}).data,
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def deliverable_detail_view(request, project_id, deliverable_id):
+    """
+    GET    — Detail with version history (both roles).
+    PATCH  — Admin updates metadata (title, description, category).
+    DELETE — Admin only.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        deliverable = Deliverable.objects.get(id=deliverable_id, project=proj)
+    except Deliverable.DoesNotExist:
+        return Response(
+            {'detail': 'Entregable no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if request.method == 'GET':
+        return Response(
+            DeliverableDetailSerializer(deliverable, context={'request': request}).data,
+        )
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.is_admin:
+        return Response(
+            {'detail': 'Solo los administradores pueden modificar entregables.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    if request.method == 'DELETE':
+        deliverable.delete()
+        return Response({'detail': 'Entregable eliminado.'})
+
+    serializer = UpdateDeliverableSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    upd_fields = ['updated_at']
+    for field in ('title', 'description', 'category'):
+        if field in data:
+            setattr(deliverable, field, data[field])
+            upd_fields.append(field)
+    deliverable.save(update_fields=upd_fields)
+
+    return Response(
+        DeliverableDetailSerializer(deliverable, context={'request': request}).data,
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def deliverable_upload_version_view(request, project_id, deliverable_id):
+    """
+    Admin uploads a new version of an existing deliverable.
+    The old file is kept in DeliverableVersion history.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.is_admin:
+        return Response(
+            {'detail': 'Solo los administradores pueden subir nuevas versiones.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    try:
+        deliverable = Deliverable.objects.get(id=deliverable_id, project=proj)
+    except Deliverable.DoesNotExist:
+        return Response(
+            {'detail': 'Entregable no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    serializer = UploadNewVersionSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    new_version = deliverable.current_version + 1
+
+    DeliverableVersion.objects.create(
+        deliverable=deliverable,
+        file=serializer.validated_data['file'],
+        version_number=new_version,
+        uploaded_by=request.user,
+    )
+
+    deliverable.file = serializer.validated_data['file']
+    deliverable.current_version = new_version
+    deliverable.save(update_fields=['file', 'current_version', 'updated_at'])
+
+    return Response(
+        DeliverableDetailSerializer(deliverable, context={'request': request}).data,
+        status=status.HTTP_201_CREATED,
+    )

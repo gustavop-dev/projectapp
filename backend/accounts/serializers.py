@@ -555,3 +555,100 @@ class EvaluateBugReportSerializer(serializers.Serializer):
 class CreateBugCommentSerializer(serializers.Serializer):
     content = serializers.CharField()
     is_internal = serializers.BooleanField(default=False)
+
+
+# =========================================================================
+# Deliverable serializers
+# =========================================================================
+
+from accounts.models import Deliverable, DeliverableVersion  # noqa: E402
+
+
+class DeliverableVersionSerializer(serializers.ModelSerializer):
+    uploaded_by_name = serializers.SerializerMethodField()
+    file_url = serializers.SerializerMethodField()
+    file_name = serializers.CharField(read_only=True)
+    file_size = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = DeliverableVersion
+        fields = [
+            'id', 'version_number', 'file_url', 'file_name', 'file_size',
+            'uploaded_by_name', 'created_at',
+        ]
+
+    def get_uploaded_by_name(self, obj):
+        u = obj.uploaded_by
+        return f'{u.first_name} {u.last_name}'.strip() or u.email
+
+    def get_file_url(self, obj):
+        if not obj.file:
+            return None
+        request = self.context.get('request')
+        url = obj.file.url
+        if request and not url.startswith('http'):
+            return request.build_absolute_uri(url)
+        return url
+
+
+class DeliverableListSerializer(serializers.ModelSerializer):
+    uploaded_by_name = serializers.SerializerMethodField()
+    file_url = serializers.SerializerMethodField()
+    file_name = serializers.CharField(read_only=True)
+    file_size = serializers.IntegerField(read_only=True)
+    versions_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Deliverable
+        fields = [
+            'id', 'title', 'description', 'category', 'current_version',
+            'file_url', 'file_name', 'file_size',
+            'uploaded_by_name', 'versions_count',
+            'created_at', 'updated_at',
+        ]
+
+    def get_uploaded_by_name(self, obj):
+        u = obj.uploaded_by
+        return f'{u.first_name} {u.last_name}'.strip() or u.email
+
+    def get_file_url(self, obj):
+        if not obj.file:
+            return None
+        request = self.context.get('request')
+        url = obj.file.url
+        if request and not url.startswith('http'):
+            return request.build_absolute_uri(url)
+        return url
+
+    def get_versions_count(self, obj):
+        return getattr(obj, '_versions_count', obj.versions.count())
+
+
+class DeliverableDetailSerializer(DeliverableListSerializer):
+    versions = serializers.SerializerMethodField()
+
+    class Meta(DeliverableListSerializer.Meta):
+        fields = DeliverableListSerializer.Meta.fields + ['versions']
+
+    def get_versions(self, obj):
+        qs = obj.versions.select_related('uploaded_by').all()
+        return DeliverableVersionSerializer(qs, many=True, context=self.context).data
+
+
+class CreateDeliverableSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=300)
+    description = serializers.CharField(required=False, default='', allow_blank=True)
+    category = serializers.ChoiceField(
+        choices=Deliverable.CATEGORY_CHOICES, default=Deliverable.CATEGORY_OTHER,
+    )
+    file = serializers.FileField()
+
+
+class UpdateDeliverableSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=300, required=False)
+    description = serializers.CharField(required=False, allow_blank=True)
+    category = serializers.ChoiceField(choices=Deliverable.CATEGORY_CHOICES, required=False)
+
+
+class UploadNewVersionSerializer(serializers.Serializer):
+    file = serializers.FileField()
