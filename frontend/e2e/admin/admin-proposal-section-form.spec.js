@@ -132,8 +132,7 @@ async function openSectionEditor(page, capturedUpdates, sectionTitle) {
   await page.getByRole('button', { name: 'Secciones' }).click();
 
   // Find section header and expand it
-  const sectionHeader = page.locator('.cursor-pointer').filter({ hasText: sectionTitle });
-  await sectionHeader.click();
+  await page.getByText(sectionTitle).click();
 
   await page.getByTestId('section-editor').waitFor({ state: 'visible' });
 }
@@ -325,8 +324,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await page.waitForLoadState('networkidle');
     await page.getByRole('button', { name: 'Secciones' }).click();
 
-    const sectionHeader = page.locator('.cursor-pointer').filter({ hasText: '💰 Inversión' });
-    await sectionHeader.click();
+    await page.getByText('💰 Inversión').click();
     await page.getByTestId('section-editor').waitFor({ state: 'visible' });
 
     const editor = page.getByTestId('section-editor');

@@ -34,7 +34,7 @@ jest.mock('../../composables/usePlatformApi', () => {
 
 const {
   readPlatformSession,
-  writePlatformSession,
+  writePlatformSession: _writePlatformSession,
   clearPlatformSession,
   __mockPost: mockPost,
   __mockGet: mockGet,
@@ -278,6 +278,31 @@ describe('usePlatformAuthStore', () => {
         expect.objectContaining({ token: 'v-token' }),
       )
     })
+
+    it('sets error on API failure', async () => {
+      store.verificationToken = 'v-token'
+      mockPost.mockRejectedValueOnce({
+        response: { data: { detail: 'Código expirado.' } },
+      })
+
+      const result = await store.resendCode()
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('Código expirado.')
+      expect(store.isVerifying).toBe(false)
+    })
+
+    it('uses fallback message when no detail in error', async () => {
+      store.verificationToken = 'v-token'
+      mockPost.mockRejectedValueOnce({
+        response: { data: {} },
+      })
+
+      const result = await store.resendCode()
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('No pudimos reenviar el código.')
+    })
   })
 
   describe('fetchMe', () => {
@@ -352,6 +377,41 @@ describe('usePlatformAuthStore', () => {
 
       expect(result.success).toBe(true)
       expect(store.profileCompleted).toBe(true)
+    })
+
+    it('sets error on failure', async () => {
+      mockRequest.mockRejectedValueOnce({
+        response: { data: { detail: 'Error al completar perfil.' } },
+      })
+
+      const result = await store.completeProfile(new FormData())
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('Error al completar perfil.')
+      expect(store.isLoading).toBe(false)
+    })
+
+    it('uses fallback message when no detail in error response', async () => {
+      mockRequest.mockRejectedValueOnce({
+        response: { data: {} },
+      })
+
+      const result = await store.completeProfile(new FormData())
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('No pudimos completar tu perfil.')
+    })
+  })
+
+  describe('clearVerificationState', () => {
+    it('clears verification token and pending email', () => {
+      store.verificationToken = 'v-token'
+      store.pendingEmail = 'test@test.com'
+
+      store.clearVerificationState()
+
+      expect(store.verificationToken).toBe('')
+      expect(store.pendingEmail).toBe('')
     })
   })
 

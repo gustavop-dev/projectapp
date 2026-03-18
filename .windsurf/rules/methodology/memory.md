@@ -7,17 +7,17 @@ This outlines the fundamental principles, required files, workflow structure, an
 The Memory Files consists of required core files and optional context files. Files build upon each other in a clear hierarchy:
 ```mermaid
 flowchart TD
-    PB[ [product_requirement_docs.md](mdc:docs/methodology/product_requirement_docs.md) ] --> PC[ [technical.md](mdc:docs/methodology/technical.md) ]
-    PB --> SP[ [architecture.md](mdc:docs/methodology/architecture.md) ]
+    PB[product_requirement_docs.md] --> PC[technical.md]
+    PB --> SP[architecture.md]
 
-    SP --> TC[ [tasks_plan.md](mdc:tasks/tasks_plan.md) ]
+    SP --> TC[tasks_plan.md]
     PC --> TC
     PB --> TC
     
-    TC --> AC[ [active_context.md](mdc:tasks/active_context.md) ]
+    TC --> AC[active_context.md]
 
-    AC --> ER[ [error-documentation.md](mdc:.windsurf/rules/methodology/error-documentation.md)]
-    AC --> LL[ [lessons-learned.md](mdc:.windsurf/rules/methodology/lessons-learned.md) ]
+    AC --> ER[error-documentation.md]
+    AC --> LL[lessons-learned.md]
     
     subgraph LIT[ @docs/literature ]
         L1[...]
@@ -35,7 +35,7 @@ flowchart TD
 ```
 ## Core Files (Required)
   7 files: 
-  1. [product_requirement_docs.md](mdc:docs/methodology/product_requirement_docs.md) (docs/methodology/product_requirement_docs.md): Product Requirement Document (PRD) for the project or an SOP. 
+  1. `docs/methodology/product_requirement_docs.md`: Product Requirement Document (PRD) for the project or an SOP. 
   - Why this project exists
   - Problems it solves
   - Defines core requirements and goals
@@ -43,40 +43,40 @@ flowchart TD
   - Source of truth for project scope
   - Created at project start if it doesn't exist
 
-  2. [architecture.md](mdc:docs/methodology/architecture.md) (docs/methodology/architecture.md): System architecture
+  2. `docs/methodology/architecture.md`: System architecture
   - How it should work
   - Component relationships
   - Dependencies
   - Work flow of the Solution
   - Mermaid diagram of solution overview: each component and code flow
 
-  3. [technical.md](mdc:docs/methodology/technical.md) (docs/methodology/technical.md): Development environment and stack
+  3. `docs/methodology/technical.md`: Development environment and stack
   - Technologies used
   - Development setup
   - Key technical decisions
   - Design patterns in use
   - Technical constraints
 
-  4. [tasks_plan.md](mdc:tasks/tasks_plan.md) (tasks/tasks_plan.md): Detailed Task backlog
+  4. `tasks/tasks_plan.md`: Detailed Task backlog
   - In-Depth Tasks list and Project Progress
   - What works
   - What's left to build
   - Current status
   - Known issues
   
-  5. [active_context.md](mdc:tasks/active_context.md) (tasks/active_context.md): Current state of development
+  5. `tasks/active_context.md`: Current state of development
   - Current work focus
   - Active decisions and considerations
   - Recent changes
   - Next steps
 
-  6. [error-documentation.md](mdc:.windsurf/rules/methodology/error-documentation.md) (.windsurf/rules/methodology/error-documentation.md): 
-  - During your interaction, if you find a fix to a mistake in this project or a correction you received reusable, you should take note in the @error-documentation.md file so you will not make the same mistake again.
+  6. `.windsurf/rules/methodology/error-documentation.md`: 
+  - During your interaction, if you find a fix to a mistake in this project or a correction you received reusable, you should take note in `error-documentation.md` so you will not make the same mistake again.
   - Known issues: their state, context, and resolution
 
-  7. [lessons-learned.md](mdc:.windsurf/rules/methodology/lessons-learned.md) (.windsurf/rules/methodology/lessons-learned.md): learning journal for each project
+  7. `.windsurf/rules/methodology/lessons-learned.md`: learning journal for each project
   - It captures important patterns, preferences, and project intelligence
-  - It is detailed in @lessons-learned.md
+  - It is detailed in `lessons-learned.md`
 
 ## Context Files (Optional)
 Detailed docs. Retrieve on demand if needed for context.
@@ -127,7 +127,7 @@ flowchart TD
 flowchart TD
     Start[Start] --> Context[Check Memory Files (Core Files always ("docs/": (a)"docs/methodology/architecture.md" (b)"docs/methodology/product_requirement_docs.md" (c)"docs/methodology/technical.md". "tasks/" : (a)"tasks/active_context.md" (b)"tasks/tasks_plan.md"), rest based on context (if needed further: "docs/literature" and "tasks/rfc")) ]
     Context --> Update[Update Documentation]
-    Update --> Rules[Update [lessons-learned.md](mdc:.windsurf/rules/methodology/lessons-learned.md), [error-documentation.md](mdc:.windsurf/rules/methodology/error-documentation.md) if needed]
+    Update --> Rules[Update lessons-learned.md and error-documentation.md if needed]
     Rules --> Execute[Execute Task]
     Execute --> Document[Document Changes in Memory Files ("docs/": (a)"docs/methodology/architecture.md" (b)"docs/methodology/product_requirement_docs.md" (c)"docs/methodology/technical.md". "tasks/" : (a)"tasks/active_context.md" (b)"tasks/tasks_plan.md" if needed further: "docs/literature" and "tasks/rfc") ]
 ```
@@ -147,10 +147,10 @@ flowchart TD
     
     subgraph Process
         P1[Review Core Files]
-        P2[Document Current State in [active_context.md](mdc:tasks/active_context.md) and [tasks_plan.md](mdc:tasks/tasks_plan.md) ]
-        P3[Clarify Next Steps and document in [tasks_plan.md](mdc:tasks/tasks_plan.md) ]
-        P4[Update [lessons-learned.md](mdc:.windsurf/rules/methodology/lessons-learned.md), [error-documentation.md](mdc:.windsurf/rules/methodology/error-documentation.md)]
-        P5 Update [ [architecture.md](mdc:docs/methodology/architecture.md) ]
+        P2[Document Current State in active_context.md and tasks_plan.md]
+        P3[Clarify Next Steps and document in tasks_plan.md]
+        P4[Update lessons-learned.md and error-documentation.md]
+        P5[Update architecture.md]
         
         P1 --> P2 --> P3 --> P4
     end
@@ -158,11 +158,11 @@ flowchart TD
     Start --> Process
 ```
 
-Note: When triggered by **update memory files**, I MUST review every Core memory  file, even if some don't require updates. Focus particularly on [active_context.md](mdc:tasks/active_context.md) and [tasks_plan.md](mdc:tasks/tasks_plan.md) as they track current state. And [architecture.md](mdc:docs/methodology/architecture.md) has a section of current workflow that also gets updated by any code updates.
+Note: When triggered by **update memory files**, I MUST review every Core memory file, even if some don't require updates. Focus particularly on `tasks/active_context.md` and `tasks/tasks_plan.md` as they track current state. And `docs/methodology/architecture.md` has a section of current workflow that also gets updated by any code updates.
 
-# Project Intelligence ( [lessons-learned.md](mdc:.windsurf/rules/methodology/lessons-learned.md) [.windsurf/rules/methodology/lessons-learned.md] )
+# Project Intelligence (`lessons-learned.md`)
 
-The [lessons-learned.md](mdc:.windsurf/rules/methodology/lessons-learned.md) file is my learning journal for each project. It captures important patterns, preferences, and project intelligence that help me work more effectively. As I work with you and the project, I'll discover and document key insights that aren't obvious from the code alone.
+The `lessons-learned.md` file (`.windsurf/rules/methodology/lessons-learned.md`) is my learning journal for each project. It captures important patterns, preferences, and project intelligence that help me work more effectively. As I work with you and the project, I'll discover and document key insights that aren't obvious from the code alone.
 
 ```mermaid
 flowchart TD
@@ -171,11 +171,11 @@ flowchart TD
     subgraph Learn [Learning Process]
         D1[Identify Pattern]
         D2[Validate with User]
-        D3[Document in [lessons-learned.md](mdc:.windsurf/rules/methodology/lessons-learned.md) ]
+        D3[Document in lessons-learned.md]
     end
     
     subgraph Apply [Usage]
-        A1[Read [lessons-learned.md](mdc:.windsurf/rules/methodology/lessons-learned.md) ]
+        A1[Read lessons-learned.md]
         A2[Apply Learned Patterns]
         A3[Improve Future Work]
     end
@@ -192,4 +192,4 @@ flowchart TD
 - Evolution of project decisions
 - Tool usage patterns
 
-The format is flexible - focus on capturing valuable insights that help me work more effectively with you and the project. Think of [lessons-learned.md](mdc:.windsurf/rules/methodology/lessons-learned.md) as a living document that grows smarter as we work together.
+The format is flexible - focus on capturing valuable insights that help me work more effectively with you and the project. Think of `lessons-learned.md` as a living document that grows smarter as we work together.

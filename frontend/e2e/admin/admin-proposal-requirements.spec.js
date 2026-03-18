@@ -135,8 +135,7 @@ async function openRequirementsEditor(page, capturedUpdates) {
   await page.getByRole('button', { name: 'Secciones' }).click();
 
   // Expand the functional_requirements section
-  const sectionHeader = page.locator('.cursor-pointer').filter({ hasText: 'Requerimientos Funcionales' });
-  await sectionHeader.click();
+  await page.getByText('Requerimientos Funcionales').click();
   await page.getByTestId('section-editor').waitFor({ state: 'visible' });
 }
 

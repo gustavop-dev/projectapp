@@ -212,6 +212,20 @@ describe('usePlatformClientsStore', () => {
     })
   })
 
+  describe('updateClient', () => {
+    it('sets error on API failure', async () => {
+      mockPatch.mockRejectedValueOnce({
+        response: { data: { detail: 'Error al actualizar.' } },
+      })
+
+      const result = await store.updateClient(1, { first_name: 'X' })
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('Error al actualizar.')
+      expect(store.isUpdating).toBe(false)
+    })
+  })
+
   describe('deactivateClient', () => {
     it('marks client as inactive on success', async () => {
       store.clients = [SAMPLE_CLIENT]
@@ -231,6 +245,18 @@ describe('usePlatformClientsStore', () => {
       await store.deactivateClient(1)
 
       expect(store.currentClient.is_active).toBe(false)
+    })
+
+    it('sets error on API failure', async () => {
+      mockDelete.mockRejectedValueOnce({
+        response: { data: { detail: 'No autorizado.' } },
+      })
+
+      const result = await store.deactivateClient(1)
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('No autorizado.')
+      expect(store.isUpdating).toBe(false)
     })
   })
 

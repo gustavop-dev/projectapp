@@ -191,6 +191,18 @@ describe('usePlatformProjectsStore', () => {
 
       expect(store.currentProject.name).toBe('Updated')
     })
+
+    it('sets error on failure', async () => {
+      mockPatch.mockRejectedValueOnce({
+        response: { data: { detail: 'No autorizado.' } },
+      })
+
+      const result = await store.updateProject(1, { name: 'X' })
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('No autorizado.')
+      expect(store.isUpdating).toBe(false)
+    })
   })
 
   describe('archiveProject', () => {

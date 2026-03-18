@@ -149,5 +149,36 @@ describe('usePlatformSidebar', () => {
       expect(removeSpy).toHaveBeenCalledWith('resize', expect.any(Function))
       removeSpy.mockRestore()
     })
+
+    it('closes mobile menu when window width drops below breakpoint', () => {
+      const { setupResizeListener, openMobile, isMobileOpen, cleanupResizeListener: cleanup } = usePlatformSidebar()
+      openMobile()
+      expect(isMobileOpen.value).toBe(true)
+
+      setupResizeListener()
+
+      Object.defineProperty(window, 'innerWidth', { value: 500, writable: true })
+      window.dispatchEvent(new Event('resize'))
+
+      expect(isMobileOpen.value).toBe(false)
+
+      Object.defineProperty(window, 'innerWidth', { value: 1024, writable: true })
+      cleanup()
+    })
+
+    it('keeps mobile menu open when window width is above breakpoint', () => {
+      const { setupResizeListener, openMobile, isMobileOpen, cleanupResizeListener: cleanup } = usePlatformSidebar()
+      openMobile()
+
+      setupResizeListener()
+
+      Object.defineProperty(window, 'innerWidth', { value: 900, writable: true })
+      window.dispatchEvent(new Event('resize'))
+
+      expect(isMobileOpen.value).toBe(true)
+
+      Object.defineProperty(window, 'innerWidth', { value: 1024, writable: true })
+      cleanup()
+    })
   })
 })

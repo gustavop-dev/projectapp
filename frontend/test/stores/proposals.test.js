@@ -192,6 +192,29 @@ describe('useProposalStore', () => {
       });
     });
 
+    it('uses fallback values when 410 partial data has missing fields', async () => {
+      get_request.mockRejectedValue({
+        response: {
+          status: 410,
+          data: {},
+        },
+      });
+
+      await store.fetchPublicProposal('fallback-uuid');
+
+      expect(store.error).toBe('expired');
+      expect(store.currentProposal).toEqual({
+        client_name: '',
+        title: '',
+        uuid: 'fallback-uuid',
+        expired_at: null,
+        seller_name: '',
+        whatsapp_url: '',
+        total_investment: '',
+        currency: '',
+      });
+    });
+
     it('sets not_found error on 404', async () => {
       get_request.mockRejectedValue({ response: { status: 404 } });
 

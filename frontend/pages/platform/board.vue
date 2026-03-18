@@ -91,8 +91,6 @@ definePageMeta({
   middleware: ['platform-auth'],
 })
 
-defineI18nRoute(false)
-
 useHead({ title: 'Tablero general — ProjectApp' })
 usePageEntrance('#platform-unified-board')
 

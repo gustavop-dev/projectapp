@@ -133,7 +133,33 @@ venv/bin/python <command>
 
 ---
 
-## 7. Testing Insights
+## 7. Platform / Accounts App Patterns
+
+### Dual Auth Strategy
+- `/panel/` admin uses Django session + CSRF (same as before)
+- `/platform/` uses JWT via SimpleJWT (access + refresh tokens)
+- Platform stores use `composables/usePlatformApi.js` (axios instance with JWT interceptors)
+- Content stores use `stores/services/request_http` (axios with CSRF)
+- **Never mix these two HTTP clients**
+
+### Platform Store Naming
+- Platform stores use kebab-case: `platform-auth.js`, `platform-clients.js`, `platform-projects.js`, `platform-requirements.js`
+- Content stores use snake_case: `portfolio_works.js`, `proposals.js`
+
+### Accounts Services
+- `services/onboarding.py` — profile completion flow
+- `services/tokens.py` — JWT token generation/refresh
+- `services/verification.py` — OTP code generation and validation
+- `services/image_utils.py` — avatar processing
+
+### Platform Layout
+- `layouts/platform.vue` with collapsible sidebar, mobile drawer, theme toggle
+- Role-based navigation: admin sees all, client sees own projects only
+- Dark mode support via `usePlatformTheme` composable
+
+---
+
+## 8. Testing Insights
 
 ### Backend conftest.py
 - Custom coverage report with Unicode progress bars replaces default pytest-cov output
@@ -149,3 +175,37 @@ venv/bin/python <command>
 - Playwright E2E tests are sharded into 5 parallel jobs
 - Blob reports are merged after all shards complete
 - Test quality gate runs after all test suites pass
+
+### Known Test Issues
+- `usePlatformApi.test.js` has 4 failing tests due to `window.location.href` assertions in JSDOM
+- JSDOM doesn't support real navigation; `window.location.href` stays as `http://localhost/` after assignment
+- Fix: use `delete window.location` + `Object.defineProperty` or mock `window.location` properly
+
+### Playwright + Nuxt Dev Server Patterns
+- **Never use `networkidle`** with Vite/Nuxt dev server — HMR WebSocket keeps connection alive, causing infinite hang
+- Use `{ waitUntil: 'domcontentloaded' }` in `page.goto()` + explicit element waits (`getByRole('heading').waitFor()`)
+- **Always add `test.setTimeout(60_000)`** to describe blocks for SPA routes — first visit triggers Vite on-demand compilation
+- **Strict mode violations** are common when sidebar navigation duplicates page content text. Fix patterns:
+  - Scope to `page.locator('main')` for page-specific content
+  - Use `getByRole('heading', { name: '...' })` instead of `getByText('...')`
+  - Use `{ exact: true }` when substring matching causes ambiguity (e.g., 'Activo' vs 'Activos')
+- **i18n prefix strategy** adds locale prefix to all `<NuxtLink>` hrefs — use regex in `toHaveAttribute('href', /\/platform\/...$/)`
+- **`<label>` without `for` attribute**: `getByLabel()` won't work. Use `page.locator('input[type="date"]')` or `page.locator('select').first()`
+- **HTML5 validation bypass**: For testing custom validators, add `novalidate` via `page.evaluate(() => document.querySelector('form').setAttribute('novalidate', ''))`
+- **Port conflicts**: Use `E2E_PORT=3001 E2E_REUSE_SERVER=1` when port 3000 is occupied
+
+---
+
+## 9. Methodology Maintenance
+
+### Memory Bank Source
+- Methodology rules based on [rules_template](https://github.com/Bhartendu-Kumar/rules_template)
+- Original format is Cursor `.mdc` files; must be adapted to Windsurf `.md` format
+- Key adaptation: replace `mdc:` prefix links with standard paths, `.mdc` → `.md` references, `src/` → `backend/`+`frontend/`
+- `directory-structure.md` must be customized per project (the template uses generic `src/`, `test/`, etc.)
+
+### When to Refresh Memory Files
+- After adding a new Django app or major feature module
+- After significant changes to test infrastructure or counts
+- When file counts drift by >10% from documented values
+- After methodology rule updates from upstream template

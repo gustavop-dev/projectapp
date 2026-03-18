@@ -36,6 +36,12 @@
 | WhatsApp Notifications | ✅ Done | CallMeBot API integration |
 | Database Backups | ✅ Done | django-dbbackup with rotation |
 | Query Profiling (Silk) | ✅ Done | Optional, env-gated |
+| Platform — Auth & Onboarding | ✅ Done | JWT login, OTP verify, complete-profile, middleware gating |
+| Platform — Dashboard | ✅ Done | Admin KPI cards + recent clients; Client profile summary |
+| Platform — Projects & Kanban | ✅ Done | Project CRUD, detail hub, 3-column kanban board, drag & drop, comments |
+| Platform — Client Management | ✅ Done | Admin invite, list, detail, edit, deactivate, reactivate |
+| Platform — Sidebar & Layout | ✅ Done | Collapsible sidebar, mobile drawer, theme toggle, role-based nav |
+| Platform — E2E Coverage | ✅ Done | 14 flows registered and covered; 14 spec files in `e2e/platform/` (login, verify, profile, dashboard, projects, kanban, clients, sidebar, etc.) |
 
 ---
 
@@ -54,9 +60,9 @@
 
 | Suite | Location | Approximate Count | Status |
 |-------|----------|-------------------|--------|
-| Backend (pytest) | `backend/content/tests/` | 30 test files across models, serializers, views, services, tasks, utils | Active |
-| Frontend Unit (Jest) | `frontend/test/` | 28 spec files across components, composables, stores | Active |
-| Frontend E2E (Playwright) | `frontend/e2e/` | 82 spec files across admin, auth, blog, layout, proposal, public | Active |
+| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` | 43 test files (30 content + 12 accounts + 1 projectapp) | Active |
+| Frontend Unit (Jest) | `frontend/test/` | 36 test files (3 components + 23 composables + 10 stores incl. services) | Active |
+| Frontend E2E (Playwright) | `frontend/e2e/` | 96 spec files across admin, auth, blog, layout, proposal, public, platform (14 platform specs) | Active |
 | Quality Gate | `scripts/test_quality_gate.py` | Custom analyzer | Active |
 
 ---

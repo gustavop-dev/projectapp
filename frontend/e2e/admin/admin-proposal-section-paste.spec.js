@@ -133,8 +133,7 @@ async function openSectionEditor(page, capturedUpdates, sectionTitle) {
 
   await page.getByRole('button', { name: 'Secciones' }).click();
 
-  const sectionHeader = page.locator('.cursor-pointer').filter({ hasText: sectionTitle });
-  await sectionHeader.click();
+  await page.getByText(sectionTitle).click();
   await page.getByTestId('section-editor').waitFor({ state: 'visible' });
 }
 
@@ -361,8 +360,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     await page.getByRole('button', { name: 'Secciones' }).click();
 
     // Expand executive_summary section
-    const sectionHeader = page.locator('.cursor-pointer').filter({ hasText: 'Resumen ejecutivo' });
-    await sectionHeader.click();
+    await page.getByText('Resumen ejecutivo').click();
     await page.getByTestId('section-editor').waitFor({ state: 'visible' });
 
     const editor = page.getByTestId('section-editor');

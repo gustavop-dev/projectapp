@@ -249,7 +249,7 @@ describe('localStorage round-trip', () => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) saved = JSON.parse(raw);
-    } catch (_e) {
+    } catch {
       saved = null;
     }
 

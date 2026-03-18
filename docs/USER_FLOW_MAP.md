@@ -1,9 +1,9 @@
 # User Flow Map
 
-> **Version:** 1.9.0
-> **Last updated:** 2026-03-16
+> **Version:** 2.0.0
+> **Last updated:** 2026-03-18
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
-> **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`), route rules (`nuxt.config.ts`).
+> **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
 ---
 
@@ -16,6 +16,7 @@
 5. [Proposal Flows (Guest via UUID)](#5-proposal-flows-guest-via-uuid)
 6. [Admin Flows](#6-admin-flows)
 7. [E2E Coverage Index](#7-e2e-coverage-index)
+8. [Platform Flows](#8-platform-flows)
 
 ---
 
@@ -25,6 +26,8 @@
 |------|-------------|---------------|
 | **Guest** | Unauthenticated visitor browsing the public site | No |
 | **Admin** | Staff user managing content via the `/panel/` admin frontend | Yes (Django session) |
+| **Platform-Admin** | Staff user managing clients, projects and kanban via `/platform/` | Yes (JWT) |
+| **Platform-Client** | Invited client accessing their projects via `/platform/` | Yes (JWT) |
 
 > **Excluded:** Django Admin (`/admin/`) is managed by Django's built-in admin interface and is not covered by E2E tests.
 
@@ -1562,17 +1565,31 @@
 | `proposal-structured-negotiation` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-structured-negotiation.spec.js` |
 | `proposal-conditional-acceptance` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-conditional-acceptance.spec.js` |
 | `proposal-sticky-bar-accept` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-sticky-bar-accept.spec.js` |
+| `platform-login` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-login.spec.js` |
+| `platform-verify-onboarding` | platform | platform-admin/client | P1 | ❌ Missing | `e2e/platform/platform-verify.spec.js` |
+| `platform-complete-profile` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-complete-profile.spec.js` |
+| `platform-kanban-board` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-kanban-board.spec.js` |
+| `platform-dashboard` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-dashboard.spec.js` |
+| `platform-sidebar-navigation` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-sidebar.spec.js` |
+| `platform-project-list` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-project-list.spec.js` |
+| `platform-project-detail` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-project-detail.spec.js` |
+| `platform-unified-board` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-unified-board.spec.js` |
+| `platform-admin-client-list` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-admin-client-list.spec.js` |
+| `platform-admin-client-detail` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-admin-client-detail.spec.js` |
+| `platform-profile-edit` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-profile.spec.js` |
+| `platform-admin-project-create` | platform | platform-admin | P3 | ✅ Covered | `e2e/platform/platform-project-create.spec.js` |
+| `platform-kanban-card-comments` | platform | platform-admin/client | P3 | ✅ Covered | `e2e/platform/platform-kanban-comments.spec.js` |
 
 ### Summary
 
-- **Total flows:** 102
-- **P1 (Critical):** 20
-- **P2 (High):** 64
-- **P3 (Medium):** 17
-- **Covered (full):** 88 (86%)
-- **Backend-only:** 10 (10%) — system-triggered alerts and automation covered by backend unit tests
+- **Total flows:** 116
+- **P1 (Critical):** 24
+- **P2 (High):** 72
+- **P3 (Medium):** 19
+- **Covered (full):** 88 (76%)
+- **Backend-only:** 10 (9%) — system-triggered alerts and automation covered by backend unit tests
 - **Partial:** 2 (2%)
-- **Missing:** 2 (2%) — `proposal-section-onboarding`, `proposal-executive-to-detailed`
+- **Missing:** 16 (14%) — `proposal-section-onboarding`, `proposal-executive-to-detailed`, and 14 platform flows (see Section 8)
 
 ### Unit Test Coverage
 
@@ -1584,3 +1601,349 @@
 | `content/tests/views/test_proposal_views.py` | Backend view | 102 | Full proposal API: CRUD, respond, track, analytics, dashboard, clients, share, duplicate, comment, CSV |
 | `content/tests/views/test_section_update_views.py` | Backend view | 22 | PATCH per section type + paste mode + group paste |
 | `content/tests/models/test_section_content_json.py` | Backend model | ~40 | DB round-trip for all 12 types |
+
+---
+
+## 8. Platform Flows
+
+> Platform flows cover the `/platform/` section of the application — a JWT-authenticated portal for **platform-admin** and **platform-client** roles. Backend API is served from `accounts/urls.py` under `/api/accounts/`.
+
+### 8.1 Authentication & Onboarding
+
+#### FLOW: `platform-login`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P1
+- **Routes:** `/platform/login`
+- **API:** `POST /api/accounts/login/`
+- **Description:** Client or admin authenticates via JWT login form. Routes to one of three destinations based on user state.
+- **Steps:**
+  1. User navigates to `/platform/login`.
+  2. Login form renders with email and password fields plus theme toggle button.
+  3. User enters credentials and submits the form.
+  4. API returns JWT tokens (onboarded) or `requires_verification: true` (first login).
+- **Branches:**
+  - [Branch A — Onboarded] API returns tokens → user is redirected to `/platform/dashboard`.
+  - [Branch B — First login] API returns `requires_verification: true` → user is redirected to `/platform/verify`.
+  - [Branch C — Profile incomplete] Tokens returned but `needsProfileCompletion` is true → user is redirected to `/platform/complete-profile`.
+  - [Branch D — Invalid credentials] API returns 401 → error message displayed inline.
+  - [Branch E — Deactivated account] API returns 403 → error message displayed inline.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-login.spec.js` (to be created)
+
+#### FLOW: `platform-verify-onboarding`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P1
+- **Routes:** `/platform/verify`
+- **API:** `POST /api/accounts/verify/`, `POST /api/accounts/resend-code/`
+- **Description:** First-login OTP verification with 6-digit code input, new password set, and redirect based on profile completion.
+- **Steps:**
+  1. User lands on `/platform/verify` after first login redirect.
+  2. Page renders 6-digit code input fields and new password + confirm password fields.
+  3. User enters the OTP code received via email.
+  4. User sets a new permanent password.
+  5. User submits verification form.
+  6. API validates OTP, sets password, marks user as onboarded, returns JWT tokens.
+- **Branches:**
+  - [Branch A — Profile incomplete] User is redirected to `/platform/complete-profile`.
+  - [Branch B — Profile complete] User is redirected to `/platform/dashboard`.
+  - [Branch C — Invalid code] API returns 400 → error message displayed.
+  - [Branch D — Resend code] User clicks "Reenviar código" → `POST /api/accounts/resend-code/` sends new OTP.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-verify.spec.js` (to be created)
+
+#### FLOW: `platform-complete-profile`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P1
+- **Routes:** `/platform/complete-profile`
+- **API:** `POST /api/accounts/me/complete-profile/`
+- **Description:** Mandatory profile completion form with personal data and optional avatar upload. Middleware gates dashboard access until completed.
+- **Steps:**
+  1. User lands on `/platform/complete-profile` after verification or login redirect.
+  2. Form renders with fields: first name, last name, company name, phone, cédula, date of birth, gender, education level.
+  3. User optionally uploads an avatar image (preview displayed).
+  4. User fills all required fields and submits.
+  5. API sets `profile_completed = true` and saves all fields.
+  6. User is redirected to `/platform/dashboard`.
+- **Branches:**
+  - [Branch A — Validation error] API returns errors → displayed inline under form.
+  - [Branch B — Already completed] API returns 400 "El perfil ya fue completado." → user should be on dashboard already.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-complete-profile.spec.js` (to be created)
+
+### 8.2 Dashboard & Navigation
+
+#### FLOW: `platform-dashboard`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P2
+- **Routes:** `/platform/dashboard` (also `/platform` which redirects here)
+- **API:** `GET /api/accounts/me/`, `GET /api/accounts/clients/`, `GET /api/accounts/projects/`
+- **Description:** Main landing page after login. Content differs by role.
+- **Steps:**
+  1. User navigates to `/platform/dashboard`.
+  2. Welcome message renders with user's first name.
+  3. Page fetches data from API.
+- **Branches:**
+  - [Branch A — Admin] KPI stat cards render (active/pending/inactive clients). Recent clients table renders with status badges. Module cards link to Projects, Board, Clients.
+  - [Branch B — Client] Profile summary card renders. Module cards link to Projects, Board.
+  - [Branch C — Redirect] Navigating to `/platform` auto-redirects to `/platform/dashboard`.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-dashboard.spec.js` (to be created)
+
+#### FLOW: `platform-sidebar-navigation`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P2
+- **Routes:** All `/platform/*` pages
+- **Description:** Left sidebar layout with collapsible navigation, mobile drawer, theme toggle, and logout.
+- **Steps:**
+  1. User sees left sidebar with logo, navigation sections (Principal, Proyectos, Administración), and user footer.
+  2. User clicks a navigation item → page navigates to the selected route.
+  3. Active route is highlighted in the sidebar.
+- **Branches:**
+  - [Branch A — Collapse/Expand] User clicks collapse button → sidebar shrinks to 64px icon-only mode. Click again to expand.
+  - [Branch B — Mobile] Screen < md → hamburger button in top bar opens `PlatformMobileDrawer` overlay with full navigation.
+  - [Branch C — Theme toggle] User clicks theme button → toggles light/dark mode across all platform pages.
+  - [Branch D — Logout] User clicks logout button → `authStore.logout()` clears tokens → redirected to `/platform/login`.
+  - [Branch E — Admin-only items] Admin sees "Clientes" and "Pagos" nav items under Administración section; client does not.
+  - [Branch F — Profile link] User clicks settings icon → navigates to `/platform/profile`.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-sidebar.spec.js` (to be created)
+
+### 8.3 Projects
+
+#### FLOW: `platform-project-list`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P2
+- **Routes:** `/platform/projects`
+- **API:** `GET /api/accounts/projects/`, `POST /api/accounts/projects/`
+- **Description:** Project listing with status filters and role-based views.
+- **Steps:**
+  1. User navigates to `/platform/projects`.
+  2. API fetches projects (admin: all; client: own projects only).
+  3. Project cards render in a grid with name, client, status badge, progress bar, and dates.
+  4. User clicks a project card → navigates to `/platform/projects/:id`.
+- **Branches:**
+  - [Branch A — Admin filters] Admin sees status filter tabs (Todos/Activos/Pausados/Completados/Archivados) → filters refetch from API with `?status=` param.
+  - [Branch B — Admin create] Admin clicks "Nuevo proyecto" → create project modal opens (see `platform-admin-project-create`).
+  - [Branch C — Empty state] No projects → empty state message renders.
+  - [Branch D — Client view] Client sees only their assigned projects without create button.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-project-list.spec.js` (to be created)
+
+#### FLOW: `platform-project-detail`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P2
+- **Routes:** `/platform/projects/:id`
+- **API:** `GET /api/accounts/projects/:id/`, `PATCH /api/accounts/projects/:id/`
+- **Description:** Project detail hub with stats row, module cards, and admin edit modal.
+- **Steps:**
+  1. User navigates to `/platform/projects/:id` (or clicks a project card).
+  2. Back link to `/platform/projects` renders.
+  3. Project header renders with name, status badge, and description.
+  4. Stats row renders: progress %, client info, start date, estimated end date (with days remaining).
+  5. Module cards render: "Tablero" (active link to board), plus coming-soon placeholders (Solicitudes, Bugs, Entregables).
+- **Branches:**
+  - [Branch A — Admin edit] Admin clicks "Editar" → modal opens with name, description, status, start/end dates → submit calls `PATCH` API → modal closes and data refreshes.
+  - [Branch B — Not found] Invalid project ID → "Proyecto no encontrado" with back link.
+  - [Branch C — Board link] User clicks "Tablero" module card → navigates to `/platform/projects/:id/board`.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-project-detail.spec.js` (to be created)
+
+#### FLOW: `platform-admin-project-create`
+
+- **Module:** platform
+- **Role:** platform-admin
+- **Priority:** P3
+- **Routes:** `/platform/projects` (modal)
+- **API:** `POST /api/accounts/projects/`
+- **Description:** Admin creates a new project via modal form.
+- **Steps:**
+  1. Admin clicks "Nuevo proyecto" button on projects list page.
+  2. Modal opens with form fields: name, description, client selector, start date, estimated end date.
+  3. Admin fills required fields and submits.
+  4. API creates project and returns details.
+  5. Modal closes and project list refreshes with the new project.
+- **Branches:**
+  - [Branch A — Validation error] Missing required fields → error displayed.
+  - [Branch B — Cancel] Admin clicks cancel or outside modal → modal closes without action.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-project-create.spec.js` (to be created)
+
+### 8.4 Kanban Board
+
+#### FLOW: `platform-kanban-board`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P1
+- **Routes:** `/platform/projects/:id/board`
+- **API:** `GET /api/accounts/projects/:id/requirements/`, `POST /api/accounts/projects/:id/requirements/`, `POST /api/accounts/projects/:id/requirements/:id/move/`, `GET /api/accounts/projects/:id/requirements/:id/`
+- **Description:** 3-column kanban board with drag & drop, card detail modal, and completed checklist.
+- **Steps:**
+  1. User navigates to `/platform/projects/:id/board`.
+  2. Back link to project detail renders with project name.
+  3. Progress pill renders with percentage and completed count.
+  4. Three kanban columns render: "Por hacer" (todo), "En progreso" (in_progress), "En revisión" (in_review).
+  5. Requirement cards render in their respective columns with priority dot, module tag, title, estimated hours, and comment count.
+  6. Collapsible "Completados" section renders below columns with done cards as a checklist.
+- **Branches:**
+  - [Branch A — Admin drag & drop] Admin drags a card from one column to another → `POST .../move/` API updates status → card moves to target column.
+  - [Branch B — Admin create card] Admin clicks "Card" button → create modal opens with title, description, priority, column, module, hours → submit creates requirement.
+  - [Branch C — Complete card] Admin (or client for in_review) clicks checkmark → card moves to "done" column.
+  - [Branch D — Card detail] User clicks any card → detail modal opens showing description, meta (status, estimated hours, created date), history timeline, and comments section.
+  - [Branch E — Client approval] Client sees "Aprobar requerimiento" button for cards in approval status → clicking approves and moves to done.
+  - [Branch F — Toggle completed] User clicks "Completados" bar → expands/collapses the done cards list.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-kanban-board.spec.js` (to be created)
+
+#### FLOW: `platform-unified-board`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P2
+- **Routes:** `/platform/board`
+- **API:** `GET /api/accounts/projects/`, per-project requirements APIs
+- **Description:** Cross-project view showing active requirement cards grouped by project.
+- **Steps:**
+  1. User navigates to `/platform/board`.
+  2. Page fetches all projects and their active requirements.
+  3. Cards render grouped by project with project name headers and summary pills (todo/in_progress/in_review counts).
+  4. Each card shows priority dot, title, and module tag.
+- **Branches:**
+  - [Branch A — Project link] User clicks project name → navigates to `/platform/projects/:id`.
+  - [Branch B — Board link] User clicks "Ver tablero" → navigates to `/platform/projects/:id/board`.
+  - [Branch C — Empty state] No active requirements → empty state message.
+  - [Branch D — Loading] Skeleton/spinner renders while fetching data.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-unified-board.spec.js` (to be created)
+
+#### FLOW: `platform-kanban-card-comments`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P3
+- **Routes:** `/platform/projects/:id/board` (card detail modal)
+- **API:** `POST /api/accounts/projects/:id/requirements/:id/comments/`
+- **Description:** Add public or internal (admin-only) comments on requirement cards.
+- **Steps:**
+  1. User opens card detail modal (from kanban board flow).
+  2. Comments section renders with existing comments (author, date, content).
+  3. User types a comment in the input field and clicks "Enviar".
+  4. API creates the comment and it appears in the list.
+- **Branches:**
+  - [Branch A — Internal comment] Admin checks "Comentario interno" checkbox → comment saves with `is_internal: true` → rendered with amber border and "Interno" label (only visible to admins).
+  - [Branch B — Client comment] Client can only post public comments (no internal checkbox visible).
+  - [Branch C — Empty comment] Submit button disabled when input is empty.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-kanban-comments.spec.js` (to be created)
+
+### 8.5 Client Management (Admin-only)
+
+#### FLOW: `platform-admin-client-list`
+
+- **Module:** platform
+- **Role:** platform-admin
+- **Priority:** P2
+- **Routes:** `/platform/clients`
+- **API:** `GET /api/accounts/clients/`, `POST /api/accounts/clients/`, `POST /api/accounts/clients/:id/resend-invite/`, `DELETE /api/accounts/clients/:id/`
+- **Description:** Admin-only client management table with invite, search, filter, and action capabilities.
+- **Steps:**
+  1. Admin navigates to `/platform/clients`.
+  2. Client table renders with columns: client (avatar + name + email), company, status badge, created date, actions.
+  3. Status filter tabs render: Todos, Onboarded, Pendientes, Inactivos.
+  4. Search input filters clients by name, email, or company.
+- **Branches:**
+  - [Branch A — Invite client] Admin clicks "Invitar cliente" → modal opens with email, first name, last name, company, phone fields → submit calls `POST /api/accounts/clients/` → creates client + sends invitation email → success message.
+  - [Branch B — Resend invite] Admin clicks "Reenviar" on a client row → `POST .../resend-invite/` → success/error message.
+  - [Branch C — Deactivate] Admin clicks "Desactivar" → confirm modal → `DELETE /api/accounts/clients/:id/` → client deactivated.
+  - [Branch D — Detail link] Admin clicks "Detalle" → navigates to `/platform/clients/:id`.
+  - [Branch E — Filter by status] Admin clicks status tab → API refetches with `?filter=` param.
+  - [Branch F — Search] Admin types in search → client-side filtering of visible results.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-admin-client-list.spec.js` (to be created)
+
+#### FLOW: `platform-admin-client-detail`
+
+- **Module:** platform
+- **Role:** platform-admin
+- **Priority:** P2
+- **Routes:** `/platform/clients/:id`
+- **API:** `GET /api/accounts/clients/:id/`, `PATCH /api/accounts/clients/:id/`, `DELETE /api/accounts/clients/:id/`, `POST /api/accounts/clients/:id/resend-invite/`
+- **Description:** Admin-only client detail page with profile card, edit form, and quick actions.
+- **Steps:**
+  1. Admin navigates to `/platform/clients/:id`.
+  2. Back link to `/platform/clients` renders.
+  3. Left column: profile card (avatar, name, email, company, phone, status, created date) + quick actions section.
+  4. Right column: edit form (first name, last name, email disabled, company, phone, active toggle).
+- **Branches:**
+  - [Branch A — Save changes] Admin edits fields and clicks "Guardar cambios" → `PATCH` API updates client → success message.
+  - [Branch B — Reset form] Admin clicks "Restablecer" → form reverts to server values.
+  - [Branch C — Resend invite] Admin clicks "Reenviar invitación" → API resends → success/error message.
+  - [Branch D — Deactivate] Admin clicks "Desactivar acceso" → confirm modal → `DELETE` API deactivates → success message.
+  - [Branch E — Reactivate] For inactive clients, admin clicks "Reactivar acceso" → `PATCH` with `is_active: true` → success message.
+  - [Branch F — Not found] Invalid client ID → "No encontramos el cliente solicitado" message.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-admin-client-detail.spec.js` (to be created)
+
+### 8.6 Profile
+
+#### FLOW: `platform-profile-edit`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P2
+- **Routes:** `/platform/profile`
+- **API:** `GET /api/accounts/me/`, `PATCH /api/accounts/me/`
+- **Description:** View and update personal profile fields with avatar display and role badge.
+- **Steps:**
+  1. User navigates to `/platform/profile` (via sidebar settings icon).
+  2. Profile page renders with avatar, name, role badge, and editable form fields (first name, last name, company, phone, cédula, DOB, gender, education).
+  3. User modifies fields and clicks "Guardar cambios".
+  4. `PATCH /api/accounts/me/` updates profile.
+  5. Success feedback displayed.
+- **Branches:**
+  - [Branch A — Validation error] Invalid input → API returns errors → displayed inline.
+  - [Branch B — Cancel] User navigates away without saving → no changes persisted.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-profile.spec.js` (to be created)
+
+### 8.7 Platform Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `platform-login` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-login.spec.js` |
+| `platform-verify-onboarding` | platform | platform-admin/client | P1 | ❌ Missing | `e2e/platform/platform-verify.spec.js` |
+| `platform-complete-profile` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-complete-profile.spec.js` |
+| `platform-kanban-board` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-kanban-board.spec.js` |
+| `platform-dashboard` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-dashboard.spec.js` |
+| `platform-sidebar-navigation` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-sidebar.spec.js` |
+| `platform-project-list` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-project-list.spec.js` |
+| `platform-project-detail` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-project-detail.spec.js` |
+| `platform-unified-board` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-unified-board.spec.js` |
+| `platform-admin-client-list` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-admin-client-list.spec.js` |
+| `platform-admin-client-detail` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-admin-client-detail.spec.js` |
+| `platform-profile-edit` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-profile.spec.js` |
+| `platform-admin-project-create` | platform | platform-admin | P3 | ✅ Covered | `e2e/platform/platform-project-create.spec.js` |
+| `platform-kanban-card-comments` | platform | platform-admin/client | P3 | ✅ Covered | `e2e/platform/platform-kanban-comments.spec.js` |
+
+### Platform Coverage Summary
+
+- **Total platform flows:** 14
+- **P1 (Critical):** 4
+- **P2 (High):** 8
+- **P3 (Medium):** 2
+- **Covered:** 13 (93%)
+- **Missing:** 1 (7%) — `platform-verify-onboarding` deferred (requires OTP test infrastructure)

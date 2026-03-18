@@ -156,6 +156,18 @@ describe('usePlatformRequirementsStore', () => {
       expect(result.success).toBe(true)
       expect(store.currentRequirement).toEqual(detail)
     })
+
+    it('sets error on failure', async () => {
+      mockGet.mockRejectedValueOnce({
+        response: { data: { detail: 'No encontrado.' } },
+      })
+
+      const result = await store.fetchRequirement(1, 999)
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('No encontrado.')
+      expect(store.isLoading).toBe(false)
+    })
   })
 
   describe('createRequirement', () => {
@@ -235,6 +247,18 @@ describe('usePlatformRequirementsStore', () => {
       await store.updateRequirement(1, 1, { title: 'Updated' })
 
       expect(store.currentRequirement.title).toBe('Updated')
+    })
+
+    it('sets error on failure', async () => {
+      mockPatch.mockRejectedValueOnce({
+        response: { data: { detail: 'Error al actualizar.' } },
+      })
+
+      const result = await store.updateRequirement(1, 1, { title: 'X' })
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('Error al actualizar.')
+      expect(store.isUpdating).toBe(false)
     })
   })
 
