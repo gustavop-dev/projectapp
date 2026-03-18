@@ -1,0 +1,181 @@
+<template>
+  <div id="platform-notifications">
+    <!-- Header -->
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" data-enter>
+      <div>
+        <h1 class="text-2xl font-bold text-esmerald dark:text-white">Notificaciones</h1>
+        <p class="mt-1 text-sm text-green-light">
+          {{ notifStore.unreadCount > 0 ? `${notifStore.unreadCount} sin leer` : 'Todo al día' }}
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button
+          v-if="notifStore.unreadCount > 0"
+          type="button"
+          class="rounded-xl border border-esmerald/10 px-4 py-2 text-xs font-medium text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+          @click="handleMarkAllRead"
+        >
+          Marcar todas como leídas
+        </button>
+        <div class="flex gap-1.5">
+          <button
+            v-for="tab in filterTabs"
+            :key="tab.value"
+            type="button"
+            class="rounded-full px-3.5 py-1.5 text-xs font-medium transition"
+            :class="activeFilter === tab.value
+              ? 'bg-esmerald text-white dark:bg-lemon dark:text-esmerald-dark'
+              : 'text-green-light hover:bg-esmerald-light/50 dark:hover:bg-white/[0.06]'"
+            @click="activeFilter = tab.value"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="notifStore.isLoading" class="py-20 text-center">
+      <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-esmerald/20 border-t-esmerald dark:border-white/20 dark:border-t-lemon" />
+    </div>
+
+    <!-- Empty -->
+    <div v-else-if="filteredNotifications.length === 0" class="py-16 text-center" data-enter>
+      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-esmerald-light/50 dark:bg-white/[0.04]">
+        <svg class="h-8 w-8 text-green-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+      </div>
+      <p class="text-sm text-green-light">
+        {{ activeFilter === 'all' ? 'No tienes notificaciones.' : activeFilter === 'unread' ? 'No tienes notificaciones sin leer.' : 'No tienes notificaciones leídas.' }}
+      </p>
+    </div>
+
+    <!-- List -->
+    <div v-else class="space-y-2" data-enter>
+      <div
+        v-for="notif in filteredNotifications"
+        :key="notif.id"
+        class="group flex cursor-pointer items-start gap-4 rounded-2xl border p-4 transition"
+        :class="notif.is_read
+          ? 'border-esmerald/[0.04] bg-white hover:border-esmerald/10 dark:border-white/[0.04] dark:bg-esmerald dark:hover:border-white/10'
+          : 'border-esmerald/[0.08] bg-esmerald-light/30 hover:border-esmerald/15 dark:border-white/[0.08] dark:bg-white/[0.03] dark:hover:border-white/15'"
+        @click="handleNotifClick(notif)"
+      >
+        <!-- Icon -->
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" :class="typeIconBg(notif.type)">
+          <span class="text-base">{{ typeIcon(notif.type) }}</span>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 min-w-0">
+          <div class="flex items-start justify-between gap-2">
+            <h4 class="text-sm font-medium" :class="notif.is_read ? 'text-green-light' : 'text-esmerald dark:text-white'">
+              {{ notif.title }}
+            </h4>
+            <span v-if="!notif.is_read" class="mt-1 h-2 w-2 shrink-0 rounded-full bg-lemon" />
+          </div>
+          <p v-if="notif.message" class="mt-0.5 text-xs text-green-light/70">{{ notif.message }}</p>
+          <div class="mt-2 flex items-center gap-3 text-[10px] text-green-light/50">
+            <span v-if="notif.project_name" class="font-medium">{{ notif.project_name }}</span>
+            <span>{{ formatTimeAgo(notif.created_at) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { usePageEntrance } from '~/composables/usePageEntrance'
+import { usePlatformNotificationsStore } from '~/stores/platform-notifications'
+
+definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
+defineI18nRoute(false)
+useHead({ title: 'Notificaciones — ProjectApp' })
+usePageEntrance('#platform-notifications')
+
+const notifStore = usePlatformNotificationsStore()
+const activeFilter = ref('all')
+
+const filterTabs = [
+  { value: 'all', label: 'Todas' },
+  { value: 'unread', label: 'Sin leer' },
+  { value: 'read', label: 'Leídas' },
+]
+
+const filteredNotifications = computed(() => {
+  if (activeFilter.value === 'unread') return notifStore.unreadNotifications
+  if (activeFilter.value === 'read') return notifStore.readNotifications
+  return notifStore.notifications
+})
+
+function typeIcon(type) {
+  const map = {
+    bug_reported: '🐛', bug_status_changed: '🐛',
+    cr_created: '🔄', cr_status_changed: '🔄', cr_converted: '✅',
+    requirement_moved: '📋', requirement_approved: '✅',
+    deliverable_uploaded: '📂', deliverable_new_version: '📂',
+    comment_added: '💬', general: '🔔',
+  }
+  return map[type] || '🔔'
+}
+
+function typeIconBg(type) {
+  const map = {
+    bug_reported: 'bg-red-500/10', bug_status_changed: 'bg-red-500/10',
+    cr_created: 'bg-amber-500/10', cr_status_changed: 'bg-amber-500/10', cr_converted: 'bg-emerald-500/10',
+    requirement_moved: 'bg-blue-500/10', requirement_approved: 'bg-emerald-500/10',
+    deliverable_uploaded: 'bg-purple-500/10', deliverable_new_version: 'bg-purple-500/10',
+    comment_added: 'bg-blue-500/10', general: 'bg-gray-500/10',
+  }
+  return map[type] || 'bg-gray-500/10'
+}
+
+function formatTimeAgo(dateStr) {
+  if (!dateStr) return ''
+  const now = new Date()
+  const d = new Date(dateStr)
+  const diffMs = now - d
+  const diffMin = Math.floor(diffMs / 60000)
+  if (diffMin < 1) return 'Ahora'
+  if (diffMin < 60) return `Hace ${diffMin} min`
+  const diffHours = Math.floor(diffMin / 60)
+  if (diffHours < 24) return `Hace ${diffHours}h`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) return `Hace ${diffDays}d`
+  return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
+}
+
+function getNotifRoute(notif) {
+  if (!notif.project) return null
+  const base = `/platform/projects/${notif.project}`
+  const typeRoutes = {
+    bug_reported: '/bugs', bug_status_changed: '/bugs',
+    cr_created: '/changes', cr_status_changed: '/changes', cr_converted: '/changes',
+    requirement_moved: '/board', requirement_approved: '/board',
+    deliverable_uploaded: '/deliverables', deliverable_new_version: '/deliverables',
+  }
+  return base + (typeRoutes[notif.type] || '')
+}
+
+async function handleNotifClick(notif) {
+  if (!notif.is_read) {
+    await notifStore.markRead(notif.id)
+  }
+  const route = getNotifRoute(notif)
+  if (route) navigateTo(route)
+}
+
+async function handleMarkAllRead() {
+  await notifStore.markAllRead()
+}
+
+onMounted(async () => {
+  await notifStore.fetchNotifications()
+  notifStore.fetchUnreadCount()
+})
+
+onUnmounted(() => {
+  notifStore.stopPolling()
+})
+</script>

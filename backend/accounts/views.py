@@ -711,6 +711,7 @@ def requirement_comment_view(request, project_id, req_id):
 # ==========================================================================
 
 from accounts.models import ChangeRequest, ChangeRequestComment  # noqa: E402
+from accounts.services.notifications import notify_project_admins, notify_project_client  # noqa: E402
 from accounts.serializers import (  # noqa: E402
     ChangeRequestCommentSerializer,
     ChangeRequestDetailSerializer,
@@ -787,6 +788,23 @@ def change_request_list_view(request, project_id):
     if data.get('screenshot'):
         cr.screenshot = data['screenshot']
     cr.save()
+
+    profile = getattr(request.user, 'profile', None)
+    is_admin = profile and profile.is_admin
+    if is_admin:
+        notify_project_client(
+            proj, Notification.TYPE_CR_CREATED, f'Nueva solicitud de cambio: {cr.title}',
+            message=f'El equipo creó una solicitud de cambio en {proj.name}.',
+            related_object_type='change_request', related_object_id=cr.id,
+            exclude_user=request.user,
+        )
+    else:
+        notify_project_admins(
+            proj, Notification.TYPE_CR_CREATED, f'Nueva solicitud de cambio: {cr.title}',
+            message=f'{request.user.first_name} creó una solicitud en {proj.name}.',
+            related_object_type='change_request', related_object_id=cr.id,
+            exclude_user=request.user,
+        )
 
     return Response(
         ChangeRequestListSerializer(cr, context={'request': request}).data,
@@ -866,6 +884,16 @@ def change_request_evaluate_view(request, project_id, cr_id):
             setattr(cr, field, data[field])
             upd_fields.append(field)
     cr.save(update_fields=upd_fields)
+
+    if 'status' in data:
+        status_display = dict(ChangeRequest.STATUS_CHOICES).get(data['status'], data['status'])
+        notify_project_client(
+            proj, Notification.TYPE_CR_STATUS_CHANGED,
+            f'Solicitud actualizada: {cr.title}',
+            message=f'Estado cambiado a "{status_display}".',
+            related_object_type='change_request', related_object_id=cr.id,
+            exclude_user=request.user,
+        )
 
     return Response(
         ChangeRequestDetailSerializer(cr, context={'request': request}).data,
@@ -1064,6 +1092,23 @@ def bug_report_list_view(request, project_id):
         bug.screenshot = data['screenshot']
     bug.save()
 
+    profile = getattr(request.user, 'profile', None)
+    is_admin = profile and profile.is_admin
+    if is_admin:
+        notify_project_client(
+            proj, Notification.TYPE_BUG_REPORTED, f'Bug reportado: {bug.title}',
+            message=f'El equipo reportó un bug en {proj.name}.',
+            related_object_type='bug_report', related_object_id=bug.id,
+            exclude_user=request.user,
+        )
+    else:
+        notify_project_admins(
+            proj, Notification.TYPE_BUG_REPORTED, f'Bug reportado: {bug.title}',
+            message=f'{request.user.first_name} reportó un bug en {proj.name}.',
+            related_object_type='bug_report', related_object_id=bug.id,
+            exclude_user=request.user,
+        )
+
     return Response(
         BugReportListSerializer(bug, context={'request': request}).data,
         status=status.HTTP_201_CREATED,
@@ -1145,6 +1190,16 @@ def bug_report_evaluate_view(request, project_id, bug_id):
         bug.linked_bug_id = data['linked_bug_id']
         upd_fields.append('linked_bug_id')
     bug.save(update_fields=upd_fields)
+
+    if 'status' in data:
+        status_display = dict(BugReport.STATUS_CHOICES).get(data['status'], data['status'])
+        notify_project_client(
+            proj, Notification.TYPE_BUG_STATUS_CHANGED,
+            f'Bug actualizado: {bug.title}',
+            message=f'Estado cambiado a "{status_display}".',
+            related_object_type='bug_report', related_object_id=bug.id,
+            exclude_user=request.user,
+        )
 
     return Response(
         BugReportDetailSerializer(bug, context={'request': request}).data,
@@ -1280,6 +1335,14 @@ def deliverable_list_view(request, project_id):
         uploaded_by=request.user,
     )
 
+    notify_project_client(
+        proj, Notification.TYPE_DELIVERABLE_UPLOADED,
+        f'Nuevo entregable: {deliverable.title}',
+        message=f'Se subió un archivo en {proj.name}.',
+        related_object_type='deliverable', related_object_id=deliverable.id,
+        exclude_user=request.user,
+    )
+
     return Response(
         DeliverableListSerializer(deliverable, context={'request': request}).data,
         status=status.HTTP_201_CREATED,
@@ -1380,7 +1443,84 @@ def deliverable_upload_version_view(request, project_id, deliverable_id):
     deliverable.current_version = new_version
     deliverable.save(update_fields=['file', 'current_version', 'updated_at'])
 
+    notify_project_client(
+        proj, Notification.TYPE_DELIVERABLE_NEW_VERSION,
+        f'Nueva versión: {deliverable.title} v{new_version}',
+        message=f'Se actualizó un entregable en {proj.name}.',
+        related_object_type='deliverable', related_object_id=deliverable.id,
+        exclude_user=request.user,
+    )
+
     return Response(
         DeliverableDetailSerializer(deliverable, context={'request': request}).data,
         status=status.HTTP_201_CREATED,
     )
+
+
+# ==========================================================================
+# Notifications
+# ==========================================================================
+
+from accounts.models import Notification  # noqa: E402
+from accounts.serializers import NotificationSerializer  # noqa: E402
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def notification_list_view(request):
+    """
+    GET — List notifications for the authenticated user.
+    Supports ?is_read=true/false filter and ?limit=N.
+    """
+    qs = Notification.objects.filter(user=request.user).select_related('project')
+
+    is_read_param = request.query_params.get('is_read')
+    if is_read_param == 'true':
+        qs = qs.filter(is_read=True)
+    elif is_read_param == 'false':
+        qs = qs.filter(is_read=False)
+
+    limit = request.query_params.get('limit')
+    if limit:
+        try:
+            qs = qs[:int(limit)]
+        except (ValueError, TypeError):
+            pass
+
+    serializer = NotificationSerializer(qs, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def notification_unread_count_view(request):
+    """GET — Return count of unread notifications for badge display."""
+    count = Notification.objects.filter(user=request.user, is_read=False).count()
+    return Response({'count': count})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def notification_mark_read_view(request, notification_id):
+    """Mark a single notification as read."""
+    try:
+        notif = Notification.objects.get(id=notification_id, user=request.user)
+    except Notification.DoesNotExist:
+        return Response(
+            {'detail': 'Notificación no encontrada.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    notif.is_read = True
+    notif.save(update_fields=['is_read'])
+    return Response(NotificationSerializer(notif).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def notification_mark_all_read_view(request):
+    """Mark all unread notifications as read for the authenticated user."""
+    updated = Notification.objects.filter(
+        user=request.user, is_read=False,
+    ).update(is_read=True)
+    return Response({'marked_read': updated})

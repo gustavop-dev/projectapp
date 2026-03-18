@@ -154,8 +154,9 @@
 </template>
 
 <script setup>
-import { computed, inject } from 'vue'
+import { computed, inject, onMounted, onUnmounted } from 'vue'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
+import { usePlatformNotificationsStore } from '~/stores/platform-notifications'
 import SidebarItem from '~/components/platform/SidebarItem.vue'
 
 defineEmits(['logout'])
@@ -170,6 +171,10 @@ const toggleTheme = inject('toggleTheme')
 
 const route = useRoute()
 const authStore = usePlatformAuthStore()
+const notifStore = usePlatformNotificationsStore()
+
+onMounted(() => { notifStore.startPolling(30000) })
+onUnmounted(() => { notifStore.stopPolling() })
 
 const userSubtitle = computed(() =>
   authStore.user?.company_name || authStore.user?.email || 'Portal ProjectApp',
@@ -191,8 +196,7 @@ const primaryItems = computed(() => [
     label: 'Notificaciones',
     href: '/platform/notifications',
     icon: 'bell',
-    disabled: true,
-    badge: 0,
+    badge: notifStore.unreadCount,
   },
 ])
 

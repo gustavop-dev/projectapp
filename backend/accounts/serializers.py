@@ -652,3 +652,28 @@ class UpdateDeliverableSerializer(serializers.Serializer):
 
 class UploadNewVersionSerializer(serializers.Serializer):
     file = serializers.FileField()
+
+
+# =========================================================================
+# Notification serializers
+# =========================================================================
+
+from accounts.models import Notification  # noqa: E402
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    project_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Notification
+        fields = [
+            'id', 'type', 'title', 'message',
+            'related_object_type', 'related_object_id',
+            'project', 'project_name',
+            'is_read', 'created_at',
+        ]
+
+    def get_project_name(self, obj):
+        if obj.project:
+            return obj.project.name
+        return None

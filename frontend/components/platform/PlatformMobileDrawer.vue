@@ -125,6 +125,7 @@
 <script setup>
 import { computed } from 'vue'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
+import { usePlatformNotificationsStore } from '~/stores/platform-notifications'
 import SidebarItem from '~/components/platform/SidebarItem.vue'
 
 defineEmits(['close', 'logout', 'toggleTheme'])
@@ -136,6 +137,7 @@ const props = defineProps({
 
 const route = useRoute()
 const authStore = usePlatformAuthStore()
+const notifStore = usePlatformNotificationsStore()
 
 const userSubtitle = computed(() =>
   authStore.user?.company_name || authStore.user?.email || 'Portal ProjectApp',
@@ -143,7 +145,7 @@ const userSubtitle = computed(() =>
 
 const primaryItems = computed(() => [
   { label: 'Dashboard', href: '/platform/dashboard', icon: 'dashboard' },
-  { label: 'Notificaciones', href: '/platform/notifications', icon: 'bell', disabled: true, badge: 0 },
+  { label: 'Notificaciones', href: '/platform/notifications', icon: 'bell', badge: notifStore.unreadCount },
 ])
 
 const projectItems = computed(() => {

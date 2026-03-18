@@ -11,6 +11,10 @@ from accounts.views import (
     deliverable_detail_view,
     deliverable_list_view,
     deliverable_upload_version_view,
+    notification_list_view,
+    notification_mark_all_read_view,
+    notification_mark_read_view,
+    notification_unread_count_view,
     change_request_comment_view,
     change_request_convert_view,
     change_request_detail_view,
@@ -79,4 +83,10 @@ urlpatterns = [
     path('projects/<int:project_id>/deliverables/', deliverable_list_view, name='platform-deliverable-list'),
     path('projects/<int:project_id>/deliverables/<int:deliverable_id>/', deliverable_detail_view, name='platform-deliverable-detail'),
     path('projects/<int:project_id>/deliverables/<int:deliverable_id>/upload-version/', deliverable_upload_version_view, name='platform-deliverable-upload-version'),
+
+    # Notifications
+    path('notifications/', notification_list_view, name='platform-notification-list'),
+    path('notifications/unread-count/', notification_unread_count_view, name='platform-notification-unread-count'),
+    path('notifications/<int:notification_id>/read/', notification_mark_read_view, name='platform-notification-mark-read'),
+    path('notifications/mark-all-read/', notification_mark_all_read_view, name='platform-notification-mark-all-read'),
 ]

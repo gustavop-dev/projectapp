@@ -660,3 +660,61 @@ class DeliverableVersion(models.Model):
             return self.file.size
         except Exception:
             return 0
+
+
+class Notification(models.Model):
+    """
+    In-app notification for platform users.
+    Created by the notification service when relevant events occur.
+    """
+
+    TYPE_BUG_REPORTED = 'bug_reported'
+    TYPE_BUG_STATUS_CHANGED = 'bug_status_changed'
+    TYPE_CR_CREATED = 'cr_created'
+    TYPE_CR_STATUS_CHANGED = 'cr_status_changed'
+    TYPE_CR_CONVERTED = 'cr_converted'
+    TYPE_REQUIREMENT_MOVED = 'requirement_moved'
+    TYPE_REQUIREMENT_APPROVED = 'requirement_approved'
+    TYPE_DELIVERABLE_UPLOADED = 'deliverable_uploaded'
+    TYPE_DELIVERABLE_NEW_VERSION = 'deliverable_new_version'
+    TYPE_COMMENT_ADDED = 'comment_added'
+    TYPE_GENERAL = 'general'
+    TYPE_CHOICES = [
+        (TYPE_BUG_REPORTED, 'Bug reportado'),
+        (TYPE_BUG_STATUS_CHANGED, 'Estado de bug actualizado'),
+        (TYPE_CR_CREATED, 'Solicitud de cambio creada'),
+        (TYPE_CR_STATUS_CHANGED, 'Solicitud de cambio actualizada'),
+        (TYPE_CR_CONVERTED, 'Solicitud convertida en requerimiento'),
+        (TYPE_REQUIREMENT_MOVED, 'Requerimiento movido'),
+        (TYPE_REQUIREMENT_APPROVED, 'Requerimiento aprobado'),
+        (TYPE_DELIVERABLE_UPLOADED, 'Entregable subido'),
+        (TYPE_DELIVERABLE_NEW_VERSION, 'Nueva versión de entregable'),
+        (TYPE_COMMENT_ADDED, 'Nuevo comentario'),
+        (TYPE_GENERAL, 'General'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='notifications',
+    )
+    type = models.CharField(max_length=30, choices=TYPE_CHOICES, default=TYPE_GENERAL)
+    title = models.CharField(max_length=300)
+    message = models.TextField(blank=True, default='')
+    related_object_type = models.CharField(
+        max_length=50, blank=True, default='',
+        help_text='Model name: project, change_request, bug_report, deliverable, requirement',
+    )
+    related_object_id = models.PositiveIntegerField(null=True, blank=True)
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='notifications',
+        help_text='Project context for deep-linking.',
+    )
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'[{self.get_type_display()}] {self.title} → {self.user.email}'
