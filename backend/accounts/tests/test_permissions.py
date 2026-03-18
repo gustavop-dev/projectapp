@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
 from accounts.models import UserProfile
+from accounts.permissions import IsAdminRole, IsClientRole, IsOnboarded
 
 User = get_user_model()
 
@@ -105,3 +106,112 @@ class TestProfilePermissions:
         assert client_user.last_name == 'Name'
         assert client_user.profile.company_name == 'Updated Corp'
         assert client_user.profile.phone == '+57 311 111 1111'
+
+
+# =========================================================================
+# Permission class unit tests
+# =========================================================================
+
+class _FakeRequest:
+    """Lightweight request stub for permission unit tests."""
+    def __init__(self, user=None):
+        self.user = user
+
+
+@pytest.mark.django_db
+class TestIsAdminRolePermission:
+    def test_grants_access_to_admin(self):
+        user = User.objects.create_user(
+            username='padm@t.com', email='padm@t.com', password='p',
+        )
+        UserProfile.objects.create(user=user, role=UserProfile.ROLE_ADMIN)
+
+        perm = IsAdminRole()
+
+        assert perm.has_permission(_FakeRequest(user), None) is True
+
+    def test_denies_access_to_client(self):
+        user = User.objects.create_user(
+            username='pcli@t.com', email='pcli@t.com', password='p',
+        )
+        UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+
+        perm = IsAdminRole()
+
+        assert perm.has_permission(_FakeRequest(user), None) is False
+
+    def test_denies_access_to_user_without_profile(self):
+        user = User.objects.create_user(
+            username='pnone@t.com', email='pnone@t.com', password='p',
+        )
+
+        perm = IsAdminRole()
+
+        assert perm.has_permission(_FakeRequest(user), None) is False
+
+    def test_denies_access_to_anonymous(self):
+        from django.contrib.auth.models import AnonymousUser
+        perm = IsAdminRole()
+
+        assert perm.has_permission(_FakeRequest(AnonymousUser()), None) is False
+
+
+@pytest.mark.django_db
+class TestIsClientRolePermission:
+    def test_grants_access_to_client(self):
+        user = User.objects.create_user(
+            username='pcr@t.com', email='pcr@t.com', password='p',
+        )
+        UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+
+        perm = IsClientRole()
+
+        assert perm.has_permission(_FakeRequest(user), None) is True
+
+    def test_denies_access_to_admin(self):
+        user = User.objects.create_user(
+            username='pcra@t.com', email='pcra@t.com', password='p',
+        )
+        UserProfile.objects.create(user=user, role=UserProfile.ROLE_ADMIN)
+
+        perm = IsClientRole()
+
+        assert perm.has_permission(_FakeRequest(user), None) is False
+
+    def test_denies_access_to_anonymous(self):
+        from django.contrib.auth.models import AnonymousUser
+        perm = IsClientRole()
+
+        assert perm.has_permission(_FakeRequest(AnonymousUser()), None) is False
+
+
+@pytest.mark.django_db
+class TestIsOnboardedPermission:
+    def test_grants_access_to_onboarded_user(self):
+        user = User.objects.create_user(
+            username='pon@t.com', email='pon@t.com', password='p',
+        )
+        UserProfile.objects.create(user=user, is_onboarded=True)
+
+        perm = IsOnboarded()
+
+        assert perm.has_permission(_FakeRequest(user), None) is True
+
+    def test_denies_access_to_non_onboarded_user(self):
+        user = User.objects.create_user(
+            username='poff@t.com', email='poff@t.com', password='p',
+        )
+        UserProfile.objects.create(user=user, is_onboarded=False)
+
+        perm = IsOnboarded()
+
+        assert perm.has_permission(_FakeRequest(user), None) is False
+
+    def test_denies_access_to_user_without_profile(self):
+        user = User.objects.create_user(
+            username='ponp@t.com', email='ponp@t.com', password='p',
+        )
+
+        perm = IsOnboarded()
+
+        assert perm.has_permission(_FakeRequest(user), None) is False

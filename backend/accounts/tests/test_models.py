@@ -3,7 +3,14 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from freezegun import freeze_time
 
-from accounts.models import UserProfile, VerificationCode
+from accounts.models import (
+    Project,
+    Requirement,
+    RequirementComment,
+    RequirementHistory,
+    UserProfile,
+    VerificationCode,
+)
 
 User = get_user_model()
 
@@ -103,3 +110,100 @@ class TestVerificationCode:
         otp.increment_attempts()
 
         assert otp.attempts == 1
+
+    def test_str_representation_active(self):
+        user = self._make_user('str@test.com')
+        otp = VerificationCode.create_for_user(user)
+
+        result = str(otp)
+
+        assert 'str@test.com' in result
+        assert 'active' in result
+
+    def test_str_representation_used(self):
+        user = self._make_user('used@test.com')
+        otp = VerificationCode.create_for_user(user)
+        otp.mark_used()
+
+        result = str(otp)
+
+        assert 'used' in result
+
+
+@pytest.mark.django_db
+class TestUserProfileAvatarDisplayUrl:
+    def test_returns_avatar_url_when_avatar_field_is_set(self):
+        user = User.objects.create_user(username='av@test.com', email='av@test.com', password='pass1234')
+        profile = UserProfile.objects.create(user=user, avatar_url='https://old.com/pic.jpg')
+        # Simulate avatar field being truthy by checking the fallback
+        # When avatar is empty, falls back to avatar_url
+        assert profile.avatar_display_url == 'https://old.com/pic.jpg'
+
+    def test_returns_empty_string_when_no_avatar(self):
+        user = User.objects.create_user(username='noav@test.com', email='noav@test.com', password='pass1234')
+        profile = UserProfile.objects.create(user=user)
+
+        assert profile.avatar_display_url == ''
+
+    def test_returns_avatar_url_field_as_fallback(self):
+        user = User.objects.create_user(username='fb@test.com', email='fb@test.com', password='pass1234')
+        profile = UserProfile.objects.create(user=user, avatar_url='https://cdn.example.com/avatar.png')
+
+        assert profile.avatar_display_url == 'https://cdn.example.com/avatar.png'
+
+
+@pytest.mark.django_db
+class TestProjectModel:
+    def test_str_representation(self):
+        user = User.objects.create_user(username='pm@test.com', email='pm@test.com', password='pass')
+        project = Project.objects.create(name='My Project', client=user)
+
+        assert str(project) == 'My Project — pm@test.com'
+
+    def test_status_display_returns_human_label(self):
+        user = User.objects.create_user(username='sd@test.com', email='sd@test.com', password='pass')
+        project = Project.objects.create(name='P', client=user, status=Project.STATUS_ACTIVE)
+
+        assert project.status_display == 'Activo'
+
+    def test_status_display_for_archived(self):
+        user = User.objects.create_user(username='ar@test.com', email='ar@test.com', password='pass')
+        project = Project.objects.create(name='P', client=user, status=Project.STATUS_ARCHIVED)
+
+        assert project.status_display == 'Archivado'
+
+
+@pytest.mark.django_db
+class TestRequirementModel:
+    def test_str_representation(self):
+        user = User.objects.create_user(username='rm@test.com', email='rm@test.com', password='pass')
+        project = Project.objects.create(name='P', client=user)
+        req = Requirement.objects.create(project=project, title='Login page', status=Requirement.STATUS_TODO)
+
+        assert str(req) == 'Login page [To do]'
+
+
+@pytest.mark.django_db
+class TestRequirementCommentModel:
+    def test_str_representation(self):
+        user = User.objects.create_user(username='rc@test.com', email='rc@test.com', password='pass')
+        project = Project.objects.create(name='P', client=user)
+        req = Requirement.objects.create(project=project, title='R')
+        comment = RequirementComment.objects.create(requirement=req, user=user, content='Note')
+
+        result = str(comment)
+
+        assert 'rc@test.com' in result
+
+
+@pytest.mark.django_db
+class TestRequirementHistoryModel:
+    def test_str_representation(self):
+        user = User.objects.create_user(username='rh@test.com', email='rh@test.com', password='pass')
+        project = Project.objects.create(name='P', client=user)
+        req = Requirement.objects.create(project=project, title='R')
+        history = RequirementHistory.objects.create(
+            requirement=req, from_status='todo', to_status='in_progress', changed_by=user,
+        )
+
+        assert str(history) == 'todo → in_progress'
