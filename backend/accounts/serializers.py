@@ -426,3 +426,132 @@ class EvaluateChangeRequestSerializer(serializers.Serializer):
 class CreateChangeRequestCommentSerializer(serializers.Serializer):
     content = serializers.CharField()
     is_internal = serializers.BooleanField(default=False)
+
+
+# =========================================================================
+# Bug Report serializers
+# =========================================================================
+
+from accounts.models import BugReport, BugComment  # noqa: E402
+
+
+class BugCommentSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BugComment
+        fields = ['id', 'content', 'is_internal', 'user_email', 'user_name', 'created_at']
+
+    def get_user_name(self, obj):
+        u = obj.user
+        return f'{u.first_name} {u.last_name}'.strip() or u.email
+
+
+class BugReportListSerializer(serializers.ModelSerializer):
+    reported_by_name = serializers.SerializerMethodField()
+    reported_by_email = serializers.EmailField(source='reported_by.email', read_only=True)
+    comments_count = serializers.SerializerMethodField()
+    screenshot_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BugReport
+        fields = [
+            'id', 'title', 'description', 'severity', 'status',
+            'environment', 'device_browser', 'is_recurring',
+            'steps_to_reproduce', 'expected_behavior', 'actual_behavior',
+            'admin_response', 'linked_bug_id', 'screenshot_url',
+            'reported_by_name', 'reported_by_email',
+            'comments_count', 'created_at', 'updated_at',
+        ]
+
+    def get_reported_by_name(self, obj):
+        u = obj.reported_by
+        return f'{u.first_name} {u.last_name}'.strip() or u.email
+
+    def get_comments_count(self, obj):
+        return getattr(obj, '_comments_count', obj.comments.count())
+
+    def get_screenshot_url(self, obj):
+        if not obj.screenshot:
+            return None
+        request = self.context.get('request')
+        url = obj.screenshot.url
+        if request and not url.startswith('http'):
+            return request.build_absolute_uri(url)
+        return url
+
+
+class BugReportDetailSerializer(serializers.ModelSerializer):
+    reported_by_name = serializers.SerializerMethodField()
+    reported_by_email = serializers.EmailField(source='reported_by.email', read_only=True)
+    comments = serializers.SerializerMethodField()
+    screenshot_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BugReport
+        fields = [
+            'id', 'title', 'description', 'severity', 'status',
+            'environment', 'device_browser', 'is_recurring',
+            'steps_to_reproduce', 'expected_behavior', 'actual_behavior',
+            'admin_response', 'linked_bug_id', 'screenshot_url',
+            'reported_by_name', 'reported_by_email',
+            'comments', 'created_at', 'updated_at',
+        ]
+
+    def get_reported_by_name(self, obj):
+        u = obj.reported_by
+        return f'{u.first_name} {u.last_name}'.strip() or u.email
+
+    def get_comments(self, obj):
+        request = self.context.get('request')
+        profile = getattr(request.user, 'profile', None) if request else None
+        qs = obj.comments.select_related('user').all()
+        if not profile or not profile.is_admin:
+            qs = qs.filter(is_internal=False)
+        return BugCommentSerializer(qs, many=True).data
+
+    def get_screenshot_url(self, obj):
+        if not obj.screenshot:
+            return None
+        request = self.context.get('request')
+        url = obj.screenshot.url
+        if request and not url.startswith('http'):
+            return request.build_absolute_uri(url)
+        return url
+
+
+class CreateBugReportSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=300)
+    description = serializers.CharField(required=False, default='', allow_blank=True)
+    severity = serializers.ChoiceField(
+        choices=BugReport.SEVERITY_CHOICES, default=BugReport.SEVERITY_MEDIUM,
+    )
+    steps_to_reproduce = serializers.ListField(
+        child=serializers.CharField(), required=False, default=list,
+    )
+    expected_behavior = serializers.CharField(required=False, default='', allow_blank=True)
+    actual_behavior = serializers.CharField(required=False, default='', allow_blank=True)
+    environment = serializers.ChoiceField(
+        choices=BugReport.ENV_CHOICES, default=BugReport.ENV_PRODUCTION,
+    )
+    device_browser = serializers.CharField(max_length=200, required=False, default='', allow_blank=True)
+    is_recurring = serializers.BooleanField(default=False)
+    screenshot = serializers.ImageField(required=False, allow_null=True)
+
+
+class EvaluateBugReportSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=BugReport.STATUS_CHOICES)
+    admin_response = serializers.CharField(required=False, default='', allow_blank=True)
+    linked_bug_id = serializers.IntegerField(required=False, allow_null=True)
+
+    def validate_linked_bug_id(self, value):
+        if value is not None:
+            if not BugReport.objects.filter(id=value).exists():
+                raise serializers.ValidationError('Bug vinculado no encontrado.')
+        return value
+
+
+class CreateBugCommentSerializer(serializers.Serializer):
+    content = serializers.CharField()
+    is_internal = serializers.BooleanField(default=False)

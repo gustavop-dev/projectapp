@@ -447,3 +447,126 @@ class ChangeRequestComment(models.Model):
 
     def __str__(self):
         return f'Comment by {self.user.email} on CR #{self.change_request_id}'
+
+
+class BugReport(models.Model):
+    """
+    A bug report filed by a client (or admin) for a project.
+    Admin manages the lifecycle: confirm, fix, QA, resolve.
+    """
+
+    SEVERITY_CRITICAL = 'critical'
+    SEVERITY_HIGH = 'high'
+    SEVERITY_MEDIUM = 'medium'
+    SEVERITY_LOW = 'low'
+    SEVERITY_CHOICES = [
+        (SEVERITY_CRITICAL, 'Crítica'),
+        (SEVERITY_HIGH, 'Alta'),
+        (SEVERITY_MEDIUM, 'Media'),
+        (SEVERITY_LOW, 'Baja'),
+    ]
+
+    STATUS_REPORTED = 'reported'
+    STATUS_CONFIRMED = 'confirmed'
+    STATUS_FIXING = 'fixing'
+    STATUS_QA = 'qa'
+    STATUS_RESOLVED = 'resolved'
+    STATUS_NOT_REPRODUCIBLE = 'not_reproducible'
+    STATUS_WONT_FIX = 'wont_fix'
+    STATUS_DUPLICATE = 'duplicate'
+    STATUS_CHOICES = [
+        (STATUS_REPORTED, 'Reportado'),
+        (STATUS_CONFIRMED, 'Confirmado'),
+        (STATUS_FIXING, 'En corrección'),
+        (STATUS_QA, 'En QA'),
+        (STATUS_RESOLVED, 'Resuelto'),
+        (STATUS_NOT_REPRODUCIBLE, 'No reproducible'),
+        (STATUS_WONT_FIX, 'No se corregirá'),
+        (STATUS_DUPLICATE, 'Duplicado'),
+    ]
+
+    ENV_PRODUCTION = 'production'
+    ENV_STAGING = 'staging'
+    ENV_DEV = 'dev'
+    ENV_CHOICES = [
+        (ENV_PRODUCTION, 'Producción'),
+        (ENV_STAGING, 'Staging'),
+        (ENV_DEV, 'Desarrollo'),
+    ]
+
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, related_name='bug_reports',
+    )
+    reported_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bug_reports',
+    )
+    title = models.CharField(max_length=300)
+    description = models.TextField(blank=True, default='')
+    severity = models.CharField(
+        max_length=20, choices=SEVERITY_CHOICES, default=SEVERITY_MEDIUM,
+    )
+    steps_to_reproduce = models.JSONField(
+        default=list, blank=True,
+        help_text='Numbered list of steps to reproduce the bug.',
+    )
+    expected_behavior = models.TextField(blank=True, default='')
+    actual_behavior = models.TextField(blank=True, default='')
+    environment = models.CharField(
+        max_length=20, choices=ENV_CHOICES, default=ENV_PRODUCTION,
+    )
+    device_browser = models.CharField(max_length=200, blank=True, default='')
+    is_recurring = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=25, choices=STATUS_CHOICES, default=STATUS_REPORTED,
+    )
+    admin_response = models.TextField(blank=True, default='')
+    linked_bug = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='duplicates',
+        help_text='Original bug if this is a duplicate.',
+    )
+    screenshot = models.ImageField(
+        upload_to='bug_reports/', null=True, blank=True,
+        help_text='Optimized automatically on upload (WhatsApp-like compression).',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.title} [{self.get_status_display()}]'
+
+    def save(self, *args, **kwargs):
+        if self.screenshot and hasattr(self.screenshot.file, 'content_type'):
+            content_type = getattr(self.screenshot.file, 'content_type', '')
+            if content_type and content_type.startswith('image/'):
+                try:
+                    self.screenshot = optimize_image(self.screenshot, field_name='screenshot')
+                except Exception:
+                    pass
+        super().save(*args, **kwargs)
+
+
+class BugComment(models.Model):
+    """Comment thread on a bug report. Supports internal (admin-only) comments."""
+
+    bug_report = models.ForeignKey(
+        BugReport, on_delete=models.CASCADE, related_name='comments',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='bug_comments',
+    )
+    content = models.TextField()
+    is_internal = models.BooleanField(
+        default=False, help_text='Internal comments are visible only to admins.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'Comment by {self.user.email} on Bug #{self.bug_report_id}'

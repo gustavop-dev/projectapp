@@ -272,6 +272,7 @@ const projectModules = computed(() => [
     icon: 'bug',
     iconBg: 'bg-red-500/10',
     iconColor: 'text-red-500',
+    href: `/platform/projects/${route.params.id}/bugs`,
   },
   {
     title: 'Entregables',

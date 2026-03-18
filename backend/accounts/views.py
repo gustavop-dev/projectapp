@@ -970,3 +970,219 @@ def change_request_convert_view(request, project_id, cr_id):
         ChangeRequestDetailSerializer(cr, context={'request': request}).data,
         status=status.HTTP_201_CREATED,
     )
+
+
+# ==========================================================================
+# Bug Reports
+# ==========================================================================
+
+from accounts.models import BugReport, BugComment  # noqa: E402
+from accounts.serializers import (  # noqa: E402
+    BugCommentSerializer,
+    BugReportDetailSerializer,
+    BugReportListSerializer,
+    CreateBugCommentSerializer,
+    CreateBugReportSerializer,
+    EvaluateBugReportSerializer,
+)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def bug_report_all_view(request):
+    """
+    GET — All bug reports across all projects the user has access to.
+    Admin sees all; client sees only their projects.
+    """
+    profile = getattr(request.user, 'profile', None)
+    is_admin = profile and profile.is_admin
+
+    if is_admin:
+        qs = BugReport.objects.select_related('reported_by', 'project').all()
+    else:
+        qs = BugReport.objects.select_related('reported_by', 'project').filter(
+            project__client=request.user,
+        )
+
+    status_filter = request.query_params.get('status')
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+    severity_filter = request.query_params.get('severity')
+    if severity_filter:
+        qs = qs.filter(severity=severity_filter)
+
+    serializer = BugReportListSerializer(qs, many=True, context={'request': request})
+
+    data = serializer.data
+    for item, bug in zip(data, qs):
+        item['project_id'] = bug.project_id
+        item['project_name'] = bug.project.name
+
+    return Response(data)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def bug_report_list_view(request, project_id):
+    """
+    GET  — All bug reports for a project (both roles, filtered optionally).
+    POST — Both roles can report a bug.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    if request.method == 'GET':
+        qs = BugReport.objects.filter(project=proj).select_related('reported_by')
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        severity_filter = request.query_params.get('severity')
+        if severity_filter:
+            qs = qs.filter(severity=severity_filter)
+        serializer = BugReportListSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    serializer = CreateBugReportSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    bug = BugReport(
+        project=proj,
+        reported_by=request.user,
+        title=data['title'],
+        description=data.get('description', ''),
+        severity=data.get('severity', BugReport.SEVERITY_MEDIUM),
+        steps_to_reproduce=data.get('steps_to_reproduce', []),
+        expected_behavior=data.get('expected_behavior', ''),
+        actual_behavior=data.get('actual_behavior', ''),
+        environment=data.get('environment', BugReport.ENV_PRODUCTION),
+        device_browser=data.get('device_browser', ''),
+        is_recurring=data.get('is_recurring', False),
+    )
+    if data.get('screenshot'):
+        bug.screenshot = data['screenshot']
+    bug.save()
+
+    return Response(
+        BugReportListSerializer(bug, context={'request': request}).data,
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['GET', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def bug_report_detail_view(request, project_id, bug_id):
+    """
+    GET    — Detail with comments (both roles).
+    DELETE — Admin only.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        bug = BugReport.objects.prefetch_related('comments__user').get(
+            id=bug_id, project=proj,
+        )
+    except BugReport.DoesNotExist:
+        return Response(
+            {'detail': 'Bug no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if request.method == 'GET':
+        return Response(
+            BugReportDetailSerializer(bug, context={'request': request}).data,
+        )
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.is_admin:
+        return Response(
+            {'detail': 'Solo los administradores pueden eliminar reportes de bugs.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    bug.delete()
+    return Response({'detail': 'Reporte de bug eliminado.'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def bug_report_evaluate_view(request, project_id, bug_id):
+    """
+    Admin evaluates a bug report: update status, admin_response, linked_bug.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.is_admin:
+        return Response(
+            {'detail': 'Solo los administradores pueden evaluar reportes de bugs.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    try:
+        bug = BugReport.objects.get(id=bug_id, project=proj)
+    except BugReport.DoesNotExist:
+        return Response(
+            {'detail': 'Bug no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    serializer = EvaluateBugReportSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    upd_fields = ['updated_at']
+    for field in ('status', 'admin_response'):
+        if field in data:
+            setattr(bug, field, data[field])
+            upd_fields.append(field)
+    if 'linked_bug_id' in data:
+        bug.linked_bug_id = data['linked_bug_id']
+        upd_fields.append('linked_bug_id')
+    bug.save(update_fields=upd_fields)
+
+    return Response(
+        BugReportDetailSerializer(bug, context={'request': request}).data,
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def bug_report_comment_view(request, project_id, bug_id):
+    """Add a comment to a bug report. Both roles can comment."""
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        bug = BugReport.objects.get(id=bug_id, project=proj)
+    except BugReport.DoesNotExist:
+        return Response(
+            {'detail': 'Bug no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    serializer = CreateBugCommentSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    profile = getattr(request.user, 'profile', None)
+    is_admin = profile and profile.is_admin
+    is_internal = data.get('is_internal', False) and is_admin
+
+    comment = BugComment.objects.create(
+        bug_report=bug,
+        user=request.user,
+        content=data['content'],
+        is_internal=is_internal,
+    )
+
+    return Response(
+        BugCommentSerializer(comment).data,
+        status=status.HTTP_201_CREATED,
+    )

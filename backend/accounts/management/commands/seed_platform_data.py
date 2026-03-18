@@ -17,7 +17,7 @@ from datetime import date, timedelta
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from accounts.models import ChangeRequest, ChangeRequestComment, Project, Requirement, UserProfile
+from accounts.models import BugComment, BugReport, ChangeRequest, ChangeRequestComment, Project, Requirement, UserProfile
 
 User = get_user_model()
 
@@ -118,6 +118,7 @@ class Command(BaseCommand):
             if ecommerce_project:
                 self._create_requirements(ecommerce_project)
                 self._create_change_requests(ecommerce_project, client_user, admin_user)
+                self._create_bug_reports(ecommerce_project, client_user, admin_user)
             return
 
         today = date.today()
@@ -146,6 +147,7 @@ class Command(BaseCommand):
 
         self._create_requirements(ecommerce_project)
         self._create_change_requests(ecommerce_project, client_user, admin_user)
+        self._create_bug_reports(ecommerce_project, client_user, admin_user)
 
     def _create_requirements(self, project):
         if Requirement.objects.filter(project=project).exists():
@@ -266,3 +268,126 @@ class Command(BaseCommand):
                 )
 
         self.stdout.write(self.style.SUCCESS(f'  Created {len(crs)} change requests for {project.name}'))
+
+    def _create_bug_reports(self, project, client_user, admin_user):
+        if BugReport.objects.filter(project=project).exists():
+            self.stdout.write(f'  Bug reports already exist for {project.name}')
+            return
+
+        bugs = [
+            {
+                'title': 'Botón "Agregar al carrito" no responde en móvil',
+                'description': 'En dispositivos móviles (iPhone 14, Safari), al tocar el botón de agregar al carrito no pasa nada.',
+                'severity': BugReport.SEVERITY_CRITICAL,
+                'steps_to_reproduce': [
+                    'Abrir la tienda desde un iPhone',
+                    'Navegar a cualquier producto',
+                    'Tocar el botón "Agregar al carrito"',
+                    'No sucede nada, el carrito sigue vacío',
+                ],
+                'expected_behavior': 'El producto debería agregarse al carrito y mostrar confirmación.',
+                'actual_behavior': 'El botón no responde al touch en Safari iOS.',
+                'environment': BugReport.ENV_PRODUCTION,
+                'device_browser': 'iPhone 14 / Safari 17',
+                'is_recurring': True,
+                'status': BugReport.STATUS_CONFIRMED,
+                'admin_response': 'Confirmado. Parece un problema con el event handler en Safari. Lo priorizamos.',
+            },
+            {
+                'title': 'Imágenes del catálogo cargan muy lento',
+                'description': 'Las imágenes de productos tardan más de 5 segundos en cargar, especialmente en conexiones 4G.',
+                'severity': BugReport.SEVERITY_HIGH,
+                'steps_to_reproduce': [
+                    'Abrir el catálogo de productos',
+                    'Hacer scroll por la lista',
+                    'Las imágenes aparecen como placeholder gris por varios segundos',
+                ],
+                'expected_behavior': 'Las imágenes deberían cargar en menos de 2 segundos.',
+                'actual_behavior': 'Tardan 5-8 segundos. No hay lazy loading.',
+                'environment': BugReport.ENV_PRODUCTION,
+                'device_browser': 'Chrome 120 / Windows',
+                'is_recurring': True,
+                'status': BugReport.STATUS_FIXING,
+                'admin_response': 'Vamos a implementar lazy loading y optimización de imágenes.',
+            },
+            {
+                'title': 'Error 500 al buscar con caracteres especiales',
+                'description': 'Si se busca un producto usando comillas o el símbolo & en el buscador, da error de servidor.',
+                'severity': BugReport.SEVERITY_MEDIUM,
+                'steps_to_reproduce': [
+                    'Ir al buscador de productos',
+                    'Escribir: camiseta "roja"',
+                    'Presionar Enter',
+                    'Aparece página de error 500',
+                ],
+                'expected_behavior': 'Debería mostrar resultados o un mensaje de "sin resultados".',
+                'actual_behavior': 'Error 500 Internal Server Error.',
+                'environment': BugReport.ENV_PRODUCTION,
+                'device_browser': 'Chrome / macOS',
+                'is_recurring': True,
+                'status': BugReport.STATUS_REPORTED,
+                'admin_response': '',
+            },
+            {
+                'title': 'Precio muestra $0 en algunos productos',
+                'description': 'Algunos productos muestran $0 como precio aunque en el admin tienen precio configurado.',
+                'severity': BugReport.SEVERITY_HIGH,
+                'steps_to_reproduce': [
+                    'Navegar al catálogo',
+                    'Filtrar por categoría "Electrónicos"',
+                    'Ver que 2 productos muestran $0',
+                ],
+                'expected_behavior': 'Todos los productos deberían mostrar su precio real.',
+                'actual_behavior': 'Algunos muestran $0.',
+                'environment': BugReport.ENV_PRODUCTION,
+                'device_browser': 'Cualquier navegador',
+                'is_recurring': False,
+                'status': BugReport.STATUS_RESOLVED,
+                'admin_response': 'Era un problema de caché. Ya se limpió y se agregó invalidación automática.',
+            },
+            {
+                'title': 'Formulario de contacto no envía en Firefox',
+                'description': 'El formulario de contacto del footer no envía en Firefox. El botón se queda en estado "Enviando..." indefinidamente.',
+                'severity': BugReport.SEVERITY_LOW,
+                'steps_to_reproduce': [
+                    'Abrir la tienda en Firefox',
+                    'Ir al footer y llenar el formulario de contacto',
+                    'Hacer clic en Enviar',
+                    'El botón cambia a "Enviando..." y nunca termina',
+                ],
+                'expected_behavior': 'El formulario debería enviarse y mostrar mensaje de confirmación.',
+                'actual_behavior': 'Se queda cargando indefinidamente.',
+                'environment': BugReport.ENV_PRODUCTION,
+                'device_browser': 'Firefox 121 / Windows',
+                'is_recurring': True,
+                'status': BugReport.STATUS_REPORTED,
+                'admin_response': '',
+            },
+        ]
+
+        for bug_data in bugs:
+            bug = BugReport.objects.create(
+                project=project,
+                reported_by=client_user,
+                title=bug_data['title'],
+                description=bug_data['description'],
+                severity=bug_data['severity'],
+                steps_to_reproduce=bug_data['steps_to_reproduce'],
+                expected_behavior=bug_data['expected_behavior'],
+                actual_behavior=bug_data['actual_behavior'],
+                environment=bug_data['environment'],
+                device_browser=bug_data.get('device_browser', ''),
+                is_recurring=bug_data.get('is_recurring', False),
+                status=bug_data['status'],
+                admin_response=bug_data.get('admin_response', ''),
+            )
+
+            if bug_data['admin_response']:
+                BugComment.objects.create(
+                    bug_report=bug,
+                    user=admin_user,
+                    content=bug_data['admin_response'],
+                    is_internal=False,
+                )
+
+        self.stdout.write(self.style.SUCCESS(f'  Created {len(bugs)} bug reports for {project.name}'))
