@@ -709,6 +709,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
+import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 

@@ -641,6 +641,7 @@
 import { computed, onMounted, ref } from 'vue';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
 import SectionPreviewModal from '~/components/BusinessProposal/admin/SectionPreviewModal.vue';
+import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 
