@@ -16,8 +16,9 @@ from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
-from accounts.models import BugComment, BugReport, ChangeRequest, ChangeRequestComment, Deliverable, Project, Requirement, UserProfile
+from accounts.models import BugComment, BugReport, ChangeRequest, ChangeRequestComment, Deliverable, HostingSubscription, Payment, Project, Requirement, UserProfile
 
 User = get_user_model()
 
@@ -120,6 +121,7 @@ class Command(BaseCommand):
                 self._create_change_requests(ecommerce_project, client_user, admin_user)
                 self._create_bug_reports(ecommerce_project, client_user, admin_user)
                 self._create_deliverables(ecommerce_project, admin_user)
+                self._create_subscription(ecommerce_project)
             return
 
         today = date.today()
@@ -150,6 +152,7 @@ class Command(BaseCommand):
         self._create_change_requests(ecommerce_project, client_user, admin_user)
         self._create_bug_reports(ecommerce_project, client_user, admin_user)
         self._create_deliverables(ecommerce_project, admin_user)
+        self._create_subscription(ecommerce_project)
 
     def _create_requirements(self, project):
         if Requirement.objects.filter(project=project).exists():
@@ -457,3 +460,55 @@ class Command(BaseCommand):
             )
 
         self.stdout.write(self.style.SUCCESS(f'  Created {len(deliverables)} deliverables for {project.name}'))
+
+    def _create_subscription(self, project):
+        if HostingSubscription.objects.filter(project=project).exists():
+            self.stdout.write(f'  Subscription already exists for {project.name}')
+            return
+
+        from decimal import Decimal
+
+        today = date.today()
+
+        sub = HostingSubscription.objects.create(
+            project=project,
+            plan=HostingSubscription.PLAN_QUARTERLY,
+            base_monthly_amount=Decimal('330000'),
+            discount_percent=10,
+            effective_monthly_amount=Decimal('297000'),
+            billing_amount=Decimal('891000'),
+            status=HostingSubscription.STATUS_ACTIVE,
+            start_date=today - timedelta(days=60),
+            next_billing_date=today + timedelta(days=30),
+        )
+
+        Payment.objects.create(
+            subscription=sub,
+            amount=sub.billing_amount,
+            description=f'Hosting trimestral — {project.name}',
+            billing_period_start=today - timedelta(days=60),
+            billing_period_end=today - timedelta(days=1),
+            due_date=today - timedelta(days=60),
+            status=Payment.STATUS_PAID,
+            paid_at=timezone.now() - timedelta(days=58),
+        )
+        Payment.objects.create(
+            subscription=sub,
+            amount=sub.billing_amount,
+            description=f'Hosting trimestral — {project.name}',
+            billing_period_start=today,
+            billing_period_end=today + timedelta(days=89),
+            due_date=today,
+            status=Payment.STATUS_PENDING,
+        )
+        Payment.objects.create(
+            subscription=sub,
+            amount=sub.billing_amount,
+            description=f'Hosting trimestral — {project.name}',
+            billing_period_start=today - timedelta(days=90),
+            billing_period_end=today - timedelta(days=61),
+            due_date=today - timedelta(days=90),
+            status=Payment.STATUS_OVERDUE,
+        )
+
+        self.stdout.write(self.style.SUCCESS(f'  Created subscription + 3 payments for {project.name}'))

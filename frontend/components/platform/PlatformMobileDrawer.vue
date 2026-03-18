@@ -169,7 +169,7 @@ const projectItems = computed(() => {
 
 const adminItems = computed(() => [
   { label: 'Clientes', href: '/platform/clients', icon: 'users' },
-  { label: 'Pagos', href: '/platform/payments', icon: 'credit-card', disabled: true },
+  { label: 'Pagos', href: '/platform/payments', icon: 'credit-card' },
 ])
 
 function isActive(href) {

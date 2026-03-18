@@ -153,6 +153,8 @@ class ProjectListSerializer(serializers.ModelSerializer):
     client_email = serializers.EmailField(source='client.email', read_only=True)
     client_id = serializers.IntegerField(source='client.id', read_only=True)
     client_company = serializers.SerializerMethodField()
+    proposal_id = serializers.IntegerField(source='proposal.id', read_only=True, default=None)
+    proposal_title = serializers.CharField(source='proposal.title', read_only=True, default=None)
 
     class Meta:
         model = Project
@@ -160,6 +162,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
             'id', 'name', 'description', 'status', 'progress',
             'start_date', 'estimated_end_date',
             'client_id', 'client_name', 'client_email', 'client_company',
+            'proposal_id', 'proposal_title',
             'created_at', 'updated_at',
         ]
 
@@ -181,12 +184,18 @@ class CreateProjectSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200)
     description = serializers.CharField(required=False, default='', allow_blank=True)
     client_id = serializers.IntegerField()
+    proposal_id = serializers.IntegerField(required=False, allow_null=True)
     status = serializers.ChoiceField(
         choices=Project.STATUS_CHOICES, default=Project.STATUS_ACTIVE,
     )
     progress = serializers.IntegerField(min_value=0, max_value=100, default=0)
     start_date = serializers.DateField(required=False, allow_null=True)
     estimated_end_date = serializers.DateField(required=False, allow_null=True)
+    hosting_plan = serializers.ChoiceField(
+        choices=[('monthly', 'Mensual'), ('quarterly', 'Trimestral'), ('semiannual', 'Semestral')],
+        required=False, allow_null=True, default=None,
+    )
+    hosting_start_date = serializers.DateField(required=False, allow_null=True)
 
     def validate_client_id(self, value):
         try:
@@ -196,6 +205,13 @@ class CreateProjectSerializer(serializers.Serializer):
         profile = getattr(user, 'profile', None)
         if not profile or profile.role != UserProfile.ROLE_CLIENT:
             raise serializers.ValidationError('El usuario no es un cliente.')
+        return value
+
+    def validate_proposal_id(self, value):
+        if value is not None:
+            from content.models import BusinessProposal
+            if not BusinessProposal.objects.filter(id=value).exists():
+                raise serializers.ValidationError('Propuesta no encontrada.')
         return value
 
 
@@ -677,3 +693,101 @@ class NotificationSerializer(serializers.ModelSerializer):
         if obj.project:
             return obj.project.name
         return None
+
+
+# =========================================================================
+# Payment / Subscription serializers
+# =========================================================================
+
+from accounts.models import HostingSubscription, Payment  # noqa: E402
+
+
+class PaymentSerializer(serializers.ModelSerializer):
+    project_id = serializers.IntegerField(source='subscription.project_id', read_only=True)
+    project_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Payment
+        fields = [
+            'id', 'amount', 'description',
+            'billing_period_start', 'billing_period_end', 'due_date',
+            'status', 'paid_at',
+            'wompi_payment_link_url',
+            'project_id', 'project_name',
+            'created_at',
+        ]
+
+    def get_project_name(self, obj):
+        return obj.subscription.project.name
+
+
+class HostingSubscriptionSerializer(serializers.ModelSerializer):
+    project_name = serializers.SerializerMethodField()
+    project_id = serializers.IntegerField(source='project.id', read_only=True)
+    plan_display = serializers.CharField(source='get_plan_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    payments = PaymentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = HostingSubscription
+        fields = [
+            'id', 'plan', 'plan_display',
+            'base_monthly_amount', 'discount_percent',
+            'effective_monthly_amount', 'billing_amount',
+            'status', 'status_display',
+            'start_date', 'next_billing_date',
+            'project_id', 'project_name',
+            'payments', 'created_at', 'updated_at',
+        ]
+
+    def get_project_name(self, obj):
+        return obj.project.name
+
+
+class HostingSubscriptionListSerializer(serializers.ModelSerializer):
+    project_name = serializers.SerializerMethodField()
+    project_id = serializers.IntegerField(source='project.id', read_only=True)
+    plan_display = serializers.CharField(source='get_plan_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    pending_payments = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HostingSubscription
+        fields = [
+            'id', 'plan', 'plan_display',
+            'base_monthly_amount', 'discount_percent',
+            'effective_monthly_amount', 'billing_amount',
+            'status', 'status_display',
+            'start_date', 'next_billing_date',
+            'project_id', 'project_name',
+            'pending_payments', 'created_at',
+        ]
+
+    def get_project_name(self, obj):
+        return obj.project.name
+
+    def get_pending_payments(self, obj):
+        return obj.payments.filter(status__in=['pending', 'overdue']).count()
+
+
+class UpdateSubscriptionSerializer(serializers.Serializer):
+    plan = serializers.ChoiceField(
+        choices=HostingSubscription.PLAN_CHOICES, required=False,
+    )
+    status = serializers.ChoiceField(
+        choices=HostingSubscription.STATUS_CHOICES, required=False,
+    )
+
+
+class ProposalSummarySerializer(serializers.Serializer):
+    """Lightweight serializer for proposal selection in project creation."""
+    id = serializers.IntegerField()
+    title = serializers.CharField()
+    client_name = serializers.CharField()
+    client_email = serializers.EmailField()
+    total_investment = serializers.DecimalField(max_digits=12, decimal_places=2)
+    currency = serializers.CharField()
+    hosting_percent = serializers.IntegerField()
+    hosting_discount_semiannual = serializers.IntegerField()
+    hosting_discount_quarterly = serializers.IntegerField()
+    status = serializers.CharField()

@@ -216,6 +216,13 @@ class Project(models.Model):
         related_name='projects',
         help_text='The client user this project belongs to.',
     )
+    proposal = models.ForeignKey(
+        'content.BusinessProposal',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='platform_projects',
+        help_text='Linked business proposal for cost/hosting derivation.',
+    )
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE,
     )
@@ -718,3 +725,128 @@ class Notification(models.Model):
 
     def __str__(self):
         return f'[{self.get_type_display()}] {self.title} → {self.user.email}'
+
+
+class HostingSubscription(models.Model):
+    """
+    Recurring hosting subscription for a project.
+    Derived from the linked BusinessProposal pricing or set manually.
+    """
+
+    PLAN_MONTHLY = 'monthly'
+    PLAN_QUARTERLY = 'quarterly'
+    PLAN_SEMIANNUAL = 'semiannual'
+    PLAN_CHOICES = [
+        (PLAN_MONTHLY, 'Mensual'),
+        (PLAN_QUARTERLY, 'Trimestral'),
+        (PLAN_SEMIANNUAL, 'Semestral'),
+    ]
+
+    STATUS_ACTIVE = 'active'
+    STATUS_SUSPENDED = 'suspended'
+    STATUS_CANCELLED = 'cancelled'
+    STATUS_PENDING = 'pending'
+    STATUS_CHOICES = [
+        (STATUS_ACTIVE, 'Activa'),
+        (STATUS_SUSPENDED, 'Suspendida'),
+        (STATUS_CANCELLED, 'Cancelada'),
+        (STATUS_PENDING, 'Pendiente'),
+    ]
+
+    PLAN_MONTHS = {
+        PLAN_MONTHLY: 1,
+        PLAN_QUARTERLY: 3,
+        PLAN_SEMIANNUAL: 6,
+    }
+
+    project = models.OneToOneField(
+        Project, on_delete=models.CASCADE, related_name='hosting_subscription',
+    )
+    plan = models.CharField(max_length=20, choices=PLAN_CHOICES, default=PLAN_MONTHLY)
+    base_monthly_amount = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        help_text='Monthly hosting cost before discount (COP).',
+    )
+    discount_percent = models.PositiveIntegerField(
+        default=0, help_text='Discount % based on plan (0, 10, 20).',
+    )
+    effective_monthly_amount = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        help_text='Monthly cost after discount (COP).',
+    )
+    billing_amount = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        help_text='Total amount charged per billing cycle (COP).',
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING,
+    )
+    start_date = models.DateField(
+        help_text='Date from which the subscription is active and billable.',
+    )
+    next_billing_date = models.DateField(
+        null=True, blank=True,
+        help_text='Next date a payment is due.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.project.name} — {self.get_plan_display()} (${self.billing_amount:,.0f} COP)'
+
+    @property
+    def billing_months(self):
+        return self.PLAN_MONTHS.get(self.plan, 1)
+
+    def calculate_amounts(self):
+        """Recalculate effective_monthly_amount and billing_amount from base + plan."""
+        from decimal import Decimal
+        factor = (Decimal(100) - Decimal(self.discount_percent)) / Decimal(100)
+        self.effective_monthly_amount = round(self.base_monthly_amount * factor, 2)
+        self.billing_amount = round(self.effective_monthly_amount * self.billing_months, 2)
+
+
+class Payment(models.Model):
+    """
+    A single payment record for a hosting subscription billing cycle.
+    Linked to Wompi transactions for payment processing.
+    """
+
+    STATUS_PENDING = 'pending'
+    STATUS_PROCESSING = 'processing'
+    STATUS_PAID = 'paid'
+    STATUS_FAILED = 'failed'
+    STATUS_OVERDUE = 'overdue'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pendiente'),
+        (STATUS_PROCESSING, 'Procesando'),
+        (STATUS_PAID, 'Pagado'),
+        (STATUS_FAILED, 'Fallido'),
+        (STATUS_OVERDUE, 'Vencido'),
+    ]
+
+    subscription = models.ForeignKey(
+        HostingSubscription, on_delete=models.CASCADE, related_name='payments',
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    description = models.CharField(max_length=300, blank=True, default='')
+    billing_period_start = models.DateField()
+    billing_period_end = models.DateField()
+    due_date = models.DateField()
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING,
+    )
+    paid_at = models.DateTimeField(null=True, blank=True)
+    wompi_transaction_id = models.CharField(max_length=100, blank=True, default='')
+    wompi_payment_link_id = models.CharField(max_length=100, blank=True, default='')
+    wompi_payment_link_url = models.URLField(max_length=500, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-billing_period_start']
+
+    def __str__(self):
+        return f'Payment ${self.amount:,.0f} — {self.get_status_display()} ({self.billing_period_start} → {self.billing_period_end})'

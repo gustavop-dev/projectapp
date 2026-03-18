@@ -15,6 +15,12 @@ from accounts.views import (
     notification_mark_all_read_view,
     notification_mark_read_view,
     notification_unread_count_view,
+    payment_generate_link_view,
+    project_payments_view,
+    project_subscription_view,
+    proposal_list_for_selector_view,
+    subscription_list_view,
+    wompi_webhook_view,
     change_request_comment_view,
     change_request_convert_view,
     change_request_detail_view,
@@ -89,4 +95,12 @@ urlpatterns = [
     path('notifications/unread-count/', notification_unread_count_view, name='platform-notification-unread-count'),
     path('notifications/<int:notification_id>/read/', notification_mark_read_view, name='platform-notification-mark-read'),
     path('notifications/mark-all-read/', notification_mark_all_read_view, name='platform-notification-mark-all-read'),
+
+    # Payments & Subscriptions
+    path('proposals/', proposal_list_for_selector_view, name='platform-proposal-list'),
+    path('subscriptions/', subscription_list_view, name='platform-subscription-list'),
+    path('projects/<int:project_id>/subscription/', project_subscription_view, name='platform-project-subscription'),
+    path('projects/<int:project_id>/payments/', project_payments_view, name='platform-project-payments'),
+    path('projects/<int:project_id>/payments/<int:payment_id>/generate-link/', payment_generate_link_view, name='platform-payment-generate-link'),
+    path('webhooks/wompi/', wompi_webhook_view, name='platform-wompi-webhook'),
 ]

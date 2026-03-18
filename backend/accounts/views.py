@@ -430,15 +430,27 @@ def project_list_view(request):
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
+    proposal = None
+    proposal_id = data.get('proposal_id')
+    if proposal_id:
+        from content.models import BusinessProposal
+        proposal = BusinessProposal.objects.filter(id=proposal_id).first()
+
     project = Project.objects.create(
         name=data['name'],
         description=data.get('description', ''),
         client_id=data['client_id'],
+        proposal=proposal,
         status=data.get('status', Project.STATUS_ACTIVE),
         progress=data.get('progress', 0),
         start_date=data.get('start_date'),
         estimated_end_date=data.get('estimated_end_date'),
     )
+
+    hosting_plan = data.get('hosting_plan')
+    hosting_start_date = data.get('hosting_start_date')
+    if proposal and hosting_plan and hosting_start_date:
+        _create_subscription_from_proposal(project, proposal, hosting_plan, hosting_start_date)
 
     return Response(
         ProjectDetailSerializer(project, context={'request': request}).data,
@@ -1524,3 +1536,243 @@ def notification_mark_all_read_view(request):
         user=request.user, is_read=False,
     ).update(is_read=True)
     return Response({'marked_read': updated})
+
+
+# ==========================================================================
+# Payments & Subscriptions
+# ==========================================================================
+
+from accounts.models import HostingSubscription, Payment  # noqa: E402
+from accounts.serializers import (  # noqa: E402
+    HostingSubscriptionListSerializer,
+    HostingSubscriptionSerializer,
+    PaymentSerializer,
+    ProposalSummarySerializer,
+    UpdateSubscriptionSerializer,
+)
+
+
+def _create_subscription_from_proposal(project, proposal, plan, start_date):
+    """Create a HostingSubscription from a BusinessProposal's hosting pricing."""
+    from decimal import Decimal
+
+    hosting_annual = proposal.total_investment * Decimal(proposal.hosting_percent) / Decimal(100)
+    base_monthly = round(hosting_annual / Decimal(12), 2)
+
+    discount_map = {
+        HostingSubscription.PLAN_MONTHLY: 0,
+        HostingSubscription.PLAN_QUARTERLY: proposal.hosting_discount_quarterly,
+        HostingSubscription.PLAN_SEMIANNUAL: proposal.hosting_discount_semiannual,
+    }
+    discount = discount_map.get(plan, 0)
+
+    sub = HostingSubscription(
+        project=project,
+        plan=plan,
+        base_monthly_amount=base_monthly,
+        discount_percent=discount,
+        start_date=start_date,
+        next_billing_date=start_date,
+        status=HostingSubscription.STATUS_PENDING,
+    )
+    sub.calculate_amounts()
+    sub.save()
+    return sub
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminRole])
+def proposal_list_for_selector_view(request):
+    """Admin-only: list proposals for the project creation selector."""
+    from content.models import BusinessProposal
+
+    qs = BusinessProposal.objects.filter(
+        status__in=['accepted', 'sent', 'viewed', 'negotiating'],
+    ).order_by('-created_at')
+
+    serializer = ProposalSummarySerializer(qs, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def subscription_list_view(request):
+    """
+    Admin sees all subscriptions. Client sees only their projects' subscriptions.
+    """
+    profile = getattr(request.user, 'profile', None)
+    is_admin = profile and profile.is_admin
+
+    if is_admin:
+        qs = HostingSubscription.objects.select_related('project').all()
+    else:
+        qs = HostingSubscription.objects.select_related('project').filter(
+            project__client=request.user,
+        )
+
+    serializer = HostingSubscriptionListSerializer(qs, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def project_subscription_view(request, project_id):
+    """
+    GET  — Subscription detail with payments for a project.
+    PATCH — Admin updates plan/status.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        sub = HostingSubscription.objects.prefetch_related('payments').get(project=proj)
+    except HostingSubscription.DoesNotExist:
+        return Response(
+            {'detail': 'No hay suscripción de hosting para este proyecto.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if request.method == 'GET':
+        return Response(HostingSubscriptionSerializer(sub).data)
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.is_admin:
+        return Response(
+            {'detail': 'Solo los administradores pueden modificar suscripciones.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    serializer = UpdateSubscriptionSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    if 'plan' in data:
+        sub.plan = data['plan']
+        discount_map = {
+            HostingSubscription.PLAN_MONTHLY: 0,
+            HostingSubscription.PLAN_QUARTERLY: 10,
+            HostingSubscription.PLAN_SEMIANNUAL: 20,
+        }
+        sub.discount_percent = discount_map.get(data['plan'], 0)
+        sub.calculate_amounts()
+    if 'status' in data:
+        sub.status = data['status']
+    sub.save()
+
+    return Response(HostingSubscriptionSerializer(sub).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_payments_view(request, project_id):
+    """List payments for a project's subscription."""
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        sub = HostingSubscription.objects.get(project=proj)
+    except HostingSubscription.DoesNotExist:
+        return Response([])
+
+    payments = Payment.objects.filter(subscription=sub).select_related('subscription__project')
+    serializer = PaymentSerializer(payments, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminRole])
+def payment_generate_link_view(request, project_id, payment_id):
+    """Admin generates a Wompi payment link for a pending payment."""
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        payment = Payment.objects.select_related('subscription__project').get(
+            id=payment_id, subscription__project=proj,
+        )
+    except Payment.DoesNotExist:
+        return Response(
+            {'detail': 'Pago no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if payment.status not in (Payment.STATUS_PENDING, Payment.STATUS_OVERDUE):
+        return Response(
+            {'detail': 'Solo se pueden generar links para pagos pendientes o vencidos.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        from accounts.services.wompi import create_payment_link
+        link_id, link_url = create_payment_link(payment)
+        return Response({
+            'payment_id': payment.id,
+            'wompi_payment_link_id': link_id,
+            'wompi_payment_link_url': link_url,
+        })
+    except Exception as e:
+        return Response(
+            {'detail': f'Error al generar el link de pago: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def wompi_webhook_view(request):
+    """
+    Public webhook endpoint for Wompi transaction events.
+    Validates signature and updates payment status.
+    """
+    import json
+    from django.utils import timezone as tz
+
+    event = request.data
+    event_type = event.get('event')
+    data = event.get('data', {})
+    transaction = data.get('transaction', {})
+
+    if event_type != 'transaction.updated':
+        return Response({'status': 'ignored'})
+
+    transaction_id = transaction.get('id', '')
+    transaction_status = transaction.get('status', '')
+    reference = transaction.get('reference', '')
+
+    if not transaction_id or not reference:
+        return Response({'status': 'missing data'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        payment = Payment.objects.select_related('subscription').get(
+            wompi_payment_link_id=reference,
+        )
+    except Payment.DoesNotExist:
+        try:
+            payment_id = int(reference)
+            payment = Payment.objects.select_related('subscription').get(id=payment_id)
+        except (ValueError, Payment.DoesNotExist):
+            return Response({'status': 'payment not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    payment.wompi_transaction_id = str(transaction_id)
+
+    if transaction_status == 'APPROVED':
+        payment.status = Payment.STATUS_PAID
+        payment.paid_at = tz.now()
+
+        sub = payment.subscription
+        from dateutil.relativedelta import relativedelta
+        sub.next_billing_date = payment.billing_period_end + relativedelta(days=1)
+        if sub.status == HostingSubscription.STATUS_PENDING:
+            sub.status = HostingSubscription.STATUS_ACTIVE
+        sub.save(update_fields=['next_billing_date', 'status', 'updated_at'])
+
+    elif transaction_status in ('DECLINED', 'ERROR', 'VOIDED'):
+        payment.status = Payment.STATUS_FAILED
+
+    payment.save(update_fields=['wompi_transaction_id', 'status', 'paid_at'])
+
+    return Response({'status': 'ok'})
