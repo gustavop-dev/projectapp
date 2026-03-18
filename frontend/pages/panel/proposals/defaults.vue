@@ -480,50 +480,80 @@
     <!-- ═══ TAB: JSON ═══ -->
     <div v-show="activeTab === 'json'" class="max-w-4xl">
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-        Representación JSON de la configuración por defecto (secciones plantilla). Se actualiza al guardar cambios en la pestaña Secciones.
+        Representación JSON de la configuración por defecto (secciones plantilla). Puedes editar directamente el JSON y guardar los cambios.
       </p>
 
       <!-- Action bar -->
       <div class="flex flex-wrap items-center gap-2 mb-4">
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          @click="refreshDefaultsJson"
-        >
-          <svg class="w-4 h-4" :class="{ 'animate-spin': defaultsJsonLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Actualizar
-        </button>
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          @click="copyDefaultsJson"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-          {{ defaultsJsonCopied ? '¡Copiado!' : 'Copiar' }}
-        </button>
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          @click="downloadDefaultsJson"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-          Descargar .json
-        </button>
+        <template v-if="!jsonIsEditing">
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            @click="startEditJson"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            Editar
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            @click="copyDefaultsJson"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+            {{ defaultsJsonCopied ? '¡Copiado!' : 'Copiar' }}
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            @click="downloadDefaultsJson"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            Descargar .json
+          </button>
+        </template>
+        <template v-else>
+          <button
+            type="button"
+            class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+            :disabled="isSaving"
+            @click="saveEditJson"
+          >
+            {{ isSaving ? 'Guardando...' : 'Guardar cambios' }}
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            @click="cancelEditJson"
+          >
+            Cancelar
+          </button>
+        </template>
       </div>
 
       <div v-if="defaultsJsonLoading" class="text-center py-8 text-gray-400 text-sm">
         Cargando JSON...
       </div>
+
+      <!-- Editing mode -->
+      <div v-else-if="jsonIsEditing" class="space-y-2">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <textarea
+            v-model="jsonEditBuffer"
+            rows="24"
+            class="w-full px-4 py-3 border-0 text-xs font-mono leading-relaxed
+                   bg-transparent text-gray-800 dark:text-gray-200 outline-none resize-y focus:ring-0"
+          />
+        </div>
+        <p v-if="jsonEditError" class="text-xs text-red-600 dark:text-red-400 px-1">
+          {{ jsonEditError }}
+        </p>
+      </div>
+
+      <!-- Read-only mode -->
       <div v-else class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <textarea
-          :value="defaultsJsonString"
-          readonly
-          rows="18"
-          class="w-full px-4 py-3 border-0 text-xs font-mono leading-relaxed
-                 bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 outline-none resize-y cursor-text select-all"
-        />
+        <div class="px-4 py-3 max-h-[70vh] overflow-y-auto">
+          <pre class="text-xs leading-relaxed text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono break-words">{{ defaultsJsonString }}</pre>
+        </div>
       </div>
     </div>
 
@@ -1033,6 +1063,9 @@ async function handleCopyPrompt() {
 // ── JSON tab ──
 const defaultsJsonLoading = ref(false);
 const defaultsJsonCopied = ref(false);
+const jsonIsEditing = ref(false);
+const jsonEditBuffer = ref('');
+const jsonEditError = ref('');
 
 const defaultsJsonString = computed(() => {
   try {
@@ -1047,12 +1080,67 @@ const defaultsJsonString = computed(() => {
   }
 });
 
-async function refreshDefaultsJson() {
-  defaultsJsonLoading.value = true;
+function startEditJson() {
+  jsonEditBuffer.value = defaultsJsonString.value;
+  jsonEditError.value = '';
+  jsonIsEditing.value = true;
+}
+
+function cancelEditJson() {
+  jsonIsEditing.value = false;
+  jsonEditError.value = '';
+}
+
+async function saveEditJson() {
+  jsonEditError.value = '';
+
+  let parsed;
   try {
-    await loadDefaults(selectedLang.value);
+    parsed = JSON.parse(jsonEditBuffer.value);
+  } catch (e) {
+    jsonEditError.value = `JSON inválido: ${e.message}`;
+    return;
+  }
+
+  if (!parsed.sections || !Array.isArray(parsed.sections)) {
+    jsonEditError.value = 'El JSON debe contener un array "sections".';
+    return;
+  }
+
+  const requiredKeys = ['section_type', 'title', 'order', 'content_json'];
+  for (let i = 0; i < parsed.sections.length; i++) {
+    const section = parsed.sections[i];
+    if (typeof section !== 'object' || section === null) {
+      jsonEditError.value = `La sección en índice ${i} debe ser un objeto.`;
+      return;
+    }
+    const missing = requiredKeys.filter(k => !(k in section));
+    if (missing.length > 0) {
+      jsonEditError.value = `La sección en índice ${i} le faltan campos: ${missing.join(', ')}`;
+      return;
+    }
+  }
+
+  const lang = parsed.language || selectedLang.value;
+
+  isSaving.value = true;
+  try {
+    const result = await proposalStore.saveProposalDefaults(lang, parsed.sections);
+    if (result.success) {
+      sections.value = parsed.sections;
+      if (parsed.general) {
+        Object.assign(generalForm.value, parsed.general);
+      }
+      savedSections.value = new Set();
+      configUpdatedAt.value = result.data?.updated_at || new Date().toISOString();
+      jsonIsEditing.value = false;
+      showFeedback('JSON guardado correctamente.', 'success');
+    } else {
+      jsonEditError.value = 'Error al guardar. Verifica la estructura del JSON.';
+      showFeedback('Error al guardar el JSON.', 'error');
+    }
   } finally {
-    defaultsJsonLoading.value = false;
+    isSaving.value = false;
   }
 }
 

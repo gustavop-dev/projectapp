@@ -24,6 +24,7 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
   const sectionLog = ref([]);
   let currentEntry = null;
   let flushTimer = null;
+  let visibilityHandler = null;
 
   function generateSessionId() {
     return 'ses_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
@@ -154,11 +155,12 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
     // Flush on page unload
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', flushBeacon);
-      document.addEventListener('visibilitychange', () => {
+      visibilityHandler = () => {
         if (document.visibilityState === 'hidden') {
           flushBeacon();
         }
-      });
+      };
+      document.addEventListener('visibilitychange', visibilityHandler);
     }
   });
 
@@ -168,6 +170,9 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
     if (flushTimer) clearInterval(flushTimer);
     if (typeof window !== 'undefined') {
       window.removeEventListener('beforeunload', flushBeacon);
+      if (visibilityHandler) {
+        document.removeEventListener('visibilitychange', visibilityHandler);
+      }
     }
   });
 

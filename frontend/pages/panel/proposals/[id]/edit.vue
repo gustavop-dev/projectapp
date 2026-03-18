@@ -538,7 +538,7 @@
                   <span class="text-xs font-semibold" :class="activityLabelClass(log.change_type)">{{ activityLabel(log.change_type) }}</span>
                   <span class="text-[10px] text-gray-400">{{ formatLogDate(log.created_at) }}</span>
                 </div>
-                <p class="text-sm text-gray-600 mt-0.5">{{ log.description }}</p>
+                <p class="text-sm text-gray-600 mt-0.5">{{ formatActivityDescription(log) }}</p>
               </div>
             </div>
           </div>
@@ -580,6 +580,7 @@
           >
             <!-- Section header -->
             <div
+              :data-testid="`section-header-${section.section_type}`"
               class="px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-gray-50 transition-colors"
               @click="toggleSection(section.id)"
             >
@@ -1273,16 +1274,51 @@ const activityMeta = {
   expired: { icon: '⏰', label: 'Expirada', dot: 'bg-yellow-100', text: 'text-yellow-600' },
   duplicated: { icon: '📋', label: 'Duplicada', dot: 'bg-gray-200', text: 'text-gray-500' },
   commented: { icon: '💬', label: 'Comentario', dot: 'bg-purple-100', text: 'text-purple-600' },
+  negotiating: { icon: '🤝', label: 'Negociando', dot: 'bg-indigo-100', text: 'text-indigo-600' },
   reengagement: { icon: '🔔', label: 'Reengagement', dot: 'bg-orange-100', text: 'text-orange-600' },
   call: { icon: '📞', label: 'Llamada', dot: 'bg-sky-100', text: 'text-sky-600' },
   meeting: { icon: '🤝', label: 'Reunión', dot: 'bg-indigo-100', text: 'text-indigo-600' },
   followup: { icon: '📩', label: 'Seguimiento', dot: 'bg-amber-100', text: 'text-amber-600' },
   note: { icon: '📝', label: 'Nota', dot: 'bg-gray-200', text: 'text-gray-600' },
+  calc_confirmed: { icon: '🧮', label: 'Calculadora confirmada', dot: 'bg-emerald-100', text: 'text-emerald-600' },
+  calc_abandoned: { icon: '🧮', label: 'Calculadora abandonada', dot: 'bg-red-100', text: 'text-red-600' },
+  calc_followup: { icon: '🧮', label: 'Seguimiento calculadora', dot: 'bg-orange-100', text: 'text-orange-600' },
+  auto_archived: { icon: '📦', label: 'Auto-archivada', dot: 'bg-gray-200', text: 'text-gray-500' },
+  status_change: { icon: '🔄', label: 'Cambio de estado', dot: 'bg-blue-100', text: 'text-blue-600' },
+  cond_accepted: { icon: '⚠️', label: 'Aceptación condicional', dot: 'bg-amber-100', text: 'text-amber-600' },
 };
 function activityIcon(type) { return activityMeta[type]?.icon || '•'; }
 function activityLabel(type) { return activityMeta[type]?.label || type; }
 function activityDotClass(type) { return activityMeta[type]?.dot || 'bg-gray-200'; }
 function activityLabelClass(type) { return activityMeta[type]?.text || 'text-gray-500'; }
+
+function formatActivityDescription(log) {
+  if (log.change_type === 'calc_abandoned' || log.change_type === 'calc_confirmed') {
+    try {
+      const data = JSON.parse(log.description);
+      const selected = data.selected || [];
+      const deselected = data.deselected || [];
+      const total = data.total;
+      const elapsed = data.elapsed_seconds || 0;
+      const mins = Math.floor(elapsed / 60);
+      const secs = Math.round(elapsed % 60);
+      const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+      const totalStr = total != null ? `$${Number(total).toLocaleString('es-CO')}` : '';
+      if (log.change_type === 'calc_confirmed') {
+        return `Confirmó ${selected.length} módulo${selected.length !== 1 ? 's' : ''}`
+          + (totalStr ? ` — Total: ${totalStr}` : '')
+          + (elapsed ? ` — Tiempo en calculadora: ${timeStr}` : '');
+      }
+      return `Abandonó calculadora con ${selected.length} módulo${selected.length !== 1 ? 's' : ''} seleccionado${selected.length !== 1 ? 's' : ''}`
+        + (deselected.length ? `, ${deselected.length} desmarcado${deselected.length !== 1 ? 's' : ''}` : '')
+        + (totalStr ? ` — Total: ${totalStr}` : '')
+        + (elapsed ? ` — Tiempo: ${timeStr}` : '');
+    } catch (_e) {
+      return log.description;
+    }
+  }
+  return log.description;
+}
 
 function formatLogDate(iso) {
   if (!iso) return '';

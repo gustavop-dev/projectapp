@@ -13,7 +13,6 @@ import {
   setPlatformVerificationState,
   mockPlatformClient,
   mockPlatformClientIncompleteProfile,
-  PLATFORM_STORAGE_KEYS,
 } from '../helpers/platform-auth.js';
 
 const meResponse = (user) => ({
@@ -194,10 +193,10 @@ test.describe('Platform Verify & Onboarding', () => {
   test('resend code button triggers API call and shows success message', {
     tag: [...PLATFORM_VERIFY_ONBOARDING, '@role:platform-client'],
   }, async ({ page }) => {
-    let resendCalled = false;
+    let _resendCalled = false;
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'accounts/resend-code/' && method === 'POST') {
-        resendCalled = true;
+        _resendCalled = true;
         return {
           status: 200,
           contentType: 'application/json',

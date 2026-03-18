@@ -127,6 +127,8 @@ export const ADMIN_PROPOSAL_SECTION_COMPLETENESS = ['@flow:admin-proposal-sectio
 export const ADMIN_PROPOSAL_DEFAULTS_CONFIG = ['@flow:admin-proposal-defaults-config', '@module:admin', '@priority:P2'];
 export const ADMIN_EMAIL_TEMPLATES_CONFIG = ['@flow:admin-email-templates-config', '@module:admin', '@priority:P2'];
 // PROPOSAL_STICKY_BAR_ACCEPT removed — feature deleted (ProposalResponseButtons removed)
+export const PROPOSAL_EXECUTIVE_TO_DETAILED = ['@flow:proposal-executive-to-detailed', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_SECTION_ONBOARDING = ['@flow:proposal-section-onboarding', '@module:proposal', '@priority:P3'];
 
 // ── Platform ──
 export const PLATFORM_LOGIN = ['@flow:platform-login', '@module:platform', '@priority:P1'];

@@ -101,11 +101,9 @@ test.describe('Platform Complete Profile', () => {
     await page.getByPlaceholder('Nombre de tu empresa').fill('Test Corp');
     await page.getByPlaceholder(/300 000 0000/).fill('+57 300 111 2222');
     await page.getByPlaceholder('1020304050').fill('1234567890');
-    // Labels lack for/id linking — use direct element locators
-    // quality: allow-fragile-selector (only one date input and two selects on the form)
-    await page.locator('input[type="date"]').fill('1992-03-15');
-    await page.locator('select').first().selectOption('female');
-    await page.locator('select').last().selectOption('universitario');
+    await page.getByTestId('date-of-birth').fill('1992-03-15');
+    await page.getByTestId('gender-select').selectOption('female');
+    await page.getByTestId('education-select').selectOption('universitario');
 
     await page.getByRole('button', { name: /completar perfil/i }).click();
 
@@ -138,10 +136,9 @@ test.describe('Platform Complete Profile', () => {
     await page.getByPlaceholder('Nombre de tu empresa').fill('Corp');
     await page.getByPlaceholder(/300 000 0000/).fill('+57 300 111 2222');
     await page.getByPlaceholder('1020304050').fill('1234567890');
-    // quality: allow-fragile-selector (only one date input and two selects on the form)
-    await page.locator('input[type="date"]').fill('1992-03-15');
-    await page.locator('select').first().selectOption('male');
-    await page.locator('select').last().selectOption('tecnico');
+    await page.getByTestId('date-of-birth').fill('1992-03-15');
+    await page.getByTestId('gender-select').selectOption('male');
+    await page.getByTestId('education-select').selectOption('tecnico');
 
     await page.getByRole('button', { name: /completar perfil/i }).click();
 

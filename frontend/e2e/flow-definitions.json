@@ -952,6 +952,23 @@
       "priority": "P3",
       "description": "Add public or internal (admin-only) comments on requirement cards via the card detail modal. Internal comments marked with amber border and 'Interno' label.",
       "expectedSpecs": 1
+    },
+    "proposal-view-paste-rendering": {
+      "name": "Proposal View Paste Mode Rendering",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Client views paste-mode sections rendered as RawContentSection with markdown in a styled card, while form-mode sections render structured Vue components.",
+      "expectedSpecs": 1
+    },
+    "proposal-sticky-bar-accept": {
+      "name": "Proposal Sticky Bar Accept (ARCHIVED)",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "ARCHIVED — ProposalResponseButtons component removed from production. Acceptance handled via ProposalClosing section buttons.",
+      "expectedSpecs": 0,
+      "knownGaps": ["Feature removed from production. Flow archived."]
     }
   }
 }

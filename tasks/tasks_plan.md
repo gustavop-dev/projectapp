@@ -62,8 +62,8 @@
 |-------|----------|-------------------|--------|
 | Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` | 43 test files (30 content + 12 accounts + 1 projectapp) | Active |
 | Frontend Unit (Jest) | `frontend/test/` | 36 test files (3 components + 23 composables + 10 stores incl. services) | Active |
-| Frontend E2E (Playwright) | `frontend/e2e/` | 96 spec files across admin, auth, blog, layout, proposal, public, platform (14 platform specs) | Active |
-| Quality Gate | `scripts/test_quality_gate.py` | Custom analyzer | Active |
+| Frontend E2E (Playwright) | `frontend/e2e/` | 98 spec files across admin, auth, blog, layout, proposal, public, platform (14 platform specs) | Active |
+| Quality Gate | `scripts/test_quality_gate.py` | 100/100, 1522 tests, 0 warnings/info | Active |
 
 ---
 

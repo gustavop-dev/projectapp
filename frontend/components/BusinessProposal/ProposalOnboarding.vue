@@ -4,6 +4,7 @@
     <Transition name="fade">
       <div
         v-if="visible"
+        data-testid="onboarding-backdrop"
         class="onb-backdrop fixed inset-0 z-[9998] bg-white/60 backdrop-blur-[2px]"
       />
     </Transition>

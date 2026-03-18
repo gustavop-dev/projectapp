@@ -2240,6 +2240,11 @@ def retrieve_proposal_analytics(request, proposal_id):
     ]
 
     # --- Funnel: how many sessions reached each section in order ---
+    EXECUTIVE_SECTION_TYPES = {
+        'greeting', 'executive_summary', 'proposal_summary',
+        'functional_requirements', 'investment', 'timeline',
+        'proposal_closing',
+    }
     ordered_sections = list(
         proposal.sections
         .filter(is_enabled=True)
@@ -2266,6 +2271,7 @@ def retrieve_proposal_analytics(request, proposal_id):
             'section_title': section_title,
             'reached_count': reached,
             'drop_off_percent': drop_off,
+            'in_executive_mode': section_type in EXECUTIVE_SECTION_TYPES,
         })
 
     # --- Comparison with global averages ---
@@ -2330,16 +2336,28 @@ def retrieve_proposal_analytics(request, proposal_id):
             )
             .order_by('section_type')
         )
+        mode_sections_enriched = []
+        for s in mode_section_stats:
+            latest_title = (
+                ProposalSectionView.objects
+                .filter(
+                    view_event__proposal=proposal,
+                    section_type=s['section_type'],
+                    view_mode=mode,
+                )
+                .order_by('-entered_at')
+                .values_list('section_title', flat=True)
+                .first()
+            )
+            mode_sections_enriched.append({
+                'section_type': s['section_type'],
+                'section_title': latest_title or s['section_type'],
+                'visit_count': s['visit_count'],
+                'total_time_seconds': round(s['total_time_seconds'] or 0, 1),
+            })
         by_view_mode[mode] = {
             'sessions': mode_sessions,
-            'sections': [
-                {
-                    'section_type': s['section_type'],
-                    'visit_count': s['visit_count'],
-                    'total_time_seconds': round(s['total_time_seconds'] or 0, 1),
-                }
-                for s in mode_section_stats
-            ],
+            'sections': mode_sections_enriched,
         }
 
     return Response({

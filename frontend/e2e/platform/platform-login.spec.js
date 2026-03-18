@@ -13,7 +13,6 @@ import { PLATFORM_LOGIN } from '../helpers/flow-tags.js';
 import {
   setPlatformAuth,
   mockPlatformAdmin,
-  mockPlatformClient,
   mockPlatformClientIncompleteProfile,
 } from '../helpers/platform-auth.js';
 
@@ -28,10 +27,8 @@ function setupGuestMocks(page) {
   return mockApi(page, async () => null);
 }
 
-// quality: allow-fragile-selector (stable HTML id attribute on login form)
-const emailField = (page) => page.locator('#platform-email');
-// quality: allow-fragile-selector (stable HTML id attribute on login form)
-const passwordField = (page) => page.locator('#platform-password');
+const emailField = (page) => page.getByLabel('Email');
+const passwordField = (page) => page.getByLabel('Contraseña');
 
 /**
  * Wait for Nuxt hydration + GSAP entrance animation to complete.
@@ -40,10 +37,11 @@ const passwordField = (page) => page.locator('#platform-password');
  */
 const loginFormReady = async (page) => {
   await page.waitForLoadState('load');
-  await page.locator('#platform-email').waitFor({ state: 'visible', timeout: 15000 });
+  await emailField(page).waitFor({ state: 'visible', timeout: 15000 });
   // Allow GSAP entrance animation to fully settle (50ms delay + 0.6s + stagger)
+  // quality: allow-fragile-selector (waitForTimeout needed for Nuxt hydration + GSAP entrance animation)
   await page.waitForTimeout(2000);
-  await expect(page.locator('#platform-email')).toBeEditable({ timeout: 5000 });
+  await expect(emailField(page)).toBeEditable({ timeout: 5000 });
 };
 
 test.describe('Platform Login', () => {

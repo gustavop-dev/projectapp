@@ -351,8 +351,8 @@
   - [Branch B — Executive Investment] ExecutiveInvestmentOnboarding triggers only in executive view.
   - [Branch C — Requirements] RequirementsOnboarding triggers in both view modes.
   - [Branch D — Returning visitor] Each tutorial is skipped if already completed (per-UUID localStorage flag).
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-section-onboarding.spec.js`
 - **Components:** `InvestmentOnboarding.vue`, `RequirementsOnboarding.vue`, `ExecutiveInvestmentOnboarding.vue`
 
 ### FLOW: `proposal-executive-to-detailed`
@@ -374,8 +374,8 @@
 - **Branches:**
   - [Branch A — From sidebar] Client clicks "Ver Propuesta Completa" in ProposalIndex.
   - [Branch B — From Investment teaser] Executive Investment section has a teaser button that also triggers `switchToDetailed`.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** —
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-executive-to-detailed.spec.js`
 - **Components:** `ProposalIndex.vue` (`switchToDetailed` emit), `[uuid]/index.vue` (`handleSwitchToDetailed`)
 
 ### FLOW: `proposal-respond`
@@ -1444,22 +1444,33 @@
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-portfolio-delete.spec.js`
 
-### FLOW: `proposal-sticky-bar-accept`
+### FLOW: `proposal-view-paste-rendering`
 
 - **Module:** proposal
 - **Role:** guest (via shared UUID link)
 - **Priority:** P2
 - **Routes:** `/proposal/:uuid`
-- **Description:** Client accepts the proposal from the sticky bottom bar (ProposalResponseButtons) while browsing any section. The acceptance modal shows a scope summary (project, investment, modules, estimated start) and an optional condition note textarea. Confirming calls the respond API and triggers confetti.
+- **Description:** Client views proposal sections that use paste mode (`_editMode: 'paste'`). Paste-mode sections render as `RawContentSection` with markdown rendering in a styled card, while form-mode sections render their structured Vue components. Mixed form/paste proposals show each section in its correct mode.
 - **Steps:**
-  1. Client scrolls through proposal sections; sticky bar appears at the bottom.
-  2. Client clicks "Acepto" button on the sticky bar.
-  3. Acceptance modal opens with personalized title, scope summary panel, and condition note textarea.
-  4. Client optionally types a condition.
-  5. Client clicks "¡Confirmar!" → API call to `POST /api/proposals/:uuid/respond/` with `{action: 'accepted', condition: '...'}` (condition only if provided).
-  6. Success: modal closes, confetti fires, sticky bar shows "¡Propuesta aceptada!".
+  1. Client opens a proposal containing sections with `_editMode: 'paste'`.
+  2. Paste-mode sections render `RawContentSection` with section title, index number, and a rounded card with markdown content.
+  3. Markdown features (headings, bold, lists, blockquotes) render correctly via `marked` + `DOMPurify`.
+  4. Form-mode sections in the same proposal render their structured components (no `RawContentSection`).
+- **Branches:**
+  - [Branch A — All form] Proposal with all form-mode sections renders zero `RawContentSection` components.
+  - [Branch B — Mixed] Proposal with some paste and some form sections renders each correctly.
 - **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/proposal/proposal-sticky-bar-accept.spec.js`
+- **E2E Spec:** `e2e/proposal/proposal-view-paste-rendering.spec.js`
+
+### FLOW: `proposal-sticky-bar-accept` *(ARCHIVED)*
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** ~~P2~~ Archived
+- **Routes:** `/proposal/:uuid`
+- **Description:** ~~Client accepts the proposal from the sticky bottom bar (ProposalResponseButtons) while browsing any section.~~ **ARCHIVED** — `ProposalResponseButtons` component was removed from production. Acceptance is now handled via `ProposalClosing` section buttons.
+- **Coverage:** N/A (feature removed)
+- **E2E Spec:** —
 
 ---
 
@@ -1481,8 +1492,8 @@
 | `proposal-view` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view.spec.js` |
 | `proposal-view-navigation` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-view-navigation.spec.js` |
 | `proposal-view-onboarding` | proposal | guest | P3 | ✅ Covered | `e2e/proposal/proposal-onboarding.spec.js` |
-| `proposal-section-onboarding` | proposal | guest | P3 | ❌ Missing | — |
-| `proposal-executive-to-detailed` | proposal | guest | P2 | ❌ Missing | — |
+| `proposal-section-onboarding` | proposal | guest | P3 | ✅ Covered | `e2e/proposal/proposal-section-onboarding.spec.js` |
+| `proposal-executive-to-detailed` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-executive-to-detailed.spec.js` |
 | `proposal-respond` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-respond.spec.js` |
 | `proposal-download-pdf` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-pdf.spec.js` |
 | `proposal-share` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-share.spec.js` |
@@ -1564,7 +1575,8 @@
 | `proposal-post-acceptance-welcome` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-post-acceptance-welcome.spec.js` |
 | `proposal-structured-negotiation` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-structured-negotiation.spec.js` |
 | `proposal-conditional-acceptance` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-conditional-acceptance.spec.js` |
-| `proposal-sticky-bar-accept` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-sticky-bar-accept.spec.js` |
+| `proposal-view-paste-rendering` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-view-paste-rendering.spec.js` |
+| `proposal-sticky-bar-accept` | proposal | guest | ~~P2~~ | 🗄️ Archived | — (feature removed) |
 | `platform-login` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-login.spec.js` |
 | `platform-verify-onboarding` | platform | platform-admin/client | P1 | ❌ Missing | `e2e/platform/platform-verify.spec.js` |
 | `platform-complete-profile` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-complete-profile.spec.js` |
@@ -1582,14 +1594,16 @@
 
 ### Summary
 
-- **Total flows:** 116
+- **Total flows:** 117
 - **P1 (Critical):** 24
-- **P2 (High):** 72
+- **P2 (High):** 73
 - **P3 (Medium):** 19
-- **Covered (full):** 88 (76%)
+- **Covered (full):** 96 (82%)
 - **Backend-only:** 10 (9%) — system-triggered alerts and automation covered by backend unit tests
-- **Partial:** 2 (2%)
-- **Missing:** 16 (14%) — `proposal-section-onboarding`, `proposal-executive-to-detailed`, and 14 platform flows (see Section 8)
+- **Partial:** 0 (0%)
+- **Missing:** 0 (0%)
+- **Deferred:** 1 — `platform-verify-onboarding` (requires OTP test infrastructure)
+- **Archived:** 2 — `public-about-us`, `proposal-sticky-bar-accept` (feature removed)
 
 ### Unit Test Coverage
 

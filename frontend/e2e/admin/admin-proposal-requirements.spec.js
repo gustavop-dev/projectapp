@@ -135,7 +135,7 @@ async function openRequirementsEditor(page, capturedUpdates) {
   await page.getByRole('button', { name: 'Secciones' }).click();
 
   // Expand the functional_requirements section
-  await page.getByText('Requerimientos Funcionales').click();
+  await page.getByTestId('section-header-functional_requirements').click();
   await page.getByTestId('section-editor').waitFor({ state: 'visible' });
 }
 
@@ -351,5 +351,59 @@ test.describe('Functional Requirements — Paste Content Mode', () => {
     for (const group of last.body.content_json.groups) {
       expect(group._editMode).toBe('form');
     }
+  });
+
+  test('group paste pre-fills textarea from existing items', {
+    tag: [...ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_PASTE, '@role:admin'],
+  }, async ({ page }) => {
+    await openRequirementsEditor(page, null);
+
+    const editor = page.getByTestId('section-editor');
+
+    // Expand Vistas group and switch to paste mode
+    const viewsGroup = editor.getByTestId('requirement-group-views');
+    await viewsGroup.getByText('Vistas', { exact: false }).click();
+    await viewsGroup.getByRole('button', { name: 'Pegar contenido' }).click();
+
+    const groupTextarea = viewsGroup.getByTestId('group-paste-textarea');
+    await expect(groupTextarea).toBeVisible();
+    const value = await groupTextarea.inputValue();
+
+    // Should contain existing items as readable text
+    expect(value).toContain('Página Principal');
+    expect(value).toContain('Contacto');
+  });
+
+  test('group paste toggle back to form preserves existing items', {
+    tag: [...ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_PASTE, '@role:admin'],
+  }, async ({ page }) => {
+    const captured = [];
+    await openRequirementsEditor(page, captured);
+
+    const editor = page.getByTestId('section-editor');
+
+    // Expand Vistas group
+    const viewsGroup = editor.getByTestId('requirement-group-views');
+    await viewsGroup.getByText('Vistas', { exact: false }).click();
+
+    // Switch to paste and back to form
+    await viewsGroup.getByRole('button', { name: 'Pegar contenido' }).click();
+    await expect(viewsGroup.getByTestId('group-paste-textarea')).toBeVisible();
+    await viewsGroup.getByRole('button', { name: 'Formulario' }).click();
+    await expect(viewsGroup.getByTestId('group-paste-textarea')).not.toBeVisible();
+
+    // Save and verify items are preserved
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('sections') && r.url().includes('update')),
+      editor.getByRole('button', { name: 'Guardar Sección' }).click(),
+    ]);
+    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+
+    expect(captured.length).toBeGreaterThanOrEqual(1);
+    const last = captured[captured.length - 1];
+    const viewsPayload = last.body.content_json.groups[0];
+    expect(viewsPayload._editMode).toBe('form');
+    expect(viewsPayload.items).toHaveLength(2);
+    expect(viewsPayload.items[0].name).toBe('Página Principal');
   });
 });

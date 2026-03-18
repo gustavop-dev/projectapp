@@ -2,7 +2,7 @@
 
 ## Current State
 
-ProjectApp is in **production** at projectapp.co. All core features are implemented and deployed, including the Platform module (auth, onboarding, projects, kanban, client management). Quality gate score: **100/100**. Focus is on test coverage refinement, documentation accuracy, and incremental improvements.
+ProjectApp is in **production** at projectapp.co. All core features are implemented and deployed, including the Platform module (auth, onboarding, projects, kanban, client management). Quality gate score: **100/100** (0 errors, 0 warnings, 0 info). Focus is on test coverage refinement, documentation accuracy, and incremental improvements.
 
 ---
 
@@ -21,7 +21,7 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 3. **Platform module (accounts app)** — JWT auth, OTP verification, complete-profile onboarding, projects CRUD, 3-column kanban board, client management, role-based sidebar
 4. **Platform E2E coverage** — 14 Playwright spec files, 79 tests all passing
 5. **Platform unit tests** — 12 backend test files (accounts), 7 frontend store tests (platform-auth, platform-clients, platform-projects, platform-requirements), 3 composable tests (usePlatformApi, usePlatformSidebar, usePlatformTheme)
-6. **Quality gate** — 100/100 score, 18 warnings (fragile selectors in platform E2E), 1444 tests scanned across 115 files
+6. **E2E coverage audit & remediation** — Full audit of 117 user flows against E2E specs. Fixed stale summary in `USER_FLOW_MAP.md`, registered 2 untracked flows, archived 1 deleted feature (`proposal-sticky-bar-accept`). Extended 3 existing specs (+10 tests for partial P1 flows). Created 2 new specs (executive-to-detailed, section-onboarding). Replaced all fragile selectors in platform specs with `getByTestId`/`getByLabel`. Quality gate: **100/100** with **0 warnings** across **1522 tests** in **128 files**.
 7. **CI/CD pipeline** — GitHub Actions with pytest, Jest, Playwright (5 shards), quality gate
 
 ---
@@ -51,7 +51,7 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 |--------|-------|
 | Backend test files | 43 (30 content + 12 accounts + 1 projectapp) |
 | Frontend unit tests | 36 |
-| E2E spec files | 96 |
+| E2E spec files | 98 |
 | Vue components | 93 |
 | Pages | 41 |
 | Pinia stores | 9 |
@@ -62,14 +62,14 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 | Accounts URL patterns | 15 |
 | Email templates | 44 |
 | Management commands | 8 (5 content + 3 accounts) |
-| Quality gate score | 100/100 |
+| Quality gate score | 100/100 (0 warnings, 0 info) |
 
 ---
 
 ## Next Steps
 
 - Fix 4 failing `usePlatformApi.test.js` tests (`window.location.href` assertion issue in JSDOM)
-- Update `flow-definitions.json` and `USER_FLOW_MAP.md` with coverage status for all 14 platform flows
+- **Deferred E2E:** `platform-verify-onboarding` — requires OTP test infrastructure (mock OTP delivery or test bypass)
 - Increase backend test coverage (target areas: services edge cases, accounts app edge cases)
 - Increase frontend unit test coverage (target areas: remaining composables, components)
 - Consider splitting large files (proposal views 123K, service 130K, PDF 89K)

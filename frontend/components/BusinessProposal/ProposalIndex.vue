@@ -90,6 +90,7 @@
       <!-- Executive mode: switch to full proposal -->
       <div v-if="viewMode === 'executive'" class="mt-4 px-2">
         <button
+          data-testid="switch-to-detailed-btn"
           class="sidebar-switch-detailed-btn w-full flex items-center gap-2 px-3 py-2.5 bg-esmerald text-lemon rounded-xl text-sm font-medium
                  hover:bg-esmerald/90 transition-colors shadow-sm"
           @click="$emit('switchToDetailed'); isOpen = false"
