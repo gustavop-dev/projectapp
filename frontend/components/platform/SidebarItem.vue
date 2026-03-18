@@ -1,0 +1,51 @@
+<template>
+  <NuxtLink
+    v-if="!disabled"
+    :to="item.href"
+    :class="itemClasses"
+    :title="isCollapsed ? item.label : undefined"
+  >
+    <SidebarIcon :name="item.icon" class="h-5 w-5 shrink-0" />
+    <span v-if="!isCollapsed" class="truncate">{{ item.label }}</span>
+    <span
+      v-if="!isCollapsed && item.badge"
+      class="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500/15 px-1.5 text-[10px] font-semibold text-red-400"
+    >
+      {{ item.badge }}
+    </span>
+  </NuxtLink>
+  <div
+    v-else
+    :class="[itemClasses, 'cursor-default opacity-40']"
+    :title="isCollapsed ? `${item.label} (próximamente)` : undefined"
+  >
+    <SidebarIcon :name="item.icon" class="h-5 w-5 shrink-0" />
+    <span v-if="!isCollapsed" class="truncate">{{ item.label }}</span>
+    <span
+      v-if="!isCollapsed"
+      class="ml-auto text-[9px] font-medium uppercase tracking-wider text-green-light/40"
+    >
+      pronto
+    </span>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+import SidebarIcon from '~/components/platform/SidebarIcon.vue'
+
+const props = defineProps({
+  item: { type: Object, required: true },
+  isCollapsed: { type: Boolean, default: false },
+  isActive: { type: Boolean, default: false },
+  disabled: { type: Boolean, default: false },
+})
+
+const itemClasses = computed(() => [
+  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
+  props.isCollapsed ? 'justify-center' : '',
+  props.isActive && !props.disabled
+    ? 'bg-esmerald text-white dark:bg-lemon dark:text-esmerald-dark'
+    : 'text-green-light hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white',
+])
+</script>

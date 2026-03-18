@@ -51,7 +51,7 @@ class TestEmailTemplateList:
     def test_requires_admin_auth(self, api_client):
         url = reverse('email-template-list')
         response = api_client.get(url)
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 # ---------------------------------------------------------------------------
@@ -100,7 +100,7 @@ class TestEmailTemplateDetail:
     def test_requires_admin_auth(self, api_client):
         url = reverse('email-template-detail', kwargs={'template_key': 'proposal_sent_client'})
         response = api_client.get(url)
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 # ---------------------------------------------------------------------------
@@ -186,7 +186,7 @@ class TestEmailTemplateUpdate:
         url = reverse('email-template-detail', kwargs={'template_key': 'proposal_sent_client'})
         payload = {'content_overrides': {}, 'is_active': True}
         response = api_client.put(url, payload, format='json')
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 # ---------------------------------------------------------------------------
@@ -231,7 +231,7 @@ class TestEmailTemplatePreview:
     def test_requires_admin_auth(self, api_client):
         url = reverse('email-template-preview', kwargs={'template_key': 'proposal_sent_client'})
         response = api_client.get(url)
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 # ---------------------------------------------------------------------------
@@ -269,7 +269,7 @@ class TestEmailTemplateReset:
     def test_requires_admin_auth(self, api_client):
         url = reverse('email-template-reset', kwargs={'template_key': 'proposal_sent_client'})
         response = api_client.post(url)
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_only_deletes_requested_template(self, admin_client):
         """Resetting one template must not affect other templates' overrides."""

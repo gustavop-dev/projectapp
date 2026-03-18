@@ -35,6 +35,8 @@ export default defineNuxtConfig({
     '/es-co/blog': { ssr: true },
     '/es-co/blog/**': { ssr: true },
     '/proposal/**': { ssr: false },
+    '/platform': { ssr: false },
+    '/platform/**': { ssr: false },
     '/panel/**': { ssr: false },
     '/**': { ssr: false },
   },
