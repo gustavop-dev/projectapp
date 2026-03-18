@@ -77,7 +77,7 @@ class TestGetProposalDefaults:
     def test_requires_admin_auth(self, api_client):
         url = reverse('proposal-defaults')
         response = api_client.get(url)
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 # ---------------------------------------------------------------------------
@@ -134,7 +134,7 @@ class TestPutProposalDefaults:
         url = reverse('proposal-defaults')
         payload = {'language': 'es', 'sections_json': SAMPLE_SECTIONS}
         response = api_client.put(url, payload, format='json')
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 # ---------------------------------------------------------------------------
@@ -167,7 +167,7 @@ class TestResetProposalDefaults:
     def test_requires_admin_auth(self, api_client):
         url = reverse('reset-proposal-defaults')
         response = api_client.post(url, {'language': 'es'}, format='json')
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_only_deletes_requested_language(self, admin_client):
         ProposalDefaultConfig.objects.create(language='es', sections_json=SAMPLE_SECTIONS)
