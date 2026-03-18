@@ -265,6 +265,7 @@ const projectModules = computed(() => [
     icon: 'refresh',
     iconBg: 'bg-amber-500/10',
     iconColor: 'text-amber-500',
+    href: `/platform/projects/${route.params.id}/changes`,
   },
   {
     title: 'Reporte de bugs',

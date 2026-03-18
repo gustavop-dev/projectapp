@@ -308,3 +308,121 @@ class MoveRequirementSerializer(serializers.Serializer):
 class CreateCommentSerializer(serializers.Serializer):
     content = serializers.CharField()
     is_internal = serializers.BooleanField(default=False)
+
+
+# =========================================================================
+# Change Request serializers
+# =========================================================================
+
+from accounts.models import ChangeRequest, ChangeRequestComment  # noqa: E402
+
+
+class ChangeRequestCommentSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ChangeRequestComment
+        fields = ['id', 'content', 'is_internal', 'user_email', 'user_name', 'created_at']
+
+    def get_user_name(self, obj):
+        u = obj.user
+        return f'{u.first_name} {u.last_name}'.strip() or u.email
+
+
+class ChangeRequestListSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.SerializerMethodField()
+    created_by_email = serializers.EmailField(source='created_by.email', read_only=True)
+    comments_count = serializers.SerializerMethodField()
+    screenshot_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ChangeRequest
+        fields = [
+            'id', 'title', 'description', 'module_or_screen',
+            'suggested_priority', 'is_urgent', 'status',
+            'admin_response', 'estimated_cost', 'estimated_time',
+            'linked_requirement_id', 'screenshot_url',
+            'created_by_name', 'created_by_email',
+            'comments_count', 'created_at', 'updated_at',
+        ]
+
+    def get_created_by_name(self, obj):
+        u = obj.created_by
+        return f'{u.first_name} {u.last_name}'.strip() or u.email
+
+    def get_comments_count(self, obj):
+        return getattr(obj, '_comments_count', obj.comments.count())
+
+    def get_screenshot_url(self, obj):
+        if not obj.screenshot:
+            return None
+        request = self.context.get('request')
+        url = obj.screenshot.url
+        if request and not url.startswith('http'):
+            return request.build_absolute_uri(url)
+        return url
+
+
+class ChangeRequestDetailSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.SerializerMethodField()
+    created_by_email = serializers.EmailField(source='created_by.email', read_only=True)
+    comments = serializers.SerializerMethodField()
+    screenshot_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ChangeRequest
+        fields = [
+            'id', 'title', 'description', 'module_or_screen',
+            'suggested_priority', 'is_urgent', 'status',
+            'admin_response', 'estimated_cost', 'estimated_time',
+            'linked_requirement_id', 'screenshot_url',
+            'created_by_name', 'created_by_email',
+            'comments', 'created_at', 'updated_at',
+        ]
+
+    def get_created_by_name(self, obj):
+        u = obj.created_by
+        return f'{u.first_name} {u.last_name}'.strip() or u.email
+
+    def get_comments(self, obj):
+        request = self.context.get('request')
+        profile = getattr(request.user, 'profile', None) if request else None
+        qs = obj.comments.select_related('user').all()
+        if not profile or not profile.is_admin:
+            qs = qs.filter(is_internal=False)
+        return ChangeRequestCommentSerializer(qs, many=True).data
+
+    def get_screenshot_url(self, obj):
+        if not obj.screenshot:
+            return None
+        request = self.context.get('request')
+        url = obj.screenshot.url
+        if request and not url.startswith('http'):
+            return request.build_absolute_uri(url)
+        return url
+
+
+class CreateChangeRequestSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=300)
+    description = serializers.CharField(required=False, default='', allow_blank=True)
+    module_or_screen = serializers.CharField(max_length=200, required=False, default='', allow_blank=True)
+    suggested_priority = serializers.ChoiceField(
+        choices=ChangeRequest.PRIORITY_CHOICES, default=ChangeRequest.PRIORITY_MEDIUM,
+    )
+    is_urgent = serializers.BooleanField(default=False)
+    screenshot = serializers.ImageField(required=False, allow_null=True)
+
+
+class EvaluateChangeRequestSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=ChangeRequest.STATUS_CHOICES)
+    admin_response = serializers.CharField(required=False, default='', allow_blank=True)
+    estimated_cost = serializers.DecimalField(
+        max_digits=12, decimal_places=2, required=False, allow_null=True,
+    )
+    estimated_time = serializers.CharField(max_length=100, required=False, default='', allow_blank=True)
+
+
+class CreateChangeRequestCommentSerializer(serializers.Serializer):
+    content = serializers.CharField()
+    is_internal = serializers.BooleanField(default=False)

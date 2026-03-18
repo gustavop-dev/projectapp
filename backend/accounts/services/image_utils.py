@@ -8,11 +8,11 @@ MAX_DIMENSION = 1200
 JPEG_QUALITY = 70
 
 
-def optimize_avatar(image_file):
+def optimize_image(image_file, field_name='image', max_dimension=MAX_DIMENSION, quality=JPEG_QUALITY):
     """
     Optimize an uploaded image to WhatsApp-like quality:
-    - Max 1200px on the longest side
-    - JPEG at quality 70
+    - Max `max_dimension` px on the longest side
+    - JPEG at given `quality`
     - Strip EXIF metadata
     - Returns an InMemoryUploadedFile ready for ImageField.save()
     """
@@ -28,26 +28,31 @@ def optimize_avatar(image_file):
         img = img.convert('RGB')
 
     width, height = img.size
-    if width > MAX_DIMENSION or height > MAX_DIMENSION:
+    if width > max_dimension or height > max_dimension:
         if width >= height:
-            new_width = MAX_DIMENSION
-            new_height = int(height * (MAX_DIMENSION / width))
+            new_width = max_dimension
+            new_height = int(height * (max_dimension / width))
         else:
-            new_height = MAX_DIMENSION
-            new_width = int(width * (MAX_DIMENSION / height))
+            new_height = max_dimension
+            new_width = int(width * (max_dimension / height))
         img = img.resize((new_width, new_height), Image.LANCZOS)
 
     buffer = io.BytesIO()
-    img.save(buffer, format='JPEG', quality=JPEG_QUALITY, optimize=True)
+    img.save(buffer, format='JPEG', quality=quality, optimize=True)
     buffer.seek(0)
 
     filename = f'{uuid.uuid4().hex[:12]}.jpg'
 
     return InMemoryUploadedFile(
         file=buffer,
-        field_name='avatar',
+        field_name=field_name,
         name=filename,
         content_type='image/jpeg',
         size=buffer.getbuffer().nbytes,
         charset=None,
     )
+
+
+def optimize_avatar(image_file):
+    """Convenience wrapper for avatar optimization."""
+    return optimize_image(image_file, field_name='avatar')
