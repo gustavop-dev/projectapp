@@ -140,50 +140,74 @@
         </article>
       </div>
 
-      <!-- Client: Subscriptions & Pending Payments -->
-      <div v-if="clientSubscriptions.length" class="space-y-4">
-        <h2 class="text-base font-medium text-esmerald dark:text-white" data-enter>Hosting y pagos</h2>
-        <div
-          v-for="sub in clientSubscriptions"
-          :key="sub.id"
-          class="rounded-2xl border border-esmerald/[0.06] bg-white p-5 dark:border-white/[0.06] dark:bg-esmerald"
-          data-enter
-        >
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div class="flex items-center gap-2">
-                <NuxtLink :to="`/platform/projects/${sub.project_id}`" class="text-sm font-semibold text-esmerald transition hover:text-esmerald/70 dark:text-white dark:hover:text-lemon">
-                  {{ sub.project_name }}
+      <!-- Client: Hosting & Payments (always visible) -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between" data-enter>
+          <h2 class="text-base font-medium text-esmerald dark:text-white">Hosting y pagos</h2>
+          <NuxtLink to="/platform/payments" class="text-xs font-medium text-esmerald transition hover:text-esmerald/70 dark:text-lemon dark:hover:text-lemon/80">
+            Ver todo →
+          </NuxtLink>
+        </div>
+
+        <!-- Has subscriptions -->
+        <template v-if="clientSubscriptions.length">
+          <div
+            v-for="sub in clientSubscriptions"
+            :key="sub.id"
+            class="rounded-2xl border border-esmerald/[0.06] bg-white p-5 dark:border-white/[0.06] dark:bg-esmerald"
+            data-enter
+          >
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <NuxtLink :to="`/platform/projects/${sub.project_id}`" class="text-sm font-semibold text-esmerald transition hover:text-esmerald/70 dark:text-white dark:hover:text-lemon">
+                    {{ sub.project_name }}
+                  </NuxtLink>
+                  <span class="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="sub.status === 'active' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'">
+                    {{ sub.status_display }}
+                  </span>
+                </div>
+                <p class="mt-1 text-xs text-green-light">Plan {{ sub.plan_display }} · Próximo cobro: {{ formatDate(sub.next_billing_date) }}</p>
+              </div>
+              <div class="flex items-center gap-4">
+                <div class="text-right">
+                  <p class="text-xl font-bold text-esmerald dark:text-lemon">${{ formatMoney(sub.billing_amount) }}</p>
+                  <p class="text-[10px] text-green-light">COP</p>
+                </div>
+                <NuxtLink
+                  :to="`/platform/projects/${sub.project_id}/payments`"
+                  class="flex items-center gap-1.5 rounded-xl bg-lemon px-4 py-2.5 text-xs font-semibold text-esmerald-dark transition hover:brightness-105"
+                >
+                  <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                  {{ sub.pending_payments > 0 ? 'Pagar' : 'Ver pagos' }}
                 </NuxtLink>
-                <span class="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="sub.status === 'active' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'">
-                  {{ sub.status_display }}
-                </span>
               </div>
-              <p class="mt-1 text-xs text-green-light">Plan {{ sub.plan_display }} · Próximo cobro: {{ formatDate(sub.next_billing_date) }}</p>
             </div>
-            <div class="flex items-center gap-4">
-              <div class="text-right">
-                <p class="text-xl font-bold text-esmerald dark:text-lemon">${{ formatMoney(sub.billing_amount) }}</p>
-                <p class="text-[10px] text-green-light">COP</p>
-              </div>
-              <NuxtLink
-                :to="`/platform/projects/${sub.project_id}/payments`"
-                class="flex items-center gap-1.5 rounded-xl bg-lemon px-4 py-2.5 text-xs font-semibold text-esmerald-dark transition hover:brightness-105"
-              >
-                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                {{ sub.pending_payments > 0 ? 'Pagar' : 'Ver pagos' }}
-              </NuxtLink>
+            <!-- Payment method logos -->
+            <div class="mt-3 flex items-center gap-3 border-t border-esmerald/[0.04] pt-3 dark:border-white/[0.04]">
+              <img src="/images/payments/card.svg" alt="Tarjeta" class="h-5 w-5 opacity-40 dark:invert dark:opacity-30" />
+              <img src="/images/payments/pse-seeklogo.png" alt="PSE" class="h-5 w-5 rounded opacity-60" />
+              <img src="/images/payments/Nequi.jpeg" alt="Nequi" class="h-5 w-5 rounded opacity-60" />
+              <img src="/images/payments/Bancolombia.png" alt="Bancolombia" class="h-5 w-5 rounded-full opacity-60" />
+              <span v-if="sub.pending_payments > 0" class="ml-auto rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                {{ sub.pending_payments }} pago{{ sub.pending_payments > 1 ? 's' : '' }} pendiente{{ sub.pending_payments > 1 ? 's' : '' }}
+              </span>
             </div>
           </div>
-          <!-- Payment method logos -->
-          <div class="mt-3 flex items-center gap-3 border-t border-esmerald/[0.04] pt-3 dark:border-white/[0.04]">
-            <img src="/images/payments/card.svg" alt="Tarjeta" class="h-5 w-5 opacity-40 dark:invert dark:opacity-30" />
-            <img src="/images/payments/pse-seeklogo.png" alt="PSE" class="h-5 w-5 rounded opacity-60" />
-            <img src="/images/payments/Nequi.jpeg" alt="Nequi" class="h-5 w-5 rounded opacity-60" />
-            <img src="/images/payments/Bancolombia.png" alt="Bancolombia" class="h-5 w-5 rounded-full opacity-60" />
-            <span v-if="sub.pending_payments > 0" class="ml-auto rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-              {{ sub.pending_payments }} pago{{ sub.pending_payments > 1 ? 's' : '' }} pendiente{{ sub.pending_payments > 1 ? 's' : '' }}
-            </span>
+        </template>
+
+        <!-- No subscriptions yet -->
+        <div v-else class="rounded-2xl border border-dashed border-esmerald/10 bg-white p-6 text-center dark:border-white/10 dark:bg-esmerald" data-enter>
+          <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-esmerald-light/50 dark:bg-white/[0.04]">
+            <svg class="h-6 w-6 text-green-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+          </div>
+          <p class="text-sm font-medium text-esmerald dark:text-white">No tienes suscripciones activas</p>
+          <p class="mt-1 text-xs text-green-light">Cuando tu proyecto tenga hosting configurado, aquí verás tus pagos y podrás pagarlos directamente.</p>
+          <div class="mt-3 flex items-center justify-center gap-3">
+            <img src="/images/payments/card.svg" alt="Tarjeta" class="h-5 w-5 opacity-30 dark:invert dark:opacity-20" />
+            <img src="/images/payments/pse-seeklogo.png" alt="PSE" class="h-5 w-5 rounded opacity-40" />
+            <img src="/images/payments/Nequi.jpeg" alt="Nequi" class="h-5 w-5 rounded opacity-40" />
+            <img src="/images/payments/Bancolombia.png" alt="Bancolombia" class="h-5 w-5 rounded-full opacity-40" />
           </div>
         </div>
       </div>
