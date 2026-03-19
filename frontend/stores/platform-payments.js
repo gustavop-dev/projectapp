@@ -144,6 +144,23 @@ export const usePlatformPaymentsStore = defineStore('platformPayments', {
       }
     },
 
+    async payWithCard(projectId, paymentId, cardData) {
+      this.isUpdating = true
+      this.error = ''
+
+      try {
+        const { post } = usePlatformApi()
+        const response = await post(`projects/${projectId}/payments/${paymentId}/card-pay/`, cardData)
+        return { success: true, data: response.data }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'Error procesando el pago con tarjeta.'
+        this.error = message
+        return { success: false, message }
+      } finally {
+        this.isUpdating = false
+      }
+    },
+
     async verifyTransaction(projectId, paymentId, transactionId) {
       try {
         const { post } = usePlatformApi()

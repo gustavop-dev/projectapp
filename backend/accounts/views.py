@@ -1791,6 +1791,93 @@ def payment_widget_data_view(request, project_id, payment_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+def payment_card_pay_view(request, project_id, payment_id):
+    """
+    Process a card payment: tokenize card → create Wompi transaction with installments=1.
+    Card data is tokenized server-side to guarantee installments=1 (subscription, no multi-cuota).
+    """
+    import hashlib
+    import time
+
+    from django.conf import settings as django_settings
+
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        payment = Payment.objects.select_related('subscription__project__client').get(
+            id=payment_id, subscription__project=proj,
+        )
+    except Payment.DoesNotExist:
+        return Response({'detail': 'Pago no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if payment.status not in (Payment.STATUS_PENDING, Payment.STATUS_OVERDUE, Payment.STATUS_FAILED):
+        return Response({'detail': 'Este pago no está disponible para cobro.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    card_number = request.data.get('card_number', '')
+    exp_month = request.data.get('exp_month', '')
+    exp_year = request.data.get('exp_year', '')
+    cvc = request.data.get('cvc', '')
+    card_holder = request.data.get('card_holder', '')
+
+    if not all([card_number, exp_month, exp_year, cvc, card_holder]):
+        return Response({'detail': 'Todos los campos de la tarjeta son requeridos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    from django.utils import timezone as tz
+
+    try:
+        from accounts.services.wompi import tokenize_card, get_acceptance_token, create_card_transaction
+
+        card_token = tokenize_card(card_number, exp_month, exp_year, cvc, card_holder)
+        acceptance_token = get_acceptance_token()
+
+        ts = int(time.time())
+        reference = f'PA{payment.id}P{proj.id}T{ts}'
+        amount_in_cents = int(payment.amount * 100)
+        integrity_str = f'{reference}{amount_in_cents}COP{django_settings.WOMPI_INTEGRITY_SECRET}'
+        signature = hashlib.sha256(integrity_str.encode()).hexdigest()
+
+        txn_data = create_card_transaction(payment, card_token, acceptance_token, reference, signature)
+
+        txn_id = txn_data.get('id', '')
+        txn_status = txn_data.get('status', '')
+
+        payment.wompi_transaction_id = str(txn_id)
+
+        if txn_status == 'APPROVED':
+            payment.status = Payment.STATUS_PAID
+            payment.paid_at = tz.now()
+            sub = payment.subscription
+            from dateutil.relativedelta import relativedelta
+            sub.next_billing_date = payment.billing_period_end + relativedelta(days=1)
+            if sub.status == HostingSubscription.STATUS_PENDING:
+                sub.status = HostingSubscription.STATUS_ACTIVE
+            sub.save(update_fields=['next_billing_date', 'status', 'updated_at'])
+        elif txn_status == 'PENDING':
+            payment.status = Payment.STATUS_PROCESSING
+        elif txn_status in ('DECLINED', 'ERROR', 'VOIDED'):
+            payment.status = Payment.STATUS_FAILED
+
+        payment.save(update_fields=['wompi_transaction_id', 'status', 'paid_at'])
+
+        return Response({
+            'payment_id': payment.id,
+            'payment_status': payment.status,
+            'transaction_id': txn_id,
+            'transaction_status': txn_status,
+        })
+
+    except Exception as e:
+        logger.error('Card payment error for payment %s: %s', payment.id, e)
+        return Response(
+            {'detail': f'Error procesando el pago: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def payment_verify_transaction_view(request, project_id, payment_id):
     """
     After the Wompi widget completes, the frontend calls this endpoint

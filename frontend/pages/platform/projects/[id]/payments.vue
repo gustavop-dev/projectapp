@@ -90,7 +90,7 @@
                     type="button"
                     :disabled="payStore.isUpdating"
                     class="flex items-center gap-2 rounded-xl bg-lemon px-5 py-3 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50"
-                    @click="handleOpenPayment(currentPayment)"
+                    @click="openCheckout(currentPayment)"
                   >
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
                     {{ currentPayment.status === 'failed' || currentPayment.status === 'overdue' ? 'Renovar' : 'Pagar ahora' }}
@@ -170,11 +170,105 @@
         </div>
       </template>
     </template>
+
+    <!-- Checkout modal -->
+    <Teleport to="body">
+      <Transition name="modal-overlay">
+        <div v-if="checkoutPayment" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm" @click.self="closeCheckout">
+          <Transition name="modal-content" appear>
+            <div v-if="checkoutPayment" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-2xl dark:border-white/[0.06] dark:bg-esmerald sm:p-8">
+              <!-- Header -->
+              <div class="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 class="text-lg font-bold text-esmerald dark:text-white">Pagar suscripción</h2>
+                  <p class="mt-0.5 text-xs text-green-light">${{ formatMoney(checkoutPayment.amount) }} COP</p>
+                </div>
+                <button type="button" class="flex h-8 w-8 items-center justify-center rounded-full text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white" @click="closeCheckout">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              <!-- Payment method selector -->
+              <div class="mb-5 grid grid-cols-4 gap-2">
+                <button
+                  v-for="m in paymentMethods" :key="m.key" type="button"
+                  class="flex flex-col items-center gap-1.5 rounded-xl border p-3 transition"
+                  :class="selectedMethod === m.key
+                    ? 'border-esmerald bg-esmerald-light/40 dark:border-lemon dark:bg-lemon/10'
+                    : 'border-esmerald/10 hover:border-esmerald/20 dark:border-white/10 dark:hover:border-white/20'"
+                  @click="selectedMethod = m.key"
+                >
+                  <img :src="m.logo" :alt="m.label" class="h-8 w-8 rounded object-contain" :class="m.logoClass" />
+                  <span class="text-[9px] font-medium text-esmerald dark:text-white">{{ m.label }}</span>
+                </button>
+              </div>
+
+              <!-- Card form -->
+              <form v-if="selectedMethod === 'card'" class="space-y-3" @submit.prevent="handleCardPay">
+                <div>
+                  <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Número de tarjeta</label>
+                  <input v-model="cardForm.card_number" type="text" inputmode="numeric" maxlength="19" placeholder="4242 4242 4242 4242" required class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Titular de la tarjeta</label>
+                  <input v-model="cardForm.card_holder" type="text" placeholder="Nombre como aparece en la tarjeta" required minlength="5" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Mes</label>
+                    <input v-model="cardForm.exp_month" type="text" inputmode="numeric" maxlength="2" placeholder="MM" required class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-3 py-3 text-center text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Año</label>
+                    <input v-model="cardForm.exp_year" type="text" inputmode="numeric" maxlength="2" placeholder="AA" required class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-3 py-3 text-center text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">CVC</label>
+                    <input v-model="cardForm.cvc" type="text" inputmode="numeric" maxlength="4" placeholder="123" required class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-3 py-3 text-center text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                  </div>
+                </div>
+
+                <div v-if="checkoutError" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+                  {{ checkoutError }}
+                </div>
+
+                <button type="submit" :disabled="payStore.isUpdating" class="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-lemon px-5 py-3.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50">
+                  <svg v-if="payStore.isUpdating" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  {{ payStore.isUpdating ? 'Procesando...' : `Pagar $${formatMoney(checkoutPayment.amount)} COP` }}
+                </button>
+
+                <p class="text-center text-[10px] text-green-light/50">Pago a 1 cuota · Procesado de forma segura por Wompi</p>
+              </form>
+
+              <!-- PSE / Nequi / Bancolombia — uses Wompi widget -->
+              <div v-else class="space-y-3">
+                <div class="rounded-xl border border-esmerald/[0.06] bg-esmerald-light/20 p-4 text-center dark:border-white/[0.06] dark:bg-white/[0.02]">
+                  <p class="text-sm font-medium text-esmerald dark:text-white">{{ selectedMethodLabel }}</p>
+                  <p class="mt-1 text-xs text-green-light">Se abrirá la pasarela de pago segura para completar tu transacción.</p>
+                </div>
+
+                <button type="button" :disabled="payStore.isUpdating" class="flex w-full items-center justify-center gap-2 rounded-xl bg-lemon px-5 py-3.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50" @click="handleWidgetPay">
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                  Continuar con {{ selectedMethodLabel }}
+                </button>
+              </div>
+
+              <!-- Security footer -->
+              <div class="mt-4 flex items-center justify-center gap-2">
+                <svg class="h-3.5 w-3.5 text-green-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                <span class="text-[10px] text-green-light/40">Conexión segura · SSL 256-bit · ProjectApp</span>
+              </div>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformPaymentsStore } from '~/stores/platform-payments'
@@ -198,6 +292,25 @@ const projectName = computed(() => projectsStore.currentProject?.name || 'Proyec
 const sub = computed(() => payStore.currentSubscription)
 const currentPayment = computed(() => payStore.currentPeriodPayment)
 const showHistory = ref(false)
+
+const checkoutPayment = ref(null)
+const selectedMethod = ref('card')
+const checkoutError = ref('')
+const cardForm = reactive({
+  card_number: '', card_holder: '', exp_month: '', exp_year: '', cvc: '',
+})
+
+const paymentMethods = [
+  { key: 'card', label: 'Tarjeta', logo: '/images/payments/card.svg', logoClass: 'dark:invert dark:opacity-70' },
+  { key: 'pse', label: 'PSE', logo: '/images/payments/pse-seeklogo.png', logoClass: '' },
+  { key: 'nequi', label: 'Nequi', logo: '/images/payments/Nequi.jpeg', logoClass: '' },
+  { key: 'bancolombia', label: 'Bancolombia', logo: '/images/payments/Bancolombia.png', logoClass: 'rounded-full' },
+]
+
+const selectedMethodLabel = computed(() => {
+  const m = paymentMethods.find((pm) => pm.key === selectedMethod.value)
+  return m?.label || ''
+})
 
 const currentPeriodBorderClass = computed(() => {
   if (!currentPayment.value) return 'border-esmerald/[0.06] dark:border-white/[0.06]'
@@ -268,27 +381,55 @@ function formatDate(val) {
   return new Date(val).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-async function handleOpenPayment(payment) {
-  const result = await payStore.fetchWidgetData(projectId.value, payment.id)
-  if (!result.success) {
-    console.error('[Wompi] Failed to fetch widget data:', result.message)
-    return
-  }
+function openCheckout(payment) {
+  checkoutPayment.value = payment
+  selectedMethod.value = 'card'
+  checkoutError.value = ''
+  cardForm.card_number = ''
+  cardForm.card_holder = ''
+  cardForm.exp_month = ''
+  cardForm.exp_year = ''
+  cardForm.cvc = ''
+}
 
-  const d = result.data
-  console.info('[Wompi] Widget data received:', {
-    publicKey: d.public_key?.slice(0, 12) + '…',
-    currency: d.currency,
-    amountInCents: d.amount_in_cents,
-    reference: d.reference,
-    integritySignature: d.integrity_signature?.slice(0, 16) + '…',
-    redirectUrl: d.redirect_url,
+function closeCheckout() {
+  checkoutPayment.value = null
+  checkoutError.value = ''
+}
+
+async function handleCardPay() {
+  if (!checkoutPayment.value) return
+  checkoutError.value = ''
+
+  const result = await payStore.payWithCard(projectId.value, checkoutPayment.value.id, {
+    card_number: cardForm.card_number.replace(/\s/g, ''),
+    exp_month: cardForm.exp_month,
+    exp_year: cardForm.exp_year,
+    cvc: cardForm.cvc,
+    card_holder: cardForm.card_holder,
   })
 
-  if (typeof window === 'undefined' || !window.WidgetCheckout) {
-    console.error('[Wompi] WidgetCheckout not loaded. Ensure widget.js script is included.')
+  if (!result.success) {
+    checkoutError.value = result.message
     return
   }
+
+  if (result.data.transaction_status === 'APPROVED' || result.data.transaction_status === 'PENDING') {
+    closeCheckout()
+    await payStore.fetchProjectSubscription(projectId.value)
+  } else {
+    checkoutError.value = `Transacción ${result.data.transaction_status}. Intenta con otro método de pago.`
+  }
+}
+
+async function handleWidgetPay() {
+  if (!checkoutPayment.value) return
+
+  const result = await payStore.fetchWidgetData(projectId.value, checkoutPayment.value.id)
+  if (!result.success) return
+
+  const d = result.data
+  if (typeof window === 'undefined' || !window.WidgetCheckout) return
 
   const widgetConfig = {
     currency: d.currency,
@@ -296,23 +437,18 @@ async function handleOpenPayment(payment) {
     reference: d.reference,
     publicKey: d.public_key,
     'signature:integrity': d.integrity_signature,
-    customerData: {
-      email: d.customer_email,
-      fullName: d.customer_full_name,
-    },
+    customerData: { email: d.customer_email, fullName: d.customer_full_name },
   }
-  if (d.redirect_url) {
-    widgetConfig.redirectUrl = d.redirect_url
-  }
+  if (d.redirect_url) widgetConfig.redirectUrl = d.redirect_url
 
-  const paymentId = payment.id
+  const paymentId = checkoutPayment.value.id
+  closeCheckout()
+
   const checkout = new window.WidgetCheckout(widgetConfig)
   checkout.open(async (widgetResult) => {
     const txn = widgetResult.transaction
-    console.info('[Wompi] Transaction result:', txn)
     if (txn && txn.id) {
-      const verifyResult = await payStore.verifyTransaction(projectId.value, paymentId, txn.id)
-      console.info('[Wompi] Verify result:', verifyResult.data)
+      await payStore.verifyTransaction(projectId.value, paymentId, txn.id)
     }
     await payStore.fetchProjectSubscription(projectId.value)
   })

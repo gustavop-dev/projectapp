@@ -15,6 +15,7 @@ from accounts.views import (
     notification_mark_all_read_view,
     notification_mark_read_view,
     notification_unread_count_view,
+    payment_card_pay_view,
     payment_generate_link_view,
     payment_verify_transaction_view,
     payment_widget_data_view,
@@ -105,6 +106,7 @@ urlpatterns = [
     path('projects/<int:project_id>/payments/', project_payments_view, name='platform-project-payments'),
     path('projects/<int:project_id>/payments/<int:payment_id>/generate-link/', payment_generate_link_view, name='platform-payment-generate-link'),
     path('projects/<int:project_id>/payments/<int:payment_id>/widget-data/', payment_widget_data_view, name='platform-payment-widget-data'),
+    path('projects/<int:project_id>/payments/<int:payment_id>/card-pay/', payment_card_pay_view, name='platform-payment-card-pay'),
     path('projects/<int:project_id>/payments/<int:payment_id>/verify/', payment_verify_transaction_view, name='platform-payment-verify'),
     path('webhooks/wompi/', wompi_webhook_view, name='platform-wompi-webhook'),
 ]
