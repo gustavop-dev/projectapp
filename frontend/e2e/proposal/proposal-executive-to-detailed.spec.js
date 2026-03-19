@@ -135,7 +135,7 @@ test.describe('Proposal Executive to Detailed View Switch', () => {
     await page.waitForLoadState('networkidle');
 
     // Open the ProposalIndex sidebar
-    const indexToggle = page.getByTestId('proposal-index-toggle');
+    const indexToggle = page.getByTestId('index-toggle');
     if (await indexToggle.isVisible()) {
       await indexToggle.click();
     }
@@ -154,7 +154,7 @@ test.describe('Proposal Executive to Detailed View Switch', () => {
     await page.waitForLoadState('networkidle');
 
     // Open ProposalIndex and click switch button
-    const indexToggle = page.getByTestId('proposal-index-toggle');
+    const indexToggle = page.getByTestId('index-toggle');
     if (await indexToggle.isVisible()) {
       await indexToggle.click();
     }
@@ -205,7 +205,7 @@ test.describe('Proposal Executive to Detailed View Switch', () => {
     await page.waitForLoadState('networkidle');
 
     // Open ProposalIndex
-    const indexToggle = page.getByTestId('proposal-index-toggle');
+    const indexToggle = page.getByTestId('index-toggle');
     if (await indexToggle.isVisible()) {
       await indexToggle.click();
     }

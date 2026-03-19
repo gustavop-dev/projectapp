@@ -100,7 +100,9 @@ test.describe('Proposal Section Onboarding', () => {
     await expect(page.getByRole('heading', { name: 'Modo claro y oscuro' })).toBeVisible({ timeout: 5000 });
 
     // Progress indicator should show "1/N"
-    await expect(page.getByText(/^1\//)).toBeVisible({ timeout: 5000 });
+    const progress = page.getByTestId('onboarding-step-progress');
+    await expect(progress).toBeVisible({ timeout: 5000 });
+    await expect(progress).toHaveText(/^1\//);
   });
 
   test('clicking "Siguiente" advances to step 2', {
@@ -114,12 +116,13 @@ test.describe('Proposal Section Onboarding', () => {
     await expect(page.getByTestId('onboarding-backdrop')).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('heading', { name: 'Modo claro y oscuro' })).toBeVisible({ timeout: 5000 });
 
-    // Click next (use .last() to disambiguate from the nav-next button which also has text "Siguiente")
-    await page.getByRole('button', { name: 'Siguiente' }).last().click({ timeout: 5000 });
+    // Click the onboarding next button
+    await page.getByTestId('onboarding-next-btn').click({ timeout: 5000 });
 
     // Step 2: section index
     await expect(page.getByText('Índice de secciones')).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText(/^2\//)).toBeVisible({ timeout: 5000 });
+    const progress = page.getByTestId('onboarding-step-progress');
+    await expect(progress).toHaveText(/^2\//);
   });
 
   test('clicking "Omitir" dismisses onboarding overlay', {
@@ -185,25 +188,30 @@ test.describe('Proposal Section Onboarding', () => {
     await expect(page.getByTestId('onboarding-backdrop')).toBeVisible({ timeout: 15000 });
 
     // Advance through all steps until the last one
-    let hasNext = true;
+    const progressEl = page.getByTestId('onboarding-step-progress');
+    const nextBtn = page.getByTestId('onboarding-next-btn');
+    const doneBtn = page.getByTestId('onboarding-done-btn');
+    let reachedLastStep = false;
     let maxSteps = 10;
-    while (hasNext && maxSteps > 0) {
+
+    while (maxSteps > 0) {
       maxSteps--;
-      // Use .last() to disambiguate the onboarding button from the nav-next "Siguiente" button
-      const nextBtn = page.getByRole('button', { name: 'Siguiente' }).last();
-      const doneBtn = page.getByRole('button', { name: 'Entendido' });
+      // Wait for either button to appear after transition completes
+      await expect(nextBtn.or(doneBtn)).toBeVisible({ timeout: 5000 });
 
       if (await doneBtn.isVisible()) {
-        hasNext = false;
-        // On last step, "Entendido" should be visible
+        reachedLastStep = true;
         await expect(doneBtn).toBeVisible({ timeout: 5000 });
-      } else {
-        await nextBtn.click({ timeout: 5000 });
-        // Wait for step transition to complete
-        await nextBtn.or(doneBtn).waitFor({ state: 'visible', timeout: 5000 });
+        break;
       }
+
+      // Remember current progress, click next, then wait for progress text to change
+      const prevProgress = (await progressEl.textContent()).trim();
+      // quality: allow-dispatchEvent (tooltip-pop out-in CSS transition causes instability/detach between steps)
+      await nextBtn.dispatchEvent('click');
+      await expect(progressEl).not.toHaveText(prevProgress, { timeout: 5000 });
     }
 
-    expect(hasNext).toBe(false);
+    expect(reachedLastStep).toBe(true);
   });
 });
