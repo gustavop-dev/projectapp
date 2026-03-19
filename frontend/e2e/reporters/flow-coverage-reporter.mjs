@@ -7,6 +7,7 @@ const _dir = path.dirname(_file);
 
 class FlowCoverageReporter {
   flowStats = new Map();
+  testResults = new Map();
   unmappedTests = [];
   outputDir;
 
@@ -42,6 +43,8 @@ class FlowCoverageReporter {
       return;
     }
 
+    const testId = test.id || `${specFile}:${test.title}`;
+
     for (const tag of flowTags) {
       const flowId = tag.replace('@flow:', '').trim();
       if (!flowId) continue;
@@ -57,16 +60,23 @@ class FlowCoverageReporter {
         this.flowStats.set(flowId, stats);
       }
 
-      stats.tests.total++;
       stats.specs.add(specFile);
 
-      if (result.status === 'passed') stats.tests.passed++;
-      else if (result.status === 'failed' || result.status === 'timedOut') stats.tests.failed++;
-      else if (result.status === 'skipped') stats.tests.skipped++;
+      const key = `${testId}::${flowId}`;
+      this.testResults.set(key, { flowId, status: result.status });
     }
   }
 
   onEnd() {
+    for (const { flowId, status } of this.testResults.values()) {
+      const stats = this.flowStats.get(flowId);
+      if (!stats) continue;
+      stats.tests.total++;
+      if (status === 'passed') stats.tests.passed++;
+      else if (status === 'failed' || status === 'timedOut') stats.tests.failed++;
+      else if (status === 'skipped') stats.tests.skipped++;
+    }
+
     for (const stats of this.flowStats.values()) {
       if (stats.tests.total === 0)                                          stats.status = stats.definition.expectedSpecs === 0 ? 'covered' : 'missing';
       else if (stats.tests.failed > 0)                                      stats.status = 'failing';
