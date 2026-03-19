@@ -314,7 +314,7 @@ function statusClass(client) {
 
 function formatMoney(val) {
   if (!val) return '0'
-  return Number(val).toLocaleString('es-CO', { maximumFractionDigits: 0 })
+  return Number(val).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace(/,/g, '.')
 }
 
 onMounted(async () => {

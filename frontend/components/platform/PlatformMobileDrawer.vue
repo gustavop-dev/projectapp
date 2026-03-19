@@ -156,6 +156,7 @@ const projectItems = computed(() => {
       { label: 'Solicitudes', href: '/platform/changes', icon: 'refresh' },
       { label: 'Bugs', href: '/platform/bugs', icon: 'bug' },
       { label: 'Entregables', href: '/platform/deliverables', icon: 'file' },
+      { label: 'Pagos', href: '/platform/payments', icon: 'credit-card' },
     ]
   }
   return [
@@ -164,12 +165,12 @@ const projectItems = computed(() => {
     { label: 'Solicitudes', href: '/platform/changes', icon: 'refresh' },
     { label: 'Bugs', href: '/platform/bugs', icon: 'bug' },
     { label: 'Entregables', href: '/platform/deliverables', icon: 'file' },
+    { label: 'Pagos', href: '/platform/payments', icon: 'credit-card' },
   ]
 })
 
 const adminItems = computed(() => [
   { label: 'Clientes', href: '/platform/clients', icon: 'users' },
-  { label: 'Pagos', href: '/platform/payments', icon: 'credit-card' },
 ])
 
 function isActive(href) {

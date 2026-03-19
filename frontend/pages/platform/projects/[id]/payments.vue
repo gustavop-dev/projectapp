@@ -207,7 +207,7 @@
               <form v-if="selectedMethod === 'card'" class="space-y-3" @submit.prevent="handleCardPay">
                 <div>
                   <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Número de tarjeta</label>
-                  <input v-model="cardForm.card_number" type="text" inputmode="numeric" maxlength="19" placeholder="4242 4242 4242 4242" required class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                  <input :value="cardForm.card_number" type="text" inputmode="numeric" maxlength="19" placeholder="4242 4242 4242 4242" required autocomplete="cc-number" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 font-mono text-sm tracking-wider text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" @input="formatCardNumber" />
                 </div>
                 <div>
                   <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Titular de la tarjeta</label>
@@ -373,12 +373,19 @@ function paymentStatusLabel(s) {
 
 function formatMoney(val) {
   if (!val) return '0'
-  return Number(val).toLocaleString('es-CO', { maximumFractionDigits: 0 })
+  return Number(val).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace(/,/g, '.')
 }
 
 function formatDate(val) {
   if (!val) return '—'
   return new Date(val).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function formatCardNumber(event) {
+  const raw = event.target.value.replace(/\D/g, '').slice(0, 16)
+  const formatted = raw.replace(/(.{4})/g, '$1 ').trim()
+  cardForm.card_number = formatted
+  event.target.value = formatted
 }
 
 function openCheckout(payment) {
