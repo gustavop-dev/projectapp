@@ -1729,6 +1729,8 @@ def payment_widget_data_view(request, project_id, payment_id):
     """
     import hashlib
 
+    from django.conf import settings as django_settings
+
     proj, err = _get_project_or_403(request, project_id)
     if err:
         return err
@@ -1752,13 +1754,13 @@ def payment_widget_data_view(request, project_id, payment_id):
     amount_in_cents = int(payment.amount * 100)
     reference = f'PA-{payment.id}-{proj.id}'
 
-    integrity_str = f'{reference}{amount_in_cents}COP{settings.WOMPI_INTEGRITY_SECRET}'
+    integrity_str = f'{reference}{amount_in_cents}COP{django_settings.WOMPI_INTEGRITY_SECRET}'
     integrity_signature = hashlib.sha256(integrity_str.encode()).hexdigest()
 
-    base_url = getattr(settings, 'FRONTEND_BASE_URL', 'http://localhost:3000')
+    base_url = getattr(django_settings, 'FRONTEND_BASE_URL', 'http://localhost:3000')
 
     return Response({
-        'public_key': settings.WOMPI_PUBLIC_KEY,
+        'public_key': django_settings.WOMPI_PUBLIC_KEY,
         'currency': 'COP',
         'amount_in_cents': amount_in_cents,
         'reference': reference,
