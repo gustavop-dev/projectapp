@@ -152,11 +152,11 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 ### Frontend Patterns
 
 - **Pinia Options API** — all stores use Options API (state, getters, actions), not Composition API
-- **Composables** — 20 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, etc.)
-- **Component architecture** — 40 BusinessProposal components (12 section types + admin + overlays + utilities)
+- **Composables** — 23 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, etc.)
+- **Component architecture** — 93 Vue components total; 40 BusinessProposal components (12 section types + admin + overlays + utilities)
 - **GSAP animations** — horizontal scroll with ScrollTrigger for proposal client view, reveal animations for marketing pages
-- **Layouts** — `default.vue` (public pages with navbar) and `admin.vue` (admin panel with sidebar)
-- **Middleware** — `admin-auth.js` route guard for `/panel/**` routes
+- **Layouts** — `default.vue` (public pages with navbar), `admin.vue` (admin panel with sidebar), `platform.vue` (platform with sidebar + theme)
+- **Middleware** — `admin-auth.js` route guard for `/panel/**` routes, `platform-auth.js` route guard for `/platform/**` routes
 
 ---
 
@@ -164,8 +164,9 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 ### Backend (pytest)
 
-- Location: `backend/content/tests/`
+- Location: `backend/content/tests/` and `backend/accounts/tests/`
 - Structure: `models/`, `serializers/`, `views/`, `services/`, `tasks/`, `utils/`, `management/`
+- Test files: 43 total (30 content + 12 accounts + 1 projectapp)
 - Fixtures: `conftest.py` at root and `content/tests/conftest.py`
 - Coverage: custom terminal report with per-file bars and Top-N focus
 - Config: `backend/pytest.ini`
@@ -174,18 +175,20 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 ### Frontend Unit (Jest)
 
 - Location: `frontend/test/`
-- Structure: `components/`, `composables/`, `stores/`, `shared/`
+- Structure: `components/` (3), `composables/` (23), `stores/` (10 incl. services)
+- Test files: 36 total
 - Config: `frontend/jest.config.cjs`
-- Run: `npm test -- src/stores/__tests__/orderStore.spec.ts`
+- Run: `npm test -- test/<specific_file>.test.js`
 
 ### Frontend E2E (Playwright)
 
 - Location: `frontend/e2e/`
-- Structure: `admin/`, `auth/`, `blog/`, `layout/`, `proposal/`, `public/`
+- Structure: `admin/`, `auth/`, `blog/`, `layout/`, `platform/`, `proposal/`, `public/`
+- Spec files: 95 total
 - Flow definitions: `frontend/e2e/flow-definitions.json`
 - Config: `frontend/playwright.config.js`
 - Helpers: `frontend/e2e/helpers/`
-- Run: `npx playwright test e2e/<specific_file>.spec.ts` (max 2 files per invocation)
+- Run: `npx playwright test e2e/<specific_file>.spec.js` (max 2 files per invocation)
 
 ### Quality Gate
 
@@ -217,33 +220,40 @@ Triggers: Push/PR to `main`/`master`. Concurrency group cancels in-progress runs
 ```
 projectapp/
 ├── backend/
+│   ├── accounts/               # Platform app (auth, onboarding, projects, kanban)
+│   │   ├── models.py            # 6 models (UserProfile, VerificationCode, Project, Requirement, RequirementComment, RequirementHistory)
+│   │   ├── services/            # 4 services (image_utils, onboarding, tokens, verification)
+│   │   ├── management/commands/ # 3 commands (create_platform_admin, seed_demo_clients, seed_platform_data)
+│   │   ├── tests/               # 12 test files
+│   │   └── urls.py              # 15 URL patterns
 │   ├── content/                 # Main Django app
-│   │   ├── models/              # 15 models (proposal, blog, portfolio, contact, etc.)
+│   │   ├── models/              # 14 model files (proposal, blog, portfolio, contact, email, etc.)
 │   │   ├── serializers/         # DRF serializers (proposal, blog, portfolio, contact)
-│   │   ├── views/               # FBV views (proposal 123K, blog 18K, portfolio 8K, contact 2K)
+│   │   ├── views/               # FBV views (proposal 123K, blog 18K, portfolio 9K, email_templates 8K, contact 2K)
 │   │   ├── services/            # Business logic (proposal 130K, email 57K, pdf 89K, templates 38K)
-│   │   ├── tasks.py             # Huey async tasks (30K)
+│   │   ├── tasks.py             # Huey async tasks
 │   │   ├── templates/emails/    # 44 email HTML/text templates
 │   │   ├── management/commands/ # 5 management commands
-│   │   ├── tests/               # pytest tests (models, serializers, views, services, tasks)
+│   │   ├── tests/               # 30 test files (models, serializers, views, services, tasks, utils)
 │   │   └── urls.py              # 71 URL patterns
-│   ├── projectapp/              # Django project (settings, urls, wsgi, views)
+│   ├── projectapp/              # Django project (settings, urls, wsgi, views, 1 test file)
 │   ├── static/                  # Static files (Nuxt build output in prod)
 │   └── media/                   # User uploads
 ├── frontend/
-│   ├── pages/                   # Nuxt file-based routing (29 pages)
+│   ├── pages/                   # Nuxt file-based routing (41 pages)
 │   │   ├── panel/               # Admin pages (proposals, blog, portfolio, clients)
+│   │   ├── platform/            # Platform pages (dashboard, projects, kanban, clients, profile)
 │   │   ├── blog/                # Blog listing + detail
 │   │   ├── portfolio-works/     # Portfolio listing + detail
 │   │   └── proposal/            # Client proposal view
-│   ├── components/              # Vue components (88 files)
+│   ├── components/              # Vue components (93 files)
 │   │   └── BusinessProposal/    # 40 proposal components (sections + admin + overlays)
-│   ├── stores/                  # 5 Pinia stores (proposals, blog, portfolio_works, contacts, language)
-│   ├── composables/             # 20 composables
-│   ├── e2e/                     # Playwright E2E tests (82 spec files)
-│   ├── test/                    # Jest unit tests (28 spec files)
-│   ├── layouts/                 # default.vue, admin.vue
-│   ├── middleware/              # admin-auth.js
+│   ├── stores/                  # 9 Pinia stores (proposals, blog, portfolio_works, contacts, language, platform-auth, platform-clients, platform-projects, platform-requirements)
+│   ├── composables/             # 23 composables
+│   ├── e2e/                     # Playwright E2E tests (96 spec files)
+│   ├── test/                    # Jest unit tests (36 test files)
+│   ├── layouts/                 # default.vue, admin.vue, platform.vue
+│   ├── middleware/              # admin-auth.js, platform-auth.js
 │   ├── plugins/                 # 4 plugins (gsap, geo-locale, language-sync, cal-booking)
 │   ├── locales/                 # i18n translation files
 │   └── i18n/                    # i18n config

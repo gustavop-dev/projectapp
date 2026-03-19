@@ -126,15 +126,14 @@ function buildMockHandler(capturedUpdates) {
 /**
  * Helper: navigate to edit page, switch to Secciones tab, expand a section.
  */
-async function openSectionEditor(page, capturedUpdates, sectionTitle) {
+async function openSectionEditor(page, capturedUpdates, sectionType) {
   await mockApi(page, buildMockHandler(capturedUpdates));
   await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
   await page.waitForLoadState('networkidle');
 
   await page.getByRole('button', { name: 'Secciones' }).click();
 
-  const sectionHeader = page.locator('.cursor-pointer').filter({ hasText: sectionTitle });
-  await sectionHeader.click();
+  await page.getByTestId(`section-header-${sectionType}`).click();
   await page.getByTestId('section-editor').waitFor({ state: 'visible' });
 }
 
@@ -149,7 +148,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
   test('toggle to paste mode shows textarea with pre-filled content', {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_PASTE, '@role:admin'],
   }, async ({ page }) => {
-    await openSectionEditor(page, [], 'Greeting');
+    await openSectionEditor(page, [], 'greeting');
 
     const editor = page.getByTestId('section-editor');
 
@@ -169,7 +168,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_PASTE, '@role:admin'],
   }, async ({ page }) => {
     const captured = [];
-    await openSectionEditor(page, captured, '🧾 Resumen ejecutivo');
+    await openSectionEditor(page, captured, 'executive_summary');
 
     const editor = page.getByTestId('section-editor');
 
@@ -197,7 +196,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_PASTE, '@role:admin'],
   }, async ({ page }) => {
     const captured = [];
-    await openSectionEditor(page, captured, '🧩 Contexto');
+    await openSectionEditor(page, captured, 'context_diagnostic');
 
     const editor = page.getByTestId('section-editor');
 
@@ -223,7 +222,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_PASTE, '@role:admin'],
   }, async ({ page }) => {
     const captured = [];
-    await openSectionEditor(page, captured, '🧾 Resumen ejecutivo');
+    await openSectionEditor(page, captured, 'executive_summary');
 
     const editor = page.getByTestId('section-editor');
 
@@ -247,7 +246,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_PASTE, '@role:admin'],
   }, async ({ page }) => {
     const captured = [];
-    await openSectionEditor(page, captured, '🎨 Diseño UX');
+    await openSectionEditor(page, captured, 'design_ux');
 
     const editor = page.getByTestId('section-editor');
 
@@ -271,7 +270,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
   test('paste mode toggle is available on greeting section', {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_PASTE, '@role:admin'],
   }, async ({ page }) => {
-    await openSectionEditor(page, [], 'Greeting');
+    await openSectionEditor(page, [], 'greeting');
 
     const editor = page.getByTestId('section-editor');
 
@@ -283,7 +282,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
   test('paste mode pre-fills from form data for executive_summary', {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_PASTE, '@role:admin'],
   }, async ({ page }) => {
-    await openSectionEditor(page, [], '🧾 Resumen ejecutivo');
+    await openSectionEditor(page, [], 'executive_summary');
 
     const editor = page.getByTestId('section-editor');
 
@@ -303,7 +302,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
   test('paste mode on context_diagnostic pre-fills issues as bullets', {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_PASTE, '@role:admin'],
   }, async ({ page }) => {
-    await openSectionEditor(page, [], '🧩 Contexto');
+    await openSectionEditor(page, [], 'context_diagnostic');
 
     const editor = page.getByTestId('section-editor');
     await editor.getByRole('button', { name: 'Pegar contenido' }).click();
@@ -320,7 +319,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
   test('paste textarea shows markdown instruction text', {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_PASTE, '@role:admin'],
   }, async ({ page }) => {
-    await openSectionEditor(page, [], '🧾 Resumen ejecutivo');
+    await openSectionEditor(page, [], 'executive_summary');
 
     const editor = page.getByTestId('section-editor');
     await editor.getByRole('button', { name: 'Pegar contenido' }).click();
@@ -361,8 +360,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     await page.getByRole('button', { name: 'Secciones' }).click();
 
     // Expand executive_summary section
-    const sectionHeader = page.locator('.cursor-pointer').filter({ hasText: 'Resumen ejecutivo' });
-    await sectionHeader.click();
+    await page.getByTestId('section-header-executive_summary').click();
     await page.getByTestId('section-editor').waitFor({ state: 'visible' });
 
     const editor = page.getByTestId('section-editor');
@@ -380,7 +378,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_PASTE, '@role:admin'],
   }, async ({ page }) => {
     // Default mockProposal sections have no _editMode (defaults to form)
-    await openSectionEditor(page, [], '🧾 Resumen ejecutivo');
+    await openSectionEditor(page, [], 'executive_summary');
 
     const editor = page.getByTestId('section-editor');
 
@@ -390,5 +388,72 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
 
     // Form textareas should be present (executive_summary has Párrafos field)
     await expect(editor.getByLabel('Párrafos')).toBeVisible();
+  });
+
+  test('conversion_strategy paste: saves rawText in payload', {
+    tag: [...ADMIN_PROPOSAL_SECTION_EDIT_PASTE, '@role:admin'],
+  }, async ({ page }) => {
+    const captured = [];
+    await openSectionEditor(page, captured, 'conversion_strategy');
+
+    const editor = page.getByTestId('section-editor');
+
+    await editor.getByRole('button', { name: 'Pegar contenido' }).click();
+
+    const pasteTextarea = editor.getByTestId('paste-textarea');
+    await expect(pasteTextarea).toBeVisible();
+    await pasteTextarea.fill('Estrategia de conversión pegada directamente.');
+
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+
+    expect(captured.length).toBeGreaterThanOrEqual(1);
+    const last = captured[captured.length - 1];
+    expect(last.sectionId).toBe(204);
+    expect(last.body.content_json._editMode).toBe('paste');
+    expect(last.body.content_json.rawText).toBe('Estrategia de conversión pegada directamente.');
+  });
+
+  test('design_ux paste: pre-fills from form data', {
+    tag: [...ADMIN_PROPOSAL_SECTION_EDIT_PASTE, '@role:admin'],
+  }, async ({ page }) => {
+    // Use a mock with filled design_ux content to verify pre-fill
+    const filledProposal = JSON.parse(JSON.stringify(mockProposal));
+    filledProposal.sections[4].content_json = {
+      ...filledProposal.sections[4].content_json,
+      paragraphs: ['Diseño centrado en el usuario.'],
+      focusItems: ['Usabilidad', 'Accesibilidad'],
+    };
+
+    await mockApi(page, async ({ route, apiPath }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(filledProposal) };
+      }
+      const m = apiPath.match(/^proposals\/sections\/(\d+)\/update\/$/);
+      if (m) {
+        const section = filledProposal.sections.find(s => s.id === parseInt(m[1]));
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...section, ...route.request().postDataJSON() }) };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: 'Secciones' }).click();
+    await page.getByText('🎨 Diseño UX').click();
+    await page.getByTestId('section-editor').waitFor({ state: 'visible' });
+
+    const editor = page.getByTestId('section-editor');
+    await editor.getByRole('button', { name: 'Pegar contenido' }).click();
+
+    const pasteTextarea = editor.getByTestId('paste-textarea');
+    await expect(pasteTextarea).toBeVisible();
+    const value = await pasteTextarea.inputValue();
+
+    expect(value).toContain('Diseño centrado en el usuario.');
+    expect(value).toContain('Usabilidad');
   });
 });

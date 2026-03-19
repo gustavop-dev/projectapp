@@ -167,6 +167,7 @@
             <div class="flex-1">
               <div class="flex items-center justify-between mb-1">
                 <span class="text-sm text-gray-700 font-medium truncate">{{ step.section_title }}</span>
+                <span v-if="step.in_executive_mode === false" class="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-500 font-medium flex-shrink-0">solo detallado</span>
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-gray-500">{{ step.reached_count }} sesiones</span>
                   <span v-if="step.drop_off_percent > 0" class="text-xs text-red-500 font-medium">
@@ -373,7 +374,7 @@
                 </span>
                 <span class="text-xs text-gray-400">{{ formatDate(event.created_at) }}</span>
               </div>
-              <p class="text-sm text-gray-600 mt-1">{{ event.description }}</p>
+              <p class="text-sm text-gray-600 mt-1">{{ formatTimelineDescription(event) }}</p>
             </div>
           </div>
         </div>
@@ -611,10 +612,42 @@ function heatEmoji(idx, total) {
   return '⚪';
 }
 
+function formatTimelineDescription(event) {
+  if (event.change_type === 'calc_abandoned' || event.change_type === 'calc_confirmed') {
+    try {
+      const data = JSON.parse(event.description);
+      const selected = data.selected || [];
+      const deselected = data.deselected || [];
+      const total = data.total;
+      const elapsed = data.elapsed_seconds || 0;
+      const mins = Math.floor(elapsed / 60);
+      const secs = Math.round(elapsed % 60);
+      const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+      const totalStr = total != null ? `$${Number(total).toLocaleString('es-CO')}` : '';
+      if (event.change_type === 'calc_confirmed') {
+        return `Confirmó ${selected.length} módulo${selected.length !== 1 ? 's' : ''}`
+          + (totalStr ? ` — Total: ${totalStr}` : '')
+          + (elapsed ? ` — Tiempo en calculadora: ${timeStr}` : '');
+      }
+      return `Abandonó calculadora con ${selected.length} módulo${selected.length !== 1 ? 's' : ''} seleccionado${selected.length !== 1 ? 's' : ''}`
+        + (deselected.length ? `, ${deselected.length} desmarcado${deselected.length !== 1 ? 's' : ''}` : '')
+        + (totalStr ? ` — Total: ${totalStr}` : '')
+        + (elapsed ? ` — Tiempo: ${timeStr}` : '');
+    } catch (_e) {
+      return event.description;
+    }
+  }
+  return event.description;
+}
+
 function timelineIcon(type) {
   const icons = {
     created: '📝', updated: '✏️', sent: '📧', viewed: '👁️',
     accepted: '✅', rejected: '❌', resent: '🔁', expired: '⏰', duplicated: '📋',
+    commented: '💬', negotiating: '🤝', reengagement: '🔔',
+    call: '📞', meeting: '🤝', followup: '📩', note: '📝',
+    calc_confirmed: '🧮', calc_abandoned: '🧮', calc_followup: '🧮',
+    auto_archived: '📦', status_change: '🔄', cond_accepted: '⚠️',
   };
   return icons[type] || '•';
 }
@@ -624,6 +657,10 @@ function timelineColor(type) {
     created: 'bg-blue-400', updated: 'bg-amber-400', sent: 'bg-indigo-400',
     viewed: 'bg-green-400', accepted: 'bg-emerald-500', rejected: 'bg-red-500',
     resent: 'bg-purple-400', expired: 'bg-yellow-500', duplicated: 'bg-gray-400',
+    commented: 'bg-purple-400', negotiating: 'bg-indigo-400', reengagement: 'bg-orange-400',
+    call: 'bg-sky-400', meeting: 'bg-indigo-500', followup: 'bg-amber-400', note: 'bg-gray-400',
+    calc_confirmed: 'bg-emerald-400', calc_abandoned: 'bg-red-400', calc_followup: 'bg-orange-400',
+    auto_archived: 'bg-gray-500', status_change: 'bg-blue-400', cond_accepted: 'bg-amber-500',
   };
   return colors[type] || 'bg-gray-400';
 }
@@ -635,6 +672,14 @@ function timelineBadge(type) {
     accepted: 'bg-emerald-50 text-emerald-700', rejected: 'bg-red-50 text-red-700',
     resent: 'bg-purple-50 text-purple-700', expired: 'bg-yellow-50 text-yellow-700',
     duplicated: 'bg-gray-50 text-gray-700',
+    commented: 'bg-purple-50 text-purple-700', negotiating: 'bg-indigo-50 text-indigo-700',
+    reengagement: 'bg-orange-50 text-orange-700',
+    call: 'bg-sky-50 text-sky-700', meeting: 'bg-indigo-50 text-indigo-700',
+    followup: 'bg-amber-50 text-amber-700', note: 'bg-gray-50 text-gray-600',
+    calc_confirmed: 'bg-emerald-50 text-emerald-700', calc_abandoned: 'bg-red-50 text-red-700',
+    calc_followup: 'bg-orange-50 text-orange-700',
+    auto_archived: 'bg-gray-100 text-gray-700', status_change: 'bg-blue-50 text-blue-700',
+    cond_accepted: 'bg-amber-50 text-amber-700',
   };
   return badges[type] || 'bg-gray-50 text-gray-700';
 }

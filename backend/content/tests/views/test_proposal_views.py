@@ -1673,6 +1673,50 @@ class TestRetrieveProposalAnalyticsExtended:
         assert response.status_code == 200
         assert response.data['time_to_response_hours'] == 5.0
 
+    @freeze_time('2026-03-01 12:00:00')
+    def test_by_view_mode_includes_section_title(self, admin_client, sent_proposal):
+        """by_view_mode sections include section_title from tracking data."""
+        event = ProposalViewEvent.objects.create(
+            proposal=sent_proposal, session_id='s-exec',
+            view_mode='executive',
+        )
+        ProposalSectionView.objects.create(
+            view_event=event, section_type='greeting',
+            section_title='👋 Saludo ejecutivo', time_spent_seconds=5,
+            entered_at=timezone.now(), view_mode='executive',
+        )
+        response = admin_client.get(self._url(sent_proposal.id))
+        assert response.status_code == 200
+        exec_sections = response.data['by_view_mode']['executive']['sections']
+        assert len(exec_sections) >= 1
+        greeting = next(s for s in exec_sections if s['section_type'] == 'greeting')
+        assert greeting['section_title'] == '👋 Saludo ejecutivo'
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_funnel_includes_in_executive_mode_flag(self, admin_client, sent_proposal):
+        """Funnel steps include in_executive_mode boolean flag."""
+        ProposalSection.objects.create(
+            proposal=sent_proposal, section_type='greeting',
+            title='Saludo', order=0, is_enabled=True,
+        )
+        ProposalSection.objects.create(
+            proposal=sent_proposal, section_type='about_us',
+            title='Sobre nosotros', order=1, is_enabled=True,
+        )
+        response = admin_client.get(self._url(sent_proposal.id))
+        assert response.status_code == 200
+        funnel = response.data['funnel']
+        greeting_step = next(
+            (s for s in funnel if s['section_type'] == 'greeting'), None,
+        )
+        about_step = next(
+            (s for s in funnel if s['section_type'] == 'about_us'), None,
+        )
+        assert greeting_step is not None
+        assert greeting_step['in_executive_mode'] is True
+        assert about_step is not None
+        assert about_step['in_executive_mode'] is False
+
 
 # ---------------------------------------------------------------------------
 # Retrieve — inactive proposal (line 47)

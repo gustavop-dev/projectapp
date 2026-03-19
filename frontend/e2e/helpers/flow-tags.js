@@ -127,3 +127,21 @@ export const ADMIN_PROPOSAL_SECTION_COMPLETENESS = ['@flow:admin-proposal-sectio
 export const ADMIN_PROPOSAL_DEFAULTS_CONFIG = ['@flow:admin-proposal-defaults-config', '@module:admin', '@priority:P2'];
 export const ADMIN_EMAIL_TEMPLATES_CONFIG = ['@flow:admin-email-templates-config', '@module:admin', '@priority:P2'];
 // PROPOSAL_STICKY_BAR_ACCEPT removed — feature deleted (ProposalResponseButtons removed)
+export const PROPOSAL_EXECUTIVE_TO_DETAILED = ['@flow:proposal-executive-to-detailed', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_SECTION_ONBOARDING = ['@flow:proposal-section-onboarding', '@module:proposal', '@priority:P3'];
+
+// ── Platform ──
+export const PLATFORM_LOGIN = ['@flow:platform-login', '@module:platform', '@priority:P1'];
+export const PLATFORM_VERIFY_ONBOARDING = ['@flow:platform-verify-onboarding', '@module:platform', '@priority:P1'];
+export const PLATFORM_COMPLETE_PROFILE = ['@flow:platform-complete-profile', '@module:platform', '@priority:P1'];
+export const PLATFORM_KANBAN_BOARD = ['@flow:platform-kanban-board', '@module:platform', '@priority:P1'];
+export const PLATFORM_DASHBOARD = ['@flow:platform-dashboard', '@module:platform', '@priority:P2'];
+export const PLATFORM_SIDEBAR_NAVIGATION = ['@flow:platform-sidebar-navigation', '@module:platform', '@priority:P2'];
+export const PLATFORM_PROJECT_LIST = ['@flow:platform-project-list', '@module:platform', '@priority:P2'];
+export const PLATFORM_PROJECT_DETAIL = ['@flow:platform-project-detail', '@module:platform', '@priority:P2'];
+export const PLATFORM_UNIFIED_BOARD = ['@flow:platform-unified-board', '@module:platform', '@priority:P2'];
+export const PLATFORM_ADMIN_CLIENT_LIST = ['@flow:platform-admin-client-list', '@module:platform', '@priority:P2'];
+export const PLATFORM_ADMIN_CLIENT_DETAIL = ['@flow:platform-admin-client-detail', '@module:platform', '@priority:P2'];
+export const PLATFORM_PROFILE_EDIT = ['@flow:platform-profile-edit', '@module:platform', '@priority:P2'];
+export const PLATFORM_ADMIN_PROJECT_CREATE = ['@flow:platform-admin-project-create', '@module:platform', '@priority:P3'];
+export const PLATFORM_KANBAN_CARD_COMMENTS = ['@flow:platform-kanban-card-comments', '@module:platform', '@priority:P3'];

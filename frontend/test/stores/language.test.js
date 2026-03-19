@@ -113,6 +113,21 @@ describe('useLanguageStore', () => {
       localStorage.removeItem('preferred_locale');
       store.loadMessages.mockRestore();
     });
+
+    it('detects Spanish browser language and sets es-co', async () => {
+      jest.spyOn(store, 'loadMessages').mockResolvedValue();
+      const origLanguage = navigator.language;
+      Object.defineProperty(navigator, 'language', { value: 'es-MX', writable: true });
+
+      await store.detectBrowserLanguageAndRegion();
+
+      expect(store.currentLocale).toBe('es-co');
+      expect(store.currentLanguage).toBe('es');
+      expect(store.loadMessages).toHaveBeenCalledWith('es');
+
+      Object.defineProperty(navigator, 'language', { value: origLanguage, writable: true });
+      store.loadMessages.mockRestore();
+    });
   });
 
   describe('detectBrowserLanguage', () => {

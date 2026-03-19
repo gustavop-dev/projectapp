@@ -1,6 +1,6 @@
 {
-  "version": "2.5.0",
-  "lastUpdated": "2026-03-16",
+  "version": "2.6.0",
+  "lastUpdated": "2026-03-18",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -840,6 +840,135 @@
       "priority": "P2",
       "description": "Client switches from executive view to full detailed proposal via 'Ver Propuesta Completa' button with branded transition overlay.",
       "expectedSpecs": 1
+    },
+    "platform-login": {
+      "name": "Platform Login",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P1",
+      "description": "Client or admin authenticates via JWT login form. Routes to /platform/verify (first login), /platform/complete-profile (profile incomplete), or /platform/dashboard (onboarded).",
+      "expectedSpecs": 1
+    },
+    "platform-verify-onboarding": {
+      "name": "Platform Verify & Onboarding",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P1",
+      "description": "First-login OTP verification with 6-digit code input, new password set, and redirect to complete-profile or dashboard.",
+      "expectedSpecs": 1
+    },
+    "platform-complete-profile": {
+      "name": "Platform Complete Profile",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P1",
+      "description": "Mandatory profile completion form with company, phone, cedula, date of birth, gender, education level, and optional avatar upload. Middleware gates dashboard access until completed.",
+      "expectedSpecs": 1
+    },
+    "platform-kanban-board": {
+      "name": "Platform Kanban Board",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P1",
+      "description": "3-column kanban board (Por hacer, En progreso, En revisión) with collapsible Completados checklist. HTML5 drag & drop between columns, checkmark to complete, card detail modal with comments and history timeline. Admin has full control; client can only approve in_review cards.",
+      "expectedSpecs": 1
+    },
+    "platform-dashboard": {
+      "name": "Platform Dashboard",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P2",
+      "description": "Admin dashboard shows KPI cards (active/pending/inactive clients), recent clients table, and upcoming modules. Client dashboard shows profile summary and upcoming modules.",
+      "expectedSpecs": 1
+    },
+    "platform-sidebar-navigation": {
+      "name": "Platform Sidebar Navigation",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P2",
+      "description": "Left sidebar layout with collapsible navigation (Principal, Proyectos, Administración sections), mobile hamburger drawer, theme toggle (light/dark), profile link, and logout.",
+      "expectedSpecs": 1
+    },
+    "platform-project-list": {
+      "name": "Platform Project List",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P2",
+      "description": "Admin sees all projects with status filters (Todos/Activos/Pausados/Completados/Archivados) and create button. Client sees only their assigned projects. Card grid with progress bars and estimated dates.",
+      "expectedSpecs": 1
+    },
+    "platform-project-detail": {
+      "name": "Platform Project Detail",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P2",
+      "description": "Project detail hub with stats row (progress, client, dates), module cards (Tablero active, others 'Próximamente'), and admin edit modal for name, description, status, dates.",
+      "expectedSpecs": 1
+    },
+    "platform-unified-board": {
+      "name": "Platform Unified Board",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P2",
+      "description": "Cross-project view showing active requirement cards (todo/in_progress/in_review) grouped by project with summary pills and links to per-project boards.",
+      "expectedSpecs": 1
+    },
+    "platform-admin-client-list": {
+      "name": "Platform Admin Client List",
+      "module": "platform",
+      "roles": ["platform-admin"],
+      "priority": "P2",
+      "description": "Admin-only client management table with invite modal (create + send credentials), status filters (Todos/Onboarded/Pendientes/Inactivos), search, resend invite, and deactivate actions.",
+      "expectedSpecs": 1
+    },
+    "platform-admin-client-detail": {
+      "name": "Platform Admin Client Detail",
+      "module": "platform",
+      "roles": ["platform-admin"],
+      "priority": "P2",
+      "description": "Admin-only client detail page with profile card, edit form (name, company, phone, active toggle), quick actions (resend invite, deactivate/reactivate).",
+      "expectedSpecs": 1
+    },
+    "platform-profile-edit": {
+      "name": "Platform Profile Edit",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P2",
+      "description": "View and update personal profile fields (name, company, phone, cedula, DOB, gender, education) with avatar display and role badge.",
+      "expectedSpecs": 1
+    },
+    "platform-admin-project-create": {
+      "name": "Platform Admin Project Create",
+      "module": "platform",
+      "roles": ["platform-admin"],
+      "priority": "P3",
+      "description": "Admin creates a new project via modal form with name, description, client selector, start date, and estimated end date.",
+      "expectedSpecs": 1
+    },
+    "platform-kanban-card-comments": {
+      "name": "Platform Kanban Card Comments",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P3",
+      "description": "Add public or internal (admin-only) comments on requirement cards via the card detail modal. Internal comments marked with amber border and 'Interno' label.",
+      "expectedSpecs": 1
+    },
+    "proposal-view-paste-rendering": {
+      "name": "Proposal View Paste Mode Rendering",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Client views paste-mode sections rendered as RawContentSection with markdown in a styled card, while form-mode sections render structured Vue components.",
+      "expectedSpecs": 1
+    },
+    "proposal-sticky-bar-accept": {
+      "name": "Proposal Sticky Bar Accept (ARCHIVED)",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "ARCHIVED — ProposalResponseButtons component removed from production. Acceptance handled via ProposalClosing section buttons.",
+      "expectedSpecs": 0,
+      "knownGaps": ["Feature removed from production. Flow archived."]
     }
   }
 }

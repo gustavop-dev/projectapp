@@ -123,7 +123,7 @@ function buildMockHandler(capturedUpdates) {
  * Helper: navigate to edit page, switch to Secciones tab, expand a section,
  * and return the section editor container.
  */
-async function openSectionEditor(page, capturedUpdates, sectionTitle) {
+async function openSectionEditor(page, capturedUpdates, sectionType) {
   await mockApi(page, buildMockHandler(capturedUpdates));
   await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
   await page.waitForLoadState('networkidle');
@@ -132,8 +132,7 @@ async function openSectionEditor(page, capturedUpdates, sectionTitle) {
   await page.getByRole('button', { name: 'Secciones' }).click();
 
   // Find section header and expand it
-  const sectionHeader = page.locator('.cursor-pointer').filter({ hasText: sectionTitle });
-  await sectionHeader.click();
+  await page.getByTestId(`section-header-${sectionType}`).click();
 
   await page.getByTestId('section-editor').waitFor({ state: 'visible' });
 }
@@ -166,7 +165,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
   }, async ({ page }) => {
     const captured = [];
-    await openSectionEditor(page, captured, 'Greeting');
+    await openSectionEditor(page, captured, 'greeting');
 
     // Fill greeting fields — find the section editor area
     const editor = page.getByTestId('section-editor');
@@ -191,7 +190,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
   }, async ({ page }) => {
     const captured = [];
-    await openSectionEditor(page, captured, '🧾 Resumen ejecutivo');
+    await openSectionEditor(page, captured, 'executive_summary');
 
     const editor = page.getByTestId('section-editor');
 
@@ -212,7 +211,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
   }, async ({ page }) => {
     const captured = [];
-    await openSectionEditor(page, captured, '🧩 Contexto');
+    await openSectionEditor(page, captured, 'context_diagnostic');
 
     const editor = page.getByTestId('section-editor');
 
@@ -233,7 +232,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
   test('save button shows confirmation text after saving', {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
   }, async ({ page }) => {
-    await openSectionEditor(page, [], 'Greeting');
+    await openSectionEditor(page, [], 'greeting');
 
     const editor = page.getByTestId('section-editor');
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
@@ -246,7 +245,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
   }, async ({ page }) => {
     const captured = [];
-    await openSectionEditor(page, captured, 'Greeting');
+    await openSectionEditor(page, captured, 'greeting');
 
     const editor = page.getByTestId('section-editor');
 
@@ -264,7 +263,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
   }, async ({ page }) => {
     const captured = [];
-    await openSectionEditor(page, captured, 'Greeting');
+    await openSectionEditor(page, captured, 'greeting');
 
     const editor = page.getByTestId('section-editor');
 
@@ -282,7 +281,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
   }, async ({ page }) => {
     const captured = [];
-    await openSectionEditor(page, captured, '🧾 Resumen ejecutivo');
+    await openSectionEditor(page, captured, 'executive_summary');
 
     const editor = page.getByTestId('section-editor');
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
@@ -325,8 +324,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await page.waitForLoadState('networkidle');
     await page.getByRole('button', { name: 'Secciones' }).click();
 
-    const sectionHeader = page.locator('.cursor-pointer').filter({ hasText: '💰 Inversión' });
-    await sectionHeader.click();
+    await page.getByTestId('section-header-investment').click();
     await page.getByTestId('section-editor').waitFor({ state: 'visible' });
 
     const editor = page.getByTestId('section-editor');
@@ -344,7 +342,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
   }, async ({ page }) => {
     const captured = [];
-    await openSectionEditor(page, captured, '🧩 Contexto');
+    await openSectionEditor(page, captured, 'context_diagnostic');
 
     const editor = page.getByTestId('section-editor');
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
@@ -354,5 +352,93 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     const last = captured[captured.length - 1];
     expect(last.body.content_json._editMode).toBe('form');
     expect(last.body.content_json).not.toHaveProperty('rawText');
+  });
+
+  test('conversion_strategy: fills intro and result, saves correct payload', {
+    tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
+  }, async ({ page }) => {
+    const captured = [];
+    await openSectionEditor(page, captured, 'conversion_strategy');
+
+    const editor = page.getByTestId('section-editor');
+
+    await editor.getByLabel('Introducción').fill('Nuestra estrategia digital.', { timeout: 5000 });
+    await editor.getByLabel('Resultado esperado').fill('Incremento del 30% en conversiones.', { timeout: 5000 });
+
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click({ timeout: 5000 });
+    await expect(editor.getByText('✓ Guardado')).toBeVisible({ timeout: 5000 });
+
+    expect(captured.length).toBeGreaterThanOrEqual(1);
+    const last = captured[captured.length - 1];
+    expect(last.sectionId).toBe(104);
+    expect(last.body.content_json.intro).toBe('Nuestra estrategia digital.');
+    expect(last.body.content_json.result).toBe('Incremento del 30% en conversiones.');
+    expect(last.body.content_json._editMode).toBe('form');
+  });
+
+  test('timeline: fills introText and totalDuration, saves correct payload', {
+    tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
+  }, async ({ page }) => {
+    const captured = [];
+    await openSectionEditor(page, captured, 'timeline');
+
+    const editor = page.getByTestId('section-editor');
+
+    await editor.getByLabel('Texto introductorio').fill('Fases del proyecto.');
+    await editor.getByLabel('Duración total').fill('3 meses');
+
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+
+    expect(captured.length).toBeGreaterThanOrEqual(1);
+    const last = captured[captured.length - 1];
+    expect(last.sectionId).toBe(109);
+    expect(last.body.content_json.introText).toBe('Fases del proyecto.');
+    expect(last.body.content_json.totalDuration).toBe('3 meses');
+    expect(last.body.content_json._editMode).toBe('form');
+  });
+
+  test('investment: fills introText and totalInvestment, saves correct payload', {
+    tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
+  }, async ({ page }) => {
+    const captured = [];
+    await openSectionEditor(page, captured, 'investment');
+
+    const editor = page.getByTestId('section-editor');
+
+    await editor.getByLabel('Texto introductorio').fill('Tu inversión incluye todo el desarrollo.', { timeout: 5000 });
+    // Note: totalInvestment is displayed as read-only info box in the investment section editor
+    // (editable only from the General tab), so we only fill introText here.
+
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click({ timeout: 5000 });
+    await expect(editor.getByText('✓ Guardado')).toBeVisible({ timeout: 5000 });
+
+    expect(captured.length).toBeGreaterThanOrEqual(1);
+    const last = captured[captured.length - 1];
+    expect(last.sectionId).toBe(110);
+    expect(last.body.content_json.introText).toBe('Tu inversión incluye todo el desarrollo.');
+    expect(last.body.content_json._editMode).toBe('form');
+  });
+
+  test('design_ux: fills paragraphs and focusItems, saves correct payload', {
+    tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
+  }, async ({ page }) => {
+    const captured = [];
+    await openSectionEditor(page, captured, 'design_ux');
+
+    const editor = page.getByTestId('section-editor');
+
+    await editor.getByLabel('Párrafos').fill('Diseño centrado en el usuario.', { timeout: 5000 });
+    await editor.getByLabel('Items de enfoque').fill('Usabilidad\nAccesibilidad', { timeout: 5000 });
+
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click({ timeout: 5000 });
+    await expect(editor.getByText('✓ Guardado')).toBeVisible({ timeout: 5000 });
+
+    expect(captured.length).toBeGreaterThanOrEqual(1);
+    const last = captured[captured.length - 1];
+    expect(last.sectionId).toBe(105);
+    expect(last.body.content_json.paragraphs).toEqual(['Diseño centrado en el usuario.']);
+    expect(last.body.content_json.focusItems).toEqual(['Usabilidad', 'Accesibilidad']);
+    expect(last.body.content_json._editMode).toBe('form');
   });
 });

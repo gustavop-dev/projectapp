@@ -217,8 +217,6 @@ definePageMeta({
   middleware: ['platform-auth'],
 })
 
-defineI18nRoute(false)
-
 const route = useRoute()
 const authStore = usePlatformAuthStore()
 const projectsStore = usePlatformProjectsStore()

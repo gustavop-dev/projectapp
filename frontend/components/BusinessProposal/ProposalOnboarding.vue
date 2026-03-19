@@ -4,6 +4,7 @@
     <Transition name="fade">
       <div
         v-if="visible"
+        data-testid="onboarding-backdrop"
         class="onb-backdrop fixed inset-0 z-[9998] bg-white/60 backdrop-blur-[2px]"
       />
     </Transition>
@@ -56,7 +57,7 @@
                   ? 'w-1.5 bg-esmerald/40'
                   : 'w-1.5 bg-gray-200'"
             />
-            <span class="ml-auto text-[10px] text-gray-400 font-medium tabular-nums">
+            <span data-testid="onboarding-step-progress" class="ml-auto text-[10px] text-gray-400 font-medium tabular-nums">
               {{ currentStep + 1 }}/{{ totalSteps }}
             </span>
           </div>
@@ -82,6 +83,7 @@
                 {{ btnLabels.back }}
               </button>
               <button
+                :data-testid="isLastStep ? 'onboarding-done-btn' : 'onboarding-next-btn'"
                 class="px-4 py-1.5 text-xs font-medium text-white bg-esmerald rounded-lg
                        hover:bg-esmerald/90 transition-colors shadow-sm pointer-events-auto"
                 @click="next"

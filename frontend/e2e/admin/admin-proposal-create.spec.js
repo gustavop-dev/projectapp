@@ -333,7 +333,9 @@ test.describe('Admin Proposal Create & Send', () => {
     await page.getByRole('button', { name: /Crear y Enviar/i }).click();
 
     // handleCreateAndSend creates + sends + redirects directly (no interstitial)
-    await expect(page).toHaveURL(/\/panel\/proposals\/\d+\/edit/, { timeout: 15000 });
+    // Wait for navigation to complete before asserting URL
+    await page.waitForURL(/\/panel\/proposals\/\d+\/edit/, { timeout: 15000 });
+    await expect(page).toHaveURL(/\/panel\/proposals\/\d+\/edit/);
     expect(sendCalled).toBe(true);
   });
 });

@@ -94,8 +94,12 @@ flowchart TD
     URLRouter -->|/admin/| DjangoAdmin
 
     URLRouter -->|/api/*| ContentURLs["content.urls (71 patterns)"]
+    URLRouter -->|/api/auth/*<br>/api/platform/*| AccountsURLs["accounts.urls (15 patterns)"]
     URLRouter -->|/sitemap.xml| Sitemap
     URLRouter -->|/*| ServeNuxt["serve_nuxt (catch-all)"]
+
+    AccountsURLs --> AuthViews["Auth Views (login, verify, refresh)"]
+    AccountsURLs --> PlatformViews["Platform Views (projects, clients, kanban)"]
 
     ContentURLs --> ProposalViews["Proposal Views (public + admin)"]
     ContentURLs --> BlogViews["Blog Views (public + admin)"]
@@ -121,6 +125,12 @@ erDiagram
     BusinessProposal ||--o{ ProposalRequirementGroup : "has requirement groups"
     ProposalRequirementGroup ||--o{ ProposalRequirementItem : "has items"
     ProposalViewEvent ||--o{ ProposalSectionView : "has section views"
+
+    UserProfile ||--o{ Project : "owns projects"
+    UserProfile ||--o{ VerificationCode : "has codes"
+    Project ||--o{ Requirement : "has requirements"
+    Requirement ||--o{ RequirementComment : "has comments"
+    Requirement ||--o{ RequirementHistory : "has history"
 ```
 
 ### 4.2 Model Details
@@ -142,6 +152,12 @@ erDiagram
 | **Contact** | Contact form submissions | email, phone_number, subject, message, budget |
 | **PortfolioWork** | Portfolio case studies | title_en/es, slug, cover_image, project_url, content_json_en/es, SEO fields |
 | **BlogPost** | Blog articles | title_en/es, slug, cover_image, excerpt, content_json/html, category, author, SEO fields |
+| **UserProfile** | Platform user (extends Django User) | user_fk, role (admin/client), company_name, phone, avatar, onboarding_completed, is_active |
+| **VerificationCode** | OTP codes for login | user_fk, code, expires_at, is_used |
+| **Project** | Client projects in platform | owner_fk, title, description, status (active/completed/archived), created_at |
+| **Requirement** | Kanban board items | project_fk, title, description, status (backlog/in_progress/done), priority, assignee, order |
+| **RequirementComment** | Comments on requirements | requirement_fk, author_fk, text, created_at |
+| **RequirementHistory** | Audit trail for requirements | requirement_fk, field_name, old_value, new_value, changed_by |
 
 ---
 
@@ -214,7 +230,19 @@ flowchart TD
         Clients["/panel/clients"]
     end
 
+    subgraph Platform["Platform Pages (JWT Auth)"]
+        PlatformLogin["/platform/login"]
+        PlatformVerify["/platform/verify"]
+        PlatformProfile["/platform/complete-profile"]
+        PlatformDashboard["/platform/dashboard"]
+        PlatformProjects["/platform/projects"]
+        PlatformProjectDetail["/platform/projects/:id"]
+        PlatformClients["/platform/clients"]
+        PlatformClientDetail["/platform/clients/:id"]
+    end
+
     Panel -->|middleware: admin-auth| AuthCheck["/api/auth/check/"]
+    PlatformDashboard -->|middleware: platform-auth| JWTCheck["JWT validation"]
 ```
 
 ### 6.2 Store Architecture
@@ -222,11 +250,15 @@ flowchart TD
 ```mermaid
 flowchart LR
     subgraph Stores["Pinia Stores (Options API)"]
-        ProposalStore["proposals.js — 30K"]
-        BlogStore["blog.js — 11K"]
-        PortfolioStore["portfolio_works.js — 8K"]
-        ContactStore["contacts.js — 3K"]
-        LanguageStore["language.js — 6K"]
+        ProposalStore["proposals.js"]
+        BlogStore["blog.js"]
+        PortfolioStore["portfolio_works.js"]
+        ContactStore["contacts.js"]
+        LanguageStore["language.js"]
+        PlatformAuth["platform-auth.js"]
+        PlatformClients["platform-clients.js"]
+        PlatformProjects["platform-projects.js"]
+        PlatformRequirements["platform-requirements.js"]
     end
 
     subgraph HTTP["HTTP Service"]
@@ -237,8 +269,13 @@ flowchart LR
     BlogStore --> RequestHTTP
     PortfolioStore --> RequestHTTP
     ContactStore --> RequestHTTP
+    PlatformAuth --> PlatformHTTP["composables/usePlatformApi"]
+    PlatformClients --> PlatformHTTP
+    PlatformProjects --> PlatformHTTP
+    PlatformRequirements --> PlatformHTTP
 
     RequestHTTP -->|axios| API["/api/*"]
+    PlatformHTTP -->|axios + JWT| API
 ```
 
 ### 6.3 Proposal Client View Architecture

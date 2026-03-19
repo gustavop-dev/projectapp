@@ -424,6 +424,18 @@ describe('useProposalTracking', () => {
       expect(clearSpy).toHaveBeenCalled();
       clearSpy.mockRestore();
     });
+
+    it('removes visibilitychange listener on unmount', () => {
+      const docRemoveSpy = jest.spyOn(document, 'removeEventListener');
+      const { proposalUuid, currentPanel } = createRefs();
+      useProposalTracking(proposalUuid, currentPanel);
+
+      mountedCallbacks[0]();
+      unmountCallbacks[0]();
+
+      expect(docRemoveSpy).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
+      docRemoveSpy.mockRestore();
+    });
   });
 
   describe('getOrCreateSessionId edge cases', () => {

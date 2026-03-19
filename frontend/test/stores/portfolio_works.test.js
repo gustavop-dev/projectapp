@@ -66,6 +66,15 @@ describe('usePortfolioWorksStore', () => {
       expect(result.success).toBe(true);
     });
 
+    it('defaults to empty array when response.data is falsy', async () => {
+      get_request.mockResolvedValue({ data: null });
+
+      const result = await store.fetchWorks('es');
+
+      expect(result.success).toBe(true);
+      expect(store.works).toEqual([]);
+    });
+
     it('handles API error gracefully', async () => {
       get_request.mockRejectedValue(new Error('Network error'));
 
@@ -309,6 +318,29 @@ describe('usePortfolioWorksStore', () => {
       );
       expect(store.currentWork).toEqual(updatedWork);
       expect(result.success).toBe(true);
+    });
+
+    it('handles missing csrf cookie gracefully', async () => {
+      const mockFile = new File(['img'], 'cover.jpg', { type: 'image/jpeg' });
+      const updatedWork = { ...mockWork, cover_image: '/media/cover.jpg' };
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(updatedWork),
+      });
+      Object.defineProperty(document, 'cookie', {
+        value: 'othercookie=abc',
+        writable: true,
+      });
+
+      const result = await store.uploadCoverImage(1, mockFile);
+
+      expect(result.success).toBe(true);
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/portfolio/admin/1/upload-cover/',
+        expect.objectContaining({
+          headers: { 'X-CSRFToken': '' },
+        }),
+      );
     });
 
     it('handles upload failure (non-ok response)', async () => {

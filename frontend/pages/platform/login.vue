@@ -99,8 +99,6 @@ definePageMeta({
   middleware: ['platform-auth'],
 })
 
-defineI18nRoute(false)
-
 useHead({
   title: 'Acceso a plataforma — ProjectApp',
 })

@@ -345,13 +345,22 @@ class ProposalEmailService:
             proposal.urgency_email_sent_at = timezone.now()
             proposal.save(update_fields=['urgency_email_sent_at'])
 
+            cls._log_email(
+                template_key, proposal.client_email,
+                subject=subject, proposal=proposal, status='sent',
+            )
             logger.info(
                 'Sent urgency email for proposal %s to %s (discount=%s)',
                 proposal.uuid, proposal.client_email, has_discount,
             )
             return True
 
-        except Exception:
+        except Exception as exc:
+            cls._log_email(
+                template_key, proposal.client_email,
+                subject=subject, proposal=proposal, status='failed',
+                error_message=str(exc)[:1000],
+            )
             logger.exception(
                 'Failed to send urgency email for proposal %s',
                 proposal.uuid,
@@ -502,13 +511,22 @@ class ProposalEmailService:
 
             email.send(fail_silently=False)
 
+            cls._log_email(
+                'proposal_accepted_client', proposal.client_email,
+                subject=subject, proposal=proposal, status='sent',
+            )
             logger.info(
                 'Sent acceptance confirmation for proposal %s to %s',
                 proposal.uuid, proposal.client_email,
             )
             return True
 
-        except Exception:
+        except Exception as exc:
+            cls._log_email(
+                'proposal_accepted_client', proposal.client_email,
+                subject=locals().get('subject', ''), proposal=proposal,
+                status='failed', error_message=str(exc)[:1000],
+            )
             logger.exception(
                 'Failed to send acceptance confirmation for proposal %s',
                 proposal.uuid,
@@ -558,13 +576,22 @@ class ProposalEmailService:
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
 
+            cls._log_email(
+                'proposal_rejected_client', proposal.client_email,
+                subject=subject, proposal=proposal, status='sent',
+            )
             logger.info(
                 'Sent rejection thank-you for proposal %s to %s',
                 proposal.uuid, proposal.client_email,
             )
             return True
 
-        except Exception:
+        except Exception as exc:
+            cls._log_email(
+                'proposal_rejected_client', proposal.client_email,
+                subject=locals().get('subject', ''), proposal=proposal,
+                status='failed', error_message=str(exc)[:1000],
+            )
             logger.exception(
                 'Failed to send rejection thank-you for proposal %s',
                 proposal.uuid,
@@ -887,13 +914,22 @@ class ProposalEmailService:
             proposal.abandonment_email_sent_at = timezone.now()
             proposal.save(update_fields=['abandonment_email_sent_at'])
 
+            cls._log_email(
+                'proposal_abandonment_followup', proposal.client_email,
+                subject=subject, proposal=proposal, status='sent',
+            )
             logger.info(
                 'Sent abandonment followup for proposal %s to %s',
                 proposal.uuid, proposal.client_email,
             )
             return True
 
-        except Exception:
+        except Exception as exc:
+            cls._log_email(
+                'proposal_abandonment_followup', proposal.client_email,
+                subject=locals().get('subject', ''), proposal=proposal,
+                status='failed', error_message=str(exc)[:1000],
+            )
             logger.exception(
                 'Failed to send abandonment followup for proposal %s',
                 proposal.uuid,
@@ -955,13 +991,22 @@ class ProposalEmailService:
             proposal.investment_interest_email_sent_at = timezone.now()
             proposal.save(update_fields=['investment_interest_email_sent_at'])
 
+            cls._log_email(
+                'proposal_investment_interest_followup', proposal.client_email,
+                subject=subject, proposal=proposal, status='sent',
+            )
             logger.info(
                 'Sent investment interest followup for proposal %s to %s',
                 proposal.uuid, proposal.client_email,
             )
             return True
 
-        except Exception:
+        except Exception as exc:
+            cls._log_email(
+                'proposal_investment_interest_followup', proposal.client_email,
+                subject=locals().get('subject', ''), proposal=proposal,
+                status='failed', error_message=str(exc)[:1000],
+            )
             logger.exception(
                 'Failed to send investment interest followup for proposal %s',
                 proposal.uuid,
@@ -1338,13 +1383,22 @@ class ProposalEmailService:
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
 
+            cls._log_email(
+                'proposal_negotiation_confirmation', proposal.client_email,
+                subject=subject, proposal=proposal, status='sent',
+            )
             logger.info(
                 'Sent negotiation confirmation for proposal %s to %s',
                 proposal.uuid, proposal.client_email,
             )
             return True
 
-        except Exception:
+        except Exception as exc:
+            cls._log_email(
+                'proposal_negotiation_confirmation', proposal.client_email,
+                subject=locals().get('subject', ''), proposal=proposal,
+                status='failed', error_message=str(exc)[:1000],
+            )
             logger.exception(
                 'Failed to send negotiation confirmation for proposal %s',
                 proposal.uuid,

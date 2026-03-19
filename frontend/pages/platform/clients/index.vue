@@ -209,8 +209,6 @@ definePageMeta({
   platformRole: 'admin',
 })
 
-defineI18nRoute(false)
-
 useHead({
   title: 'Clientes del portal — ProjectApp',
 })

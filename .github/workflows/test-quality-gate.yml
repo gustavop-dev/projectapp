@@ -46,10 +46,12 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
 
       - name: Run test quality gate
         run: |
-          python3 scripts/test_quality_gate.py --repo-root . --report-path test-results/test-quality-report.json --verbose
+          python3 scripts/test_quality_gate.py --repo-root . --report-path test-results/test-quality-report.json --frontend-unit-dir test --verbose
 
       - name: Upload gate report
         if: always()

@@ -1,5 +1,6 @@
 ---
 trigger: model_decision
+description: NuxtJS/Vue/TypeScript development rules. Reference when building Vue components, Nuxt pages, composables, or TypeScript utilities.
 ---
 
       You are an expert in TypeScript, Node.js, NuxtJS, Vue 3, Shadcn Vue, Radix Vue, VueUse, and Tailwind.

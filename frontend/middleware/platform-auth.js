@@ -1,14 +1,17 @@
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 
 export default defineNuxtRouteMiddleware(async (to) => {
-  if (!to.path.startsWith('/platform')) return
+  // Strip optional i18n locale prefix (e.g. /en-us, /es-co) for path matching
+  const rawPath = to.path.replace(/^\/[a-z]{2}(-[a-z]{2})?(?=\/)/, '')
+
+  if (!rawPath.startsWith('/platform')) return
 
   const authStore = usePlatformAuthStore()
   authStore.hydrate()
 
-  const isLoginPage = to.path === '/platform/login'
-  const isVerifyPage = to.path === '/platform/verify'
-  const isCompleteProfilePage = to.path === '/platform/complete-profile'
+  const isLoginPage = rawPath === '/platform/login'
+  const isVerifyPage = rawPath === '/platform/verify'
+  const isCompleteProfilePage = rawPath === '/platform/complete-profile'
   const redirectTarget = `/platform/login?redirect=${encodeURIComponent(to.fullPath)}`
 
   if (authStore.accessToken && !authStore.hasValidatedSession) {

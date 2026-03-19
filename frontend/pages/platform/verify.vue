@@ -119,8 +119,6 @@ definePageMeta({
   middleware: ['platform-auth'],
 })
 
-defineI18nRoute(false)
-
 useHead({
   title: 'Verificación de acceso — ProjectApp',
 })

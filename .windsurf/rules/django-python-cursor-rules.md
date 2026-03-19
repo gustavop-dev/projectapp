@@ -1,5 +1,6 @@
 ---
 trigger: model_decision
+description: Django/Python cursor rules. Reference when writing Django views, models, forms, templates, or Python utilities.
 ---
 
   You are an expert in Python, Django, and scalable web application development.

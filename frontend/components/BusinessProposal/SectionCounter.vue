@@ -1,5 +1,6 @@
 <template>
   <div
+    data-testid="section-counter"
     class="section-counter fixed top-14 sm:top-4 right-4 z-40
            px-3 py-1.5 rounded-full bg-white/80 backdrop-blur-sm
            shadow-md border border-gray-100 select-none"

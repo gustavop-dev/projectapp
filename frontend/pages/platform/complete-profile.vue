@@ -125,6 +125,7 @@
             v-model="form.date_of_birth"
             type="date"
             required
+            data-testid="date-of-birth"
             class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
           />
         </div>
@@ -136,6 +137,7 @@
             <select
               v-model="form.gender"
               required
+              data-testid="gender-select"
               class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
             >
               <option value="" disabled>Selecciona</option>
@@ -150,6 +152,7 @@
             <select
               v-model="form.education_level"
               required
+              data-testid="education-select"
               class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
             >
               <option value="" disabled>Selecciona</option>
@@ -195,8 +198,6 @@ definePageMeta({
   layout: false,
   middleware: ['platform-auth'],
 })
-
-defineI18nRoute(false)
 
 useHead({
   title: 'Completar perfil — ProjectApp',
