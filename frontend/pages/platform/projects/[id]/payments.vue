@@ -229,7 +229,7 @@ async function handleOpenPayment(payment) {
       reference: d.reference,
       publicKey: d.public_key,
       redirectUrl: d.redirect_url,
-      signature: { integrity: d.integrity_signature },
+      'signature:integrity': d.integrity_signature,
       customerData: {
         email: d.customer_email,
         fullName: d.customer_full_name,
