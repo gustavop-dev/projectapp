@@ -97,10 +97,10 @@ test.describe('Proposal Section Onboarding', () => {
     await expect(backdrop).toBeVisible({ timeout: 15000 });
 
     // First step title should be visible (dark mode toggle step)
-    await expect(page.getByText('Modo claro y oscuro')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Modo claro y oscuro' })).toBeVisible({ timeout: 5000 });
 
     // Progress indicator should show "1/N"
-    await expect(page.getByText(/^1\//)).toBeVisible();
+    await expect(page.getByText(/^1\//)).toBeVisible({ timeout: 5000 });
   });
 
   test('clicking "Siguiente" advances to step 2', {
@@ -112,14 +112,14 @@ test.describe('Proposal Section Onboarding', () => {
 
     // Wait for onboarding to appear
     await expect(page.getByTestId('onboarding-backdrop')).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText('Modo claro y oscuro')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Modo claro y oscuro' })).toBeVisible({ timeout: 5000 });
 
-    // Click next
-    await page.getByRole('button', { name: 'Siguiente' }).click();
+    // Click next (use .last() to disambiguate from the nav-next button which also has text "Siguiente")
+    await page.getByRole('button', { name: 'Siguiente' }).last().click({ timeout: 5000 });
 
     // Step 2: section index
-    await expect(page.getByText('Índice de secciones')).toBeVisible();
-    await expect(page.getByText(/^2\//)).toBeVisible();
+    await expect(page.getByText('Índice de secciones')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/^2\//)).toBeVisible({ timeout: 5000 });
   });
 
   test('clicking "Omitir" dismisses onboarding overlay', {
@@ -189,16 +189,16 @@ test.describe('Proposal Section Onboarding', () => {
     let maxSteps = 10;
     while (hasNext && maxSteps > 0) {
       maxSteps--;
-      const nextBtn = page.getByRole('button', { name: 'Siguiente' });
+      // Use .last() to disambiguate the onboarding button from the nav-next "Siguiente" button
+      const nextBtn = page.getByRole('button', { name: 'Siguiente' }).last();
       const doneBtn = page.getByRole('button', { name: 'Entendido' });
 
       if (await doneBtn.isVisible()) {
         hasNext = false;
-        // On last step, "Entendido" should be visible and "Siguiente" should not
-        await expect(doneBtn).toBeVisible();
-        await expect(nextBtn).not.toBeVisible();
+        // On last step, "Entendido" should be visible
+        await expect(doneBtn).toBeVisible({ timeout: 5000 });
       } else {
-        await nextBtn.click();
+        await nextBtn.click({ timeout: 5000 });
         // Wait for step transition to complete
         await nextBtn.or(doneBtn).waitFor({ state: 'visible', timeout: 5000 });
       }

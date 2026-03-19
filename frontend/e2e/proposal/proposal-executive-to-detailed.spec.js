@@ -120,7 +120,7 @@ test.describe('Proposal Executive to Detailed View Switch', () => {
 
     // The SectionCounter should show fewer sections than the total
     const counter = page.getByTestId('section-counter');
-    await expect(counter).toBeVisible();
+    await expect(counter).toBeVisible({ timeout: 5000 });
     const counterText = await counter.textContent();
     // Executive mode shows ~5-7 sections (greeting, exec_summary, proposal_summary, FR, investment, timeline, closing)
     // Detailed mode shows all ~9 sections
@@ -160,8 +160,9 @@ test.describe('Proposal Executive to Detailed View Switch', () => {
     }
 
     const switchBtn = page.getByTestId('switch-to-detailed-btn');
-    await expect(switchBtn).toBeVisible();
-    await switchBtn.click();
+    await switchBtn.scrollIntoViewIfNeeded({ timeout: 5000 });
+    await expect(switchBtn).toBeVisible({ timeout: 5000 });
+    await switchBtn.click({ timeout: 5000 });
 
     // After transition overlay auto-dismisses, the counter should update to show all sections
     const counter = page.getByTestId('section-counter');
@@ -177,19 +178,19 @@ test.describe('Proposal Executive to Detailed View Switch', () => {
     await page.waitForLoadState('networkidle');
 
     // Greeting should be visible
-    await expect(page.locator('[data-section-type="greeting"]')).toBeVisible();
+    await expect(page.locator('[data-section-type="greeting"]')).toBeVisible({ timeout: 5000 });
 
     // Navigate forward to find context_diagnostic (not in executive mode)
     const nextBtn = page.getByTestId('nav-next');
     let foundContext = false;
-    for (let i = 0; i < 8; i++) {
-      if (await nextBtn.isVisible()) {
-        await nextBtn.click();
-        await nextBtn.or(page.locator('[data-section-type="context_diagnostic"]')).waitFor({ state: 'visible', timeout: 5000 });
-      }
-      if (await page.locator('[data-section-type="context_diagnostic"]').isVisible()) {
+    for (let i = 0; i < 12; i++) {
+      if (await page.locator('[data-section-type="context_diagnostic"]').isVisible().catch(() => false)) {
         foundContext = true;
         break;
+      }
+      if (await nextBtn.isVisible().catch(() => false)) {
+        await nextBtn.click();
+        await page.waitForTimeout(600);
       }
     }
 

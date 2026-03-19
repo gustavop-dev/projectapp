@@ -362,11 +362,11 @@ test.describe('Proposal Section Edit — Form Mode', () => {
 
     const editor = page.getByTestId('section-editor');
 
-    await editor.getByLabel('Introducción').fill('Nuestra estrategia digital.');
-    await editor.getByLabel('Resultado').fill('Incremento del 30% en conversiones.');
+    await editor.getByLabel('Introducción').fill('Nuestra estrategia digital.', { timeout: 5000 });
+    await editor.getByLabel('Resultado esperado').fill('Incremento del 30% en conversiones.', { timeout: 5000 });
 
-    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click({ timeout: 5000 });
+    await expect(editor.getByText('✓ Guardado')).toBeVisible({ timeout: 5000 });
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -406,17 +406,17 @@ test.describe('Proposal Section Edit — Form Mode', () => {
 
     const editor = page.getByTestId('section-editor');
 
-    await editor.getByLabel('Texto introductorio').fill('Tu inversión incluye todo el desarrollo.');
-    await editor.getByLabel('Inversión total').fill('5000000');
+    await editor.getByLabel('Texto introductorio').fill('Tu inversión incluye todo el desarrollo.', { timeout: 5000 });
+    // Note: totalInvestment is displayed as read-only info box in the investment section editor
+    // (editable only from the General tab), so we only fill introText here.
 
-    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click({ timeout: 5000 });
+    await expect(editor.getByText('✓ Guardado')).toBeVisible({ timeout: 5000 });
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
     expect(last.sectionId).toBe(110);
     expect(last.body.content_json.introText).toBe('Tu inversión incluye todo el desarrollo.');
-    expect(last.body.content_json.totalInvestment).toBe('5000000');
     expect(last.body.content_json._editMode).toBe('form');
   });
 
@@ -428,11 +428,11 @@ test.describe('Proposal Section Edit — Form Mode', () => {
 
     const editor = page.getByTestId('section-editor');
 
-    await editor.getByLabel('Párrafos').fill('Diseño centrado en el usuario.');
-    await editor.getByLabel('Focus Items').fill('Usabilidad\nAccesibilidad');
+    await editor.getByLabel('Párrafos').fill('Diseño centrado en el usuario.', { timeout: 5000 });
+    await editor.getByLabel('Items de enfoque').fill('Usabilidad\nAccesibilidad', { timeout: 5000 });
 
-    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click({ timeout: 5000 });
+    await expect(editor.getByText('✓ Guardado')).toBeVisible({ timeout: 5000 });
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];

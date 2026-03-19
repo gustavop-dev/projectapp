@@ -79,8 +79,8 @@ test.describe('Admin Proposal Defaults Config', () => {
     await expect(page.getByRole('button', { name: 'English' })).toBeVisible();
 
     // Sections render
-    await expect(page.locator('text=👋 Saludo')).toBeVisible();
-    await expect(page.locator('text=📋 Resumen Ejecutivo')).toBeVisible();
+    await expect(page.getByText('👋 Saludo').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('📋 Resumen Ejecutivo').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('expands section and shows SectionEditor', {
@@ -91,10 +91,10 @@ test.describe('Admin Proposal Defaults Config', () => {
     await page.waitForLoadState('networkidle');
 
     // Click on greeting section header to expand
-    await page.locator('text=👋 Saludo').click();
+    await page.getByText('👋 Saludo').first().click({ timeout: 5000 });
 
     // SectionEditor should render with title input
-    await expect(page.locator('[data-testid="section-editor"]')).toBeVisible();
+    await expect(page.locator('[data-testid="section-editor"]')).toBeVisible({ timeout: 5000 });
   });
 
   test('save button is disabled when no changes', {
