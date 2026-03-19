@@ -36,6 +36,7 @@ def create_payment_link(payment):
 
     amount_in_cents = int(payment.amount * 100)
 
+    redirect_url = _get_redirect_url(payment)
     payload = {
         'name': payment.description or f'Hosting — {payment.subscription.project.name}',
         'description': (
@@ -46,8 +47,9 @@ def create_payment_link(payment):
         'collect_shipping': False,
         'currency': 'COP',
         'amount_in_cents': amount_in_cents,
-        'redirect_url': _get_redirect_url(payment),
     }
+    if redirect_url:
+        payload['redirect_url'] = redirect_url
 
     integrity_str = f'{payment.id}{amount_in_cents}COP{settings.WOMPI_INTEGRITY_SECRET}'
     payload['integrity_signature'] = hashlib.sha256(integrity_str.encode()).hexdigest()
@@ -108,7 +110,11 @@ def validate_webhook_signature(body_bytes, signature, timestamp):
 
 
 def _get_redirect_url(payment):
-    """Build the redirect URL after payment completion."""
+    """Build the redirect URL after payment completion.
+    Returns empty string in dev (http) — Wompi WAF blocks non-https redirect URLs.
+    """
     base = getattr(settings, 'FRONTEND_BASE_URL', 'http://localhost:3000')
+    if not base.startswith('https'):
+        return ''
     project_id = payment.subscription.project_id
     return f'{base}/platform/projects/{project_id}/payments?payment={payment.id}'

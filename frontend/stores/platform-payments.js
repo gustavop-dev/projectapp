@@ -13,8 +13,45 @@ export const usePlatformPaymentsStore = defineStore('platformPayments', {
   }),
 
   getters: {
-    pendingPayments: (state) => state.payments.filter((p) => p.status === 'pending' || p.status === 'overdue'),
-    paidPayments: (state) => state.payments.filter((p) => p.status === 'paid'),
+    /**
+     * The single payment that represents the current billing cycle.
+     * Priority: overdue > failed > pending > processing.
+     * If none found, subscription is up to date.
+     */
+    currentPeriodPayment: (state) => {
+      const active = state.payments.filter((p) => ['overdue', 'failed', 'pending', 'processing'].includes(p.status))
+      if (active.length === 0) return null
+      const priority = { overdue: 0, failed: 1, pending: 2, processing: 3 }
+      active.sort((a, b) => (priority[a.status] ?? 9) - (priority[b.status] ?? 9))
+      return active[0]
+    },
+
+    /**
+     * All resolved payments (paid or failed in past cycles) sorted newest first.
+     */
+    pastPayments: (state) => {
+      const currentActive = ['overdue', 'failed', 'pending', 'processing']
+      const activePay = state.payments.filter((p) => currentActive.includes(p.status))
+      // Sort active by priority to identify the "current" one
+      if (activePay.length > 0) {
+        const priority = { overdue: 0, failed: 1, pending: 2, processing: 3 }
+        activePay.sort((a, b) => (priority[a.status] ?? 9) - (priority[b.status] ?? 9))
+        const currentId = activePay[0].id
+        return state.payments
+          .filter((p) => p.id !== currentId)
+          .sort((a, b) => new Date(b.billing_period_start) - new Date(a.billing_period_start))
+      }
+      return [...state.payments].sort((a, b) => new Date(b.billing_period_start) - new Date(a.billing_period_start))
+    },
+
+    /**
+     * True when subscription is active and no payment action is needed.
+     */
+    subscriptionUpToDate: (state) => {
+      if (!state.currentSubscription) return false
+      const needsAction = state.payments.some((p) => ['overdue', 'failed', 'pending'].includes(p.status))
+      return state.currentSubscription.status === 'active' && !needsAction
+    },
   },
 
   actions: {
@@ -104,6 +141,18 @@ export const usePlatformPaymentsStore = defineStore('platformPayments', {
         return { success: false, message }
       } finally {
         this.isUpdating = false
+      }
+    },
+
+    async verifyTransaction(projectId, paymentId, transactionId) {
+      try {
+        const { post } = usePlatformApi()
+        const response = await post(`projects/${projectId}/payments/${paymentId}/verify/`, {
+          transaction_id: transactionId,
+        })
+        return { success: true, data: response.data }
+      } catch (error) {
+        return { success: false, message: error.response?.data?.detail || 'Error verificando transacción.' }
       }
     },
 

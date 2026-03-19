@@ -2,10 +2,10 @@
   <div id="platform-payments">
     <div class="mb-6" data-enter>
       <h1 class="text-2xl font-bold text-esmerald dark:text-white">
-        {{ authStore.isAdmin ? 'Pagos' : 'Mis pagos' }}
+        {{ authStore.isAdmin ? 'Suscripciones' : 'Mi suscripción' }}
       </h1>
       <p class="mt-1 text-sm text-green-light">
-        {{ authStore.isAdmin ? 'Suscripciones y pagos de todos los proyectos.' : 'Estado de tus suscripciones y pagos.' }}
+        {{ authStore.isAdmin ? 'Suscripciones de hosting de todos los proyectos.' : 'Estado de tu suscripción de hosting.' }}
       </p>
     </div>
 
@@ -60,10 +60,9 @@
               </p>
             </div>
             <div class="rounded-xl border border-esmerald/[0.04] p-3 dark:border-white/[0.04]">
-              <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Pagos pendientes</p>
-              <p class="mt-1 text-sm font-semibold" :class="sub.pending_payments > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-green-light'">
-                {{ sub.pending_payments }}
-              </p>
+              <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Estado</p>
+              <p v-if="sub.pending_payments === 0" class="mt-1 text-sm font-semibold text-emerald-600 dark:text-emerald-400">Al día</p>
+              <p v-else class="mt-1 text-sm font-semibold text-amber-600 dark:text-amber-400">Requiere atención</p>
             </div>
           </div>
 
@@ -71,7 +70,7 @@
             :to="`/platform/projects/${sub.project_id}/payments`"
             class="inline-flex items-center gap-1.5 text-xs font-medium text-esmerald transition hover:text-esmerald/70 dark:text-lemon dark:hover:text-lemon/80"
           >
-            Ver pagos
+            Ver suscripción
             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
           </NuxtLink>
         </div>

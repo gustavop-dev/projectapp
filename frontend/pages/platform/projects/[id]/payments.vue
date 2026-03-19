@@ -11,7 +11,7 @@
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
           {{ projectName }}
         </NuxtLink>
-        <h1 class="text-xl font-bold text-esmerald dark:text-white sm:text-2xl">Pagos</h1>
+        <h1 class="text-xl font-bold text-esmerald dark:text-white sm:text-2xl">Suscripción</h1>
       </div>
 
       <!-- No subscription -->
@@ -20,7 +20,7 @@
       </div>
 
       <template v-else>
-        <!-- Subscription card -->
+        <!-- Subscription summary card -->
         <div class="mb-6 rounded-2xl border border-esmerald/[0.06] bg-white p-6 dark:border-white/[0.06] dark:bg-esmerald" data-enter>
           <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -34,6 +34,69 @@
               <p class="text-3xl font-bold text-esmerald dark:text-lemon">${{ formatMoney(sub.billing_amount) }}</p>
               <p class="text-xs text-green-light">COP / {{ sub.plan_display.toLowerCase() }}</p>
               <p v-if="sub.discount_percent > 0" class="mt-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">{{ sub.discount_percent }}% de descuento</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Current billing period -->
+        <div class="mb-6" data-enter>
+          <!-- Up to date — no action needed -->
+          <div v-if="payStore.subscriptionUpToDate" class="rounded-2xl border border-emerald-500/20 bg-emerald-50/50 p-6 dark:border-emerald-500/15 dark:bg-emerald-900/10">
+            <div class="flex items-center gap-3">
+              <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
+                <svg class="h-5 w-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </span>
+              <div>
+                <p class="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Suscripción al día</p>
+                <p class="text-xs text-emerald-600/70 dark:text-emerald-400/60">Tu suscripción se renueva automáticamente. Próximo cobro: {{ formatDate(sub.next_billing_date) }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Current period needs attention -->
+          <div v-else-if="currentPayment" class="rounded-2xl border bg-white p-6 dark:bg-esmerald" :class="currentPeriodBorderClass">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div class="flex items-start gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" :class="paymentIconBg(currentPayment.status)">
+                  <span class="text-base">{{ paymentIcon(currentPayment.status) }}</span>
+                </span>
+                <div>
+                  <p class="text-sm font-semibold text-esmerald dark:text-white">Período actual</p>
+                  <p class="mt-0.5 text-xs text-green-light">
+                    {{ formatDate(currentPayment.billing_period_start) }} — {{ formatDate(currentPayment.billing_period_end) }}
+                  </p>
+                  <span class="mt-1.5 inline-block rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="paymentStatusClass(currentPayment.status)">
+                    {{ paymentStatusLabel(currentPayment.status) }}
+                  </span>
+                  <p v-if="currentPayment.status === 'failed'" class="mt-1.5 text-xs text-red-500 dark:text-red-400">
+                    El cobro automático falló. Puedes renovar manualmente.
+                  </p>
+                  <p v-else-if="currentPayment.status === 'overdue'" class="mt-1.5 text-xs text-red-500 dark:text-red-400">
+                    Este cobro está vencido. Renueva para mantener tu servicio activo.
+                  </p>
+                  <p v-else-if="currentPayment.status === 'processing'" class="mt-1.5 text-xs text-blue-500 dark:text-blue-400">
+                    Tu pago está siendo procesado.
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-4">
+                <div class="text-right">
+                  <p class="text-2xl font-bold text-esmerald dark:text-white">${{ formatMoney(currentPayment.amount) }}</p>
+                </div>
+
+                <div v-if="canPay(currentPayment)" class="shrink-0">
+                  <button
+                    type="button"
+                    :disabled="payStore.isUpdating"
+                    class="flex items-center gap-2 rounded-xl bg-lemon px-5 py-3 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50"
+                    @click="handleOpenPayment(currentPayment)"
+                  >
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                    {{ currentPayment.status === 'failed' || currentPayment.status === 'overdue' ? 'Renovar' : 'Pagar ahora' }}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -58,64 +121,52 @@
           </div>
         </div>
 
-        <!-- Payments list -->
-        <div class="space-y-3" data-enter>
-          <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-green-light/60">Historial de pagos</h3>
-
-          <div
-            v-for="payment in sortedPayments"
-            :key="payment.id"
-            class="rounded-2xl border bg-white p-5 transition dark:bg-esmerald"
-            :class="paymentBorderClass(payment.status)"
+        <!-- Payment history (collapsible) -->
+        <div v-if="payStore.pastPayments.length > 0" data-enter>
+          <button
+            type="button"
+            class="mb-3 flex w-full items-center gap-2 text-xs font-semibold uppercase tracking-wider text-green-light/60 transition hover:text-green-light"
+            @click="showHistory = !showHistory"
           >
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div class="flex-1">
-                <div class="mb-1 flex items-center gap-2">
-                  <span class="flex h-8 w-8 items-center justify-center rounded-xl" :class="paymentIconBg(payment.status)">
-                    <span class="text-sm">{{ paymentIcon(payment.status) }}</span>
-                  </span>
-                  <div>
-                    <p class="text-sm font-semibold text-esmerald dark:text-white">{{ payment.description || 'Pago hosting' }}</p>
-                    <p class="text-[10px] text-green-light/60">
-                      {{ formatDate(payment.billing_period_start) }} — {{ formatDate(payment.billing_period_end) }}
-                    </p>
+            <svg class="h-3.5 w-3.5 transition-transform" :class="showHistory ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            Historial de pagos ({{ payStore.pastPayments.length }})
+          </button>
+
+          <transition name="slide">
+            <div v-show="showHistory" class="space-y-2">
+              <div
+                v-for="payment in payStore.pastPayments"
+                :key="payment.id"
+                class="rounded-xl border border-esmerald/[0.04] bg-white px-5 py-3.5 dark:border-white/[0.04] dark:bg-esmerald"
+              >
+                <div class="flex items-center justify-between gap-4">
+                  <div class="flex items-center gap-2.5">
+                    <span class="flex h-7 w-7 items-center justify-center rounded-lg" :class="paymentIconBg(payment.status)">
+                      <span class="text-xs">{{ paymentIcon(payment.status) }}</span>
+                    </span>
+                    <div>
+                      <p class="text-xs font-medium text-esmerald dark:text-white">
+                        {{ formatDate(payment.billing_period_start) }} — {{ formatDate(payment.billing_period_end) }}
+                      </p>
+                      <div v-if="payment.status === 'paid' && payment.paid_at" class="mt-0.5 text-[10px] text-emerald-600/70 dark:text-emerald-400/60">
+                        Pagado el {{ formatDate(payment.paid_at) }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <p class="text-sm font-semibold text-esmerald dark:text-white">${{ formatMoney(payment.amount) }}</p>
+                    <span class="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="paymentStatusClass(payment.status)">
+                      {{ paymentStatusLabel(payment.status) }}
+                    </span>
                   </div>
                 </div>
               </div>
-
-              <div class="flex items-center gap-4">
-                <div class="text-right">
-                  <p class="text-lg font-bold text-esmerald dark:text-white">${{ formatMoney(payment.amount) }}</p>
-                  <span class="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="paymentStatusClass(payment.status)">
-                    {{ paymentStatusLabel(payment.status) }}
-                  </span>
-                </div>
-
-                <!-- Pay button (client/admin, pending/overdue) -->
-                <div v-if="canPay(payment)" class="shrink-0">
-                  <button
-                    type="button"
-                    :disabled="payStore.isUpdating"
-                    class="flex items-center gap-2 rounded-xl bg-lemon px-5 py-3 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50"
-                    @click="handleOpenPayment(payment)"
-                  >
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                    Pagar ahora
-                  </button>
-                </div>
-              </div>
             </div>
+          </transition>
+        </div>
 
-            <!-- Paid confirmation -->
-            <div v-if="payment.status === 'paid' && payment.paid_at" class="mt-3 flex items-center gap-2 text-[10px] text-emerald-600 dark:text-emerald-400">
-              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              Pagado el {{ formatDate(payment.paid_at) }}
-            </div>
-          </div>
-
-          <div v-if="sortedPayments.length === 0" class="py-8 text-center text-sm text-green-light">
-            No hay pagos registrados aún.
-          </div>
+        <div v-else-if="payStore.payments.length === 0" class="py-8 text-center text-sm text-green-light" data-enter>
+          No hay pagos registrados aún.
         </div>
       </template>
     </template>
@@ -123,7 +174,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformPaymentsStore } from '~/stores/platform-payments'
@@ -145,16 +196,16 @@ const projectsStore = usePlatformProjectsStore()
 const projectId = computed(() => route.params.id)
 const projectName = computed(() => projectsStore.currentProject?.name || 'Proyecto')
 const sub = computed(() => payStore.currentSubscription)
+const currentPayment = computed(() => payStore.currentPeriodPayment)
+const showHistory = ref(false)
 
-const sortedPayments = computed(() => {
-  return [...payStore.payments].sort((a, b) => {
-    const order = { overdue: 0, pending: 1, processing: 2, failed: 3, paid: 4 }
-    return (order[a.status] ?? 5) - (order[b.status] ?? 5)
-  })
+const currentPeriodBorderClass = computed(() => {
+  if (!currentPayment.value) return 'border-esmerald/[0.06] dark:border-white/[0.06]'
+  return paymentBorderClass(currentPayment.value.status)
 })
 
 function canPay(payment) {
-  return ['pending', 'overdue', 'processing'].includes(payment.status)
+  return ['pending', 'overdue', 'failed'].includes(payment.status)
 }
 
 function subStatusClass(s) {
@@ -219,29 +270,52 @@ function formatDate(val) {
 
 async function handleOpenPayment(payment) {
   const result = await payStore.fetchWidgetData(projectId.value, payment.id)
-  if (!result.success) return
+  if (!result.success) {
+    console.error('[Wompi] Failed to fetch widget data:', result.message)
+    return
+  }
 
   const d = result.data
-  if (typeof window !== 'undefined' && window.WidgetCheckout) {
-    const checkout = new window.WidgetCheckout({
-      currency: d.currency,
-      amountInCents: d.amount_in_cents,
-      reference: d.reference,
-      publicKey: d.public_key,
-      redirectUrl: d.redirect_url,
-      'signature:integrity': d.integrity_signature,
-      customerData: {
-        email: d.customer_email,
-        fullName: d.customer_full_name,
-      },
-    })
-    checkout.open((result) => {
-      const txn = result.transaction
-      if (txn && txn.status === 'APPROVED') {
-        payStore.fetchProjectSubscription(projectId.value)
-      }
-    })
+  console.info('[Wompi] Widget data received:', {
+    publicKey: d.public_key?.slice(0, 12) + '…',
+    currency: d.currency,
+    amountInCents: d.amount_in_cents,
+    reference: d.reference,
+    integritySignature: d.integrity_signature?.slice(0, 16) + '…',
+    redirectUrl: d.redirect_url,
+  })
+
+  if (typeof window === 'undefined' || !window.WidgetCheckout) {
+    console.error('[Wompi] WidgetCheckout not loaded. Ensure widget.js script is included.')
+    return
   }
+
+  const widgetConfig = {
+    currency: d.currency,
+    amountInCents: d.amount_in_cents,
+    reference: d.reference,
+    publicKey: d.public_key,
+    'signature:integrity': d.integrity_signature,
+    customerData: {
+      email: d.customer_email,
+      fullName: d.customer_full_name,
+    },
+  }
+  if (d.redirect_url) {
+    widgetConfig.redirectUrl = d.redirect_url
+  }
+
+  const paymentId = payment.id
+  const checkout = new window.WidgetCheckout(widgetConfig)
+  checkout.open(async (widgetResult) => {
+    const txn = widgetResult.transaction
+    console.info('[Wompi] Transaction result:', txn)
+    if (txn && txn.id) {
+      const verifyResult = await payStore.verifyTransaction(projectId.value, paymentId, txn.id)
+      console.info('[Wompi] Verify result:', verifyResult.data)
+    }
+    await payStore.fetchProjectSubscription(projectId.value)
+  })
 }
 
 onMounted(async () => {
@@ -251,3 +325,21 @@ onMounted(async () => {
   ])
 })
 </script>
+
+<style scoped>
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+.slide-enter-from,
+.slide-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+.slide-enter-to,
+.slide-leave-from {
+  opacity: 1;
+  max-height: 1000px;
+}
+</style>

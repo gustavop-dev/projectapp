@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -1699,9 +1703,9 @@ def payment_generate_link_view(request, project_id, payment_id):
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if payment.status not in (Payment.STATUS_PENDING, Payment.STATUS_OVERDUE):
+    if payment.status not in (Payment.STATUS_PENDING, Payment.STATUS_OVERDUE, Payment.STATUS_FAILED):
         return Response(
-            {'detail': 'Solo se pueden generar links para pagos pendientes o vencidos.'},
+            {'detail': 'Solo se pueden generar links para pagos pendientes, vencidos o fallidos.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -1728,6 +1732,7 @@ def payment_widget_data_view(request, project_id, payment_id):
     for the frontend to open the Wompi widget with a custom branded button.
     """
     import hashlib
+    import time
 
     from django.conf import settings as django_settings
 
@@ -1745,29 +1750,111 @@ def payment_widget_data_view(request, project_id, payment_id):
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if payment.status not in (Payment.STATUS_PENDING, Payment.STATUS_OVERDUE, Payment.STATUS_PROCESSING):
+    if payment.status not in (Payment.STATUS_PENDING, Payment.STATUS_OVERDUE, Payment.STATUS_PROCESSING, Payment.STATUS_FAILED):
         return Response(
             {'detail': 'Este pago no está disponible para cobro.'},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     amount_in_cents = int(payment.amount * 100)
-    reference = f'PA-{payment.id}-{proj.id}'
+    ts = int(time.time())
+    reference = f'PA{payment.id}P{proj.id}T{ts}'
 
-    integrity_str = f'{reference}{amount_in_cents}COP{django_settings.WOMPI_INTEGRITY_SECRET}'
+    integrity_secret = django_settings.WOMPI_INTEGRITY_SECRET
+    integrity_str = f'{reference}{amount_in_cents}COP{integrity_secret}'
     integrity_signature = hashlib.sha256(integrity_str.encode()).hexdigest()
 
-    base_url = getattr(django_settings, 'FRONTEND_BASE_URL', 'http://localhost:3000')
+    base_url = django_settings.FRONTEND_BASE_URL
+    redirect_url = ''
+    if base_url.startswith('https'):
+        redirect_url = f'{base_url}/platform/projects/{proj.id}/payments?payment={payment.id}'
 
-    return Response({
+    logger.info(
+        'Wompi widget data — ref=%s amount=%s redirect=%s',
+        reference, amount_in_cents, redirect_url or '(omitted for dev)',
+    )
+
+    data = {
         'public_key': django_settings.WOMPI_PUBLIC_KEY,
         'currency': 'COP',
         'amount_in_cents': amount_in_cents,
         'reference': reference,
         'integrity_signature': integrity_signature,
-        'redirect_url': f'{base_url}/platform/projects/{proj.id}/payments?payment={payment.id}',
         'customer_email': proj.client.email,
         'customer_full_name': f'{proj.client.first_name} {proj.client.last_name}'.strip(),
+    }
+    if redirect_url:
+        data['redirect_url'] = redirect_url
+
+    return Response(data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def payment_verify_transaction_view(request, project_id, payment_id):
+    """
+    After the Wompi widget completes, the frontend calls this endpoint
+    with the transaction_id to verify the payment status directly with Wompi
+    (needed because webhooks can't reach localhost in dev).
+    """
+    from django.utils import timezone as tz
+
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        payment = Payment.objects.select_related('subscription').get(
+            id=payment_id, subscription__project=proj,
+        )
+    except Payment.DoesNotExist:
+        return Response(
+            {'detail': 'Pago no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    transaction_id = request.data.get('transaction_id')
+    if not transaction_id:
+        return Response(
+            {'detail': 'transaction_id es requerido.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        from accounts.services.wompi import verify_transaction
+        txn_data = verify_transaction(str(transaction_id))
+    except Exception as e:
+        logger.error('Wompi verify error: %s', e)
+        return Response(
+            {'detail': 'No se pudo verificar la transacción con Wompi.'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    txn_status = txn_data.get('status', '')
+    payment.wompi_transaction_id = str(transaction_id)
+
+    if txn_status == 'APPROVED':
+        payment.status = Payment.STATUS_PAID
+        payment.paid_at = tz.now()
+
+        sub = payment.subscription
+        from dateutil.relativedelta import relativedelta
+        sub.next_billing_date = payment.billing_period_end + relativedelta(days=1)
+        if sub.status == HostingSubscription.STATUS_PENDING:
+            sub.status = HostingSubscription.STATUS_ACTIVE
+        sub.save(update_fields=['next_billing_date', 'status', 'updated_at'])
+
+    elif txn_status in ('DECLINED', 'ERROR', 'VOIDED'):
+        payment.status = Payment.STATUS_FAILED
+
+    payment.save(update_fields=['wompi_transaction_id', 'status', 'paid_at'])
+
+    logger.info('Payment %s verified — Wompi status: %s', payment.id, txn_status)
+
+    return Response({
+        'payment_id': payment.id,
+        'payment_status': payment.status,
+        'transaction_status': txn_status,
     })
 
 
@@ -1797,16 +1884,34 @@ def wompi_webhook_view(request):
     if not transaction_id or not reference:
         return Response({'status': 'missing data'}, status=status.HTTP_400_BAD_REQUEST)
 
+    import re
+
+    payment = None
+
     try:
         payment = Payment.objects.select_related('subscription').get(
             wompi_payment_link_id=reference,
         )
     except Payment.DoesNotExist:
+        pass
+
+    if payment is None:
+        match = re.match(r'^PA(\d+)P\d+T\d+$', reference)
+        if match:
+            try:
+                payment = Payment.objects.select_related('subscription').get(id=int(match.group(1)))
+            except Payment.DoesNotExist:
+                pass
+
+    if payment is None:
         try:
-            payment_id = int(reference)
-            payment = Payment.objects.select_related('subscription').get(id=payment_id)
+            payment = Payment.objects.select_related('subscription').get(id=int(reference))
         except (ValueError, Payment.DoesNotExist):
-            return Response({'status': 'payment not found'}, status=status.HTTP_404_NOT_FOUND)
+            pass
+
+    if payment is None:
+        logger.warning('Wompi webhook — payment not found for reference=%s', reference)
+        return Response({'status': 'payment not found'}, status=status.HTTP_404_NOT_FOUND)
 
     payment.wompi_transaction_id = str(transaction_id)
 

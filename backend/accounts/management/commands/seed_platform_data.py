@@ -478,19 +478,19 @@ class Command(BaseCommand):
             effective_monthly_amount=Decimal('297000'),
             billing_amount=Decimal('891000'),
             status=HostingSubscription.STATUS_ACTIVE,
-            start_date=today - timedelta(days=60),
-            next_billing_date=today + timedelta(days=30),
+            start_date=today - timedelta(days=90),
+            next_billing_date=today + timedelta(days=90),
         )
 
         Payment.objects.create(
             subscription=sub,
             amount=sub.billing_amount,
             description=f'Hosting trimestral — {project.name}',
-            billing_period_start=today - timedelta(days=60),
+            billing_period_start=today - timedelta(days=90),
             billing_period_end=today - timedelta(days=1),
-            due_date=today - timedelta(days=60),
+            due_date=today - timedelta(days=90),
             status=Payment.STATUS_PAID,
-            paid_at=timezone.now() - timedelta(days=58),
+            paid_at=timezone.now() - timedelta(days=88),
         )
         Payment.objects.create(
             subscription=sub,
@@ -499,16 +499,8 @@ class Command(BaseCommand):
             billing_period_start=today,
             billing_period_end=today + timedelta(days=89),
             due_date=today,
-            status=Payment.STATUS_PENDING,
-        )
-        Payment.objects.create(
-            subscription=sub,
-            amount=sub.billing_amount,
-            description=f'Hosting trimestral — {project.name}',
-            billing_period_start=today - timedelta(days=90),
-            billing_period_end=today - timedelta(days=61),
-            due_date=today - timedelta(days=90),
-            status=Payment.STATUS_OVERDUE,
+            status=Payment.STATUS_PAID,
+            paid_at=timezone.now() - timedelta(hours=2),
         )
 
-        self.stdout.write(self.style.SUCCESS(f'  Created subscription + 3 payments for {project.name}'))
+        self.stdout.write(self.style.SUCCESS(f'  Created subscription + 2 payments for {project.name}'))
