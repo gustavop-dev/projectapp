@@ -71,6 +71,13 @@ sudo tail -20 /var/log/nginx/error.log
 - **Media**: `/home/ryzepeck/webapps/projectapp/backend/media/`
 - **Resource limits**: MemoryMax=350M, CPUQuota=40%, OOMScoreAdjust=300
 
+## Cleanup
+
+9. Remove `node_modules` to save disk space (frontend already compiled):
+```bash
+rm -rf /home/ryzepeck/webapps/projectapp/frontend/node_modules
+```
+
 ## Notes
 
 - `~/scripts` is a symlink to `/home/ryzepeck/webapps/ops/vps/`.
