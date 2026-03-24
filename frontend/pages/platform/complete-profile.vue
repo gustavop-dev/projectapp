@@ -293,6 +293,6 @@ async function handleSubmit() {
     return
   }
 
-  await navigateTo('/platform/dashboard')
+  await navigateTo(useLocalePath()('/platform/dashboard'))
 }
 </script>

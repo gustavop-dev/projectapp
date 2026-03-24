@@ -92,7 +92,7 @@
 
           <div class="mt-2 flex items-center gap-1">
             <NuxtLink
-              to="/platform/profile"
+              :to="localePath('/platform/profile')"
               class="flex h-9 w-9 items-center justify-center rounded-lg text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
               @click="$emit('close')"
             >
@@ -128,6 +128,9 @@ import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformNotificationsStore } from '~/stores/platform-notifications'
 import SidebarItem from '~/components/platform/SidebarItem.vue'
 
+const localePath = useLocalePath()
+const lp = (path) => localePath(path)
+
 defineEmits(['close', 'logout', 'toggleTheme'])
 
 const props = defineProps({
@@ -144,37 +147,39 @@ const userSubtitle = computed(() =>
 )
 
 const primaryItems = computed(() => [
-  { label: 'Dashboard', href: '/platform/dashboard', icon: 'dashboard' },
-  { label: 'Notificaciones', href: '/platform/notifications', icon: 'bell', badge: notifStore.unreadCount },
+  { label: 'Dashboard', href: lp('/platform/dashboard'), icon: 'dashboard' },
+  { label: 'Notificaciones', href: lp('/platform/notifications'), icon: 'bell', badge: notifStore.unreadCount },
 ])
 
 const projectItems = computed(() => {
   if (authStore.isAdmin) {
     return [
-      { label: 'Proyectos', href: '/platform/projects', icon: 'folder' },
-      { label: 'Tablero', href: '/platform/board', icon: 'board' },
-      { label: 'Solicitudes', href: '/platform/changes', icon: 'refresh' },
-      { label: 'Bugs', href: '/platform/bugs', icon: 'bug' },
-      { label: 'Entregables', href: '/platform/deliverables', icon: 'file' },
-      { label: 'Pagos', href: '/platform/payments', icon: 'credit-card' },
+      { label: 'Proyectos', href: lp('/platform/projects'), icon: 'folder' },
+      { label: 'Tablero', href: lp('/platform/board'), icon: 'board' },
+      { label: 'Solicitudes', href: lp('/platform/changes'), icon: 'refresh' },
+      { label: 'Bugs', href: lp('/platform/bugs'), icon: 'bug' },
+      { label: 'Entregables', href: lp('/platform/deliverables'), icon: 'file' },
+      { label: 'Pagos', href: lp('/platform/payments'), icon: 'credit-card' },
     ]
   }
   return [
-    { label: 'Mis proyectos', href: '/platform/projects', icon: 'folder' },
-    { label: 'Tablero', href: '/platform/board', icon: 'board' },
-    { label: 'Solicitudes', href: '/platform/changes', icon: 'refresh' },
-    { label: 'Bugs', href: '/platform/bugs', icon: 'bug' },
-    { label: 'Entregables', href: '/platform/deliverables', icon: 'file' },
-    { label: 'Pagos', href: '/platform/payments', icon: 'credit-card' },
+    { label: 'Mis proyectos', href: lp('/platform/projects'), icon: 'folder' },
+    { label: 'Tablero', href: lp('/platform/board'), icon: 'board' },
+    { label: 'Solicitudes', href: lp('/platform/changes'), icon: 'refresh' },
+    { label: 'Bugs', href: lp('/platform/bugs'), icon: 'bug' },
+    { label: 'Entregables', href: lp('/platform/deliverables'), icon: 'file' },
+    { label: 'Pagos', href: lp('/platform/payments'), icon: 'credit-card' },
   ]
 })
 
 const adminItems = computed(() => [
-  { label: 'Clientes', href: '/platform/clients', icon: 'users' },
+  { label: 'Clientes', href: lp('/platform/clients'), icon: 'users' },
 ])
 
 function isActive(href) {
-  return route.path === href || route.path.startsWith(`${href}/`)
+  const cleanPath = route.path.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
+  const cleanHref = href.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
+  return cleanPath === cleanHref || cleanPath.startsWith(`${cleanHref}/`)
 }
 </script>
 

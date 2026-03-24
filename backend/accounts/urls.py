@@ -37,6 +37,7 @@ from accounts.views import (
     me_view,
     project_detail_view,
     project_list_view,
+    requirement_bulk_upload_view,
     requirement_comment_view,
     requirement_detail_view,
     requirement_list_view,
@@ -68,6 +69,7 @@ urlpatterns = [
 
     # Requirements (Kanban board)
     path('projects/<int:project_id>/requirements/', requirement_list_view, name='platform-requirement-list'),
+    path('projects/<int:project_id>/requirements/bulk/', requirement_bulk_upload_view, name='platform-requirement-bulk'),
     path('projects/<int:project_id>/requirements/<int:req_id>/', requirement_detail_view, name='platform-requirement-detail'),
     path('projects/<int:project_id>/requirements/<int:req_id>/move/', requirement_move_view, name='platform-requirement-move'),
     path('projects/<int:project_id>/requirements/<int:req_id>/comments/', requirement_comment_view, name='platform-requirement-comments'),

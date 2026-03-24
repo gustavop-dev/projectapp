@@ -969,6 +969,62 @@
       "description": "ARCHIVED — ProposalResponseButtons component removed from production. Acceptance handled via ProposalClosing section buttons.",
       "expectedSpecs": 0,
       "knownGaps": ["Feature removed from production. Flow archived."]
+    },
+    "platform-change-requests": {
+      "name": "Platform Change Requests",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P2",
+      "description": "Client creates change requests for a project. Admin evaluates (approve/reject/needs clarification) with estimated cost and time. Both roles can comment. Per-project view at /platform/projects/:id/changes and unified cross-project view at /platform/changes.",
+      "expectedSpecs": 1
+    },
+    "platform-bug-reports": {
+      "name": "Platform Bug Reports",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P2",
+      "description": "Both roles report bugs with severity, steps to reproduce, expected/actual behavior, device/browser, screenshot. Admin evaluates with status changes and responses. Per-project view at /platform/projects/:id/bugs and unified cross-project view at /platform/bugs.",
+      "expectedSpecs": 1
+    },
+    "platform-deliverables": {
+      "name": "Platform Deliverables",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P2",
+      "description": "Admin uploads deliverables (designs, documents, APKs, credentials) with version history. Client downloads files. Per-project view at /platform/projects/:id/deliverables and unified cross-project view at /platform/deliverables.",
+      "expectedSpecs": 1
+    },
+    "platform-hosting-subscription": {
+      "name": "Platform Hosting Subscription",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P1",
+      "description": "Client selects hosting plan (semiannual/quarterly/monthly) from project payments page, activates subscription, and pays via Wompi (card or widget). Admin sees subscription status. Netflix-style active state with next renewal date. Per-project view at /platform/projects/:id/payments and unified view at /platform/payments.",
+      "expectedSpecs": 1
+    },
+    "platform-notifications": {
+      "name": "Platform Notifications",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P2",
+      "description": "In-app notification center with unread count badge in sidebar, filter tabs (all/unread/read), mark-all-read, and click-to-navigate deep links to the relevant project module (board, changes, bugs, deliverables).",
+      "expectedSpecs": 1
+    },
+    "platform-kanban-json-upload": {
+      "name": "Platform Kanban JSON Upload",
+      "module": "platform",
+      "roles": ["platform-admin"],
+      "priority": "P2",
+      "description": "Admin bulk-creates requirements by uploading a JSON file. Includes downloadable example template. Each requirement has title, description, configuration (roles/permissions), and flow (user flow). POST /api/accounts/projects/:id/requirements/bulk/.",
+      "expectedSpecs": 1
+    },
+    "platform-requirement-client-review": {
+      "name": "Platform Requirement Client Review",
+      "module": "platform",
+      "roles": ["platform-client"],
+      "priority": "P2",
+      "description": "Client reviews completed requirements from the Kanban board. Clicking a done card shows three options: Approve (marks as accepted), Request Change (navigates to change requests with pre-filled data), or Report Bug (navigates to bugs with pre-filled data).",
+      "expectedSpecs": 1
     }
   }
 }

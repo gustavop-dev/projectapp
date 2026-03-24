@@ -90,9 +90,12 @@ function redirectToPlatformLogin() {
   if (!isClient()) return
 
   const currentPath = `${window.location.pathname}${window.location.search}`
-  if (currentPath.startsWith('/platform/login') || currentPath.startsWith('/platform/verify')) return
+  const stripped = currentPath.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
+  if (stripped.startsWith('/platform/login') || stripped.startsWith('/platform/verify')) return
 
-  window.location.href = `/platform/login?redirect=${encodeURIComponent(currentPath)}`
+  const localeMatch = currentPath.match(/^\/([a-z]{2}-[a-z]{2})\//)
+  const prefix = localeMatch ? `/${localeMatch[1]}` : ''
+  window.location.href = `${prefix}/platform/login?redirect=${encodeURIComponent(currentPath)}`
 }
 
 async function refreshPlatformAccessToken() {

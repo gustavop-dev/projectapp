@@ -7,117 +7,164 @@
     <template v-else>
       <!-- Header -->
       <div class="mb-6" data-enter>
-        <NuxtLink :to="`/platform/projects/${projectId}`" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-esmerald dark:hover:text-white">
+        <NuxtLink :to="localePath(`/platform/projects/${projectId}`)" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-esmerald dark:hover:text-white">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
           {{ projectName }}
         </NuxtLink>
         <h1 class="text-xl font-bold text-esmerald dark:text-white sm:text-2xl">Suscripción</h1>
       </div>
 
-      <!-- No subscription -->
-      <div v-if="!sub" class="rounded-3xl border border-dashed border-esmerald/10 py-16 text-center dark:border-white/10" data-enter>
-        <p class="text-sm text-green-light">Este proyecto no tiene suscripción de hosting.</p>
+      <!-- No subscription — client picks plan; admin sees waiting message -->
+      <div v-if="!sub" data-enter>
+        <div v-if="authStore.isAdmin" class="rounded-3xl border border-dashed border-esmerald/10 py-16 text-center dark:border-white/10">
+          <p class="text-sm text-green-light">El cliente aún no ha activado su plan de hosting.</p>
+        </div>
+        <div v-else-if="project?.hosting_tiers?.length" class="rounded-2xl border border-esmerald/[0.06] bg-white p-6 dark:border-white/[0.06] dark:bg-esmerald">
+          <h2 class="mb-1 text-lg font-bold text-esmerald dark:text-white">Elige tu plan de hosting</h2>
+          <p class="mb-5 text-xs text-green-light">Selecciona la frecuencia de pago que prefieras. Puedes cambiarla después.</p>
+
+          <div class="mb-5 grid gap-3 sm:grid-cols-3">
+            <button
+              v-for="tier in project.hosting_tiers"
+              :key="tier.frequency"
+              type="button"
+              class="relative rounded-xl border p-5 text-center transition"
+              :class="selectedPlan === tier.frequency
+                ? 'border-esmerald bg-esmerald/5 shadow-sm dark:border-lemon dark:bg-lemon/10'
+                : 'border-esmerald/10 hover:border-esmerald/20 dark:border-white/[0.08] dark:hover:border-white/15'"
+              @click="selectedPlan = tier.frequency"
+            >
+              <span v-if="tier.badge" class="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-lemon px-2.5 py-0.5 text-[9px] font-bold text-esmerald-dark">{{ tier.badge }}</span>
+              <p class="text-xs font-bold uppercase tracking-wider text-esmerald dark:text-white">{{ tier.label }}</p>
+              <p class="mt-2 text-2xl font-bold text-esmerald dark:text-lemon">${{ formatMoney(tier.billing_amount) }}</p>
+              <p class="text-[11px] text-green-light">{{ tier.currency }} / {{ tier.months === 1 ? 'mes' : `${tier.months} meses` }}</p>
+              <p v-if="tier.discount_percent" class="mt-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">{{ tier.discount_percent }}% descuento</p>
+              <p class="mt-1 text-[10px] text-green-light/50">${{ formatMoney(tier.effective_monthly) }}/mes</p>
+            </button>
+          </div>
+
+          <div v-if="planError" class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+            {{ planError }}
+          </div>
+
+          <button
+            type="button"
+            :disabled="!selectedPlan || isCreatingSub"
+            class="flex w-full items-center justify-center gap-2 rounded-xl bg-lemon px-5 py-3.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50"
+            @click="handleCreateSubscription"
+          >
+            <svg v-if="isCreatingSub" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+            {{ isCreatingSub ? 'Activando...' : 'Activar plan de hosting' }}
+          </button>
+        </div>
+
+        <div v-else class="rounded-3xl border border-dashed border-esmerald/10 py-16 text-center dark:border-white/10">
+          <p class="text-sm text-green-light">Este proyecto no tiene suscripción de hosting.</p>
+        </div>
       </div>
 
       <template v-else>
-        <!-- Subscription summary card -->
-        <div class="mb-6 rounded-2xl border border-esmerald/[0.06] bg-white p-6 dark:border-white/[0.06] dark:bg-esmerald" data-enter>
-          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div class="flex items-center gap-2">
+        <!-- ACTIVE / UP TO DATE state (like Netflix) -->
+        <div v-if="payStore.subscriptionUpToDate" data-enter>
+          <div class="mb-6 rounded-2xl border border-emerald-500/20 bg-white p-6 dark:border-emerald-500/15 dark:bg-esmerald">
+            <div class="flex items-center gap-4">
+              <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10">
+                <svg class="h-7 w-7 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </span>
+              <div class="flex-1">
                 <h2 class="text-lg font-bold text-esmerald dark:text-white">Hosting {{ sub.plan_display }}</h2>
-                <span class="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase" :class="subStatusClass(sub.status)">{{ sub.status_display }}</span>
+                <p class="mt-0.5 text-sm text-emerald-700 dark:text-emerald-400">Suscripción activa</p>
               </div>
-              <p class="mt-1 text-xs text-green-light">Inicio: {{ formatDate(sub.start_date) }} · Próximo cobro: {{ formatDate(sub.next_billing_date) }}</p>
+              <div class="text-right">
+                <p class="text-2xl font-bold text-esmerald dark:text-lemon">${{ formatMoney(sub.billing_amount) }}</p>
+                <p class="text-xs text-green-light">COP / {{ sub.plan_display.toLowerCase() }}</p>
+              </div>
             </div>
-            <div class="text-right">
-              <p class="text-3xl font-bold text-esmerald dark:text-lemon">${{ formatMoney(sub.billing_amount) }}</p>
-              <p class="text-xs text-green-light">COP / {{ sub.plan_display.toLowerCase() }}</p>
-              <p v-if="sub.discount_percent > 0" class="mt-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">{{ sub.discount_percent }}% de descuento</p>
+
+            <div class="mt-5 flex items-center gap-3 rounded-xl bg-emerald-50/60 px-4 py-3 dark:bg-emerald-900/15">
+              <svg class="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              <p class="text-sm text-emerald-700 dark:text-emerald-400">
+                Se renueva automáticamente el <strong>{{ formatDate(payStore.nextRenewalDate) }}</strong>
+              </p>
+            </div>
+
+            <div class="mt-4 flex items-center gap-3 text-[11px] text-green-light/50">
+              <span>Inicio: {{ formatDate(sub.start_date) }}</span>
+              <span v-if="sub.discount_percent > 0" class="font-medium text-emerald-600 dark:text-emerald-400">{{ sub.discount_percent }}% de descuento aplicado</span>
             </div>
           </div>
         </div>
 
-        <!-- Current billing period -->
-        <div class="mb-6" data-enter>
-          <!-- Up to date — no action needed -->
-          <div v-if="payStore.subscriptionUpToDate" class="rounded-2xl border border-emerald-500/20 bg-emerald-50/50 p-6 dark:border-emerald-500/15 dark:bg-emerald-900/10">
-            <div class="flex items-center gap-3">
-              <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
-                <svg class="h-5 w-5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              </span>
+        <!-- PENDING FIRST PAYMENT or NEEDS ACTION state -->
+        <div v-else data-enter>
+          <!-- Subscription header -->
+          <div class="mb-4 rounded-2xl border border-esmerald/[0.06] bg-white p-5 dark:border-white/[0.06] dark:bg-esmerald">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p class="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Suscripción al día</p>
-                <p class="text-xs text-emerald-600/70 dark:text-emerald-400/60">Tu suscripción se renueva automáticamente. Próximo cobro: {{ formatDate(sub.next_billing_date) }}</p>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-lg font-bold text-esmerald dark:text-white">Hosting {{ sub.plan_display }}</h2>
+                  <span class="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase" :class="subStatusClass(sub.status)">{{ sub.status_display }}</span>
+                </div>
+                <p class="mt-1 text-xs text-green-light">Inicio: {{ formatDate(sub.start_date) }}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-2xl font-bold text-esmerald dark:text-lemon">${{ formatMoney(sub.billing_amount) }}</p>
+                <p class="text-xs text-green-light">COP / {{ sub.plan_display.toLowerCase() }}</p>
               </div>
             </div>
           </div>
 
-          <!-- Current period needs attention -->
-          <div v-else-if="currentPayment" class="rounded-2xl border bg-white p-6 dark:bg-esmerald" :class="currentPeriodBorderClass">
+          <!-- Payment action card -->
+          <div v-if="currentPayment" class="mb-4 rounded-2xl border bg-white p-5 dark:bg-esmerald" :class="currentPeriodBorderClass">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div class="flex items-start gap-3">
                 <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" :class="paymentIconBg(currentPayment.status)">
                   <span class="text-base">{{ paymentIcon(currentPayment.status) }}</span>
                 </span>
                 <div>
-                  <p class="text-sm font-semibold text-esmerald dark:text-white">Período actual</p>
+                  <p class="text-sm font-semibold text-esmerald dark:text-white">
+                    {{ currentPayment.status === 'pending' ? 'Pago requerido' : currentPayment.status === 'processing' ? 'Procesando pago' : 'Acción requerida' }}
+                  </p>
                   <p class="mt-0.5 text-xs text-green-light">
                     {{ formatDate(currentPayment.billing_period_start) }} — {{ formatDate(currentPayment.billing_period_end) }}
                   </p>
-                  <span class="mt-1.5 inline-block rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="paymentStatusClass(currentPayment.status)">
-                    {{ paymentStatusLabel(currentPayment.status) }}
-                  </span>
-                  <p v-if="currentPayment.status === 'failed'" class="mt-1.5 text-xs text-red-500 dark:text-red-400">
-                    El cobro automático falló. Puedes renovar manualmente.
+                  <p v-if="currentPayment.status === 'failed'" class="mt-1 text-xs text-red-500 dark:text-red-400">
+                    El cobro falló. Intenta con otro método de pago.
                   </p>
-                  <p v-else-if="currentPayment.status === 'overdue'" class="mt-1.5 text-xs text-red-500 dark:text-red-400">
-                    Este cobro está vencido. Renueva para mantener tu servicio activo.
+                  <p v-else-if="currentPayment.status === 'overdue'" class="mt-1 text-xs text-red-500 dark:text-red-400">
+                    Cobro vencido. Renueva para mantener tu servicio.
                   </p>
-                  <p v-else-if="currentPayment.status === 'processing'" class="mt-1.5 text-xs text-blue-500 dark:text-blue-400">
-                    Tu pago está siendo procesado.
+                  <p v-else-if="currentPayment.status === 'processing'" class="mt-1 text-xs text-blue-500 dark:text-blue-400">
+                    Tu pago está siendo procesado. Esto puede tomar unos minutos.
                   </p>
                 </div>
               </div>
 
               <div class="flex items-center gap-4">
-                <div class="text-right">
-                  <p class="text-2xl font-bold text-esmerald dark:text-white">${{ formatMoney(currentPayment.amount) }}</p>
-                </div>
-
-                <div v-if="canPay(currentPayment)" class="shrink-0">
-                  <button
-                    type="button"
-                    :disabled="payStore.isUpdating"
-                    class="flex items-center gap-2 rounded-xl bg-lemon px-5 py-3 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50"
-                    @click="openCheckout(currentPayment)"
-                  >
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                    {{ currentPayment.status === 'failed' || currentPayment.status === 'overdue' ? 'Renovar' : 'Pagar ahora' }}
-                  </button>
-                </div>
+                <p class="text-2xl font-bold text-esmerald dark:text-white">${{ formatMoney(currentPayment.amount) }}</p>
+                <button
+                  v-if="canPay(currentPayment)"
+                  type="button"
+                  :disabled="payStore.isUpdating"
+                  class="flex shrink-0 items-center gap-2 rounded-xl bg-lemon px-5 py-3 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50"
+                  @click="openCheckout(currentPayment)"
+                >
+                  <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                  Pagar
+                </button>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Accepted payment methods -->
-        <div class="mb-6 rounded-2xl border border-esmerald/[0.06] bg-white px-6 py-4 dark:border-white/[0.06] dark:bg-esmerald" data-enter>
-          <p class="mb-3 text-[10px] font-semibold uppercase tracking-wider text-green-light/60">Medios de pago aceptados</p>
-          <div class="flex items-center gap-4">
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 p-1.5 dark:bg-white/[0.06]">
-              <img src="/images/payments/card.svg" alt="Tarjeta" class="h-6 w-6 text-green-light dark:invert dark:opacity-70" />
+          <!-- Payment methods (only when there's something to pay) -->
+          <div v-if="currentPayment && canPay(currentPayment)" class="mb-4 rounded-2xl border border-esmerald/[0.06] bg-white px-5 py-3 dark:border-white/[0.06] dark:bg-esmerald">
+            <div class="flex items-center gap-3">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]"><img src="/images/payments/card.svg" alt="Tarjeta" class="h-5 w-5 dark:invert dark:opacity-70" /></div>
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]"><img src="/images/payments/pse-seeklogo.png" alt="PSE" class="h-6 w-6 rounded object-contain" /></div>
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]"><img src="/images/payments/Nequi.jpeg" alt="Nequi" class="h-6 w-6 rounded object-contain" /></div>
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]"><img src="/images/payments/Bancolombia.png" alt="Bancolombia" class="h-6 w-6 rounded-full object-contain" /></div>
+              <span class="text-[10px] text-green-light/50">Procesado por Wompi</span>
             </div>
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]">
-              <img src="/images/payments/pse-seeklogo.png" alt="PSE" class="h-7 w-7 rounded object-contain" />
-            </div>
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]">
-              <img src="/images/payments/Nequi.jpeg" alt="Nequi" class="h-7 w-7 rounded object-contain" />
-            </div>
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]">
-              <img src="/images/payments/Bancolombia.png" alt="Bancolombia" class="h-7 w-7 rounded-full object-contain" />
-            </div>
-            <span class="text-[10px] text-green-light/50">Procesado de forma segura por Wompi</span>
           </div>
         </div>
 
@@ -270,12 +317,12 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
+import { usePlatformApi } from '~/composables/usePlatformApi'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformPaymentsStore } from '~/stores/platform-payments'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
-defineI18nRoute(false)
 useHead({
   title: 'Pagos — ProjectApp',
   script: [{ src: 'https://checkout.wompi.co/widget.js', async: true }],
@@ -283,15 +330,21 @@ useHead({
 usePageEntrance('#platform-project-payments')
 
 const route = useRoute()
+const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const payStore = usePlatformPaymentsStore()
 const projectsStore = usePlatformProjectsStore()
 
 const projectId = computed(() => route.params.id)
 const projectName = computed(() => projectsStore.currentProject?.name || 'Proyecto')
+const project = computed(() => projectsStore.currentProject)
 const sub = computed(() => payStore.currentSubscription)
 const currentPayment = computed(() => payStore.currentPeriodPayment)
 const showHistory = ref(false)
+
+const selectedPlan = ref(null)
+const isCreatingSub = ref(false)
+const planError = ref('')
 
 const checkoutPayment = ref(null)
 const selectedMethod = ref('card')
@@ -421,8 +474,19 @@ async function handleCardPay() {
     return
   }
 
-  if (result.data.transaction_status === 'APPROVED' || result.data.transaction_status === 'PENDING') {
+  if (result.data.transaction_status === 'APPROVED') {
     closeCheckout()
+    await payStore.fetchProjectSubscription(projectId.value)
+  } else if (result.data.transaction_status === 'PENDING') {
+    closeCheckout()
+    // Poll verify a few times — Wompi often approves within seconds
+    const txnId = result.data.transaction_id
+    const pid = result.data.payment_id
+    for (let i = 0; i < 3; i++) {
+      await new Promise((r) => setTimeout(r, 2000))
+      const v = await payStore.verifyTransaction(projectId.value, pid, txnId)
+      if (v.success && v.data?.payment_status === 'paid') break
+    }
     await payStore.fetchProjectSubscription(projectId.value)
   } else {
     checkoutError.value = `Transacción ${result.data.transaction_status}. Intenta con otro método de pago.`
@@ -459,6 +523,23 @@ async function handleWidgetPay() {
     }
     await payStore.fetchProjectSubscription(projectId.value)
   })
+}
+
+async function handleCreateSubscription() {
+  if (!selectedPlan.value) return
+  isCreatingSub.value = true
+  planError.value = ''
+
+  try {
+    const { post } = usePlatformApi()
+    await post(`projects/${projectId.value}/subscription/`, { plan: selectedPlan.value })
+    await payStore.fetchProjectSubscription(projectId.value)
+    selectedPlan.value = null
+  } catch (error) {
+    planError.value = error.response?.data?.detail || 'Error activando el plan de hosting.'
+  } finally {
+    isCreatingSub.value = false
+  }
 }
 
 onMounted(async () => {

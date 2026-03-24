@@ -14,43 +14,53 @@ export const usePlatformPaymentsStore = defineStore('platformPayments', {
 
   getters: {
     /**
-     * The single payment that represents the current billing cycle.
-     * Priority: overdue > failed > pending > processing.
-     * If none found, subscription is up to date.
+     * Payment that needs user action NOW:
+     * - overdue or failed: always show
+     * - processing: always show (waiting for confirmation)
+     * - pending: only show if due_date is within 7 days or past
      */
     currentPeriodPayment: (state) => {
-      const active = state.payments.filter((p) => ['overdue', 'failed', 'pending', 'processing'].includes(p.status))
-      if (active.length === 0) return null
-      const priority = { overdue: 0, failed: 1, pending: 2, processing: 3 }
-      active.sort((a, b) => (priority[a.status] ?? 9) - (priority[b.status] ?? 9))
-      return active[0]
+      const now = new Date()
+      const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+
+      const urgent = state.payments.filter((p) => {
+        if (['overdue', 'failed', 'processing'].includes(p.status)) return true
+        if (p.status === 'pending' && p.due_date) {
+          return new Date(p.due_date) <= sevenDaysFromNow
+        }
+        return false
+      })
+      if (urgent.length === 0) return null
+      const priority = { overdue: 0, failed: 1, processing: 2, pending: 3 }
+      urgent.sort((a, b) => (priority[a.status] ?? 9) - (priority[b.status] ?? 9))
+      return urgent[0]
     },
 
     /**
-     * All resolved payments (paid or failed in past cycles) sorted newest first.
+     * Next renewal date (from subscription or next pending payment).
+     */
+    nextRenewalDate: (state) => {
+      if (!state.currentSubscription) return null
+      return state.currentSubscription.next_billing_date
+    },
+
+    /**
+     * Past payments: all paid + failed, sorted newest first.
+     * Excludes the current urgent payment and future pending ones.
      */
     pastPayments: (state) => {
-      const currentActive = ['overdue', 'failed', 'pending', 'processing']
-      const activePay = state.payments.filter((p) => currentActive.includes(p.status))
-      // Sort active by priority to identify the "current" one
-      if (activePay.length > 0) {
-        const priority = { overdue: 0, failed: 1, pending: 2, processing: 3 }
-        activePay.sort((a, b) => (priority[a.status] ?? 9) - (priority[b.status] ?? 9))
-        const currentId = activePay[0].id
-        return state.payments
-          .filter((p) => p.id !== currentId)
-          .sort((a, b) => new Date(b.billing_period_start) - new Date(a.billing_period_start))
-      }
-      return [...state.payments].sort((a, b) => new Date(b.billing_period_start) - new Date(a.billing_period_start))
+      return state.payments
+        .filter((p) => p.status === 'paid' || p.status === 'failed')
+        .sort((a, b) => new Date(b.billing_period_start) - new Date(a.billing_period_start))
     },
 
     /**
-     * True when subscription is active and no payment action is needed.
+     * True when subscription is active and no payment action is needed right now.
      */
-    subscriptionUpToDate: (state) => {
-      if (!state.currentSubscription) return false
-      const needsAction = state.payments.some((p) => ['overdue', 'failed', 'pending'].includes(p.status))
-      return state.currentSubscription.status === 'active' && !needsAction
+    subscriptionUpToDate() {
+      if (!this.currentSubscription) return false
+      if (this.currentSubscription.status !== 'active') return false
+      return !this.currentPeriodPayment
     },
   },
 

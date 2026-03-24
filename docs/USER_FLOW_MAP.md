@@ -1934,14 +1934,151 @@
 - **Coverage:** ❌ Missing
 - **E2E Spec:** `e2e/platform/platform-profile.spec.js` (to be created)
 
-### 8.7 Platform Coverage Index
+### 8.7 Change Requests, Bug Reports & Deliverables
+
+#### FLOW: `platform-change-requests`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P2
+- **Routes:** `/platform/projects/:id/changes`, `/platform/changes`
+- **API:** `GET/POST /api/accounts/projects/:id/change-requests/`, `POST .../evaluate/`, `POST .../comments/`
+- **Description:** Client creates change requests for a project. Admin evaluates (approve/reject/needs clarification) with estimated cost and time. Both roles can comment. Per-project view and unified cross-project view.
+- **Steps:**
+  1. User navigates to `/platform/projects/:id/changes` or `/platform/changes`.
+  2. Change request list renders with status tabs and create button.
+  3. Client fills create form (title, description, module, priority, urgency, screenshot).
+  4. Admin evaluates: sets status, admin_response, estimated cost/time.
+  5. Both roles add comments on individual change requests.
+- **Branches:**
+  - [Branch A — Create] Client creates a change request → notification sent to admin.
+  - [Branch B — Evaluate] Admin evaluates → status changes → notification sent to client.
+  - [Branch C — Unified view] `/platform/changes` shows all change requests grouped by project.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-change-requests.spec.js` (to be created)
+
+#### FLOW: `platform-bug-reports`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P2
+- **Routes:** `/platform/projects/:id/bugs`, `/platform/bugs`
+- **API:** `GET/POST /api/accounts/projects/:id/bug-reports/`, `POST .../evaluate/`, `POST .../comments/`
+- **Description:** Both roles report bugs with severity, steps to reproduce, expected/actual behavior, device/browser, and screenshot. Admin evaluates with status changes and responses.
+- **Steps:**
+  1. User navigates to `/platform/projects/:id/bugs` or `/platform/bugs`.
+  2. Bug report list renders with status tabs and severity badges.
+  3. User fills create form (title, description, severity, steps, expected/actual behavior, environment, device, screenshot).
+  4. Admin evaluates: sets status, admin_response, linked_bug.
+  5. Both roles add comments.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-bug-reports.spec.js` (to be created)
+
+#### FLOW: `platform-deliverables`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P2
+- **Routes:** `/platform/projects/:id/deliverables`, `/platform/deliverables`
+- **API:** `GET/POST /api/accounts/projects/:id/deliverables/`, `POST .../upload-version/`
+- **Description:** Admin uploads deliverables (designs, documents, APKs, credentials) with version history. Client downloads files.
+- **Steps:**
+  1. User navigates to deliverables page.
+  2. Deliverable list renders with category filter tabs and file count.
+  3. Admin uploads a new deliverable (title, description, category, file).
+  4. Admin uploads new versions of existing deliverables.
+  5. Client views and downloads files.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-deliverables.spec.js` (to be created)
+
+### 8.8 Hosting & Payments
+
+#### FLOW: `platform-hosting-subscription`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P1
+- **Routes:** `/platform/projects/:id/payments`, `/platform/payments`
+- **API:** `GET/POST/PATCH /api/accounts/projects/:id/subscription/`, `GET /api/accounts/projects/:id/payments/`, `POST .../card-pay/`, `POST .../verify/`, `GET .../widget-data/`
+- **Description:** Client selects hosting plan (semiannual/quarterly/monthly), activates subscription, and pays via Wompi (card or widget). Admin sees subscription status. Netflix-style active state with next renewal date.
+- **Steps:**
+  1. Client navigates to `/platform/projects/:id/payments`.
+  2. If no subscription: hosting tier cards render (semiannual/quarterly/monthly with pricing).
+  3. Client selects plan and clicks "Activar plan de hosting" → `POST .../subscription/`.
+  4. Subscription created with first payment → payment action card appears.
+  5. Client pays via card form or Wompi widget.
+  6. After payment: Netflix-style "Suscripción activa" card with next renewal date.
+- **Branches:**
+  - [Branch A — Admin view] Admin sees subscription status (not plan selector).
+  - [Branch B — Up to date] Active subscription with no urgent payments shows clean green card.
+  - [Branch C — Payment due] Shows payment action 7 days before billing date.
+  - [Branch D — Unified view] `/platform/payments` shows all subscriptions across projects.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-hosting-subscription.spec.js` (to be created)
+
+### 8.9 Notifications
+
+#### FLOW: `platform-notifications`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P2
+- **Routes:** `/platform/notifications`
+- **API:** `GET /api/accounts/notifications/`, `PATCH .../mark-read/`, `POST .../mark-all-read/`, `GET .../unread-count/`
+- **Description:** In-app notification center with unread count badge in sidebar, filter tabs, mark-all-read, and click-to-navigate deep links.
+- **Steps:**
+  1. Sidebar badge shows unread notification count (polled every 30s).
+  2. User navigates to `/platform/notifications`.
+  3. Notification list renders with filter tabs (Todas/Sin leer/Leídas).
+  4. User clicks a notification → marked as read → navigates to relevant project module.
+  5. User clicks "Marcar todas como leídas" → all notifications marked read.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-notifications.spec.js` (to be created)
+
+### 8.10 Kanban Enhancements
+
+#### FLOW: `platform-kanban-json-upload`
+
+- **Module:** platform
+- **Role:** platform-admin
+- **Priority:** P2
+- **Routes:** `/platform/projects/:id/board`
+- **API:** `POST /api/accounts/projects/:id/requirements/bulk/`
+- **Description:** Admin bulk-creates requirements by uploading a JSON file. Includes downloadable example template.
+- **Steps:**
+  1. Admin clicks "Ejemplo" button → downloads `requerimientos-ejemplo.json` template.
+  2. Admin prepares JSON with requirements (title, description, configuration, flow).
+  3. Admin clicks "Subir JSON" → file picker opens → selects JSON file.
+  4. API creates requirements in bulk → success alert with count.
+  5. Backlog section updates with new cards.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-kanban-json-upload.spec.js` (to be created)
+
+#### FLOW: `platform-requirement-client-review`
+
+- **Module:** platform
+- **Role:** platform-client
+- **Priority:** P2
+- **Routes:** `/platform/projects/:id/board`
+- **Description:** Client reviews completed requirements. Clicking a done card shows: Approve, Request Change, or Report Bug.
+- **Steps:**
+  1. Client clicks a completed requirement in the "Completados" section.
+  2. Card detail modal opens showing description, configuration, flow, and review actions.
+  3. Client clicks "Aprobar" → requirement accepted.
+  4. Client clicks "Solicitar cambio" → navigates to change requests with pre-filled data.
+  5. Client clicks "Reportar bug" → navigates to bug reports with pre-filled data.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/platform/platform-requirement-client-review.spec.js` (to be created)
+
+### 8.11 Platform Coverage Index
 
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
 | `platform-login` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-login.spec.js` |
-| `platform-verify-onboarding` | platform | platform-admin/client | P1 | ❌ Missing | `e2e/platform/platform-verify.spec.js` |
+| `platform-verify-onboarding` | platform | platform-admin/client | P1 | ❌ Deferred | Requires OTP test infrastructure |
 | `platform-complete-profile` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-complete-profile.spec.js` |
 | `platform-kanban-board` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-kanban-board.spec.js` |
+| `platform-hosting-subscription` | platform | platform-admin/client | P1 | ❌ Missing | To be created |
 | `platform-dashboard` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-dashboard.spec.js` |
 | `platform-sidebar-navigation` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-sidebar.spec.js` |
 | `platform-project-list` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-project-list.spec.js` |
@@ -1950,14 +2087,21 @@
 | `platform-admin-client-list` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-admin-client-list.spec.js` |
 | `platform-admin-client-detail` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-admin-client-detail.spec.js` |
 | `platform-profile-edit` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-profile.spec.js` |
+| `platform-change-requests` | platform | platform-admin/client | P2 | ❌ Missing | To be created |
+| `platform-bug-reports` | platform | platform-admin/client | P2 | ❌ Missing | To be created |
+| `platform-deliverables` | platform | platform-admin/client | P2 | ❌ Missing | To be created |
+| `platform-notifications` | platform | platform-admin/client | P2 | ❌ Missing | To be created |
+| `platform-kanban-json-upload` | platform | platform-admin | P2 | ❌ Missing | To be created |
+| `platform-requirement-client-review` | platform | platform-client | P2 | ❌ Missing | To be created |
 | `platform-admin-project-create` | platform | platform-admin | P3 | ✅ Covered | `e2e/platform/platform-project-create.spec.js` |
 | `platform-kanban-card-comments` | platform | platform-admin/client | P3 | ✅ Covered | `e2e/platform/platform-kanban-comments.spec.js` |
 
 ### Platform Coverage Summary
 
-- **Total platform flows:** 14
-- **P1 (Critical):** 4
-- **P2 (High):** 8
+- **Total platform flows:** 21
+- **P1 (Critical):** 5
+- **P2 (High):** 14
 - **P3 (Medium):** 2
-- **Covered:** 13 (93%)
-- **Missing:** 1 (7%) — `platform-verify-onboarding` deferred (requires OTP test infrastructure)
+- **Covered:** 13 (62%)
+- **Missing:** 7 (33%) — new features without E2E specs yet
+- **Deferred:** 1 (5%) — `platform-verify-onboarding` (requires OTP test infrastructure)

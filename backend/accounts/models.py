@@ -232,6 +232,18 @@ class Project(models.Model):
     )
     start_date = models.DateField(null=True, blank=True)
     estimated_end_date = models.DateField(null=True, blank=True)
+    payment_milestones = models.JSONField(
+        default=list, blank=True,
+        help_text='Development payment milestones from proposal section 4 (admin-visible only).',
+    )
+    hosting_tiers = models.JSONField(
+        default=list, blank=True,
+        help_text='Hosting billing tiers from proposal (semiannual/quarterly/monthly with pricing).',
+    )
+    hosting_start_date = models.DateField(
+        null=True, blank=True,
+        help_text='Date when hosting billing should begin (set by admin).',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -288,10 +300,14 @@ class Requirement(models.Model):
     priority = models.CharField(
         max_length=20, choices=PRIORITY_CHOICES, default=PRIORITY_MEDIUM,
     )
-    estimated_hours = models.DecimalField(
-        max_digits=6, decimal_places=1, null=True, blank=True,
+    configuration = models.TextField(
+        blank=True, default='',
+        help_text='Role/privilege context for this requirement (e.g. "Only for admin role").',
     )
-    module = models.CharField(max_length=100, blank=True, default='')
+    flow = models.TextField(
+        blank=True, default='',
+        help_text='User flow description within the software for this requirement.',
+    )
     order = models.PositiveIntegerField(
         default=0, help_text='Sort order within the column.',
     )

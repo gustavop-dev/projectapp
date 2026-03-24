@@ -26,6 +26,12 @@ export const usePlatformRequirementsStore = defineStore('platformRequirements', 
       }))
     },
 
+    backlogCards: (state) => state.requirements
+      .filter((r) => r.status === 'backlog')
+      .sort((a, b) => a.order - b.order),
+
+    backlogCount: (state) => state.requirements.filter((r) => r.status === 'backlog').length,
+
     doneCards: (state) => state.requirements
       .filter((r) => r.status === 'done')
       .sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || '')),
@@ -182,6 +188,26 @@ export const usePlatformRequirementsStore = defineStore('platformRequirements', 
       } catch (error) {
         const message = error.response?.data?.detail || 'No pudimos agregar el comentario.'
         return { success: false, message }
+      }
+    },
+
+    async bulkUpload(projectId, items) {
+      this.isUpdating = true
+      this.error = ''
+
+      try {
+        const { post } = usePlatformApi()
+        const response = await post(`projects/${projectId}/requirements/bulk/`, items)
+        if (response.data.requirements) {
+          this.requirements.push(...response.data.requirements)
+        }
+        return { success: true, data: response.data }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'Error al cargar requerimientos.'
+        this.error = message
+        return { success: false, message }
+      } finally {
+        this.isUpdating = false
       }
     },
   },

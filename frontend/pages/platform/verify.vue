@@ -222,12 +222,14 @@ async function handleSubmit() {
     return
   }
 
+  const localePath = useLocalePath()
+
   if (authStore.needsProfileCompletion) {
-    await navigateTo('/platform/complete-profile')
+    await navigateTo(localePath('/platform/complete-profile'))
     return
   }
 
-  await navigateTo('/platform/dashboard')
+  await navigateTo(localePath('/platform/dashboard'))
 }
 
 async function handleResendCode() {

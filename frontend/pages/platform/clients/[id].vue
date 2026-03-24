@@ -1,7 +1,7 @@
 <template>
   <div id="platform-client-detail" class="space-y-6">
     <div data-enter>
-      <NuxtLink to="/platform/clients" class="inline-flex items-center text-sm font-medium text-green-light transition hover:text-esmerald dark:hover:text-white">
+      <NuxtLink :to="localePath('/platform/clients')" class="inline-flex items-center text-sm font-medium text-green-light transition hover:text-esmerald dark:hover:text-white">
         ← Volver a clientes
       </NuxtLink>
       <h1 class="mt-3 font-light text-3xl text-esmerald dark:text-white">Detalle del cliente</h1>
@@ -188,6 +188,7 @@ useHead({
 usePageEntrance('#platform-client-detail')
 
 const route = useRoute()
+const localePath = useLocalePath()
 const platformClientsStore = usePlatformClientsStore()
 const pageMessage = ref('')
 const pageMessageVariant = ref('success')

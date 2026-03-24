@@ -124,12 +124,15 @@ class Command(BaseCommand):
                 self._create_subscription(ecommerce_project)
             return
 
+        proposal = self._create_demo_proposal(client_user)
+
         today = date.today()
 
         ecommerce_project = Project.objects.create(
             name='Plataforma E-commerce',
             description='Desarrollo de tienda en línea con catálogo de productos, carrito de compras, pasarela de pagos y panel de administración.',
             client=client_user,
+            proposal=proposal,
             status=Project.STATUS_ACTIVE,
             progress=18,
             start_date=today - timedelta(days=30),
@@ -153,6 +156,159 @@ class Command(BaseCommand):
         self._create_bug_reports(ecommerce_project, client_user, admin_user)
         self._create_deliverables(ecommerce_project, admin_user)
         self._create_subscription(ecommerce_project)
+
+    def _create_demo_proposal(self, client_user):
+        """Create a demo BusinessProposal with investment + functional_requirements sections."""
+        from decimal import Decimal
+        from content.models import BusinessProposal, ProposalSection
+
+        existing = BusinessProposal.objects.filter(
+            client_name='TechStartup Co.', title__icontains='E-commerce',
+        ).first()
+        if existing:
+            self.stdout.write(f'  Demo proposal already exists: {existing.title}')
+            return existing
+
+        proposal = BusinessProposal.objects.create(
+            title='Propuesta Plataforma E-commerce — TechStartup Co.',
+            client_name='TechStartup Co.',
+            client_email=client_user.email,
+            client_phone='+57 300 123 4567',
+            language='es',
+            total_investment=Decimal('11000000'),
+            currency='COP',
+            hosting_percent=30,
+            hosting_discount_semiannual=20,
+            hosting_discount_quarterly=10,
+            status='accepted',
+            project_type='ecommerce',
+            market_type='b2c',
+        )
+
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='investment',
+            title='Inversi\u00f3n y Formas de Pago',
+            order=4,
+            content_json={
+                'index': '4',
+                'title': 'Inversi\u00f3n y Formas de Pago',
+                'introText': 'La inversi\u00f3n total para este proyecto es:',
+                'totalInvestment': '$11.000.000',
+                'currency': 'COP',
+                'paymentOptions': [
+                    {'label': '40% al firmar el contrato \u270d\ufe0f', 'description': '$4.400.000 COP'},
+                    {'label': '30% al aprobar el dise\u00f1o final \u2705', 'description': '$3.300.000 COP'},
+                    {'label': '30% al desplegar el sitio web \U0001f680', 'description': '$3.300.000 COP'},
+                ],
+                'hostingPlan': {
+                    'title': 'Hosting Cloud 1',
+                    'description': 'Infraestructura optimizada para alto rendimiento.',
+                    'hostingPercent': 30,
+                    'billingTiers': [
+                        {
+                            'frequency': 'semiannual',
+                            'months': 6,
+                            'discountPercent': 20,
+                            'label': 'Semestral',
+                            'badge': 'Mejor precio',
+                        },
+                        {
+                            'frequency': 'quarterly',
+                            'months': 3,
+                            'discountPercent': 10,
+                            'label': 'Trimestral',
+                            'badge': '10% dcto',
+                        },
+                        {
+                            'frequency': 'monthly',
+                            'months': 1,
+                            'discountPercent': 0,
+                            'label': 'Mensual',
+                            'badge': '',
+                        },
+                    ],
+                },
+                'whatsIncluded': [
+                    {'icon': '\U0001f3a8', 'title': 'Dise\u00f1o', 'description': 'UX/UI personalizado'},
+                    {'icon': '\u2699\ufe0f', 'title': 'Desarrollo', 'description': 'Frontend y backend a medida'},
+                    {'icon': '\U0001f680', 'title': 'Despliegue', 'description': 'Puesta en producci\u00f3n'},
+                ],
+            },
+        )
+
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='Requerimientos Funcionales del Proyecto',
+            order=9,
+            is_wide_panel=True,
+            content_json={
+                'index': '9',
+                'title': 'Requerimientos Funcionales del Proyecto',
+                'intro': 'A continuaci\u00f3n se detallan los requerimientos funcionales.',
+                'groups': [
+                    {
+                        'id': 'views',
+                        'icon': '\U0001f5a5\ufe0f',
+                        'title': 'Vistas',
+                        'is_visible': True,
+                        'description': 'Cada vista es una pantalla del sitio.',
+                        'items': [
+                            {'icon': '\U0001f3e0', 'name': 'Landing Page (P\u00e1gina Principal)', 'description': 'Primera impresi\u00f3n del sitio con propuesta de valor y CTA.'},
+                            {'icon': '\U0001f6d2', 'name': 'Cat\u00e1logo de Productos', 'description': 'Vista de productos con filtros por categor\u00eda, precio y b\u00fasqueda.'},
+                            {'icon': '\U0001f4e6', 'name': 'Detalle de Producto', 'description': 'Vista individual con im\u00e1genes, precio, descripci\u00f3n y bot\u00f3n agregar al carrito.'},
+                            {'icon': '\U0001f6d2', 'name': 'Carrito de Compras', 'description': 'Vista del carrito con productos, cantidades y total.'},
+                            {'icon': '\U0001f4b3', 'name': 'Checkout / Pago', 'description': 'Proceso de pago con datos de env\u00edo y pasarela.'},
+                            {'icon': '\U0001f464', 'name': 'Registro / Login', 'description': 'Autenticaci\u00f3n de usuarios con email y Google.'},
+                            {'icon': '\U0001f4dc', 'name': 'Historial de Compras', 'description': 'Listado de pedidos anteriores del usuario.'},
+                        ],
+                    },
+                    {
+                        'id': 'components',
+                        'icon': '\U0001f9e9',
+                        'title': 'Componentes',
+                        'is_visible': True,
+                        'description': 'Elementos reutilizables en m\u00faltiples secciones.',
+                        'items': [
+                            {'icon': '\U0001f51d', 'name': 'Header / Navegaci\u00f3n', 'description': 'Logo, men\u00fa de navegaci\u00f3n y carrito.'},
+                            {'icon': '\U0001f51a', 'name': 'Footer', 'description': 'Links, redes sociales, copyright.'},
+                            {'icon': '\U0001f3af', 'name': 'Carrusel de Productos Destacados', 'description': 'Slider de productos promocionados.'},
+                            {'icon': '\u2753', 'name': 'FAQ (Preguntas Frecuentes)', 'description': 'Secci\u00f3n de preguntas y respuestas.'},
+                        ],
+                    },
+                    {
+                        'id': 'features',
+                        'icon': '\u2699\ufe0f',
+                        'title': 'Funcionalidades Espec\u00edficas',
+                        'is_visible': True,
+                        'description': 'Funcionalidades interactivas del sitio.',
+                        'items': [
+                            {'icon': '\U0001f4f1', 'name': 'Dise\u00f1o Responsivo', 'description': 'Adaptaci\u00f3n perfecta a m\u00f3viles, tablets y escritorio.'},
+                            {'icon': '\U0001f50e', 'name': 'B\u00fasqueda con Filtros Din\u00e1micos', 'description': 'Filtros por categor\u00eda, precio y caracter\u00edsticas.'},
+                            {'icon': '\U0001f4ac', 'name': 'WhatsApp Directo', 'description': 'Bot\u00f3n de contacto directo por WhatsApp.'},
+                            {'icon': '\U0001f4e9', 'name': 'Notificaciones Autom\u00e1ticas', 'description': 'Emails de confirmaci\u00f3n de pedido y registro.'},
+                        ],
+                    },
+                    {
+                        'id': 'admin_module',
+                        'icon': '\U0001f6e0\ufe0f',
+                        'title': 'M\u00f3dulo Administrativo',
+                        'is_visible': True,
+                        'description': 'Panel para gestionar contenido sin depender de desarrollo.',
+                        'items': [
+                            {'icon': '\U0001f4c2', 'name': 'Gestor de Productos', 'description': 'CRUD de productos con im\u00e1genes y variantes.'},
+                            {'icon': '\U0001f5c2\ufe0f', 'name': 'Gestor de Categor\u00edas', 'description': 'Organizaci\u00f3n del cat\u00e1logo por categor\u00edas.'},
+                            {'icon': '\U0001f465', 'name': 'Gestor de Usuarios', 'description': 'Administraci\u00f3n de cuentas de clientes.'},
+                            {'icon': '\U0001f4dd', 'name': 'Gestor de Pedidos', 'description': 'Seguimiento y gesti\u00f3n de pedidos.'},
+                        ],
+                    },
+                ],
+            },
+        )
+
+        self.stdout.write(self.style.SUCCESS(f'  Created demo proposal: {proposal.title}'))
+        return proposal
 
     def _create_requirements(self, project):
         if Requirement.objects.filter(project=project).exists():

@@ -163,6 +163,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
             'start_date', 'estimated_end_date',
             'client_id', 'client_name', 'client_email', 'client_company',
             'proposal_id', 'proposal_title',
+            'hosting_start_date',
             'created_at', 'updated_at',
         ]
 
@@ -176,8 +177,25 @@ class ProjectListSerializer(serializers.ModelSerializer):
 
 
 class ProjectDetailSerializer(ProjectListSerializer):
+    payment_milestones = serializers.SerializerMethodField()
+    hosting_tiers = serializers.JSONField(read_only=True)
+    has_subscription = serializers.SerializerMethodField()
+
     class Meta(ProjectListSerializer.Meta):
-        fields = ProjectListSerializer.Meta.fields
+        fields = ProjectListSerializer.Meta.fields + [
+            'payment_milestones', 'hosting_tiers', 'has_subscription',
+        ]
+
+    def get_payment_milestones(self, obj):
+        """Only visible to admins."""
+        request = self.context.get('request')
+        profile = getattr(request.user, 'profile', None) if request else None
+        if profile and profile.is_admin:
+            return obj.payment_milestones or []
+        return []
+
+    def get_has_subscription(self, obj):
+        return hasattr(obj, 'hosting_subscription')
 
 
 class CreateProjectSerializer(serializers.Serializer):
@@ -191,10 +209,6 @@ class CreateProjectSerializer(serializers.Serializer):
     progress = serializers.IntegerField(min_value=0, max_value=100, default=0)
     start_date = serializers.DateField(required=False, allow_null=True)
     estimated_end_date = serializers.DateField(required=False, allow_null=True)
-    hosting_plan = serializers.ChoiceField(
-        choices=[('monthly', 'Mensual'), ('quarterly', 'Trimestral'), ('semiannual', 'Semestral')],
-        required=False, allow_null=True, default=None,
-    )
     hosting_start_date = serializers.DateField(required=False, allow_null=True)
 
     def validate_client_id(self, value):
@@ -258,8 +272,8 @@ class RequirementListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Requirement
         fields = [
-            'id', 'title', 'description', 'status', 'priority',
-            'estimated_hours', 'module', 'order',
+            'id', 'title', 'description', 'configuration', 'flow',
+            'status', 'priority', 'order',
             'comments_count', 'created_at', 'updated_at',
         ]
 
@@ -274,8 +288,8 @@ class RequirementDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Requirement
         fields = [
-            'id', 'title', 'description', 'status', 'priority',
-            'estimated_hours', 'module', 'order',
+            'id', 'title', 'description', 'configuration', 'flow',
+            'status', 'priority', 'order',
             'comments', 'history',
             'created_at', 'updated_at',
         ]
@@ -292,27 +306,23 @@ class RequirementDetailSerializer(serializers.ModelSerializer):
 class CreateRequirementSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=300)
     description = serializers.CharField(required=False, default='', allow_blank=True)
+    configuration = serializers.CharField(required=False, default='', allow_blank=True)
+    flow = serializers.CharField(required=False, default='', allow_blank=True)
     status = serializers.ChoiceField(
         choices=Requirement.STATUS_CHOICES, default=Requirement.STATUS_BACKLOG,
     )
     priority = serializers.ChoiceField(
         choices=Requirement.PRIORITY_CHOICES, default=Requirement.PRIORITY_MEDIUM,
     )
-    estimated_hours = serializers.DecimalField(
-        max_digits=6, decimal_places=1, required=False, allow_null=True,
-    )
-    module = serializers.CharField(max_length=100, required=False, default='', allow_blank=True)
 
 
 class UpdateRequirementSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=300, required=False)
     description = serializers.CharField(required=False, allow_blank=True)
+    configuration = serializers.CharField(required=False, allow_blank=True)
+    flow = serializers.CharField(required=False, allow_blank=True)
     status = serializers.ChoiceField(choices=Requirement.STATUS_CHOICES, required=False)
     priority = serializers.ChoiceField(choices=Requirement.PRIORITY_CHOICES, required=False)
-    estimated_hours = serializers.DecimalField(
-        max_digits=6, decimal_places=1, required=False, allow_null=True,
-    )
-    module = serializers.CharField(max_length=100, required=False, allow_blank=True)
     order = serializers.IntegerField(min_value=0, required=False)
 
 

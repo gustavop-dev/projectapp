@@ -30,7 +30,7 @@
             <div>
               <div class="flex items-center gap-2">
                 <NuxtLink
-                  :to="`/platform/projects/${sub.project_id}`"
+                  :to="localePath(`/platform/projects/${sub.project_id}`)"
                   class="text-base font-semibold text-esmerald transition hover:text-esmerald/70 dark:text-white dark:hover:text-lemon"
                 >
                   {{ sub.project_name }}
@@ -67,7 +67,7 @@
           </div>
 
           <NuxtLink
-            :to="`/platform/projects/${sub.project_id}/payments`"
+            :to="localePath(`/platform/projects/${sub.project_id}/payments`)"
             class="inline-flex items-center gap-1.5 text-xs font-medium text-esmerald transition hover:text-esmerald/70 dark:text-lemon dark:hover:text-lemon/80"
           >
             Ver suscripción
@@ -83,10 +83,11 @@
 import { onMounted } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
+
+const localePath = useLocalePath()
 import { usePlatformPaymentsStore } from '~/stores/platform-payments'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
-defineI18nRoute(false)
 useHead({ title: 'Pagos — ProjectApp' })
 usePageEntrance('#platform-payments')
 

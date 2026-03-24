@@ -90,7 +90,6 @@ import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformNotificationsStore } from '~/stores/platform-notifications'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
-defineI18nRoute(false)
 useHead({ title: 'Notificaciones — ProjectApp' })
 usePageEntrance('#platform-notifications')
 
@@ -146,6 +145,8 @@ function formatTimeAgo(dateStr) {
   return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
 }
 
+const localePath = useLocalePath()
+
 function getNotifRoute(notif) {
   if (!notif.project) return null
   const base = `/platform/projects/${notif.project}`
@@ -155,7 +156,7 @@ function getNotifRoute(notif) {
     requirement_moved: '/board', requirement_approved: '/board',
     deliverable_uploaded: '/deliverables', deliverable_new_version: '/deliverables',
   }
-  return base + (typeRoutes[notif.type] || '')
+  return localePath(base + (typeRoutes[notif.type] || ''))
 }
 
 async function handleNotifClick(notif) {

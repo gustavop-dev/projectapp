@@ -35,10 +35,11 @@ const mockRequirements = [
     id: 101,
     title: 'Diseño de landing page',
     description: 'Crear wireframes y diseño final de la landing page principal.',
+    configuration: 'Visible para todos los usuarios registrados.',
+    flow: 'Usuario abre la app → navega al home → ve la landing page con hero y CTA.',
     status: 'todo',
     priority: 'high',
-    module: 'Frontend',
-    estimated_hours: 16,
+    order: 0,
     comments_count: 2,
     created_at: '2025-01-15T10:00:00Z',
     history: [],
@@ -48,10 +49,11 @@ const mockRequirements = [
     id: 102,
     title: 'API de autenticación',
     description: 'JWT login + refresh + password reset endpoints.',
+    configuration: 'Todos los usuarios.',
+    flow: 'Usuario abre login → ingresa credenciales → recibe JWT → accede al dashboard.',
     status: 'in_progress',
     priority: 'critical',
-    module: 'Backend',
-    estimated_hours: 24,
+    order: 0,
     comments_count: 0,
     created_at: '2025-01-16T10:00:00Z',
     history: [{ id: 1, from_status: 'todo', to_status: 'in_progress', created_at: '2025-01-17T10:00:00Z' }],
@@ -61,10 +63,11 @@ const mockRequirements = [
     id: 103,
     title: 'Integración pasarela de pagos',
     description: 'Integrar Stripe para procesamiento de pagos.',
+    configuration: 'Solo rol: Administrador de pagos.',
+    flow: 'Admin navega a pagos → selecciona plan → ingresa tarjeta → confirma pago.',
     status: 'in_review',
     priority: 'medium',
-    module: 'Backend',
-    estimated_hours: 20,
+    order: 0,
     comments_count: 1,
     created_at: '2025-01-14T10:00:00Z',
     history: [],
@@ -74,10 +77,11 @@ const mockRequirements = [
     id: 104,
     title: 'Tests unitarios modelos',
     description: 'Cobertura de tests para todos los modelos.',
+    configuration: '',
+    flow: '',
     status: 'done',
     priority: 'low',
-    module: 'Backend',
-    estimated_hours: 8,
+    order: 0,
     comments_count: 0,
     created_at: '2025-01-10T10:00:00Z',
     history: [],
@@ -191,8 +195,7 @@ test.describe('Platform Kanban Board — Admin', () => {
     await page.getByText('Diseño de landing page').click();
 
     await expect(page.getByText('Crear wireframes y diseño final')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('Estado')).toBeVisible();
-    await expect(page.getByText('Estimado')).toBeVisible();
+    await expect(page.getByText('Descripción', { exact: false })).toBeVisible();
     await expect(page.getByText('Comentarios')).toBeVisible();
   });
 

@@ -440,6 +440,12 @@ def project_list_view(request):
         from content.models import BusinessProposal
         proposal = BusinessProposal.objects.filter(id=proposal_id).first()
 
+    # Extract proposal data before creating the project
+    payment_milestones = []
+    hosting_tiers = []
+    if proposal:
+        payment_milestones, hosting_tiers = _extract_proposal_financial_data(proposal)
+
     project = Project.objects.create(
         name=data['name'],
         description=data.get('description', ''),
@@ -449,12 +455,23 @@ def project_list_view(request):
         progress=data.get('progress', 0),
         start_date=data.get('start_date'),
         estimated_end_date=data.get('estimated_end_date'),
+        hosting_start_date=data.get('hosting_start_date'),
+        payment_milestones=payment_milestones,
+        hosting_tiers=hosting_tiers,
     )
 
-    hosting_plan = data.get('hosting_plan')
-    hosting_start_date = data.get('hosting_start_date')
-    if proposal and hosting_plan and hosting_start_date:
-        _create_subscription_from_proposal(project, proposal, hosting_plan, hosting_start_date)
+    from accounts.models import Notification
+    from accounts.services.notifications import notify
+    client = User.objects.get(id=data['client_id'])
+    notify(
+        user=client,
+        type=Notification.TYPE_GENERAL,
+        title=f'Nuevo proyecto: {project.name}',
+        message=f'Se creó el proyecto "{project.name}" para ti. Ya puedes acceder desde tu plataforma.',
+        project=project,
+        related_object_type='project',
+        related_object_id=project.id,
+    )
 
     return Response(
         ProjectDetailSerializer(project, context={'request': request}).data,
@@ -583,15 +600,65 @@ def requirement_list_view(request, project_id):
         project=proj,
         title=data['title'],
         description=data.get('description', ''),
+        configuration=data.get('configuration', ''),
+        flow=data.get('flow', ''),
         status=data.get('status', Requirement.STATUS_BACKLOG),
         priority=data.get('priority', Requirement.PRIORITY_MEDIUM),
-        estimated_hours=data.get('estimated_hours'),
-        module=data.get('module', ''),
         order=max_order,
     )
 
     _recalculate_project_progress(proj)
     return Response(RequirementListSerializer(req).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminRole])
+def requirement_bulk_upload_view(request, project_id):
+    """
+    Admin uploads a JSON array of requirements to create in bulk.
+    Expected format: [{ title, description?, configuration?, flow?, priority?, status? }, ...]
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    items = request.data
+    if not isinstance(items, list):
+        return Response(
+            {'detail': 'Se espera un array JSON de requerimientos.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if len(items) > 500:
+        return Response(
+            {'detail': 'Máximo 500 requerimientos por carga.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    created = []
+    order_offset = Requirement.objects.filter(project=proj).count()
+
+    for idx, item in enumerate(items):
+        if not isinstance(item, dict) or not item.get('title'):
+            continue
+
+        req = Requirement.objects.create(
+            project=proj,
+            title=item['title'][:300],
+            description=item.get('description', ''),
+            configuration=item.get('configuration', ''),
+            flow=item.get('flow', ''),
+            status=item.get('status', Requirement.STATUS_BACKLOG),
+            priority=item.get('priority', Requirement.PRIORITY_MEDIUM),
+            order=order_offset + idx,
+        )
+        created.append(req)
+
+    _recalculate_project_progress(proj)
+    return Response(
+        {'created': len(created), 'requirements': RequirementListSerializer(created, many=True).data},
+        status=status.HTTP_201_CREATED,
+    )
 
 
 @api_view(['GET', 'PATCH', 'DELETE'])
@@ -688,6 +755,30 @@ def requirement_move_view(request, project_id, req_id):
             to_status=new_status, changed_by=request.user,
         )
         _recalculate_project_progress(proj)
+
+        # Notifications
+        from accounts.models import Notification
+        from accounts.services.notifications import notify_project_admins, notify_project_client
+
+        status_labels = dict(Requirement.STATUS_CHOICES)
+        new_label = status_labels.get(new_status, new_status)
+
+        if new_status == Requirement.STATUS_DONE and not is_admin:
+            notify_project_admins(
+                proj, Notification.TYPE_REQUIREMENT_APPROVED,
+                f'Requerimiento aprobado: {req.title}',
+                message=f'{request.user.first_name} aprobó "{req.title}" en {proj.name}.',
+                related_object_type='requirement', related_object_id=req.id,
+                exclude_user=request.user,
+            )
+        elif is_admin:
+            notify_project_client(
+                proj, Notification.TYPE_REQUIREMENT_MOVED,
+                f'Requerimiento actualizado: {req.title}',
+                message=f'"{req.title}" se movió a "{new_label}" en {proj.name}.',
+                related_object_type='requirement', related_object_id=req.id,
+                exclude_user=request.user,
+            )
 
     return Response(RequirementListSerializer(req).data)
 
@@ -1556,6 +1647,85 @@ from accounts.serializers import (  # noqa: E402
 )
 
 
+def _extract_proposal_financial_data(proposal):
+    """
+    Extract payment milestones and hosting tiers from the proposal's
+    investment section (section_type='investment') content_json.
+    Returns (payment_milestones, hosting_tiers) as plain lists.
+    """
+    from content.models import ProposalSection
+    from decimal import Decimal
+
+    payment_milestones = []
+    hosting_tiers = []
+
+    try:
+        section = ProposalSection.objects.get(
+            proposal=proposal, section_type='investment',
+        )
+    except ProposalSection.DoesNotExist:
+        return payment_milestones, hosting_tiers
+
+    cj = section.content_json or {}
+
+    # --- Payment milestones (admin-visible only) ---
+    for opt in cj.get('paymentOptions', []):
+        payment_milestones.append({
+            'label': opt.get('label', ''),
+            'description': opt.get('description', ''),
+        })
+
+    # --- Hosting tiers (pricing for client plan selection) ---
+    hosting_plan = cj.get('hostingPlan', {})
+    base_percent = hosting_plan.get('hostingPercent', proposal.hosting_percent)
+    hosting_annual = float(proposal.total_investment) * base_percent / 100
+    base_monthly = round(hosting_annual / 12, 2)
+    currency = str(cj.get('currency', proposal.currency))
+
+    billing_tiers = hosting_plan.get('billingTiers', [])
+
+    if billing_tiers:
+        for tier in billing_tiers:
+            discount = tier.get('discountPercent', 0)
+            effective_monthly = round(base_monthly * (100 - discount) / 100, 2)
+            months = tier.get('months', 1)
+            hosting_tiers.append({
+                'frequency': tier.get('frequency', ''),
+                'months': months,
+                'label': tier.get('label', ''),
+                'badge': tier.get('badge', ''),
+                'discount_percent': discount,
+                'base_monthly': base_monthly,
+                'effective_monthly': effective_monthly,
+                'billing_amount': round(effective_monthly * months, 2),
+                'currency': currency,
+            })
+    else:
+        # Compute default tiers from proposal model fields
+        default_tiers = [
+            {'frequency': 'semiannual', 'months': 6, 'label': 'Semestral', 'badge': 'Mejor precio', 'discount': proposal.hosting_discount_semiannual},
+            {'frequency': 'quarterly', 'months': 3, 'label': 'Trimestral', 'badge': f'{proposal.hosting_discount_quarterly}% dcto' if proposal.hosting_discount_quarterly else '', 'discount': proposal.hosting_discount_quarterly},
+            {'frequency': 'monthly', 'months': 1, 'label': 'Mensual', 'badge': '', 'discount': 0},
+        ]
+        for tier in default_tiers:
+            discount = tier['discount']
+            effective_monthly = round(base_monthly * (100 - discount) / 100, 2)
+            months = tier['months']
+            hosting_tiers.append({
+                'frequency': tier['frequency'],
+                'months': months,
+                'label': tier['label'],
+                'badge': tier['badge'],
+                'discount_percent': discount,
+                'base_monthly': base_monthly,
+                'effective_monthly': effective_monthly,
+                'billing_amount': round(effective_monthly * months, 2),
+                'currency': currency,
+            })
+
+    return payment_milestones, hosting_tiers
+
+
 def _create_subscription_from_proposal(project, proposal, plan, start_date):
     """Create a HostingSubscription from a BusinessProposal's hosting pricing."""
     from decimal import Decimal
@@ -1570,6 +1740,8 @@ def _create_subscription_from_proposal(project, proposal, plan, start_date):
     }
     discount = discount_map.get(plan, 0)
 
+    from dateutil.relativedelta import relativedelta
+
     sub = HostingSubscription(
         project=project,
         plan=plan,
@@ -1581,7 +1753,107 @@ def _create_subscription_from_proposal(project, proposal, plan, start_date):
     )
     sub.calculate_amounts()
     sub.save()
+
+    # Create the first payment record
+    months = sub.billing_months
+    billing_end = start_date + relativedelta(months=months) - relativedelta(days=1)
+
+    Payment.objects.create(
+        subscription=sub,
+        amount=sub.billing_amount,
+        description=f'Hosting {sub.get_plan_display()} — {start_date} a {billing_end}',
+        billing_period_start=start_date,
+        billing_period_end=billing_end,
+        due_date=start_date,
+        status=Payment.STATUS_PENDING,
+    )
+
+    # Update next_billing_date to the start of the NEXT cycle
+    sub.next_billing_date = billing_end + relativedelta(days=1)
+    sub.save(update_fields=['next_billing_date'])
+
     return sub
+
+
+def _generate_next_payment(subscription):
+    """
+    Generate the next Payment record for a subscription's billing cycle.
+    Called after a payment is completed (auto-renewal) or when a subscription
+    is first created.
+    Skips if a pending/processing payment already exists for the next period.
+    """
+    from dateutil.relativedelta import relativedelta
+
+    # Check if there's already a pending/processing payment
+    existing = Payment.objects.filter(
+        subscription=subscription,
+        status__in=[Payment.STATUS_PENDING, Payment.STATUS_PROCESSING],
+    ).exists()
+    if existing:
+        return None
+
+    billing_start = subscription.next_billing_date
+    if not billing_start:
+        return None
+
+    months = subscription.billing_months
+    billing_end = billing_start + relativedelta(months=months) - relativedelta(days=1)
+
+    payment = Payment.objects.create(
+        subscription=subscription,
+        amount=subscription.billing_amount,
+        description=f'Hosting {subscription.get_plan_display()} — {billing_start} a {billing_end}',
+        billing_period_start=billing_start,
+        billing_period_end=billing_end,
+        due_date=billing_start,
+        status=Payment.STATUS_PENDING,
+    )
+    return payment
+
+
+def _handle_payment_approved(payment):
+    """
+    Common logic when a payment is approved (card-pay, verify, webhook).
+    Marks payment as paid, updates subscription, and generates next payment (auto-renewal).
+    """
+    from django.utils import timezone as tz
+    from dateutil.relativedelta import relativedelta
+
+    payment.status = Payment.STATUS_PAID
+    payment.paid_at = tz.now()
+    payment.save(update_fields=['wompi_transaction_id', 'status', 'paid_at'])
+
+    sub = payment.subscription
+    sub.next_billing_date = payment.billing_period_end + relativedelta(days=1)
+    if sub.status == HostingSubscription.STATUS_PENDING:
+        sub.status = HostingSubscription.STATUS_ACTIVE
+    sub.save(update_fields=['next_billing_date', 'status', 'updated_at'])
+
+    # Auto-renewal: generate the next billing cycle payment
+    _generate_next_payment(sub)
+
+    # Notify about payment
+    try:
+        from accounts.models import Notification
+        from accounts.services.notifications import notify, notify_project_admins
+        project = sub.project
+        notify(
+            user=project.client,
+            type=Notification.TYPE_GENERAL,
+            title='Pago confirmado',
+            message=f'Tu pago de ${payment.amount:,.0f} COP para "{project.name}" fue procesado exitosamente. Próxima renovación: {sub.next_billing_date}.',
+            project=project,
+            related_object_type='payment',
+            related_object_id=payment.id,
+        )
+        notify_project_admins(
+            project, Notification.TYPE_GENERAL,
+            f'Pago recibido: {project.name}',
+            message=f'{project.client.first_name} pagó ${payment.amount:,.0f} COP del hosting de "{project.name}".',
+            related_object_type='payment', related_object_id=payment.id,
+        )
+    except Exception:
+        logger.warning('Failed to create payment notifications for payment %s', payment.id)
 
 
 @api_view(['GET'])
@@ -1618,17 +1890,51 @@ def subscription_list_view(request):
     return Response(serializer.data)
 
 
-@api_view(['GET', 'PATCH'])
+@api_view(['GET', 'POST', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def project_subscription_view(request, project_id):
     """
-    GET  — Subscription detail with payments for a project.
-    PATCH — Admin updates plan/status.
+    GET  — Subscription detail with payments (admin or owning client).
+           Returns 404 if no subscription exists yet.
+    POST — Client (or admin) creates subscription by choosing a hosting plan.
+           Required: { plan: 'monthly'|'quarterly'|'semiannual' }
+           Only works if no subscription exists yet and project has a linked proposal.
+    PATCH — Change hosting plan (admin or client) or status (admin only).
     """
     proj, err = _get_project_or_403(request, project_id)
     if err:
         return err
 
+    # --- POST: create subscription ---
+    if request.method == 'POST':
+        if HostingSubscription.objects.filter(project=proj).exists():
+            return Response(
+                {'detail': 'Ya existe una suscripción de hosting para este proyecto.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not proj.proposal:
+            return Response(
+                {'detail': 'El proyecto no tiene una propuesta vinculada para calcular el hosting.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        plan = request.data.get('plan')
+        if plan not in dict(HostingSubscription.PLAN_CHOICES):
+            return Response(
+                {'detail': 'Plan inválido. Opciones: monthly, quarterly, semiannual.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from datetime import date
+        start_date = proj.hosting_start_date or date.today()
+        sub = _create_subscription_from_proposal(proj, proj.proposal, plan, start_date)
+        return Response(
+            HostingSubscriptionSerializer(sub).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    # --- GET / PATCH: existing subscription ---
     try:
         sub = HostingSubscription.objects.prefetch_related('payments').get(project=proj)
     except HostingSubscription.DoesNotExist:
@@ -1641,30 +1947,51 @@ def project_subscription_view(request, project_id):
         return Response(HostingSubscriptionSerializer(sub).data)
 
     profile = getattr(request.user, 'profile', None)
-    if not profile or not profile.is_admin:
-        return Response(
-            {'detail': 'Solo los administradores pueden modificar suscripciones.'},
-            status=status.HTTP_403_FORBIDDEN,
-        )
+    is_admin = profile and profile.is_admin
 
     serializer = UpdateSubscriptionSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
+    # Client can only change plan, not status
+    if 'status' in data and not is_admin:
+        return Response(
+            {'detail': 'Solo los administradores pueden cambiar el estado de la suscripción.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
     if 'plan' in data:
         sub.plan = data['plan']
-        discount_map = {
-            HostingSubscription.PLAN_MONTHLY: 0,
-            HostingSubscription.PLAN_QUARTERLY: 10,
-            HostingSubscription.PLAN_SEMIANNUAL: 20,
-        }
-        sub.discount_percent = discount_map.get(data['plan'], 0)
+        discount = _get_plan_discount(proj, data['plan'])
+        sub.discount_percent = discount
         sub.calculate_amounts()
     if 'status' in data:
         sub.status = data['status']
     sub.save()
 
     return Response(HostingSubscriptionSerializer(sub).data)
+
+
+def _get_plan_discount(project, plan):
+    """Get the discount % for a hosting plan from project.hosting_tiers or proposal defaults."""
+    # Try to find discount from stored hosting_tiers
+    for tier in (project.hosting_tiers or []):
+        if tier.get('frequency') == plan:
+            return tier.get('discount_percent', 0)
+    # Fallback to proposal if linked
+    if project.proposal:
+        discount_map = {
+            HostingSubscription.PLAN_MONTHLY: 0,
+            HostingSubscription.PLAN_QUARTERLY: project.proposal.hosting_discount_quarterly,
+            HostingSubscription.PLAN_SEMIANNUAL: project.proposal.hosting_discount_semiannual,
+        }
+        return discount_map.get(plan, 0)
+    # Hardcoded fallback
+    return {
+        HostingSubscription.PLAN_MONTHLY: 0,
+        HostingSubscription.PLAN_QUARTERLY: 10,
+        HostingSubscription.PLAN_SEMIANNUAL: 20,
+    }.get(plan, 0)
 
 
 @api_view(['GET'])
@@ -1846,20 +2173,13 @@ def payment_card_pay_view(request, project_id, payment_id):
         payment.wompi_transaction_id = str(txn_id)
 
         if txn_status == 'APPROVED':
-            payment.status = Payment.STATUS_PAID
-            payment.paid_at = tz.now()
-            sub = payment.subscription
-            from dateutil.relativedelta import relativedelta
-            sub.next_billing_date = payment.billing_period_end + relativedelta(days=1)
-            if sub.status == HostingSubscription.STATUS_PENDING:
-                sub.status = HostingSubscription.STATUS_ACTIVE
-            sub.save(update_fields=['next_billing_date', 'status', 'updated_at'])
+            _handle_payment_approved(payment)
         elif txn_status == 'PENDING':
             payment.status = Payment.STATUS_PROCESSING
+            payment.save(update_fields=['wompi_transaction_id', 'status'])
         elif txn_status in ('DECLINED', 'ERROR', 'VOIDED'):
             payment.status = Payment.STATUS_FAILED
-
-        payment.save(update_fields=['wompi_transaction_id', 'status', 'paid_at'])
+            payment.save(update_fields=['wompi_transaction_id', 'status'])
 
         return Response({
             'payment_id': payment.id,
@@ -1921,20 +2241,12 @@ def payment_verify_transaction_view(request, project_id, payment_id):
     payment.wompi_transaction_id = str(transaction_id)
 
     if txn_status == 'APPROVED':
-        payment.status = Payment.STATUS_PAID
-        payment.paid_at = tz.now()
-
-        sub = payment.subscription
-        from dateutil.relativedelta import relativedelta
-        sub.next_billing_date = payment.billing_period_end + relativedelta(days=1)
-        if sub.status == HostingSubscription.STATUS_PENDING:
-            sub.status = HostingSubscription.STATUS_ACTIVE
-        sub.save(update_fields=['next_billing_date', 'status', 'updated_at'])
-
+        _handle_payment_approved(payment)
     elif txn_status in ('DECLINED', 'ERROR', 'VOIDED'):
         payment.status = Payment.STATUS_FAILED
-
-    payment.save(update_fields=['wompi_transaction_id', 'status', 'paid_at'])
+        payment.save(update_fields=['wompi_transaction_id', 'status'])
+    else:
+        payment.save(update_fields=['wompi_transaction_id'])
 
     logger.info('Payment %s verified — Wompi status: %s', payment.id, txn_status)
 
@@ -2003,19 +2315,11 @@ def wompi_webhook_view(request):
     payment.wompi_transaction_id = str(transaction_id)
 
     if transaction_status == 'APPROVED':
-        payment.status = Payment.STATUS_PAID
-        payment.paid_at = tz.now()
-
-        sub = payment.subscription
-        from dateutil.relativedelta import relativedelta
-        sub.next_billing_date = payment.billing_period_end + relativedelta(days=1)
-        if sub.status == HostingSubscription.STATUS_PENDING:
-            sub.status = HostingSubscription.STATUS_ACTIVE
-        sub.save(update_fields=['next_billing_date', 'status', 'updated_at'])
-
+        _handle_payment_approved(payment)
     elif transaction_status in ('DECLINED', 'ERROR', 'VOIDED'):
         payment.status = Payment.STATUS_FAILED
-
-    payment.save(update_fields=['wompi_transaction_id', 'status', 'paid_at'])
+        payment.save(update_fields=['wompi_transaction_id', 'status'])
+    else:
+        payment.save(update_fields=['wompi_transaction_id'])
 
     return Response({'status': 'ok'})

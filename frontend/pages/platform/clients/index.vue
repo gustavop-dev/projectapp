@@ -88,7 +88,7 @@
               <td class="px-6 py-4">
                 <div class="flex flex-wrap gap-2">
                   <NuxtLink
-                    :to="`/platform/clients/${client.user_id}`"
+                    :to="localePath(`/platform/clients/${client.user_id}`)"
                     class="rounded-full border border-esmerald/10 px-3 py-1.5 text-xs text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
                   >
                     Detalle
@@ -200,6 +200,8 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import ConfirmModal from '~/components/ConfirmModal.vue'
 import { useConfirmModal } from '~/composables/useConfirmModal'
+
+const localePath = useLocalePath()
 import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformClientsStore } from '~/stores/platform-clients'
 
