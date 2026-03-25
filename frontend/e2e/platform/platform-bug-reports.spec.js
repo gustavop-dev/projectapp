@@ -90,9 +90,9 @@ test.describe('Platform Bug Reports — Client', () => {
     await page.goto('/platform/projects/1/bugs', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: /reporte de bugs/i }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await page.getByRole('button', { name: /reportar|nuevo/i }).click();
-    await page.getByPlaceholder(/título/i).fill('New bug report');
-    await page.getByRole('button', { name: /enviar|crear|reportar/i }).last().click();
+    await page.getByRole('button', { name: /reportar bug/i }).click();
+    await page.getByPlaceholder('¿Qué está fallando?').fill('New bug report');
+    await page.getByRole('button', { name: /reportar bug/i }).last().click();
   });
 });
 

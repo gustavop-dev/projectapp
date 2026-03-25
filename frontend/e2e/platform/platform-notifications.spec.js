@@ -93,14 +93,14 @@ test.describe('Platform Notifications — Admin', () => {
     await expect(page.getByRole('button', { name: /leídas/i })).toBeVisible();
   });
 
-  test('mark all as read button is visible', {
+  test('shows unread count in header', {
     tag: [...PLATFORM_NOTIFICATIONS, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/notifications', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: /notificaciones/i }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await expect(page.getByRole('button', { name: /marcar todas/i })).toBeVisible();
+    await expect(page.getByText(/sin leer/i)).toBeVisible();
   });
 });
 

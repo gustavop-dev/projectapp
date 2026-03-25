@@ -80,7 +80,7 @@ test.describe('Platform Admin Project Create', () => {
     await expect(page.getByRole('heading', { name: 'Nuevo proyecto' })).toBeVisible();
     await expect(page.getByPlaceholder(/plataforma e-commerce/i)).toBeVisible();
     // 'Selecciona un cliente' is a disabled <option> inside select — verify the select exists
-    await expect(page.getByRole('combobox')).toBeVisible();
+    await expect(page.getByRole('combobox').first()).toBeVisible();
   });
 
   test('create button is disabled when required fields are empty', {
@@ -103,7 +103,7 @@ test.describe('Platform Admin Project Create', () => {
 
     await page.getByRole('button', { name: /nuevo proyecto/i }).click();
     await page.getByPlaceholder(/plataforma e-commerce/i).fill('New Project');
-    await page.locator('select').selectOption({ value: '9002' });
+    await page.locator('select').first().selectOption({ value: '9002' });
     await page.getByRole('button', { name: /crear proyecto/i }).click();
 
     await expect(page.getByRole('heading', { name: 'Nuevo proyecto' })).not.toBeVisible({ timeout: 5000 });

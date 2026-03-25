@@ -126,14 +126,16 @@ class TestRequirementCreate:
             'description': 'Do something.',
             'priority': 'high',
             'status': 'todo',
-            'module': 'Backend',
+            'configuration': 'Solo rol: Admin',
+            'flow': 'Admin abre panel → crea tarea.',
         }, format='json', **admin_headers)
 
         assert resp.status_code == 201
         data = resp.json()
         assert data['title'] == 'New Task'
         assert data['priority'] == 'high'
-        assert data['module'] == 'Backend'
+        assert data['configuration'] == 'Solo rol: Admin'
+        assert data['flow'] == 'Admin abre panel → crea tarea.'
 
     def test_create_requirement_recalculates_project_progress(self, api_client, admin_headers, project):
         Requirement.objects.create(project=project, title='Done', status='done', order=0)

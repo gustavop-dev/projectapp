@@ -30,28 +30,32 @@ const mockProject = {
   has_subscription: false,
 };
 
+// Use dynamic dates so the subscriptionUpToDate getter works regardless of when tests run
+function futureDate(daysFromNow) {
+  const d = new Date(); d.setDate(d.getDate() + daysFromNow);
+  return d.toISOString().split('T')[0];
+}
+function pastDate(daysAgo) {
+  const d = new Date(); d.setDate(d.getDate() - daysAgo);
+  return d.toISOString().split('T')[0];
+}
+
 const mockSubscription = {
   id: 1, plan: 'quarterly', plan_display: 'Trimestral',
   base_monthly_amount: '250000.00', discount_percent: 10,
   effective_monthly_amount: '225000.00', billing_amount: '675000.00',
   status: 'active', status_display: 'Activa',
-  start_date: '2025-04-01', next_billing_date: '2025-07-01',
+  start_date: pastDate(30), next_billing_date: futureDate(60),
   project_id: 1, project_name: 'E-commerce Platform',
   payments: [
     {
       id: 1, amount: '675000.00', description: 'Hosting Trimestral',
-      billing_period_start: '2025-04-01', billing_period_end: '2025-06-30',
-      due_date: '2025-04-01', status: 'paid', paid_at: '2025-04-01T12:00:00Z',
-      wompi_payment_link_url: null, project_id: 1, project_name: 'E-commerce Platform',
-    },
-    {
-      id: 2, amount: '675000.00', description: 'Hosting Trimestral',
-      billing_period_start: '2025-07-01', billing_period_end: '2025-09-30',
-      due_date: '2025-07-01', status: 'pending', paid_at: null,
+      billing_period_start: pastDate(30), billing_period_end: futureDate(60),
+      due_date: pastDate(30), status: 'paid', paid_at: pastDate(30) + 'T12:00:00Z',
       wompi_payment_link_url: null, project_id: 1, project_name: 'E-commerce Platform',
     },
   ],
-  created_at: '2025-04-01T10:00:00Z', updated_at: '2025-04-01T10:00:00Z',
+  created_at: pastDate(30) + 'T10:00:00Z', updated_at: pastDate(30) + 'T10:00:00Z',
 };
 
 const meResponse = (user) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(user) });
@@ -141,8 +145,8 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
     await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: /suscripción/i }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await expect(page.getByText('Suscripción activa')).toBeVisible();
-    await expect(page.getByText(/se renueva automáticamente/i)).toBeVisible();
+    await expect(page.getByText(/suscripción activa/i)).toBeVisible();
+    await expect(page.getByText(/renueva automáticamente/i)).toBeVisible();
   });
 });
 
@@ -169,6 +173,6 @@ test.describe('Platform Hosting Subscription — Admin view', () => {
     await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: /suscripción/i }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await expect(page.getByText('Suscripción activa')).toBeVisible();
+    await expect(page.getByText(/suscripción activa/i)).toBeVisible();
   });
 });

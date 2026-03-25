@@ -572,7 +572,7 @@ class TestChangeRequestConvert:
         assert req.title == approved_cr.title
         assert req.status == Requirement.STATUS_TODO
         assert req.priority == approved_cr.suggested_priority
-        assert req.module == approved_cr.module_or_screen
+        assert approved_cr.module_or_screen in req.configuration
 
     def test_convert_recalculates_project_progress(
         self, api_client, admin_headers, project, sample_change_requests,

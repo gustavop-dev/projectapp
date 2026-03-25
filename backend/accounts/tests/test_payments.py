@@ -609,7 +609,7 @@ def proposal_with_sections():
 
 @pytest.mark.django_db
 class TestAutoCreateRequirements:
-    def test_requirements_created_from_proposal_sections(
+    def test_no_requirements_auto_created_from_proposal(
         self, api_client, admin_headers, client_user, proposal_with_sections,
     ):
         resp = api_client.post('/api/accounts/projects/', {
@@ -620,17 +620,11 @@ class TestAutoCreateRequirements:
 
         assert resp.status_code == 201
         project = Project.objects.get(id=resp.json()['id'])
-        reqs = project.requirements.all().order_by('order')
+        reqs = project.requirements.all()
 
-        assert reqs.count() == 3
-        assert reqs[0].title == 'Landing Page'
-        assert reqs[0].module == 'Vistas'
-        assert reqs[1].title == 'Catálogo'
-        assert reqs[1].module == 'Vistas'
-        assert reqs[2].title == 'Responsive Design'
-        assert reqs[2].module == 'Funcionalidades'
+        assert reqs.count() == 0
 
-    def test_hidden_groups_skipped(
+    def test_project_from_proposal_has_no_hidden_requirements(
         self, api_client, admin_headers, client_user, proposal_with_sections,
     ):
         resp = api_client.post('/api/accounts/projects/', {
@@ -640,23 +634,19 @@ class TestAutoCreateRequirements:
         }, format='json', **admin_headers)
 
         project = Project.objects.get(id=resp.json()['id'])
-        titles = list(project.requirements.values_list('title', flat=True))
+        assert project.requirements.count() == 0
 
-        assert 'Should Not Appear' not in titles
-
-    def test_all_requirements_start_in_backlog(
+    def test_project_from_proposal_stores_milestones(
         self, api_client, admin_headers, client_user, proposal_with_sections,
     ):
         resp = api_client.post('/api/accounts/projects/', {
-            'name': 'Backlog Test',
+            'name': 'Milestones Check',
             'client_id': client_user.id,
             'proposal_id': proposal_with_sections.id,
         }, format='json', **admin_headers)
 
         project = Project.objects.get(id=resp.json()['id'])
-        statuses = set(project.requirements.values_list('status', flat=True))
-
-        assert statuses == {'backlog'}
+        assert project.payment_milestones is not None
 
 
 # =========================================================================

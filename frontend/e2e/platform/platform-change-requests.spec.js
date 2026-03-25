@@ -89,9 +89,9 @@ test.describe('Platform Change Requests — Client', () => {
     await page.goto('/platform/projects/1/changes', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: /solicitudes de cambio/i }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await page.getByRole('button', { name: /nueva solicitud|solicitar/i }).click();
-    await page.getByPlaceholder(/título/i).fill('New change request');
-    await page.getByRole('button', { name: /enviar|crear/i }).click();
+    await page.getByRole('button', { name: /nueva solicitud/i }).click();
+    await page.getByPlaceholder('¿Qué cambio necesitas?').fill('New change request');
+    await page.getByRole('button', { name: /crear solicitud/i }).click();
   });
 });
 

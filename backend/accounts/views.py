@@ -1090,9 +1090,9 @@ def change_request_convert_view(request, project_id, cr_id):
         project=proj,
         title=cr.title,
         description=cr.description,
+        configuration=f'Originado de solicitud de cambio #{cr.id} — módulo: {cr.module_or_screen}',
         status=Requirement.STATUS_TODO,
         priority=cr.suggested_priority,
-        module=cr.module_or_screen,
         order=max_order,
     )
 
