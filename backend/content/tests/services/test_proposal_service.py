@@ -234,17 +234,52 @@ class TestGetDefaultSections:
         }
 
     def test_kpi_dashboard_module_is_not_calculator_module(self):
-        """Verify kpi_dashboard_module is included by default but not a calculator module."""
+        """Verify kpi_dashboard_module is a regular group (selected by default, not a calculator module)."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         kpi = next(g for g in fr['content_json']['groups'] if g['id'] == 'kpi_dashboard_module')
         assert 'is_calculator_module' not in kpi
-        assert 'default_selected' not in kpi
-        assert 'price_percent' not in kpi
+        assert kpi['selected'] is True
+        assert kpi['price_percent'] == 16
         assert len(kpi['items']) == 4
         item_names = [i['name'] for i in kpi['items']]
         assert 'Metas y objetivos' not in item_names
         assert any('CSV' in i['description'] for i in kpi['items'] if i['name'] == 'Exportación de reportes')
+
+    def test_all_regular_groups_have_selected_and_price_percent(self):
+        """Verify all 6 regular groups have selected=True and price_percent summing to 100."""
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        regular_ids = {'views', 'components', 'features', 'admin_module', 'analytics_dashboard', 'kpi_dashboard_module'}
+        regular_groups = [g for g in fr['content_json']['groups'] if g['id'] in regular_ids]
+        assert len(regular_groups) == 6
+        total_percent = 0
+        for g in regular_groups:
+            assert g['selected'] is True, f"Group {g['id']} should have selected=True"
+            assert g['price_percent'] > 0, f"Group {g['id']} should have price_percent > 0"
+            total_percent += g['price_percent']
+        assert total_percent == 100
+
+    def test_all_calculator_modules_have_selected_false(self):
+        """Verify all calculator module groups have selected=False."""
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        for g in fr['content_json']['groups']:
+            if g.get('is_calculator_module'):
+                assert g['selected'] is False, f"Calculator module {g['id']} should have selected=False"
+
+    def test_en_regular_groups_match_es_selected_and_price_percent(self):
+        """Verify EN regular groups have same selected and price_percent values as ES."""
+        es = ProposalService.get_default_sections('es')
+        en = ProposalService.get_default_sections('en')
+        es_fr = next(s for s in es if s['section_type'] == 'functional_requirements')
+        en_fr = next(s for s in en if s['section_type'] == 'functional_requirements')
+        regular_ids = {'views', 'components', 'features', 'admin_module', 'analytics_dashboard', 'kpi_dashboard_module'}
+        for gid in regular_ids:
+            es_g = next(g for g in es_fr['content_json']['groups'] if g['id'] == gid)
+            en_g = next(g for g in en_fr['content_json']['groups'] if g['id'] == gid)
+            assert es_g['selected'] == en_g['selected'], f"selected mismatch for {gid}"
+            assert es_g['price_percent'] == en_g['price_percent'], f"price_percent mismatch for {gid}"
 
     def test_i18n_module_has_5_items_and_15_percent(self):
         """Verify i18n_module: 5 items, price_percent 15."""
