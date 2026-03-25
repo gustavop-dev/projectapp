@@ -12,12 +12,13 @@ ExecStart=/home/ryzepeck/webapps/projectapp/backend/venv/bin/gunicorn \
     --workers 2 \
     --max-requests 800 \
     --max-requests-jitter 80 \
-    --timeout 120 \
+    --timeout 30 \
+    --graceful-timeout 20 \
     --bind unix:/run/projectapp.sock \
     projectapp.wsgi:application
 Environment="DJANGO_SETTINGS_MODULE=projectapp.settings_prod"
-Restart=on-failure
-RestartSec=5
+Restart=always
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
