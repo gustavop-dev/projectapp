@@ -324,6 +324,8 @@ DEFAULT_SECTIONS = [
                     'icon': '🖥️',
                     'title': 'Vistas',
                     'is_visible': True,
+                    'selected': True,
+                    'price_percent': 17,
                     'description': (
                         'Cada vista es una pantalla o sección del sitio. Su propósito es guiar al visitante '
                         'para conocer la propuesta de valor y facilitar el contacto o la acción deseada.'
@@ -349,6 +351,8 @@ DEFAULT_SECTIONS = [
                     'icon': '🧩',
                     'title': 'Componentes',
                     'is_visible': True,
+                    'selected': True,
+                    'price_percent': 17,
                     'description': (
                         'Los componentes son elementos visuales o funcionales que se reutilizan en varias '
                         'secciones del sitio. Esto mantiene una experiencia coherente y optimiza el desarrollo.'
@@ -366,6 +370,8 @@ DEFAULT_SECTIONS = [
                     'icon': '⚙️',
                     'title': 'Funcionalidades Específicas',
                     'is_visible': True,
+                    'selected': True,
+                    'price_percent': 17,
                     'description': (
                         'Las funcionalidades son acciones o comportamientos interactivos del sitio web. '
                         'Le dan vida y dinamismo a la página, permitiendo que funcione de forma práctica y útil.'
@@ -384,6 +390,8 @@ DEFAULT_SECTIONS = [
                     'icon': '🛠️',
                     'title': 'Módulo Administrativo',
                     'is_visible': True,
+                    'selected': True,
+                    'price_percent': 17,
                     'description': (
                         'El módulo administrativo permite gestionar el contenido y la operación del sitio '
                         'sin depender de desarrollo técnico.'
@@ -401,6 +409,8 @@ DEFAULT_SECTIONS = [
                     'icon': '📊',
                     'title': 'Módulo de Analítica',
                     'is_visible': True,
+                    'selected': True,
+                    'price_percent': 16,
                     'description': (
                         'Dashboard de reportes inteligentes y métricas en tiempo real para entender '
                         'el comportamiento de los visitantes y tomar decisiones basadas en datos.'
@@ -465,6 +475,8 @@ DEFAULT_SECTIONS = [
                     'icon': '📊',
                     'title': 'Dashboard de KPIs y Métricas',
                     'is_visible': True,
+                    'selected': True,
+                    'price_percent': 16,
                     'description': (
                         'Panel de control complementario al módulo de analítica, con indicadores '
                         'clave de rendimiento en tiempo real para monitorear la salud de tu '
@@ -489,6 +501,7 @@ DEFAULT_SECTIONS = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 40,
                     'items': [
                         {'icon': '📲', 'name': 'Instalación en dispositivo', 'description': 'Los usuarios pueden instalar tu sitio como una app en su celular o computador, con acceso directo desde la pantalla de inicio.'},
@@ -510,6 +523,7 @@ DEFAULT_SECTIONS = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 0,
                     'is_invite': True,
                     'invite_note': (
@@ -545,6 +559,7 @@ DEFAULT_SECTIONS = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 0,
                     'is_invite': True,
                     'invite_note': (
@@ -576,6 +591,7 @@ DEFAULT_SECTIONS = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 60,
                     'is_invite': False,
                     'items': [
@@ -597,6 +613,7 @@ DEFAULT_SECTIONS = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 20,
                     'is_invite': False,
                     'items': [
@@ -615,6 +632,7 @@ DEFAULT_SECTIONS = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 20,
                     'is_invite': False,
                     'items': [
@@ -635,6 +653,7 @@ DEFAULT_SECTIONS = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 10,
                     'items': [
                         {'icon': '📬', 'name': 'Captura de leads', 'description': 'Formularios optimizados y pop-ups inteligentes para capturar emails de visitantes interesados en tu contenido o productos.'},
@@ -655,6 +674,7 @@ DEFAULT_SECTIONS = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 20,
                     'items': [
                         {'icon': '📧', 'name': 'Reportes automáticos por correo', 'description': 'Recibe resúmenes periódicos con las métricas clave de tu negocio directamente en tu bandeja de entrada, sin tener que entrar al sistema.'},
@@ -677,6 +697,7 @@ DEFAULT_SECTIONS = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 15,
                     'items': [
                         {'icon': '🌐', 'name': 'Soporte multi-idioma nativo', 'description': 'Estructura preparada para servir todo el contenido del sitio en dos o más idiomas, con selector de idioma visible y persistencia de preferencia del usuario.'},
@@ -699,6 +720,7 @@ DEFAULT_SECTIONS = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 20,
                     'items': [
                         {'icon': '💳', 'name': 'Creación y venta de gift cards', 'description': 'Los clientes pueden comprar tarjetas de regalo digitales con saldo configurable directamente desde tu sitio web, con proceso de pago integrado.'},
@@ -721,6 +743,7 @@ DEFAULT_SECTIONS = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 20,
                     'items': [
                         {'icon': '🎨', 'name': 'Paleta de colores dual', 'description': 'Diseño de dos sistemas de color completos (claro y oscuro) con variables CSS que se alternan de forma instantánea, manteniendo coherencia visual en ambos modos.'},
@@ -744,6 +767,7 @@ DEFAULT_SECTIONS = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 40,
                     'items': [
                         {'icon': '🔌', 'name': 'Widget de chat embebido', 'description': 'Componente flotante integrado en el sitio web que permite al visitante iniciar una conversación en tiempo real sin salir de la página que está navegando.'},
@@ -1309,6 +1333,8 @@ DEFAULT_SECTIONS_EN = [
                     'icon': '🖥️',
                     'title': 'Views',
                     'is_visible': True,
+                    'selected': True,
+                    'price_percent': 17,
                     'description': (
                         'Each view is a screen or section of the website. Its purpose is to guide the visitor '
                         'to understand the value proposition and facilitate contact or the desired action.'
@@ -1334,6 +1360,8 @@ DEFAULT_SECTIONS_EN = [
                     'icon': '🧩',
                     'title': 'Components',
                     'is_visible': True,
+                    'selected': True,
+                    'price_percent': 17,
                     'description': (
                         'Components are visual or functional elements reused across multiple sections '
                         'of the site. This ensures a coherent experience and optimizes development.'
@@ -1351,6 +1379,8 @@ DEFAULT_SECTIONS_EN = [
                     'icon': '⚙️',
                     'title': 'Specific Features',
                     'is_visible': True,
+                    'selected': True,
+                    'price_percent': 17,
                     'description': (
                         'Features are interactive actions or behaviors of the website. '
                         'They bring life and dynamism, making the page practical and useful.'
@@ -1369,6 +1399,8 @@ DEFAULT_SECTIONS_EN = [
                     'icon': '🛠️',
                     'title': 'Admin Module',
                     'is_visible': True,
+                    'selected': True,
+                    'price_percent': 17,
                     'description': (
                         'The admin module allows managing the site content and operations '
                         'without depending on technical development.'
@@ -1386,6 +1418,8 @@ DEFAULT_SECTIONS_EN = [
                     'icon': '📊',
                     'title': 'Analytics Module',
                     'is_visible': True,
+                    'selected': True,
+                    'price_percent': 16,
                     'description': (
                         'Smart reporting dashboard with real-time metrics to understand '
                         'visitor behavior and make data-driven decisions.'
@@ -1451,6 +1485,8 @@ DEFAULT_SECTIONS_EN = [
                     'icon': '📊',
                     'title': 'KPI Dashboard & Metrics',
                     'is_visible': True,
+                    'selected': True,
+                    'price_percent': 16,
                     'description': (
                         'Control panel complementary to the analytics module, with real-time '
                         'key performance indicators to monitor the health of your business '
@@ -1475,6 +1511,7 @@ DEFAULT_SECTIONS_EN = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 40,
                     'items': [
                         {'icon': '📲', 'name': 'Device Installation', 'description': 'Users can install your site as an app on their phone or computer, with direct access from the home screen.'},
@@ -1496,6 +1533,7 @@ DEFAULT_SECTIONS_EN = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 0,
                     'is_invite': True,
                     'invite_note': (
@@ -1530,6 +1568,7 @@ DEFAULT_SECTIONS_EN = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 0,
                     'is_invite': True,
                     'invite_note': (
@@ -1561,6 +1600,7 @@ DEFAULT_SECTIONS_EN = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 60,
                     'is_invite': False,
                     'items': [
@@ -1582,6 +1622,7 @@ DEFAULT_SECTIONS_EN = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 20,
                     'is_invite': False,
                     'items': [
@@ -1600,6 +1641,7 @@ DEFAULT_SECTIONS_EN = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 20,
                     'is_invite': False,
                     'items': [
@@ -1620,6 +1662,7 @@ DEFAULT_SECTIONS_EN = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 10,
                     'items': [
                         {'icon': '📬', 'name': 'Lead Capture', 'description': 'Optimized forms and smart pop-ups to capture emails from visitors interested in your content or products.'},
@@ -1640,6 +1683,7 @@ DEFAULT_SECTIONS_EN = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 20,
                     'items': [
                         {'icon': '📧', 'name': 'Automated Email Reports', 'description': 'Receive periodic summaries with key business metrics directly in your inbox, without having to log into the system.'},
@@ -1662,6 +1706,7 @@ DEFAULT_SECTIONS_EN = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 15,
                     'items': [
                         {'icon': '🌐', 'name': 'Native Multi-language Support', 'description': 'Structure ready to serve all site content in two or more languages, with a visible language selector and user preference persistence.'},
@@ -1684,6 +1729,7 @@ DEFAULT_SECTIONS_EN = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 20,
                     'items': [
                         {'icon': '💳', 'name': 'Gift Card Creation & Sales', 'description': 'Customers can purchase digital gift cards with configurable balance directly from your website, with an integrated payment process.'},
@@ -1706,6 +1752,7 @@ DEFAULT_SECTIONS_EN = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 20,
                     'items': [
                         {'icon': '🎨', 'name': 'Dual Color Palette', 'description': 'Design of two complete color systems (light and dark) with CSS variables that switch instantly, maintaining visual coherence in both modes.'},
@@ -1728,6 +1775,7 @@ DEFAULT_SECTIONS_EN = [
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
+                    'selected': False,
                     'price_percent': 40,
                     'items': [
                         {'icon': '🔌', 'name': 'Embedded Chat Widget', 'description': 'Floating component integrated into the website that allows the visitor to start a real-time conversation without leaving the page they are browsing.'},

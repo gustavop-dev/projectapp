@@ -284,7 +284,7 @@ import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import InvestmentCalculatorModal from './InvestmentCalculatorModal.vue';
 import InvestmentDetailedTeaser from './InvestmentDetailedTeaser.vue';
 
-defineEmits(['navigateToRequirements', 'updateCalculatorModules', 'switchToDetailed']);
+const emit = defineEmits(['navigateToRequirements', 'updateCalculatorModules', 'switchToDetailed', 'updateCustomTotal']);
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
@@ -436,6 +436,7 @@ onMounted(() => {
         if (deselectedSum > 0 || addedSum > 0) {
           customTotal.value = base - deselectedSum + addedSum;
           try { localStorage.setItem(`proposal-${props.proposalUuid}-total`, String(customTotal.value)); } catch { /* noop */ }
+          emit('updateCustomTotal', customTotal.value);
         }
       }
     } catch (_e) { /* ignore */ }
@@ -467,6 +468,7 @@ function onSelectionUpdate({ total, weeks }) {
   if (props.proposalUuid && total != null) {
     try { localStorage.setItem(`proposal-${props.proposalUuid}-total`, String(total)); } catch { /* noop */ }
   }
+  emit('updateCustomTotal', total);
 }
 
 const computedPaymentOptions = computed(() => {

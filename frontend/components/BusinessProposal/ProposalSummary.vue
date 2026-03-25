@@ -47,6 +47,7 @@ const props = defineProps({
   investmentModules: { type: Array, default: () => [] },
   rawTotalInvestment: { type: String, default: '' },
   paymentOptions: { type: Array, default: () => [] },
+  customizedTotal: { type: Number, default: null },
 });
 
 function parseInvestment(str) {
@@ -134,8 +135,10 @@ const resolvedCards = computed(() => {
     let value = '';
     let description = card.description;
     if (card.source === 'total_investment') {
-      if (customTotal.value !== null) {
-        value = `${formatCurrency(customTotal.value)} ${props.proposal?.currency || 'COP'}`;
+      // Prefer parent-provided customizedTotal (reactive), then localStorage fallback, then static proposal value
+      const effectiveCustom = props.customizedTotal ?? customTotal.value;
+      if (effectiveCustom !== null) {
+        value = `${formatCurrency(effectiveCustom)} ${props.proposal?.currency || 'COP'}`;
         description = t.value.customized;
       } else if (props.proposal?.total_investment) {
         value = `${formatCurrency(props.proposal.total_investment)} ${props.proposal.currency || 'COP'}`;

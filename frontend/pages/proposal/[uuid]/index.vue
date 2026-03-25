@@ -475,7 +475,7 @@ watch(currentPanel, (panel) => {
 const investmentHasModules = computed(() => {
   const inv = enabledSections.value.find(s => s.section_type === 'investment');
   const modules = inv?.content_json?.modules || [];
-  return modules.length > 0 || configurableRequirementItems.value.length > 0 || calculatorModuleItems.value.length > 0;
+  return modules.length > 0 || allGroupCalculatorItems.value.length > 0;
 });
 
 // Trigger investment onboarding when user navigates to investment section
@@ -547,32 +547,8 @@ const extractedWhatsappLink = computed(() => {
   return '';
 });
 
-const configurableRequirementItems = computed(() => {
-  const frSection = enabledSections.value.find(s => s.section_type === 'functional_requirements');
-  if (!frSection) return [];
-  const cj = frSection.content_json || {};
-  const allGroups = [...(cj.groups || []), ...(cj.additionalModules || [])].filter(g => g.is_visible !== false);
-  const items = [];
-  for (const group of allGroups) {
-    if (group.is_calculator_module) continue;
-    for (const item of (group.items || [])) {
-      if (item.price != null || item.is_required === false) {
-        items.push({
-          id: `fr-${group.id || group.title}-${item.name}`.replace(/\s+/g, '-').toLowerCase(),
-          name: `${item.name}`,
-          groupTitle: group.title,
-          price: item.price ?? 0,
-          included: true,
-          is_required: item.is_required === true,
-          _source: 'functional_requirements',
-        });
-      }
-    }
-  }
-  return items;
-});
-
-const calculatorModuleItems = computed(() => {
+// Unified calculator items: every FR group with price_percent becomes a toggleable calculator item
+const allGroupCalculatorItems = computed(() => {
   const frSection = enabledSections.value.find(s => s.section_type === 'functional_requirements');
   if (!frSection) return [];
   const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
@@ -582,20 +558,23 @@ const calculatorModuleItems = computed(() => {
   const allGroups = [...(cj.groups || []), ...(cj.additionalModules || [])].filter(g => g.is_visible !== false);
   const items = [];
   for (const group of allGroups) {
-    if (!group.is_calculator_module) continue;
-    const pricePercent = group.price_percent;
-    const price = pricePercent != null ? Math.round(baseTotal * pricePercent / 100) : 0;
+    const isCalcModule = group.is_calculator_module === true;
+    const pricePercent = group.price_percent ?? 0;
+    const price = pricePercent > 0 ? Math.round(baseTotal * pricePercent / 100) : 0;
+    // Backward compat: selected ?? default_selected ?? true (regular groups default to selected)
+    const defaultSelected = group.selected ?? group.default_selected ?? !isCalcModule;
     items.push({
-      id: `module-${group.id}`,
+      id: isCalcModule ? `module-${group.id}` : `group-${group.id}`,
       name: `${group.icon || ''} ${group.title}`.trim(),
       groupId: group.id,
       price,
       included: true,
-      is_required: false,
-      default_selected: group.default_selected ?? false,
+      is_required: pricePercent === 0,
+      default_selected: defaultSelected,
+      is_calculator_module: isCalcModule,
       is_invite: group.is_invite || false,
       invite_note: group.invite_note || '',
-      _source: 'calculator_module',
+      _source: isCalcModule ? 'calculator_module' : 'functional_requirements',
       description: group.description || '',
       detailItems: group.items || [],
     });
@@ -604,17 +583,33 @@ const calculatorModuleItems = computed(() => {
 });
 
 const selectedCalculatorModuleIds = ref(new Set());
+const customizedTotal = ref(null);
+
+// Helper: recompute payment option amounts using ratio logic (same as Investment.vue computedPaymentOptions)
+function recomputePaymentOptions(paymentOptions, baseTotalStr, customTotal) {
+  if (customTotal == null || !paymentOptions?.length) return paymentOptions;
+  const baseNum = parseInt(String(baseTotalStr || '').replace(/[^\d]/g, ''), 10) || 0;
+  if (baseNum <= 0) return paymentOptions;
+  const ratio = customTotal / baseNum;
+  return paymentOptions.map(opt => {
+    const descNum = parseInt(String(opt.description || '').replace(/[^\d]/g, ''), 10) || 0;
+    if (descNum <= 0) return opt;
+    const newAmount = Math.round(descNum * ratio);
+    const formatted = newAmount.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    const newDesc = opt.description.replace(/[\$]?[\d.,]+/, formatted);
+    return { ...opt, description: newDesc.startsWith('$') ? newDesc : '$' + newDesc };
+  });
+}
 
 function computeAllModuleIds() {
   const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
   if (!investmentSection) return [];
   const content = investmentSection.content_json || {};
   const investmentIds = (content.modules || []).map(m => m.id).filter(Boolean);
-  const frIds = configurableRequirementItems.value.map(item => item.id);
-  const defaultSelectedCalcIds = calculatorModuleItems.value
+  const defaultSelectedGroupIds = allGroupCalculatorItems.value
     .filter(m => m.default_selected)
     .map(m => m.id);
-  return [...investmentIds, ...frIds, ...defaultSelectedCalcIds];
+  return [...investmentIds, ...defaultSelectedGroupIds];
 }
 
 const prevPanelTitle = computed(() => {
@@ -646,6 +641,7 @@ function getSectionProps(section) {
   if (section.section_type === 'proposal_closing') {
     const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
     const investContent = investmentSection?.content_json || {};
+    const rawPaymentOptions = investContent.paymentOptions || [];
     return {
       proposal: proposal.value,
       validityMessage: section._validityMessage || '',
@@ -653,7 +649,8 @@ function getSectionProps(section) {
       expiresAt: section._expiresAt || '',
       language: proposal.value?.language || 'es',
       whatsappLink: extractedWhatsappLink.value,
-      paymentOptions: investContent.paymentOptions || [],
+      paymentOptions: recomputePaymentOptions(rawPaymentOptions, investContent.totalInvestment, customizedTotal.value),
+      customizedTotal: customizedTotal.value,
     };
   }
 
@@ -689,16 +686,18 @@ function getSectionProps(section) {
         })),
       }));
     }
-    // Build a price map for calculator modules so FR cards can show price badges
+    // Build a price map for all groups with price_percent so FR cards can show price badges
     const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
     const investContent = investmentSection?.content_json || {};
     const baseTotal = parseInt(String(investContent.totalInvestment || '').replace(/[^\d]/g, ''), 10) || 0;
-    const calcPriceMap = {};
+    const groupPriceMap = {};
     for (const g of [...(content.additionalModules || []), ...groups]) {
-      if (g.is_calculator_module && g.price_percent != null) {
-        calcPriceMap[g.id] = Math.round(baseTotal * g.price_percent / 100);
+      if (g.price_percent != null && g.price_percent > 0) {
+        groupPriceMap[g.id] = Math.round(baseTotal * g.price_percent / 100);
       }
     }
+    // Unified selected IDs: combine calculator module selections + group selections
+    const allSelectedIds = [...selectedCalculatorModuleIds.value];
     return {
       data: {
         ...content,
@@ -706,8 +705,8 @@ function getSectionProps(section) {
         additionalModules: content.additionalModules || [],
       },
       language: proposal.value?.language || 'es',
-      selectedCalculatorModules: [...selectedCalculatorModuleIds.value],
-      calculatorModulePrices: calcPriceMap,
+      selectedCalculatorModules: allSelectedIds,
+      calculatorModulePrices: groupPriceMap,
       currency: investContent.currency || proposal.value?.currency || 'COP',
     };
   }
@@ -715,7 +714,7 @@ function getSectionProps(section) {
   // For investment: inject discount data from proposal
   if (section.section_type === 'investment') {
     const investmentModules = (content.modules || []).map(m => ({ ...m, _source: 'investment' }));
-    const allCalculatorItems = [...investmentModules, ...configurableRequirementItems.value, ...calculatorModuleItems.value];
+    const allCalculatorItems = [...investmentModules, ...allGroupCalculatorItems.value];
     // Extract baseWeeks from timeline section's totalDuration
     const timelineSection = enabledSections.value.find(s => s.section_type === 'timeline');
     const totalDuration = timelineSection?.content_json?.totalDuration || '';
@@ -751,12 +750,13 @@ function getSectionProps(section) {
     const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
     const investContent = investmentSection?.content_json || {};
     const investmentModules = (investContent.modules || []).map(m => ({ ...m, _source: 'investment' }));
-    const allCalculatorItems = [...investmentModules, ...configurableRequirementItems.value, ...calculatorModuleItems.value];
-    // Use proposal.total_investment as source of truth (same as investment section override)
-    const summaryTotal = Number(proposal.value?.total_investment || 0);
-    const formattedSummaryTotal = summaryTotal > 0
-      ? '$' + summaryTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+    const allCalculatorItems = [...investmentModules, ...allGroupCalculatorItems.value];
+    // Use customizedTotal when available, otherwise proposal.total_investment
+    const effectiveTotal = customizedTotal.value ?? Number(proposal.value?.total_investment || 0);
+    const formattedSummaryTotal = effectiveTotal > 0
+      ? '$' + effectiveTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
       : investContent.totalInvestment || '';
+    const rawPaymentOptions = investContent.paymentOptions || [];
     return {
       content,
       proposal: proposal.value,
@@ -765,7 +765,8 @@ function getSectionProps(section) {
       proposalUuid: proposal.value?.uuid || '',
       investmentModules: allCalculatorItems,
       rawTotalInvestment: formattedSummaryTotal,
-      paymentOptions: investContent.paymentOptions || [],
+      paymentOptions: recomputePaymentOptions(rawPaymentOptions, investContent.totalInvestment, customizedTotal.value),
+      customizedTotal: customizedTotal.value,
     };
   }
 
@@ -813,6 +814,7 @@ function getSectionListeners(section) {
   if (type === 'investment') {
     listeners.navigateToRequirements = handleNavigateToRequirements;
     listeners.updateCalculatorModules = onCalculatorModulesUpdate;
+    listeners.updateCustomTotal = onCustomTotalUpdate;
     listeners.switchToDetailed = handleSwitchToDetailed;
   }
   return listeners;
@@ -917,10 +919,14 @@ function handleSwitchToDetailed() {
   }, 1000);
 }
 
+function onCustomTotalUpdate(total) {
+  customizedTotal.value = total;
+}
+
 function onCalculatorModulesUpdate(selectedIds) {
   if (!selectedIds) return;
-  const calcModIds = calculatorModuleItems.value.map(m => m.id);
-  const selected = new Set(calcModIds.filter(id => selectedIds.includes(id)));
+  const allIds = allGroupCalculatorItems.value.map(m => m.id);
+  const selected = new Set(allIds.filter(id => selectedIds.includes(id)));
   selectedCalculatorModuleIds.value = selected;
 }
 
@@ -978,12 +984,22 @@ const onAnimationComplete = () => {
       }
     }
   } catch (_e) { /* ignore */ }
-  // Initialize calculator module selection so FR section shows default_selected modules immediately
-  const defaultCalcIds = calculatorModuleItems.value
+  // Initialize customizedTotal from localStorage (returning visitor with prior calculator customization)
+  try {
+    const uuid = proposal.value?.uuid;
+    if (uuid) {
+      const storedTotal = localStorage.getItem(`proposal-${uuid}-total`);
+      if (storedTotal != null) {
+        customizedTotal.value = parseInt(storedTotal, 10) || null;
+      }
+    }
+  } catch (_e) { /* ignore */ }
+  // Initialize selection: all groups with default_selected=true are selected by default
+  const defaultSelectedIds = allGroupCalculatorItems.value
     .filter(m => m.default_selected)
     .map(m => m.id);
-  if (defaultCalcIds.length) {
-    selectedCalculatorModuleIds.value = new Set(defaultCalcIds);
+  if (defaultSelectedIds.length) {
+    selectedCalculatorModuleIds.value = new Set(defaultSelectedIds);
   }
   showContent.value = true;
   nextTick(() => applyProposalTheme(false));

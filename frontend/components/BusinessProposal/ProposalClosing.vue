@@ -25,7 +25,7 @@
         <p class="text-xs font-semibold text-esmerald uppercase tracking-wider mb-1">🔥 {{ t.specialPrice }}</p>
         <div class="flex items-baseline justify-center gap-2">
           <span class="text-2xl font-bold text-esmerald">{{ formatCurrency(proposal?.discounted_investment) }}</span>
-          <span class="text-sm text-esmerald/40 line-through">{{ formatCurrency(proposal?.total_investment) }}</span>
+          <span class="text-sm text-esmerald/40 line-through">{{ formatCurrency(effectiveTotal) }}</span>
           <span class="text-xs text-esmerald/60">{{ proposal?.currency }}</span>
         </div>
       </div>
@@ -54,9 +54,9 @@
             <span class="text-sm font-bold text-lemon whitespace-nowrap">{{ opt.description }}</span>
           </div>
         </div>
-        <div v-if="proposal?.total_investment" class="text-center mt-4 pt-3 border-t border-white/15">
+        <div v-if="effectiveTotal" class="text-center mt-4 pt-3 border-t border-white/15">
           <span class="text-xs text-green-light/70">{{ t.scopeInvestment }}:</span>
-          <span class="text-lg font-bold text-lemon ml-2">{{ formatCurrency(proposal.total_investment) }}</span>
+          <span class="text-lg font-bold text-lemon ml-2">{{ formatCurrency(effectiveTotal) }}</span>
           <span class="text-xs text-green-light/70 ml-1">{{ proposal.currency }}</span>
         </div>
       </div>
@@ -136,9 +136,9 @@
               <span class="text-sm font-bold text-lemon whitespace-nowrap">{{ opt.description }}</span>
             </div>
           </div>
-          <div v-if="proposal?.total_investment" class="text-center mt-4 pt-3 border-t border-white/15">
+          <div v-if="effectiveTotal" class="text-center mt-4 pt-3 border-t border-white/15">
             <span class="text-xs text-green-light/70">{{ t.scopeInvestment }}:</span>
-            <span class="text-lg font-bold text-lemon ml-2">{{ formatCurrency(proposal.total_investment) }}</span>
+            <span class="text-lg font-bold text-lemon ml-2">{{ formatCurrency(effectiveTotal) }}</span>
             <span class="text-xs text-green-light/70 ml-1">{{ proposal.currency }}</span>
           </div>
         </div>
@@ -383,7 +383,11 @@ const props = defineProps({
   language: { type: String, default: 'es' },
   whatsappLink: { type: String, default: '' },
   paymentOptions: { type: Array, default: () => [] },
+  customizedTotal: { type: Number, default: null },
 });
+
+// Use customizedTotal from calculator when available, otherwise fall back to proposal.total_investment
+const effectiveTotal = computed(() => props.customizedTotal ?? props.proposal?.total_investment);
 
 const whatsappTalkUrl = computed(() => {
   if (props.whatsappLink) return props.whatsappLink;
@@ -635,7 +639,7 @@ const scopeSummary = computed(() => {
   if (!p) return [];
   const items = [];
   if (p.title) items.push({ label: t.value.scopeProject, value: p.title });
-  const inv = p.total_investment || p.investment;
+  const inv = effectiveTotal.value || p.investment;
   if (inv) {
     const numVal = parseFloat(String(inv).replace(/[^\d.]/g, ''));
     const formatted = !isNaN(numVal) && numVal > 0 ? formatCurrency(numVal) : inv;
@@ -662,7 +666,7 @@ const scopeDisplay = computed(() => {
       : `${milestones.length} pagos`;
     items.push({ label: t.value.scopeInvestment, value: countLabel });
   } else {
-    const inv = p.total_investment || p.investment;
+    const inv = effectiveTotal.value || p.investment;
     if (inv) {
       const numVal = parseFloat(String(inv).replace(/[^\d.]/g, ''));
       const formatted = !isNaN(numVal) && numVal > 0 ? formatCurrency(numVal) : inv;
