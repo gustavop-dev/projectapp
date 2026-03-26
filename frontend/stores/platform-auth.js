@@ -148,9 +148,13 @@ export const usePlatformAuthStore = defineStore('platformAuth', {
 
       try {
         const { post } = usePlatformApi()
+        const body = { email, password }
+        if (payload.recaptcha_token) {
+          body.recaptcha_token = payload.recaptcha_token
+        }
         const response = await post(
           'login/',
-          { email, password },
+          body,
           { skipAuth: true, skipRefresh: true },
         )
 

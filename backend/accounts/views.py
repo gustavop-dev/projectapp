@@ -1,7 +1,10 @@
 import logging
 
+import requests as http_requests
+
 logger = logging.getLogger(__name__)
 
+from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -48,6 +51,29 @@ def login_view(request):
     """
     serializer = LoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
+
+    # reCAPTCHA validation
+    recaptcha_token = request.data.get('recaptcha_token', '')
+    recaptcha_secret = getattr(settings, 'RECAPTCHA_SECRET_KEY', '')
+    if recaptcha_secret:
+        if not recaptcha_token:
+            return Response(
+                {'detail': 'Completa el captcha para continuar.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            recaptcha_response = http_requests.post(
+                'https://www.google.com/recaptcha/api/siteverify',
+                data={'secret': recaptcha_secret, 'response': recaptcha_token},
+                timeout=5,
+            )
+            if not recaptcha_response.json().get('success'):
+                return Response(
+                    {'detail': 'Verificación de captcha fallida. Intenta de nuevo.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except http_requests.RequestException:
+            logger.warning('reCAPTCHA verification request failed, allowing login')
 
     email = serializer.validated_data['email'].lower().strip()
     password = serializer.validated_data['password']
