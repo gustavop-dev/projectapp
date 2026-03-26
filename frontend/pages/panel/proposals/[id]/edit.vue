@@ -40,7 +40,20 @@
             <p class="text-gray-700 font-mono text-xs mt-0.5">{{ proposal.uuid }}</p>
           </div>
           <div>
-            <span class="text-gray-400 text-xs">URL pública</span>
+            <div class="flex items-center gap-1">
+              <span class="text-gray-400 text-xs">URL pública</span>
+              <button type="button"
+                :title="copied ? 'Copiado!' : 'Copiar URL'"
+                @click="copyUrl"
+                class="text-gray-400 hover:text-emerald-600 transition-colors">
+                <svg v-if="!copied" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </button>
+            </div>
             <p class="mt-0.5">
               <a :href="'/proposal/' + proposal.uuid" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
                 /proposal/{{ proposal.uuid }}
@@ -722,6 +735,15 @@ const proposalStore = useProposalStore();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
 const proposal = computed(() => proposalStore.currentProposal);
+
+const copied = ref(false);
+function copyUrl() {
+  const url = `${window.location.origin}/proposal/${proposal.value?.uuid}`;
+  navigator.clipboard.writeText(url).then(() => {
+    copied.value = true;
+    setTimeout(() => { copied.value = false; }, 2000);
+  });
+}
 const allSections = computed(() =>
   [...(proposal.value?.sections || [])].sort((a, b) => a.order - b.order)
 );
