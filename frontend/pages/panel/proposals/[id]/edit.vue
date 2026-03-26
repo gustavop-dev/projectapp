@@ -71,8 +71,8 @@
             </p>
           </div>
           <div>
-            <span class="text-gray-400 text-xs">Descargar PDF</span>
-            <p class="mt-0.5">
+            <span class="text-gray-400 text-xs">PDF / Vista previa</span>
+            <div class="flex items-center gap-3 mt-0.5 flex-wrap">
               <a :href="'/api/proposals/' + proposal.uuid + '/pdf/'"
                  target="_blank"
                  class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
@@ -81,46 +81,60 @@
                 </svg>
                 Descargar PDF
               </a>
-            </p>
-          </div>
-          <div>
-            <span class="text-gray-400 text-xs">Estado activo</span>
-            <div class="flex items-center gap-2 mt-1">
-              <button
-                type="button"
-                class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                :class="proposal.is_active ? 'bg-emerald-600' : 'bg-gray-200'"
-                @click="handleToggleActive"
-              >
-                <span
-                  class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                  :class="proposal.is_active ? 'translate-x-4' : 'translate-x-0'"
-                />
-              </button>
-              <span class="text-xs" :class="proposal.is_active ? 'text-emerald-600' : 'text-gray-400'">
-                {{ proposal.is_active ? 'Activa' : 'Inactiva' }}
-              </span>
+              <span class="text-gray-300 text-xs">|</span>
+              <a :href="'/proposal/' + proposal.uuid + '?preview=1'"
+                 target="_blank"
+                 class="inline-flex items-center gap-1.5 text-gray-500 hover:text-emerald-600 text-xs font-medium transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                Vista previa
+              </a>
             </div>
           </div>
-          <div>
-            <span class="text-gray-400 text-xs">Automatizaciones</span>
-            <div class="flex items-center gap-2 mt-1">
-              <button
-                type="button"
-                class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                :class="form.automations_paused ? 'bg-amber-500' : 'bg-emerald-600'"
-                @click="toggleAutomationsPaused"
-              >
-                <span
-                  class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                  :class="form.automations_paused ? 'translate-x-4' : 'translate-x-0'"
-                />
-              </button>
-              <span class="text-xs" :class="form.automations_paused ? 'text-amber-600' : 'text-emerald-600'">
-                {{ form.automations_paused ? '⏸ Pausadas' : 'Activas' }}
-              </span>
+          <div class="sm:col-span-2">
+            <div class="flex items-start gap-6 flex-wrap">
+              <div>
+                <span class="text-gray-400 text-xs">Estado activo</span>
+                <div class="flex items-center gap-2 mt-1">
+                  <button
+                    type="button"
+                    class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                    :class="proposal.is_active ? 'bg-emerald-600' : 'bg-gray-200'"
+                    @click="handleToggleActive"
+                  >
+                    <span
+                      class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                      :class="proposal.is_active ? 'translate-x-4' : 'translate-x-0'"
+                    />
+                  </button>
+                  <span class="text-xs" :class="proposal.is_active ? 'text-emerald-600' : 'text-gray-400'">
+                    {{ proposal.is_active ? 'Activa' : 'Inactiva' }}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <span class="text-gray-400 text-xs">Automatizaciones</span>
+                <div class="flex items-center gap-2 mt-1">
+                  <button
+                    type="button"
+                    class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                    :class="form.automations_paused ? 'bg-amber-500' : 'bg-emerald-600'"
+                    @click="toggleAutomationsPaused"
+                  >
+                    <span
+                      class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                      :class="form.automations_paused ? 'translate-x-4' : 'translate-x-0'"
+                    />
+                  </button>
+                  <span class="text-xs" :class="form.automations_paused ? 'text-amber-600' : 'text-emerald-600'">
+                    {{ form.automations_paused ? '⏸ Pausadas' : 'Activas' }}
+                  </span>
+                </div>
+                <p class="text-[10px] text-gray-400 mt-1">Pausar emails automáticos (recordatorio, urgencia, inactividad).</p>
+              </div>
             </div>
-            <p class="text-[10px] text-gray-400 mt-1">Pausar emails automáticos (recordatorio, urgencia, inactividad).</p>
           </div>
         </div>
 
