@@ -54,5 +54,5 @@ def optimize_image(image_file, field_name='image', max_dimension=MAX_DIMENSION, 
 
 
 def optimize_avatar(image_file):
-    """Convenience wrapper for avatar optimization."""
-    return optimize_image(image_file, field_name='avatar')
+    """Convenience wrapper for avatar optimization — 512px max, 80% quality."""
+    return optimize_image(image_file, field_name='avatar', max_dimension=512, quality=80)

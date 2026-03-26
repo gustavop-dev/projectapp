@@ -18,11 +18,8 @@
         <!-- Header -->
         <div class="flex h-16 shrink-0 items-center justify-between border-b border-esmerald/[0.06] px-5 dark:border-white/[0.06]">
           <div class="flex items-center gap-3">
-            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-esmerald text-xs font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
-              PA
-            </div>
-            <span class="text-base font-bold tracking-tight text-esmerald dark:text-white">
-              Project<span class="text-green-light dark:text-lemon">App.</span>
+            <span class="text-xl font-bold tracking-tight text-esmerald dark:text-white">
+              Project<span class="text-esmerald dark:text-lemon">App.</span>
             </span>
           </div>
           <button
@@ -64,6 +61,19 @@
             />
           </div>
 
+          <div class="mb-5">
+            <p class="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-green-light/60">Cuenta</p>
+            <SidebarItem
+              v-for="item in accountItems"
+              :key="item.href"
+              :item="item"
+              :is-collapsed="false"
+              :is-active="isActive(item.href)"
+              :disabled="item.disabled"
+              @click="$emit('close')"
+            />
+          </div>
+
           <div v-if="authStore.isAdmin" class="mb-5">
             <p class="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-green-light/60">Administración</p>
             <SidebarItem
@@ -91,14 +101,6 @@
           </div>
 
           <div class="mt-2 flex items-center gap-1">
-            <NuxtLink
-              :to="localePath('/platform/profile')"
-              class="flex h-9 w-9 items-center justify-center rounded-lg text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
-              @click="$emit('close')"
-            >
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-            </NuxtLink>
-
             <button
               type="button"
               class="flex h-9 w-9 items-center justify-center rounded-lg text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
@@ -172,13 +174,35 @@ const projectItems = computed(() => {
   ]
 })
 
+const accountItems = computed(() => [
+  { label: 'Configuración', href: lp('/platform/profile'), icon: 'settings' },
+])
+
 const adminItems = computed(() => [
   { label: 'Clientes', href: lp('/platform/clients'), icon: 'users' },
 ])
 
+const projectSubModules = {
+  board: '/platform/board',
+  changes: '/platform/changes',
+  bugs: '/platform/bugs',
+  deliverables: '/platform/deliverables',
+  payments: '/platform/payments',
+}
+
 function isActive(href) {
   const cleanPath = route.path.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
   const cleanHref = href.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
+
+  const projectSubMatch = cleanPath.match(/^\/platform\/projects\/\d+\/(\w+)/)
+  if (projectSubMatch) {
+    const subSection = projectSubMatch[1]
+    const mappedModule = projectSubModules[subSection]
+    if (mappedModule) {
+      return cleanHref === mappedModule
+    }
+  }
+
   return cleanPath === cleanHref || cleanPath.startsWith(`${cleanHref}/`)
 }
 </script>

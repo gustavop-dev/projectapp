@@ -7,10 +7,11 @@
     <template v-else>
       <!-- Header -->
       <div class="mb-6" data-enter>
-        <NuxtLink :to="localePath(`/platform/projects/${projectId}`)" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-esmerald dark:hover:text-white">
+        <NuxtLink :to="localePath('/platform/payments')" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-esmerald dark:hover:text-white">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-          {{ projectName }}
+          Pagos
         </NuxtLink>
+        <p class="mb-1 text-xs text-green-light/60">{{ projectName }}</p>
         <h1 class="text-xl font-bold text-esmerald dark:text-white sm:text-2xl">Suscripción</h1>
       </div>
 
@@ -123,7 +124,7 @@
                 </span>
                 <div>
                   <p class="text-sm font-semibold text-esmerald dark:text-white">
-                    {{ currentPayment.status === 'pending' ? 'Pago requerido' : currentPayment.status === 'processing' ? 'Procesando pago' : 'Acción requerida' }}
+                    {{ currentPayment.status === 'pending' ? (authStore.isAdmin ? 'Pago pendiente del cliente' : 'Pago requerido') : currentPayment.status === 'processing' ? 'Procesando pago' : (authStore.isAdmin ? 'Requiere accion del cliente' : 'Accion requerida') }}
                   </p>
                   <p class="mt-0.5 text-xs text-green-light">
                     {{ formatDate(currentPayment.billing_period_start) }} — {{ formatDate(currentPayment.billing_period_end) }}
@@ -143,21 +144,35 @@
               <div class="flex items-center gap-4">
                 <p class="text-2xl font-bold text-esmerald dark:text-white">${{ formatMoney(currentPayment.amount) }}</p>
                 <button
-                  v-if="canPay(currentPayment)"
+                  v-if="!authStore.isAdmin && canPay(currentPayment)"
                   type="button"
                   :disabled="payStore.isUpdating"
                   class="flex shrink-0 items-center gap-2 rounded-xl bg-lemon px-5 py-3 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50"
                   @click="openCheckout(currentPayment)"
                 >
                   <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                  Pagar
+                  Renovar
                 </button>
               </div>
             </div>
           </div>
 
-          <!-- Payment methods (only when there's something to pay) -->
-          <div v-if="currentPayment && canPay(currentPayment)" class="mb-4 rounded-2xl border border-esmerald/[0.06] bg-white px-5 py-3 dark:border-white/[0.06] dark:bg-esmerald">
+          <!-- Admin info alert -->
+          <div v-if="authStore.isAdmin && currentPayment && canPay(currentPayment)" class="mb-4 rounded-2xl border border-amber-500/20 bg-amber-50/50 px-5 py-3 dark:border-amber-500/15 dark:bg-amber-500/5">
+            <div class="flex items-center gap-3">
+              <svg class="h-5 w-5 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <p class="text-xs text-amber-700 dark:text-amber-400">
+                {{ currentPayment.status === 'overdue' ? 'Este pago esta vencido. El cliente debe renovar su suscripcion.' : currentPayment.status === 'failed' ? 'El ultimo intento de pago fallo. El cliente debe reintentar.' : 'Este pago esta pendiente. El cliente puede pagarlo desde su portal.' }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Payment methods (only when there's something to pay — client only) -->
+          <div v-if="!authStore.isAdmin && currentPayment && canPay(currentPayment)" class="mb-4 rounded-2xl border border-esmerald/[0.06] bg-white px-5 py-3 dark:border-white/[0.06] dark:bg-esmerald">
             <div class="flex items-center gap-3">
               <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]"><img src="/images/payments/card.svg" alt="Tarjeta" class="h-5 w-5 dark:invert dark:opacity-70" /></div>
               <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50 p-1 dark:bg-white/[0.06]"><img src="/images/payments/pse-seeklogo.png" alt="PSE" class="h-6 w-6 rounded object-contain" /></div>

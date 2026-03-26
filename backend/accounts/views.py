@@ -225,6 +225,11 @@ def me_view(request):
         if field in data:
             setattr(profile, field, data[field])
             profile_fields.append(field)
+
+    if 'avatar' in data and data['avatar'] is not None:
+        profile.avatar = data['avatar']
+        profile_fields.append('avatar')
+
     profile.save(update_fields=profile_fields)
 
     return Response(UserProfileSerializer(profile, context={'request': request}).data)

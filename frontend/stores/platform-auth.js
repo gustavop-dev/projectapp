@@ -305,6 +305,32 @@ export const usePlatformAuthStore = defineStore('platformAuth', {
       }
     },
 
+    async uploadAvatar(file) {
+      this.isLoading = true
+      this.error = ''
+
+      try {
+        const formData = new FormData()
+        formData.append('avatar', file)
+        const { request } = usePlatformApi()
+        const response = await request({
+          url: 'me/',
+          method: 'PATCH',
+          data: formData,
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        this.user = response.data
+        writePlatformSession({ user: response.data })
+        return { success: true, user: response.data }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No pudimos actualizar tu avatar.'
+        this.error = message
+        return { success: false, message }
+      } finally {
+        this.isLoading = false
+      }
+    },
+
     async completeProfile(formData) {
       this.isLoading = true
       this.error = ''

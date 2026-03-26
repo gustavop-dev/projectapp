@@ -1,7 +1,7 @@
 <template>
   <div id="platform-profile">
-    <h1 class="mb-1 text-xl font-bold text-esmerald dark:text-white">Mi perfil</h1>
-    <p class="mb-8 text-sm text-green-light">Revisa y actualiza tu información personal.</p>
+    <h1 class="mb-1 text-xl font-bold text-esmerald dark:text-white">Configuracion</h1>
+    <p class="mb-8 text-sm text-green-light">Revisa y actualiza tu informacion personal.</p>
 
     <!-- Success message -->
     <div
@@ -23,17 +23,37 @@
       <!-- Avatar card -->
       <div class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
         <div class="flex flex-col items-center gap-4">
-          <div class="relative h-24 w-24 overflow-hidden rounded-full border-2 border-esmerald/10 dark:border-white/10">
-            <img
-              v-if="avatarUrl"
-              :src="avatarUrl"
-              alt="Avatar"
-              class="h-full w-full object-cover"
-            />
-            <div v-else class="flex h-full w-full items-center justify-center bg-esmerald text-2xl font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
-              {{ authStore.userInitials }}
+          <div class="group relative h-24 w-24 cursor-pointer" @click="triggerFileInput">
+            <div class="h-full w-full overflow-hidden rounded-full border-2 border-esmerald/10 dark:border-white/10">
+              <img
+                v-if="avatarPreview || avatarUrl"
+                :src="avatarPreview || avatarUrl"
+                alt="Avatar"
+                class="h-full w-full object-cover"
+              />
+              <div v-else class="flex h-full w-full items-center justify-center bg-esmerald text-2xl font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
+                {{ authStore.userInitials }}
+              </div>
+            </div>
+            <!-- Pencil overlay -->
+            <div class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition group-hover:opacity-100">
+              <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </div>
+            <!-- Upload spinner -->
+            <div v-if="isUploadingAvatar" class="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
+              <div class="h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" />
             </div>
           </div>
+          <input
+            ref="fileInput"
+            type="file"
+            accept="image/*"
+            class="hidden"
+            @change="handleFileSelect"
+          />
           <div class="text-center">
             <p class="text-base font-semibold text-esmerald dark:text-white">{{ authStore.displayName }}</p>
             <p class="text-xs text-green-light">{{ authStore.user?.email }}</p>
@@ -54,7 +74,7 @@
         class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none lg:col-span-2"
         @submit.prevent="handleUpdate"
       >
-        <h2 class="mb-5 text-base font-semibold text-esmerald dark:text-white">Información personal</h2>
+        <h2 class="mb-5 text-base font-semibold text-esmerald dark:text-white">Informacion personal</h2>
 
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
@@ -82,7 +102,7 @@
             />
           </div>
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Teléfono</label>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Telefono</label>
             <input
               v-model="form.phone"
               type="tel"
@@ -90,7 +110,7 @@
             />
           </div>
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Cédula</label>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Cedula</label>
             <input
               v-model="form.cedula"
               type="text"
@@ -119,7 +139,7 @@
             </select>
           </div>
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Nivel de educación</label>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Nivel de educacion</label>
             <select
               v-model="form.education_level"
               class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
@@ -127,7 +147,7 @@
               <option value="">Sin especificar</option>
               <option value="primaria">Primaria</option>
               <option value="secundaria">Secundaria</option>
-              <option value="tecnico">Técnico</option>
+              <option value="tecnico">Tecnico</option>
               <option value="universitario">Universitario</option>
               <option value="posgrado">Posgrado</option>
               <option value="otro">Otro</option>
@@ -146,6 +166,65 @@
         </div>
       </form>
     </div>
+
+    <!-- Image crop modal -->
+    <Teleport to="body">
+      <Transition name="modal-overlay">
+        <div
+          v-if="showCropModal"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+          @click.self="cancelCrop"
+        >
+          <div class="w-full max-w-sm rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-2xl dark:border-white/[0.06] dark:bg-esmerald">
+            <h3 class="mb-4 text-base font-semibold text-esmerald dark:text-white">Ajustar foto de perfil</h3>
+
+            <div class="relative mx-auto mb-4 h-64 w-64 overflow-hidden rounded-full border-2 border-esmerald/10 bg-black dark:border-white/10">
+              <img
+                v-if="cropSrc"
+                ref="cropImage"
+                :src="cropSrc"
+                alt="Recorte"
+                class="absolute h-full w-full object-cover"
+                :style="cropTransformStyle"
+                draggable="false"
+              />
+            </div>
+
+            <!-- Zoom slider -->
+            <div class="mb-4 flex items-center gap-3 px-2">
+              <svg class="h-4 w-4 shrink-0 text-green-light" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35M8 11h6" /></svg>
+              <input
+                v-model.number="cropZoom"
+                type="range"
+                min="1"
+                max="3"
+                step="0.05"
+                class="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-esmerald/10 accent-esmerald dark:bg-white/10 dark:accent-lemon"
+              />
+              <svg class="h-4 w-4 shrink-0 text-green-light" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35M8 11h6M11 8v6" /></svg>
+            </div>
+
+            <div class="flex gap-3">
+              <button
+                type="button"
+                class="flex-1 rounded-xl border border-esmerald/10 px-4 py-2.5 text-sm font-medium text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+                @click="cancelCrop"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                :disabled="isUploadingAvatar"
+                class="flex-1 rounded-xl bg-lemon px-4 py-2.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50"
+                @click="confirmCrop"
+              >
+                {{ isUploadingAvatar ? 'Subiendo...' : 'Guardar' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -160,7 +239,7 @@ definePageMeta({
 })
 
 useHead({
-  title: 'Mi perfil — ProjectApp',
+  title: 'Configuracion — ProjectApp',
 })
 
 usePageEntrance('#platform-profile')
@@ -170,6 +249,15 @@ authStore.hydrate()
 
 const localError = ref('')
 const successMessage = ref('')
+const fileInput = ref(null)
+const isUploadingAvatar = ref(false)
+const avatarPreview = ref('')
+
+// Crop state
+const showCropModal = ref(false)
+const cropSrc = ref('')
+const cropZoom = ref(1)
+const selectedFile = ref(null)
 
 const form = reactive({
   first_name: '',
@@ -186,6 +274,11 @@ const errorMessage = computed(() => localError.value || authStore.error)
 
 const avatarUrl = computed(() => authStore.user?.avatar_display_url || '')
 
+const cropTransformStyle = computed(() => ({
+  transform: `scale(${cropZoom.value})`,
+  transformOrigin: 'center center',
+}))
+
 onMounted(() => {
   if (authStore.user) {
     form.first_name = authStore.user.first_name || ''
@@ -198,6 +291,106 @@ onMounted(() => {
     form.education_level = authStore.user.education_level || ''
   }
 })
+
+function triggerFileInput() {
+  fileInput.value?.click()
+}
+
+function handleFileSelect(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    localError.value = 'Solo se permiten archivos de imagen.'
+    return
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    localError.value = 'La imagen no puede superar 10 MB.'
+    return
+  }
+
+  selectedFile.value = file
+  cropSrc.value = URL.createObjectURL(file)
+  cropZoom.value = 1
+  showCropModal.value = true
+
+  // Reset input so the same file can be re-selected
+  event.target.value = ''
+}
+
+function cancelCrop() {
+  showCropModal.value = false
+  if (cropSrc.value) URL.revokeObjectURL(cropSrc.value)
+  cropSrc.value = ''
+  selectedFile.value = null
+}
+
+async function confirmCrop() {
+  if (!selectedFile.value) return
+
+  isUploadingAvatar.value = true
+  localError.value = ''
+
+  try {
+    const optimized = await optimizeImageClient(selectedFile.value, cropZoom.value)
+    const result = await authStore.uploadAvatar(optimized)
+
+    if (result.success) {
+      avatarPreview.value = ''
+      successMessage.value = 'Foto de perfil actualizada.'
+      setTimeout(() => { successMessage.value = '' }, 4000)
+    } else {
+      localError.value = result.message
+    }
+  } catch {
+    localError.value = 'Error procesando la imagen.'
+  } finally {
+    isUploadingAvatar.value = false
+    showCropModal.value = false
+    if (cropSrc.value) URL.revokeObjectURL(cropSrc.value)
+    cropSrc.value = ''
+    selectedFile.value = null
+  }
+}
+
+/**
+ * Client-side image optimization:
+ * - Draws the image on a canvas with the crop zoom
+ * - Crops to a centered square (like WhatsApp)
+ * - Resizes to max 512x512
+ * - Exports as JPEG at 0.8 quality
+ */
+function optimizeImageClient(file, zoom = 1) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const size = Math.min(img.width, img.height) / zoom
+      const sx = (img.width - size) / 2
+      const sy = (img.height - size) / 2
+
+      const outputSize = Math.min(512, Math.round(size))
+      const canvas = document.createElement('canvas')
+      canvas.width = outputSize
+      canvas.height = outputSize
+
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, sx, sy, size, size, 0, 0, outputSize, outputSize)
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return reject(new Error('Failed to create blob'))
+          const optimized = new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
+          resolve(optimized)
+        },
+        'image/jpeg',
+        0.8,
+      )
+    }
+    img.onerror = () => reject(new Error('Failed to load image'))
+    img.src = URL.createObjectURL(file)
+  })
+}
 
 async function handleUpdate() {
   localError.value = ''
@@ -223,3 +416,14 @@ async function handleUpdate() {
   setTimeout(() => { successMessage.value = '' }, 4000)
 }
 </script>
+
+<style scoped>
+.modal-overlay-enter-active,
+.modal-overlay-leave-active {
+  transition: opacity 0.25s ease;
+}
+.modal-overlay-enter-from,
+.modal-overlay-leave-to {
+  opacity: 0;
+}
+</style>

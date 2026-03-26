@@ -68,6 +68,7 @@ class UpdateProfileSerializer(serializers.Serializer):
     education_level = serializers.ChoiceField(
         choices=UserProfile.EDUCATION_CHOICES, required=False, allow_blank=True,
     )
+    avatar = serializers.ImageField(required=False, allow_null=True)
 
 
 class CompleteProfileSerializer(serializers.Serializer):
@@ -777,7 +778,13 @@ class HostingSubscriptionListSerializer(serializers.ModelSerializer):
         return obj.project.name
 
     def get_pending_payments(self, obj):
-        return obj.payments.filter(status__in=['pending', 'overdue']).count()
+        from django.utils import timezone
+        from datetime import timedelta
+        cutoff = timezone.now().date() + timedelta(days=7)
+        return obj.payments.filter(
+            status__in=['pending', 'overdue', 'failed'],
+            due_date__lte=cutoff,
+        ).count()
 
 
 class UpdateSubscriptionSerializer(serializers.Serializer):

@@ -332,6 +332,9 @@ def _create_test_image(width, height, mode='RGB', fmt='PNG'):
     )
 
 
+AVATAR_MAX = 512
+
+
 class TestOptimizeAvatar:
     def test_resizes_large_landscape_image(self):
         upload = _create_test_image(2400, 1600)
@@ -339,8 +342,8 @@ class TestOptimizeAvatar:
         result = optimize_avatar(upload)
 
         img = Image.open(result.file)
-        assert img.size[0] == MAX_DIMENSION
-        assert img.size[1] == int(1600 * (MAX_DIMENSION / 2400))
+        assert img.size[0] == AVATAR_MAX
+        assert img.size[1] == int(1600 * (AVATAR_MAX / 2400))
 
     def test_resizes_large_portrait_image(self):
         upload = _create_test_image(1000, 2000)
@@ -348,8 +351,8 @@ class TestOptimizeAvatar:
         result = optimize_avatar(upload)
 
         img = Image.open(result.file)
-        assert img.size[1] == MAX_DIMENSION
-        assert img.size[0] == int(1000 * (MAX_DIMENSION / 2000))
+        assert img.size[1] == AVATAR_MAX
+        assert img.size[0] == int(1000 * (AVATAR_MAX / 2000))
 
     def test_does_not_upscale_small_image(self):
         upload = _create_test_image(400, 300)
