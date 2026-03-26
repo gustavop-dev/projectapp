@@ -14,9 +14,17 @@
       <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
         ← Volver a propuestas
       </NuxtLink>
-      <div v-if="proposal" class="flex flex-wrap items-center gap-3 sm:gap-4 mt-2">
-        <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">{{ proposal.title }}</h1>
-        <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(proposal.status)">
+    </div>
+
+    <!-- Sticky header: title + investment + status -->
+    <div v-if="proposal"
+         class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 transition-all">
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <h1 class="text-lg sm:text-xl font-light text-gray-900 dark:text-gray-100 truncate">{{ proposal.title }}</h1>
+        <span v-if="proposal.total_investment > 0" class="text-sm sm:text-base font-light text-gray-400 dark:text-gray-500 whitespace-nowrap">
+          ({{ formatInvestment(proposal.total_investment, proposal.currency) }})
+        </span>
+        <span class="text-xs px-2.5 py-0.5 rounded-full font-medium" :class="statusClass(proposal.status)">
           {{ proposal.status }}
         </span>
       </div>
@@ -1066,6 +1074,12 @@ async function handleSyncHostingPercent(percent) {
     form.hosting_percent = percent;
     await proposalStore.updateProposal(proposal.value.id, { hosting_percent: percent });
   }
+}
+
+function formatInvestment(value, currency = 'COP') {
+  if (!value) return '';
+  const num = Number(value);
+  return '$' + num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' ' + currency;
 }
 
 function statusClass(status) {
