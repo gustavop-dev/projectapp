@@ -583,6 +583,16 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
             </button>
+            <label class="flex items-center gap-1 cursor-pointer" title="Seleccionado por defecto en la calculadora">
+              <input type="checkbox" v-model="group.selected" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+              <span class="text-[10px] text-gray-500 font-medium">Seleccionado</span>
+            </label>
+            <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
+              :class="group.in_calculator ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-gray-50 text-gray-400 border-gray-200'"
+              :title="group.in_calculator ? 'Aparece en la calculadora' : 'No aparece en la calculadora'"
+              @click="group.in_calculator = !group.in_calculator">
+              {{ group.in_calculator ? '🧮 En calc.' : '🧮 No calc.' }}
+            </button>
             <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
               :class="group.is_visible !== false ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-red-50 text-red-500 border-red-200'"
               :title="group.is_visible !== false ? 'Visible para el cliente' : 'Oculto para el cliente'"
@@ -609,18 +619,13 @@
               <EmojiIconField v-model="group.icon" label="Icono" placeholder="🖥️" />
               <FieldInput v-model="group.title" label="Título del grupo" />
             </div>
-            <FieldTextarea v-model="group.description" label="Descripción" :rows="2" :isSingle="true" />
-            <!-- Group-level pricing and selection -->
-            <div class="flex flex-wrap items-center gap-4 p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
-              <div class="flex items-center gap-2">
+            <div class="grid grid-cols-[1fr_auto] gap-3 items-start">
+              <FieldTextarea v-model="group.description" label="Descripción" :rows="2" :isSingle="true" />
+              <div class="flex flex-col gap-1 pt-0.5">
                 <label class="text-[10px] text-gray-500 font-medium uppercase">% del precio</label>
                 <input type="number" v-model.number="group.price_percent" min="0" max="100" step="1" placeholder="0"
                   class="w-20 px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-emerald-500 outline-none" />
               </div>
-              <label class="flex items-center gap-1.5">
-                <input type="checkbox" v-model="group.selected" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                <span class="text-[10px] text-gray-500 font-medium">Seleccionado por defecto</span>
-              </label>
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
@@ -674,6 +679,22 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
               </button>
+              <label class="flex items-center gap-1 cursor-pointer" title="Seleccionado por defecto en la calculadora">
+                <input type="checkbox" v-model="mod.selected" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                <span class="text-[10px] text-gray-500 font-medium">Seleccionado</span>
+              </label>
+              <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
+                :class="mod.in_calculator ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-gray-50 text-gray-400 border-gray-200'"
+                :title="mod.in_calculator ? 'Aparece en la calculadora' : 'No aparece en la calculadora'"
+                @click="mod.in_calculator = !mod.in_calculator">
+                {{ mod.in_calculator ? '🧮 En calc.' : '🧮 No calc.' }}
+              </button>
+              <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
+                :class="mod.is_visible !== false ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-red-50 text-red-500 border-red-200'"
+                :title="mod.is_visible !== false ? 'Visible para el cliente' : 'Oculto para el cliente'"
+                @click="mod.is_visible = mod.is_visible === false ? true : false">
+                {{ mod.is_visible !== false ? '👁 Visible' : '🚫 Oculto' }}
+              </button>
               <button type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.additionalModules.splice(mIdx, 1)">Eliminar</button>
             </div>
           </div>
@@ -688,18 +709,13 @@
                 <EmojiIconField v-model="mod.icon" label="Icono" placeholder="🧩" />
                 <FieldInput v-model="mod.title" label="Título del módulo" />
               </div>
-              <FieldTextarea v-model="mod.description" label="Descripción" :rows="2" :isSingle="true" />
-              <!-- Module-level pricing and selection -->
-              <div class="flex flex-wrap items-center gap-4 p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
-                <div class="flex items-center gap-2">
+              <div class="grid grid-cols-[1fr_auto] gap-3 items-start">
+                <FieldTextarea v-model="mod.description" label="Descripción" :rows="2" :isSingle="true" />
+                <div class="flex flex-col gap-1 pt-0.5">
                   <label class="text-[10px] text-gray-500 font-medium uppercase">% del precio</label>
                   <input type="number" v-model.number="mod.price_percent" min="0" max="100" step="1" placeholder="0"
                     class="w-20 px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-emerald-500 outline-none" />
                 </div>
-                <label class="flex items-center gap-1.5">
-                  <input type="checkbox" v-model="mod.selected" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                  <span class="text-[10px] text-gray-500 font-medium">Seleccionado por defecto</span>
-                </label>
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
@@ -727,7 +743,7 @@
           </div>
         </div>
         <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-          @click="form.additionalModules.push({ icon: '🧩', title: '', description: '', items: [], _pasteMode: false, _pasteText: '', _collapsed: false })">
+          @click="form.additionalModules.push({ icon: '🧩', title: '', description: '', items: [], _pasteMode: false, _pasteText: '', _collapsed: false, in_calculator: false, selected: false })">
           + Agregar módulo adicional
         </button>
       </div>

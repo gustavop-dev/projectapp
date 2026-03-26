@@ -555,7 +555,11 @@ const allGroupCalculatorItems = computed(() => {
   const investContent = investmentSection?.content_json || {};
   const baseTotal = parseInt(String(investContent.totalInvestment || '').replace(/[^\d]/g, ''), 10) || 0;
   const cj = frSection.content_json || {};
-  const allGroups = [...(cj.groups || []), ...(cj.additionalModules || [])].filter(g => g.is_visible !== false);
+  const allGroups = [...(cj.groups || []), ...(cj.additionalModules || [])].filter(g => {
+    if (g.is_visible === false) return false;
+    if (g.in_calculator !== undefined) return g.in_calculator === true;
+    return g.is_calculator_module === true; // retrocompat para datos existentes
+  });
   const items = [];
   for (const group of allGroups) {
     const isCalcModule = group.is_calculator_module === true;
@@ -569,7 +573,7 @@ const allGroupCalculatorItems = computed(() => {
       groupId: group.id,
       price,
       included: true,
-      is_required: pricePercent === 0,
+      is_required: pricePercent === 0 && !group.is_invite,
       default_selected: defaultSelected,
       is_calculator_module: isCalcModule,
       is_invite: group.is_invite || false,
