@@ -67,8 +67,8 @@ test.describe('Platform Dashboard — Admin', () => {
 
     await expect(page.getByText(/hola admin/i)).toBeVisible();
     await expect(page.getByText('Clientes activos')).toBeVisible();
-    await expect(page.getByText('Onboarding pendiente')).toBeVisible();
-    await expect(page.getByText('Inactivos')).toBeVisible();
+    await expect(page.getByText('Proyectos activos')).toBeVisible();
+    await expect(page.getByText('Bugs abiertos')).toBeVisible();
   });
 
   test('renders recent clients table with data', {
@@ -125,8 +125,8 @@ test.describe('Platform Dashboard — Client', () => {
     await page.goto('/platform/dashboard', { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByText(/hola client/i)).toBeVisible();
-    await expect(page.getByText('Tu perfil')).toBeVisible();
-    await expect(page.getByText('client@e2e-test.com')).toBeVisible();
+    await expect(page.getByText('Proyectos activos')).toBeVisible();
+    await expect(page.getByText('Bugs abiertos')).toBeVisible();
     // 'Mis proyectos' appears in sidebar + content; scope to dashboard content area
     await expect(page.locator('#platform-dashboard').getByText('Mis proyectos')).toBeVisible();
   });
