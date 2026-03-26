@@ -294,6 +294,7 @@ def create_proposal(request):
     ProposalChangeLog.objects.create(
         proposal=proposal,
         change_type='created',
+        actor_type='seller',
         description=(
             f'Proposal created: "{proposal.title}" for {proposal.client_name}. '
             f'Investment: ${proposal.total_investment} {proposal.currency}.'
@@ -663,6 +664,7 @@ def update_proposal_from_json(request, proposal_id):
                 field_name=field,
                 old_value=old_val,
                 new_value=new_val,
+                actor_type='seller',
                 description=f'JSON import — {field}: {old_val} → {new_val}',
             )
 
@@ -688,6 +690,7 @@ def update_proposal_from_json(request, proposal_id):
     ProposalChangeLog.objects.create(
         proposal=proposal,
         change_type='updated',
+        actor_type='seller',
         description=(
             f'Proposal updated from JSON import. '
             f'Sections updated: {", ".join(updated_sections) if updated_sections else "none"}.'
@@ -746,6 +749,7 @@ def update_proposal(request, proposal_id):
                 field_name=field,
                 old_value=old_values[field],
                 new_value=new_val,
+                actor_type='seller',
                 description=f'{field}: {old_values[field]} → {new_val}',
             )
 
@@ -884,6 +888,7 @@ def duplicate_proposal(request, proposal_id):
     ProposalChangeLog.objects.create(
         proposal=new_proposal,
         change_type='duplicated',
+        actor_type='seller',
         description=f'Duplicated from proposal "{proposal.title}" (ID {proposal.id}).',
     )
 
@@ -911,6 +916,7 @@ def send_proposal(request, proposal_id):
     ProposalChangeLog.objects.create(
         proposal=proposal,
         change_type='sent',
+        actor_type='seller',
         description=f'Proposal sent to {proposal.client_email}.',
     )
 
@@ -977,6 +983,7 @@ def update_proposal_status(request, proposal_id):
         field_name='status',
         old_value=old_status,
         new_value=new_status,
+        actor_type='seller',
         description=f'Status changed from {old_status} to {new_status} (inline).',
     )
 
@@ -1170,6 +1177,7 @@ def resend_proposal(request, proposal_id):
     ProposalChangeLog.objects.create(
         proposal=proposal,
         change_type='resent',
+        actor_type='seller',
         description=f'Proposal re-sent to {proposal.client_email}.',
     )
 
@@ -1292,6 +1300,7 @@ def respond_to_proposal(request, proposal_uuid):
     ProposalChangeLog.objects.create(
         proposal=proposal,
         change_type=change_type,
+        actor_type='client',
         description=description,
     )
 
@@ -1300,6 +1309,7 @@ def respond_to_proposal(request, proposal_uuid):
         ProposalChangeLog.objects.create(
             proposal=proposal,
             change_type='cond_accepted',
+            actor_type='client',
             description=f'Conditional acceptance: {condition[:500]}',
         )
 
@@ -1307,6 +1317,7 @@ def respond_to_proposal(request, proposal_uuid):
     ProposalChangeLog.objects.create(
         proposal=proposal,
         change_type='note',
+        actor_type='system',
         description=f'Automations paused: client responded with "{action}".',
     )
 
@@ -1382,6 +1393,7 @@ def comment_on_proposal(request, proposal_uuid):
     ProposalChangeLog.objects.create(
         proposal=proposal,
         change_type='commented',
+        actor_type='client',
         description=f'Client left a comment: {comment[:500]}',
     )
 
@@ -1709,6 +1721,7 @@ def track_calculator_interaction(request, proposal_uuid):
     ProposalChangeLog.objects.create(
         proposal=proposal,
         change_type=change_type,
+        actor_type='client',
         description=_json.dumps({
             'selected': selected,
             'deselected': deselected,
@@ -1716,6 +1729,53 @@ def track_calculator_interaction(request, proposal_uuid):
             'elapsed_seconds': elapsed_seconds,
         }),
     )
+
+    return Response({'status': 'ok'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def track_requirement_click(request, proposal_uuid):
+    """
+    Track when a client clicks on a functional requirements group card.
+
+    Payload: { "group_id": "...", "group_title": "..." }
+    """
+    import json as _json
+    from datetime import timedelta
+
+    proposal = get_object_or_404(
+        BusinessProposal, uuid=proposal_uuid, is_active=True,
+    )
+
+    group_id = request.data.get('group_id', '')
+    group_title = request.data.get('group_title', '')
+
+    if not group_id and not group_title:
+        return Response(
+            {'error': 'group_id or group_title is required.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Deduplicate: skip if same group clicked in last 60 seconds
+    recent = ProposalChangeLog.objects.filter(
+        proposal=proposal,
+        change_type='req_clicked',
+        created_at__gte=timezone.now() - timedelta(seconds=60),
+        description__contains=str(group_id),
+    ).exists()
+
+    if not recent:
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type='req_clicked',
+            actor_type='client',
+            description=_json.dumps({
+                'group_id': group_id,
+                'group_title': group_title,
+            }),
+        )
 
     return Response({'status': 'ok'}, status=status.HTTP_200_OK)
 
@@ -2107,6 +2167,7 @@ def schedule_followup(request, proposal_uuid):
         change_type='updated',
         field_name='followup_scheduled_at',
         new_value=followup_at.isoformat(),
+        actor_type='client',
         description=f'Client requested follow-up in {months} months.',
     )
 
@@ -2225,19 +2286,47 @@ def retrieve_proposal_analytics(request, proposal_id):
             'view_mode': event.view_mode,
         })
 
+    # Build module name lookup from functional_requirements section
+    import json as _json
+    module_name_map = {}
+    fr_section = proposal.sections.filter(
+        section_type='functional_requirements',
+    ).first()
+    if fr_section and fr_section.content_json:
+        _cj = fr_section.content_json
+        for _grp in list(_cj.get('groups') or []) + list(_cj.get('additionalModules') or []):
+            if _grp.get('id'):
+                module_name_map[str(_grp['id'])] = _grp.get('title', f'Module {_grp["id"]}')
+
     # Change log timeline
     change_logs = proposal.change_logs.order_by('-created_at')[:50]
-    timeline = [
-        {
+    timeline = []
+    for log in change_logs:
+        entry = {
             'change_type': log.change_type,
             'field_name': log.field_name,
             'old_value': log.old_value,
             'new_value': log.new_value,
             'description': log.description,
+            'actor_type': log.actor_type,
             'created_at': log.created_at.isoformat(),
         }
-        for log in change_logs
-    ]
+        # Enrich calculator events with module names
+        if log.change_type in ('calc_confirmed', 'calc_abandoned') and log.description:
+            try:
+                data = _json.loads(log.description)
+                data['selected_names'] = [
+                    module_name_map.get(str(mid), f'ID {mid}')
+                    for mid in data.get('selected', [])
+                ]
+                data['deselected_names'] = [
+                    module_name_map.get(str(mid), f'ID {mid}')
+                    for mid in data.get('deselected', [])
+                ]
+                entry['description'] = _json.dumps(data)
+            except (ValueError, KeyError):
+                pass
+        timeline.append(entry)
 
     # --- Funnel: how many sessions reached each section in order ---
     EXECUTIVE_SECTION_TYPES = {
@@ -2971,6 +3060,7 @@ def log_activity(request, proposal_id):
     log = ProposalChangeLog.objects.create(
         proposal=proposal,
         change_type=change_type,
+        actor_type='seller',
         description=description.strip(),
     )
     proposal.last_activity_at = timezone.now()

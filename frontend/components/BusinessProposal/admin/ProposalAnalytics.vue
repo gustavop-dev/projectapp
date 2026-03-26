@@ -365,16 +365,43 @@
         </div>
         <div v-if="analytics.timeline?.length" class="px-4 sm:px-6 py-4">
           <div class="relative">
-            <div class="absolute left-4 top-0 bottom-0 w-px bg-gray-200"></div>
+            <div class="absolute left-4 top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-600"></div>
             <div v-for="(event, idx) in analytics.timeline" :key="idx" class="relative pl-10 pb-5 last:pb-0">
-              <div class="absolute left-2.5 w-3 h-3 rounded-full border-2 border-white" :class="timelineColor(event.change_type)"></div>
-              <div class="flex flex-wrap items-baseline gap-2">
+              <div class="absolute left-2.5 w-3 h-3 rounded-full border-2 border-white dark:border-gray-800" :class="timelineColor(event.change_type)"></div>
+              <div class="flex flex-wrap items-center gap-2">
                 <span class="text-xs font-medium px-2 py-0.5 rounded-full" :class="timelineBadge(event.change_type)">
-                  {{ timelineIcon(event.change_type) }} {{ event.change_type }}
+                  {{ timelineIcon(event.change_type) }} {{ timelineLabel(event.change_type) }}
+                </span>
+                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full" :class="actorBadgeClass(event.actor_type)">
+                  {{ actorLabel(event.actor_type) }}
                 </span>
                 <span class="text-xs text-gray-400">{{ formatDate(event.created_at) }}</span>
               </div>
-              <p class="text-sm text-gray-600 mt-1">{{ formatTimelineDescription(event) }}</p>
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <div class="text-sm text-gray-600 dark:text-gray-300 mt-1" v-html="formatTimelineDescription(event)"></div>
+              <!-- Collapsible calculator detail -->
+              <div v-if="isCalcEvent(event)" class="mt-2">
+                <button
+                  class="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium focus:outline-none"
+                  @click="toggleCalcDetail(idx)"
+                >
+                  {{ expandedCalcEvents[idx] ? '▾ Ocultar detalle de módulos' : '▸ Ver detalle de módulos' }}
+                </button>
+                <div v-if="expandedCalcEvents[idx]" class="mt-2 ml-2 space-y-2 text-xs">
+                  <div v-if="calcDetail(event).selected_names?.length">
+                    <span class="font-semibold text-emerald-700 dark:text-emerald-400">Seleccionados:</span>
+                    <ul class="ml-3 mt-1 list-disc text-gray-600 dark:text-gray-300 space-y-0.5">
+                      <li v-for="name in calcDetail(event).selected_names" :key="name">{{ name }}</li>
+                    </ul>
+                  </div>
+                  <div v-if="calcDetail(event).deselected_names?.length">
+                    <span class="font-semibold text-red-600 dark:text-red-400">Desmarcados:</span>
+                    <ul class="ml-3 mt-1 list-disc text-gray-600 dark:text-gray-300 space-y-0.5">
+                      <li v-for="name in calcDetail(event).deselected_names" :key="name">{{ name }}</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -612,32 +639,124 @@ function heatEmoji(idx, total) {
   return '⚪';
 }
 
+const TIMELINE_LABELS = {
+  created: 'Creada', updated: 'Actualizada', sent: 'Enviada', viewed: 'Vista',
+  accepted: 'Aceptada', rejected: 'Rechazada', resent: 'Reenviada',
+  expired: 'Expirada', duplicated: 'Duplicada', commented: 'Comentario',
+  negotiating: 'Negociando', reengagement: 'Reenganche',
+  call: 'Llamada', meeting: 'Reunión', followup: 'Seguimiento', note: 'Nota',
+  calc_confirmed: 'Calculadora confirmada', calc_abandoned: 'Calculadora abandonada',
+  calc_followup: 'Seguimiento calculadora', auto_archived: 'Archivada automáticamente',
+  status_change: 'Cambio de estado', cond_accepted: 'Aceptación condicional',
+  req_clicked: 'Módulo consultado', seller_inactivity_escalation: 'Escalación por inactividad',
+};
+
+const ACTOR_LABELS = { client: 'Cliente', seller: 'Ventas', system: 'Sistema', '': 'Sistema' };
+const ACTOR_BADGE_CLASSES = {
+  client: 'bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700',
+  seller: 'bg-purple-50 text-purple-600 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-700',
+  system: 'bg-gray-50 text-gray-500 border border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600',
+  '': 'bg-gray-50 text-gray-500 border border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600',
+};
+
+const FIELD_LABELS = {
+  title: 'Título', total_investment: 'Inversión total', currency: 'Moneda',
+  client_name: 'Nombre del cliente', client_email: 'Email del cliente',
+  client_phone: 'Teléfono del cliente', discount_percent: 'Descuento (%)',
+  status: 'Estado', language: 'Idioma', project_type: 'Tipo de proyecto',
+  market_type: 'Tipo de mercado', expires_at: 'Fecha de expiración',
+  reminder_days: 'Días de recordatorio', urgency_reminder_days: 'Días de recordatorio de urgencia',
+  followup_scheduled_at: 'Seguimiento programado',
+};
+
+const expandedCalcEvents = ref({});
+
+function timelineLabel(type) {
+  return TIMELINE_LABELS[type] || type;
+}
+
+function actorLabel(actorType) {
+  return ACTOR_LABELS[actorType || ''] || 'Sistema';
+}
+
+function actorBadgeClass(actorType) {
+  return ACTOR_BADGE_CLASSES[actorType || ''] || ACTOR_BADGE_CLASSES[''];
+}
+
+function isCalcEvent(event) {
+  return event.change_type === 'calc_confirmed' || event.change_type === 'calc_abandoned';
+}
+
+function toggleCalcDetail(idx) {
+  expandedCalcEvents.value[idx] = !expandedCalcEvents.value[idx];
+}
+
+function calcDetail(event) {
+  try { return JSON.parse(event.description); }
+  catch { return {}; }
+}
+
+function formatCurrencyValue(val) {
+  const num = parseFloat(val);
+  if (isNaN(num)) return val || '(vacío)';
+  return `<strong>$${num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</strong>`;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function formatTimelineDescription(event) {
-  if (event.change_type === 'calc_abandoned' || event.change_type === 'calc_confirmed') {
+  // Calculator events
+  if (isCalcEvent(event)) {
     try {
       const data = JSON.parse(event.description);
-      const selected = data.selected || [];
-      const deselected = data.deselected || [];
+      const count = (data.selected || []).length;
       const total = data.total;
       const elapsed = data.elapsed_seconds || 0;
       const mins = Math.floor(elapsed / 60);
       const secs = Math.round(elapsed % 60);
       const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-      const totalStr = total != null ? `$${Number(total).toLocaleString('es-CO')}` : '';
+      const totalStr = total != null
+        ? `<strong>$${Number(total).toLocaleString('es-CO')}</strong>`
+        : '';
       if (event.change_type === 'calc_confirmed') {
-        return `Confirmó ${selected.length} módulo${selected.length !== 1 ? 's' : ''}`
+        return `Confirmó <strong>${count}</strong> módulo${count !== 1 ? 's' : ''}`
           + (totalStr ? ` — Total: ${totalStr}` : '')
-          + (elapsed ? ` — Tiempo en calculadora: ${timeStr}` : '');
+          + (elapsed ? ` — Tiempo: <strong>${timeStr}</strong>` : '');
       }
-      return `Abandonó calculadora con ${selected.length} módulo${selected.length !== 1 ? 's' : ''} seleccionado${selected.length !== 1 ? 's' : ''}`
-        + (deselected.length ? `, ${deselected.length} desmarcado${deselected.length !== 1 ? 's' : ''}` : '')
+      const deselectedCount = (data.deselected || []).length;
+      return `Abandonó calculadora con <strong>${count}</strong> módulo${count !== 1 ? 's' : ''} seleccionado${count !== 1 ? 's' : ''}`
+        + (deselectedCount ? `, <strong>${deselectedCount}</strong> desmarcado${deselectedCount !== 1 ? 's' : ''}` : '')
         + (totalStr ? ` — Total: ${totalStr}` : '')
-        + (elapsed ? ` — Tiempo: ${timeStr}` : '');
-    } catch (_e) {
-      return event.description;
-    }
+        + (elapsed ? ` — Tiempo: <strong>${timeStr}</strong>` : '');
+    } catch { return escapeHtml(event.description); }
   }
-  return event.description;
+
+  // Requirement clicked
+  if (event.change_type === 'req_clicked') {
+    try {
+      const data = JSON.parse(event.description);
+      return `Cliente consultó <strong>${escapeHtml(data.group_title || 'módulo')}</strong>`;
+    } catch { return escapeHtml(event.description); }
+  }
+
+  // Field updates with old/new values
+  if (event.change_type === 'updated' && event.field_name) {
+    const fieldLabel = FIELD_LABELS[event.field_name] || event.field_name;
+    const isCurrency = ['total_investment'].includes(event.field_name);
+    const oldDisplay = isCurrency ? formatCurrencyValue(event.old_value) : escapeHtml(event.old_value || '(vacío)');
+    const newDisplay = isCurrency ? formatCurrencyValue(event.new_value) : `<strong>${escapeHtml(event.new_value || '(vacío)')}</strong>`;
+    return `<strong>${escapeHtml(fieldLabel)}</strong>: ${oldDisplay} → ${newDisplay}`;
+  }
+
+  // Status change
+  if (event.change_type === 'status_change' && event.old_value && event.new_value) {
+    return `<strong>Estado</strong>: ${escapeHtml(event.old_value)} → <strong>${escapeHtml(event.new_value)}</strong>`;
+  }
+
+  return escapeHtml(event.description);
 }
 
 function timelineIcon(type) {
@@ -648,6 +767,7 @@ function timelineIcon(type) {
     call: '📞', meeting: '🤝', followup: '📩', note: '📝',
     calc_confirmed: '🧮', calc_abandoned: '🧮', calc_followup: '🧮',
     auto_archived: '📦', status_change: '🔄', cond_accepted: '⚠️',
+    req_clicked: '🔍', seller_inactivity_escalation: '🚨',
   };
   return icons[type] || '•';
 }
@@ -661,6 +781,7 @@ function timelineColor(type) {
     call: 'bg-sky-400', meeting: 'bg-indigo-500', followup: 'bg-amber-400', note: 'bg-gray-400',
     calc_confirmed: 'bg-emerald-400', calc_abandoned: 'bg-red-400', calc_followup: 'bg-orange-400',
     auto_archived: 'bg-gray-500', status_change: 'bg-blue-400', cond_accepted: 'bg-amber-500',
+    req_clicked: 'bg-cyan-400', seller_inactivity_escalation: 'bg-red-500',
   };
   return colors[type] || 'bg-gray-400';
 }
@@ -680,6 +801,7 @@ function timelineBadge(type) {
     calc_followup: 'bg-orange-50 text-orange-700',
     auto_archived: 'bg-gray-100 text-gray-700', status_change: 'bg-blue-50 text-blue-700',
     cond_accepted: 'bg-amber-50 text-amber-700',
+    req_clicked: 'bg-cyan-50 text-cyan-700', seller_inactivity_escalation: 'bg-red-50 text-red-700',
   };
   return badges[type] || 'bg-gray-50 text-gray-700';
 }

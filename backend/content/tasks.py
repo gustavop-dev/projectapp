@@ -170,6 +170,7 @@ def send_rejection_reengagement(proposal_id):
         ProposalChangeLog.objects.create(
             proposal=proposal,
             change_type='reengagement',
+            actor_type='system',
             description='Re-engagement email sent 48h after budget rejection.',
         )
 
@@ -256,6 +257,7 @@ def expire_stale_proposals():
             ProposalChangeLog.objects.create(
                 proposal=proposal,
                 change_type='updated',
+                actor_type='system',
                 description=(
                     'Auto-extended expiration by 7 days due to recent client activity.'
                 ),
@@ -322,6 +324,7 @@ def escalate_seller_inactivity():
             ProposalChangeLog.objects.create(
                 proposal=p,
                 change_type='seller_inactivity_escalation',
+                actor_type='system',
                 description=f'Seller inactivity escalation sent after {days} days.',
             )
             escalated += 1
@@ -888,6 +891,7 @@ def auto_archive_zombie_proposals():
             ProposalChangeLog.objects.create(
                 proposal=proposal,
                 change_type='auto_archived',
+                actor_type='system',
                 description='Auto-archived: expired with no activity for 30+ days.',
             )
             archived += 1

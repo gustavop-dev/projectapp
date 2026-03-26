@@ -32,6 +32,12 @@ class ProposalChangeLog(models.Model):
         STATUS_CHANGE = 'status_change', 'Status Change'
         CONDITIONAL_ACCEPT = 'cond_accepted', 'Conditional Acceptance'
         CALCULATOR_FOLLOWUP = 'calc_followup', 'Calculator Follow-up Sent'
+        REQUIREMENT_CLICKED = 'req_clicked', 'Requirement Clicked'
+
+    class ActorType(models.TextChoices):
+        CLIENT = 'client', 'Client'
+        SELLER = 'seller', 'Seller'
+        SYSTEM = 'system', 'System'
 
     proposal = models.ForeignKey(
         'BusinessProposal',
@@ -46,6 +52,12 @@ class ProposalChangeLog(models.Model):
     old_value = models.TextField(blank=True, default='')
     new_value = models.TextField(blank=True, default='')
     description = models.TextField(blank=True, default='')
+    actor_type = models.CharField(
+        max_length=10,
+        choices=ActorType.choices,
+        blank=True,
+        default='',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

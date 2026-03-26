@@ -63,6 +63,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import { create_request } from '~/stores/services/request_http';
 import FunctionalRequirementsModal from './FunctionalRequirementsModal.vue';
 
 const sectionRef = ref(null);
@@ -94,6 +95,10 @@ const props = defineProps({
   currency: {
     type: String,
     default: 'COP',
+  },
+  proposalUuid: {
+    type: String,
+    default: '',
   },
 });
 
@@ -142,6 +147,13 @@ function formatPrice(value) {
 function openModal(group) {
   selectedGroup.value = group;
   modalVisible.value = true;
+  // Track requirement card click (fire-and-forget)
+  if (props.proposalUuid) {
+    create_request(`proposals/${props.proposalUuid}/track-requirement-click/`, {
+      group_id: group.id,
+      group_title: group.title,
+    }).catch(() => { /* silent */ });
+  }
 }
 </script>
 

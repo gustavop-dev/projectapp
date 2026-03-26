@@ -712,6 +712,7 @@ function getSectionProps(section) {
       selectedCalculatorModules: allSelectedIds,
       calculatorModulePrices: groupPriceMap,
       currency: investContent.currency || proposal.value?.currency || 'COP',
+      proposalUuid: proposal.value?.uuid || '',
     };
   }
 
