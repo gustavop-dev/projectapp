@@ -583,24 +583,24 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
             </button>
-            <label class="flex items-center gap-1 cursor-pointer" title="Seleccionado por defecto en la calculadora">
+            <label class="flex items-center gap-1 cursor-pointer" title="Si está marcado, este módulo aparecerá preseleccionado en la calculadora del cliente">
               <input type="checkbox" v-model="group.selected" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
               <span class="text-[10px] text-gray-500 font-medium">Seleccionado</span>
             </label>
             <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
               :class="group.in_calculator ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-gray-50 text-gray-400 border-gray-200'"
-              :title="group.in_calculator ? 'Aparece en la calculadora' : 'No aparece en la calculadora'"
+              :title="group.in_calculator ? 'Este módulo aparece en la calculadora de inversión del cliente' : 'Este módulo NO aparece en la calculadora de inversión'"
               @click="group.in_calculator = !group.in_calculator">
               {{ group.in_calculator ? '🧮 En calc.' : '🧮 No calc.' }}
             </button>
             <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
               :class="group.is_visible !== false ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-red-50 text-red-500 border-red-200'"
-              :title="group.is_visible !== false ? 'Visible para el cliente' : 'Oculto para el cliente'"
+              :title="group.is_visible !== false ? 'Este módulo se muestra en la propuesta del cliente' : 'Este módulo está oculto en la propuesta del cliente'"
               @click="group.is_visible = group.is_visible === false ? true : false">
               {{ group.is_visible !== false ? '👁 Visible' : '🚫 Oculto' }}
             </button>
             <button v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features'"
-              type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.groups.splice(gIdx, 1)">Eliminar</button>
+              type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" title="Eliminar este grupo de la propuesta" @click="form.groups.splice(gIdx, 1)">Eliminar</button>
           </div>
         </div>
 
@@ -621,7 +621,7 @@
             </div>
             <div class="grid grid-cols-[1fr_auto] gap-3 items-start">
               <FieldTextarea v-model="group.description" label="Descripción" :rows="2" :isSingle="true" />
-              <div class="flex flex-col gap-1 pt-0.5">
+              <div class="flex flex-col gap-1 pt-0.5" title="Porcentaje de la inversión total que representa este módulo. Se usa para calcular el precio en la calculadora">
                 <label class="text-[10px] text-gray-500 font-medium uppercase">% del precio</label>
                 <input type="number" v-model.number="group.price_percent" min="0" max="100" step="1" placeholder="0"
                   class="w-20 px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-emerald-500 outline-none" />
@@ -679,23 +679,23 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
               </button>
-              <label class="flex items-center gap-1 cursor-pointer" title="Seleccionado por defecto en la calculadora">
+              <label class="flex items-center gap-1 cursor-pointer" title="Si está marcado, este módulo aparecerá preseleccionado en la calculadora del cliente">
                 <input type="checkbox" v-model="mod.selected" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
                 <span class="text-[10px] text-gray-500 font-medium">Seleccionado</span>
               </label>
               <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
                 :class="mod.in_calculator ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-gray-50 text-gray-400 border-gray-200'"
-                :title="mod.in_calculator ? 'Aparece en la calculadora' : 'No aparece en la calculadora'"
+                :title="mod.in_calculator ? 'Este módulo aparece en la calculadora de inversión del cliente' : 'Este módulo NO aparece en la calculadora de inversión'"
                 @click="mod.in_calculator = !mod.in_calculator">
                 {{ mod.in_calculator ? '🧮 En calc.' : '🧮 No calc.' }}
               </button>
               <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
                 :class="mod.is_visible !== false ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-red-50 text-red-500 border-red-200'"
-                :title="mod.is_visible !== false ? 'Visible para el cliente' : 'Oculto para el cliente'"
+                :title="mod.is_visible !== false ? 'Este módulo se muestra en la propuesta del cliente' : 'Este módulo está oculto en la propuesta del cliente'"
                 @click="mod.is_visible = mod.is_visible === false ? true : false">
                 {{ mod.is_visible !== false ? '👁 Visible' : '🚫 Oculto' }}
               </button>
-              <button type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" @click="form.additionalModules.splice(mIdx, 1)">Eliminar</button>
+              <button type="button" class="text-xs text-red-500 hover:text-red-700 ml-2" title="Eliminar este módulo de la propuesta" @click="form.additionalModules.splice(mIdx, 1)">Eliminar</button>
             </div>
           </div>
           <div v-show="!mod._collapsed" class="p-4">
@@ -711,7 +711,7 @@
               </div>
               <div class="grid grid-cols-[1fr_auto] gap-3 items-start">
                 <FieldTextarea v-model="mod.description" label="Descripción" :rows="2" :isSingle="true" />
-                <div class="flex flex-col gap-1 pt-0.5">
+                <div class="flex flex-col gap-1 pt-0.5" title="Porcentaje de la inversión total que representa este módulo. Se usa para calcular el precio en la calculadora">
                   <label class="text-[10px] text-gray-500 font-medium uppercase">% del precio</label>
                   <input type="number" v-model.number="mod.price_percent" min="0" max="100" step="1" placeholder="0"
                     class="w-20 px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-emerald-500 outline-none" />

@@ -55,6 +55,8 @@ export function buildFormFromJson(json, type, proposalData) {
           id: g.id || '', icon: g.icon || '', title: g.title || '',
           description: g.description || '',
           is_visible: g.is_visible !== undefined ? g.is_visible : true,
+          in_calculator: g.in_calculator ?? false,
+          selected: g.selected ?? (g.default_selected ?? false),
           is_calculator_module: g.is_calculator_module || false,
           default_selected: g.default_selected ?? false,
           price_percent: g.price_percent ?? null,
@@ -66,6 +68,8 @@ export function buildFormFromJson(json, type, proposalData) {
         additionalModules: (j.additionalModules || []).map(m => ({
           icon: m.icon || '', title: m.title || '', description: m.description || '',
           is_visible: m.is_visible !== undefined ? m.is_visible : true,
+          in_calculator: m.in_calculator ?? true,
+          selected: m.selected ?? (m.default_selected ?? false),
           is_calculator_module: m.is_calculator_module || false,
           default_selected: m.default_selected ?? false,
           price_percent: m.price_percent ?? null,
@@ -144,6 +148,8 @@ export function formToJson(formData, type) {
         const out = {
           id: g.id, icon: g.icon, title: g.title, description: g.description,
           is_visible: g.is_visible !== undefined ? g.is_visible : true,
+          in_calculator: g.in_calculator ?? false,
+          selected: g.selected ?? false,
           items: (g.items || []).map(i => ({ icon: i.icon, name: i.name, description: i.description, ...(i.price != null ? { price: i.price } : {}), is_required: i.is_required !== false })),
         };
         if (g.is_calculator_module) out.is_calculator_module = true;
