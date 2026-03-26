@@ -92,6 +92,134 @@
 }
 
 
+/* ===== Custom theme — full interface theming ===== */
+/* CSS vars set by usePlatformCustomTheme.js:
+   --theme-color       : selected hex (primary)
+   --theme-rgb         : "r, g, b" of primary
+   --theme-btn-text    : text color on primary buttons
+   --theme-surface     : lightest shade hex (backgrounds)
+   --theme-surface-hover: second-lightest shade (hover bg)
+   --theme-border      : mid-light shade (borders)
+   --theme-accent      : mid shade (secondary elements)
+   --theme-dark        : dark shade (text accents)
+   --theme-*-rgb       : RGB triplets for alpha usage
+*/
+
+/* ============================
+   1. PRIMARY BUTTONS
+   ============================ */
+:root[style*="--theme-color"] .bg-lemon {
+  background-color: var(--theme-color) !important;
+  color: var(--theme-btn-text, #fff) !important;
+}
+:root[style*="--theme-color"] .bg-lemon:hover {
+  filter: brightness(1.12) !important;
+}
+/* Light mode: bg-esmerald paired with text-white (primary buttons + active pills) */
+:root[style*="--theme-color"] .bg-esmerald.text-white {
+  background-color: var(--theme-color) !important;
+  color: var(--theme-btn-text, #fff) !important;
+}
+/* Dark mode: dark:bg-lemon buttons */
+:root[style*="--theme-color"] .dark .dark\:bg-lemon {
+  background-color: var(--theme-color) !important;
+  color: var(--theme-btn-text, #fff) !important;
+}
+/* Dark mode button text override (dark:text-esmerald-dark on buttons) */
+:root[style*="--theme-color"] .dark .dark\:bg-lemon.dark\:text-esmerald-dark {
+  color: var(--theme-btn-text, #fff) !important;
+}
+
+/* ============================
+   2. TEXT ACCENTS
+   ============================ */
+:root[style*="--theme-color"] .text-lemon,
+:root[style*="--theme-color"] .dark .dark\:text-lemon {
+  color: var(--theme-color) !important;
+}
+/* Brand text in headings/labels (not inside sidebar or topbar) */
+:root[style*="--theme-color"] main .text-esmerald:not(h1):not(.text-3xl):not(.text-xl) {
+  color: var(--theme-dark) !important;
+}
+
+/* ============================
+   3. CARD BORDERS & SURFACES
+   ============================ */
+/* Main content cards: tinted border */
+:root[style*="--theme-color"] main .rounded-3xl {
+  border-color: rgba(var(--theme-border-rgb), 0.25) !important;
+}
+:root[style*="--theme-color"] main .rounded-2xl {
+  border-color: rgba(var(--theme-border-rgb), 0.20) !important;
+}
+/* Dark mode card borders */
+:root[style*="--theme-color"] .dark main .rounded-3xl,
+:root[style*="--theme-color"] .dark main .rounded-2xl {
+  border-color: rgba(var(--theme-accent-rgb), 0.18) !important;
+}
+
+/* Table row borders */
+:root[style*="--theme-color"] main table tr {
+  border-color: rgba(var(--theme-border-rgb), 0.12) !important;
+}
+:root[style*="--theme-color"] .dark main table tr {
+  border-color: rgba(var(--theme-accent-rgb), 0.10) !important;
+}
+
+/* ============================
+   4. INPUT FOCUS STATES
+   ============================ */
+:root[style*="--theme-color"] main input:focus,
+:root[style*="--theme-color"] main textarea:focus,
+:root[style*="--theme-color"] main select:focus {
+  border-color: rgba(var(--theme-rgb), 0.40) !important;
+  --tw-ring-color: rgba(var(--theme-rgb), 0.15) !important;
+}
+
+/* ============================
+   5. SIDEBAR THEMING
+   ============================ */
+/* Sidebar hover: tinted bg */
+:root[style*="--theme-color"] aside .hover\:bg-esmerald-light:hover {
+  background-color: rgba(var(--theme-rgb), 0.10) !important;
+}
+:root[style*="--theme-color"] aside .hover\:text-esmerald:hover {
+  color: var(--theme-dark) !important;
+}
+/* Sidebar border */
+:root[style*="--theme-color"] aside {
+  border-color: rgba(var(--theme-border-rgb), 0.15) !important;
+}
+/* Sidebar section dividers */
+:root[style*="--theme-color"] aside .border-esmerald\/\[0\.06\] {
+  border-color: rgba(var(--theme-border-rgb), 0.15) !important;
+}
+/* Dark mode sidebar hover */
+:root[style*="--theme-color"] .dark aside .dark\:hover\:bg-white\/\[0\.06\]:hover {
+  background-color: rgba(var(--theme-rgb), 0.12) !important;
+}
+
+/* ============================
+   6. AVATAR FALLBACK BG
+   ============================ */
+:root[style*="--theme-color"] .bg-esmerald.text-white:not(button):not(a):not([role="button"]) {
+  background-color: var(--theme-color) !important;
+}
+:root[style*="--theme-color"] .dark .dark\:bg-lemon.dark\:text-esmerald-dark:not(button):not(a):not([role="button"]) {
+  background-color: var(--theme-color) !important;
+  color: var(--theme-btn-text, #fff) !important;
+}
+
+/* ============================
+   7. BACKGROUND — color-only mode (no cover image)
+   ============================ */
+.platform-color-only {
+  background-color: var(--theme-surface, #f9fafb) !important;
+}
+.platform-color-only.dark {
+  background-color: rgba(var(--theme-dark-rgb, 0, 0, 0), 0.95) !important;
+}
+
 .swal2-icon.swal2-success .swal2-success-circular-line-left,
 .swal2-icon.swal2-success .swal2-success-circular-line-right,
 .swal2-success-fix {

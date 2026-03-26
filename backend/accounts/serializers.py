@@ -40,6 +40,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'role', 'company_name', 'phone', 'cedula',
             'date_of_birth', 'gender', 'education_level',
             'avatar_display_url', 'is_onboarded', 'profile_completed',
+            'theme_color', 'cover_image', 'custom_cover_image',
             'created_at', 'updated_at',
         ]
         read_only_fields = [
@@ -69,6 +70,9 @@ class UpdateProfileSerializer(serializers.Serializer):
         choices=UserProfile.EDUCATION_CHOICES, required=False, allow_blank=True,
     )
     avatar = serializers.ImageField(required=False, allow_null=True)
+    theme_color = serializers.CharField(max_length=7, required=False, allow_blank=True)
+    cover_image = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    custom_cover_image = serializers.ImageField(required=False, allow_null=True)
 
 
 class CompleteProfileSerializer(serializers.Serializer):

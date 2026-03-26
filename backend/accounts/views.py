@@ -221,7 +221,7 @@ def me_view(request):
     user.save(update_fields=['first_name', 'last_name'])
 
     profile_fields = ['updated_at']
-    for field in ('company_name', 'phone', 'cedula', 'date_of_birth', 'gender', 'education_level'):
+    for field in ('company_name', 'phone', 'cedula', 'date_of_birth', 'gender', 'education_level', 'theme_color', 'cover_image'):
         if field in data:
             setattr(profile, field, data[field])
             profile_fields.append(field)
@@ -229,6 +229,10 @@ def me_view(request):
     if 'avatar' in data and data['avatar'] is not None:
         profile.avatar = data['avatar']
         profile_fields.append('avatar')
+
+    if 'custom_cover_image' in data and data['custom_cover_image'] is not None:
+        profile.custom_cover_image = data['custom_cover_image']
+        profile_fields.append('custom_cover_image')
 
     profile.save(update_fields=profile_fields)
 
@@ -2328,3 +2332,51 @@ def wompi_webhook_view(request):
         payment.save(update_fields=['wompi_transaction_id'])
 
     return Response({'status': 'ok'})
+
+
+# ==========================================================================
+# Cover Gallery
+# ==========================================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def cover_gallery_view(request):
+    """List cover gallery categories and images."""
+    import os
+    from django.conf import settings
+
+    gallery_dir = os.path.join(settings.STATICFILES_DIRS[0], 'cover_gallery')
+    if not os.path.isdir(gallery_dir):
+        return Response([])
+
+    categories = []
+    for category_name in sorted(os.listdir(gallery_dir)):
+        category_path = os.path.join(gallery_dir, category_name)
+        if not os.path.isdir(category_path):
+            continue
+
+        images = []
+        for filename in sorted(os.listdir(category_path)):
+            if not filename.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
+                continue
+            # Build human-readable name from filename
+            name_part = filename.rsplit('.', 1)[0]
+            # Remove imgi_XX_ prefix
+            parts = name_part.split('_', 2)
+            display_name = parts[2] if len(parts) > 2 else name_part
+            display_name = display_name.replace('_', ' ').title()
+
+            images.append({
+                'filename': filename,
+                'path': f'{category_name}/{filename}',
+                'name': display_name,
+                'url': f'{settings.STATIC_URL}cover_gallery/{category_name}/{filename}',
+            })
+
+        if images:
+            categories.append({
+                'name': category_name,
+                'images': images,
+            })
+
+    return Response(categories)

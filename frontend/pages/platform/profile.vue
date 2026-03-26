@@ -167,6 +167,12 @@
       </form>
     </div>
 
+    <!-- Theme customization -->
+    <div class="mt-6 rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
+      <h2 class="mb-5 text-base font-semibold text-esmerald dark:text-white">Personalizar interfaz</h2>
+      <ThemePicker />
+    </div>
+
     <!-- Image crop modal -->
     <Teleport to="body">
       <Transition name="modal-overlay">
@@ -232,6 +238,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
+import ThemePicker from '~/components/platform/ThemePicker.vue'
 
 definePageMeta({
   layout: 'platform',

@@ -81,6 +81,23 @@
           :is-active="isActive(item.href)"
           :disabled="item.disabled"
         />
+        <!-- Personaliza button (opens theme picker, not a route) -->
+        <button
+          type="button"
+          :class="[
+            'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
+            isCollapsed ? 'justify-center' : '',
+            'text-green-light hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white',
+          ]"
+          :title="isCollapsed ? 'Personaliza' : undefined"
+          @click="showThemePicker = true"
+        >
+          <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="13.5" cy="6.5" r="2.5" /><circle cx="17.5" cy="10.5" r="2.5" /><circle cx="8.5" cy="7.5" r="2.5" /><circle cx="6.5" cy="12.5" r="2.5" />
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+          </svg>
+          <span v-if="!isCollapsed" class="truncate">Personaliza</span>
+        </button>
       </div>
 
       <!-- Admin section -->
@@ -110,8 +127,16 @@
           isCollapsed ? 'justify-center p-2' : 'gap-3 p-2',
         ]"
       >
-        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-esmerald text-xs font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
-          {{ authStore.userInitials }}
+        <div class="h-9 w-9 shrink-0 overflow-hidden rounded-full">
+          <img
+            v-if="authStore.user?.avatar_display_url"
+            :src="authStore.user.avatar_display_url"
+            alt="Avatar"
+            class="h-full w-full object-cover"
+          />
+          <div v-else class="flex h-full w-full items-center justify-center bg-esmerald text-xs font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
+            {{ authStore.userInitials }}
+          </div>
         </div>
         <div v-if="!isCollapsed" class="min-w-0 flex-1">
           <p class="truncate text-sm font-medium text-esmerald dark:text-white">{{ authStore.displayName }}</p>
@@ -126,14 +151,20 @@
           isCollapsed ? 'flex-col items-center gap-1' : 'items-center gap-1',
         ]"
       >
+        <!-- Color theme -->
         <button
           type="button"
           :class="sidebarActionClass"
-          :title="isCollapsed ? 'Tema' : undefined"
-          @click="toggleTheme"
+          :title="isCollapsed ? 'Personalizar' : undefined"
+          @click="showThemePicker = true"
         >
-          <svg v-if="isDark" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-          <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="13.5" cy="6.5" r="2.5" />
+            <circle cx="17.5" cy="10.5" r="2.5" />
+            <circle cx="8.5" cy="7.5" r="2.5" />
+            <circle cx="6.5" cy="12.5" r="2.5" />
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+          </svg>
         </button>
 
         <button
@@ -183,6 +214,7 @@ const props = defineProps({
 
 const toggleSidebar = inject('toggleSidebar')
 const toggleTheme = inject('toggleTheme')
+const showThemePicker = inject('showThemePicker')
 
 const route = useRoute()
 const authStore = usePlatformAuthStore()

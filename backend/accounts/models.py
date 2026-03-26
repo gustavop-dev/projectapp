@@ -75,6 +75,18 @@ class UserProfile(models.Model):
         max_length=500, blank=True, default='',
         help_text='Deprecated — use avatar ImageField instead.',
     )
+    theme_color = models.CharField(
+        max_length=7, blank=True, default='',
+        help_text='Hex color for UI theme (e.g. #002921).',
+    )
+    cover_image = models.CharField(
+        max_length=300, blank=True, default='',
+        help_text='Path to cover gallery image (e.g. NASA Archive/imgi_21_nasa_the_blue_marble.jpg).',
+    )
+    custom_cover_image = models.ImageField(
+        upload_to='covers/', null=True, blank=True,
+        help_text='User-uploaded custom cover image.',
+    )
     profile_completed = models.BooleanField(
         default=False,
         help_text='True after the client fills in their profile details.',

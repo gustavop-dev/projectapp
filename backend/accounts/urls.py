@@ -23,6 +23,7 @@ from accounts.views import (
     project_subscription_view,
     proposal_list_for_selector_view,
     subscription_list_view,
+    cover_gallery_view,
     wompi_webhook_view,
     change_request_comment_view,
     change_request_convert_view,
@@ -111,4 +112,7 @@ urlpatterns = [
     path('projects/<int:project_id>/payments/<int:payment_id>/card-pay/', payment_card_pay_view, name='platform-payment-card-pay'),
     path('projects/<int:project_id>/payments/<int:payment_id>/verify/', payment_verify_transaction_view, name='platform-payment-verify'),
     path('webhooks/wompi/', wompi_webhook_view, name='platform-wompi-webhook'),
+
+    # Cover gallery
+    path('cover-gallery/', cover_gallery_view, name='platform-cover-gallery'),
 ]

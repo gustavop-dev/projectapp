@@ -88,6 +88,7 @@ export default defineNuxtConfig({
   // CSS
   css: [
     '~/assets/styles/main.css',
+    '~/assets/styles/platform-cover.css',
   ],
 
   // Tailwind config
@@ -167,6 +168,10 @@ export default defineNuxtConfig({
         },
       ],
     },
+  },
+
+  experimental: {
+    appManifest: false,
   },
 
   compatibilityDate: '2024-11-01',
