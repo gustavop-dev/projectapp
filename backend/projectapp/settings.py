@@ -205,6 +205,16 @@ WHATSAPP_PHONE = config('WHATSAPP_PHONE', default='')
 CALLMEBOT_API_KEY = config('CALLMEBOT_API_KEY', default='')
 
 # ==============================================================================
+# WOMPI — Payment Gateway
+# ==============================================================================
+
+WOMPI_PUBLIC_KEY = config('WOMPI_PUBLIC_KEY', default='')
+WOMPI_PRIVATE_KEY = config('WOMPI_PRIVATE_KEY', default='')
+WOMPI_EVENTS_SECRET = config('WOMPI_EVENTS_SECRET', default='')
+WOMPI_INTEGRITY_SECRET = config('WOMPI_INTEGRITY_SECRET', default='')
+WOMPI_API_URL = config('WOMPI_API_URL', default='https://sandbox.wompi.co/v1')
+
+# ==============================================================================
 # HUEY — task queue
 # ==============================================================================
 

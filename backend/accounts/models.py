@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from accounts.services.image_utils import optimize_avatar
+from accounts.services.image_utils import optimize_avatar, optimize_image
 
 
 class UserProfile(models.Model):
@@ -216,6 +216,13 @@ class Project(models.Model):
         related_name='projects',
         help_text='The client user this project belongs to.',
     )
+    proposal = models.ForeignKey(
+        'content.BusinessProposal',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='platform_projects',
+        help_text='Linked business proposal for cost/hosting derivation.',
+    )
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE,
     )
@@ -225,6 +232,18 @@ class Project(models.Model):
     )
     start_date = models.DateField(null=True, blank=True)
     estimated_end_date = models.DateField(null=True, blank=True)
+    payment_milestones = models.JSONField(
+        default=list, blank=True,
+        help_text='Development payment milestones from proposal section 4 (admin-visible only).',
+    )
+    hosting_tiers = models.JSONField(
+        default=list, blank=True,
+        help_text='Hosting billing tiers from proposal (semiannual/quarterly/monthly with pricing).',
+    )
+    hosting_start_date = models.DateField(
+        null=True, blank=True,
+        help_text='Date when hosting billing should begin (set by admin).',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -281,10 +300,14 @@ class Requirement(models.Model):
     priority = models.CharField(
         max_length=20, choices=PRIORITY_CHOICES, default=PRIORITY_MEDIUM,
     )
-    estimated_hours = models.DecimalField(
-        max_digits=6, decimal_places=1, null=True, blank=True,
+    configuration = models.TextField(
+        blank=True, default='',
+        help_text='Role/privilege context for this requirement (e.g. "Only for admin role").',
     )
-    module = models.CharField(max_length=100, blank=True, default='')
+    flow = models.TextField(
+        blank=True, default='',
+        help_text='User flow description within the software for this requirement.',
+    )
     order = models.PositiveIntegerField(
         default=0, help_text='Sort order within the column.',
     )
@@ -338,3 +361,508 @@ class RequirementHistory(models.Model):
 
     def __str__(self):
         return f'{self.from_status} → {self.to_status}'
+
+
+class ChangeRequest(models.Model):
+    """
+    A client-initiated change request for a project.
+    The admin evaluates and responds with estimated cost/time.
+    """
+
+    STATUS_PENDING = 'pending'
+    STATUS_EVALUATING = 'evaluating'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+    STATUS_NEEDS_CLARIFICATION = 'needs_clarification'
+    STATUS_OUT_OF_SCOPE = 'out_of_scope'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pendiente'),
+        (STATUS_EVALUATING, 'En evaluación'),
+        (STATUS_APPROVED, 'Aprobada'),
+        (STATUS_REJECTED, 'Rechazada'),
+        (STATUS_NEEDS_CLARIFICATION, 'Requiere aclaración'),
+        (STATUS_OUT_OF_SCOPE, 'Fuera de alcance'),
+    ]
+
+    PRIORITY_CRITICAL = 'critical'
+    PRIORITY_HIGH = 'high'
+    PRIORITY_MEDIUM = 'medium'
+    PRIORITY_LOW = 'low'
+    PRIORITY_CHOICES = [
+        (PRIORITY_CRITICAL, 'Crítica'),
+        (PRIORITY_HIGH, 'Alta'),
+        (PRIORITY_MEDIUM, 'Media'),
+        (PRIORITY_LOW, 'Baja'),
+    ]
+
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, related_name='change_requests',
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='change_requests',
+    )
+    title = models.CharField(max_length=300)
+    description = models.TextField(blank=True, default='')
+    module_or_screen = models.CharField(max_length=200, blank=True, default='')
+    suggested_priority = models.CharField(
+        max_length=20, choices=PRIORITY_CHOICES, default=PRIORITY_MEDIUM,
+    )
+    is_urgent = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=25, choices=STATUS_CHOICES, default=STATUS_PENDING,
+    )
+    admin_response = models.TextField(blank=True, default='')
+    estimated_cost = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text='Estimated additional cost in project currency.',
+    )
+    estimated_time = models.CharField(
+        max_length=100, blank=True, default='',
+        help_text='Estimated time to implement (e.g. "2 semanas").',
+    )
+    linked_requirement = models.ForeignKey(
+        Requirement, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='source_change_request',
+        help_text='Requirement created from this change request.',
+    )
+    screenshot = models.ImageField(
+        upload_to='change_requests/', null=True, blank=True,
+        help_text='Optimized automatically on upload (WhatsApp-like compression).',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.title} [{self.get_status_display()}]'
+
+    def save(self, *args, **kwargs):
+        if self.screenshot and hasattr(self.screenshot.file, 'content_type'):
+            content_type = getattr(self.screenshot.file, 'content_type', '')
+            if content_type and content_type.startswith('image/'):
+                try:
+                    self.screenshot = optimize_image(self.screenshot, field_name='screenshot')
+                except Exception:
+                    pass
+        super().save(*args, **kwargs)
+
+
+class ChangeRequestComment(models.Model):
+    """Comment thread on a change request. Supports internal (admin-only) comments."""
+
+    change_request = models.ForeignKey(
+        ChangeRequest, on_delete=models.CASCADE, related_name='comments',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='change_request_comments',
+    )
+    content = models.TextField()
+    is_internal = models.BooleanField(
+        default=False, help_text='Internal comments are visible only to admins.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'Comment by {self.user.email} on CR #{self.change_request_id}'
+
+
+class BugReport(models.Model):
+    """
+    A bug report filed by a client (or admin) for a project.
+    Admin manages the lifecycle: confirm, fix, QA, resolve.
+    """
+
+    SEVERITY_CRITICAL = 'critical'
+    SEVERITY_HIGH = 'high'
+    SEVERITY_MEDIUM = 'medium'
+    SEVERITY_LOW = 'low'
+    SEVERITY_CHOICES = [
+        (SEVERITY_CRITICAL, 'Crítica'),
+        (SEVERITY_HIGH, 'Alta'),
+        (SEVERITY_MEDIUM, 'Media'),
+        (SEVERITY_LOW, 'Baja'),
+    ]
+
+    STATUS_REPORTED = 'reported'
+    STATUS_CONFIRMED = 'confirmed'
+    STATUS_FIXING = 'fixing'
+    STATUS_QA = 'qa'
+    STATUS_RESOLVED = 'resolved'
+    STATUS_NOT_REPRODUCIBLE = 'not_reproducible'
+    STATUS_WONT_FIX = 'wont_fix'
+    STATUS_DUPLICATE = 'duplicate'
+    STATUS_CHOICES = [
+        (STATUS_REPORTED, 'Reportado'),
+        (STATUS_CONFIRMED, 'Confirmado'),
+        (STATUS_FIXING, 'En corrección'),
+        (STATUS_QA, 'En QA'),
+        (STATUS_RESOLVED, 'Resuelto'),
+        (STATUS_NOT_REPRODUCIBLE, 'No reproducible'),
+        (STATUS_WONT_FIX, 'No se corregirá'),
+        (STATUS_DUPLICATE, 'Duplicado'),
+    ]
+
+    ENV_PRODUCTION = 'production'
+    ENV_STAGING = 'staging'
+    ENV_DEV = 'dev'
+    ENV_CHOICES = [
+        (ENV_PRODUCTION, 'Producción'),
+        (ENV_STAGING, 'Staging'),
+        (ENV_DEV, 'Desarrollo'),
+    ]
+
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, related_name='bug_reports',
+    )
+    reported_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bug_reports',
+    )
+    title = models.CharField(max_length=300)
+    description = models.TextField(blank=True, default='')
+    severity = models.CharField(
+        max_length=20, choices=SEVERITY_CHOICES, default=SEVERITY_MEDIUM,
+    )
+    steps_to_reproduce = models.JSONField(
+        default=list, blank=True,
+        help_text='Numbered list of steps to reproduce the bug.',
+    )
+    expected_behavior = models.TextField(blank=True, default='')
+    actual_behavior = models.TextField(blank=True, default='')
+    environment = models.CharField(
+        max_length=20, choices=ENV_CHOICES, default=ENV_PRODUCTION,
+    )
+    device_browser = models.CharField(max_length=200, blank=True, default='')
+    is_recurring = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=25, choices=STATUS_CHOICES, default=STATUS_REPORTED,
+    )
+    admin_response = models.TextField(blank=True, default='')
+    linked_bug = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='duplicates',
+        help_text='Original bug if this is a duplicate.',
+    )
+    screenshot = models.ImageField(
+        upload_to='bug_reports/', null=True, blank=True,
+        help_text='Optimized automatically on upload (WhatsApp-like compression).',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.title} [{self.get_status_display()}]'
+
+    def save(self, *args, **kwargs):
+        if self.screenshot and hasattr(self.screenshot.file, 'content_type'):
+            content_type = getattr(self.screenshot.file, 'content_type', '')
+            if content_type and content_type.startswith('image/'):
+                try:
+                    self.screenshot = optimize_image(self.screenshot, field_name='screenshot')
+                except Exception:
+                    pass
+        super().save(*args, **kwargs)
+
+
+class BugComment(models.Model):
+    """Comment thread on a bug report. Supports internal (admin-only) comments."""
+
+    bug_report = models.ForeignKey(
+        BugReport, on_delete=models.CASCADE, related_name='comments',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='bug_comments',
+    )
+    content = models.TextField()
+    is_internal = models.BooleanField(
+        default=False, help_text='Internal comments are visible only to admins.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'Comment by {self.user.email} on Bug #{self.bug_report_id}'
+
+
+class Deliverable(models.Model):
+    """
+    A file deliverable for a project, organized by category.
+    Admin uploads, client downloads. Supports version history.
+    """
+
+    CATEGORY_DESIGNS = 'designs'
+    CATEGORY_CREDENTIALS = 'credentials'
+    CATEGORY_DOCUMENTS = 'documents'
+    CATEGORY_APKS = 'apks'
+    CATEGORY_OTHER = 'other'
+    CATEGORY_CHOICES = [
+        (CATEGORY_DESIGNS, 'Diseños'),
+        (CATEGORY_CREDENTIALS, 'Credenciales'),
+        (CATEGORY_DOCUMENTS, 'Documentos'),
+        (CATEGORY_APKS, 'APKs / Builds'),
+        (CATEGORY_OTHER, 'Otros'),
+    ]
+
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, related_name='deliverables',
+    )
+    category = models.CharField(
+        max_length=20, choices=CATEGORY_CHOICES, default=CATEGORY_OTHER,
+    )
+    title = models.CharField(max_length=300)
+    description = models.TextField(blank=True, default='')
+    file = models.FileField(upload_to='deliverables/')
+    current_version = models.PositiveIntegerField(default=1)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='uploaded_deliverables',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['category', '-updated_at']
+
+    def __str__(self):
+        return f'{self.title} v{self.current_version} [{self.get_category_display()}]'
+
+    @property
+    def file_name(self):
+        if self.file:
+            return self.file.name.split('/')[-1]
+        return ''
+
+    @property
+    def file_size(self):
+        try:
+            return self.file.size
+        except Exception:
+            return 0
+
+
+class DeliverableVersion(models.Model):
+    """Historical version of a deliverable file."""
+
+    deliverable = models.ForeignKey(
+        Deliverable, on_delete=models.CASCADE, related_name='versions',
+    )
+    file = models.FileField(upload_to='deliverables/versions/')
+    version_number = models.PositiveIntegerField()
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='deliverable_versions',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-version_number']
+
+    def __str__(self):
+        return f'{self.deliverable.title} v{self.version_number}'
+
+    @property
+    def file_name(self):
+        if self.file:
+            return self.file.name.split('/')[-1]
+        return ''
+
+    @property
+    def file_size(self):
+        try:
+            return self.file.size
+        except Exception:
+            return 0
+
+
+class Notification(models.Model):
+    """
+    In-app notification for platform users.
+    Created by the notification service when relevant events occur.
+    """
+
+    TYPE_BUG_REPORTED = 'bug_reported'
+    TYPE_BUG_STATUS_CHANGED = 'bug_status_changed'
+    TYPE_CR_CREATED = 'cr_created'
+    TYPE_CR_STATUS_CHANGED = 'cr_status_changed'
+    TYPE_CR_CONVERTED = 'cr_converted'
+    TYPE_REQUIREMENT_MOVED = 'requirement_moved'
+    TYPE_REQUIREMENT_APPROVED = 'requirement_approved'
+    TYPE_DELIVERABLE_UPLOADED = 'deliverable_uploaded'
+    TYPE_DELIVERABLE_NEW_VERSION = 'deliverable_new_version'
+    TYPE_COMMENT_ADDED = 'comment_added'
+    TYPE_GENERAL = 'general'
+    TYPE_CHOICES = [
+        (TYPE_BUG_REPORTED, 'Bug reportado'),
+        (TYPE_BUG_STATUS_CHANGED, 'Estado de bug actualizado'),
+        (TYPE_CR_CREATED, 'Solicitud de cambio creada'),
+        (TYPE_CR_STATUS_CHANGED, 'Solicitud de cambio actualizada'),
+        (TYPE_CR_CONVERTED, 'Solicitud convertida en requerimiento'),
+        (TYPE_REQUIREMENT_MOVED, 'Requerimiento movido'),
+        (TYPE_REQUIREMENT_APPROVED, 'Requerimiento aprobado'),
+        (TYPE_DELIVERABLE_UPLOADED, 'Entregable subido'),
+        (TYPE_DELIVERABLE_NEW_VERSION, 'Nueva versión de entregable'),
+        (TYPE_COMMENT_ADDED, 'Nuevo comentario'),
+        (TYPE_GENERAL, 'General'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='notifications',
+    )
+    type = models.CharField(max_length=30, choices=TYPE_CHOICES, default=TYPE_GENERAL)
+    title = models.CharField(max_length=300)
+    message = models.TextField(blank=True, default='')
+    related_object_type = models.CharField(
+        max_length=50, blank=True, default='',
+        help_text='Model name: project, change_request, bug_report, deliverable, requirement',
+    )
+    related_object_id = models.PositiveIntegerField(null=True, blank=True)
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='notifications',
+        help_text='Project context for deep-linking.',
+    )
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'[{self.get_type_display()}] {self.title} → {self.user.email}'
+
+
+class HostingSubscription(models.Model):
+    """
+    Recurring hosting subscription for a project.
+    Derived from the linked BusinessProposal pricing or set manually.
+    """
+
+    PLAN_MONTHLY = 'monthly'
+    PLAN_QUARTERLY = 'quarterly'
+    PLAN_SEMIANNUAL = 'semiannual'
+    PLAN_CHOICES = [
+        (PLAN_MONTHLY, 'Mensual'),
+        (PLAN_QUARTERLY, 'Trimestral'),
+        (PLAN_SEMIANNUAL, 'Semestral'),
+    ]
+
+    STATUS_ACTIVE = 'active'
+    STATUS_SUSPENDED = 'suspended'
+    STATUS_CANCELLED = 'cancelled'
+    STATUS_PENDING = 'pending'
+    STATUS_CHOICES = [
+        (STATUS_ACTIVE, 'Activa'),
+        (STATUS_SUSPENDED, 'Suspendida'),
+        (STATUS_CANCELLED, 'Cancelada'),
+        (STATUS_PENDING, 'Pendiente'),
+    ]
+
+    PLAN_MONTHS = {
+        PLAN_MONTHLY: 1,
+        PLAN_QUARTERLY: 3,
+        PLAN_SEMIANNUAL: 6,
+    }
+
+    project = models.OneToOneField(
+        Project, on_delete=models.CASCADE, related_name='hosting_subscription',
+    )
+    plan = models.CharField(max_length=20, choices=PLAN_CHOICES, default=PLAN_MONTHLY)
+    base_monthly_amount = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        help_text='Monthly hosting cost before discount (COP).',
+    )
+    discount_percent = models.PositiveIntegerField(
+        default=0, help_text='Discount % based on plan (0, 10, 20).',
+    )
+    effective_monthly_amount = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        help_text='Monthly cost after discount (COP).',
+    )
+    billing_amount = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        help_text='Total amount charged per billing cycle (COP).',
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING,
+    )
+    start_date = models.DateField(
+        help_text='Date from which the subscription is active and billable.',
+    )
+    next_billing_date = models.DateField(
+        null=True, blank=True,
+        help_text='Next date a payment is due.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.project.name} — {self.get_plan_display()} (${self.billing_amount:,.0f} COP)'
+
+    @property
+    def billing_months(self):
+        return self.PLAN_MONTHS.get(self.plan, 1)
+
+    def calculate_amounts(self):
+        """Recalculate effective_monthly_amount and billing_amount from base + plan."""
+        from decimal import Decimal
+        factor = (Decimal(100) - Decimal(self.discount_percent)) / Decimal(100)
+        self.effective_monthly_amount = round(self.base_monthly_amount * factor, 2)
+        self.billing_amount = round(self.effective_monthly_amount * self.billing_months, 2)
+
+
+class Payment(models.Model):
+    """
+    A single payment record for a hosting subscription billing cycle.
+    Linked to Wompi transactions for payment processing.
+    """
+
+    STATUS_PENDING = 'pending'
+    STATUS_PROCESSING = 'processing'
+    STATUS_PAID = 'paid'
+    STATUS_FAILED = 'failed'
+    STATUS_OVERDUE = 'overdue'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pendiente'),
+        (STATUS_PROCESSING, 'Procesando'),
+        (STATUS_PAID, 'Pagado'),
+        (STATUS_FAILED, 'Fallido'),
+        (STATUS_OVERDUE, 'Vencido'),
+    ]
+
+    subscription = models.ForeignKey(
+        HostingSubscription, on_delete=models.CASCADE, related_name='payments',
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    description = models.CharField(max_length=300, blank=True, default='')
+    billing_period_start = models.DateField()
+    billing_period_end = models.DateField()
+    due_date = models.DateField()
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING,
+    )
+    paid_at = models.DateTimeField(null=True, blank=True)
+    wompi_transaction_id = models.CharField(max_length=100, blank=True, default='')
+    wompi_payment_link_id = models.CharField(max_length=100, blank=True, default='')
+    wompi_payment_link_url = models.URLField(max_length=500, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-billing_period_start']
+
+    def __str__(self):
+        return f'Payment ${self.amount:,.0f} — {self.get_status_display()} ({self.billing_period_start} → {self.billing_period_end})'

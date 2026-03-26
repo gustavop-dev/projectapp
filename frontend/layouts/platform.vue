@@ -21,7 +21,7 @@
         </svg>
       </button>
 
-      <NuxtLink to="/platform/dashboard" class="text-base font-bold tracking-tight text-esmerald dark:text-white">
+      <NuxtLink :to="localePath('/platform/dashboard')" class="text-base font-bold tracking-tight text-esmerald dark:text-white">
         Project<span class="text-green-light dark:text-lemon">App.</span>
       </NuxtLink>
 
@@ -64,6 +64,7 @@ import PlatformSidebar from '~/components/platform/PlatformSidebar.vue'
 import PlatformMobileDrawer from '~/components/platform/PlatformMobileDrawer.vue'
 
 const route = useRoute()
+const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const { isDark, toggle, hydrate: hydrateTheme } = usePlatformTheme()
 const {
@@ -98,6 +99,6 @@ watch(() => route.fullPath, () => {
 
 async function handleLogout() {
   authStore.logout()
-  await navigateTo('/platform/login')
+  await navigateTo(localePath('/platform/login'))
 }
 </script>

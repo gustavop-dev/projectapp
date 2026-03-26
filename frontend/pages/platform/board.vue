@@ -39,13 +39,13 @@
         <div v-for="group in groupedByProject" :key="group.projectId">
           <div class="mb-3 flex items-center gap-3">
             <NuxtLink
-              :to="`/platform/projects/${group.projectId}`"
+              :to="localePath(`/platform/projects/${group.projectId}`)"
               class="text-base font-semibold text-esmerald transition hover:text-esmerald/70 dark:text-white dark:hover:text-lemon"
             >
               {{ group.projectName }}
             </NuxtLink>
             <NuxtLink
-              :to="`/platform/projects/${group.projectId}/board`"
+              :to="localePath(`/platform/projects/${group.projectId}/board`)"
               class="rounded-full border border-esmerald/10 px-3 py-1 text-[10px] font-medium text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
             >
               Ver tablero →
@@ -83,6 +83,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
+
+const localePath = useLocalePath()
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 import { usePlatformApi } from '~/composables/usePlatformApi'
 

@@ -65,7 +65,7 @@
       <NuxtLink
         v-for="project in projectsStore.projects"
         :key="project.id"
-        :to="`/platform/projects/${project.id}`"
+        :to="localePath(`/platform/projects/${project.id}`)"
         class="project-card group relative overflow-hidden rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm transition-all duration-300 hover:border-esmerald/20 hover:shadow-md dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none dark:hover:border-white/15"
         data-enter
       >
@@ -196,6 +196,36 @@
                   </select>
                 </div>
 
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Propuesta de negocio</label>
+                  <select
+                    v-model="createForm.proposal_id"
+                    class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+                  >
+                    <option :value="null">Sin propuesta vinculada</option>
+                    <option
+                      v-for="p in paymentsStore.proposals"
+                      :key="p.id"
+                      :value="p.id"
+                    >
+                      {{ p.title }} — {{ formatCurrency(p.total_investment, p.currency) }}
+                    </option>
+                  </select>
+                  <p class="mt-1 text-[11px] text-green-light/60">
+                    Al vincular una propuesta, se crean automáticamente los requerimientos del tablero Kanban.
+                  </p>
+                </div>
+
+                <div v-if="createForm.proposal_id">
+                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Inicio cobro hosting</label>
+                  <input
+                    v-model="createForm.hosting_start_date"
+                    type="date"
+                    class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+                  />
+                  <p class="mt-1 text-[11px] text-green-light/60">Fecha a partir de la cual el cliente puede activar su plan de hosting.</p>
+                </div>
+
                 <div class="grid grid-cols-2 gap-3">
                   <div>
                     <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Fecha inicio</label>
@@ -246,6 +276,7 @@ import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 import { usePlatformClientsStore } from '~/stores/platform-clients'
+import { usePlatformPaymentsStore } from '~/stores/platform-payments'
 
 definePageMeta({
   layout: 'platform',
@@ -258,9 +289,11 @@ useHead({
 
 usePageEntrance('#platform-projects')
 
+const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const projectsStore = usePlatformProjectsStore()
 const clientsStore = usePlatformClientsStore()
+const paymentsStore = usePlatformPaymentsStore()
 
 const activeFilter = ref('')
 const isCreateModalOpen = ref(false)
@@ -269,6 +302,8 @@ const createForm = reactive({
   name: '',
   description: '',
   client_id: '',
+  proposal_id: null,
+  hosting_start_date: '',
   start_date: '',
   estimated_end_date: '',
 })
@@ -321,12 +356,20 @@ function handleFilterChange(value) {
   projectsStore.fetchProjects(value ? { status: value } : {})
 }
 
+function formatCurrency(amount, currency) {
+  const num = Number(amount)
+  if (currency === 'USD') return `$${num.toLocaleString('en-US')} USD`
+  return `$${num.toLocaleString('es-CO')} ${currency || 'COP'}`
+}
+
 function closeCreateModal() {
   isCreateModalOpen.value = false
   createError.value = ''
   createForm.name = ''
   createForm.description = ''
   createForm.client_id = ''
+  createForm.proposal_id = null
+  createForm.hosting_start_date = ''
   createForm.start_date = ''
   createForm.estimated_end_date = ''
 }
@@ -339,6 +382,8 @@ async function handleCreateProject() {
     description: createForm.description.trim(),
     client_id: Number(createForm.client_id),
   }
+  if (createForm.proposal_id) payload.proposal_id = createForm.proposal_id
+  if (createForm.hosting_start_date) payload.hosting_start_date = createForm.hosting_start_date
   if (createForm.start_date) payload.start_date = createForm.start_date
   if (createForm.estimated_end_date) payload.estimated_end_date = createForm.estimated_end_date
 
@@ -354,7 +399,10 @@ async function handleCreateProject() {
 onMounted(async () => {
   await projectsStore.fetchProjects()
   if (authStore.isAdmin) {
-    await clientsStore.fetchClients('all')
+    await Promise.all([
+      clientsStore.fetchClients('all'),
+      paymentsStore.fetchProposals(),
+    ])
   }
 })
 </script>

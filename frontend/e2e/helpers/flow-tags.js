@@ -145,3 +145,12 @@ export const PLATFORM_ADMIN_CLIENT_DETAIL = ['@flow:platform-admin-client-detail
 export const PLATFORM_PROFILE_EDIT = ['@flow:platform-profile-edit', '@module:platform', '@priority:P2'];
 export const PLATFORM_ADMIN_PROJECT_CREATE = ['@flow:platform-admin-project-create', '@module:platform', '@priority:P3'];
 export const PLATFORM_KANBAN_CARD_COMMENTS = ['@flow:platform-kanban-card-comments', '@module:platform', '@priority:P3'];
+
+// ── Platform new flows (proposal integration + modules) ──
+export const PLATFORM_CHANGE_REQUESTS = ['@flow:platform-change-requests', '@module:platform', '@priority:P2'];
+export const PLATFORM_BUG_REPORTS = ['@flow:platform-bug-reports', '@module:platform', '@priority:P2'];
+export const PLATFORM_DELIVERABLES = ['@flow:platform-deliverables', '@module:platform', '@priority:P2'];
+export const PLATFORM_HOSTING_SUBSCRIPTION = ['@flow:platform-hosting-subscription', '@module:platform', '@priority:P1'];
+export const PLATFORM_NOTIFICATIONS = ['@flow:platform-notifications', '@module:platform', '@priority:P2'];
+export const PLATFORM_KANBAN_JSON_UPLOAD = ['@flow:platform-kanban-json-upload', '@module:platform', '@priority:P2'];
+export const PLATFORM_REQUIREMENT_CLIENT_REVIEW = ['@flow:platform-requirement-client-review', '@module:platform', '@priority:P2'];

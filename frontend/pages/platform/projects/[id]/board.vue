@@ -9,7 +9,7 @@
       <!-- Header -->
       <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" data-enter>
         <div>
-          <NuxtLink :to="`/platform/projects/${projectId}`" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-esmerald dark:hover:text-white">
+          <NuxtLink :to="localePath(`/platform/projects/${projectId}`)" class="mb-2 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-esmerald dark:hover:text-white">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
             {{ projectName }}
           </NuxtLink>
@@ -27,16 +27,69 @@
           </div>
 
           <!-- Add card button (admin) -->
-          <button
-            v-if="authStore.isAdmin"
-            type="button"
-            class="flex items-center gap-1.5 rounded-xl bg-lemon px-4 py-2 text-sm font-semibold text-esmerald-dark transition hover:brightness-105"
-            @click="openCreateModal()"
-          >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-            Card
-          </button>
+          <template v-if="authStore.isAdmin">
+            <button
+              type="button"
+              class="flex items-center gap-1.5 rounded-xl border border-esmerald/10 px-3 py-2 text-xs font-medium text-green-light transition hover:border-esmerald/30 hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+              @click="downloadJsonExample"
+            >
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Ejemplo
+            </button>
+            <button
+              type="button"
+              class="flex items-center gap-1.5 rounded-xl border border-esmerald/10 px-3 py-2 text-xs font-medium text-green-light transition hover:border-esmerald/30 hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+              @click="jsonUploadRef?.click()"
+            >
+              <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+              Subir JSON
+            </button>
+            <input ref="jsonUploadRef" type="file" accept=".json" class="hidden" @change="handleJsonUpload" />
+            <button
+              type="button"
+              class="flex items-center gap-1.5 rounded-xl bg-lemon px-4 py-2 text-sm font-semibold text-esmerald-dark transition hover:brightness-105"
+              @click="openCreateModal()"
+            >
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+              Card
+            </button>
+          </template>
         </div>
+      </div>
+
+      <!-- Backlog — flat list -->
+      <div v-if="reqStore.backlogCount > 0" class="mb-6" data-enter>
+        <button
+          type="button"
+          class="flex w-full items-center gap-3 rounded-2xl border border-esmerald/[0.04] bg-esmerald-light/20 px-5 py-4 text-left transition hover:bg-esmerald-light/40 dark:border-white/[0.04] dark:bg-white/[0.02] dark:hover:bg-white/[0.04]"
+          @click="showBacklog = !showBacklog"
+        >
+          <svg class="h-4 w-4 shrink-0 text-gray-500 transition-transform duration-200" :class="showBacklog ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+          <span class="text-sm font-semibold text-esmerald dark:text-white">Backlog</span>
+          <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-esmerald/[0.06] px-1.5 text-[10px] font-bold text-green-light dark:bg-white/[0.06]">{{ reqStore.backlogCount }}</span>
+        </button>
+
+        <Transition name="done-list">
+          <div v-if="showBacklog" class="mt-3 space-y-1 rounded-xl border border-esmerald/[0.04] bg-white px-3 py-2 dark:border-white/[0.04] dark:bg-esmerald">
+            <div
+              v-for="card in reqStore.backlogCards"
+              :key="card.id"
+              class="flex items-center gap-3 rounded-lg px-3 py-2.5 transition hover:bg-esmerald-light/30 dark:hover:bg-white/[0.03]"
+            >
+              <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400" />
+              <button type="button" class="flex-1 text-left text-sm text-esmerald dark:text-white" @click="openDetailModal(card)">{{ card.title }}</button>
+              <button
+                v-if="authStore.isAdmin"
+                type="button"
+                class="flex items-center gap-1 rounded-lg border border-esmerald/10 px-2 py-1 text-[10px] text-green-light transition hover:border-esmerald/30 hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+                @click="openMoveItemModal(card)"
+              >
+                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                Mover
+              </button>
+            </div>
+          </div>
+        </Transition>
       </div>
 
       <!-- Kanban columns (full width grid) -->
@@ -74,9 +127,9 @@
               @dragend="handleDragEnd"
               @click="openDetailModal(card)"
             >
-              <!-- Complete button -->
+              <!-- Complete button (admin) -->
               <button
-                v-if="authStore.isAdmin || col.key === 'in_review'"
+                v-if="authStore.isAdmin"
                 type="button"
                 class="absolute right-2.5 top-2.5 flex h-6 w-6 items-center justify-center rounded-full border border-esmerald/10 text-green-light/40 opacity-0 transition-all hover:border-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-500 group-hover:opacity-100 dark:border-white/10 dark:hover:border-emerald-400 dark:hover:text-emerald-400"
                 title="Marcar como completado"
@@ -85,10 +138,9 @@
                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg>
               </button>
 
-              <!-- Priority + module -->
+              <!-- Priority dot -->
               <div class="mb-2 flex items-center gap-2">
                 <span class="h-1.5 w-1.5 rounded-full" :class="priorityDotClass(card.priority)" />
-                <span v-if="card.module" class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">{{ card.module }}</span>
               </div>
 
               <!-- Title -->
@@ -96,16 +148,11 @@
 
               <!-- Meta row -->
               <div class="mt-3 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span v-if="card.estimated_hours" class="flex items-center gap-1 text-[10px] text-green-light/60">
-                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="1.5" /><path d="M12 6v6l4 2" stroke-width="1.5" /></svg>
-                    {{ card.estimated_hours }}h
-                  </span>
-                  <span v-if="card.comments_count" class="flex items-center gap-1 text-[10px] text-green-light/60">
-                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                    {{ card.comments_count }}
-                  </span>
-                </div>
+                <span v-if="card.comments_count" class="flex items-center gap-1 text-[10px] text-green-light/60">
+                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                  {{ card.comments_count }}
+                </span>
+                <span v-else />
                 <span class="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="priorityBadgeClass(card.priority)">
                   {{ priorityLabel(card.priority) }}
                 </span>
@@ -159,13 +206,49 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span class="flex-1 text-sm text-green-light line-through decoration-green-light/30">{{ card.title }}</span>
-              <span v-if="card.module" class="text-[10px] font-medium uppercase tracking-wider text-green-light/40">{{ card.module }}</span>
-              <span v-if="card.estimated_hours" class="text-[10px] text-green-light/40">{{ card.estimated_hours }}h</span>
             </div>
           </div>
         </Transition>
       </div>
     </template>
+
+    <!-- Move to column modal -->
+    <Teleport to="body">
+      <Transition name="modal-overlay">
+        <div v-if="isMoveOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm" @click.self="isMoveOpen = false">
+          <Transition name="modal-content" appear>
+            <div v-if="isMoveOpen" class="w-full max-w-sm rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-2xl dark:border-white/[0.06] dark:bg-esmerald sm:p-8">
+              <h2 class="mb-4 text-lg font-bold text-esmerald dark:text-white">Mover: {{ moveSingleCard?.title }}</h2>
+              <form class="space-y-4" @submit.prevent="handleMoveSubmit">
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Columna destino</label>
+                  <select v-model="moveForm.status" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40">
+                    <option value="todo">Por hacer</option>
+                    <option value="in_progress">En progreso</option>
+                    <option value="in_review">En revisión</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Prioridad</label>
+                  <select v-model="moveForm.priority" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40">
+                    <option value="low">Baja</option>
+                    <option value="medium">Media</option>
+                    <option value="high">Alta</option>
+                    <option value="critical">Crítica</option>
+                  </select>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                  <button type="button" class="rounded-xl border border-esmerald/10 px-5 py-2.5 text-sm text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white" @click="isMoveOpen = false">Cancelar</button>
+                  <button type="submit" :disabled="isMoving" class="rounded-xl bg-lemon px-6 py-2.5 text-sm font-semibold text-esmerald-dark transition hover:brightness-105 disabled:opacity-50">
+                    {{ isMoving ? 'Moviendo...' : 'Mover' }}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Create requirement modal -->
     <Teleport to="body">
@@ -186,7 +269,16 @@
                 </div>
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Descripción</label>
-                  <textarea v-model="createForm.description" rows="2" placeholder="Descripción opcional..." class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                  <textarea v-model="createForm.description" rows="2" placeholder="Descripción del requerimiento..." class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Configuración</label>
+                  <textarea v-model="createForm.configuration" rows="2" placeholder="Ej: Solo visible para rol Administrador..." class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                  <p class="mt-1 text-[10px] text-green-light/50">Roles, permisos o privilegios que aplican a este requerimiento.</p>
+                </div>
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Flujo del usuario</label>
+                  <textarea v-model="createForm.flow" rows="2" placeholder="Ej: El usuario ingresa → selecciona producto → agrega al carrito..." class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                   <div>
@@ -201,20 +293,11 @@
                   <div>
                     <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Columna</label>
                     <select v-model="createForm.status" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40">
+                      <option value="backlog">Backlog</option>
                       <option value="todo">Por hacer</option>
                       <option value="in_progress">En progreso</option>
                       <option value="in_review">En revisión</option>
                     </select>
-                  </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Módulo</label>
-                    <input v-model="createForm.module" type="text" placeholder="Ej: Frontend" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
-                  </div>
-                  <div>
-                    <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Horas estimadas</label>
-                    <input v-model.number="createForm.estimated_hours" type="number" min="0" step="0.5" placeholder="Ej: 8" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                   </div>
                 </div>
                 <div class="flex justify-end gap-3 pt-2">
@@ -245,7 +328,7 @@
                 <div class="flex-1">
                   <div class="mb-2 flex flex-wrap items-center gap-2">
                     <span class="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase" :class="priorityBadgeClass(detailCard.priority)">{{ priorityLabel(detailCard.priority) }}</span>
-                    <span v-if="detailCard.module" class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">{{ detailCard.module }}</span>
+                    <span class="rounded-full bg-esmerald/[0.06] px-2.5 py-0.5 text-[10px] font-medium text-green-light dark:bg-white/[0.06]">{{ statusLabel(detailCard.status) }}</span>
                   </div>
                   <h2 class="text-lg font-bold text-esmerald dark:text-white">{{ detailCard.title }}</h2>
                 </div>
@@ -255,35 +338,31 @@
               </div>
 
               <!-- Description -->
-              <div v-if="detailCard.description" class="mb-5 rounded-xl border border-esmerald/[0.04] bg-esmerald-light/20 p-4 text-sm leading-relaxed text-green-light dark:border-white/[0.04] dark:bg-white/[0.02]">
-                {{ detailCard.description }}
+              <div v-if="detailCard.description" class="mb-4">
+                <p class="mb-1 text-[10px] font-medium uppercase tracking-wider text-green-light/60">Descripción</p>
+                <div class="rounded-xl border border-esmerald/[0.04] bg-esmerald-light/20 p-4 text-sm leading-relaxed text-green-light dark:border-white/[0.04] dark:bg-white/[0.02]">{{ detailCard.description }}</div>
               </div>
 
-              <!-- Meta -->
-              <div class="mb-5 grid grid-cols-3 gap-3">
-                <div class="rounded-xl border border-esmerald/[0.04] p-3 dark:border-white/[0.04]">
-                  <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Estado</p>
-                  <p class="mt-1 text-xs font-semibold text-esmerald dark:text-white">{{ statusLabel(detailCard.status) }}</p>
-                </div>
-                <div class="rounded-xl border border-esmerald/[0.04] p-3 dark:border-white/[0.04]">
-                  <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Estimado</p>
-                  <p class="mt-1 text-xs font-semibold text-esmerald dark:text-white">{{ detailCard.estimated_hours ? `${detailCard.estimated_hours}h` : '—' }}</p>
-                </div>
-                <div class="rounded-xl border border-esmerald/[0.04] p-3 dark:border-white/[0.04]">
-                  <p class="text-[10px] font-medium uppercase tracking-wider text-green-light/60">Creado</p>
-                  <p class="mt-1 text-xs font-semibold text-esmerald dark:text-white">{{ formatDate(detailCard.created_at) }}</p>
-                </div>
+              <!-- Configuration -->
+              <div v-if="detailCard.configuration" class="mb-4">
+                <p class="mb-1 text-[10px] font-medium uppercase tracking-wider text-green-light/60">Configuración (roles/permisos)</p>
+                <div class="rounded-xl border border-amber-500/15 bg-amber-50/30 p-4 text-sm leading-relaxed text-green-light dark:border-amber-500/10 dark:bg-amber-900/10">{{ detailCard.configuration }}</div>
               </div>
 
-              <!-- Client approve button -->
-              <div v-if="!authStore.isAdmin && detailCard.status === 'approval'" class="mb-5">
-                <button
-                  type="button"
-                  class="w-full rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-600"
-                  @click="handleApprove"
-                >
-                  ✓ Aprobar requerimiento
-                </button>
+              <!-- Flow -->
+              <div v-if="detailCard.flow" class="mb-5">
+                <p class="mb-1 text-[10px] font-medium uppercase tracking-wider text-green-light/60">Flujo del usuario</p>
+                <div class="rounded-xl border border-blue-500/15 bg-blue-50/30 p-4 text-sm leading-relaxed text-green-light dark:border-blue-500/10 dark:bg-blue-900/10">{{ detailCard.flow }}</div>
+              </div>
+
+              <!-- Client review actions for completed items -->
+              <div v-if="!authStore.isAdmin && detailCard.status === 'done'" class="mb-5">
+                <p class="mb-2 text-xs font-semibold text-esmerald dark:text-white">¿Este requerimiento cumple con lo esperado?</p>
+                <div class="flex gap-2">
+                  <button type="button" class="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-600" @click="handleApprove">Aprobar</button>
+                  <NuxtLink :to="localePath(`/platform/projects/${projectId}/changes?from_req=${detailCard.id}&title=${encodeURIComponent(detailCard.title)}`)" class="flex flex-1 items-center justify-center rounded-xl border border-amber-500/30 py-2.5 text-sm font-semibold text-amber-600 transition hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/10">Solicitar cambio</NuxtLink>
+                  <NuxtLink :to="localePath(`/platform/projects/${projectId}/bugs?from_req=${detailCard.id}&title=${encodeURIComponent(detailCard.title)}`)" class="flex flex-1 items-center justify-center rounded-xl border border-red-500/30 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/10">Reportar bug</NuxtLink>
+                </div>
               </div>
 
               <!-- History -->
@@ -366,6 +445,7 @@ useHead({ title: 'Tablero — ProjectApp' })
 usePageEntrance('#platform-board')
 
 const route = useRoute()
+const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const projectsStore = usePlatformProjectsStore()
 const reqStore = usePlatformRequirementsStore()
@@ -374,12 +454,21 @@ const projectId = computed(() => route.params.id)
 const projectName = computed(() => projectsStore.currentProject?.name || 'Proyecto')
 
 const isCreateOpen = ref(false)
-const createForm = reactive({ title: '', description: '', priority: 'medium', status: 'todo', module: '', estimated_hours: null })
+const createForm = reactive({ title: '', description: '', configuration: '', flow: '', priority: 'medium', status: 'backlog' })
 
 const detailCard = ref(null)
 const newComment = ref('')
 const commentInternal = ref(false)
 const showDone = ref(false)
+const showBacklog = ref(true)
+
+const isMoveOpen = ref(false)
+const moveSingleCard = ref(null)
+const isMoving = ref(false)
+const moveForm = reactive({ status: 'todo', priority: 'medium' })
+
+const jsonUploadRef = ref(null)
+const jsonUploadError = ref('')
 
 const draggedCard = ref(null)
 const dragTarget = ref(null)
@@ -410,13 +499,89 @@ function priorityLabel(p) {
 }
 
 function statusLabel(s) {
-  const map = { todo: 'Por hacer', in_progress: 'En progreso', in_review: 'En revisión', done: 'Completado' }
+  const map = { backlog: 'Backlog', todo: 'Por hacer', in_progress: 'En progreso', in_review: 'En revisión', approval: 'Aprobación', done: 'Completado' }
   return map[s] || s
 }
 
 function formatDate(value) {
   if (!value) return '—'
   return new Date(value).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
+}
+
+function downloadJsonExample() {
+  const example = [
+    {
+      title: 'Login de usuario',
+      description: 'Pantalla de autenticación con email y contraseña.',
+      configuration: 'Todos los usuarios.',
+      flow: 'Usuario abre la app → ingresa email y contraseña → click en Iniciar sesión → redirige al dashboard.',
+    },
+    {
+      title: 'Panel de administración',
+      description: 'Vista principal del administrador con métricas y accesos rápidos.',
+      configuration: 'Solo rol: Administrador.',
+      flow: 'Admin inicia sesión → ve dashboard con KPIs → puede navegar a gestión de usuarios, productos, pedidos.',
+    },
+    {
+      title: 'Catálogo de productos',
+      description: 'Listado de productos con filtros y búsqueda.',
+      configuration: 'Visible para todos los usuarios registrados.',
+      flow: 'Usuario navega al catálogo → puede filtrar por categoría → click en producto → ve detalle.',
+      priority: 'high',
+    },
+  ]
+  const blob = new Blob([JSON.stringify(example, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'requerimientos-ejemplo.json'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function openMoveItemModal(card) {
+  moveSingleCard.value = card
+  moveForm.status = 'todo'
+  moveForm.priority = card.priority || 'medium'
+  isMoveOpen.value = true
+}
+
+async function handleMoveSubmit() {
+  if (!moveSingleCard.value) return
+  isMoving.value = true
+  try {
+    await reqStore.updateRequirement(projectId.value, moveSingleCard.value.id, { priority: moveForm.priority })
+    await reqStore.moveRequirement(projectId.value, moveSingleCard.value.id, moveForm.status, 0)
+    isMoveOpen.value = false
+  } finally {
+    isMoving.value = false
+  }
+}
+
+async function handleJsonUpload(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  jsonUploadError.value = ''
+
+  try {
+    const text = await file.text()
+    const items = JSON.parse(text)
+    if (!Array.isArray(items)) {
+      jsonUploadError.value = 'El JSON debe ser un array de objetos.'
+      return
+    }
+    const result = await reqStore.bulkUpload(projectId.value, items)
+    if (result.success) {
+      jsonUploadError.value = ''
+      alert(`Se crearon ${result.data.created} requerimientos.`)
+    } else {
+      jsonUploadError.value = result.message
+    }
+  } catch {
+    jsonUploadError.value = 'Error leyendo el archivo JSON.'
+  } finally {
+    if (jsonUploadRef.value) jsonUploadRef.value.value = ''
+  }
 }
 
 function handleDragStart(event, card) {
@@ -458,10 +623,10 @@ async function handleDrop(event, colKey) {
 function openCreateModal() {
   createForm.title = ''
   createForm.description = ''
+  createForm.configuration = ''
+  createForm.flow = ''
   createForm.priority = 'medium'
-  createForm.status = 'todo'
-  createForm.module = ''
-  createForm.estimated_hours = null
+  createForm.status = 'backlog'
   isCreateOpen.value = true
 }
 
@@ -471,9 +636,7 @@ async function handleComplete(card) {
 
 async function handleCreate() {
   if (!createForm.title.trim()) return
-  const payload = { ...createForm }
-  if (!payload.estimated_hours) delete payload.estimated_hours
-  const result = await reqStore.createRequirement(projectId.value, payload)
+  const result = await reqStore.createRequirement(projectId.value, { ...createForm })
   if (result.success) isCreateOpen.value = false
 }
 

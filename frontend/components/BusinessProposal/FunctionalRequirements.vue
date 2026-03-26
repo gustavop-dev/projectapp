@@ -20,7 +20,10 @@
         <!-- Overview: clickable group cards that open detail modal -->
         <div v-if="allGroups.length" data-animate="fade-up-stagger" class="overview-grid grid md:grid-cols-2 gap-6">
           <div v-for="group in allGroups" :key="group.id || group.title"
-               class="overview-card group bg-esmerald/5 p-6 rounded-2xl border-2 border-esmerald/10 cursor-pointer hover:border-esmerald/30"
+               class="overview-card group p-6 rounded-2xl border-2 cursor-pointer transition-all"
+               :class="isGroupDeselected(group)
+                 ? 'bg-gray-50 border-gray-200 opacity-50'
+                 : 'bg-esmerald/5 border-esmerald/10 hover:border-esmerald/30'"
                @click="openModal(group)">
             <div class="flex items-center gap-3 mb-3">
               <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-esmerald-light/60 group-hover:scale-110 transition-transform">
@@ -28,7 +31,10 @@
               </div>
               <h3 class="text-lg font-medium text-esmerald">{{ group.title }}</h3>
               <span v-if="groupPrice(group)" class="ml-auto text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
-                💰 +{{ formatPrice(groupPrice(group)) }}
+                💰 {{ group.is_calculator_module ? '+' : '' }}{{ formatPrice(groupPrice(group)) }}
+              </span>
+              <span v-if="isGroupDeselected(group)" class="ml-auto text-[10px] font-medium text-gray-400 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                No incluido
               </span>
               <span v-else-if="group.items?.length" class="ml-auto badge-count text-xs font-bold text-white bg-esmerald/70 px-2.5 py-1 rounded-full group-hover:bg-esmerald group-hover:scale-110 transition-all" style="color: white">
                 {{ group.items.length }}
@@ -104,16 +110,27 @@ const allGroups = computed(() => {
   const additional = data.additionalModules || [];
   const all = [...groups, ...additional].filter(g => g && g.is_visible !== false && (g.title || g.items?.length));
   return all.filter(g => {
-    if (!g.is_calculator_module) return true;
-    return props.selectedCalculatorModules.includes(`module-${g.id}`);
+    // Calculator modules: hide entirely when deselected (existing behavior)
+    if (g.is_calculator_module) {
+      return props.selectedCalculatorModules.includes(`module-${g.id}`);
+    }
+    // Regular groups: always show (dimmed when deselected)
+    return true;
   });
 });
+
+// Check if a regular group is deselected (dimmed display)
+function isGroupDeselected(group) {
+  if (group.is_calculator_module) return false;
+  if ((group.price_percent ?? 0) === 0) return false; // Zero-percent groups are always "included"
+  const groupId = `group-${group.id}`;
+  return props.selectedCalculatorModules.length > 0 && !props.selectedCalculatorModules.includes(groupId);
+}
 
 const modalVisible = ref(false);
 const selectedGroup = ref({});
 
 function groupPrice(group) {
-  if (!group.is_calculator_module) return 0;
   return props.calculatorModulePrices[group.id] || 0;
 }
 

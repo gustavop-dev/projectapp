@@ -136,19 +136,21 @@ async function handleSubmit() {
     return
   }
 
+  const localePath = useLocalePath()
+
   if (result.requiresVerification) {
-    await navigateTo('/platform/verify')
+    await navigateTo(localePath('/platform/verify'))
     return
   }
 
   if (authStore.needsProfileCompletion) {
-    await navigateTo('/platform/complete-profile')
+    await navigateTo(localePath('/platform/complete-profile'))
     return
   }
 
-  const redirectTarget = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/platform')
+  const redirectTarget = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/')
     ? route.query.redirect
-    : '/platform/dashboard'
+    : localePath('/platform/dashboard')
 
   await navigateTo(redirectTarget)
 }

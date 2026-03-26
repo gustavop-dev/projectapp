@@ -610,11 +610,23 @@
               <FieldInput v-model="group.title" label="Título del grupo" />
             </div>
             <FieldTextarea v-model="group.description" label="Descripción" :rows="2" :isSingle="true" />
+            <!-- Group-level pricing and selection -->
+            <div class="flex flex-wrap items-center gap-4 p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
+              <div class="flex items-center gap-2">
+                <label class="text-[10px] text-gray-500 font-medium uppercase">% del precio</label>
+                <input type="number" v-model.number="group.price_percent" min="0" max="100" step="1" placeholder="0"
+                  class="w-20 px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-emerald-500 outline-none" />
+              </div>
+              <label class="flex items-center gap-1.5">
+                <input type="checkbox" v-model="group.selected" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                <span class="text-[10px] text-gray-500 font-medium">Seleccionado por defecto</span>
+              </label>
+            </div>
             <div>
               <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
               <draggable v-model="group.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
                 <template #item="{ element: item, index: iIdx }">
-                  <div class="mb-2 bg-gray-50 rounded-lg p-3 border" :class="!item.is_required && !item.price ? 'border-amber-300 bg-amber-50/30' : 'border-gray-100'">
+                  <div class="mb-2 bg-gray-50 rounded-lg p-3 border border-gray-100">
                     <div class="flex items-center justify-between mb-1">
                       <div class="flex items-center gap-2">
                         <span class="drag-handle cursor-grab text-gray-300 hover:text-gray-500">⠿</span>
@@ -622,23 +634,15 @@
                       </div>
                       <button type="button" class="text-[10px] text-red-500" @click="group.items.splice(iIdx, 1)">Eliminar</button>
                     </div>
-                    <div class="grid grid-cols-[90px_1fr_100px] gap-2 mb-1">
+                    <div class="grid grid-cols-[90px_1fr] gap-2 mb-1">
                       <EmojiIconField v-model="item.icon" label="Icono" placeholder="🏠" />
                       <FieldInput v-model="item.name" label="Nombre" />
-                      <FieldInput v-model.number="item.price" label="Precio" type="number" placeholder="0" />
                     </div>
                     <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
-                    <div class="grid grid-cols-3 gap-x-3 gap-y-1 mt-2">
-                      <label class="flex items-center gap-1.5">
-                        <input type="checkbox" v-model="item.is_required" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                        <span class="text-[10px] text-gray-500">Obligatorio</span>
-                      </label>
-                    </div>
-                    <p v-if="!item.is_required && !item.price" class="text-[10px] text-amber-600 mt-1">⚠ Elemento opcional sin precio — el cliente no podrá calcular su inversión personalizada.</p>
                   </div>
                 </template>
               </draggable>
-              <button type="button" class="text-xs text-emerald-600 font-medium" @click="group.items.push({ icon: '', name: '', description: '', price: null, is_required: true })">+ Agregar elemento</button>
+              <button type="button" class="text-xs text-emerald-600 font-medium" @click="group.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
             </div>
           </div>
         </div>
@@ -685,6 +689,18 @@
                 <FieldInput v-model="mod.title" label="Título del módulo" />
               </div>
               <FieldTextarea v-model="mod.description" label="Descripción" :rows="2" :isSingle="true" />
+              <!-- Module-level pricing and selection -->
+              <div class="flex flex-wrap items-center gap-4 p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
+                <div class="flex items-center gap-2">
+                  <label class="text-[10px] text-gray-500 font-medium uppercase">% del precio</label>
+                  <input type="number" v-model.number="mod.price_percent" min="0" max="100" step="1" placeholder="0"
+                    class="w-20 px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-emerald-500 outline-none" />
+                </div>
+                <label class="flex items-center gap-1.5">
+                  <input type="checkbox" v-model="mod.selected" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                  <span class="text-[10px] text-gray-500 font-medium">Seleccionado por defecto</span>
+                </label>
+              </div>
               <div>
                 <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
                 <draggable v-model="mod.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
@@ -697,22 +713,15 @@
                         </div>
                         <button type="button" class="text-[10px] text-red-500" @click="mod.items.splice(iIdx, 1)">Eliminar</button>
                       </div>
-                      <div class="grid grid-cols-[90px_1fr_100px] gap-2 mb-1">
+                      <div class="grid grid-cols-[90px_1fr] gap-2 mb-1">
                         <EmojiIconField v-model="item.icon" label="Icono" />
                         <FieldInput v-model="item.name" label="Nombre" />
-                        <FieldInput v-model.number="item.price" label="Precio" type="number" placeholder="0" />
                       </div>
                       <FieldTextarea v-model="item.description" label="Descripción" :rows="2" :isSingle="true" />
-                      <div class="grid grid-cols-2 gap-x-3 gap-y-1 mt-2">
-                        <label class="flex items-center gap-1.5">
-                          <input type="checkbox" v-model="item.is_required" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                          <span class="text-[10px] text-gray-500">Obligatorio</span>
-                        </label>
-                      </div>
                     </div>
                   </template>
                 </draggable>
-                <button type="button" class="text-xs text-emerald-600 font-medium" @click="mod.items.push({ icon: '', name: '', description: '', price: null, is_required: true })">+ Agregar elemento</button>
+                <button type="button" class="text-xs text-emerald-600 font-medium" @click="mod.items.push({ icon: '', name: '', description: '' })">+ Agregar elemento</button>
               </div>
             </div>
           </div>

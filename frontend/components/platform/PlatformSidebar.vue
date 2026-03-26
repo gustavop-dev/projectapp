@@ -106,7 +106,7 @@
         ]"
       >
         <NuxtLink
-          to="/platform/profile"
+          :to="localePath('/platform/profile')"
           :class="sidebarActionClass"
           :title="isCollapsed ? 'Perfil' : undefined"
         >
@@ -154,9 +154,12 @@
 </template>
 
 <script setup>
-import { computed, inject } from 'vue'
+import { computed, inject, onMounted, onUnmounted } from 'vue'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
+import { usePlatformNotificationsStore } from '~/stores/platform-notifications'
 import SidebarItem from '~/components/platform/SidebarItem.vue'
+
+const localePath = useLocalePath()
 
 defineEmits(['logout'])
 
@@ -170,6 +173,10 @@ const toggleTheme = inject('toggleTheme')
 
 const route = useRoute()
 const authStore = usePlatformAuthStore()
+const notifStore = usePlatformNotificationsStore()
+
+onMounted(() => { notifStore.startPolling(30000) })
+onUnmounted(() => { notifStore.stopPolling() })
 
 const userSubtitle = computed(() =>
   authStore.user?.company_name || authStore.user?.email || 'Portal ProjectApp',
@@ -181,46 +188,50 @@ const sidebarActionClass = computed(() => [
   'dark:hover:bg-white/[0.06] dark:hover:text-white',
 ])
 
+const lp = (path) => localePath(path)
+
 const primaryItems = computed(() => [
   {
     label: 'Dashboard',
-    href: '/platform/dashboard',
+    href: lp('/platform/dashboard'),
     icon: 'dashboard',
   },
   {
     label: 'Notificaciones',
-    href: '/platform/notifications',
+    href: lp('/platform/notifications'),
     icon: 'bell',
-    disabled: true,
-    badge: 0,
+    badge: notifStore.unreadCount,
   },
 ])
 
 const projectItems = computed(() => {
   if (authStore.isAdmin) {
     return [
-      { label: 'Proyectos', href: '/platform/projects', icon: 'folder' },
-      { label: 'Tablero', href: '/platform/board', icon: 'board' },
-      { label: 'Solicitudes', href: '/platform/changes', icon: 'refresh', disabled: true },
-      { label: 'Bugs', href: '/platform/bugs', icon: 'bug', disabled: true },
-      { label: 'Entregables', href: '/platform/deliverables', icon: 'file', disabled: true },
+      { label: 'Proyectos', href: lp('/platform/projects'), icon: 'folder' },
+      { label: 'Tablero', href: lp('/platform/board'), icon: 'board' },
+      { label: 'Solicitudes', href: lp('/platform/changes'), icon: 'refresh' },
+      { label: 'Bugs', href: lp('/platform/bugs'), icon: 'bug' },
+      { label: 'Entregables', href: lp('/platform/deliverables'), icon: 'file' },
+      { label: 'Pagos', href: lp('/platform/payments'), icon: 'credit-card' },
     ]
   }
   return [
-    { label: 'Mis proyectos', href: '/platform/projects', icon: 'folder' },
-    { label: 'Tablero', href: '/platform/board', icon: 'board' },
-    { label: 'Solicitudes', href: '/platform/changes', icon: 'refresh', disabled: true },
-    { label: 'Bugs', href: '/platform/bugs', icon: 'bug', disabled: true },
-    { label: 'Entregables', href: '/platform/deliverables', icon: 'file', disabled: true },
+    { label: 'Mis proyectos', href: lp('/platform/projects'), icon: 'folder' },
+    { label: 'Tablero', href: lp('/platform/board'), icon: 'board' },
+    { label: 'Solicitudes', href: lp('/platform/changes'), icon: 'refresh' },
+    { label: 'Bugs', href: lp('/platform/bugs'), icon: 'bug' },
+    { label: 'Entregables', href: lp('/platform/deliverables'), icon: 'file' },
+    { label: 'Pagos', href: lp('/platform/payments'), icon: 'credit-card' },
   ]
 })
 
 const adminItems = computed(() => [
-  { label: 'Clientes', href: '/platform/clients', icon: 'users' },
-  { label: 'Pagos', href: '/platform/payments', icon: 'credit-card', disabled: true },
+  { label: 'Clientes', href: lp('/platform/clients'), icon: 'users' },
 ])
 
 function isActive(href) {
-  return route.path === href || route.path.startsWith(`${href}/`)
+  const cleanPath = route.path.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
+  const cleanHref = href.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
+  return cleanPath === cleanHref || cleanPath.startsWith(`${cleanHref}/`)
 }
 </script>

@@ -8,7 +8,7 @@
     <!-- Not found -->
     <div v-else-if="!project" class="py-20 text-center" data-enter>
       <p class="text-sm text-green-light">Proyecto no encontrado.</p>
-      <NuxtLink to="/platform/projects" class="mt-4 inline-block text-sm font-medium text-esmerald dark:text-lemon">
+      <NuxtLink :to="localePath('/platform/projects')" class="mt-4 inline-block text-sm font-medium text-esmerald dark:text-lemon">
         ← Volver a proyectos
       </NuxtLink>
     </div>
@@ -16,7 +16,7 @@
     <template v-else>
       <!-- Back link + header -->
       <div class="mb-8" data-enter>
-        <NuxtLink to="/platform/projects" class="mb-4 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-esmerald dark:hover:text-white">
+        <NuxtLink :to="localePath('/platform/projects')" class="mb-4 inline-flex items-center gap-1.5 text-sm text-green-light transition hover:text-esmerald dark:hover:text-white">
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
           Proyectos
         </NuxtLink>
@@ -84,6 +84,50 @@
             {{ daysRemaining > 0 ? `${daysRemaining} días restantes` : daysRemaining === 0 ? 'Hoy' : `${Math.abs(daysRemaining)} días de retraso` }}
           </p>
         </div>
+      </div>
+
+      <!-- Payment milestones (admin only) -->
+      <div v-if="authStore.isAdmin && project.payment_milestones?.length" class="mb-8 rounded-2xl border border-esmerald/[0.06] bg-white p-5 dark:border-white/[0.06] dark:bg-esmerald" data-enter>
+        <h3 class="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-green-light/60">Hitos de pago del desarrollo</h3>
+        <div class="flex flex-wrap gap-3">
+          <div
+            v-for="(milestone, idx) in project.payment_milestones"
+            :key="idx"
+            class="flex items-center gap-2 rounded-xl border border-esmerald/[0.06] bg-esmerald-light/40 px-4 py-2.5 dark:border-white/[0.06] dark:bg-esmerald-dark"
+          >
+            <span class="flex h-6 w-6 items-center justify-center rounded-full bg-esmerald/10 text-[10px] font-bold text-esmerald dark:bg-lemon/15 dark:text-lemon">{{ idx + 1 }}</span>
+            <div>
+              <p class="text-xs font-semibold text-esmerald dark:text-white">{{ milestone.label }}</p>
+              <p v-if="milestone.description" class="text-[11px] text-green-light">{{ milestone.description }}</p>
+            </div>
+          </div>
+        </div>
+        <p class="mt-2 text-[10px] text-green-light/50">Estos hitos son de referencia y no se cobran por la plataforma.</p>
+      </div>
+
+      <!-- Hosting tiers -->
+      <div v-if="project.hosting_tiers?.length" class="mb-8 rounded-2xl border border-esmerald/[0.06] bg-white p-5 dark:border-white/[0.06] dark:bg-esmerald" data-enter>
+        <h3 class="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-green-light/60">Planes de hosting</h3>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <div
+            v-for="tier in project.hosting_tiers"
+            :key="tier.frequency"
+            class="relative rounded-xl border p-4 text-center"
+            :class="tier.badge ? 'border-esmerald/20 dark:border-lemon/30' : 'border-esmerald/[0.06] dark:border-white/[0.06]'"
+          >
+            <span v-if="tier.badge" class="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-lemon px-2 py-0.5 text-[9px] font-bold text-esmerald-dark">{{ tier.badge }}</span>
+            <p class="text-xs font-bold uppercase tracking-wider text-esmerald dark:text-white">{{ tier.label }}</p>
+            <p class="mt-2 text-xl font-bold text-esmerald dark:text-lemon">{{ formatCurrency(tier.billing_amount) }}</p>
+            <p class="text-[11px] text-green-light">cada {{ tier.months === 1 ? 'mes' : `${tier.months} meses` }}</p>
+            <p v-if="tier.discount_percent" class="mt-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">{{ tier.discount_percent }}% descuento</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Linked proposal badge -->
+      <div v-if="project.proposal_title" class="mb-8 flex items-center gap-2 text-xs text-green-light" data-enter>
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+        Propuesta vinculada: <span class="font-medium text-esmerald dark:text-white">{{ project.proposal_title }}</span>
       </div>
 
       <!-- Module cards -->
@@ -218,6 +262,7 @@ definePageMeta({
 })
 
 const route = useRoute()
+const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const projectsStore = usePlatformProjectsStore()
 
@@ -254,7 +299,7 @@ const projectModules = computed(() => [
     icon: 'board',
     iconBg: 'bg-blue-500/10',
     iconColor: 'text-blue-500',
-    href: `/platform/projects/${route.params.id}/board`,
+    href: localePath(`/platform/projects/${route.params.id}/board`),
   },
   {
     title: 'Solicitudes de cambio',
@@ -263,6 +308,7 @@ const projectModules = computed(() => [
     icon: 'refresh',
     iconBg: 'bg-amber-500/10',
     iconColor: 'text-amber-500',
+    href: localePath(`/platform/projects/${route.params.id}/changes`),
   },
   {
     title: 'Reporte de bugs',
@@ -271,6 +317,7 @@ const projectModules = computed(() => [
     icon: 'bug',
     iconBg: 'bg-red-500/10',
     iconColor: 'text-red-500',
+    href: localePath(`/platform/projects/${route.params.id}/bugs`),
   },
   {
     title: 'Entregables',
@@ -279,8 +326,23 @@ const projectModules = computed(() => [
     icon: 'file',
     iconBg: 'bg-purple-500/10',
     iconColor: 'text-purple-500',
+    href: localePath(`/platform/projects/${route.params.id}/deliverables`),
+  },
+  {
+    title: 'Pagos',
+    subtitle: 'Hosting y suscripción',
+    description: 'Gestiona tu plan de hosting, consulta pagos y selecciona tu forma de pago.',
+    icon: 'credit-card',
+    iconBg: 'bg-teal-500/10',
+    iconColor: 'text-teal-500',
+    href: localePath(`/platform/projects/${route.params.id}/payments`),
   },
 ])
+
+function formatCurrency(amount) {
+  const num = Number(amount)
+  return `$${num.toLocaleString('es-CO')}`
+}
 
 function statusBadgeClass(status) {
   const map = {
