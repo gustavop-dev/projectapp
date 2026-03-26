@@ -14,8 +14,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from accounts.models import UserProfile
 from accounts.permissions import IsAdminRole
 from accounts.serializers import (
+    AdminListSerializer,
     ClientListSerializer,
     CompleteProfileSerializer,
+    CreateAdminSerializer,
     CreateClientSerializer,
     LoginSerializer,
     ResendCodeSerializer,
@@ -24,7 +26,7 @@ from accounts.serializers import (
     UserProfileSerializer,
     VerifyOnboardingSerializer,
 )
-from accounts.services.onboarding import create_client, resend_invitation
+from accounts.services.onboarding import create_admin, create_client, resend_invitation
 from accounts.services.tokens import get_tokens_for_user, get_verification_token_for_user
 from accounts.services.verification import create_and_send_otp, validate_otp
 
@@ -388,6 +390,160 @@ def client_resend_invite_view(request, user_id):
     except UserProfile.DoesNotExist:
         return Response(
             {'detail': 'Cliente no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    resend_invitation(profile.user)
+    return Response({'detail': 'Invitación reenviada.'})
+
+
+# ==========================================================================
+# Super admin — Platform admin management (session auth + is_staff)
+# ==========================================================================
+
+
+def _require_staff(request):
+    """Check that the request user is a Django staff member (super admin)."""
+    if not request.user.is_staff:
+        return Response(
+            {'detail': 'No autorizado.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    return None
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def admin_list_view(request):
+    """List all platform admins or create a new one. Requires Django staff."""
+    denied = _require_staff(request)
+    if denied:
+        return denied
+
+    if request.method == 'GET':
+        qs = UserProfile.objects.filter(role=UserProfile.ROLE_ADMIN).select_related('user')
+
+        filter_param = request.query_params.get('filter', 'all')
+        if filter_param == 'active':
+            qs = qs.filter(is_onboarded=True, user__is_active=True)
+        elif filter_param == 'pending':
+            qs = qs.filter(is_onboarded=False, user__is_active=True)
+        elif filter_param == 'inactive':
+            qs = qs.filter(user__is_active=False)
+
+        serializer = AdminListSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    serializer = CreateAdminSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    try:
+        user, _ = create_admin(
+            email=serializer.validated_data['email'],
+            first_name=serializer.validated_data['first_name'],
+            last_name=serializer.validated_data['last_name'],
+            created_by=request.user,
+        )
+    except ValueError as e:
+        return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response(
+        AdminListSerializer(user.profile, context={'request': request}).data,
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def admin_detail_view(request, user_id):
+    """Get, update, or deactivate a platform admin. Requires Django staff."""
+    denied = _require_staff(request)
+    if denied:
+        return denied
+
+    try:
+        profile = (
+            UserProfile.objects
+            .filter(role=UserProfile.ROLE_ADMIN, user_id=user_id)
+            .select_related('user')
+            .get()
+        )
+    except UserProfile.DoesNotExist:
+        return Response(
+            {'detail': 'Administrador no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if request.method == 'GET':
+        return Response(AdminListSerializer(profile, context={'request': request}).data)
+
+    if request.method == 'DELETE':
+        active_admin_count = (
+            UserProfile.objects
+            .filter(role=UserProfile.ROLE_ADMIN, user__is_active=True)
+            .count()
+        )
+        if active_admin_count <= 1:
+            return Response(
+                {'detail': 'No se puede desactivar al último administrador activo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = profile.user
+        user.is_active = False
+        user.save(update_fields=['is_active'])
+        return Response({'detail': 'Administrador desactivado.'})
+
+    # PATCH
+    data = request.data
+    user = profile.user
+    changed_fields = []
+
+    if 'first_name' in data:
+        user.first_name = data['first_name']
+        changed_fields.append('first_name')
+    if 'last_name' in data:
+        user.last_name = data['last_name']
+        changed_fields.append('last_name')
+    if 'is_active' in data:
+        if not data['is_active']:
+            active_admin_count = (
+                UserProfile.objects
+                .filter(role=UserProfile.ROLE_ADMIN, user__is_active=True)
+                .count()
+            )
+            if active_admin_count <= 1:
+                return Response(
+                    {'detail': 'No se puede desactivar al último administrador activo.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        user.is_active = data['is_active']
+        changed_fields.append('is_active')
+
+    if changed_fields:
+        user.save(update_fields=changed_fields)
+
+    return Response(AdminListSerializer(profile, context={'request': request}).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def admin_resend_invite_view(request, user_id):
+    """Resend admin invitation email with a new temp password. Requires Django staff."""
+    denied = _require_staff(request)
+    if denied:
+        return denied
+
+    try:
+        profile = (
+            UserProfile.objects
+            .filter(role=UserProfile.ROLE_ADMIN, user_id=user_id)
+            .select_related('user')
+            .get()
+        )
+    except UserProfile.DoesNotExist:
+        return Response(
+            {'detail': 'Administrador no encontrado.'},
             status=status.HTTP_404_NOT_FOUND,
         )
 

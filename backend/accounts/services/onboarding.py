@@ -64,8 +64,45 @@ def resend_invitation(user):
     profile.is_onboarded = False
     profile.save(update_fields=['is_onboarded'])
 
-    _send_invitation_email(user, temp_password)
+    if profile.role == UserProfile.ROLE_ADMIN:
+        _send_admin_invitation_email(user, temp_password)
+    else:
+        _send_invitation_email(user, temp_password)
     return temp_password
+
+
+def create_admin(*, email, first_name, last_name, created_by=None):
+    """
+    Create a new platform admin with a temporary password and send an invitation email.
+    Returns (user, temp_password).
+    """
+    email = email.lower().strip()
+
+    if User.objects.filter(email=email).exists():
+        raise ValueError(f'Ya existe un usuario con el email {email}')
+
+    temp_password = generate_temp_password()
+
+    user = User.objects.create_user(
+        username=email,
+        email=email,
+        password=temp_password,
+        first_name=first_name,
+        last_name=last_name,
+        is_active=True,
+    )
+
+    UserProfile.objects.create(
+        user=user,
+        role=UserProfile.ROLE_ADMIN,
+        is_onboarded=False,
+        profile_completed=True,
+        created_by=created_by,
+    )
+
+    _send_admin_invitation_email(user, temp_password)
+
+    return user, temp_password
 
 
 def _send_invitation_email(user, temp_password):
@@ -84,6 +121,35 @@ def _send_invitation_email(user, temp_password):
         message=(
             f'Hola {user.first_name},\n\n'
             f'Tu cuenta en ProjectApp ha sido creada.\n'
+            f'Email: {user.email}\n'
+            f'Contraseña temporal: {temp_password}\n\n'
+            f'Ingresa aquí: {platform_url}\n\n'
+            f'Al iniciar sesión por primera vez, te pediremos verificar tu email '
+            f'y configurar tu contraseña definitiva.'
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        html_message=html_message,
+        fail_silently=False,
+    )
+
+
+def _send_admin_invitation_email(user, temp_password):
+    """Send the admin invitation email with temporary credentials."""
+    platform_url = f'{settings.FRONTEND_BASE_URL}/platform/login'
+
+    subject = 'ProjectApp — Has sido agregado como administrador'
+    html_message = render_to_string('emails/admin_invitation.html', {
+        'user': user,
+        'temp_password': temp_password,
+        'platform_url': platform_url,
+    })
+
+    send_mail(
+        subject=subject,
+        message=(
+            f'Hola {user.first_name},\n\n'
+            f'Has sido agregado como administrador en ProjectApp.\n'
             f'Email: {user.email}\n'
             f'Contraseña temporal: {temp_password}\n\n'
             f'Ingresa aquí: {platform_url}\n\n'

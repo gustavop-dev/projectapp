@@ -100,6 +100,33 @@ class CompleteProfileSerializer(serializers.Serializer):
         return value
 
 
+class AdminListSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(source='user.email')
+    first_name = serializers.CharField(source='user.first_name')
+    last_name = serializers.CharField(source='user.last_name')
+    user_id = serializers.IntegerField(source='user.id')
+    is_active = serializers.BooleanField(source='user.is_active')
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            'user_id', 'email', 'first_name', 'last_name',
+            'is_onboarded', 'is_active', 'created_at',
+        ]
+
+
+class CreateAdminSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+
+    def validate_email(self, value):
+        value = value.lower().strip()
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError('Ya existe un usuario con este email.')
+        return value
+
+
 class CreateClientSerializer(serializers.Serializer):
     email = serializers.EmailField()
     first_name = serializers.CharField(max_length=150)

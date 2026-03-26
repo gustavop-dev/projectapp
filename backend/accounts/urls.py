@@ -1,6 +1,9 @@
 from django.urls import path
 
 from accounts.views import (
+    admin_detail_view,
+    admin_list_view,
+    admin_resend_invite_view,
     bug_report_all_view,
     bug_report_comment_view,
     bug_report_detail_view,
@@ -58,6 +61,11 @@ urlpatterns = [
     # Profile
     path('me/', me_view, name='platform-me'),
     path('me/complete-profile/', complete_profile_view, name='platform-complete-profile'),
+
+    # Super admin — platform admin management
+    path('admins/', admin_list_view, name='panel-admin-list'),
+    path('admins/<int:user_id>/', admin_detail_view, name='panel-admin-detail'),
+    path('admins/<int:user_id>/resend-invite/', admin_resend_invite_view, name='panel-admin-resend-invite'),
 
     # Admin — client management
     path('clients/', client_list_view, name='platform-client-list'),
