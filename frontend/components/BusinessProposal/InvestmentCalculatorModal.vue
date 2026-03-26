@@ -217,6 +217,8 @@ const openedAt = ref(null);
 
 function trackCalculatorEvent(event) {
   if (!props.proposalUuid) return;
+  // Skip tracking for admin previews
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1') return;
   const selectedIds = localModules.value.filter(m => m.selected).map(m => m.id);
   const deselectedIds = localModules.value.filter(m => !m.selected && !m._locked).map(m => m.id);
   const elapsedSeconds = openedAt.value ? Math.round((Date.now() - openedAt.value) / 1000) : 0;

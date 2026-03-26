@@ -107,9 +107,17 @@ def retrieve_public_proposal(request, proposal_uuid):
             'whatsapp_url': wa_url,
         }
 
+    # Admin preview detection — skip all analytics when staff views
+    # Detects by Django session cookie (automatic, no query param needed)
+    is_preview = (
+        request.user.is_authenticated
+        and request.user.is_staff
+    )
+
     # Only record views/metrics for proposals that have been sent (not drafts)
+    # Skip entirely for admin previews to avoid polluting analytics
     is_first_view = False
-    if proposal.status != BusinessProposal.Status.DRAFT:
+    if proposal.status != BusinessProposal.Status.DRAFT and not is_preview:
         proposal.view_count += 1
         update_fields = ['view_count']
 
@@ -125,7 +133,7 @@ def retrieve_public_proposal(request, proposal_uuid):
         proposal.save(update_fields=update_fields)
 
     # Send real-time notification to sales team on first view (async)
-    if is_first_view:
+    if is_first_view and not is_preview:
         try:
             from content.tasks import notify_first_view
             notify_first_view(proposal.id)
@@ -139,7 +147,8 @@ def retrieve_public_proposal(request, proposal_uuid):
     #        Enhanced: only fire when rejection happened 7+ days ago
     is_reengagement = request.query_params.get('ref') == 'reengagement'
     if (
-        proposal.status == BusinessProposal.Status.REJECTED
+        not is_preview
+        and proposal.status == BusinessProposal.Status.REJECTED
         and not is_reengagement
         and not getattr(proposal, '_post_rejection_alert_sent', False)
     ):
@@ -179,6 +188,8 @@ def retrieve_public_proposal(request, proposal_uuid):
         proposal, context={'request': request, 'is_admin': False}
     )
     response_data = serializer.data
+    if is_preview:
+        response_data['is_admin_preview'] = True
     if expired_meta:
         response_data['expired_meta'] = expired_meta
     return Response(response_data, status=status.HTTP_200_OK)
@@ -1460,6 +1471,12 @@ def track_proposal_engagement(request, proposal_uuid):
     if proposal.status == BusinessProposal.Status.DRAFT:
         return Response({'status': 'skipped'}, status=status.HTTP_200_OK)
 
+    # Skip tracking for admin staff (detect via Django session cookie)
+    from django.contrib.auth import get_user
+    _user = get_user(request._request)
+    if _user.is_authenticated and _user.is_staff:
+        return Response({'status': 'skipped'}, status=status.HTTP_200_OK)
+
     session_id = request.data.get('session_id', '')
     sections = request.data.get('sections', [])
 
@@ -1700,6 +1717,12 @@ def track_calculator_interaction(request, proposal_uuid):
         BusinessProposal, uuid=proposal_uuid, is_active=True,
     )
 
+    # Skip tracking for admin staff
+    from django.contrib.auth import get_user
+    _user = get_user(request._request)
+    if _user.is_authenticated and _user.is_staff:
+        return Response({'status': 'skipped'}, status=status.HTTP_200_OK)
+
     event = request.data.get('event', '')
     if event not in ('confirmed', 'abandoned'):
         return Response(
@@ -1748,6 +1771,12 @@ def track_requirement_click(request, proposal_uuid):
     proposal = get_object_or_404(
         BusinessProposal, uuid=proposal_uuid, is_active=True,
     )
+
+    # Skip tracking for admin staff
+    from django.contrib.auth import get_user
+    _user = get_user(request._request)
+    if _user.is_authenticated and _user.is_staff:
+        return Response({'status': 'skipped'}, status=status.HTTP_200_OK)
 
     group_id = request.data.get('group_id', '')
     group_title = request.data.get('group_title', '')

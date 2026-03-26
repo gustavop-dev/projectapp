@@ -147,8 +147,9 @@ function formatPrice(value) {
 function openModal(group) {
   selectedGroup.value = group;
   modalVisible.value = true;
-  // Track requirement card click (fire-and-forget)
-  if (props.proposalUuid) {
+  // Track requirement card click (fire-and-forget, skip admin previews)
+  const isPreview = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1';
+  if (props.proposalUuid && !isPreview) {
     create_request(`proposals/${props.proposalUuid}/track-requirement-click/`, {
       group_id: group.id,
       group_title: group.title,

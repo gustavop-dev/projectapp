@@ -18,6 +18,11 @@ function _getCsrfToken() {
  * @param {import('vue').Ref<string>} [viewMode] - Reactive view mode ('executive' or 'detailed').
  */
 export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
+  // Skip all tracking for admin previews to avoid polluting analytics
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1') {
+    return;
+  }
+
   const FLUSH_INTERVAL_MS = 30_000;
 
   const sessionId = ref('');
