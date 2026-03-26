@@ -615,18 +615,16 @@
 
           <!-- Form mode for this group -->
           <div v-else class="space-y-3">
-            <div class="grid grid-cols-[100px_1fr] gap-3">
+            <div class="grid grid-cols-[100px_1fr_auto] gap-3 items-end">
               <EmojiIconField v-model="group.icon" label="Icono" placeholder="🖥️" />
               <FieldInput v-model="group.title" label="Título del grupo" />
-            </div>
-            <div class="grid grid-cols-[1fr_auto] gap-3 items-start">
-              <FieldTextarea v-model="group.description" label="Descripción" :rows="2" :isSingle="true" />
-              <div class="flex flex-col gap-1 pt-0.5" title="Porcentaje de la inversión total que representa este módulo. Se usa para calcular el precio en la calculadora">
+              <div class="flex flex-col gap-1" title="Porcentaje de la inversión total que representa este módulo. Se usa para calcular el precio en la calculadora">
                 <label class="text-[10px] text-gray-500 font-medium uppercase">% del precio</label>
                 <input type="number" v-model.number="group.price_percent" min="0" max="100" step="1" placeholder="0"
                   class="w-20 px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-emerald-500 outline-none" />
               </div>
             </div>
+            <FieldTextarea v-model="group.description" label="Descripción" :rows="2" :isSingle="true" />
             <div>
               <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
               <draggable v-model="group.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
@@ -705,18 +703,16 @@
                 class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-1 focus:ring-emerald-500 outline-none resize-y" />
             </div>
             <div v-else class="space-y-3">
-              <div class="grid grid-cols-[100px_1fr] gap-3">
+              <div class="grid grid-cols-[100px_1fr_auto] gap-3 items-end">
                 <EmojiIconField v-model="mod.icon" label="Icono" placeholder="🧩" />
                 <FieldInput v-model="mod.title" label="Título del módulo" />
-              </div>
-              <div class="grid grid-cols-[1fr_auto] gap-3 items-start">
-                <FieldTextarea v-model="mod.description" label="Descripción" :rows="2" :isSingle="true" />
-                <div class="flex flex-col gap-1 pt-0.5" title="Porcentaje de la inversión total que representa este módulo. Se usa para calcular el precio en la calculadora">
+                <div class="flex flex-col gap-1" title="Porcentaje de la inversión total que representa este módulo. Se usa para calcular el precio en la calculadora">
                   <label class="text-[10px] text-gray-500 font-medium uppercase">% del precio</label>
                   <input type="number" v-model.number="mod.price_percent" min="0" max="100" step="1" placeholder="0"
                     class="w-20 px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-emerald-500 outline-none" />
                 </div>
               </div>
+              <FieldTextarea v-model="mod.description" label="Descripción" :rows="2" :isSingle="true" />
               <div>
                 <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Elementos</label>
                 <draggable v-model="mod.items" item-key="_idx" handle=".drag-handle" ghost-class="opacity-30">
