@@ -1,5 +1,8 @@
 ---
-description: Weekly AI blog post creation — search news, summarize, and publish
+name: blog-ai-weekly
+description: "Weekly AI blog post creation — search news from 10 sources, summarize, write bilingual ES+EN article, and publish via Django shell."
+disable-model-invocation: true
+allowed-tools: Bash, WebSearch, WebFetch
 ---
 
 # Blog AI Weekly — Crear articulo semanal de IA

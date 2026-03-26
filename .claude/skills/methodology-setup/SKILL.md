@@ -1,5 +1,6 @@
 ---
-description: Initialize or refresh the Memory Bank methodology system
+name: methodology-setup
+description: "Initialize or refresh the Memory Bank methodology system. Creates directory structure and populates 7 core memory files with verified codebase data. Use for new projects or when memory files need updating."
 ---
 
 # Methodology Setup / Refresh
