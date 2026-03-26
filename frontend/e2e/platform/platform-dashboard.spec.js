@@ -67,9 +67,9 @@ test.describe('Platform Dashboard — Admin', () => {
 
     await expect(page.getByText(/hola admin/i)).toBeVisible();
     const main = page.locator('main');
-    await expect(main.getByText('Clientes activos')).toBeVisible();
-    await expect(main.getByText('Proyectos activos')).toBeVisible();
-    await expect(main.getByText('Bugs abiertos')).toBeVisible();
+    await expect(main.getByText('Clientes activos').first()).toBeVisible();
+    await expect(main.getByText('Proyectos activos').first()).toBeVisible();
+    await expect(main.getByText('Bugs abiertos').first()).toBeVisible();
   });
 
   test('renders recent clients table with data', {
