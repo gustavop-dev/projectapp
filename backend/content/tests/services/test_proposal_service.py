@@ -19,7 +19,7 @@ pytestmark = pytest.mark.django_db
 CALCULATOR_MODULE_IDS = (
     'pwa_module', 'ai_module', 'reports_alerts_module',
     'email_marketing_module',
-    'i18n_module', 'gift_cards_module',
+    'i18n_module',
     'integration_international_payments', 'integration_regional_payments',
     'integration_electronic_invoicing', 'integration_conversion_tracking',
     'dark_mode_module', 'live_chat_module',
@@ -28,6 +28,9 @@ CALCULATOR_MODULE_IDS = (
 EXPECTED_GROUP_ORDER = [
     'views', 'components', 'features',
     'admin_module', 'analytics_dashboard', 'kpi_dashboard_module',
+]
+
+EXPECTED_ADDITIONAL_MODULE_ORDER = [
     'pwa_module', 'ai_module',
     'integration_conversion_tracking', 'integration_electronic_invoicing',
     'integration_international_payments', 'integration_regional_payments',
@@ -90,19 +93,24 @@ class TestGetDefaultSections:
         assert 'Resumen' in es_section['content_json']['title']
 
     def test_functional_requirements_has_default_groups(self):
-        """Verify ES functional_requirements has 18 groups including calculator modules and integrations."""
+        """Verify ES functional_requirements has 6 groups and 12 additionalModules."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
-        assert len(groups) == 18
+        additional = fr['content_json']['additionalModules']
+        assert len(groups) == 6
+        assert len(additional) == 12
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
+            'admin_module', 'analytics_dashboard', 'kpi_dashboard_module',
+        }
+        additional_ids = {m['id'] for m in additional}
+        assert additional_ids == {
             'integration_international_payments', 'integration_regional_payments',
             'integration_electronic_invoicing', 'integration_conversion_tracking',
-            'admin_module', 'analytics_dashboard',
             'pwa_module', 'ai_module', 'reports_alerts_module',
-            'kpi_dashboard_module', 'email_marketing_module',
+            'email_marketing_module',
             'i18n_module', 'gift_cards_module',
             'dark_mode_module', 'live_chat_module',
         }
@@ -129,7 +137,7 @@ class TestGetDefaultSections:
         """Verify integration_international_payments: calculator module, 20%, not invite."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        intl = next(g for g in fr['content_json']['groups'] if g['id'] == 'integration_international_payments')
+        intl = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'integration_international_payments')
         assert len(intl['items']) == 2
         assert intl['is_calculator_module'] is True
         assert intl['default_selected'] is False
@@ -140,7 +148,7 @@ class TestGetDefaultSections:
         """Verify integration_regional_payments: calculator module, 20%, not invite."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        reg = next(g for g in fr['content_json']['groups'] if g['id'] == 'integration_regional_payments')
+        reg = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'integration_regional_payments')
         assert len(reg['items']) == 3
         assert reg['is_calculator_module'] is True
         assert reg['default_selected'] is False
@@ -151,7 +159,7 @@ class TestGetDefaultSections:
         """Verify integration_electronic_invoicing: 60%, not invite."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        inv = next(g for g in fr['content_json']['groups'] if g['id'] == 'integration_electronic_invoicing')
+        inv = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'integration_electronic_invoicing')
         assert len(inv['items']) == 5
         assert inv['is_calculator_module'] is True
         assert inv['default_selected'] is False
@@ -162,7 +170,7 @@ class TestGetDefaultSections:
         """Verify integration_conversion_tracking: 0%, is_invite, has invite_note."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        ct = next(g for g in fr['content_json']['groups'] if g['id'] == 'integration_conversion_tracking')
+        ct = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'integration_conversion_tracking')
         assert len(ct['items']) == 6
         assert ct['is_calculator_module'] is True
         assert ct['default_selected'] is False
@@ -178,7 +186,7 @@ class TestGetDefaultSections:
     def test_pwa_module_has_6_items_and_is_calculator_module(self):
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        pwa = next(g for g in fr['content_json']['groups'] if g['id'] == 'pwa_module')
+        pwa = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'pwa_module')
         assert len(pwa['items']) == 6
         assert pwa['is_calculator_module'] is True
         assert pwa['default_selected'] is False
@@ -187,7 +195,7 @@ class TestGetDefaultSections:
     def test_ai_module_has_11_items_and_is_invite(self):
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        ai = next(g for g in fr['content_json']['groups'] if g['id'] == 'ai_module')
+        ai = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'ai_module')
         assert len(ai['items']) == 11
         assert ai['is_calculator_module'] is True
         assert ai['is_invite'] is True
@@ -196,39 +204,44 @@ class TestGetDefaultSections:
     def test_reports_alerts_module_has_5_items_and_default_not_selected(self):
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        reports = next(g for g in fr['content_json']['groups'] if g['id'] == 'reports_alerts_module')
+        reports = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'reports_alerts_module')
         assert len(reports['items']) == 5
         assert reports['is_calculator_module'] is True
         assert reports['default_selected'] is False
         assert reports['price_percent'] == 20
 
     def test_en_calculator_modules_mirror_es(self):
-        """EN calculator modules match ES in item count, calculator flag, and price percent."""
+        """EN additional modules match ES in item count, calculator flag, and price percent."""
         es = ProposalService.get_default_sections('es')
         en = ProposalService.get_default_sections('en')
         es_fr = next(s for s in es if s['section_type'] == 'functional_requirements')
         en_fr = next(s for s in en if s['section_type'] == 'functional_requirements')
         for mod_id in CALCULATOR_MODULE_IDS:
-            es_g = next(g for g in es_fr['content_json']['groups'] if g['id'] == mod_id)
-            en_g = next(g for g in en_fr['content_json']['groups'] if g['id'] == mod_id)
+            es_g = next(g for g in es_fr['content_json']['additionalModules'] if g['id'] == mod_id)
+            en_g = next(g for g in en_fr['content_json']['additionalModules'] if g['id'] == mod_id)
             assert len(es_g['items']) == len(en_g['items'])
             assert es_g['is_calculator_module'] == en_g['is_calculator_module']
             assert es_g.get('price_percent') == en_g.get('price_percent')
 
-    def test_en_functional_requirements_has_18_groups(self):
-        """Verify EN functional_requirements has 18 groups including calculator modules and integrations."""
+    def test_en_functional_requirements_has_6_groups_and_12_modules(self):
+        """Verify EN functional_requirements has 6 groups and 12 additionalModules."""
         sections = ProposalService.get_default_sections('en')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
-        assert len(groups) == 18
+        additional = fr['content_json']['additionalModules']
+        assert len(groups) == 6
+        assert len(additional) == 12
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
+            'admin_module', 'analytics_dashboard', 'kpi_dashboard_module',
+        }
+        additional_ids = {m['id'] for m in additional}
+        assert additional_ids == {
             'integration_international_payments', 'integration_regional_payments',
             'integration_electronic_invoicing', 'integration_conversion_tracking',
-            'admin_module', 'analytics_dashboard',
             'pwa_module', 'ai_module', 'reports_alerts_module',
-            'kpi_dashboard_module', 'email_marketing_module',
+            'email_marketing_module',
             'i18n_module', 'gift_cards_module',
             'dark_mode_module', 'live_chat_module',
         }
@@ -240,33 +253,26 @@ class TestGetDefaultSections:
         kpi = next(g for g in fr['content_json']['groups'] if g['id'] == 'kpi_dashboard_module')
         assert 'is_calculator_module' not in kpi
         assert kpi['selected'] is True
-        assert kpi['price_percent'] == 16
+        assert kpi['price_percent'] == 0
         assert len(kpi['items']) == 4
-        item_names = [i['name'] for i in kpi['items']]
-        assert 'Metas y objetivos' not in item_names
         assert any('CSV' in i['description'] for i in kpi['items'] if i['name'] == 'Exportación de reportes')
 
-    def test_all_regular_groups_have_selected_and_price_percent(self):
-        """Verify all 6 regular groups have selected=True and price_percent summing to 100."""
+    def test_all_regular_groups_have_selected_true(self):
+        """Verify all 6 regular groups have selected=True and price_percent=0."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        regular_ids = {'views', 'components', 'features', 'admin_module', 'analytics_dashboard', 'kpi_dashboard_module'}
-        regular_groups = [g for g in fr['content_json']['groups'] if g['id'] in regular_ids]
+        regular_groups = fr['content_json']['groups']
         assert len(regular_groups) == 6
-        total_percent = 0
         for g in regular_groups:
             assert g['selected'] is True, f"Group {g['id']} should have selected=True"
-            assert g['price_percent'] > 0, f"Group {g['id']} should have price_percent > 0"
-            total_percent += g['price_percent']
-        assert total_percent == 100
+            assert g['price_percent'] == 0, f"Group {g['id']} should have price_percent=0"
 
-    def test_all_calculator_modules_have_selected_false(self):
-        """Verify all calculator module groups have selected=False."""
+    def test_all_additional_modules_have_selected_false(self):
+        """Verify all additional modules have selected=False."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        for g in fr['content_json']['groups']:
-            if g.get('is_calculator_module'):
-                assert g['selected'] is False, f"Calculator module {g['id']} should have selected=False"
+        for g in fr['content_json']['additionalModules']:
+            assert g['selected'] is False, f"Additional module {g['id']} should have selected=False"
 
     def test_en_regular_groups_match_es_selected_and_price_percent(self):
         """Verify EN regular groups have same selected and price_percent values as ES."""
@@ -274,18 +280,16 @@ class TestGetDefaultSections:
         en = ProposalService.get_default_sections('en')
         es_fr = next(s for s in es if s['section_type'] == 'functional_requirements')
         en_fr = next(s for s in en if s['section_type'] == 'functional_requirements')
-        regular_ids = {'views', 'components', 'features', 'admin_module', 'analytics_dashboard', 'kpi_dashboard_module'}
-        for gid in regular_ids:
-            es_g = next(g for g in es_fr['content_json']['groups'] if g['id'] == gid)
-            en_g = next(g for g in en_fr['content_json']['groups'] if g['id'] == gid)
-            assert es_g['selected'] == en_g['selected'], f"selected mismatch for {gid}"
-            assert es_g['price_percent'] == en_g['price_percent'], f"price_percent mismatch for {gid}"
+        for es_g, en_g in zip(es_fr['content_json']['groups'], en_fr['content_json']['groups']):
+            assert es_g['id'] == en_g['id'], f"group order mismatch: {es_g['id']} vs {en_g['id']}"
+            assert es_g['selected'] == en_g['selected'], f"selected mismatch for {es_g['id']}"
+            assert es_g['price_percent'] == en_g['price_percent'], f"price_percent mismatch for {es_g['id']}"
 
     def test_i18n_module_has_5_items_and_15_percent(self):
         """Verify i18n_module: 5 items, price_percent 15."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        i18n = next(g for g in fr['content_json']['groups'] if g['id'] == 'i18n_module')
+        i18n = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'i18n_module')
         assert len(i18n['items']) == 5
         assert i18n['is_calculator_module'] is True
         assert i18n['default_selected'] is False
@@ -295,35 +299,39 @@ class TestGetDefaultSections:
         """Verify gift_cards_module: 5 items, price_percent 20, is_visible False."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        gc = next(g for g in fr['content_json']['groups'] if g['id'] == 'gift_cards_module')
+        gc = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'gift_cards_module')
         assert len(gc['items']) == 5
-        assert gc['is_calculator_module'] is True
+        assert gc['is_calculator_module'] is False
         assert gc['default_selected'] is False
         assert gc['price_percent'] == 20
         assert gc['is_visible'] is False
 
     def test_all_groups_have_is_visible(self):
-        """Verify every group in ES functional_requirements has an is_visible attribute."""
+        """Verify every group and additional module has an is_visible attribute."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        for group in fr['content_json']['groups']:
+        all_entries = fr['content_json']['groups'] + fr['content_json']['additionalModules']
+        for group in all_entries:
             assert 'is_visible' in group, f"Group {group['id']} missing is_visible"
 
-    def test_gift_cards_is_only_hidden_group(self):
-        """Verify gift_cards_module is the only group with is_visible=False."""
+    def test_gift_cards_is_only_hidden_module(self):
+        """Verify gift_cards_module is the only entry with is_visible=False."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        hidden = [g['id'] for g in fr['content_json']['groups'] if g['is_visible'] is False]
+        all_entries = fr['content_json']['groups'] + fr['content_json']['additionalModules']
+        hidden = [g['id'] for g in all_entries if g['is_visible'] is False]
         assert hidden == ['gift_cards_module']
 
     def test_en_groups_have_is_visible_matching_es(self):
-        """Verify EN groups have the same is_visible values as ES."""
+        """Verify EN groups and additional modules have the same is_visible values as ES."""
         es = ProposalService.get_default_sections('es')
         en = ProposalService.get_default_sections('en')
         es_fr = next(s for s in es if s['section_type'] == 'functional_requirements')
         en_fr = next(s for s in en if s['section_type'] == 'functional_requirements')
-        for es_g in es_fr['content_json']['groups']:
-            en_g = next(g for g in en_fr['content_json']['groups'] if g['id'] == es_g['id'])
+        es_all = es_fr['content_json']['groups'] + es_fr['content_json']['additionalModules']
+        en_all = en_fr['content_json']['groups'] + en_fr['content_json']['additionalModules']
+        for es_g in es_all:
+            en_g = next(g for g in en_all if g['id'] == es_g['id'])
             assert es_g['is_visible'] == en_g['is_visible'], (
                 f"is_visible mismatch for {es_g['id']}: ES={es_g['is_visible']}, EN={en_g['is_visible']}"
             )
@@ -332,7 +340,7 @@ class TestGetDefaultSections:
         """Verify ai_module has an invite_note field and uses is_invite (not is_ai_invite)."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        ai = next(g for g in fr['content_json']['groups'] if g['id'] == 'ai_module')
+        ai = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'ai_module')
         assert ai['invite_note']
         assert 'is_ai_invite' not in ai
         assert ai['is_invite'] is True
@@ -345,14 +353,16 @@ class TestGetDefaultSections:
         assert len(current_stages) == 1
 
     def test_groups_are_in_expected_order(self):
-        """Verify ES groups follow the specified order: base groups, then calculator modules."""
+        """Verify ES groups and additionalModules follow the specified order."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         group_ids = [g['id'] for g in fr['content_json']['groups']]
         assert group_ids == EXPECTED_GROUP_ORDER
+        additional_ids = [g['id'] for g in fr['content_json']['additionalModules']]
+        assert additional_ids == EXPECTED_ADDITIONAL_MODULE_ORDER
 
     def test_en_groups_match_es_order(self):
-        """Verify EN groups are in the same order as ES."""
+        """Verify EN groups and additionalModules are in the same order as ES."""
         es = ProposalService.get_default_sections('es')
         en = ProposalService.get_default_sections('en')
         es_fr = next(s for s in es if s['section_type'] == 'functional_requirements')
@@ -360,12 +370,15 @@ class TestGetDefaultSections:
         es_ids = [g['id'] for g in es_fr['content_json']['groups']]
         en_ids = [g['id'] for g in en_fr['content_json']['groups']]
         assert es_ids == en_ids
+        es_add_ids = [g['id'] for g in es_fr['content_json']['additionalModules']]
+        en_add_ids = [g['id'] for g in en_fr['content_json']['additionalModules']]
+        assert es_add_ids == en_add_ids
 
     def test_dark_mode_module_has_5_items_and_20_percent(self):
         """Verify dark_mode_module: 5 items, price_percent 20, not selected by default."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        dm = next(g for g in fr['content_json']['groups'] if g['id'] == 'dark_mode_module')
+        dm = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'dark_mode_module')
         assert len(dm['items']) == 5
         assert dm['is_calculator_module'] is True
         assert dm['default_selected'] is False
@@ -376,7 +389,7 @@ class TestGetDefaultSections:
         """Verify live_chat_module: 6 items, price_percent 40, not selected by default."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
-        lc = next(g for g in fr['content_json']['groups'] if g['id'] == 'live_chat_module')
+        lc = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'live_chat_module')
         assert len(lc['items']) == 6
         assert lc['is_calculator_module'] is True
         assert lc['default_selected'] is False
@@ -389,7 +402,7 @@ class TestGetDefaultSections:
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         for gid in ('integration_conversion_tracking', 'integration_electronic_invoicing',
                      'integration_international_payments', 'integration_regional_payments'):
-            g = next(grp for grp in fr['content_json']['groups'] if grp['id'] == gid)
+            g = next(grp for grp in fr['content_json']['additionalModules'] if grp['id'] == gid)
             assert g['title'].endswith('(Integración API)'), f"{gid} ES title missing postfix"
 
     def test_integration_titles_have_api_postfix_en(self):
@@ -398,7 +411,7 @@ class TestGetDefaultSections:
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         for gid in ('integration_conversion_tracking', 'integration_electronic_invoicing',
                      'integration_international_payments', 'integration_regional_payments'):
-            g = next(grp for grp in fr['content_json']['groups'] if grp['id'] == gid)
+            g = next(grp for grp in fr['content_json']['additionalModules'] if grp['id'] == gid)
             assert g['title'].endswith('(API Integration)'), f"{gid} EN title missing postfix"
 
     def test_hosting_plan_uses_percentage(self):

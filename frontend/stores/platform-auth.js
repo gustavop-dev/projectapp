@@ -148,9 +148,13 @@ export const usePlatformAuthStore = defineStore('platformAuth', {
 
       try {
         const { post } = usePlatformApi()
+        const body = { email, password }
+        if (payload.recaptcha_token) {
+          body.recaptcha_token = payload.recaptcha_token
+        }
         const response = await post(
           'login/',
-          { email, password },
+          body,
           { skipAuth: true, skipRefresh: true },
         )
 
@@ -300,6 +304,32 @@ export const usePlatformAuthStore = defineStore('platformAuth', {
         const message = error.response?.data?.detail || 'No pudimos actualizar tu perfil.'
         this.error = message
         return { success: false, message, errors: error.response?.data }
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    async uploadAvatar(file) {
+      this.isLoading = true
+      this.error = ''
+
+      try {
+        const formData = new FormData()
+        formData.append('avatar', file)
+        const { request } = usePlatformApi()
+        const response = await request({
+          url: 'me/',
+          method: 'PATCH',
+          data: formData,
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        this.user = response.data
+        writePlatformSession({ user: response.data })
+        return { success: true, user: response.data }
+      } catch (error) {
+        const message = error.response?.data?.detail || 'No pudimos actualizar tu avatar.'
+        this.error = message
+        return { success: false, message }
       } finally {
         this.isLoading = false
       }

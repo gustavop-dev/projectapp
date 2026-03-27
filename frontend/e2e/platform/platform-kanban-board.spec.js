@@ -216,17 +216,17 @@ test.describe('Platform Kanban Board — Admin', () => {
     await expect(page.getByText('Tests unitarios modelos')).not.toBeVisible();
   });
 
-  test('back link navigates to project detail', {
+  test('back link navigates to unified board', {
     tag: [...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupPlatformMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    const backLink = page.getByRole('link', { name: mockProject.name });
+    const main = page.locator('main');
+    const backLink = main.getByRole('link', { name: 'Tablero' });
     await expect(backLink).toBeVisible();
-    // i18n prefix strategy adds locale prefix to all hrefs
-    await expect(backLink).toHaveAttribute('href', /\/platform\/projects\/1$/);
+    await expect(backLink).toHaveAttribute('href', /\/platform\/board$/);
   });
 });
 

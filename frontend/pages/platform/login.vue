@@ -70,6 +70,11 @@
             >
           </div>
 
+          <!-- reCAPTCHA v2 -->
+          <div v-if="recaptchaSiteKey" class="flex justify-center">
+            <div ref="recaptchaContainer"></div>
+          </div>
+
           <button
             type="submit"
             class="w-full rounded-full bg-esmerald px-4 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-lemon dark:text-esmerald-dark dark:hover:bg-lemon/90"
@@ -104,7 +109,47 @@ useHead({
 })
 
 const { isDark, toggle, hydrate: hydrateTheme } = usePlatformTheme()
-onMounted(() => hydrateTheme())
+
+const config = useRuntimeConfig()
+const recaptchaSiteKey = config.public.recaptchaSiteKey
+const recaptchaContainer = ref(null)
+const recaptchaToken = ref('')
+let recaptchaWidgetId = null
+
+function loadRecaptchaScript() {
+  return new Promise((resolve) => {
+    if (window.grecaptcha?.render) {
+      resolve()
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoaded&render=explicit'
+    script.async = true
+    script.defer = true
+    window.onRecaptchaLoaded = () => resolve()
+    document.head.appendChild(script)
+  })
+}
+
+function renderRecaptcha() {
+  if (!recaptchaContainer.value || !window.grecaptcha?.render) return
+  if (recaptchaWidgetId !== null) return
+
+  recaptchaWidgetId = window.grecaptcha.render(recaptchaContainer.value, {
+    sitekey: recaptchaSiteKey,
+    theme: isDark.value ? 'dark' : 'light',
+    callback: (token) => { recaptchaToken.value = token },
+    'expired-callback': () => { recaptchaToken.value = '' },
+  })
+}
+
+onMounted(async () => {
+  hydrateTheme()
+  if (recaptchaSiteKey) {
+    await loadRecaptchaScript()
+    renderRecaptcha()
+  }
+})
 
 usePageEntrance('#platform-login')
 
@@ -119,7 +164,11 @@ const localError = ref('')
 authStore.hydrate()
 
 const errorMessage = computed(() => localError.value || authStore.error)
-const canSubmit = computed(() => Boolean(form.email.trim()) && Boolean(form.password))
+const canSubmit = computed(() => {
+  const hasCredentials = Boolean(form.email.trim()) && Boolean(form.password)
+  if (recaptchaSiteKey) return hasCredentials && Boolean(recaptchaToken.value)
+  return hasCredentials
+})
 
 async function handleSubmit() {
   localError.value = ''
@@ -130,9 +179,23 @@ async function handleSubmit() {
     return
   }
 
-  const result = await authStore.login(form)
+  if (recaptchaSiteKey && !recaptchaToken.value) {
+    localError.value = 'Completa el captcha para continuar.'
+    return
+  }
+
+  const payload = { ...form }
+  if (recaptchaToken.value) {
+    payload.recaptcha_token = recaptchaToken.value
+  }
+
+  const result = await authStore.login(payload)
   if (!result.success) {
     localError.value = result.message
+    if (recaptchaSiteKey && window.grecaptcha && recaptchaWidgetId !== null) {
+      window.grecaptcha.reset(recaptchaWidgetId)
+      recaptchaToken.value = ''
+    }
     return
   }
 

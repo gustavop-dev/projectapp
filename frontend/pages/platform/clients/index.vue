@@ -69,8 +69,16 @@
             <tr v-for="client in filteredClients" :key="client.user_id" class="border-b border-esmerald/[0.04] last:border-b-0 dark:border-white/[0.03]">
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="flex h-9 w-9 items-center justify-center rounded-full bg-esmerald-light text-xs font-semibold text-esmerald dark:bg-white/10 dark:text-white">
-                    {{ initials(client) }}
+                  <div class="h-9 w-9 shrink-0 overflow-hidden rounded-full">
+                    <img
+                      v-if="client.avatar_display_url"
+                      :src="client.avatar_display_url"
+                      alt="Avatar"
+                      class="h-full w-full object-cover"
+                    />
+                    <div v-else class="flex h-full w-full items-center justify-center bg-esmerald-light text-xs font-semibold text-esmerald dark:bg-white/10 dark:text-white">
+                      {{ initials(client) }}
+                    </div>
                   </div>
                   <div>
                     <p class="font-medium text-esmerald dark:text-white">{{ client.first_name }} {{ client.last_name }}</p>

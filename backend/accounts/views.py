@@ -1,7 +1,10 @@
 import logging
 
+import requests as http_requests
+
 logger = logging.getLogger(__name__)
 
+from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -14,8 +17,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from accounts.models import UserProfile
 from accounts.permissions import IsAdminRole
 from accounts.serializers import (
+    AdminListSerializer,
     ClientListSerializer,
     CompleteProfileSerializer,
+    CreateAdminSerializer,
     CreateClientSerializer,
     LoginSerializer,
     ResendCodeSerializer,
@@ -24,7 +29,7 @@ from accounts.serializers import (
     UserProfileSerializer,
     VerifyOnboardingSerializer,
 )
-from accounts.services.onboarding import create_client, resend_invitation
+from accounts.services.onboarding import create_admin, create_client, resend_invitation
 from accounts.services.tokens import get_tokens_for_user, get_verification_token_for_user
 from accounts.services.verification import create_and_send_otp, validate_otp
 
@@ -46,6 +51,29 @@ def login_view(request):
     """
     serializer = LoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
+
+    # reCAPTCHA validation
+    recaptcha_token = request.data.get('recaptcha_token', '')
+    recaptcha_secret = getattr(settings, 'RECAPTCHA_SECRET_KEY', '')
+    if recaptcha_secret:
+        if not recaptcha_token:
+            return Response(
+                {'detail': 'Completa el captcha para continuar.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            recaptcha_response = http_requests.post(
+                'https://www.google.com/recaptcha/api/siteverify',
+                data={'secret': recaptcha_secret, 'response': recaptcha_token},
+                timeout=5,
+            )
+            if not recaptcha_response.json().get('success'):
+                return Response(
+                    {'detail': 'Verificación de captcha fallida. Intenta de nuevo.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        except http_requests.RequestException:
+            logger.warning('reCAPTCHA verification request failed, allowing login')
 
     email = serializer.validated_data['email'].lower().strip()
     password = serializer.validated_data['password']
@@ -221,10 +249,19 @@ def me_view(request):
     user.save(update_fields=['first_name', 'last_name'])
 
     profile_fields = ['updated_at']
-    for field in ('company_name', 'phone', 'cedula', 'date_of_birth', 'gender', 'education_level'):
+    for field in ('company_name', 'phone', 'cedula', 'date_of_birth', 'gender', 'education_level', 'theme_color', 'cover_image'):
         if field in data:
             setattr(profile, field, data[field])
             profile_fields.append(field)
+
+    if 'avatar' in data and data['avatar'] is not None:
+        profile.avatar = data['avatar']
+        profile_fields.append('avatar')
+
+    if 'custom_cover_image' in data and data['custom_cover_image'] is not None:
+        profile.custom_cover_image = data['custom_cover_image']
+        profile_fields.append('custom_cover_image')
+
     profile.save(update_fields=profile_fields)
 
     return Response(UserProfileSerializer(profile, context={'request': request}).data)
@@ -379,6 +416,160 @@ def client_resend_invite_view(request, user_id):
     except UserProfile.DoesNotExist:
         return Response(
             {'detail': 'Cliente no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    resend_invitation(profile.user)
+    return Response({'detail': 'Invitación reenviada.'})
+
+
+# ==========================================================================
+# Super admin — Platform admin management (session auth + is_staff)
+# ==========================================================================
+
+
+def _require_staff(request):
+    """Check that the request user is a Django staff member (super admin)."""
+    if not request.user.is_staff:
+        return Response(
+            {'detail': 'No autorizado.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    return None
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def admin_list_view(request):
+    """List all platform admins or create a new one. Requires Django staff."""
+    denied = _require_staff(request)
+    if denied:
+        return denied
+
+    if request.method == 'GET':
+        qs = UserProfile.objects.filter(role=UserProfile.ROLE_ADMIN).select_related('user')
+
+        filter_param = request.query_params.get('filter', 'all')
+        if filter_param == 'active':
+            qs = qs.filter(is_onboarded=True, user__is_active=True)
+        elif filter_param == 'pending':
+            qs = qs.filter(is_onboarded=False, user__is_active=True)
+        elif filter_param == 'inactive':
+            qs = qs.filter(user__is_active=False)
+
+        serializer = AdminListSerializer(qs, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    serializer = CreateAdminSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    try:
+        user, _ = create_admin(
+            email=serializer.validated_data['email'],
+            first_name=serializer.validated_data['first_name'],
+            last_name=serializer.validated_data['last_name'],
+            created_by=request.user,
+        )
+    except ValueError as e:
+        return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response(
+        AdminListSerializer(user.profile, context={'request': request}).data,
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def admin_detail_view(request, user_id):
+    """Get, update, or deactivate a platform admin. Requires Django staff."""
+    denied = _require_staff(request)
+    if denied:
+        return denied
+
+    try:
+        profile = (
+            UserProfile.objects
+            .filter(role=UserProfile.ROLE_ADMIN, user_id=user_id)
+            .select_related('user')
+            .get()
+        )
+    except UserProfile.DoesNotExist:
+        return Response(
+            {'detail': 'Administrador no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if request.method == 'GET':
+        return Response(AdminListSerializer(profile, context={'request': request}).data)
+
+    if request.method == 'DELETE':
+        active_admin_count = (
+            UserProfile.objects
+            .filter(role=UserProfile.ROLE_ADMIN, user__is_active=True)
+            .count()
+        )
+        if active_admin_count <= 1:
+            return Response(
+                {'detail': 'No se puede desactivar al último administrador activo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = profile.user
+        user.is_active = False
+        user.save(update_fields=['is_active'])
+        return Response({'detail': 'Administrador desactivado.'})
+
+    # PATCH
+    data = request.data
+    user = profile.user
+    changed_fields = []
+
+    if 'first_name' in data:
+        user.first_name = data['first_name']
+        changed_fields.append('first_name')
+    if 'last_name' in data:
+        user.last_name = data['last_name']
+        changed_fields.append('last_name')
+    if 'is_active' in data:
+        if not data['is_active']:
+            active_admin_count = (
+                UserProfile.objects
+                .filter(role=UserProfile.ROLE_ADMIN, user__is_active=True)
+                .count()
+            )
+            if active_admin_count <= 1:
+                return Response(
+                    {'detail': 'No se puede desactivar al último administrador activo.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        user.is_active = data['is_active']
+        changed_fields.append('is_active')
+
+    if changed_fields:
+        user.save(update_fields=changed_fields)
+
+    return Response(AdminListSerializer(profile, context={'request': request}).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def admin_resend_invite_view(request, user_id):
+    """Resend admin invitation email with a new temp password. Requires Django staff."""
+    denied = _require_staff(request)
+    if denied:
+        return denied
+
+    try:
+        profile = (
+            UserProfile.objects
+            .filter(role=UserProfile.ROLE_ADMIN, user_id=user_id)
+            .select_related('user')
+            .get()
+        )
+    except UserProfile.DoesNotExist:
+        return Response(
+            {'detail': 'Administrador no encontrado.'},
             status=status.HTTP_404_NOT_FOUND,
         )
 
@@ -2323,3 +2514,51 @@ def wompi_webhook_view(request):
         payment.save(update_fields=['wompi_transaction_id'])
 
     return Response({'status': 'ok'})
+
+
+# ==========================================================================
+# Cover Gallery
+# ==========================================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def cover_gallery_view(request):
+    """List cover gallery categories and images."""
+    import os
+    from django.conf import settings
+
+    gallery_dir = os.path.join(settings.STATICFILES_DIRS[0], 'cover_gallery')
+    if not os.path.isdir(gallery_dir):
+        return Response([])
+
+    categories = []
+    for category_name in sorted(os.listdir(gallery_dir)):
+        category_path = os.path.join(gallery_dir, category_name)
+        if not os.path.isdir(category_path):
+            continue
+
+        images = []
+        for filename in sorted(os.listdir(category_path)):
+            if not filename.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')):
+                continue
+            # Build human-readable name from filename
+            name_part = filename.rsplit('.', 1)[0]
+            # Remove imgi_XX_ prefix
+            parts = name_part.split('_', 2)
+            display_name = parts[2] if len(parts) > 2 else name_part
+            display_name = display_name.replace('_', ' ').title()
+
+            images.append({
+                'filename': filename,
+                'path': f'{category_name}/{filename}',
+                'name': display_name,
+                'url': f'{settings.STATIC_URL}cover_gallery/{category_name}/{filename}',
+            })
+
+        if images:
+            categories.append({
+                'name': category_name,
+                'images': images,
+            })
+
+    return Response(categories)

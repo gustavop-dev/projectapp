@@ -1,6 +1,9 @@
 from django.urls import path
 
 from accounts.views import (
+    admin_detail_view,
+    admin_list_view,
+    admin_resend_invite_view,
     bug_report_all_view,
     bug_report_comment_view,
     bug_report_detail_view,
@@ -23,6 +26,7 @@ from accounts.views import (
     project_subscription_view,
     proposal_list_for_selector_view,
     subscription_list_view,
+    cover_gallery_view,
     wompi_webhook_view,
     change_request_comment_view,
     change_request_convert_view,
@@ -57,6 +61,11 @@ urlpatterns = [
     # Profile
     path('me/', me_view, name='platform-me'),
     path('me/complete-profile/', complete_profile_view, name='platform-complete-profile'),
+
+    # Super admin — platform admin management
+    path('admins/', admin_list_view, name='panel-admin-list'),
+    path('admins/<int:user_id>/', admin_detail_view, name='panel-admin-detail'),
+    path('admins/<int:user_id>/resend-invite/', admin_resend_invite_view, name='panel-admin-resend-invite'),
 
     # Admin — client management
     path('clients/', client_list_view, name='platform-client-list'),
@@ -111,4 +120,7 @@ urlpatterns = [
     path('projects/<int:project_id>/payments/<int:payment_id>/card-pay/', payment_card_pay_view, name='platform-payment-card-pay'),
     path('projects/<int:project_id>/payments/<int:payment_id>/verify/', payment_verify_transaction_view, name='platform-payment-verify'),
     path('webhooks/wompi/', wompi_webhook_view, name='platform-wompi-webhook'),
+
+    # Cover gallery
+    path('cover-gallery/', cover_gallery_view, name='platform-cover-gallery'),
 ]

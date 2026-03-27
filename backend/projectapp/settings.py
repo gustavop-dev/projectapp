@@ -215,6 +215,12 @@ WOMPI_INTEGRITY_SECRET = config('WOMPI_INTEGRITY_SECRET', default='')
 WOMPI_API_URL = config('WOMPI_API_URL', default='https://sandbox.wompi.co/v1')
 
 # ==============================================================================
+# reCAPTCHA v2
+# ==============================================================================
+
+RECAPTCHA_SECRET_KEY = config('RECAPTCHA_SECRET_KEY', default='')
+
+# ==============================================================================
 # HUEY — task queue
 # ==============================================================================
 

@@ -62,7 +62,40 @@
       >
         <!-- Icon -->
         <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" :class="typeIconBg(notif.type)">
-          <span class="text-base">{{ typeIcon(notif.type) }}</span>
+          <svg class="h-5 w-5" :class="typeIconColor(notif.type)" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <template v-if="notif.type === 'bug_reported' || notif.type === 'bug_status_changed'">
+              <path d="M8 2l1.88 1.88M14.12 3.88L16 2M9 7.13v-1a3.003 3.003 0 116 0v1" />
+              <path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 014-4h4a4 4 0 014 4v3c0 3.3-2.7 6-6 6z" />
+              <path d="M12 20v-9M6.53 9C4.6 8.8 3 7.1 3 5M6 13H2M6 17l-4 1M17.47 9c1.93-.2 3.53-1.9 3.53-4M18 13h4M18 17l4 1" />
+            </template>
+            <template v-else-if="notif.type === 'cr_created' || notif.type === 'cr_status_changed'">
+              <path d="M1 4v6h6" />
+              <path d="M23 20v-6h-6" />
+              <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
+            </template>
+            <template v-else-if="notif.type === 'cr_converted' || notif.type === 'requirement_approved'">
+              <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </template>
+            <template v-else-if="notif.type === 'requirement_moved'">
+              <rect x="4" y="3" width="4" height="18" rx="1" />
+              <rect x="10" y="3" width="4" height="12" rx="1" />
+              <rect x="16" y="3" width="4" height="15" rx="1" />
+            </template>
+            <template v-else-if="notif.type === 'deliverable_uploaded' || notif.type === 'deliverable_new_version'">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <polyline points="14,2 14,8 20,8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </template>
+            <template v-else-if="notif.type === 'comment_added'">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+            </template>
+            <template v-else>
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 01-3.46 0" />
+            </template>
+          </svg>
         </div>
 
         <!-- Content -->
@@ -108,15 +141,15 @@ const filteredNotifications = computed(() => {
   return notifStore.notifications
 })
 
-function typeIcon(type) {
+function typeIconColor(type) {
   const map = {
-    bug_reported: '🐛', bug_status_changed: '🐛',
-    cr_created: '🔄', cr_status_changed: '🔄', cr_converted: '✅',
-    requirement_moved: '📋', requirement_approved: '✅',
-    deliverable_uploaded: '📂', deliverable_new_version: '📂',
-    comment_added: '💬', general: '🔔',
+    bug_reported: 'text-red-500', bug_status_changed: 'text-red-500',
+    cr_created: 'text-amber-500', cr_status_changed: 'text-amber-500', cr_converted: 'text-emerald-500',
+    requirement_moved: 'text-blue-500', requirement_approved: 'text-emerald-500',
+    deliverable_uploaded: 'text-purple-500', deliverable_new_version: 'text-purple-500',
+    comment_added: 'text-blue-500', general: 'text-gray-500',
   }
-  return map[type] || '🔔'
+  return map[type] || 'text-gray-500'
 }
 
 function typeIconBg(type) {

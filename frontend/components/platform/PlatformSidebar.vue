@@ -13,14 +13,17 @@
         isCollapsed ? 'justify-center px-2' : 'gap-3 px-5',
       ]"
     >
-      <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-esmerald text-xs font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
-        PA
-      </div>
       <span
         v-if="!isCollapsed"
+        class="text-xl font-bold tracking-tight text-esmerald dark:text-white"
+      >
+        Project<span class="text-esmerald dark:text-lemon">App.</span>
+      </span>
+      <span
+        v-else
         class="text-base font-bold tracking-tight text-esmerald dark:text-white"
       >
-        Project<span class="text-green-light dark:text-lemon">App.</span>
+        P<span class="text-esmerald dark:text-lemon">A</span>
       </span>
     </div>
 
@@ -62,6 +65,41 @@
         />
       </div>
 
+      <!-- Configuration section -->
+      <div class="mb-5">
+        <p
+          v-if="!isCollapsed"
+          class="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-green-light/60"
+        >
+          Cuenta
+        </p>
+        <SidebarItem
+          v-for="item in accountItems"
+          :key="item.href"
+          :item="item"
+          :is-collapsed="isCollapsed"
+          :is-active="isActive(item.href)"
+          :disabled="item.disabled"
+        />
+        <!-- Personaliza button (opens theme picker, not a route) -->
+        <button
+          type="button"
+          :class="[
+            'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
+            isCollapsed ? 'justify-center' : '',
+            'text-green-light hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white',
+          ]"
+          :title="isCollapsed ? 'Personaliza' : undefined"
+          @click="showThemePicker = true"
+        >
+          <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="13.5" cy="6.5" r="2.5" /><circle cx="17.5" cy="10.5" r="2.5" /><circle cx="8.5" cy="7.5" r="2.5" /><circle cx="6.5" cy="12.5" r="2.5" />
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+          </svg>
+          <span v-if="!isCollapsed" class="truncate">Personaliza</span>
+        </button>
+      </div>
+
       <!-- Admin section -->
       <div v-if="authStore.isAdmin" class="mb-5">
         <p
@@ -89,8 +127,16 @@
           isCollapsed ? 'justify-center p-2' : 'gap-3 p-2',
         ]"
       >
-        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-esmerald text-xs font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
-          {{ authStore.userInitials }}
+        <div class="h-9 w-9 shrink-0 overflow-hidden rounded-full">
+          <img
+            v-if="authStore.user?.avatar_display_url"
+            :src="authStore.user.avatar_display_url"
+            alt="Avatar"
+            class="h-full w-full object-cover"
+          />
+          <div v-else class="flex h-full w-full items-center justify-center bg-esmerald text-xs font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
+            {{ authStore.userInitials }}
+          </div>
         </div>
         <div v-if="!isCollapsed" class="min-w-0 flex-1">
           <p class="truncate text-sm font-medium text-esmerald dark:text-white">{{ authStore.displayName }}</p>
@@ -105,22 +151,20 @@
           isCollapsed ? 'flex-col items-center gap-1' : 'items-center gap-1',
         ]"
       >
-        <NuxtLink
-          :to="localePath('/platform/profile')"
-          :class="sidebarActionClass"
-          :title="isCollapsed ? 'Perfil' : undefined"
-        >
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-        </NuxtLink>
-
+        <!-- Color theme -->
         <button
           type="button"
           :class="sidebarActionClass"
-          :title="isCollapsed ? 'Tema' : undefined"
-          @click="toggleTheme"
+          :title="isCollapsed ? 'Personalizar' : undefined"
+          @click="showThemePicker = true"
         >
-          <svg v-if="isDark" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-          <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="13.5" cy="6.5" r="2.5" />
+            <circle cx="17.5" cy="10.5" r="2.5" />
+            <circle cx="8.5" cy="7.5" r="2.5" />
+            <circle cx="6.5" cy="12.5" r="2.5" />
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+          </svg>
         </button>
 
         <button
@@ -170,6 +214,7 @@ const props = defineProps({
 
 const toggleSidebar = inject('toggleSidebar')
 const toggleTheme = inject('toggleTheme')
+const showThemePicker = inject('showThemePicker')
 
 const route = useRoute()
 const authStore = usePlatformAuthStore()
@@ -225,13 +270,38 @@ const projectItems = computed(() => {
   ]
 })
 
+const accountItems = computed(() => [
+  { label: 'Configuración', href: lp('/platform/profile'), icon: 'settings' },
+])
+
 const adminItems = computed(() => [
   { label: 'Clientes', href: lp('/platform/clients'), icon: 'users' },
 ])
 
+const projectSubModules = {
+  board: '/platform/board',
+  changes: '/platform/changes',
+  bugs: '/platform/bugs',
+  deliverables: '/platform/deliverables',
+  payments: '/platform/payments',
+}
+
 function isActive(href) {
   const cleanPath = route.path.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
   const cleanHref = href.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
+
+  // Check if we're on a project sub-route (e.g. /platform/projects/5/payments)
+  const projectSubMatch = cleanPath.match(/^\/platform\/projects\/\d+\/(\w+)/)
+  if (projectSubMatch) {
+    const subSection = projectSubMatch[1]
+    const mappedModule = projectSubModules[subSection]
+    if (mappedModule) {
+      // Only highlight the specific module, NOT "Proyectos"
+      return cleanHref === mappedModule
+    }
+  }
+
+  // Direct match or child route match
   return cleanPath === cleanHref || cleanPath.startsWith(`${cleanHref}/`)
 }
 </script>

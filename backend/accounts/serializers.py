@@ -40,6 +40,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'role', 'company_name', 'phone', 'cedula',
             'date_of_birth', 'gender', 'education_level',
             'avatar_display_url', 'is_onboarded', 'profile_completed',
+            'theme_color', 'cover_image', 'custom_cover_image',
             'created_at', 'updated_at',
         ]
         read_only_fields = [
@@ -68,6 +69,10 @@ class UpdateProfileSerializer(serializers.Serializer):
     education_level = serializers.ChoiceField(
         choices=UserProfile.EDUCATION_CHOICES, required=False, allow_blank=True,
     )
+    avatar = serializers.ImageField(required=False, allow_null=True)
+    theme_color = serializers.CharField(max_length=7, required=False, allow_blank=True)
+    cover_image = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    custom_cover_image = serializers.ImageField(required=False, allow_null=True)
 
 
 class CompleteProfileSerializer(serializers.Serializer):
@@ -92,6 +97,33 @@ class CompleteProfileSerializer(serializers.Serializer):
         value = value.strip()
         if not value:
             raise serializers.ValidationError('El teléfono es obligatorio.')
+        return value
+
+
+class AdminListSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(source='user.email')
+    first_name = serializers.CharField(source='user.first_name')
+    last_name = serializers.CharField(source='user.last_name')
+    user_id = serializers.IntegerField(source='user.id')
+    is_active = serializers.BooleanField(source='user.is_active')
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            'user_id', 'email', 'first_name', 'last_name',
+            'is_onboarded', 'is_active', 'created_at',
+        ]
+
+
+class CreateAdminSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+
+    def validate_email(self, value):
+        value = value.lower().strip()
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError('Ya existe un usuario con este email.')
         return value
 
 
@@ -777,7 +809,13 @@ class HostingSubscriptionListSerializer(serializers.ModelSerializer):
         return obj.project.name
 
     def get_pending_payments(self, obj):
-        return obj.payments.filter(status__in=['pending', 'overdue']).count()
+        from django.utils import timezone
+        from datetime import timedelta
+        cutoff = timezone.now().date() + timedelta(days=7)
+        return obj.payments.filter(
+            status__in=['pending', 'overdue', 'failed'],
+            due_date__lte=cutoff,
+        ).count()
 
 
 class UpdateSubscriptionSerializer(serializers.Serializer):

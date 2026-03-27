@@ -23,8 +23,16 @@
       <section class="space-y-6" data-enter>
         <article class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
           <div class="flex items-center gap-4">
-            <div class="flex h-14 w-14 items-center justify-center rounded-full bg-esmerald text-base font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
-              {{ clientInitials }}
+            <div class="h-14 w-14 shrink-0 overflow-hidden rounded-full">
+              <img
+                v-if="platformClientsStore.currentClient?.avatar_display_url"
+                :src="platformClientsStore.currentClient.avatar_display_url"
+                alt="Avatar"
+                class="h-full w-full object-cover"
+              />
+              <div v-else class="flex h-full w-full items-center justify-center bg-esmerald text-base font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
+                {{ clientInitials }}
+              </div>
             </div>
             <div>
               <h2 class="text-lg font-medium text-esmerald dark:text-white">{{ form.first_name }} {{ form.last_name }}</h2>

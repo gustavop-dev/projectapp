@@ -88,6 +88,7 @@ export default defineNuxtConfig({
   // CSS
   css: [
     '~/assets/styles/main.css',
+    '~/assets/styles/platform-cover.css',
   ],
 
   // Tailwind config
@@ -167,6 +168,16 @@ export default defineNuxtConfig({
         },
       ],
     },
+  },
+
+  runtimeConfig: {
+    public: {
+      recaptchaSiteKey: process.env.NUXT_PUBLIC_RECAPTCHA_SITE_KEY || '',
+    },
+  },
+
+  experimental: {
+    appManifest: false,
   },
 
   compatibilityDate: '2024-11-01',
