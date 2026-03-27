@@ -489,6 +489,8 @@ DEFAULT_SECTIONS = [
                         {'icon': '📥', 'name': 'Exportación de reportes', 'description': 'Descarga reportes en CSV para compartir con tu equipo o stakeholders sin necesidad de acceder al sistema.'},
                     ],
                 },
+            ],
+            'additionalModules': [
                 {
                     'id': 'pwa_module',
                     'icon': '📱',
@@ -779,7 +781,6 @@ DEFAULT_SECTIONS = [
                     ],
                 },
             ],
-            'additionalModules': [],
         },
     },
     {
@@ -1499,6 +1500,8 @@ DEFAULT_SECTIONS_EN = [
                         {'icon': '📥', 'name': 'Report Export', 'description': 'Download reports in CSV to share with your team or stakeholders without needing to access the system.'},
                     ],
                 },
+            ],
+            'additionalModules': [
                 {
                     'id': 'pwa_module',
                     'icon': '📱',
@@ -1787,7 +1790,6 @@ DEFAULT_SECTIONS_EN = [
                     ],
                 },
             ],
-            'additionalModules': [],
         },
     },
     {
