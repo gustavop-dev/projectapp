@@ -463,7 +463,7 @@ def create_proposal_from_json(request):
         )
 
     # Detect unrecognized section keys (silent bug prevention)
-    known_keys = set(SECTION_KEY_MAP.keys()) | {'_meta'}
+    known_keys = set(SECTION_KEY_MAP.keys()) | {'_meta', '_seller_prompt'}
     provided_keys = set(sections_data.keys())
     unmapped_keys = sorted(provided_keys - known_keys)
 
@@ -709,7 +709,7 @@ def update_proposal_from_json(request, proposal_id):
     )
 
     # Detect unrecognized section keys
-    known_keys = set(SECTION_KEY_MAP.keys()) | {'_meta'}
+    known_keys = set(SECTION_KEY_MAP.keys()) | {'_meta', '_seller_prompt'}
     provided_keys = set(sections_data.keys())
     unmapped_keys = sorted(provided_keys - known_keys)
 

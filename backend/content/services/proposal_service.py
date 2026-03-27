@@ -325,7 +325,7 @@ DEFAULT_SECTIONS = [
                     'title': 'Vistas',
                     'is_visible': True,
                     'selected': True,
-                    'price_percent': 17,
+                    'price_percent': 0,
                     'description': (
                         'Cada vista es una pantalla o sección del sitio. Su propósito es guiar al visitante '
                         'para conocer la propuesta de valor y facilitar el contacto o la acción deseada.'
@@ -352,7 +352,7 @@ DEFAULT_SECTIONS = [
                     'title': 'Componentes',
                     'is_visible': True,
                     'selected': True,
-                    'price_percent': 17,
+                    'price_percent': 0,
                     'description': (
                         'Los componentes son elementos visuales o funcionales que se reutilizan en varias '
                         'secciones del sitio. Esto mantiene una experiencia coherente y optimiza el desarrollo.'
@@ -371,7 +371,7 @@ DEFAULT_SECTIONS = [
                     'title': 'Funcionalidades Específicas',
                     'is_visible': True,
                     'selected': True,
-                    'price_percent': 17,
+                    'price_percent': 0,
                     'description': (
                         'Las funcionalidades son acciones o comportamientos interactivos del sitio web. '
                         'Le dan vida y dinamismo a la página, permitiendo que funcione de forma práctica y útil.'
@@ -391,7 +391,7 @@ DEFAULT_SECTIONS = [
                     'title': 'Módulo Administrativo',
                     'is_visible': True,
                     'selected': True,
-                    'price_percent': 17,
+                    'price_percent': 0,
                     'description': (
                         'El módulo administrativo permite gestionar el contenido y la operación del sitio '
                         'sin depender de desarrollo técnico.'
@@ -410,7 +410,7 @@ DEFAULT_SECTIONS = [
                     'title': 'Módulo de Analítica',
                     'is_visible': True,
                     'selected': True,
-                    'price_percent': 16,
+                    'price_percent': 0,
                     'description': (
                         'Dashboard de reportes inteligentes y métricas en tiempo real para entender '
                         'el comportamiento de los visitantes y tomar decisiones basadas en datos.'
@@ -476,7 +476,7 @@ DEFAULT_SECTIONS = [
                     'title': 'Dashboard de KPIs y Métricas',
                     'is_visible': True,
                     'selected': True,
-                    'price_percent': 16,
+                    'price_percent': 0,
                     'description': (
                         'Panel de control complementario al módulo de analítica, con indicadores '
                         'clave de rendimiento en tiempo real para monitorear la salud de tu '
@@ -1334,7 +1334,7 @@ DEFAULT_SECTIONS_EN = [
                     'title': 'Views',
                     'is_visible': True,
                     'selected': True,
-                    'price_percent': 17,
+                    'price_percent': 0,
                     'description': (
                         'Each view is a screen or section of the website. Its purpose is to guide the visitor '
                         'to understand the value proposition and facilitate contact or the desired action.'
@@ -1361,7 +1361,7 @@ DEFAULT_SECTIONS_EN = [
                     'title': 'Components',
                     'is_visible': True,
                     'selected': True,
-                    'price_percent': 17,
+                    'price_percent': 0,
                     'description': (
                         'Components are visual or functional elements reused across multiple sections '
                         'of the site. This ensures a coherent experience and optimizes development.'
@@ -1380,7 +1380,7 @@ DEFAULT_SECTIONS_EN = [
                     'title': 'Specific Features',
                     'is_visible': True,
                     'selected': True,
-                    'price_percent': 17,
+                    'price_percent': 0,
                     'description': (
                         'Features are interactive actions or behaviors of the website. '
                         'They bring life and dynamism, making the page practical and useful.'
@@ -1400,7 +1400,7 @@ DEFAULT_SECTIONS_EN = [
                     'title': 'Admin Module',
                     'is_visible': True,
                     'selected': True,
-                    'price_percent': 17,
+                    'price_percent': 0,
                     'description': (
                         'The admin module allows managing the site content and operations '
                         'without depending on technical development.'
@@ -1419,7 +1419,7 @@ DEFAULT_SECTIONS_EN = [
                     'title': 'Analytics Module',
                     'is_visible': True,
                     'selected': True,
-                    'price_percent': 16,
+                    'price_percent': 0,
                     'description': (
                         'Smart reporting dashboard with real-time metrics to understand '
                         'visitor behavior and make data-driven decisions.'
@@ -1486,7 +1486,7 @@ DEFAULT_SECTIONS_EN = [
                     'title': 'KPI Dashboard & Metrics',
                     'is_visible': True,
                     'selected': True,
-                    'price_percent': 16,
+                    'price_percent': 0,
                     'description': (
                         'Control panel complementary to the analytics module, with real-time '
                         'key performance indicators to monitor the health of your business '

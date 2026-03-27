@@ -30,7 +30,7 @@
                 <span class="text-xl">{{ group.icon || '🧩' }}</span>
               </div>
               <h3 class="text-lg font-medium text-esmerald">{{ group.title }}</h3>
-              <span v-if="groupPrice(group)" class="ml-auto text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+              <span v-if="groupPrice(group) && group.is_calculator_module" class="ml-auto text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
                 💰 {{ group.is_calculator_module ? '+' : '' }}{{ formatPrice(groupPrice(group)) }}
               </span>
               <span v-if="isGroupDeselected(group)" class="ml-auto text-[10px] font-medium text-gray-400 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full whitespace-nowrap">
