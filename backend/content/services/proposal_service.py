@@ -720,7 +720,7 @@ DEFAULT_SECTIONS = [
                         'Genera ingresos anticipados y captura nuevos clientes a través '
                         'de los compradores existentes.'
                     ),
-                    'is_calculator_module': True,
+                    'is_calculator_module': False,
                     'default_selected': False,
                     'selected': False,
                     'price_percent': 20,
@@ -1730,7 +1730,7 @@ DEFAULT_SECTIONS_EN = [
                         'Generate upfront revenue and capture new customers through '
                         'existing buyers.'
                     ),
-                    'is_calculator_module': True,
+                    'is_calculator_module': False,
                     'default_selected': False,
                     'selected': False,
                     'price_percent': 20,
