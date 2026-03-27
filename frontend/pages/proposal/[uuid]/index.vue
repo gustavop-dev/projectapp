@@ -654,6 +654,7 @@ function getSectionProps(section) {
       whatsappLink: extractedWhatsappLink.value,
       paymentOptions: recomputePaymentOptions(rawPaymentOptions, investContent.totalInvestment, customizedTotal.value),
       customizedTotal: customizedTotal.value,
+      selectedModuleIds: [...selectedCalculatorModuleIds.value],
     };
   }
 
@@ -998,12 +999,17 @@ const onAnimationComplete = () => {
       }
     }
   } catch (_e) { /* ignore */ }
-  // Initialize selection: all groups with default_selected=true are selected by default
-  const defaultSelectedIds = allGroupCalculatorItems.value
-    .filter(m => m.default_selected)
-    .map(m => m.id);
-  if (defaultSelectedIds.length) {
-    selectedCalculatorModuleIds.value = new Set(defaultSelectedIds);
+  // Initialize selection: prefer persisted backend selections, then default_selected
+  const persistedIds = proposal.value?.selected_modules;
+  if (Array.isArray(persistedIds) && persistedIds.length) {
+    selectedCalculatorModuleIds.value = new Set(persistedIds);
+  } else {
+    const defaultSelectedIds = allGroupCalculatorItems.value
+      .filter(m => m.default_selected)
+      .map(m => m.id);
+    if (defaultSelectedIds.length) {
+      selectedCalculatorModuleIds.value = new Set(defaultSelectedIds);
+    }
   }
   showContent.value = true;
   nextTick(() => applyProposalTheme(false));

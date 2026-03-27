@@ -149,6 +149,12 @@ class BusinessProposal(models.Model):
         help_text='Timestamp of the last automated email sent to the client. Used for 24h cooldown.',
     )
 
+    # Calculator selections (persisted from client browser)
+    selected_modules = models.JSONField(
+        default=list, blank=True,
+        help_text='List of module IDs selected by the client in the calculator (e.g. ["module-payments", "module-reservations"]).',
+    )
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

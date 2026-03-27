@@ -113,7 +113,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
             'sections', 'requirement_groups', 'change_logs',
             'days_remaining', 'is_expired', 'public_url',
-            'discounted_investment',
+            'discounted_investment', 'selected_modules',
         )
 
     def get_sections(self, obj):

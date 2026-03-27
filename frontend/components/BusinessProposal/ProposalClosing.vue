@@ -146,7 +146,7 @@
         <!-- PDF download -->
         <a
           v-if="proposal?.uuid"
-          :href="`/api/proposals/${proposal.uuid}/pdf/`"
+          :href="pdfUrl"
           :download="pdfFilename"
           target="_blank"
           class="inline-flex items-center gap-2 px-6 py-3 bg-esmerald text-lemon rounded-xl font-bold text-sm hover:bg-esmerald/90 transition-colors shadow-sm mb-6"
@@ -385,6 +385,7 @@ const props = defineProps({
   whatsappLink: { type: String, default: '' },
   paymentOptions: { type: Array, default: () => [] },
   customizedTotal: { type: Number, default: null },
+  selectedModuleIds: { type: Array, default: () => [] },
 });
 
 // Use customizedTotal from calculator when available, otherwise fall back to proposal.total_investment
@@ -584,6 +585,14 @@ onMounted(() => {
 });
 
 const proposalStore = useProposalStore();
+
+const pdfUrl = computed(() => {
+  const base = `/api/proposals/${props.proposal?.uuid}/pdf/`;
+  if (props.selectedModuleIds.length) {
+    return `${base}?selected_modules=${encodeURIComponent(props.selectedModuleIds.join(','))}`;
+  }
+  return base;
+});
 
 const pdfFilename = computed(() => {
   const title = props.proposal?.title || props.proposal?.client_name || 'Propuesta';

@@ -281,6 +281,21 @@ def _safe(data, key, default=''):
     return val
 
 
+def _filter_calculator_groups(groups, sel_ids):
+    """Filter out calculator-module groups that were not selected.
+
+    Non-calculator groups always pass through. Calculator modules
+    (``is_calculator_module=True``) are only kept when their ID appears
+    in *sel_ids*.  When *sel_ids* is ``None`` (no selection provided),
+    **all** calculator modules are excluded.
+    """
+    return [
+        g for g in groups
+        if not _safe(g, 'is_calculator_module')
+        or (sel_ids is not None and f"module-{_safe(g, 'id')}" in sel_ids)
+    ]
+
+
 # ─────────────────────────────────────────────────────────────
 # Auto-pagination helpers
 # ─────────────────────────────────────────────────────────────
@@ -901,12 +916,7 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
 
     # Filter out calculator-module groups not selected
     sel_ids = ps.get('selected_modules') if ps else None
-    if sel_ids is not None:
-        all_groups = [
-            g for g in all_groups
-            if not _safe(g, 'is_calculator_module')
-            or f"module-{_safe(g, 'id')}" in sel_ids
-        ]
+    all_groups = _filter_calculator_groups(all_groups, sel_ids)
 
     # Overview cards (2-column grid) — paginated with dynamic height
     col_w = (CONTENT_W - 16) / 2
@@ -2251,12 +2261,7 @@ class ProposalPdfService:
                     if stype == 'functional_requirements' and func_groups:
                         # Filter out hidden groups and calculator-module groups not selected
                         func_groups = [g for g in func_groups if _safe(g, 'is_visible', True) is not False]
-                        if sel_ids is not None:
-                            func_groups = [
-                                g for g in func_groups
-                                if not _safe(g, 'is_calculator_module')
-                                or f"module-{_safe(g, 'id')}" in sel_ids
-                            ]
+                        func_groups = _filter_calculator_groups(func_groups, sel_ids)
                         for gi, grp in enumerate(func_groups):
                             grp_paste = (
                                 _safe(grp, '_editMode') == 'paste'

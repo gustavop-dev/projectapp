@@ -215,6 +215,9 @@ def download_proposal_pdf(request, proposal_uuid):
         if selected_modules_param
         else None
     )
+    # Fallback to persisted selections from the model
+    if selected_modules is None and proposal.selected_modules:
+        selected_modules = proposal.selected_modules
 
     from content.services.proposal_pdf_service import ProposalPdfService
     pdf_bytes = ProposalPdfService.generate(
@@ -1782,6 +1785,11 @@ def track_calculator_interaction(request, proposal_uuid):
             'elapsed_seconds': elapsed_seconds,
         }),
     )
+
+    # Persist confirmed selections so PDF can use them as fallback
+    if event == 'confirmed' and isinstance(selected, list):
+        proposal.selected_modules = selected
+        proposal.save(update_fields=['selected_modules', 'updated_at'])
 
     return Response({'status': 'ok'}, status=status.HTTP_200_OK)
 
