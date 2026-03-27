@@ -229,9 +229,12 @@ def download_proposal_pdf(request, proposal_uuid):
 
     from django.http import HttpResponse
     from django.utils import timezone as _tz
+    import re as _re
     _created = proposal.created_at or _tz.now()
     date_suffix = _created.strftime('%Y-%m-%d')
-    filename = f'Propuesta_{proposal.client_name}_{date_suffix}.pdf'
+    safe_title = _re.sub(r'[^\w\s-]', '', proposal.title or proposal.client_name).strip()
+    safe_title = _re.sub(r'\s+', '_', safe_title)[:100]
+    filename = f'{safe_title}_{date_suffix}.pdf'
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response

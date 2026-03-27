@@ -147,6 +147,7 @@
         <a
           v-if="proposal?.uuid"
           :href="`/api/proposals/${proposal.uuid}/pdf/`"
+          :download="pdfFilename"
           target="_blank"
           class="inline-flex items-center gap-2 px-6 py-3 bg-esmerald text-lemon rounded-xl font-bold text-sm hover:bg-esmerald/90 transition-colors shadow-sm mb-6"
         >
@@ -583,6 +584,14 @@ onMounted(() => {
 });
 
 const proposalStore = useProposalStore();
+
+const pdfFilename = computed(() => {
+  const title = props.proposal?.title || props.proposal?.client_name || 'Propuesta';
+  const safe = title.replace(/[^\w\sáéíóúñÁÉÍÓÚÑ-]/g, '').trim().replace(/\s+/g, '_').slice(0, 100);
+  const created = props.proposal?.created_at;
+  const date = created ? new Date(created).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+  return `${safe}_${date}.pdf`;
+});
 
 const canRespond = computed(() => {
   const s = props.proposal?.status;

@@ -59,14 +59,14 @@ async function downloadPdf() {
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
 
-    const clientName = proposalStore.currentProposal?.client_name || 'Propuesta';
-    const safeName = clientName.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ ]/g, '').trim();
+    const title = proposalStore.currentProposal?.title || proposalStore.currentProposal?.client_name || 'Propuesta';
+    const safeName = title.replace(/[^\w\sáéíóúñÁÉÍÓÚÑ-]/g, '').trim().replace(/\s+/g, '_').slice(0, 100);
     const createdAt = proposalStore.currentProposal?.created_at;
     const dateSuffix = createdAt ? new Date(createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
 
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Propuesta_${safeName}_${dateSuffix}.pdf`;
+    link.download = `${safeName}_${dateSuffix}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

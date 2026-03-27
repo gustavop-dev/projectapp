@@ -908,40 +908,27 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
             or f"module-{_safe(g, 'id')}" in sel_ids
         ]
 
-    # Overview cards (2-column grid) — paginated
+    # Overview cards (2-column grid) — paginated with dynamic height
     col_w = (CONTENT_W - 16) / 2
-    chars = int(col_w / 5.0)
-    card_h = 50
-    row_step = card_h + 12  # card height + gap
+    inner_w = col_w - 20  # 10pt padding each side
+    title_chars = int(inner_w / 6.0)  # bold 10pt ≈ 6pt per char
+    desc_chars = int(inner_w / 5.0)   # regular 8pt ≈ 5pt per char
     row_y = y
     idx = 0
     while idx < len(all_groups):
-        # Page break check at the start of each row (pair of cards)
-        if ps:
-            row_y = _check_y(c, row_y, ps, need=card_h + 10)
-        elif row_y < MARGIN_B + card_h + 10:
-            break
-
-        # Draw up to 2 cards in this row
+        # Pre-compute card data and heights for this row (up to 2 cards)
+        row_cards = []
         for col in range(2):
-            if idx >= len(all_groups):
+            ci = idx + col
+            if ci >= len(all_groups):
                 break
-            grp = all_groups[idx]
-            card_x = MARGIN_L + col * (col_w + 16)
-            card_y = row_y
-
-            c.setFillColor(ESMERALD_LIGHT)
-            c.roundRect(card_x, card_y - 44, col_w, card_h, 5, fill=1, stroke=0)
-            # Left accent bar
-            c.setFillColor(LEMON)
-            c.roundRect(card_x, card_y - 44, 3, card_h, 1, fill=1, stroke=0)
-
+            grp = all_groups[ci]
             grp_title = _strip_emoji(_safe(grp, 'title'))
-            c.setFont(_font('bold'), 10)
-            c.setFillColor(ESMERALD)
-            c.drawString(card_x + 10, card_y - 10, grp_title)
-
-            # Item count pill (filtered if selected_modules active)
+            t_lines = textwrap.wrap(grp_title, width=title_chars) or [grp_title]
+            t_lines = t_lines[:2]  # max 2 title lines
+            desc = _safe(grp, 'description')
+            d_lines = textwrap.wrap(_strip_emoji(str(desc)), width=desc_chars)[:2] if desc else []
+            # Filter items (same logic as before)
             grp_items = _safe(grp, 'items', [])
             if sel_ids is not None and grp_items:
                 grp_key = (_safe(grp, 'id') or _safe(grp, 'title') or '')
@@ -959,26 +946,64 @@ def _render_functional_requirements(c, data, proposal, ps=None, y=None):
                             if fr_id in sel_ids:
                                 kept.append(it)
                 grp_items = kept
-            if grp_items:
-                tw = c.stringWidth(grp_title, _font('bold'), 10)
-                _draw_pill(c, card_x + 10 + tw + 6, card_y - 10,
-                           str(len(grp_items)),
+            # Card height: top pad + title lines + gap + desc lines + bottom pad
+            ch = 10 + (len(t_lines) * 13) + 4 + (len(d_lines) * 11) + 6
+            ch = max(ch, 44)  # minimum height
+            row_cards.append({
+                'grp': grp, 'title_lines': t_lines, 'desc_lines': d_lines,
+                'items': grp_items, 'height': ch,
+            })
+
+        if not row_cards:
+            break
+
+        row_h = max(rc['height'] for rc in row_cards)
+
+        # Page break check
+        if ps:
+            row_y = _check_y(c, row_y, ps, need=row_h + 10)
+        elif row_y < MARGIN_B + row_h + 10:
+            break
+
+        # Draw cards in this row
+        for col, rc in enumerate(row_cards):
+            card_x = MARGIN_L + col * (col_w + 16)
+            card_y = row_y
+
+            c.setFillColor(ESMERALD_LIGHT)
+            c.roundRect(card_x, card_y - row_h + 6, col_w, row_h, 5, fill=1, stroke=0)
+            # Left accent bar
+            c.setFillColor(LEMON)
+            c.roundRect(card_x, card_y - row_h + 6, 3, row_h, 1, fill=1, stroke=0)
+
+            # Title (wrapped)
+            c.setFont(_font('bold'), 10)
+            c.setFillColor(ESMERALD)
+            for ti, tl in enumerate(rc['title_lines']):
+                c.drawString(card_x + 10, card_y - 10 - (ti * 13), tl)
+
+            # Item count pill (after last title line)
+            if rc['items']:
+                last_ti = len(rc['title_lines']) - 1
+                last_line = rc['title_lines'][last_ti]
+                tw = c.stringWidth(last_line, _font('bold'), 10)
+                pill_y = card_y - 10 - (last_ti * 13)
+                _draw_pill(c, card_x + 10 + tw + 6, pill_y,
+                           str(len(rc['items'])),
                            bg_color=BONE, text_color=ESMERALD, font_size=6,
                            padding_h=5, padding_v=2)
 
-            desc = _safe(grp, 'description')
-            if desc:
+            # Description
+            if rc['desc_lines']:
                 c.setFont(_font('regular'), 8)
                 c.setFillColor(ESMERALD_80)
-                d_lines = textwrap.wrap(_strip_emoji(str(desc)), width=chars)
-                dy = card_y - 24
-                for dl in d_lines[:2]:
-                    c.drawString(card_x + 10, dy, dl)
-                    dy -= 11
+                desc_y = card_y - 10 - (len(rc['title_lines']) * 13) - 4
+                for dl in rc['desc_lines']:
+                    c.drawString(card_x + 10, desc_y, dl)
+                    desc_y -= 11
 
-            idx += 1
-
-        row_y -= row_step
+        idx += len(row_cards)
+        row_y -= (row_h + 12)
 
     # Store groups for generate() to render detail sub-sections
     if ps is not None:
