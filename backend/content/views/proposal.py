@@ -453,6 +453,18 @@ def create_proposal_from_json(request):
             content_json['groups'] = merged_groups
             content_json['additionalModules'] = merged_modules
 
+            # Normalize: move any group with is_calculator_module=True
+            # from groups[] to additionalModules[] (AI sometimes merges them)
+            final_groups = []
+            existing_mod_ids = {m.get('id') for m in content_json['additionalModules']}
+            for g in content_json['groups']:
+                if g.get('is_calculator_module'):
+                    if g.get('id') not in existing_mod_ids:
+                        content_json['additionalModules'].append(g)
+                else:
+                    final_groups.append(g)
+            content_json['groups'] = final_groups
+
         ProposalSection.objects.create(
             proposal=proposal,
             section_type=section_type,
@@ -568,9 +580,10 @@ def get_proposal_json_template(request):
         ),
         'CRITICAL_functionalRequirements': (
             'Do NOT remove any groups or modules from the functionalRequirements section. '
-            'All default groups (marked with "_do_not_remove": true) MUST remain in the output. '
-            'You may modify their content (title, description, items) and add new groups, '
-            'but you must NEVER delete existing groups. The seller will remove them manually '
+            'The 6 base groups in "groups" and the 12 optional modules in "additionalModules" '
+            'MUST remain in their respective arrays. Do NOT move modules between arrays. '
+            'You may modify content (title, description, items) and add new entries, '
+            'but NEVER delete or relocate existing ones. The seller will remove them manually '
             'after the proposal is created if needed.'
         ),
     }
@@ -693,6 +706,20 @@ def update_proposal_from_json(request, proposal_id):
                 new_content.setdefault('clientName', proposal.client_name)
                 if general.get('inspirationalQuote'):
                     new_content['inspirationalQuote'] = general['inspirationalQuote']
+
+            # Normalize functional_requirements: move calculator modules
+            # from groups[] to additionalModules[]
+            if section.section_type == 'functional_requirements':
+                final_groups = []
+                new_content.setdefault('additionalModules', [])
+                existing_mod_ids = {m.get('id') for m in new_content['additionalModules']}
+                for g in new_content.get('groups', []):
+                    if g.get('is_calculator_module'):
+                        if g.get('id') not in existing_mod_ids:
+                            new_content['additionalModules'].append(g)
+                    else:
+                        final_groups.append(g)
+                new_content['groups'] = final_groups
 
             section.content_json = new_content
             section.save(update_fields=['content_json'])

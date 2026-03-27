@@ -588,10 +588,10 @@
               <span class="text-[10px] text-gray-500 font-medium">Seleccionado</span>
             </label>
             <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-              :class="group.in_calculator ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-gray-50 text-gray-400 border-gray-200'"
-              :title="group.in_calculator ? 'Este módulo aparece en la calculadora de inversión del cliente' : 'Este módulo NO aparece en la calculadora de inversión'"
-              @click="group.in_calculator = !group.in_calculator">
-              {{ group.in_calculator ? '🧮 En calc.' : '🧮 No calc.' }}
+              :class="group.is_calculator_module ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-gray-50 text-gray-400 border-gray-200'"
+              :title="group.is_calculator_module ? 'Este módulo aparece en la calculadora de inversión del cliente' : 'Este módulo NO aparece en la calculadora de inversión'"
+              @click="group.is_calculator_module = !group.is_calculator_module">
+              {{ group.is_calculator_module ? '🧮 En calc.' : '🧮 No calc.' }}
             </button>
             <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
               :class="group.is_visible !== false ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-red-50 text-red-500 border-red-200'"
@@ -682,10 +682,10 @@
                 <span class="text-[10px] text-gray-500 font-medium">Seleccionado</span>
               </label>
               <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
-                :class="mod.in_calculator ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-gray-50 text-gray-400 border-gray-200'"
-                :title="mod.in_calculator ? 'Este módulo aparece en la calculadora de inversión del cliente' : 'Este módulo NO aparece en la calculadora de inversión'"
-                @click="mod.in_calculator = !mod.in_calculator">
-                {{ mod.in_calculator ? '🧮 En calc.' : '🧮 No calc.' }}
+                :class="mod.is_calculator_module ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-gray-50 text-gray-400 border-gray-200'"
+                :title="mod.is_calculator_module ? 'Este módulo aparece en la calculadora de inversión del cliente' : 'Este módulo NO aparece en la calculadora de inversión'"
+                @click="mod.is_calculator_module = !mod.is_calculator_module">
+                {{ mod.is_calculator_module ? '🧮 En calc.' : '🧮 No calc.' }}
               </button>
               <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
                 :class="mod.is_visible !== false ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-red-50 text-red-500 border-red-200'"
@@ -739,7 +739,7 @@
           </div>
         </div>
         <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-          @click="form.additionalModules.push({ icon: '🧩', title: '', description: '', items: [], _pasteMode: false, _pasteText: '', _collapsed: false, in_calculator: false, selected: false })">
+          @click="form.additionalModules.push({ icon: '🧩', title: '', description: '', items: [], _pasteMode: false, _pasteText: '', _collapsed: false, is_calculator_module: false, selected: false })">
           + Agregar módulo adicional
         </button>
       </div>

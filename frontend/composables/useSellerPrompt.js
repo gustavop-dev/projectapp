@@ -133,9 +133,9 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 #### \`functionalRequirements\` 
 | Campo | Tipo | Restricción |
 |---|---|---|
-| \`groups\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN grupo.** Los 18 grupos de la plantilla deben permanecer. Solo modificar contenido interno (title, description, items). Se pueden AGREGAR grupos nuevos al final. |
+| \`groups\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN grupo base.** Los 6 grupos base (views, components, features, admin_module, analytics_dashboard, kpi_dashboard_module) deben permanecer en \`groups[]\`. Solo modificar contenido interno (title, description, items). Se pueden AGREGAR grupos nuevos al final. **NO mover módulos de \`additionalModules\` a \`groups\`.** |
 | \`groups[].items\` | array de objetos | Cada item tiene \`icon\` (emoji), \`name\` y \`description\`. Se pueden agregar o modificar items dentro de un grupo, pero no eliminar el grupo completo. |
-| \`additionalModules\` | array | Dejar vacío \`[]\` a menos que se necesiten módulos personalizados extra. |
+| \`additionalModules\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN módulo opcional.** Los 12 módulos con \`is_calculator_module: true\` deben permanecer en \`additionalModules[]\`. Solo modificar contenido interno (title, description, items, invite_note). **NO moverlos a \`groups[]\`.** |
 
 **Flags de control por grupo** (solo aplican a módulos opcionales, es decir grupos con \`is_calculator_module: true\`):
 
@@ -149,28 +149,33 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 | \`is_invite\` | boolean | \`true\` si el módulo no tiene precio fijo sino invitación a llamada. NO cambiar. |
 | \`invite_note\` | string | Texto de invitación. Personalizar con el nombre del negocio del cliente pero mantener tono y estructura similar. |
 
-**Referencia rápida de grupos y sus \`id\`** (orden obligatorio):
+**Referencia: \`groups[]\`** (6 grupos base — orden obligatorio):
 
-| # | \`id\` | Tipo | \`is_calculator_module\` | \`price_percent\` |
-|---|---|---|---|---|
-| 0 | \`views\` | Base | no | — |
-| 1 | \`components\` | Base | no | — |
-| 2 | \`features\` | Base | no | — |
-| 3 | \`admin_module\` | Base | no | — |
-| 4 | \`analytics_dashboard\` | Base | no | — |
-| 5 | \`kpi_dashboard_module\` | Base | no | — |
-| 6 | \`pwa_module\` | Opcional | sí | 40% |
-| 7 | \`ai_module\` | Invitación | sí | 0% |
-| 8 | \`integration_conversion_tracking\` | Invitación | sí | 0% |
-| 9 | \`integration_electronic_invoicing\` | Opcional | sí | 60% |
-| 10 | \`integration_international_payments\` | Opcional | sí | 20% |
-| 11 | \`integration_regional_payments\` | Opcional | sí | 20% |
-| 12 | \`email_marketing_module\` | Opcional | sí | 10% |
-| 13 | \`reports_alerts_module\` | Opcional | sí | 20% |
-| 14 | \`i18n_module\` | Opcional | sí | 15% |
-| 15 | \`gift_cards_module\` | Opcional (oculto) | sí | 20% |
-| 16 | \`dark_mode_module\` | Opcional | sí | 20% |
-| 17 | \`live_chat_module\` | Opcional | sí | 40% |
+| # | \`id\` | Tipo |
+|---|---|---|
+| 0 | \`views\` | Base |
+| 1 | \`components\` | Base |
+| 2 | \`features\` | Base |
+| 3 | \`admin_module\` | Base |
+| 4 | \`analytics_dashboard\` | Base |
+| 5 | \`kpi_dashboard_module\` | Base |
+
+**Referencia: \`additionalModules[]\`** (12 módulos opcionales — orden obligatorio):
+
+| # | \`id\` | Tipo | \`price_percent\` |
+|---|---|---|---|
+| 0 | \`pwa_module\` | Opcional | 40% |
+| 1 | \`ai_module\` | Invitación | 0% |
+| 2 | \`integration_conversion_tracking\` | Invitación | 0% |
+| 3 | \`integration_electronic_invoicing\` | Opcional | 60% |
+| 4 | \`integration_international_payments\` | Opcional | 20% |
+| 5 | \`integration_regional_payments\` | Opcional | 20% |
+| 6 | \`email_marketing_module\` | Opcional | 10% |
+| 7 | \`reports_alerts_module\` | Opcional | 20% |
+| 8 | \`i18n_module\` | Opcional | 15% |
+| 9 | \`gift_cards_module\` | Opcional (oculto) | 20% |
+| 10 | \`dark_mode_module\` | Opcional | 20% |
+| 11 | \`live_chat_module\` | Opcional | 40% |
 
 #### \`developmentStages\` 
 | Campo | Tipo | Restricción |

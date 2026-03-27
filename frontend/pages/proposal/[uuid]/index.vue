@@ -557,8 +557,7 @@ const allGroupCalculatorItems = computed(() => {
   const cj = frSection.content_json || {};
   const allGroups = [...(cj.groups || []), ...(cj.additionalModules || [])].filter(g => {
     if (g.is_visible === false) return false;
-    if (g.in_calculator !== undefined) return g.in_calculator === true;
-    return g.is_calculator_module === true; // retrocompat para datos existentes
+    return g.is_calculator_module === true;
   });
   const items = [];
   for (const group of allGroups) {
