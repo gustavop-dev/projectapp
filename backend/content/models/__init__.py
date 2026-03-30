@@ -24,3 +24,4 @@ from .proposal_share_link import ProposalShareLink
 from .proposal_default_config import ProposalDefaultConfig
 from .email_template_config import EmailTemplateConfig
 from .email_log import EmailLog
+from .document import Document

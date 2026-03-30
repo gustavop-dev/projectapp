@@ -80,3 +80,9 @@ Bancolombia.png
 Nequi.jpeg
 card.svg
 pse-seeklogo.png
+
+# Claude
+.claude/worktrees/
+
+# Directories temporale
+temp/

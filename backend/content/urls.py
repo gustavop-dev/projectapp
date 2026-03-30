@@ -40,6 +40,11 @@ from content.views.blog import (
     retrieve_admin_blog_post, update_blog_post, delete_blog_post,
     duplicate_blog_post, upload_blog_cover_image, blog_calendar,
 )
+from content.views.document import (
+    list_documents, create_document, create_document_from_markdown,
+    upload_document_markdown, retrieve_document, update_document,
+    delete_document, duplicate_document, download_document_pdf,
+)
 
 urlpatterns = [
     path('contacts/', contact_list, name='contact-list'),
@@ -120,6 +125,17 @@ urlpatterns = [
     path('blog/', list_blog_posts, name='list-blog-posts'),
     path('blog/sitemap-data/', blog_sitemap_data, name='blog-sitemap-data'),
     path('blog/<slug:slug>/', retrieve_blog_post, name='retrieve-blog-post'),
+
+    # ── Documents ──────────────────────────────────────────────────
+    path('documents/', list_documents, name='list-documents'),
+    path('documents/create/', create_document, name='create-document'),
+    path('documents/create-from-markdown/', create_document_from_markdown, name='create-document-from-markdown'),
+    path('documents/upload-markdown/', upload_document_markdown, name='upload-document-markdown'),
+    path('documents/<int:document_id>/detail/', retrieve_document, name='retrieve-document'),
+    path('documents/<int:document_id>/update/', update_document, name='update-document'),
+    path('documents/<int:document_id>/delete/', delete_document, name='delete-document'),
+    path('documents/<int:document_id>/duplicate/', duplicate_document, name='duplicate-document'),
+    path('documents/<int:document_id>/pdf/', download_document_pdf, name='download-document-pdf'),
 
     # Portfolio — admin CRUD (must come before slug catch-all)
     path('portfolio/admin/', list_admin_portfolio_works, name='list-admin-portfolio-works'),
