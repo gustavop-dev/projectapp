@@ -110,7 +110,46 @@ DRAFT → SENT → VIEWED → ACCEPTED
 - Submits to API, triggers email notification to admin
 - Success page (`/contact-success/`)
 
-### 3.5 Marketing / Landing Pages
+### 3.5 Document System
+
+- Generic branded PDF documents separate from proposals
+- `Document` model with status lifecycle (draft → published → archived), language (es/en), cover_type (generic/none/proposal)
+- Structured JSON content stored in `content_json` field
+- PDF generation via `DocumentPdfService` + `MarkdownParser` + shared `PdfUtils` layer
+- Admin CRUD panel (`/panel/documents/`) with create, edit, list, status management
+- Bilingual support (es/en)
+- Active development on branch `generate-pdf-with-template`
+
+### 3.6 Platform — Expanded Modules
+
+Building on the base Platform (auth, projects, kanban), these modules extend client collaboration:
+
+#### Bug Reports
+- Client and admin can submit, track, and resolve bug reports per project
+- Global view (`/platform/bugs`) + per-project view (`/platform/projects/:id/bugs`)
+
+#### Change Requests
+- Structured change request workflow per project
+- Global view (`/platform/changes`) + per-project view (`/platform/projects/:id/changes`)
+
+#### Deliverables
+- Track project deliverables with status and descriptions
+- Global view (`/platform/deliverables`) + per-project view (`/platform/projects/:id/deliverables`)
+
+#### Notifications
+- In-platform notification center (`/platform/notifications`)
+- Centralizes alerts across all platform modules
+
+#### Payments
+- Track payment milestones and subscription plans per project
+- Global view (`/platform/payments`) + per-project view (`/platform/projects/:id/payments`)
+- Linked to proposal investment section (hosting tiers, payment milestones)
+
+#### Global Board + Profile
+- `/platform/board` — global kanban view across all projects
+- `/platform/profile` — user profile management page
+
+### 3.7 Marketing / Landing Pages
 
 - **Home** (`/`): main company page with animations, portfolio highlights, services overview
 - **Landing Web Design** (`/landing-web-design`): targeted landing for web design services
@@ -119,7 +158,12 @@ DRAFT → SENT → VIEWED → ACCEPTED
 - **About Us** (`/about-us`): team and company information
 - All pages fully responsive with GSAP animations
 
-### 3.6 Internationalization (i18n)
+### 3.8 Admin Panel Enhancements
+
+- **Panel Login** (`/panel/login`) — dedicated login page for admin panel
+- **Panel Admins** (`/panel/admins`) — admin user management (invite, list, manage admin accounts)
+
+### 3.9 Internationalization (i18n)
 
 - Two locales: `en-us` (English, default) and `es-co` (Spanish Colombia)
 - Prefix strategy: `/en-us/about-us`, `/es-co/about-us`
