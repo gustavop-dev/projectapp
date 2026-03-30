@@ -1785,11 +1785,11 @@ class TestGenerateWithFRItems:
 class TestRegisterFontsException:
     def test_font_registration_exception_is_handled(self, monkeypatch):
         """TTFont raising an exception is caught and font registration continues."""
-        import content.services.proposal_pdf_service as mod
+        import content.services.pdf_utils as pdf_mod
 
-        monkeypatch.setattr(mod, '_fonts_registered', False)
+        monkeypatch.setattr(pdf_mod, '_fonts_registered', False)
 
-        original_ttfont = mod.TTFont
+        original_ttfont = pdf_mod.TTFont
         call_count = {'n': 0}
 
         def _exploding_ttfont(name, path):
@@ -1798,9 +1798,9 @@ class TestRegisterFontsException:
                 raise RuntimeError('Font load error')
             return original_ttfont(name, path)
 
-        monkeypatch.setattr(mod, 'TTFont', _exploding_ttfont)
+        monkeypatch.setattr(pdf_mod, 'TTFont', _exploding_ttfont)
         _register_fonts()
-        assert mod._fonts_registered is True
+        assert pdf_mod._fonts_registered is True
 
 
 class TestFontFallbackKeyError:

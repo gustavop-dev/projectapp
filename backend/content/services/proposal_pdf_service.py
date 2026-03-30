@@ -1480,53 +1480,6 @@ def _render_next_steps(c, data, _proposal, ps=None, y=None):
     return y
 
 
-def _parse_markdown_lines(raw):
-    """Parse raw markdown text into a list of (type, text) tuples.
-
-    Supported types: 'h1', 'h2', 'h3', 'h4', 'bullet', 'numbered',
-    'bold_line', 'paragraph', 'blank'.
-    Inline **bold** markers are stripped into clean text.
-    """
-    if not raw:
-        return []
-    raw = _BR_TAG_RE.sub('\n', raw)
-    raw = _BOLD_HTML_RE.sub(r'**\1**', raw)
-    raw = _HTML_TAG_RE.sub('', raw)
-    result = []
-    for line in raw.split('\n'):
-        stripped = line.strip()
-        if not stripped:
-            result.append(('blank', ''))
-            continue
-        # Headings
-        if stripped.startswith('#### '):
-            result.append(('h4', stripped[5:].strip()))
-        elif stripped.startswith('### '):
-            result.append(('h3', stripped[4:].strip()))
-        elif stripped.startswith('## '):
-            result.append(('h2', stripped[3:].strip()))
-        elif stripped.startswith('# '):
-            result.append(('h1', stripped[2:].strip()))
-        # Bullet list
-        elif stripped.startswith('- ') or stripped.startswith('* '):
-            result.append(('bullet', stripped[2:].strip()))
-        # Numbered list (e.g. "1. ", "2. ")
-        elif len(stripped) > 2 and stripped[0].isdigit() and '. ' in stripped[:5]:
-            idx = stripped.index('. ')
-            result.append(('numbered', stripped[idx + 2:].strip()))
-        # Line that is entirely bold  **text**
-        elif stripped.startswith('**') and stripped.endswith('**') and len(stripped) > 4:
-            result.append(('bold_line', stripped[2:-2].strip()))
-        else:
-            result.append(('paragraph', stripped))
-    return result
-
-
-def _clean_inline_bold(text):
-    """Strip **bold** markers from inline text for PDF rendering."""
-    return re.sub(r'\*\*(.+?)\*\*', r'\1', text)
-
-
 def _render_raw_text(c, data, _proposal, ps=None, y=None):
     """Render a paste-mode section with parsed markdown content."""
     if y is None:
