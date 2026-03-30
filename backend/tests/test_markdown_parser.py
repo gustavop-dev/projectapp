@@ -288,6 +288,46 @@ def test_top_level_list_item_without_children_has_empty_children():
     assert blocks[0]["items"][0]["children"] == []
 
 
+# -- H4 / H5 / H6 headings (regression: infinite loop on unrecognised levels) ----
+
+def test_parses_h4_heading_as_heading_block():
+    blocks = markdown_to_blocks("#### Base de datos y modelos")
+
+    assert len(blocks) == 1
+    assert blocks[0] == {"type": "heading", "level": 4, "text": "Base de datos y modelos"}
+
+
+def test_parses_h5_heading_as_heading_block():
+    blocks = markdown_to_blocks("##### Detalle de nivel cinco")
+
+    assert len(blocks) == 1
+    assert blocks[0] == {"type": "heading", "level": 5, "text": "Detalle de nivel cinco"}
+
+
+def test_parses_h6_heading_as_heading_block():
+    blocks = markdown_to_blocks("###### Nivel seis")
+
+    assert len(blocks) == 1
+    assert blocks[0] == {"type": "heading", "level": 6, "text": "Nivel seis"}
+
+
+def test_document_with_h4_heading_does_not_loop():
+    md = (
+        "## Inventario\n\n"
+        "#### Base de datos y modelos\n\n"
+        "Texto del apartado.\n\n"
+        "#### Backend\n\n"
+        "Más texto."
+    )
+
+    blocks = markdown_to_blocks(md)
+
+    types = [b["type"] for b in blocks]
+    assert types == ["heading", "heading", "paragraph", "heading", "paragraph"]
+    assert blocks[1]["level"] == 4
+    assert blocks[3]["level"] == 4
+
+
 # -- TOC marker ---------------------------------------------------------------
 
 def test_toc_marker_produces_toc_block():

@@ -72,7 +72,7 @@ def markdown_to_blocks(text):
             continue
 
         # 4. Headings
-        heading_match = re.match(r'^(#{1,3})\s+(.+)$', stripped)
+        heading_match = re.match(r'^(#{1,6})\s+(.+)$', stripped)
         if heading_match:
             level = len(heading_match.group(1))
             title_text = heading_match.group(2).strip()
