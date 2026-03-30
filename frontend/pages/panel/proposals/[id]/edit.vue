@@ -179,6 +179,16 @@
                 <option value="webapp">Aplicación Web</option>
                 <option value="landing">Landing Page</option>
                 <option value="redesign">Rediseño</option>
+                <option value="mobile_app">App Móvil</option>
+                <option value="branding">Branding / Identidad Visual</option>
+                <option value="cms">Sistema CMS</option>
+                <option value="portal">Portal / Intranet</option>
+                <option value="api_integration">Integración de APIs</option>
+                <option value="marketplace">Marketplace</option>
+                <option value="erp">Sistema ERP / Administrativo</option>
+                <option value="booking">Sistema de Reservas</option>
+                <option value="dashboard">Dashboard / Reportes</option>
+                <option value="crm">Sistema CRM</option>
                 <option value="other">Otro</option>
               </select>
               <input
@@ -202,6 +212,16 @@
                 <option value="health">Salud</option>
                 <option value="education">Educación</option>
                 <option value="real_estate">Inmobiliaria</option>
+                <option value="fintech">Fintech / Finanzas</option>
+                <option value="restaurant">Restaurantes / F&amp;B</option>
+                <option value="tourism">Turismo / Hospitalidad</option>
+                <option value="logistics">Logística / Transporte</option>
+                <option value="sports">Deportes / Fitness</option>
+                <option value="legal">Servicios Legales / Jurídico</option>
+                <option value="construction">Construcción / Arquitectura</option>
+                <option value="media">Medios / Entretenimiento</option>
+                <option value="ngo">ONG / Sector Público</option>
+                <option value="agriculture">Agro / Tecnología Agrícola</option>
                 <option value="other">Otro</option>
               </select>
               <input
@@ -586,7 +606,8 @@
                   <span class="text-xs font-semibold" :class="activityLabelClass(log.change_type)">{{ activityLabel(log.change_type) }}</span>
                   <span class="text-[10px] text-gray-400">{{ formatLogDate(log.created_at) }}</span>
                 </div>
-                <p class="text-sm text-gray-600 mt-0.5">{{ formatActivityDescription(log) }}</p>
+                <!-- eslint-disable-next-line vue/no-v-html -->
+                <p class="text-sm text-gray-600 mt-0.5" v-html="formatActivityDescription(log)"></p>
               </div>
             </div>
           </div>
@@ -1355,10 +1376,18 @@ function activityLabel(type) { return activityMeta[type]?.label || type; }
 function activityDotClass(type) { return activityMeta[type]?.dot || 'bg-gray-200'; }
 function activityLabelClass(type) { return activityMeta[type]?.text || 'text-gray-500'; }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function formatActivityDescription(log) {
+  const desc = log.description || '';
+
+  // Calculator events — plain text (no v-html needed for counts)
   if (log.change_type === 'calc_abandoned' || log.change_type === 'calc_confirmed') {
     try {
-      const data = JSON.parse(log.description);
+      const data = JSON.parse(desc);
       const selected = data.selected || [];
       const deselected = data.deselected || [];
       const total = data.total;
@@ -1366,21 +1395,120 @@ function formatActivityDescription(log) {
       const mins = Math.floor(elapsed / 60);
       const secs = Math.round(elapsed % 60);
       const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-      const totalStr = total != null ? `$${Number(total).toLocaleString('es-CO')}` : '';
+      const totalStr = total != null ? `<strong>$${Number(total).toLocaleString('es-CO')}</strong>` : '';
       if (log.change_type === 'calc_confirmed') {
-        return `Confirmó ${selected.length} módulo${selected.length !== 1 ? 's' : ''}`
+        return `Confirmó <strong>${selected.length}</strong> módulo${selected.length !== 1 ? 's' : ''}`
           + (totalStr ? ` — Total: ${totalStr}` : '')
-          + (elapsed ? ` — Tiempo en calculadora: ${timeStr}` : '');
+          + (elapsed ? ` — Tiempo en calculadora: <strong>${timeStr}</strong>` : '');
       }
-      return `Abandonó calculadora con ${selected.length} módulo${selected.length !== 1 ? 's' : ''} seleccionado${selected.length !== 1 ? 's' : ''}`
-        + (deselected.length ? `, ${deselected.length} desmarcado${deselected.length !== 1 ? 's' : ''}` : '')
+      return `Abandonó calculadora con <strong>${selected.length}</strong> módulo${selected.length !== 1 ? 's' : ''} seleccionado${selected.length !== 1 ? 's' : ''}`
+        + (deselected.length ? `, <strong>${deselected.length}</strong> desmarcado${deselected.length !== 1 ? 's' : ''}` : '')
         + (totalStr ? ` — Total: ${totalStr}` : '')
-        + (elapsed ? ` — Tiempo: ${timeStr}` : '');
+        + (elapsed ? ` — Tiempo: <strong>${timeStr}</strong>` : '');
     } catch (_e) {
-      return log.description;
+      return escapeHtml(desc);
     }
   }
-  return log.description;
+
+  // Requirement clicked
+  if (log.change_type === 'req_clicked') {
+    try {
+      const data = JSON.parse(desc);
+      return `Cliente consultó <strong>${escapeHtml(data.group_title || 'módulo')}</strong>`;
+    } catch (_e) { return escapeHtml(desc); }
+  }
+
+  // Field updates with old/new values
+  const FIELD_LABELS_MAP = {
+    title: 'Título', total_investment: 'Inversión total', currency: 'Moneda',
+    client_name: 'Nombre del cliente', client_email: 'Email del cliente',
+    status: 'Estado', expires_at: 'Fecha de expiración',
+    followup_scheduled_at: 'Seguimiento programado',
+  };
+  if (log.change_type === 'updated' && log.field_name) {
+    const fieldLabel = FIELD_LABELS_MAP[log.field_name] || log.field_name;
+    const isCurrency = log.field_name === 'total_investment';
+    const fmtCurrency = (val) => {
+      const num = parseFloat(val);
+      if (isNaN(num)) return escapeHtml(val || '(vacío)');
+      return `<strong>$${num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</strong>`;
+    };
+    const oldDisplay = isCurrency ? fmtCurrency(log.old_value) : escapeHtml(log.old_value || '(vacío)');
+    const newDisplay = isCurrency ? fmtCurrency(log.new_value) : `<strong>${escapeHtml(log.new_value || '(vacío)')}</strong>`;
+    return `<strong>${escapeHtml(fieldLabel)}</strong>: ${oldDisplay} → ${newDisplay}`;
+  }
+
+  // Status change
+  if (log.change_type === 'status_change' && log.old_value && log.new_value) {
+    return `<strong>Estado</strong>: ${escapeHtml(log.old_value)} → <strong>${escapeHtml(log.new_value)}</strong>`;
+  }
+
+  // Client comment — bold the comment body
+  if (log.change_type === 'commented') {
+    const prefix = 'Client left a comment: ';
+    if (desc.startsWith(prefix)) {
+      return `Client left a comment: <strong>${escapeHtml(desc.slice(prefix.length))}</strong>`;
+    }
+    return escapeHtml(desc);
+  }
+
+  // Negotiating — bold the comment when present
+  if (log.change_type === 'negotiating') {
+    const key = ' Comment: ';
+    const idx = desc.indexOf(key);
+    if (idx !== -1) {
+      return `${escapeHtml(desc.slice(0, idx))} Comment: <strong>${escapeHtml(desc.slice(idx + key.length))}</strong>`;
+    }
+    return escapeHtml(desc);
+  }
+
+  // Rejected — bold the rejection reason when present
+  if (log.change_type === 'rejected') {
+    const key = ' Reason: ';
+    const idx = desc.indexOf(key);
+    if (idx !== -1) {
+      return `${escapeHtml(desc.slice(0, idx))} Reason: <strong>${escapeHtml(desc.slice(idx + key.length))}</strong>`;
+    }
+    return escapeHtml(desc);
+  }
+
+  // Conditional acceptance — bold the condition text
+  if (log.change_type === 'cond_accepted') {
+    const prefix = 'Conditional acceptance: ';
+    if (desc.startsWith(prefix)) {
+      return `Conditional acceptance: <strong>${escapeHtml(desc.slice(prefix.length))}</strong>`;
+    }
+    return escapeHtml(desc);
+  }
+
+  // Accepted — bold condition when present
+  if (log.change_type === 'accepted') {
+    const key = ' Condition: ';
+    const idx = desc.indexOf(key);
+    if (idx !== -1) {
+      return `${escapeHtml(desc.slice(0, idx))} Condition: <strong>${escapeHtml(desc.slice(idx + key.length))}</strong>`;
+    }
+    return escapeHtml(desc);
+  }
+
+  // Sent / resent — bold the recipient email
+  if (log.change_type === 'sent' || log.change_type === 'resent') {
+    const key = ' to ';
+    const idx = desc.indexOf(key);
+    if (idx !== -1) {
+      const afterTo = desc.slice(idx + key.length);
+      const email = afterTo.endsWith('.') ? afterTo.slice(0, -1) : afterTo;
+      return `${escapeHtml(desc.slice(0, idx))} to <strong>${escapeHtml(email)}</strong>.`;
+    }
+    return escapeHtml(desc);
+  }
+
+  // Created / duplicated — bold the proposal title between quotes
+  if (log.change_type === 'created' || log.change_type === 'duplicated') {
+    return escapeHtml(desc).replace(/&quot;(.+?)&quot;/, '<strong>&quot;$1&quot;</strong>');
+  }
+
+  return escapeHtml(desc);
 }
 
 function formatLogDate(iso) {

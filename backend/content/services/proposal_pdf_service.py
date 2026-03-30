@@ -5,6 +5,9 @@ using ReportLab.
 Each enabled section is rendered on portrait-A4 pages with the
 Project App brand palette (esmerald / lemon / bone) and Ubuntu
 typography.  Long sections flow across multiple pages automatically.
+
+Shared PDF utilities (fonts, colours, drawing helpers) live in
+``pdf_utils.py`` and are re-exported here for backward compatibility.
 """
 
 import io
@@ -24,261 +27,65 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
+from content.services.pdf_utils import (  # noqa: F401 — re-exported
+    _register_fonts,
+    _font,
+    # Brand colours
+    ESMERALD,
+    ESMERALD_DARK,
+    ESMERALD_LIGHT,
+    GREEN_LIGHT,
+    LEMON,
+    BONE,
+    WINDOW_BLACK,
+    GRAY_700,
+    GRAY_500,
+    GRAY_300,
+    GRAY_200,
+    WHITE,
+    ESMERALD_80,
+    # Cover paths
+    COVER_PDF,
+    BACK_COVER_PDF,
+    # Page dimensions
+    PAGE_W,
+    PAGE_H,
+    MARGIN_L,
+    MARGIN_R,
+    MARGIN_T,
+    MARGIN_B,
+    CONTENT_W,
+    TEXT_AREA_W,
+    SIDEBAR_X,
+    SIDEBAR_W,
+    # Text utilities
+    _strip_emoji,
+    _format_cop,
+    _clean_url_display,
+    _replace_urls_with_placeholders,
+    _draw_line_with_links,
+    _safe,
+    # Pagination helpers
+    _new_page,
+    _check_y,
+    # Drawing helpers
+    _draw_header_bar,
+    _draw_green_bar,
+    _draw_footer,
+    _draw_section_header,
+    _draw_paragraphs,
+    _draw_bullet_list,
+    _sidebar_box_height,
+    _draw_sidebar_box,
+    _draw_subtitle,
+    _draw_pill,
+    _draw_banner_box,
+    # Markdown helpers
+    _parse_markdown_lines,
+    _clean_inline_bold,
+)
+
 logger = logging.getLogger(__name__)
-
-# ── Register Ubuntu fonts ────────────────────────────────────
-_FONTS_DIR = (
-    Path(settings.BASE_DIR).parent / 'frontend' / 'assets' / 'fonts'
-)
-_FONT_MAP = {
-    'Ubuntu': 'Ubuntu-Regular.ttf',
-    'Ubuntu-Bold': 'Ubuntu-Bold.ttf',
-    'Ubuntu-Light': 'Ubuntu-Light.ttf',
-    'Ubuntu-Medium': 'Ubuntu-Medium.ttf',
-    'Ubuntu-Italic': 'Ubuntu-Italic.ttf',
-    'Ubuntu-BoldItalic': 'Ubuntu-BoldItalic.ttf',
-    'Ubuntu-LightItalic': 'Ubuntu-LightItalic.ttf',
-    'Ubuntu-MediumItalic': 'Ubuntu-MediumItalic.ttf',
-}
-_fonts_registered = False
-
-
-def _register_fonts():
-    """Register Ubuntu TTF fonts once (falls back to Helvetica if missing)."""
-    global _fonts_registered
-    if _fonts_registered:
-        return
-    for name, filename in _FONT_MAP.items():
-        path = _FONTS_DIR / filename
-        if path.exists():
-            try:
-                pdfmetrics.registerFont(TTFont(name, str(path)))
-            except Exception:
-                logger.debug('Could not register font %s', name)
-    _fonts_registered = True
-
-
-# Font helpers – fall back to Helvetica if Ubuntu is not available
-def _font(style='regular'):
-    """Return the best available font name for *style*."""
-    mapping = {
-        'regular': ('Ubuntu', 'Helvetica'),
-        'bold': ('Ubuntu-Bold', 'Helvetica-Bold'),
-        'light': ('Ubuntu-Light', 'Helvetica'),
-        'medium': ('Ubuntu-Medium', 'Helvetica'),
-        'italic': ('Ubuntu-Italic', 'Helvetica-Oblique'),
-        'bolditalic': ('Ubuntu-BoldItalic', 'Helvetica-BoldOblique'),
-        'lightitalic': ('Ubuntu-LightItalic', 'Helvetica-Oblique'),
-    }
-    primary, fallback = mapping.get(style, ('Ubuntu', 'Helvetica'))
-    try:
-        pdfmetrics.getFont(primary)
-        return primary
-    except KeyError:
-        return fallback
-
-
-# ── Brand colours (match frontend tailwind.config.js) ────────
-ESMERALD = colors.HexColor('#002921')
-ESMERALD_DARK = colors.HexColor('#001713')
-ESMERALD_LIGHT = colors.HexColor('#E6EFEF')
-GREEN_LIGHT = colors.HexColor('#809490')
-LEMON = colors.HexColor('#F0FF3D')
-BONE = colors.HexColor('#FAF3E0')
-WINDOW_BLACK = colors.HexColor('#191919')
-GRAY_700 = colors.HexColor('#374151')
-GRAY_500 = colors.HexColor('#6B7280')
-GRAY_300 = colors.HexColor('#D1D5DB')
-GRAY_200 = colors.HexColor('#E5E7EB')
-WHITE = colors.white
-
-# Derived colours
-ESMERALD_80 = colors.HexColor('#335550')  # esmerald at ~80% mixed with white
-
-# ── Cover / back-cover PDF paths ─────────────────────────────
-COVER_PDF = Path(settings.BASE_DIR) / 'static' / 'front_page' / 'Portada_Propuesta_ProjectApp.pdf'
-BACK_COVER_PDF = (
-    Path(settings.BASE_DIR) / 'static' / 'front_page' / 'Contraportada_ProjectApp.pdf'
-)
-
-# ── Page dimensions (portrait A4) ────────────────────────────
-PAGE_W, PAGE_H = A4  # ≈595 × 842 pt
-MARGIN_L = 48
-MARGIN_R = 48
-MARGIN_T = 56
-MARGIN_B = 48
-CONTENT_W = PAGE_W - MARGIN_L - MARGIN_R
-TEXT_AREA_W = CONTENT_W * 0.60
-SIDEBAR_X = MARGIN_L + TEXT_AREA_W + 20
-SIDEBAR_W = CONTENT_W - TEXT_AREA_W - 20
-
-
-# ─────────────────────────────────────────────────────────────
-# Emoji / symbol stripping
-# ─────────────────────────────────────────────────────────────
-
-_EMOJI_RE = re.compile(
-    '['
-    '\U0001F000-\U0001FFFF'
-    '\U00002600-\U000027BF'
-    '\U00002300-\U000023FF'
-    '\U0000FE00-\U0000FE0F'
-    '\U0000200D'
-    '\U000020E3'
-    '\U00002B50-\U00002B55'
-    '\U000025A0-\U000025FF'
-    '\U00002702-\U000027B0'
-    '\U0000231A-\U0000231B'
-    '\U000023E9-\U000023F3'
-    '\U000023F8-\U000023FA'
-    '\U0000200B'
-    '\U0000FFFD'
-    ']+',
-)
-_BR_TAG_RE = re.compile(r'<br\s*/?>', re.IGNORECASE)
-_BOLD_HTML_RE = re.compile(r'<b>(.*?)</b>', re.IGNORECASE | re.DOTALL)
-_HTML_TAG_RE = re.compile(r'</?[a-zA-Z][^>]*>', re.IGNORECASE)
-
-
-def _strip_emoji(text):
-    """Remove emoji/symbol characters that the fonts cannot render."""
-    if not text:
-        return text
-    text = _BOLD_HTML_RE.sub(r'**\1**', str(text))
-    text = _BR_TAG_RE.sub(' ', text)
-    text = _HTML_TAG_RE.sub('', text)
-    return _EMOJI_RE.sub('', text).strip()
-
-
-def _format_cop(value):
-    """Format a number as Colombian currency: $1.490.000 (dots as thousands)."""
-    try:
-        num = int(value)
-    except (TypeError, ValueError):
-        return str(value)
-    formatted = f'{num:,}'.replace(',', '.')
-    return f'${formatted}'
-
-
-_URL_RE = re.compile(r'(https?://[^\s),]+)')
-_BARE_DOMAIN_RE = re.compile(
-    r'(?<![/\w@])'
-    r'([a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.'
-    r'(?:com|co|net|org|io|dev|app|at|de|es|fr|uk|us|me|info|biz|tv|cc)'
-    r'(?:/[^\s),]*)?)'
-    r'(?![/\w])'
-)
-
-
-def _clean_url_display(url):
-    """Return a clean display label for a URL (domain + path, no scheme)."""
-    try:
-        from urllib.parse import urlparse
-        p = urlparse(url if '://' in url else f'https://{url}')
-        host = p.hostname or url
-        host = host.lstrip('www.')
-        path = p.path.rstrip('/')
-        return host + path if path and path != '/' else host
-    except Exception:
-        return url
-
-
-def _replace_urls_with_placeholders(text):
-    """Find URLs (full + bare domains) in text and return (clean_text, links).
-
-    Returns:
-        clean_text: text with URLs replaced by their display labels.
-        links: list of (display_label, full_url) tuples in order.
-    """
-    links = []
-
-    def _collect_full(m):
-        url = m.group(0)
-        display = _clean_url_display(url)
-        links.append((display, url))
-        return display
-
-    def _collect_bare(m):
-        domain = m.group(0)
-        display = _clean_url_display(domain)
-        full = f'https://{domain}'
-        links.append((display, full))
-        return display
-
-    result = _URL_RE.sub(_collect_full, text)
-    result = _BARE_DOMAIN_RE.sub(_collect_bare, result)
-    return result, links
-
-
-def _draw_line_with_links(c, x, y, line, font_name, font_size, text_color,
-                          link_color=None, bold_font_name=None):
-    """Draw a single line of text, rendering detected URL display labels
-    as clickable links in *link_color* and **bold** segments with bold font.
-
-    This operates on *already wrapped* lines where full URLs have been
-    replaced by their display labels via ``_replace_urls_with_placeholders``.
-    """
-    if link_color is None:
-        link_color = colors.HexColor('#059669')  # emerald-600
-    if bold_font_name is None:
-        bold_font_name = _font('bold')
-
-    # Split line into segments: text vs link-display-labels
-    # We search for patterns that look like domain.tld or domain.tld/path
-    parts = re.split(
-        r'([a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.'
-        r'(?:com|co|net|org|io|dev|app|at|de|es|fr|uk|us|me|info|biz|tv|cc)'
-        r'(?:/[^\s),]*)?)',
-        line,
-    )
-
-    cx = x
-    for part in parts:
-        if not part:
-            continue
-        # Check if this part looks like a domain
-        is_link = bool(re.fullmatch(
-            r'[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.'
-            r'(?:com|co|net|org|io|dev|app|at|de|es|fr|uk|us|me|info|biz|tv|cc)'
-            r'(?:/[^\s),]*)?',
-            part,
-        ))
-        if is_link:
-            url = f'https://{part}' if not part.startswith('http') else part
-            c.setFont(font_name, font_size)
-            c.setFillColor(link_color)
-            tw = c.stringWidth(part, font_name, font_size)
-            # Clickable rect
-            c.linkURL(url, (cx, y - 2, cx + tw, y + font_size - 1), relative=0)
-            c.drawString(cx, y, part)
-            # Subtle underline
-            c.setStrokeColor(link_color)
-            c.setLineWidth(0.4)
-            c.line(cx, y - 1.5, cx + tw, y - 1.5)
-            cx += tw
-        else:
-            # Handle **bold** segments within non-link text
-            bold_segments = part.split('**')
-            for j, segment in enumerate(bold_segments):
-                if not segment:
-                    continue
-                is_bold = (j % 2 == 1)
-                fn = bold_font_name if is_bold else font_name
-                c.setFont(fn, font_size)
-                c.setFillColor(text_color)
-                c.drawString(cx, y, segment)
-                cx += c.stringWidth(segment, fn, font_size)
-    return cx
-
-
-def _safe(data, key, default=''):
-    """Safely get a key from a dict, returning default if missing."""
-    if not isinstance(data, dict):
-        return default
-    val = data.get(key, default)
-    if val is None or val == '':
-        return default
-    return val
 
 
 def _filter_calculator_groups(groups, sel_ids):
@@ -294,278 +101,6 @@ def _filter_calculator_groups(groups, sel_ids):
         if not _safe(g, 'is_calculator_module')
         or (sel_ids is not None and f"module-{_safe(g, 'id')}" in sel_ids)
     ]
-
-
-# ─────────────────────────────────────────────────────────────
-# Auto-pagination helpers
-# ─────────────────────────────────────────────────────────────
-
-def _new_page(c, ps):
-    """Emit current page and start a new one with header bar + footer."""
-    _draw_footer(c, ps['num'], ps.get('total'), ps['client'])
-    c.showPage()
-    ps['num'] += 1
-    _draw_header_bar(c)
-    return PAGE_H - MARGIN_T
-
-
-def _check_y(c, y, ps, need=20):
-    """If y is too low, start a new page and return fresh y."""
-    if y < MARGIN_B + need:
-        y = _new_page(c, ps)
-    return y
-
-
-# ─────────────────────────────────────────────────────────────
-# Drawing helpers
-# ─────────────────────────────────────────────────────────────
-
-def _draw_header_bar(c):
-    """Draw a thin accent bar at the top of the page."""
-    c.setFillColor(ESMERALD)
-    c.rect(0, PAGE_H - 6, PAGE_W, 6, fill=1, stroke=0)
-    # Lemon accent dot
-    c.setFillColor(LEMON)
-    c.circle(PAGE_W - 30, PAGE_H - 3, 3, fill=1, stroke=0)
-
-
-def _draw_green_bar(c):
-    """Alias kept for backward compatibility."""
-    _draw_header_bar(c)
-
-
-def _draw_footer(c, page_num, total_pages=None, client_name=''):
-    """Draw a discrete footer with page number and branding."""
-    footer_y = MARGIN_B - 14
-    c.setStrokeColor(GRAY_300)
-    c.setLineWidth(0.4)
-    c.line(MARGIN_L, footer_y, PAGE_W - MARGIN_R, footer_y)
-    c.setFont(_font('regular'), 7)
-    c.setFillColor(GRAY_500)
-    c.drawString(MARGIN_L, footer_y - 11, 'Project App  |  projectapp.co')
-    if client_name:
-        c.drawCentredString(PAGE_W / 2, footer_y - 11, client_name)
-    c.setFillColor(GREEN_LIGHT)
-    page_label = (
-        f'{page_num} / {total_pages}' if total_pages
-        else f'P\u00e1gina {page_num}'
-    )
-    c.drawRightString(PAGE_W - MARGIN_R, footer_y - 11, page_label)
-
-
-def _draw_section_header(c, y, index_str, title, ps=None):
-    """Draw section index + title and return the new y position."""
-    if index_str:
-        c.setFont(_font('light'), 11)
-        c.setFillColor(GREEN_LIGHT)
-        c.drawString(MARGIN_L, y, str(index_str).zfill(2))
-        y -= 22
-    c.setFont(_font('light'), 24)
-    c.setFillColor(ESMERALD)
-    max_chars = 38
-    clean_title = _strip_emoji(title)
-    if len(clean_title) > max_chars:
-        lines = textwrap.wrap(clean_title, width=max_chars)
-        for line in lines:
-            c.drawString(MARGIN_L, y, line)
-            y -= 30
-    else:
-        c.drawString(MARGIN_L, y, clean_title)
-        y -= 30
-    # Thin accent line
-    c.setStrokeColor(LEMON)
-    c.setLineWidth(2)
-    c.line(MARGIN_L, y + 6, MARGIN_L + 60, y + 6)
-    y -= 18
-    return y
-
-
-def _draw_paragraphs(c, y, paragraphs, max_width=None, font_size=10,
-                      leading=15, color=ESMERALD_80, ps=None, x=None):
-    """Draw a list of paragraph strings and return the new y."""
-    if max_width is None:
-        max_width = CONTENT_W
-    if x is None:
-        x = MARGIN_L
-    chars_per_line = int(max_width / (font_size * 0.48))
-    fn = _font('regular')
-    for para in (paragraphs or []):
-        if not para:
-            continue
-        clean, _links = _replace_urls_with_placeholders(_strip_emoji(str(para)))
-        lines = textwrap.wrap(clean, width=chars_per_line)
-        if ps and len(lines) > 1 and y < MARGIN_B + leading * 2:
-            y = _new_page(c, ps)
-        for line in lines:
-            if ps:
-                y = _check_y(c, y, ps)
-            elif y < MARGIN_B + 20:
-                return y
-            _draw_line_with_links(c, x, y, line, fn, font_size, color)
-            y -= leading
-        y -= 5
-    return y
-
-
-def _draw_bullet_list(c, y, items, x=None, max_width=None,
-                       font_size=9, leading=13, color=ESMERALD_80,
-                       bullet='\u2022', ps=None):
-    """Draw a bulleted list and return the new y."""
-    if max_width is None:
-        max_width = CONTENT_W
-    if x is None:
-        x = MARGIN_L
-    chars_per_line = int(max_width / (font_size * 0.48))
-    fn = _font('regular')
-    for item in (items or []):
-        clean, _links = _replace_urls_with_placeholders(_strip_emoji(str(item)))
-        lines = textwrap.wrap(clean, width=chars_per_line - 4)
-        if ps and len(lines) > 1 and y < MARGIN_B + leading * 2:
-            y = _new_page(c, ps)
-        for i, line in enumerate(lines):
-            if ps:
-                y = _check_y(c, y, ps)
-            elif y < MARGIN_B + 20:
-                return y
-            prefix = f'  {bullet}  ' if i == 0 else '      '
-            # Draw prefix in normal color, then line with links
-            c.setFont(fn, font_size)
-            c.setFillColor(color)
-            pw = c.stringWidth(prefix, fn, font_size)
-            c.drawString(x, y, prefix)
-            _draw_line_with_links(c, x + pw, y, line, fn, font_size, color)
-            y -= leading
-        y -= 2
-    return y
-
-
-def _sidebar_box_height(items, sidebar_w=None):
-    """Pre-calculate the height a sidebar box would occupy (without drawing)."""
-    sw = sidebar_w or SIDEBAR_W
-    line_h = 13
-    header_h = 22
-    items_h = sum(
-        max(1, len(textwrap.wrap(str(it), width=int(sw / 5.2)))) * line_h + 2
-        for it in (items or [])
-    )
-    return header_h + items_h + 14
-
-
-def _draw_sidebar_box(c, y_start, title, items, sidebar_x=None,
-                       sidebar_w=None):
-    """Draw a branded sidebar box with a title and bullet items."""
-    sx = sidebar_x or SIDEBAR_X
-    sw = sidebar_w or SIDEBAR_W
-    line_h = 13
-    header_h = 22
-    items_h = sum(
-        max(1, len(textwrap.wrap(str(it), width=int(sw / 5.2)))) * line_h + 2
-        for it in (items or [])
-    )
-    box_h = header_h + items_h + 14
-    box_y = y_start - box_h
-
-    c.setFillColor(ESMERALD_LIGHT)
-    c.roundRect(sx, box_y, sw, box_h, 6, fill=1, stroke=0)
-
-    inner_y = y_start - 16
-    c.setFont(_font('bold'), 10)
-    c.setFillColor(ESMERALD)
-    c.drawString(sx + 10, inner_y, _strip_emoji(str(title)))
-    inner_y -= 16
-
-    c.setFont(_font('regular'), 9)
-    c.setFillColor(ESMERALD_80)
-    chars = int(sw / 5.2)
-    for item in (items or []):
-        text = _strip_emoji(str(item))
-        lines = textwrap.wrap(text, width=chars)
-        for j, line in enumerate(lines):
-            prefix = '\u2022  ' if j == 0 else '    '
-            c.drawString(sx + 10, inner_y, f'{prefix}{line}')
-            inner_y -= line_h
-        inner_y -= 2
-
-    return box_y
-
-
-def _draw_subtitle(c, y, text, color=ESMERALD, ps=None):
-    """Draw a bold subtitle and return the new y."""
-    if ps:
-        y = _check_y(c, y, ps, need=24)
-    c.setFont(_font('bold'), 12)
-    c.setFillColor(color)
-    c.drawString(MARGIN_L, y, _strip_emoji(str(text)))
-    return y - 18
-
-
-def _draw_pill(c, x, y, text, bg_color=ESMERALD_LIGHT, text_color=ESMERALD,
-               font_size=7, padding_h=8, padding_v=3):
-    """Draw a rounded pill/badge and return (right_x, pill_y_bottom).
-
-    The pill is vertically centred on *y* so that it aligns nicely next to
-    text drawn at the same y coordinate.
-    """
-    text = _strip_emoji(str(text))
-    c.setFont(_font('medium'), font_size)
-    tw = c.stringWidth(text, _font('medium'), font_size)
-    pill_w = tw + padding_h * 2
-    pill_h = font_size + padding_v * 2
-    pill_y = y - padding_v + 1
-    c.setFillColor(bg_color)
-    c.roundRect(x, pill_y, pill_w, pill_h, pill_h / 2, fill=1, stroke=0)
-    c.setFont(_font('medium'), font_size)
-    c.setFillColor(text_color)
-    c.drawString(x + padding_h, y, text)
-    return x + pill_w, pill_y
-
-
-def _draw_banner_box(c, x, y, width, text, bg_color=BONE,
-                     text_color=ESMERALD, font_size=9, icon_text='',
-                     ps=None):
-    """Draw a full-width banner box with optional icon prefix. Returns new y."""
-    text = _strip_emoji(str(text))
-    leading = font_size + 3
-    pad_x = 12
-    pad_y = 10
-
-    # Calculate available width for body text
-    icon_w = 0
-    if icon_text:
-        icon_w = pdfmetrics.stringWidth(
-            icon_text, _font('bold'), font_size
-        ) + 6
-
-    avail_w = width - 2 * pad_x - icon_w
-    char_w = font_size * 0.48
-    wrap_width = max(int(avail_w / char_w), 20)
-    lines = textwrap.wrap(text, width=wrap_width)
-    if not lines:
-        lines = ['']
-
-    box_h = 2 * pad_y + len(lines) * leading
-    if ps:
-        y = _check_y(c, y, ps, need=box_h + 12)
-
-    box_y = y - box_h + 8
-    c.setFillColor(bg_color)
-    c.roundRect(x, box_y, width, box_h, 6, fill=1, stroke=0)
-
-    inner_x = x + pad_x
-    text_top_y = box_y + box_h - pad_y - font_size + 2
-    if icon_text:
-        c.setFont(_font('bold'), font_size)
-        c.setFillColor(text_color)
-        c.drawString(inner_x, text_top_y, icon_text)
-        inner_x += icon_w
-
-    c.setFont(_font('regular'), font_size)
-    c.setFillColor(text_color)
-    ty = text_top_y
-    for line in lines:
-        c.drawString(inner_x, ty, line)
-        ty -= leading
-    return box_y - 6
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1943,53 +1478,6 @@ def _render_next_steps(c, data, _proposal, ps=None, y=None):
             c.drawString(pr + 8, y, ct_value)
             y -= 18
     return y
-
-
-def _parse_markdown_lines(raw):
-    """Parse raw markdown text into a list of (type, text) tuples.
-
-    Supported types: 'h1', 'h2', 'h3', 'h4', 'bullet', 'numbered',
-    'bold_line', 'paragraph', 'blank'.
-    Inline **bold** markers are stripped into clean text.
-    """
-    if not raw:
-        return []
-    raw = _BR_TAG_RE.sub('\n', raw)
-    raw = _BOLD_HTML_RE.sub(r'**\1**', raw)
-    raw = _HTML_TAG_RE.sub('', raw)
-    result = []
-    for line in raw.split('\n'):
-        stripped = line.strip()
-        if not stripped:
-            result.append(('blank', ''))
-            continue
-        # Headings
-        if stripped.startswith('#### '):
-            result.append(('h4', stripped[5:].strip()))
-        elif stripped.startswith('### '):
-            result.append(('h3', stripped[4:].strip()))
-        elif stripped.startswith('## '):
-            result.append(('h2', stripped[3:].strip()))
-        elif stripped.startswith('# '):
-            result.append(('h1', stripped[2:].strip()))
-        # Bullet list
-        elif stripped.startswith('- ') or stripped.startswith('* '):
-            result.append(('bullet', stripped[2:].strip()))
-        # Numbered list (e.g. "1. ", "2. ")
-        elif len(stripped) > 2 and stripped[0].isdigit() and '. ' in stripped[:5]:
-            idx = stripped.index('. ')
-            result.append(('numbered', stripped[idx + 2:].strip()))
-        # Line that is entirely bold  **text**
-        elif stripped.startswith('**') and stripped.endswith('**') and len(stripped) > 4:
-            result.append(('bold_line', stripped[2:-2].strip()))
-        else:
-            result.append(('paragraph', stripped))
-    return result
-
-
-def _clean_inline_bold(text):
-    """Strip **bold** markers from inline text for PDF rendering."""
-    return re.sub(r'\*\*(.+?)\*\*', r'\1', text)
 
 
 def _render_raw_text(c, data, _proposal, ps=None, y=None):

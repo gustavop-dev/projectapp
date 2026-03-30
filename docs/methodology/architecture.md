@@ -93,8 +93,8 @@ flowchart TD
     URLRouter -->|/api/health/| HealthCheck
     URLRouter -->|/admin/| DjangoAdmin
 
-    URLRouter -->|/api/*| ContentURLs["content.urls (71 patterns)"]
-    URLRouter -->|/api/auth/*<br>/api/platform/*| AccountsURLs["accounts.urls (15 patterns)"]
+    URLRouter -->|/api/*| ContentURLs["content.urls (81 patterns)"]
+    URLRouter -->|/api/auth/*<br>/api/platform/*| AccountsURLs["accounts.urls (48 patterns)"]
     URLRouter -->|/sitemap.xml| Sitemap
     URLRouter -->|/*| ServeNuxt["serve_nuxt (catch-all)"]
 
@@ -125,6 +125,7 @@ erDiagram
     BusinessProposal ||--o{ ProposalRequirementGroup : "has requirement groups"
     ProposalRequirementGroup ||--o{ ProposalRequirementItem : "has items"
     ProposalViewEvent ||--o{ ProposalSectionView : "has section views"
+    Document }o--o{ UserProfile : "created by (optional)"
 
     UserProfile ||--o{ Project : "owns projects"
     UserProfile ||--o{ VerificationCode : "has codes"
@@ -152,6 +153,7 @@ erDiagram
 | **Contact** | Contact form submissions | email, phone_number, subject, message, budget |
 | **PortfolioWork** | Portfolio case studies | title_en/es, slug, cover_image, project_url, content_json_en/es, SEO fields |
 | **BlogPost** | Blog articles | title_en/es, slug, cover_image, excerpt, content_json/html, category, author, SEO fields |
+| **Document** | Generic branded PDF document | uuid, title, slug, status (draft/published/archived), language (es/en), cover_type (generic/none/proposal), content_json, created_at |
 | **UserProfile** | Platform user (extends Django User) | user_fk, role (admin/client), company_name, phone, avatar, onboarding_completed, is_active |
 | **VerificationCode** | OTP codes for login | user_fk, code, expires_at, is_used |
 | **Project** | Client projects in platform | owner_fk, title, description, status (active/completed/archived), created_at |
@@ -169,11 +171,16 @@ flowchart TD
     Views --> PES["ProposalEmailService"]
     Views --> PPDF["ProposalPdfService"]
     Views --> ETR["EmailTemplateRegistry"]
+    Views --> DPS["DocumentPdfService"]
 
     PS -->|CRUD, lifecycle, analytics| Models["Django Models"]
     PES -->|send emails| SMTP["Django Email Backend"]
     PES -->|get content| ETR
     PPDF -->|generate| ReportLab["ReportLab PDF"]
+    PPDF -->|shared utils| PU["PdfUtils"]
+    DPS -->|generate| ReportLab
+    DPS -->|shared utils| PU
+    DPS -->|parse markdown| MP["MarkdownParser"]
     ETR -->|read overrides| ETC["EmailTemplateConfig model"]
 
     HueyTasks["Huey Tasks"] --> PES
@@ -184,10 +191,13 @@ flowchart TD
 
 | Service | File Size | Responsibilities |
 |---------|-----------|-----------------|
-| **ProposalService** | 130K | Proposal CRUD, section management, default sections, analytics computation, engagement scoring, dashboard aggregation, CSV export, scorecard |
-| **ProposalEmailService** | 57K | All email sending: proposal sent, reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration |
-| **ProposalPdfService** | 89K | PDF generation with ReportLab: all 12 section types rendered to PDF |
+| **ProposalService** | 132K | Proposal CRUD, section management, default sections, analytics computation, engagement scoring, dashboard aggregation, CSV export, scorecard |
+| **ProposalEmailService** | 60K | All email sending: proposal sent, reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration |
+| **ProposalPdfService** | 72K | PDF generation with ReportLab: all 12 section types rendered to PDF |
 | **EmailTemplateRegistry** | 38K | Centralized registry of all email templates with default content, admin-editable overrides, preview rendering |
+| **PdfUtils** | 36K | Shared PDF rendering utilities (fonts, colors, layout helpers) used by ProposalPdfService and DocumentPdfService |
+| **DocumentPdfService** | 20K | PDF generation for generic branded Documents with template-based rendering |
+| **MarkdownParser** | 9K | Parses markdown content for Document PDF rendering |
 
 ---
 
@@ -214,6 +224,7 @@ flowchart TD
     subgraph SPA["SPA Pages"]
         Proposal["/proposal/:uuid"]
         Panel["/panel/ (Dashboard)"]
+        PanelLogin["/panel/login"]
         ProposalsList["/panel/proposals"]
         ProposalCreate["/panel/proposals/create"]
         ProposalEdit["/panel/proposals/:id/edit"]
@@ -228,6 +239,10 @@ flowchart TD
         PortfolioCreate["/panel/portfolio/create"]
         PortfolioEdit["/panel/portfolio/:id/edit"]
         Clients["/panel/clients"]
+        Admins["/panel/admins"]
+        DocumentsAdmin["/panel/documents"]
+        DocumentCreate["/panel/documents/create"]
+        DocumentEdit["/panel/documents/:id/edit"]
     end
 
     subgraph Platform["Platform Pages (JWT Auth)"]
@@ -235,10 +250,22 @@ flowchart TD
         PlatformVerify["/platform/verify"]
         PlatformProfile["/platform/complete-profile"]
         PlatformDashboard["/platform/dashboard"]
+        PlatformBoard["/platform/board"]
         PlatformProjects["/platform/projects"]
         PlatformProjectDetail["/platform/projects/:id"]
+        PlatformProjectBoard["/platform/projects/:id/board"]
+        PlatformProjectBugs["/platform/projects/:id/bugs"]
+        PlatformProjectChanges["/platform/projects/:id/changes"]
+        PlatformProjectDeliverables["/platform/projects/:id/deliverables"]
+        PlatformProjectPayments["/platform/projects/:id/payments"]
         PlatformClients["/platform/clients"]
         PlatformClientDetail["/platform/clients/:id"]
+        PlatformBugs["/platform/bugs"]
+        PlatformChanges["/platform/changes"]
+        PlatformDeliverables["/platform/deliverables"]
+        PlatformNotifications["/platform/notifications"]
+        PlatformPayments["/platform/payments"]
+        PlatformProfilePage["/platform/profile"]
     end
 
     Panel -->|middleware: admin-auth| AuthCheck["/api/auth/check/"]
@@ -249,16 +276,23 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph Stores["Pinia Stores (Options API)"]
+    subgraph Stores["Pinia Stores (Options API) — 16 total"]
         ProposalStore["proposals.js"]
         BlogStore["blog.js"]
         PortfolioStore["portfolio_works.js"]
         ContactStore["contacts.js"]
         LanguageStore["language.js"]
+        DocumentStore["documents.js"]
+        PanelAdmins["panel_admins.js"]
         PlatformAuth["platform-auth.js"]
         PlatformClients["platform-clients.js"]
         PlatformProjects["platform-projects.js"]
         PlatformRequirements["platform-requirements.js"]
+        PlatformBugReports["platform-bug-reports.js"]
+        PlatformChangeRequests["platform-change-requests.js"]
+        PlatformDeliverables["platform-deliverables.js"]
+        PlatformNotifications["platform-notifications.js"]
+        PlatformPayments["platform-payments.js"]
     end
 
     subgraph HTTP["HTTP Service"]
@@ -269,10 +303,17 @@ flowchart LR
     BlogStore --> RequestHTTP
     PortfolioStore --> RequestHTTP
     ContactStore --> RequestHTTP
+    DocumentStore --> RequestHTTP
+    PanelAdmins --> RequestHTTP
     PlatformAuth --> PlatformHTTP["composables/usePlatformApi"]
     PlatformClients --> PlatformHTTP
     PlatformProjects --> PlatformHTTP
     PlatformRequirements --> PlatformHTTP
+    PlatformBugReports --> PlatformHTTP
+    PlatformChangeRequests --> PlatformHTTP
+    PlatformDeliverables --> PlatformHTTP
+    PlatformNotifications --> PlatformHTTP
+    PlatformPayments --> PlatformHTTP
 
     RequestHTTP -->|axios| API["/api/*"]
     PlatformHTTP -->|axios + JWT| API

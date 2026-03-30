@@ -88,6 +88,16 @@ class BusinessProposal(models.Model):
         ('webapp', 'Aplicación Web'),
         ('landing', 'Landing Page'),
         ('redesign', 'Rediseño'),
+        ('mobile_app', 'App Móvil'),
+        ('branding', 'Branding / Identidad Visual'),
+        ('cms', 'Sistema CMS'),
+        ('portal', 'Portal / Intranet'),
+        ('api_integration', 'Integración de APIs'),
+        ('marketplace', 'Marketplace'),
+        ('erp', 'Sistema ERP / Administrativo'),
+        ('booking', 'Sistema de Reservas'),
+        ('dashboard', 'Dashboard / Reportes'),
+        ('crm', 'Sistema CRM'),
         ('other', 'Otro'),
     ]
     MARKET_TYPE_CHOICES = [
@@ -99,6 +109,16 @@ class BusinessProposal(models.Model):
         ('health', 'Salud'),
         ('education', 'Educación'),
         ('real_estate', 'Inmobiliaria'),
+        ('fintech', 'Fintech / Finanzas'),
+        ('restaurant', 'Restaurantes / F&B'),
+        ('tourism', 'Turismo / Hospitalidad'),
+        ('logistics', 'Logística / Transporte'),
+        ('sports', 'Deportes / Fitness'),
+        ('legal', 'Servicios Legales / Jurídico'),
+        ('construction', 'Construcción / Arquitectura'),
+        ('media', 'Medios / Entretenimiento'),
+        ('ngo', 'ONG / Sector Público'),
+        ('agriculture', 'Agro / Tecnología Agrícola'),
         ('other', 'Otro'),
     ]
     project_type = models.CharField(

@@ -110,6 +110,16 @@
               <option value="webapp">Aplicación Web</option>
               <option value="landing">Landing Page</option>
               <option value="redesign">Rediseño</option>
+              <option value="mobile_app">App Móvil</option>
+              <option value="branding">Branding / Identidad Visual</option>
+              <option value="cms">Sistema CMS</option>
+              <option value="portal">Portal / Intranet</option>
+              <option value="api_integration">Integración de APIs</option>
+              <option value="marketplace">Marketplace</option>
+              <option value="erp">Sistema ERP / Administrativo</option>
+              <option value="booking">Sistema de Reservas</option>
+              <option value="dashboard">Dashboard / Reportes</option>
+              <option value="crm">Sistema CRM</option>
               <option value="other">Otro</option>
             </select>
             <input
@@ -132,6 +142,16 @@
               <option value="health">Salud</option>
               <option value="education">Educación</option>
               <option value="real_estate">Inmobiliaria</option>
+              <option value="fintech">Fintech / Finanzas</option>
+              <option value="restaurant">Restaurantes / F&amp;B</option>
+              <option value="tourism">Turismo / Hospitalidad</option>
+              <option value="logistics">Logística / Transporte</option>
+              <option value="sports">Deportes / Fitness</option>
+              <option value="legal">Servicios Legales / Jurídico</option>
+              <option value="construction">Construcción / Arquitectura</option>
+              <option value="media">Medios / Entretenimiento</option>
+              <option value="ngo">ONG / Sector Público</option>
+              <option value="agriculture">Agro / Tecnología Agrícola</option>
               <option value="other">Otro</option>
             </select>
             <input

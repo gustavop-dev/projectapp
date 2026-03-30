@@ -1577,8 +1577,15 @@
 | `proposal-conditional-acceptance` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-conditional-acceptance.spec.js` |
 | `proposal-view-paste-rendering` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-view-paste-rendering.spec.js` |
 | `proposal-sticky-bar-accept` | proposal | guest | ~~P2~~ | 🗄️ Archived | — (feature removed) |
+| `admin-document-list` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-document-list.spec.js` |
+| `admin-document-create` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-document-create.spec.js` |
+| `admin-document-edit` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-document-edit.spec.js` |
+| `admin-admin-management` | admin | admin | P3 | ❌ Missing | `e2e/admin/admin-admin-management.spec.js` |
+| `admin-email-deliverability` | admin | admin | P3 | ❌ Missing | `e2e/admin/admin-email-deliverability.spec.js` |
+| `public-landing-software` | public | guest | P3 | ❌ Missing | `e2e/public/public-landing-software.spec.js` |
+| `public-landing-apps` | public | guest | P3 | ❌ Missing | `e2e/public/public-landing-apps.spec.js` |
 | `platform-login` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-login.spec.js` |
-| `platform-verify-onboarding` | platform | platform-admin/client | P1 | ❌ Missing | `e2e/platform/platform-verify.spec.js` |
+| `platform-verify-onboarding` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-verify.spec.js` |
 | `platform-complete-profile` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-complete-profile.spec.js` |
 | `platform-kanban-board` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-kanban-board.spec.js` |
 | `platform-dashboard` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-dashboard.spec.js` |
@@ -1589,20 +1596,27 @@
 | `platform-admin-client-list` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-admin-client-list.spec.js` |
 | `platform-admin-client-detail` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-admin-client-detail.spec.js` |
 | `platform-profile-edit` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-profile.spec.js` |
+| `platform-hosting-subscription` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-hosting-subscription.spec.js` |
+| `platform-change-requests` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-change-requests.spec.js` |
+| `platform-bug-reports` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-bug-reports.spec.js` |
+| `platform-deliverables` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-deliverables.spec.js` |
+| `platform-notifications` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-notifications.spec.js` |
+| `platform-kanban-json-upload` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-kanban-json-upload.spec.js` |
+| `platform-requirement-client-review` | platform | platform-client | P2 | ✅ Covered | `e2e/platform/platform-requirement-client-review.spec.js` |
 | `platform-admin-project-create` | platform | platform-admin | P3 | ✅ Covered | `e2e/platform/platform-project-create.spec.js` |
 | `platform-kanban-card-comments` | platform | platform-admin/client | P3 | ✅ Covered | `e2e/platform/platform-kanban-comments.spec.js` |
 
 ### Summary
 
-- **Total flows:** 117
+- **Total flows:** 124
 - **P1 (Critical):** 24
-- **P2 (High):** 73
-- **P3 (Medium):** 19
-- **Covered (full):** 96 (82%)
-- **Backend-only:** 10 (9%) — system-triggered alerts and automation covered by backend unit tests
+- **P2 (High):** 76
+- **P3 (Medium):** 23
+- **Covered (full):** 96 (77%)
+- **Backend-only:** 10 (8%) — system-triggered alerts and automation covered by backend unit tests
 - **Partial:** 0 (0%)
-- **Missing:** 0 (0%)
-- **Deferred:** 1 — `platform-verify-onboarding` (requires OTP test infrastructure)
+- **Missing:** 7 (6%) — newly discovered admin document management, admin user management, email deliverability, and public landing pages
+- **Deferred:** 0
 - **Archived:** 2 — `public-about-us`, `proposal-sticky-bar-accept` (feature removed)
 
 ### Unit Test Coverage
@@ -1643,8 +1657,8 @@
   - [Branch C — Profile incomplete] Tokens returned but `needsProfileCompletion` is true → user is redirected to `/platform/complete-profile`.
   - [Branch D — Invalid credentials] API returns 401 → error message displayed inline.
   - [Branch E — Deactivated account] API returns 403 → error message displayed inline.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-login.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-login.spec.js`
 
 #### FLOW: `platform-verify-onboarding`
 
@@ -1666,8 +1680,8 @@
   - [Branch B — Profile complete] User is redirected to `/platform/dashboard`.
   - [Branch C — Invalid code] API returns 400 → error message displayed.
   - [Branch D — Resend code] User clicks "Reenviar código" → `POST /api/accounts/resend-code/` sends new OTP.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-verify.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-verify.spec.js`
 
 #### FLOW: `platform-complete-profile`
 
@@ -1687,8 +1701,8 @@
 - **Branches:**
   - [Branch A — Validation error] API returns errors → displayed inline under form.
   - [Branch B — Already completed] API returns 400 "El perfil ya fue completado." → user should be on dashboard already.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-complete-profile.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-complete-profile.spec.js`
 
 ### 8.2 Dashboard & Navigation
 
@@ -1708,8 +1722,8 @@
   - [Branch A — Admin] KPI stat cards render (active/pending/inactive clients). Recent clients table renders with status badges. Module cards link to Projects, Board, Clients.
   - [Branch B — Client] Profile summary card renders. Module cards link to Projects, Board.
   - [Branch C — Redirect] Navigating to `/platform` auto-redirects to `/platform/dashboard`.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-dashboard.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-dashboard.spec.js`
 
 #### FLOW: `platform-sidebar-navigation`
 
@@ -1729,8 +1743,8 @@
   - [Branch D — Logout] User clicks logout button → `authStore.logout()` clears tokens → redirected to `/platform/login`.
   - [Branch E — Admin-only items] Admin sees "Clientes" and "Pagos" nav items under Administración section; client does not.
   - [Branch F — Profile link] User clicks settings icon → navigates to `/platform/profile`.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-sidebar.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-sidebar.spec.js`
 
 ### 8.3 Projects
 
@@ -1752,8 +1766,8 @@
   - [Branch B — Admin create] Admin clicks "Nuevo proyecto" → create project modal opens (see `platform-admin-project-create`).
   - [Branch C — Empty state] No projects → empty state message renders.
   - [Branch D — Client view] Client sees only their assigned projects without create button.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-project-list.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-project-list.spec.js`
 
 #### FLOW: `platform-project-detail`
 
@@ -1773,8 +1787,8 @@
   - [Branch A — Admin edit] Admin clicks "Editar" → modal opens with name, description, status, start/end dates → submit calls `PATCH` API → modal closes and data refreshes.
   - [Branch B — Not found] Invalid project ID → "Proyecto no encontrado" with back link.
   - [Branch C — Board link] User clicks "Tablero" module card → navigates to `/platform/projects/:id/board`.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-project-detail.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-project-detail.spec.js`
 
 #### FLOW: `platform-admin-project-create`
 
@@ -1793,8 +1807,8 @@
 - **Branches:**
   - [Branch A — Validation error] Missing required fields → error displayed.
   - [Branch B — Cancel] Admin clicks cancel or outside modal → modal closes without action.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-project-create.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-project-create.spec.js`
 
 ### 8.4 Kanban Board
 
@@ -1820,8 +1834,8 @@
   - [Branch D — Card detail] User clicks any card → detail modal opens showing description, meta (status, estimated hours, created date), history timeline, and comments section.
   - [Branch E — Client approval] Client sees "Aprobar requerimiento" button for cards in approval status → clicking approves and moves to done.
   - [Branch F — Toggle completed] User clicks "Completados" bar → expands/collapses the done cards list.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-kanban-board.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-kanban-board.spec.js`
 
 #### FLOW: `platform-unified-board`
 
@@ -1841,8 +1855,8 @@
   - [Branch B — Board link] User clicks "Ver tablero" → navigates to `/platform/projects/:id/board`.
   - [Branch C — Empty state] No active requirements → empty state message.
   - [Branch D — Loading] Skeleton/spinner renders while fetching data.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-unified-board.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-unified-board.spec.js`
 
 #### FLOW: `platform-kanban-card-comments`
 
@@ -1861,8 +1875,8 @@
   - [Branch A — Internal comment] Admin checks "Comentario interno" checkbox → comment saves with `is_internal: true` → rendered with amber border and "Interno" label (only visible to admins).
   - [Branch B — Client comment] Client can only post public comments (no internal checkbox visible).
   - [Branch C — Empty comment] Submit button disabled when input is empty.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-kanban-comments.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-kanban-comments.spec.js`
 
 ### 8.5 Client Management (Admin-only)
 
@@ -1886,8 +1900,8 @@
   - [Branch D — Detail link] Admin clicks "Detalle" → navigates to `/platform/clients/:id`.
   - [Branch E — Filter by status] Admin clicks status tab → API refetches with `?filter=` param.
   - [Branch F — Search] Admin types in search → client-side filtering of visible results.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-admin-client-list.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-admin-client-list.spec.js`
 
 #### FLOW: `platform-admin-client-detail`
 
@@ -1909,8 +1923,8 @@
   - [Branch D — Deactivate] Admin clicks "Desactivar acceso" → confirm modal → `DELETE` API deactivates → success message.
   - [Branch E — Reactivate] For inactive clients, admin clicks "Reactivar acceso" → `PATCH` with `is_active: true` → success message.
   - [Branch F — Not found] Invalid client ID → "No encontramos el cliente solicitado" message.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-admin-client-detail.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-admin-client-detail.spec.js`
 
 ### 8.6 Profile
 
@@ -1931,8 +1945,8 @@
 - **Branches:**
   - [Branch A — Validation error] Invalid input → API returns errors → displayed inline.
   - [Branch B — Cancel] User navigates away without saving → no changes persisted.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-profile.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-profile.spec.js`
 
 ### 8.7 Change Requests, Bug Reports & Deliverables
 
@@ -1954,8 +1968,8 @@
   - [Branch A — Create] Client creates a change request → notification sent to admin.
   - [Branch B — Evaluate] Admin evaluates → status changes → notification sent to client.
   - [Branch C — Unified view] `/platform/changes` shows all change requests grouped by project.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-change-requests.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-change-requests.spec.js`
 
 #### FLOW: `platform-bug-reports`
 
@@ -1971,8 +1985,8 @@
   3. User fills create form (title, description, severity, steps, expected/actual behavior, environment, device, screenshot).
   4. Admin evaluates: sets status, admin_response, linked_bug.
   5. Both roles add comments.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-bug-reports.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-bug-reports.spec.js`
 
 #### FLOW: `platform-deliverables`
 
@@ -1988,8 +2002,8 @@
   3. Admin uploads a new deliverable (title, description, category, file).
   4. Admin uploads new versions of existing deliverables.
   5. Client views and downloads files.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-deliverables.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-deliverables.spec.js`
 
 ### 8.8 Hosting & Payments
 
@@ -2013,8 +2027,8 @@
   - [Branch B — Up to date] Active subscription with no urgent payments shows clean green card.
   - [Branch C — Payment due] Shows payment action 7 days before billing date.
   - [Branch D — Unified view] `/platform/payments` shows all subscriptions across projects.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-hosting-subscription.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-hosting-subscription.spec.js`
 
 ### 8.9 Notifications
 
@@ -2032,8 +2046,8 @@
   3. Notification list renders with filter tabs (Todas/Sin leer/Leídas).
   4. User clicks a notification → marked as read → navigates to relevant project module.
   5. User clicks "Marcar todas como leídas" → all notifications marked read.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-notifications.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-notifications.spec.js`
 
 ### 8.10 Kanban Enhancements
 
@@ -2051,8 +2065,8 @@
   3. Admin clicks "Subir JSON" → file picker opens → selects JSON file.
   4. API creates requirements in bulk → success alert with count.
   5. Backlog section updates with new cards.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-kanban-json-upload.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-kanban-json-upload.spec.js`
 
 #### FLOW: `platform-requirement-client-review`
 
@@ -2067,18 +2081,18 @@
   3. Client clicks "Aprobar" → requirement accepted.
   4. Client clicks "Solicitar cambio" → navigates to change requests with pre-filled data.
   5. Client clicks "Reportar bug" → navigates to bug reports with pre-filled data.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** `e2e/platform/platform-requirement-client-review.spec.js` (to be created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-requirement-client-review.spec.js`
 
 ### 8.11 Platform Coverage Index
 
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
 | `platform-login` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-login.spec.js` |
-| `platform-verify-onboarding` | platform | platform-admin/client | P1 | ❌ Deferred | Requires OTP test infrastructure |
+| `platform-verify-onboarding` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-verify.spec.js` |
 | `platform-complete-profile` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-complete-profile.spec.js` |
 | `platform-kanban-board` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-kanban-board.spec.js` |
-| `platform-hosting-subscription` | platform | platform-admin/client | P1 | ❌ Missing | To be created |
+| `platform-hosting-subscription` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-hosting-subscription.spec.js` |
 | `platform-dashboard` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-dashboard.spec.js` |
 | `platform-sidebar-navigation` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-sidebar.spec.js` |
 | `platform-project-list` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-project-list.spec.js` |
@@ -2087,12 +2101,12 @@
 | `platform-admin-client-list` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-admin-client-list.spec.js` |
 | `platform-admin-client-detail` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-admin-client-detail.spec.js` |
 | `platform-profile-edit` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-profile.spec.js` |
-| `platform-change-requests` | platform | platform-admin/client | P2 | ❌ Missing | To be created |
-| `platform-bug-reports` | platform | platform-admin/client | P2 | ❌ Missing | To be created |
-| `platform-deliverables` | platform | platform-admin/client | P2 | ❌ Missing | To be created |
-| `platform-notifications` | platform | platform-admin/client | P2 | ❌ Missing | To be created |
-| `platform-kanban-json-upload` | platform | platform-admin | P2 | ❌ Missing | To be created |
-| `platform-requirement-client-review` | platform | platform-client | P2 | ❌ Missing | To be created |
+| `platform-change-requests` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-change-requests.spec.js` |
+| `platform-bug-reports` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-bug-reports.spec.js` |
+| `platform-deliverables` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-deliverables.spec.js` |
+| `platform-notifications` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-notifications.spec.js` |
+| `platform-kanban-json-upload` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-kanban-json-upload.spec.js` |
+| `platform-requirement-client-review` | platform | platform-client | P2 | ✅ Covered | `e2e/platform/platform-requirement-client-review.spec.js` |
 | `platform-admin-project-create` | platform | platform-admin | P3 | ✅ Covered | `e2e/platform/platform-project-create.spec.js` |
 | `platform-kanban-card-comments` | platform | platform-admin/client | P3 | ✅ Covered | `e2e/platform/platform-kanban-comments.spec.js` |
 
@@ -2102,6 +2116,171 @@
 - **P1 (Critical):** 5
 - **P2 (High):** 14
 - **P3 (Medium):** 2
-- **Covered:** 13 (62%)
-- **Missing:** 7 (33%) — new features without E2E specs yet
-- **Deferred:** 1 (5%) — `platform-verify-onboarding` (requires OTP test infrastructure)
+- **Covered:** 21 (100%)
+- **Missing:** 0
+- **Deferred:** 0
+
+---
+
+## 9. New Feature Flows (v2.7.0)
+
+> Flows discovered during the v2.7.0 audit — pages that existed in the codebase but had not been registered in the flow registry. All are `❌ Missing` (no E2E spec yet).
+
+### 9.1 Admin Document Management
+
+#### FLOW: `admin-document-list`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **Description:** View the list of admin documents with title, status, client association, and row actions (edit, download PDF, duplicate, delete).
+- **Steps:**
+  1. Admin navigates to `/panel/documents`.
+  2. Document list loads from API (`GET /api/content/documents/`).
+  3. Table renders with columns: title, client name, status badge, created date, actions.
+  4. Admin clicks a row or the edit icon → navigates to `/panel/documents/:id/edit`.
+  5. "Nuevo Documento" button navigates to `/panel/documents/create`.
+- **Branches:**
+  - [Branch A — Empty state] No documents → "No hay documentos todavía." with create link.
+  - [Branch B — Download PDF] Admin clicks download icon → PDF generated and downloaded.
+  - [Branch C — Duplicate] Admin clicks duplicate icon → document cloned and list refreshes.
+  - [Branch D — Delete] Admin clicks delete icon → confirm modal → document removed from list.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/admin/admin-document-list.spec.js`
+
+#### FLOW: `admin-document-create`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents/create`
+- **Description:** Create a new admin document using Markdown paste mode (with live preview) or file upload mode.
+- **Steps:**
+  1. Admin navigates to `/panel/documents/create`.
+  2. Page renders with "Pegar Markdown" / "Cargar Archivo" tab toggle.
+  3. Admin fills title, optional client association.
+  4. **Paste mode:** Admin pastes Markdown content → live preview renders alongside.
+  5. **Upload mode:** Admin selects a file → file content loaded.
+  6. Admin submits → API call `POST /api/content/documents/` creates document.
+  7. On success, admin redirected to `/panel/documents`.
+- **Branches:**
+  - [Branch A — Validation error] Missing required fields → inline errors displayed.
+  - [Branch B — Preview toggle] Admin clicks preview button → split-pane preview shown alongside editor.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/admin/admin-document-create.spec.js`
+
+#### FLOW: `admin-document-edit`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents/:id/edit`
+- **Description:** Edit an existing admin document, update content and status, download as PDF.
+- **Steps:**
+  1. Admin navigates to `/panel/documents/:id/edit`.
+  2. Document data loads from API (`GET /api/content/documents/:id/`).
+  3. Edit form renders pre-filled with current content, title, status, client.
+  4. Admin modifies content and clicks save.
+  5. API call `PATCH /api/content/documents/:id/` updates document.
+  6. Success feedback displayed.
+- **Branches:**
+  - [Branch A — Download PDF] Admin clicks "Descargar PDF" → PDF generated from current content.
+  - [Branch B — Status change] Admin updates status (draft/published/archived) → status badge updates.
+  - [Branch C — Back] "Volver a documentos" link → navigates to list without saving.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/admin/admin-document-edit.spec.js`
+
+### 9.2 Admin User Management
+
+#### FLOW: `admin-admin-management`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/admins`
+- **Description:** Manage platform admin users — list with status filters, invite new admin via modal, deactivate existing admins.
+- **Steps:**
+  1. Admin navigates to `/panel/admins`.
+  2. Admin list loads from API (`GET /api/accounts/admins/`).
+  3. Filter tabs render: Todos / Activos / Inactivos.
+  4. Each admin row shows avatar, name, email, role, status badge, and actions.
+- **Branches:**
+  - [Branch A — Invite] Admin clicks "Agregar Administrador" → modal opens with email, name, role fields → submit calls `POST /api/accounts/admins/` → invitation sent.
+  - [Branch B — Filter] Admin clicks status tab → list filters client-side.
+  - [Branch C — Deactivate] Admin clicks deactivate → confirm → `PATCH /api/accounts/admins/:id/` → status changes.
+  - [Branch D — Empty state] No admins → empty state message with invite CTA.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/admin/admin-admin-management.spec.js`
+
+### 9.3 Email Deliverability Dashboard
+
+#### FLOW: `admin-email-deliverability`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/proposals/email-deliverability`
+- **Description:** Dashboard tracking email send/delivery/bounce/open rates for all proposal-related automated emails. Admin monitors deliverability health.
+- **Steps:**
+  1. Admin navigates to `/panel/proposals/email-deliverability`.
+  2. Dashboard loads email delivery metrics from API.
+  3. Stats render: total sent, delivered, bounced, open rate.
+  4. Per-proposal email log table shows individual send events.
+- **Branches:**
+  - [Branch A — Empty state] No emails sent yet → "No hay datos de entregas." message.
+  - [Branch B — Date filter] Admin filters by date range → metrics update.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/admin/admin-email-deliverability.spec.js`
+
+### 9.4 Public Landing Pages
+
+#### FLOW: `public-landing-software`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P3
+- **Routes:** `/landing-software`
+- **Description:** Custom software development landing page with hero section, feature highlights, CTA, and contact form.
+- **Steps:**
+  1. Guest navigates to `/landing-software`.
+  2. Hero section renders with headline and CTA button.
+  3. Feature/service highlights section renders.
+  4. Contact form or CTA link rendered at the bottom.
+- **Branches:**
+  - [Branch A — CTA click] Guest clicks primary CTA → scrolls to contact section or navigates to `/contacto`.
+  - [Branch B — Locale] Page renders in both ES and EN via locale switcher.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/public/public-landing-software.spec.js`
+
+#### FLOW: `public-landing-apps`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P3
+- **Routes:** `/landing-apps`
+- **Description:** Mobile app development landing page with hero section, feature highlights, platform badges (iOS/Android), CTA, and contact form.
+- **Steps:**
+  1. Guest navigates to `/landing-apps`.
+  2. Hero section renders with headline and CTA button.
+  3. Feature/service highlights and platform badges render.
+  4. Contact form or CTA link rendered at the bottom.
+- **Branches:**
+  - [Branch A — CTA click] Guest clicks primary CTA → scrolls to contact section or navigates to `/contacto`.
+  - [Branch B — Locale] Page renders in both ES and EN via locale switcher.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/public/public-landing-apps.spec.js`
+
+---
+
+### 9.5 New Flows Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `admin-document-list` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-document-list.spec.js` |
+| `admin-document-create` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-document-create.spec.js` |
+| `admin-document-edit` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-document-edit.spec.js` |
+| `admin-admin-management` | admin | admin | P3 | ❌ Missing | `e2e/admin/admin-admin-management.spec.js` |
+| `admin-email-deliverability` | admin | admin | P3 | ❌ Missing | `e2e/admin/admin-email-deliverability.spec.js` |
+| `public-landing-software` | public | guest | P3 | ❌ Missing | `e2e/public/public-landing-software.spec.js` |
+| `public-landing-apps` | public | guest | P3 | ❌ Missing | `e2e/public/public-landing-apps.spec.js` |

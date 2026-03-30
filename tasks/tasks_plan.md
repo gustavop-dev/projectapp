@@ -42,6 +42,16 @@
 | Platform — Client Management | ✅ Done | Admin invite, list, detail, edit, deactivate, reactivate |
 | Platform — Sidebar & Layout | ✅ Done | Collapsible sidebar, mobile drawer, theme toggle, role-based nav |
 | Platform — E2E Coverage | ✅ Done | 14 flows registered and covered; 14 spec files in `e2e/platform/` (login, verify, profile, dashboard, projects, kanban, clients, sidebar, etc.) |
+| Document System — Model + Admin CRUD | ✅ Done | `Document` model (uuid, title, slug, status, language, cover_type); panel pages (index, create, edit); `documents.js` store |
+| Document System — PDF Generation | 🔄 In Progress | `document_pdf_service.py` (20K), `markdown_parser.py` (9K), `pdf_utils.py` (36K shared utilities); branch `generate-pdf-with-template` |
+| Panel — Admins Management | ✅ Done | `panel/admins/index.vue` + `panel_admins.js` store |
+| Panel — Dedicated Login | ✅ Done | `panel/login.vue` page |
+| Platform — Bug Reports | ✅ Done | `platform-bug-reports.js`; global `/platform/bugs` + per-project `/platform/projects/[id]/bugs`; `test_bug_reports.py` |
+| Platform — Change Requests | ✅ Done | `platform-change-requests.js`; global `/platform/changes` + per-project `/platform/projects/[id]/changes`; `test_change_requests.py` |
+| Platform — Deliverables | ✅ Done | `platform-deliverables.js`; global `/platform/deliverables` + per-project `/platform/projects/[id]/deliverables`; `test_deliverables.py` |
+| Platform — Notifications | ✅ Done | `platform-notifications.js`; `/platform/notifications`; `test_notifications.py` |
+| Platform — Payments | ✅ Done | `platform-payments.js`; global `/platform/payments` + per-project `/platform/projects/[id]/payments`; `test_payments.py` |
+| Platform — Global Board + Profile | ✅ Done | `/platform/board` (global kanban view); `/platform/profile` (profile management) |
 
 ---
 
@@ -50,7 +60,7 @@
 | Issue | Priority | Notes |
 |-------|----------|-------|
 | Credential rotation needed | High | MySQL password, email password, SECRET_KEY, CallMeBot key exposed in git history (see `docs/deployment-guide.md`) |
-| Large service files | Medium | `proposal_service.py` (130K), `proposal_pdf_service.py` (89K) — consider splitting |
+| Large service files | Medium | `proposal_service.py` (132K), `proposal_pdf_service.py` (72K — shared utils extracted to `pdf_utils.py`) — consider further splitting |
 | Large view file | Medium | `views/proposal.py` (123K) — could benefit from splitting into submodules |
 | Single Django app | Low | All models/views/services in `content` app; consider splitting if scope grows |
 
@@ -60,10 +70,10 @@
 
 | Suite | Location | Approximate Count | Status |
 |-------|----------|-------------------|--------|
-| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` | 43 test files (30 content + 12 accounts + 1 projectapp) | Active |
+| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 50 test files (30 content + 17 accounts + 1 projectapp + 2 backend/) | Active |
 | Frontend Unit (Jest) | `frontend/test/` | 36 test files (3 components + 23 composables + 10 stores incl. services) | Active |
-| Frontend E2E (Playwright) | `frontend/e2e/` | 98 spec files across admin, auth, blog, layout, proposal, public, platform (14 platform specs) | Active |
-| Quality Gate | `scripts/test_quality_gate.py` | 100/100, 1522 tests, 0 warnings/info | Active |
+| Frontend E2E (Playwright) | `frontend/e2e/` | 112 spec files across admin, auth, blog, layout, proposal, public, platform | Active |
+| Quality Gate | `scripts/test_quality_gate.py` | 100/100, 0 warnings/info | Active |
 
 ---
 
@@ -91,7 +101,7 @@
 
 ## 5. Potential Improvements
 
-1. **Split large files** — proposal views (123K), proposal service (130K), PDF service (89K)
+1. **Split large files** — proposal views (123K), proposal service (132K), PDF service (72K — shared utils already extracted to `pdf_utils.py`)
 2. **API versioning** — no versioning strategy currently
 3. **Rate limiting** — no rate limiting on public endpoints
 4. **Caching layer** — Redis available but no application-level caching implemented

@@ -3168,6 +3168,7 @@ def proposal_alerts(request):
                 'title': p.title, 'client_name': p.client_name,
                 'alert_type': 'not_viewed',
                 'days_since': (now - p.sent_at).days,
+                'ref_date': p.sent_at.isoformat(),
                 'message': f'Enviada hace {(now - p.sent_at).days} días, aún no abierta.',
             })
 
@@ -3184,6 +3185,7 @@ def proposal_alerts(request):
                 'title': p.title, 'client_name': p.client_name,
                 'alert_type': 'not_responded',
                 'days_since': (now - p.first_viewed_at).days,
+                'ref_date': p.first_viewed_at.isoformat(),
                 'message': f'Vista hace {(now - p.first_viewed_at).days} días, sin respuesta.',
             })
 
@@ -3205,6 +3207,7 @@ def proposal_alerts(request):
             'title': p.title, 'client_name': p.client_name,
             'alert_type': 'expiring_soon',
             'days_remaining': days_left,
+            'ref_date': p.expires_at.isoformat(),
             'message': f'Expira en {days_left} día{"s" if days_left != 1 else ""}.',
         })
 
@@ -3232,6 +3235,7 @@ def proposal_alerts(request):
                     'title': p.title, 'client_name': p.client_name,
                     'alert_type': 'seller_inactive',
                     'days_since': days,
+                    'ref_date': ref_date.isoformat(),
                     'message': f'Sin follow-up del vendedor hace {days} días.',
                 })
 
@@ -3256,6 +3260,7 @@ def proposal_alerts(request):
                 'title': p.title, 'client_name': p.client_name,
                 'alert_type': 'zombie',
                 'days_since': days,
+                'ref_date': p.sent_at.isoformat(),
                 'message': f'Propuesta zombie — sin vista ni actividad en {days} días.',
             })
 
@@ -3272,6 +3277,7 @@ def proposal_alerts(request):
             'title': p.title, 'client_name': p.client_name,
             'alert_type': 'zombie_draft',
             'days_since': days,
+            'ref_date': p.updated_at.isoformat(),
             'message': f'Borrador abandonado — sin edición en {days} días.',
         })
 
@@ -3291,6 +3297,7 @@ def proposal_alerts(request):
             'title': p.title, 'client_name': p.client_name,
             'alert_type': 'zombie_sent_stale',
             'days_since': days,
+            'ref_date': p.sent_at.isoformat(),
             'message': f'Enviada hace {days} días — nunca vista.',
         })
 
@@ -3316,6 +3323,7 @@ def proposal_alerts(request):
                     'title': p.title, 'client_name': p.client_name,
                     'alert_type': 'late_return',
                     'days_since': gap_days,
+                    'ref_date': latest.isoformat(),
                     'message': f'El cliente volvió después de {gap_days} días — posible comparación con competencia.',
                 })
 

@@ -79,6 +79,13 @@ python3 manage.py run_huey              # Requires Redis running
 | `create_fake_blog_posts` | Create fake blog posts with structured JSON content |
 | `create_contacts` | Create sample contact entries |
 | `delete_fake_data` | Delete all fake data |
+| `cleanup_in_calculator` | Clean up stale in-calculator proposal states |
+| `update_hosting_specs` | Update hosting tier specifications |
+| `zero_group_price_percent` | Reset group price percentages |
+| `create_platform_admin` | Create a platform admin user |
+| `seed_demo_clients` | Seed demo client users for platform |
+| `seed_platform_data` | Seed full platform demo data (projects, requirements, etc.) |
+| `seed_mihuella` | Seed specific demo data for mihuella project |
 
 ---
 
@@ -142,7 +149,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 ### Backend Patterns
 
 - **Function-based views** (`@api_view`) — all DRF views are FBV, not class-based
-- **Service layer** — business logic in `content/services/` (ProposalService, ProposalEmailService, ProposalPdfService, EmailTemplateRegistry)
+- **Service layer** — business logic in `content/services/` (ProposalService, ProposalEmailService, ProposalPdfService, EmailTemplateRegistry, PdfUtils, DocumentPdfService, MarkdownParser)
 - **Model layer** — thin models with properties (`is_expired`, `days_remaining`, `public_url`)
 - **Huey tasks** — async operations: reminders, expiration, engagement-based emails
 - **Custom admin site** — `content/admin.py` with custom `AdminSite` class
@@ -152,8 +159,8 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 ### Frontend Patterns
 
 - **Pinia Options API** — all stores use Options API (state, getters, actions), not Composition API
-- **Composables** — 23 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, etc.)
-- **Component architecture** — 93 Vue components total; 40 BusinessProposal components (12 section types + admin + overlays + utilities)
+- **Composables** — 25 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, etc.)
+- **Component architecture** — 96 Vue components total; 40 BusinessProposal components (12 section types + admin + overlays + utilities)
 - **GSAP animations** — horizontal scroll with ScrollTrigger for proposal client view, reveal animations for marketing pages
 - **Layouts** — `default.vue` (public pages with navbar), `admin.vue` (admin panel with sidebar), `platform.vue` (platform with sidebar + theme)
 - **Middleware** — `admin-auth.js` route guard for `/panel/**` routes, `platform-auth.js` route guard for `/platform/**` routes
@@ -164,9 +171,9 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 ### Backend (pytest)
 
-- Location: `backend/content/tests/` and `backend/accounts/tests/`
+- Location: `backend/content/tests/`, `backend/accounts/tests/`, `backend/tests/`
 - Structure: `models/`, `serializers/`, `views/`, `services/`, `tasks/`, `utils/`, `management/`
-- Test files: 43 total (30 content + 12 accounts + 1 projectapp)
+- Test files: 50 total (30 content + 17 accounts + 1 projectapp + 2 backend/)
 - Fixtures: `conftest.py` at root and `content/tests/conftest.py`
 - Coverage: custom terminal report with per-file bars and Top-N focus
 - Config: `backend/pytest.ini`
@@ -184,7 +191,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `frontend/e2e/`
 - Structure: `admin/`, `auth/`, `blog/`, `layout/`, `platform/`, `proposal/`, `public/`
-- Spec files: 95 total
+- Spec files: 112 total
 - Flow definitions: `frontend/e2e/flow-definitions.json`
 - Config: `frontend/playwright.config.js`
 - Helpers: `frontend/e2e/helpers/`
@@ -220,37 +227,38 @@ Triggers: Push/PR to `main`/`master`. Concurrency group cancels in-progress runs
 ```
 projectapp/
 ├── backend/
-│   ├── accounts/               # Platform app (auth, onboarding, projects, kanban)
-│   │   ├── models.py            # 6 models (UserProfile, VerificationCode, Project, Requirement, RequirementComment, RequirementHistory)
+│   ├── accounts/               # Platform app (auth, onboarding, projects, kanban, bug reports, changes, deliverables, notifications, payments)
+│   │   ├── models.py            # 6+ models (UserProfile, VerificationCode, Project, Requirement, RequirementComment, RequirementHistory, + new platform models)
 │   │   ├── services/            # 4 services (image_utils, onboarding, tokens, verification)
-│   │   ├── management/commands/ # 3 commands (create_platform_admin, seed_demo_clients, seed_platform_data)
-│   │   ├── tests/               # 12 test files
-│   │   └── urls.py              # 15 URL patterns
+│   │   ├── management/commands/ # 4 commands (create_platform_admin, seed_demo_clients, seed_platform_data, seed_mihuella)
+│   │   ├── tests/               # 17 test files
+│   │   └── urls.py              # 48 URL patterns
 │   ├── content/                 # Main Django app
-│   │   ├── models/              # 14 model files (proposal, blog, portfolio, contact, email, etc.)
+│   │   ├── models/              # 15 model files (proposal, blog, portfolio, contact, document, email, etc.)
 │   │   ├── serializers/         # DRF serializers (proposal, blog, portfolio, contact)
 │   │   ├── views/               # FBV views (proposal 123K, blog 18K, portfolio 9K, email_templates 8K, contact 2K)
-│   │   ├── services/            # Business logic (proposal 130K, email 57K, pdf 89K, templates 38K)
+│   │   ├── services/            # Business logic (proposal 132K, email 60K, pdf 72K, templates 38K, pdf_utils 36K, document_pdf 20K, markdown_parser 9K)
 │   │   ├── tasks.py             # Huey async tasks
 │   │   ├── templates/emails/    # 44 email HTML/text templates
-│   │   ├── management/commands/ # 5 management commands
+│   │   ├── management/commands/ # 8 management commands
 │   │   ├── tests/               # 30 test files (models, serializers, views, services, tasks, utils)
-│   │   └── urls.py              # 71 URL patterns
+│   │   └── urls.py              # 81 URL patterns
 │   ├── projectapp/              # Django project (settings, urls, wsgi, views, 1 test file)
+│   ├── tests/                   # Root-level tests (test_document_pdf_service.py, test_markdown_parser.py)
 │   ├── static/                  # Static files (Nuxt build output in prod)
 │   └── media/                   # User uploads
 ├── frontend/
-│   ├── pages/                   # Nuxt file-based routing (41 pages)
-│   │   ├── panel/               # Admin pages (proposals, blog, portfolio, clients)
-│   │   ├── platform/            # Platform pages (dashboard, projects, kanban, clients, profile)
+│   ├── pages/                   # Nuxt file-based routing (54 pages)
+│   │   ├── panel/               # Admin pages (proposals, blog, portfolio, clients, documents, admins)
+│   │   ├── platform/            # Platform pages (dashboard, board, projects, kanban, bugs, changes, deliverables, notifications, payments, clients, profile)
 │   │   ├── blog/                # Blog listing + detail
 │   │   ├── portfolio-works/     # Portfolio listing + detail
 │   │   └── proposal/            # Client proposal view
-│   ├── components/              # Vue components (93 files)
+│   ├── components/              # Vue components (96 files)
 │   │   └── BusinessProposal/    # 40 proposal components (sections + admin + overlays)
-│   ├── stores/                  # 9 Pinia stores (proposals, blog, portfolio_works, contacts, language, platform-auth, platform-clients, platform-projects, platform-requirements)
-│   ├── composables/             # 23 composables
-│   ├── e2e/                     # Playwright E2E tests (96 spec files)
+│   ├── stores/                  # 16 Pinia stores (proposals, blog, portfolio_works, contacts, language, documents, panel_admins, platform-auth, platform-clients, platform-projects, platform-requirements, platform-bug-reports, platform-change-requests, platform-deliverables, platform-notifications, platform-payments)
+│   ├── composables/             # 25 composables
+│   ├── e2e/                     # Playwright E2E tests (112 spec files)
 │   ├── test/                    # Jest unit tests (36 test files)
 │   ├── layouts/                 # default.vue, admin.vue, platform.vue
 │   ├── middleware/              # admin-auth.js, platform-auth.js
@@ -271,4 +279,4 @@ projectapp/
 3. **GoDaddy SMTP** — email delivery limited by provider (port 465 SSL only)
 4. **Redis required** — for Huey task queue (even if immediate mode in dev)
 5. **Nuxt builds to Django static** — production frontend is pre-rendered and served by Django, not a separate server
-6. **Large service files** — `proposal_service.py` (130K), `proposal_pdf_service.py` (89K) could benefit from splitting
+6. **Large service files** — `proposal_service.py` (132K), `proposal_pdf_service.py` (72K — shared utils extracted to `pdf_utils.py`) could benefit from further splitting

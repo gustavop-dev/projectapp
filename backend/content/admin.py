@@ -5,6 +5,7 @@ from .models import (
     BusinessProposal, ProposalSection, ProposalRequirementGroup, ProposalRequirementItem,
     BlogPost, ProposalViewEvent, ProposalSectionView, ProposalChangeLog,
     ProposalDefaultConfig, EmailTemplateConfig,
+    Document,
 )
 
 class PortfolioWorkAdmin(admin.ModelAdmin):
@@ -171,6 +172,37 @@ class ProposalRequirementItemAdmin(admin.ModelAdmin):
     search_fields = ('name', 'description')
 
 
+class DocumentAdmin(admin.ModelAdmin):
+    """
+    Custom admin configuration for the Document model.
+    """
+    list_display = (
+        'title', 'slug', 'status', 'language', 'cover_type',
+        'include_portada', 'include_subportada', 'include_contraportada',
+        'client_name', 'created_at',
+    )
+    list_filter = ('status', 'language', 'cover_type', 'include_portada', 'include_subportada', 'include_contraportada')
+    search_fields = ('title', 'client_name')
+    readonly_fields = ('uuid', 'created_at', 'updated_at')
+    fieldsets = (
+        ('Identity', {
+            'fields': ('uuid', 'title', 'slug', 'client_name'),
+        }),
+        ('Content', {
+            'fields': ('content_markdown', 'content_json'),
+        }),
+        ('Settings', {
+            'fields': ('status', 'language', 'cover_type'),
+        }),
+        ('Portadas', {
+            'fields': ('include_portada', 'include_subportada', 'include_contraportada'),
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+        }),
+    )
+
+
 class ProjectAppAdminSite(admin.AdminSite):
     """
     Custom AdminSite configuration to organize models by sections.
@@ -220,6 +252,14 @@ class ProjectAppAdminSite(admin.AdminSite):
                     if model['object_name'] == 'BlogPost'
                 ]
             },
+            {
+                'name': _('Documents'),
+                'app_label': 'documents',
+                'models': [
+                    model for model in app_dict.get('content', {}).get('models', [])
+                    if model['object_name'] == 'Document'
+                ]
+            },
         ]
         return custom_app_list
 
@@ -237,3 +277,4 @@ admin_site.register(ProposalSectionView)
 admin_site.register(ProposalChangeLog)
 admin_site.register(ProposalDefaultConfig, ProposalDefaultConfigAdmin)
 admin_site.register(EmailTemplateConfig, EmailTemplateConfigAdmin)
+admin_site.register(Document, DocumentAdmin)

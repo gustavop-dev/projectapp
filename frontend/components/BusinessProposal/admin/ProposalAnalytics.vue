@@ -708,10 +708,12 @@ function escapeHtml(str) {
 }
 
 function formatTimelineDescription(event) {
+  const desc = event.description || '';
+
   // Calculator events
   if (isCalcEvent(event)) {
     try {
-      const data = JSON.parse(event.description);
+      const data = JSON.parse(desc);
       const count = (data.selected || []).length;
       const total = data.total;
       const elapsed = data.elapsed_seconds || 0;
@@ -731,15 +733,15 @@ function formatTimelineDescription(event) {
         + (deselectedCount ? `, <strong>${deselectedCount}</strong> desmarcado${deselectedCount !== 1 ? 's' : ''}` : '')
         + (totalStr ? ` — Total: ${totalStr}` : '')
         + (elapsed ? ` — Tiempo: <strong>${timeStr}</strong>` : '');
-    } catch { return escapeHtml(event.description); }
+    } catch { return escapeHtml(desc); }
   }
 
   // Requirement clicked
   if (event.change_type === 'req_clicked') {
     try {
-      const data = JSON.parse(event.description);
+      const data = JSON.parse(desc);
       return `Cliente consultó <strong>${escapeHtml(data.group_title || 'módulo')}</strong>`;
-    } catch { return escapeHtml(event.description); }
+    } catch { return escapeHtml(desc); }
   }
 
   // Field updates with old/new values
@@ -756,7 +758,72 @@ function formatTimelineDescription(event) {
     return `<strong>Estado</strong>: ${escapeHtml(event.old_value)} → <strong>${escapeHtml(event.new_value)}</strong>`;
   }
 
-  return escapeHtml(event.description);
+  // Client comment — bold the comment body
+  if (event.change_type === 'commented') {
+    const prefix = 'Client left a comment: ';
+    if (desc.startsWith(prefix)) {
+      return `Client left a comment: <strong>${escapeHtml(desc.slice(prefix.length))}</strong>`;
+    }
+    return escapeHtml(desc);
+  }
+
+  // Negotiating — bold the comment when present
+  if (event.change_type === 'negotiating') {
+    const key = ' Comment: ';
+    const idx = desc.indexOf(key);
+    if (idx !== -1) {
+      return `${escapeHtml(desc.slice(0, idx))} Comment: <strong>${escapeHtml(desc.slice(idx + key.length))}</strong>`;
+    }
+    return escapeHtml(desc);
+  }
+
+  // Rejected — bold the rejection reason when present
+  if (event.change_type === 'rejected') {
+    const key = ' Reason: ';
+    const idx = desc.indexOf(key);
+    if (idx !== -1) {
+      return `${escapeHtml(desc.slice(0, idx))} Reason: <strong>${escapeHtml(desc.slice(idx + key.length))}</strong>`;
+    }
+    return escapeHtml(desc);
+  }
+
+  // Conditional acceptance — bold the condition text
+  if (event.change_type === 'cond_accepted') {
+    const prefix = 'Conditional acceptance: ';
+    if (desc.startsWith(prefix)) {
+      return `Conditional acceptance: <strong>${escapeHtml(desc.slice(prefix.length))}</strong>`;
+    }
+    return escapeHtml(desc);
+  }
+
+  // Accepted — bold condition when present
+  if (event.change_type === 'accepted') {
+    const key = ' Condition: ';
+    const idx = desc.indexOf(key);
+    if (idx !== -1) {
+      return `${escapeHtml(desc.slice(0, idx))} Condition: <strong>${escapeHtml(desc.slice(idx + key.length))}</strong>`;
+    }
+    return escapeHtml(desc);
+  }
+
+  // Sent / resent — bold the recipient email
+  if (event.change_type === 'sent' || event.change_type === 'resent') {
+    const key = ' to ';
+    const idx = desc.indexOf(key);
+    if (idx !== -1) {
+      const afterTo = desc.slice(idx + key.length);
+      const email = afterTo.endsWith('.') ? afterTo.slice(0, -1) : afterTo;
+      return `${escapeHtml(desc.slice(0, idx))} to <strong>${escapeHtml(email)}</strong>.`;
+    }
+    return escapeHtml(desc);
+  }
+
+  // Created / duplicated — bold the proposal title between quotes
+  if (event.change_type === 'created' || event.change_type === 'duplicated') {
+    return escapeHtml(desc).replace(/&quot;(.+?)&quot;/, '<strong>&quot;$1&quot;</strong>');
+  }
+
+  return escapeHtml(desc);
 }
 
 function timelineIcon(type) {

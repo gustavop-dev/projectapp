@@ -154,3 +154,12 @@ export const PLATFORM_HOSTING_SUBSCRIPTION = ['@flow:platform-hosting-subscripti
 export const PLATFORM_NOTIFICATIONS = ['@flow:platform-notifications', '@module:platform', '@priority:P2'];
 export const PLATFORM_KANBAN_JSON_UPLOAD = ['@flow:platform-kanban-json-upload', '@module:platform', '@priority:P2'];
 export const PLATFORM_REQUIREMENT_CLIENT_REVIEW = ['@flow:platform-requirement-client-review', '@module:platform', '@priority:P2'];
+
+// ── v2.7.0 new flows ──
+export const ADMIN_DOCUMENT_LIST = ['@flow:admin-document-list', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_CREATE = ['@flow:admin-document-create', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_EDIT = ['@flow:admin-document-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_ADMIN_MANAGEMENT = ['@flow:admin-admin-management', '@module:admin', '@priority:P3'];
+export const ADMIN_EMAIL_DELIVERABILITY = ['@flow:admin-email-deliverability', '@module:admin', '@priority:P3'];
+export const PUBLIC_LANDING_SOFTWARE = ['@flow:public-landing-software', '@module:public', '@priority:P3'];
+export const PUBLIC_LANDING_APPS = ['@flow:public-landing-apps', '@module:public', '@priority:P3'];

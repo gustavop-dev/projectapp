@@ -17,7 +17,6 @@
       <button
         v-if="isOpen && !loading"
         class="flex items-center gap-1 text-xs text-gray-400 hover:text-emerald-600 transition-colors"
-        :class="{ 'animate-spin': refreshing }"
         @click="refreshDashboard"
       >
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

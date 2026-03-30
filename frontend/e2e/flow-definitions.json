@@ -1,6 +1,6 @@
 {
-  "version": "2.6.0",
-  "lastUpdated": "2026-03-18",
+  "version": "2.7.0",
+  "lastUpdated": "2026-03-30",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1024,6 +1024,62 @@
       "roles": ["platform-client"],
       "priority": "P2",
       "description": "Client reviews completed requirements from the Kanban board. Clicking a done card shows three options: Approve (marks as accepted), Request Change (navigates to change requests with pre-filled data), or Report Bug (navigates to bugs with pre-filled data).",
+      "expectedSpecs": 1
+    },
+    "admin-document-list": {
+      "name": "Admin Document List",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "View the list of admin documents with title, status, client association, and actions (edit, download PDF, duplicate, delete). Navigate to create or edit pages.",
+      "expectedSpecs": 1
+    },
+    "admin-document-create": {
+      "name": "Admin Document Create",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Create a new admin document via Markdown paste mode or file upload mode, with title, optional client association, and live preview.",
+      "expectedSpecs": 1
+    },
+    "admin-document-edit": {
+      "name": "Admin Document Edit",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Edit an existing admin document, change content, update status, and download as PDF.",
+      "expectedSpecs": 1
+    },
+    "admin-admin-management": {
+      "name": "Admin User Management",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P3",
+      "description": "Manage admin users: list with status filters (All/Active/Inactive), invite new admin via modal, view and deactivate existing admins.",
+      "expectedSpecs": 1
+    },
+    "admin-email-deliverability": {
+      "name": "Admin Email Deliverability Dashboard",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P3",
+      "description": "Dashboard tracking email send/delivery/bounce rates for all proposal-related automated emails. Accessible from /panel/proposals/email-deliverability.",
+      "expectedSpecs": 1
+    },
+    "public-landing-software": {
+      "name": "Landing Software Development",
+      "module": "public",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "View the custom software development landing page with hero, features, CTA, and contact form section.",
+      "expectedSpecs": 1
+    },
+    "public-landing-apps": {
+      "name": "Landing App Development",
+      "module": "public",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "View the mobile app development landing page with hero, features, CTA, and contact form section.",
       "expectedSpecs": 1
     }
   }

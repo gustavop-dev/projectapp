@@ -26,7 +26,7 @@ class TestProjectAppAdminSiteGetAppList:
     def test_returns_4_custom_groups(self, db):
         request = self._make_superuser_request(db)
         app_list = admin_site.get_app_list(request)
-        assert len(app_list) == 4
+        assert len(app_list) == 5
 
     def test_group_names_match_expected_labels(self, db):
         request = self._make_superuser_request(db)
@@ -34,6 +34,6 @@ class TestProjectAppAdminSiteGetAppList:
         names = {app['name'] for app in app_list}
         expected = {
             'Contact Management', 'Portfolio Works Management',
-            'Business Proposals', 'Blog',
+            'Business Proposals', 'Blog', 'Documents',
         }
         assert names == expected

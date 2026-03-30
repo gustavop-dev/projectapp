@@ -196,7 +196,45 @@ venv/bin/python <command>
 
 ---
 
-## 9. Methodology Maintenance
+## 10. Document System Patterns
+
+### Generic PDF Service Architecture
+- `DocumentPdfService` handles PDF generation for generic branded documents (separate from proposals)
+- Shared PDF utilities extracted into `pdf_utils.py` (36K) — used by both `ProposalPdfService` and `DocumentPdfService`
+- `MarkdownParser` (`markdown_parser.py`, 9K) parses markdown content for Document rendering
+- Active work on branch `generate-pdf-with-template`
+
+### Document Model Conventions
+- `Document` model in `content/models/document.py` — follows same app as proposals, portfolio, blog
+- Status lifecycle: `draft → published → archived` (same pattern as other content models)
+- Language field mirrors proposal (`es`/`en`) for bilingual support
+- `cover_type` field: `generic`, `none`, `proposal` — determines PDF cover rendering
+- UUID field for public access (same pattern as `BusinessProposal`)
+
+### Frontend: Document Store + Composable
+- `documents.js` store uses `request_http` (same as `proposals.js`, `blog.js`) — NOT platform HTTP client
+- `useMarkdownPreview.js` composable for live markdown preview in the document editor
+- `usePlatformCustomTheme.js` composable for custom theme configuration in platform
+
+---
+
+## 11. Platform Expanded Module Patterns
+
+### New Platform Modules Follow Consistent Structure
+Each new platform module (Bug Reports, Change Requests, Deliverables, Notifications, Payments) follows:
+- Backend: model in `accounts/models.py`, DRF views, URL patterns in `accounts/urls.py`, test file in `accounts/tests/`
+- Frontend: store `platform-<module>.js` using `usePlatformApi` HTTP client, pages at `/platform/<module>` (global) and `/platform/projects/:id/<module>` (per-project)
+- Per-project views exist for: bugs, changes, deliverables, payments
+- Global-only views: notifications, board, profile
+
+### Accounts URL Count Growth
+- Accounts URL patterns grew from 15 → 48 after platform module expansion
+- Each new module adds ~5-7 URL patterns (list, create, detail, update, delete)
+- Never hardcode the count — verify with `grep -c "path(" backend/accounts/urls.py`
+
+---
+
+## 12. Methodology Maintenance
 
 ### Memory Bank Source
 - Methodology rules based on [rules_template](https://github.com/Bhartendu-Kumar/rules_template)
