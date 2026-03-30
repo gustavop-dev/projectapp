@@ -39,8 +39,8 @@ test.describe('Admin Document List', () => {
     await page.goto('/panel/documents');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Contrato de Servicios')).toBeVisible();
-    await expect(page.getByText('Propuesta Técnica')).toBeVisible();
+    await expect(page.getByRole('table').getByText('Contrato de Servicios')).toBeVisible();
+    await expect(page.getByRole('table').getByText('Propuesta Técnica')).toBeVisible();
     await expect(page.getByRole('link', { name: /Nuevo Documento/i })).toBeVisible();
   });
 

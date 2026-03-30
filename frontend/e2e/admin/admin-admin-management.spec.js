@@ -43,7 +43,7 @@ test.describe('Admin User Management', () => {
     await page.goto('/panel/admins');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('Administradores')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Administradores' })).toBeVisible();
     await expect(page.getByText('Carlos López')).toBeVisible();
     await expect(page.getByText('Ana García')).toBeVisible();
     await expect(page.getByText('Pedro Martínez')).toBeVisible();
@@ -61,9 +61,9 @@ test.describe('Admin User Management', () => {
     await page.goto('/panel/admins');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByRole('button', { name: /Todos/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Activos/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Inactivos/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Todos', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Activos', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Inactivos', exact: true })).toBeVisible();
   });
 
   test('invite modal opens when Agregar Administrador is clicked', {
@@ -75,10 +75,10 @@ test.describe('Admin User Management', () => {
       return null;
     });
     await page.goto('/panel/admins');
-    await page.waitForLoadState('networkidle');
+    await page.waitForResponse(res => res.url().includes('/api/accounts/admins/'));
 
     await page.getByRole('button', { name: /Agregar Administrador/i }).click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Se le enviará un email con credenciales temporales')).toBeVisible({ timeout: 5000 });
   });
 
   test('shows empty state when no admins exist', {

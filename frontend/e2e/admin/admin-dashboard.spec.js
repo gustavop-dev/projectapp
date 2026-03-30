@@ -49,7 +49,7 @@ test.describe('Admin Dashboard', () => {
       return null;
     });
     await page.goto('/panel');
-    await page.waitForLoadState('networkidle');
+    await page.waitForResponse(res => res.url().includes('/api/proposals/dashboard/'));
 
     await expect(page.getByText('Pipeline activo')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/3 propuestas en curso/)).toBeVisible();

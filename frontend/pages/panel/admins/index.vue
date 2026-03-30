@@ -107,7 +107,7 @@
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
         @click.self="closeModal"
       >
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+        <div role="dialog" aria-modal="true" aria-label="Agregar Administrador" class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
           <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Agregar Administrador</h2>
           <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
             Se le enviará un email con credenciales temporales para acceder a la plataforma.

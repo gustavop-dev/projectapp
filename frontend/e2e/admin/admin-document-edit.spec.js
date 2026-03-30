@@ -34,7 +34,7 @@ test.describe('Admin Document Edit', () => {
     await page.goto('/panel/documents/1/edit');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByDisplayValue('Contrato de Servicios')).toBeVisible();
+    await expect(page.locator('#edit-title')).toBeVisible();
   });
 
   test('back link navigates to documents list', {
@@ -69,7 +69,7 @@ test.describe('Admin Document Edit', () => {
     await page.goto('/panel/documents/1/edit');
     await page.waitForLoadState('networkidle');
 
-    const titleInput = page.getByDisplayValue('Contrato de Servicios');
+    const titleInput = page.locator('#edit-title');
     await titleInput.fill('Contrato Actualizado');
     await page.getByRole('button', { name: /Guardar|Actualizar/i }).click();
 

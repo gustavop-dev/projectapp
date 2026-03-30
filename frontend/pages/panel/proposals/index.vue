@@ -150,7 +150,12 @@
             </div>
           </div>
           <div class="flex items-center gap-3">
-            <span class="text-xs font-medium" :class="alert.priority === 'critical' ? 'text-red-600 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'">{{ alert.message }}</span>
+            <div class="text-right">
+              <span class="text-xs font-medium block" :class="alert.priority === 'critical' ? 'text-red-600 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'">{{ alert.message }}</span>
+              <span v-if="alert.ref_date || alert.alert_date" class="text-[10px] text-gray-400 dark:text-gray-500">
+                {{ formatAlertDate(alert.ref_date || alert.alert_date) }}
+              </span>
+            </div>
             <button
               v-if="alert.manual_alert_id"
               type="button"
@@ -274,7 +279,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
-          <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="[p.is_active ? 'hover:bg-gray-50 dark:hover:bg-gray-700/50' : 'bg-gray-50 dark:bg-gray-700/30 opacity-60', selectedIds.has(p.id) ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : '']" @click="navigateToProposal(p.id)">
+          <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="[p.is_active ? 'hover:bg-gray-50 dark:hover:bg-gray-700/50' : 'bg-gray-50 dark:bg-gray-700/30 opacity-60', selectedIds.has(p.id) ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : '']" @click="navigateToProposal(p.id, $event)">
             <td class="px-3 py-4" @click.stop>
               <input type="checkbox" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" :checked="selectedIds.has(p.id)" @change="toggleSelect(p.id)" />
             </td>
@@ -664,6 +669,12 @@ const paginatedProposals = computed(() => {
   return filteredProposals.value.slice(start, start + pageSize);
 });
 
+function formatAlertDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: d.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined });
+}
+
 function timeAgo(dateStr) {
   if (!dateStr) return '';
   const now = new Date();
@@ -795,8 +806,13 @@ const proposalActions = computed(() => {
 });
 
 const router = useRouter();
-function navigateToProposal(id) {
-  router.push(localePath(`/panel/proposals/${id}/edit`));
+function navigateToProposal(id, event) {
+  const path = localePath(`/panel/proposals/${id}/edit`);
+  if (event?.ctrlKey || event?.metaKey) {
+    window.open(path, '_blank');
+  } else {
+    router.push(path);
+  }
 }
 
 const statusOptions = [

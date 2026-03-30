@@ -148,6 +148,10 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
                 'id': log.id,
                 'change_type': log.change_type,
                 'description': log.description,
+                'field_name': log.field_name,
+                'old_value': log.old_value,
+                'new_value': log.new_value,
+                'actor_type': log.actor_type,
                 'created_at': log.created_at.isoformat(),
             }
             for log in logs
