@@ -20,6 +20,9 @@ def _make_document(
     client_name='Acme Corp',
     cover_type='generic',
     language='es',
+    include_portada=None,
+    include_subportada=None,
+    include_contraportada=None,
 ):
     """Build a mock Document with the attributes used by DocumentPdfService."""
     doc = MagicMock()
@@ -29,6 +32,20 @@ def _make_document(
     doc.cover_type = cover_type
     doc.language = language
     doc.created_at = datetime.datetime(2025, 6, 15, 10, 0, 0)
+
+    # Derive boolean flags from cover_type when not explicitly provided
+    if include_portada is None:
+        doc.include_portada = cover_type == 'proposal'
+    else:
+        doc.include_portada = include_portada
+    if include_subportada is None:
+        doc.include_subportada = cover_type != 'none'
+    else:
+        doc.include_subportada = include_subportada
+    if include_contraportada is None:
+        doc.include_contraportada = cover_type != 'none'
+    else:
+        doc.include_contraportada = include_contraportada
 
     content_json = {}
     if meta is not None:
@@ -175,16 +192,16 @@ def test_handles_sub_section_blocks():
 
 # -- Cover type behaviour ------------------------------------------------------
 
-def test_generic_cover_type_produces_longer_pdf():
+def test_with_subportada_produces_longer_pdf_than_without():
     blocks = [{'type': 'paragraph', 'text': 'Cover test'}]
-    doc_generic = _make_document(blocks=blocks, cover_type='generic')
-    doc_none = _make_document(blocks=blocks, cover_type='none')
+    doc_with = _make_document(blocks=blocks, include_subportada=True, include_portada=False, include_contraportada=False)
+    doc_without = _make_document(blocks=blocks, include_subportada=False, include_portada=False, include_contraportada=False)
 
-    result_generic = DocumentPdfService.generate(doc_generic)
-    result_none = DocumentPdfService.generate(doc_none)
+    result_with = DocumentPdfService.generate(doc_with)
+    result_without = DocumentPdfService.generate(doc_without)
 
-    # generic includes a title page so the PDF should be larger
-    assert len(result_generic) > len(result_none)
+    # subportada adds an extra title page so the PDF should be larger
+    assert len(result_with) > len(result_without)
 
 
 def test_none_cover_type_skips_title_page():
@@ -277,3 +294,70 @@ def test_inline_formatting_in_paragraph_renders_without_error():
     result = DocumentPdfService.generate(doc)
 
     assert isinstance(result, bytes)
+
+
+# -- TOC block -----------------------------------------------------------
+
+def test_toc_block_renders_valid_pdf():
+    blocks = [
+        {'type': 'toc'},
+        {'type': 'section_header', 'index': '01', 'title': 'Introducción'},
+        {'type': 'paragraph', 'text': 'Texto de intro.'},
+        {'type': 'section_header', 'index': '02', 'title': 'Análisis'},
+        {'type': 'paragraph', 'text': 'Texto de análisis.'},
+    ]
+    doc = _make_document(blocks=blocks, include_subportada=False, include_portada=False, include_contraportada=False)
+
+    result = DocumentPdfService.generate(doc)
+
+    assert isinstance(result, bytes)
+    assert result[:5] == b'%PDF-'
+
+
+def test_toc_with_subportada_renders_valid_pdf():
+    blocks = [
+        {'type': 'toc'},
+        {'type': 'section_header', 'index': '01', 'title': 'Capítulo Uno'},
+        {'type': 'paragraph', 'text': 'Contenido del capítulo.'},
+    ]
+    doc = _make_document(blocks=blocks, include_subportada=True, include_portada=False, include_contraportada=False)
+
+    result = DocumentPdfService.generate(doc)
+
+    assert isinstance(result, bytes)
+    assert result[:5] == b'%PDF-'
+
+
+def test_document_without_toc_block_is_unaffected():
+    blocks = [
+        {'type': 'section_header', 'index': '01', 'title': 'Sin Índice'},
+        {'type': 'paragraph', 'text': 'Documento sin bloque [TOC].'},
+    ]
+    doc = _make_document(blocks=blocks, include_subportada=False, include_portada=False, include_contraportada=False)
+
+    result = DocumentPdfService.generate(doc)
+
+    assert isinstance(result, bytes)
+    assert result[:5] == b'%PDF-'
+
+
+def test_toc_produces_larger_pdf_than_same_doc_without_toc():
+    content_blocks = [
+        {'type': 'section_header', 'index': '01', 'title': 'Sección A'},
+        {'type': 'paragraph', 'text': 'Texto A.'},
+        {'type': 'section_header', 'index': '02', 'title': 'Sección B'},
+        {'type': 'paragraph', 'text': 'Texto B.'},
+    ]
+    doc_with_toc = _make_document(
+        blocks=[{'type': 'toc'}] + content_blocks,
+        include_subportada=False, include_portada=False, include_contraportada=False,
+    )
+    doc_without_toc = _make_document(
+        blocks=content_blocks,
+        include_subportada=False, include_portada=False, include_contraportada=False,
+    )
+
+    result_with = DocumentPdfService.generate(doc_with_toc)
+    result_without = DocumentPdfService.generate(doc_without_toc)
+
+    assert len(result_with) > len(result_without)

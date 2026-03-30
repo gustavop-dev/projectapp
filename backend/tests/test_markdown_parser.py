@@ -286,3 +286,30 @@ def test_top_level_list_item_without_children_has_empty_children():
     blocks = markdown_to_blocks(md)
 
     assert blocks[0]["items"][0]["children"] == []
+
+
+# -- TOC marker ---------------------------------------------------------------
+
+def test_toc_marker_produces_toc_block():
+    blocks = markdown_to_blocks("[TOC]")
+
+    assert len(blocks) == 1
+    assert blocks[0] == {"type": "toc"}
+
+
+def test_toc_marker_is_case_sensitive_and_must_be_exact():
+    blocks = markdown_to_blocks("[toc]")
+
+    assert len(blocks) == 1
+    assert blocks[0]["type"] == "paragraph"
+
+
+def test_toc_block_appears_at_correct_position_among_other_blocks():
+    md = "# Título\n\n[TOC]\n\n### 1. Sección"
+
+    blocks = markdown_to_blocks(md)
+
+    assert len(blocks) == 3
+    assert blocks[0]["type"] == "heading"
+    assert blocks[1]["type"] == "toc"
+    assert blocks[2]["type"] == "section_header"

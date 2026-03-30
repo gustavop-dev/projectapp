@@ -24,6 +24,7 @@ def markdown_to_blocks(text):
     - separator: --- or *** or ___
     - section_header: ### with numbered pattern like "### 1. Title"
     - sub_section: **N.N. Title** pattern (bold numbered sub-heading)
+    - toc: [TOC] on its own line — triggers table-of-contents generation
 
     Returns:
         list[dict]: List of block objects.
@@ -58,13 +59,19 @@ def markdown_to_blocks(text):
             })
             continue
 
-        # 2. Separator
+        # 2. TOC marker
+        if stripped == '[TOC]':
+            blocks.append({'type': 'toc'})
+            i += 1
+            continue
+
+        # 3. Separator
         if re.match(r'^[-*_]{3,}\s*$', stripped):
             blocks.append({'type': 'separator'})
             i += 1
             continue
 
-        # 3. Headings
+        # 4. Headings
         heading_match = re.match(r'^(#{1,3})\s+(.+)$', stripped)
         if heading_match:
             level = len(heading_match.group(1))
@@ -87,7 +94,7 @@ def markdown_to_blocks(text):
             i += 1
             continue
 
-        # 4. Blockquote / Callout
+        # 5. Blockquote / Callout
         if stripped.startswith('>'):
             quote_lines = []
             while i < len(lines):
@@ -116,7 +123,7 @@ def markdown_to_blocks(text):
                     })
             continue
 
-        # 5. Table
+        # 6. Table
         if stripped.startswith('|'):
             table_lines = []
             while i < len(lines) and lines[i].strip().startswith('|'):
@@ -144,7 +151,7 @@ def markdown_to_blocks(text):
                 })
             continue
 
-        # 6. Unordered list
+        # 7. Unordered list
         if re.match(r'^[-*]\s+', stripped):
             items = []
             while i < len(lines):
@@ -192,7 +199,7 @@ def markdown_to_blocks(text):
                 })
             continue
 
-        # 7. Ordered list
+        # 8. Ordered list
         if re.match(r'^\d+\.\s+', stripped):
             items = []
             while i < len(lines):
@@ -235,7 +242,7 @@ def markdown_to_blocks(text):
                 })
             continue
 
-        # 8. Sub-section: **N.N. Title** or **N.N Title**
+        # 9. Sub-section: **N.N. Title** or **N.N Title**
         subsection_match = re.match(
             r'^\*\*(\d+\.\d+\.?)\s+(.+?)\*\*$', stripped,
         )
@@ -248,7 +255,7 @@ def markdown_to_blocks(text):
             i += 1
             continue
 
-        # 9. Paragraph (fallback)
+        # 10. Paragraph (fallback)
         para_lines = []
         while i < len(lines):
             s = lines[i].strip()

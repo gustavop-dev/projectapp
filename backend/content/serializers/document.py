@@ -11,6 +11,7 @@ class DocumentListSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'uuid', 'title', 'slug', 'status',
             'client_name', 'language', 'cover_type',
+            'include_portada', 'include_subportada', 'include_contraportada',
             'created_at', 'updated_at',
         )
 
@@ -24,6 +25,7 @@ class DocumentDetailSerializer(serializers.ModelSerializer):
             'id', 'uuid', 'title', 'slug', 'status',
             'content_markdown', 'content_json',
             'client_name', 'language', 'cover_type',
+            'include_portada', 'include_subportada', 'include_contraportada',
             'created_at', 'updated_at',
         )
 
@@ -35,6 +37,7 @@ class DocumentCreateUpdateSerializer(serializers.ModelSerializer):
         model = Document
         fields = (
             'title', 'client_name', 'language', 'cover_type',
+            'include_portada', 'include_subportada', 'include_contraportada',
             'status', 'content_markdown', 'content_json',
         )
         extra_kwargs = {
@@ -56,3 +59,6 @@ class DocumentFromMarkdownSerializer(serializers.Serializer):
     cover_type = serializers.ChoiceField(
         choices=Document.CoverType.choices, required=False, default='generic',
     )
+    include_portada = serializers.BooleanField(required=False, default=True)
+    include_subportada = serializers.BooleanField(required=False, default=True)
+    include_contraportada = serializers.BooleanField(required=False, default=True)

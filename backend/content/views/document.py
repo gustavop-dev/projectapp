@@ -48,6 +48,9 @@ def create_document(request):
                 'title': document.title,
                 'client_name': document.client_name,
                 'cover_type': document.cover_type,
+                'include_portada': document.include_portada,
+                'include_subportada': document.include_subportada,
+                'include_contraportada': document.include_contraportada,
             },
             'blocks': blocks,
         }
@@ -74,12 +77,18 @@ def create_document_from_markdown(request):
         client_name=data.get('client_name', ''),
         language=data.get('language', 'es'),
         cover_type=data.get('cover_type', 'generic'),
+        include_portada=data.get('include_portada', True),
+        include_subportada=data.get('include_subportada', True),
+        include_contraportada=data.get('include_contraportada', True),
         content_markdown=markdown_text,
         content_json={
             'meta': {
                 'title': data['title'],
                 'client_name': data.get('client_name', ''),
                 'cover_type': data.get('cover_type', 'generic'),
+                'include_portada': data.get('include_portada', True),
+                'include_subportada': data.get('include_subportada', True),
+                'include_contraportada': data.get('include_contraportada', True),
             },
             'blocks': blocks,
         },
@@ -116,17 +125,34 @@ def upload_document_markdown(request):
 
     blocks = markdown_to_blocks(markdown_text)
 
+    def _to_bool(value, default=True):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.lower() not in ('false', '0', '')
+        return default if value is None else bool(value)
+
+    include_portada = _to_bool(request.data.get('include_portada'), default=True)
+    include_subportada = _to_bool(request.data.get('include_subportada'), default=True)
+    include_contraportada = _to_bool(request.data.get('include_contraportada'), default=True)
+
     document = Document.objects.create(
         title=title,
         client_name=client_name,
         language=language,
         cover_type=cover_type,
+        include_portada=include_portada,
+        include_subportada=include_subportada,
+        include_contraportada=include_contraportada,
         content_markdown=markdown_text,
         content_json={
             'meta': {
                 'title': title,
                 'client_name': client_name,
                 'cover_type': cover_type,
+                'include_portada': include_portada,
+                'include_subportada': include_subportada,
+                'include_contraportada': include_contraportada,
             },
             'blocks': blocks,
         },
@@ -166,6 +192,9 @@ def update_document(request, document_id):
                 'title': document.title,
                 'client_name': document.client_name,
                 'cover_type': document.cover_type,
+                'include_portada': document.include_portada,
+                'include_subportada': document.include_subportada,
+                'include_contraportada': document.include_contraportada,
             },
             'blocks': blocks,
         }
@@ -195,6 +224,9 @@ def duplicate_document(request, document_id):
         client_name=document.client_name,
         language=document.language,
         cover_type=document.cover_type,
+        include_portada=document.include_portada,
+        include_subportada=document.include_subportada,
+        include_contraportada=document.include_contraportada,
         status=Document.Status.DRAFT,
         content_markdown=document.content_markdown,
         content_json=copy.deepcopy(document.content_json),

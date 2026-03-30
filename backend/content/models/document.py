@@ -39,6 +39,10 @@ class Document(models.Model):
         max_length=20, choices=CoverType.choices, default=CoverType.GENERIC,
     )
 
+    include_portada = models.BooleanField(default=True)
+    include_subportada = models.BooleanField(default=True)
+    include_contraportada = models.BooleanField(default=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

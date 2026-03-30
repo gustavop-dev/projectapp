@@ -63,7 +63,7 @@
           />
         </div>
 
-        <!-- Language + Cover toggle -->
+        <!-- Language + Cover toggles -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Idioma</label>
@@ -77,27 +77,30 @@
               <option value="en">English</option>
             </select>
           </div>
-          <div class="flex flex-col justify-end">
-            <label class="flex items-center gap-3 cursor-pointer py-2.5 px-1 group select-none">
+          <div class="flex flex-col justify-end gap-1">
+            <label class="flex items-center gap-3 cursor-pointer py-1.5 px-1 select-none">
               <span class="relative flex-shrink-0">
-                <input
-                  v-model="withCovers"
-                  type="checkbox"
-                  class="sr-only peer"
-                />
-                <span
-                  class="block w-10 h-6 rounded-full transition-colors duration-200
-                         bg-gray-200 peer-checked:bg-emerald-500
-                         dark:bg-gray-600 dark:peer-checked:bg-emerald-500"
-                ></span>
-                <span
-                  class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200
-                         peer-checked:translate-x-4"
-                ></span>
+                <input v-model="form.include_portada" type="checkbox" class="sr-only peer" />
+                <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-gray-200 peer-checked:bg-emerald-500 dark:bg-gray-600 dark:peer-checked:bg-emerald-500"></span>
+                <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
               </span>
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Incluir portada y contraportada
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Incluir portada</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer py-1.5 px-1 select-none">
+              <span class="relative flex-shrink-0">
+                <input v-model="form.include_subportada" type="checkbox" class="sr-only peer" />
+                <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-gray-200 peer-checked:bg-emerald-500 dark:bg-gray-600 dark:peer-checked:bg-emerald-500"></span>
+                <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
               </span>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Incluir subportada</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer py-1.5 px-1 select-none">
+              <span class="relative flex-shrink-0">
+                <input v-model="form.include_contraportada" type="checkbox" class="sr-only peer" />
+                <span class="block w-10 h-6 rounded-full transition-colors duration-200 bg-gray-200 peer-checked:bg-emerald-500 dark:bg-gray-600 dark:peer-checked:bg-emerald-500"></span>
+                <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-4"></span>
+              </span>
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Incluir contraportada</span>
             </label>
           </div>
         </div>
@@ -226,14 +229,10 @@ const form = reactive({
   title: '',
   client_name: '',
   language: 'es',
-  cover_type: 'generic',
+  include_portada: true,
+  include_subportada: true,
+  include_contraportada: true,
   content_markdown: '',
-});
-
-/** Toggle: true = cover_type 'generic', false = cover_type 'none'. */
-const withCovers = computed({
-  get: () => form.cover_type !== 'none',
-  set: (val) => { form.cover_type = val ? 'generic' : 'none'; },
 });
 
 /** Lightweight markdown-to-HTML renderer (no external dependencies). */
@@ -439,7 +438,9 @@ async function handleSubmit() {
     title: form.title.trim(),
     client_name: form.client_name.trim(),
     language: form.language,
-    cover_type: form.cover_type,
+    include_portada: form.include_portada,
+    include_subportada: form.include_subportada,
+    include_contraportada: form.include_contraportada,
     markdown: form.content_markdown,
   };
 

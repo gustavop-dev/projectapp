@@ -176,8 +176,12 @@ class DocumentAdmin(admin.ModelAdmin):
     """
     Custom admin configuration for the Document model.
     """
-    list_display = ('title', 'slug', 'status', 'language', 'cover_type', 'client_name', 'created_at')
-    list_filter = ('status', 'language', 'cover_type')
+    list_display = (
+        'title', 'slug', 'status', 'language', 'cover_type',
+        'include_portada', 'include_subportada', 'include_contraportada',
+        'client_name', 'created_at',
+    )
+    list_filter = ('status', 'language', 'cover_type', 'include_portada', 'include_subportada', 'include_contraportada')
     search_fields = ('title', 'client_name')
     readonly_fields = ('uuid', 'created_at', 'updated_at')
     fieldsets = (
@@ -189,6 +193,9 @@ class DocumentAdmin(admin.ModelAdmin):
         }),
         ('Settings', {
             'fields': ('status', 'language', 'cover_type'),
+        }),
+        ('Portadas', {
+            'fields': ('include_portada', 'include_subportada', 'include_contraportada'),
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
