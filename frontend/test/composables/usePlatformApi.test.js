@@ -63,6 +63,20 @@ describe('usePlatformApi', () => {
 
       expect(session.user).toBeNull()
     })
+
+    it('returns defaults when global window is undefined', () => {
+      const prev = globalThis.window
+      try {
+        Reflect.deleteProperty(globalThis, 'window')
+        jest.resetModules()
+        const mod = require('../../composables/usePlatformApi')
+        const session = mod.readPlatformSession()
+        expect(session.accessToken).toBe('')
+        expect(session.user).toBeNull()
+      } finally {
+        globalThis.window = prev
+      }
+    })
   })
 
   describe('writePlatformSession', () => {
@@ -300,6 +314,22 @@ describe('usePlatformApi interceptors', () => {
   })
 
   describe('response interceptor', () => {
+    let consoleErrorSpy
+
+    beforeEach(() => {
+      const orig = console.error.bind(console)
+      consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args) => {
+        const err = args[0]
+        const msg = err && typeof err.message === 'string' ? err.message : String(err ?? '')
+        if (msg.includes('Not implemented: navigation')) return
+        orig(...args)
+      })
+    })
+
+    afterEach(() => {
+      consoleErrorSpy.mockRestore()
+    })
+
     it('passes through successful responses', () => {
       const response = { data: { ok: true } }
 

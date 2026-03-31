@@ -189,8 +189,12 @@ python manage.py compilemessages
 ## Backend Testing Standards
 
 ### Execution Rules
-1. **Activate virtual environment** before any command: `source venv/bin/activate`
-2. **Run only modified test files**: `pytest path/to/test_file.py -v`
+1. **Activate virtual environment** before any command. This repo standardizes on a **venv at the project root** (ignored by git as `.venv/`):
+   - From repo root: `source .venv/bin/activate`
+   - From `backend/`: `source ../.venv/bin/activate`
+   - If you use `backend/venv/` instead, use `source venv/bin/activate` from inside `backend/`.
+   - Create once: `cd <repo-root> && python3 -m venv .venv && source .venv/bin/activate && pip install -r backend/requirements.txt`
+2. **Run only modified test files**: `pytest path/to/test_file.py -v` (with cwd `backend/` or `DJANGO_SETTINGS_MODULE` set accordingly)
 3. **Maximum per execution**: 20 tests per batch, 3 commands per cycle
 
 ### Coverage Prioritization (triage order)
@@ -210,5 +214,5 @@ python manage.py compilemessages
 
 ### Coverage Report
 - Custom reporter in `conftest.py` with Unicode progress bars
-- Run: `source venv/bin/activate && pytest --cov`
+- Run from `backend/` after activating venv: `pytest --cov`
 - Full reference: `docs/BACKEND_AND_FRONTEND_COVERAGE_REPORT_STANDARD.md`

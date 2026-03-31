@@ -175,6 +175,21 @@ class BusinessProposal(models.Model):
         help_text='List of module IDs selected by the client in the calculator (e.g. ["module-payments", "module-reservations"]).',
     )
 
+    # Platform: commercial proposal lives on a project deliverable (OneToOne)
+    deliverable = models.OneToOneField(
+        'accounts.Deliverable',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='business_proposal',
+        help_text='Platform deliverable that owns this proposal (PDFs, technical document).',
+    )
+    platform_onboarding_completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Set when acceptance onboarding (sync + welcome email) completed; prevents duplicate runs.',
+    )
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -77,9 +77,16 @@
               <h4 class="text-sm font-semibold text-esmerald dark:text-white">{{ d.title }}</h4>
               <p v-if="d.description" class="mt-1 line-clamp-2 text-xs text-green-light">{{ d.description }}</p>
               <div class="mt-3 flex items-center justify-between text-[10px] text-green-light/60">
-                <span>{{ d.file_name }}</span>
+                <span>{{ d.file_name || '—' }}</span>
                 <span>{{ formatDate(d.updated_at) }}</span>
               </div>
+              <NuxtLink
+                :to="localePath(`/platform/projects/${projectId}/deliverables/${d.id}`)"
+                class="mt-3 inline-block text-xs font-medium text-esmerald dark:text-lemon"
+                @click.stop
+              >
+                Ficha: documentos y Kanban →
+              </NuxtLink>
             </div>
           </div>
         </div>
@@ -119,6 +126,9 @@
                     <option value="designs">Diseños</option>
                     <option value="credentials">Credenciales</option>
                     <option value="documents">Documentos</option>
+                    <option value="contract">Contrato</option>
+                    <option value="amendment">Otrosí</option>
+                    <option value="legal_annex">Anexo legal</option>
                     <option value="apks">APKs / Builds</option>
                     <option value="other">Otros</option>
                   </select>
@@ -314,6 +324,9 @@ const categoryTabs = [
   { value: 'all', label: 'Todos' },
   { value: 'designs', label: 'Diseños' },
   { value: 'documents', label: 'Documentos' },
+  { value: 'contract', label: 'Contrato' },
+  { value: 'amendment', label: 'Otrosí' },
+  { value: 'legal_annex', label: 'Anexo legal' },
   { value: 'credentials', label: 'Credenciales' },
   { value: 'apks', label: 'APKs / Builds' },
   { value: 'other', label: 'Otros' },
@@ -333,19 +346,34 @@ const isVersionUploadOpen = ref(false)
 const versionFile = ref(null)
 
 function categoryLabel(cat) {
-  const map = { designs: 'Diseños', credentials: 'Credenciales', documents: 'Documentos', apks: 'APKs / Builds', other: 'Otros' }
+  const map = {
+    designs: 'Diseños', credentials: 'Credenciales', documents: 'Documentos',
+    contract: 'Contrato', amendment: 'Otrosí', legal_annex: 'Anexo legal',
+    apks: 'APKs / Builds', other: 'Otros',
+  }
   return map[cat] || cat
 }
 function categoryDotClass(cat) {
-  const map = { designs: 'bg-purple-500', credentials: 'bg-amber-500', documents: 'bg-blue-500', apks: 'bg-emerald-500', other: 'bg-gray-400' }
+  const map = {
+    designs: 'bg-purple-500', credentials: 'bg-amber-500', documents: 'bg-blue-500',
+    contract: 'bg-teal-500', amendment: 'bg-orange-500', legal_annex: 'bg-indigo-500',
+    apks: 'bg-emerald-500', other: 'bg-gray-400',
+  }
   return map[cat] || 'bg-gray-400'
 }
 function categoryIconBg(cat) {
-  const map = { designs: 'bg-purple-500/10', credentials: 'bg-amber-500/10', documents: 'bg-blue-500/10', apks: 'bg-emerald-500/10', other: 'bg-gray-500/10' }
+  const map = {
+    designs: 'bg-purple-500/10', credentials: 'bg-amber-500/10', documents: 'bg-blue-500/10',
+    contract: 'bg-teal-500/10', amendment: 'bg-orange-500/10', legal_annex: 'bg-indigo-500/10',
+    apks: 'bg-emerald-500/10', other: 'bg-gray-500/10',
+  }
   return map[cat] || 'bg-gray-500/10'
 }
 function categoryIcon(cat) {
-  const map = { designs: '🎨', credentials: '🔑', documents: '📄', apks: '📱', other: '📦' }
+  const map = {
+    designs: '🎨', credentials: '🔑', documents: '📄', contract: '📜', amendment: '✏️',
+    legal_annex: '⚖️', apks: '📱', other: '📦',
+  }
   return map[cat] || '📦'
 }
 function categoryBadgeClass(cat) {
@@ -353,6 +381,9 @@ function categoryBadgeClass(cat) {
     designs: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
     credentials: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     documents: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+    contract: 'bg-teal-500/15 text-teal-600 dark:text-teal-400',
+    amendment: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
+    legal_annex: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400',
     apks: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
     other: 'bg-gray-500/15 text-gray-500',
   }

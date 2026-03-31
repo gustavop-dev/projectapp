@@ -641,7 +641,6 @@ def project_list_view(request):
         name=data['name'],
         description=data.get('description', ''),
         client_id=data['client_id'],
-        proposal=proposal,
         status=data.get('status', Project.STATUS_ACTIVE),
         progress=data.get('progress', 0),
         start_date=data.get('start_date'),
@@ -650,6 +649,20 @@ def project_list_view(request):
         payment_milestones=payment_milestones,
         hosting_tiers=hosting_tiers,
     )
+
+    if proposal:
+        from accounts.models import Deliverable
+
+        d = Deliverable.objects.create(
+            project=project,
+            category=Deliverable.CATEGORY_DOCUMENTS,
+            title=(proposal.title or 'Propuesta comercial')[:300],
+            description='',
+            file=None,
+            uploaded_by=request.user,
+        )
+        proposal.deliverable = d
+        proposal.save(update_fields=['deliverable_id'])
 
     from accounts.models import Notification
     from accounts.services.notifications import notify
@@ -717,6 +730,38 @@ def project_detail_view(request, project_id):
     return Response(ProjectDetailSerializer(project, context={'request': request}).data)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminRole])
+def deliverable_sync_technical_requirements_view(request, project_id, deliverable_id):
+    """
+    Admin: upsert deliverables (per épica) and requirements from the BusinessProposal
+    on this deliverable's technical_document section.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    from accounts.models import Deliverable
+    from accounts.services.technical_requirements_sync import (
+        sync_technical_requirements_for_deliverable,
+    )
+
+    d = Deliverable.objects.filter(pk=deliverable_id, project=proj).first()
+    if not d:
+        return Response(
+            {'detail': 'Entregable no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    result = sync_technical_requirements_for_deliverable(d, request.user)
+    if not result.get('ok'):
+        return Response(
+            {'detail': result.get('detail', 'No se pudo sincronizar.')},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    return Response(result, status=status.HTTP_200_OK)
+
+
 # ==========================================================================
 # Requirements (Kanban board)
 # ==========================================================================
@@ -745,30 +790,74 @@ def _get_project_or_403(request, project_id):
     return proj, None
 
 
+def _pick_default_deliverable_for_requirements(proj):
+    from accounts.models import Deliverable
+
+    d = (
+        Deliverable.objects.filter(project=proj)
+        .filter(business_proposal__isnull=False)
+        .order_by('id')
+        .first()
+    )
+    if d:
+        return d
+    d = Deliverable.objects.filter(project=proj).order_by('id').first()
+    if d:
+        return d
+    return Deliverable.objects.create(
+        project=proj,
+        category=Deliverable.CATEGORY_OTHER,
+        title='Alcance inicial',
+        description='',
+        file=None,
+        uploaded_by=proj.client,
+    )
+
+
 def _recalculate_project_progress(project):
     """Auto-sync project.progress from done/total requirements."""
-    total = Requirement.objects.filter(project=project).count()
+    total = Requirement.objects.filter(deliverable__project=project).count()
     if total == 0:
         project.progress = 0
     else:
-        done = Requirement.objects.filter(project=project, status=Requirement.STATUS_DONE).count()
+        done = Requirement.objects.filter(
+            deliverable__project=project, status=Requirement.STATUS_DONE,
+        ).count()
         project.progress = round((done / total) * 100)
     project.save(update_fields=['progress', 'updated_at'])
 
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
-def requirement_list_view(request, project_id):
+def requirement_list_view(request, project_id, deliverable_id=None):
     """
     GET  — All requirements for a project (both roles).
     POST — Admin creates a new requirement.
+    When deliverable_id (URL) is set, scope list/create to that deliverable.
     """
     proj, err = _get_project_or_403(request, project_id)
     if err:
         return err
 
+    from accounts.models import Deliverable
+
+    scoped_deliverable = None
+    if deliverable_id is not None:
+        scoped_deliverable = Deliverable.objects.filter(pk=deliverable_id, project=proj).first()
+        if not scoped_deliverable:
+            return Response(
+                {'detail': 'Entregable no encontrado en este proyecto.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
     if request.method == 'GET':
-        qs = Requirement.objects.filter(project=proj)
+        qs = Requirement.objects.filter(deliverable__project=proj).select_related('deliverable')
+        if scoped_deliverable is not None:
+            qs = qs.filter(deliverable_id=scoped_deliverable.id)
+        else:
+            did = request.query_params.get('deliverable_id')
+            if did:
+                qs = qs.filter(deliverable_id=did)
         serializer = RequirementListSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -783,12 +872,26 @@ def requirement_list_view(request, project_id):
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
+    if scoped_deliverable is not None:
+        d = scoped_deliverable
+    else:
+        deliverable_id_body = data.get('deliverable_id')
+        if deliverable_id_body:
+            d = Deliverable.objects.filter(pk=deliverable_id_body, project=proj).first()
+            if not d:
+                return Response(
+                    {'detail': 'Entregable no encontrado en este proyecto.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            d = _pick_default_deliverable_for_requirements(proj)
+
     max_order = Requirement.objects.filter(
-        project=proj, status=data.get('status', Requirement.STATUS_BACKLOG),
+        deliverable=d, status=data.get('status', Requirement.STATUS_BACKLOG),
     ).count()
 
     req = Requirement.objects.create(
-        project=proj,
+        deliverable=d,
         title=data['title'],
         description=data.get('description', ''),
         configuration=data.get('configuration', ''),
@@ -804,7 +907,7 @@ def requirement_list_view(request, project_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsAdminRole])
-def requirement_bulk_upload_view(request, project_id):
+def requirement_bulk_upload_view(request, project_id, deliverable_id=None):
     """
     Admin uploads a JSON array of requirements to create in bulk.
     Expected format: [{ title, description?, configuration?, flow?, priority?, status? }, ...]
@@ -812,6 +915,18 @@ def requirement_bulk_upload_view(request, project_id):
     proj, err = _get_project_or_403(request, project_id)
     if err:
         return err
+
+    from accounts.models import Deliverable
+
+    if deliverable_id is not None:
+        d = Deliverable.objects.filter(pk=deliverable_id, project=proj).first()
+        if not d:
+            return Response(
+                {'detail': 'Entregable no encontrado en este proyecto.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+    else:
+        d = _pick_default_deliverable_for_requirements(proj)
 
     items = request.data
     if not isinstance(items, list):
@@ -827,14 +942,14 @@ def requirement_bulk_upload_view(request, project_id):
         )
 
     created = []
-    order_offset = Requirement.objects.filter(project=proj).count()
+    order_offset = Requirement.objects.filter(deliverable=d).count()
 
     for idx, item in enumerate(items):
         if not isinstance(item, dict) or not item.get('title'):
             continue
 
         req = Requirement.objects.create(
-            project=proj,
+            deliverable=d,
             title=item['title'][:300],
             description=item.get('description', ''),
             configuration=item.get('configuration', ''),
@@ -854,7 +969,7 @@ def requirement_bulk_upload_view(request, project_id):
 
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
-def requirement_detail_view(request, project_id, req_id):
+def requirement_detail_view(request, project_id, req_id, deliverable_id=None):
     """GET detail, PATCH update (admin), DELETE remove (admin)."""
     proj, err = _get_project_or_403(request, project_id)
     if err:
@@ -862,9 +977,12 @@ def requirement_detail_view(request, project_id, req_id):
 
     try:
         req = Requirement.objects.prefetch_related('comments__user', 'history__changed_by').get(
-            id=req_id, project=proj,
+            id=req_id, deliverable__project=proj,
         )
     except Requirement.DoesNotExist:
+        return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if deliverable_id is not None and req.deliverable_id != deliverable_id:
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'GET':
@@ -888,7 +1006,7 @@ def requirement_detail_view(request, project_id, req_id):
 
     old_status = req.status
     upd_fields = ['updated_at']
-    for field in ('title', 'description', 'status', 'priority', 'estimated_hours', 'module', 'order'):
+    for field in ('title', 'description', 'status', 'priority', 'configuration', 'flow', 'order'):
         if field in data:
             setattr(req, field, data[field])
             upd_fields.append(field)
@@ -906,7 +1024,7 @@ def requirement_detail_view(request, project_id, req_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def requirement_move_view(request, project_id, req_id):
+def requirement_move_view(request, project_id, req_id, deliverable_id=None):
     """
     Move a card to a new column/order.
     Admin can move to any column. Client can only approve (approval→done).
@@ -916,8 +1034,11 @@ def requirement_move_view(request, project_id, req_id):
         return err
 
     try:
-        req = Requirement.objects.get(id=req_id, project=proj)
+        req = Requirement.objects.get(id=req_id, deliverable__project=proj)
     except Requirement.DoesNotExist:
+        return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if deliverable_id is not None and req.deliverable_id != deliverable_id:
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
     serializer = MoveRequirementSerializer(data=request.data)
@@ -976,15 +1097,18 @@ def requirement_move_view(request, project_id, req_id):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def requirement_comment_view(request, project_id, req_id):
+def requirement_comment_view(request, project_id, req_id, deliverable_id=None):
     """Add a comment to a requirement. Both roles can comment."""
     proj, err = _get_project_or_403(request, project_id)
     if err:
         return err
 
     try:
-        req = Requirement.objects.get(id=req_id, project=proj)
+        req = Requirement.objects.get(id=req_id, deliverable__project=proj)
     except Requirement.DoesNotExist:
+        return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if deliverable_id is not None and req.deliverable_id != deliverable_id:
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
     serializer = CreateCommentSerializer(data=request.data)
@@ -1273,12 +1397,13 @@ def change_request_convert_view(request, project_id, cr_id):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    d = _pick_default_deliverable_for_requirements(proj)
     max_order = Requirement.objects.filter(
-        project=proj, status=Requirement.STATUS_TODO,
+        deliverable=d, status=Requirement.STATUS_TODO,
     ).count()
 
     req = Requirement.objects.create(
-        project=proj,
+        deliverable=d,
         title=cr.title,
         description=cr.description,
         configuration=f'Originado de solicitud de cambio #{cr.id} — módulo: {cr.module_or_screen}',
@@ -1616,30 +1741,31 @@ def deliverable_list_view(request, project_id):
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
+    upload_file = data.get('file')
     deliverable = Deliverable.objects.create(
         project=proj,
         uploaded_by=request.user,
         title=data['title'],
         description=data.get('description', ''),
         category=data.get('category', Deliverable.CATEGORY_OTHER),
-        file=data['file'],
-        current_version=1,
+        file=upload_file,
+        current_version=1 if upload_file else 0,
     )
 
-    DeliverableVersion.objects.create(
-        deliverable=deliverable,
-        file=data['file'],
-        version_number=1,
-        uploaded_by=request.user,
-    )
-
-    notify_project_client(
-        proj, Notification.TYPE_DELIVERABLE_UPLOADED,
-        f'Nuevo entregable: {deliverable.title}',
-        message=f'Se subió un archivo en {proj.name}.',
-        related_object_type='deliverable', related_object_id=deliverable.id,
-        exclude_user=request.user,
-    )
+    if upload_file:
+        DeliverableVersion.objects.create(
+            deliverable=deliverable,
+            file=upload_file,
+            version_number=1,
+            uploaded_by=request.user,
+        )
+        notify_project_client(
+            proj, Notification.TYPE_DELIVERABLE_UPLOADED,
+            f'Nuevo entregable: {deliverable.title}',
+            message=f'Se subió un archivo en {proj.name}.',
+            related_object_type='deliverable', related_object_id=deliverable.id,
+            exclude_user=request.user,
+        )
 
     return Response(
         DeliverableListSerializer(deliverable, context={'request': request}).data,
@@ -1660,7 +1786,9 @@ def deliverable_detail_view(request, project_id, deliverable_id):
         return err
 
     try:
-        deliverable = Deliverable.objects.get(id=deliverable_id, project=proj)
+        deliverable = Deliverable.objects.select_related('business_proposal').get(
+            id=deliverable_id, project=proj,
+        )
     except Deliverable.DoesNotExist:
         return Response(
             {'detail': 'Entregable no encontrado.'},
@@ -1751,6 +1879,305 @@ def deliverable_upload_version_view(request, project_id, deliverable_id):
 
     return Response(
         DeliverableDetailSerializer(deliverable, context={'request': request}).data,
+        status=status.HTTP_201_CREATED,
+    )
+
+
+def _build_proposal_pdf_http_response(proposal, doc_variant: str):
+    """Shared PDF bytes + filename for platform-authenticated downloads."""
+    from django.http import HttpResponse
+    from django.utils import timezone as _tz
+    import re as _re
+
+    if proposal.is_expired:
+        return None, Response(
+            {'detail': 'La propuesta ha expirado.'},
+            status=status.HTTP_410_GONE,
+        )
+
+    doc_variant = (doc_variant or '').strip().lower()
+    if doc_variant == 'technical':
+        from content.services.technical_document_pdf import generate_technical_document_pdf
+
+        sel = proposal.selected_modules or None
+        pdf_bytes = generate_technical_document_pdf(
+            proposal, selected_modules=sel,
+        )
+        if not pdf_bytes:
+            return None, Response(
+                {'detail': 'El documento técnico no está disponible.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+    else:
+        from content.services.proposal_pdf_service import ProposalPdfService
+
+        selected_modules = proposal.selected_modules or None
+        pdf_bytes = ProposalPdfService.generate(
+            proposal, selected_modules=selected_modules,
+        )
+        if not pdf_bytes:
+            return None, Response(
+                {'detail': 'No se pudo generar el PDF.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    _created = proposal.created_at or _tz.now()
+    date_suffix = _created.strftime('%Y-%m-%d')
+    safe_title = _re.sub(r'[^\w\s-]', '', proposal.title or proposal.client_name).strip()
+    safe_title = _re.sub(r'\s+', '_', safe_title)[:100]
+    filename = (
+        f'{safe_title}_technical_{date_suffix}.pdf'
+        if doc_variant == 'technical'
+        else f'{safe_title}_{date_suffix}.pdf'
+    )
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response, None
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def deliverable_commercial_proposal_pdf_view(request, project_id, deliverable_id):
+    """JWT client/admin: download commercial PDF for the BusinessProposal on this deliverable."""
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        deliverable = Deliverable.objects.select_related('business_proposal').get(
+            id=deliverable_id, project=proj,
+        )
+    except Deliverable.DoesNotExist:
+        return Response(
+            {'detail': 'Entregable no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    bp = getattr(deliverable, 'business_proposal', None)
+    if not bp:
+        return Response(
+            {'detail': 'Este entregable no tiene propuesta comercial vinculada.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    http_resp, err_resp = _build_proposal_pdf_http_response(bp, '')
+    if err_resp:
+        return err_resp
+    return http_resp
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def deliverable_technical_document_pdf_view(request, project_id, deliverable_id):
+    """JWT client/admin: download technical-document PDF for the proposal on this deliverable."""
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        deliverable = Deliverable.objects.select_related('business_proposal').get(
+            id=deliverable_id, project=proj,
+        )
+    except Deliverable.DoesNotExist:
+        return Response(
+            {'detail': 'Entregable no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    bp = getattr(deliverable, 'business_proposal', None)
+    if not bp:
+        return Response(
+            {'detail': 'Este entregable no tiene propuesta comercial vinculada.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    http_resp, err_resp = _build_proposal_pdf_http_response(bp, 'technical')
+    if err_resp:
+        return err_resp
+    return http_resp
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def deliverable_attachment_files_view(request, project_id, deliverable_id):
+    """List extra files on a deliverable (GET) or upload (POST, admin)."""
+    from accounts.models import Deliverable, DeliverableFile
+    from accounts.serializers import DeliverableFileSerializer, CreateDeliverableFileSerializer
+
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        deliverable = Deliverable.objects.get(id=deliverable_id, project=proj)
+    except Deliverable.DoesNotExist:
+        return Response(
+            {'detail': 'Entregable no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if request.method == 'GET':
+        qs = deliverable.attachment_files.select_related('uploaded_by').all()
+        return Response(DeliverableFileSerializer(qs, many=True, context={'request': request}).data)
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not profile.is_admin:
+        return Response(
+            {'detail': 'Solo los administradores pueden subir archivos adicionales.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    serializer = CreateDeliverableFileSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+    row = DeliverableFile.objects.create(
+        deliverable=deliverable,
+        file=data['file'],
+        title=data.get('title', ''),
+        category=data.get('category', Deliverable.CATEGORY_OTHER),
+        uploaded_by=request.user,
+    )
+    return Response(
+        DeliverableFileSerializer(row, context={'request': request}).data,
+        status=status.HTTP_201_CREATED,
+    )
+
+
+def _client_or_admin_for_project_docs(request, proj):
+    profile = getattr(request.user, 'profile', None)
+    if profile and profile.is_admin:
+        return True
+    return proj.client_id == request.user.id
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def deliverable_client_folders_view(request, project_id, deliverable_id):
+    from accounts.models import Deliverable, DeliverableClientFolder
+    from accounts.serializers import (
+        CreateDeliverableClientFolderSerializer,
+        DeliverableClientFolderSerializer,
+    )
+
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+    try:
+        deliverable = Deliverable.objects.get(id=deliverable_id, project=proj)
+    except Deliverable.DoesNotExist:
+        return Response(
+            {'detail': 'Entregable no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    if not _client_or_admin_for_project_docs(request, proj):
+        return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if request.method == 'GET':
+        qs = deliverable.client_folders.all()
+        return Response(DeliverableClientFolderSerializer(qs, many=True).data)
+
+    serializer = CreateDeliverableClientFolderSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+    row = DeliverableClientFolder.objects.create(
+        deliverable=deliverable,
+        name=data['name'],
+        order=data.get('order', 0),
+        created_by=request.user,
+    )
+    return Response(
+        DeliverableClientFolderSerializer(row).data,
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def deliverable_client_folder_detail_view(request, project_id, deliverable_id, folder_id):
+    from accounts.models import Deliverable, DeliverableClientFolder
+    from accounts.serializers import DeliverableClientFolderSerializer
+
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+    try:
+        deliverable = Deliverable.objects.get(id=deliverable_id, project=proj)
+    except Deliverable.DoesNotExist:
+        return Response(
+            {'detail': 'Entregable no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    if not _client_or_admin_for_project_docs(request, proj):
+        return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        folder = DeliverableClientFolder.objects.get(
+            id=folder_id, deliverable=deliverable,
+        )
+    except DeliverableClientFolder.DoesNotExist:
+        return Response({'detail': 'Carpeta no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'DELETE':
+        folder.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    name = request.data.get('name')
+    order = request.data.get('order')
+    upd = []
+    if name is not None:
+        folder.name = str(name)[:200]
+        upd.append('name')
+    if order is not None:
+        folder.order = int(order)
+        upd.append('order')
+    if upd:
+        folder.save(update_fields=upd)
+    return Response(DeliverableClientFolderSerializer(folder).data)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def deliverable_client_uploads_view(request, project_id, deliverable_id):
+    from accounts.models import Deliverable, DeliverableClientUpload
+    from accounts.serializers import (
+        CreateDeliverableClientUploadSerializer,
+        DeliverableClientUploadSerializer,
+    )
+
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+    try:
+        deliverable = Deliverable.objects.get(id=deliverable_id, project=proj)
+    except Deliverable.DoesNotExist:
+        return Response(
+            {'detail': 'Entregable no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    if not _client_or_admin_for_project_docs(request, proj):
+        return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if request.method == 'GET':
+        qs = deliverable.client_uploads.select_related('uploaded_by', 'folder').all()
+        return Response(
+            DeliverableClientUploadSerializer(qs, many=True, context={'request': request}).data,
+        )
+
+    serializer = CreateDeliverableClientUploadSerializer(
+        data=request.data,
+        context={'deliverable': deliverable},
+    )
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+    row = DeliverableClientUpload.objects.create(
+        deliverable=deliverable,
+        folder_id=data.get('folder_id'),
+        file=data['file'],
+        title=data.get('title', ''),
+        uploaded_by=request.user,
+    )
+    return Response(
+        DeliverableClientUploadSerializer(row, context={'request': request}).data,
         status=status.HTTP_201_CREATED,
     )
 
@@ -2055,6 +2482,7 @@ def proposal_list_for_selector_view(request):
 
     qs = BusinessProposal.objects.filter(
         status__in=['accepted', 'sent', 'viewed', 'negotiating'],
+        deliverable__isnull=True,
     ).order_by('-created_at')
 
     serializer = ProposalSummarySerializer(qs, many=True)
@@ -2104,7 +2532,8 @@ def project_subscription_view(request, project_id):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if not proj.proposal:
+        bp = proj.linked_business_proposal()
+        if not bp:
             return Response(
                 {'detail': 'El proyecto no tiene una propuesta vinculada para calcular el hosting.'},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -2119,7 +2548,7 @@ def project_subscription_view(request, project_id):
 
         from datetime import date
         start_date = proj.hosting_start_date or date.today()
-        sub = _create_subscription_from_proposal(proj, proj.proposal, plan, start_date)
+        sub = _create_subscription_from_proposal(proj, bp, plan, start_date)
         return Response(
             HostingSubscriptionSerializer(sub).data,
             status=status.HTTP_201_CREATED,
@@ -2170,11 +2599,12 @@ def _get_plan_discount(project, plan):
         if tier.get('frequency') == plan:
             return tier.get('discount_percent', 0)
     # Fallback to proposal if linked
-    if project.proposal:
+    bp = project.linked_business_proposal()
+    if bp:
         discount_map = {
             HostingSubscription.PLAN_MONTHLY: 0,
-            HostingSubscription.PLAN_QUARTERLY: project.proposal.hosting_discount_quarterly,
-            HostingSubscription.PLAN_SEMIANNUAL: project.proposal.hosting_discount_semiannual,
+            HostingSubscription.PLAN_QUARTERLY: bp.hosting_discount_quarterly,
+            HostingSubscription.PLAN_SEMIANNUAL: bp.hosting_discount_semiannual,
         }
         return discount_map.get(plan, 0)
     # Hardcoded fallback

@@ -1,38 +1,59 @@
 <template>
   <div>
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
-      <h1 class="text-2xl font-light text-gray-900">Dashboard</h1>
-      <div class="flex items-center gap-3">
+      <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Dashboard</h1>
+      <div class="flex flex-wrap items-center gap-3">
         <NuxtLink
           :to="localePath('/panel/proposals/defaults')"
-          class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-gray-600 border border-gray-200 rounded-xl
-                 font-medium text-sm hover:bg-gray-50 hover:border-gray-300 transition-colors
-                 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-500"
-          title="Configurar valores por defecto de las propuestas"
+          class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors
+                 border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50
+                 dark:border-gray-600 dark:bg-gray-800/80 dark:text-gray-300 dark:hover:border-gray-500 dark:hover:bg-gray-800"
+          title="Proposal defaults and email templates"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          Valores por Defecto
+          Proposal defaults
         </NuxtLink>
         <NuxtLink
           :to="localePath('/panel/proposals/create')"
-          class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
-                 font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm w-fit"
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white shadow-sm transition-colors w-fit
+                 bg-esmerald hover:bg-esmerald-dark dark:bg-lemon dark:text-esmerald-dark dark:hover:opacity-90"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
-          Nueva Propuesta
+          New proposal
+        </NuxtLink>
+      </div>
+    </div>
+
+    <!-- Quick access (matches sidebar sections) -->
+    <div class="mb-8">
+      <h2 class="mb-3 text-xs font-semibold uppercase tracking-widest text-green-light dark:text-green-light/80">
+        Quick access
+      </h2>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <NuxtLink
+          v-for="card in quickAccessCards"
+          :key="card.href"
+          :to="card.href"
+          class="group flex flex-col rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-colors
+                 hover:border-esmerald/20 hover:bg-esmerald-light/30 dark:border-white/[0.06] dark:bg-white/[0.04] dark:hover:bg-white/[0.08]"
+        >
+          <span class="text-sm font-medium text-esmerald group-hover:text-esmerald-dark dark:text-white dark:group-hover:text-lemon">
+            {{ card.label }}
+          </span>
+          <span class="mt-1 text-xs text-gray-500 dark:text-green-light/70">{{ card.hint }}</span>
         </NuxtLink>
       </div>
     </div>
 
     <!-- Loading skeleton -->
-    <div v-if="loading" class="text-center py-20 text-gray-400 text-sm">
-      Cargando métricas...
+    <div v-if="loading" class="text-center py-20 text-gray-400 text-sm dark:text-green-light/50">
+      Loading metrics…
     </div>
 
     <template v-else>
@@ -235,12 +256,17 @@
 
       <!-- Recent proposals -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 class="text-sm font-medium text-gray-700">Propuestas recientes</h2>
-          <NuxtLink :to="localePath('/panel/proposals')" class="text-xs text-emerald-600 hover:text-emerald-700">Ver todas →</NuxtLink>
+        <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+          <h2 class="text-sm font-medium text-gray-700 dark:text-gray-200">Recent proposals</h2>
+          <NuxtLink
+            :to="localePath('/panel/proposals')"
+            class="text-xs text-esmerald hover:text-esmerald-dark dark:text-lemon dark:hover:opacity-90"
+          >
+            View all →
+          </NuxtLink>
         </div>
-        <div v-if="recentProposals.length === 0" class="px-6 py-12 text-center text-gray-400 text-sm">
-          No hay propuestas aún. Crea la primera.
+        <div v-if="recentProposals.length === 0" class="px-6 py-12 text-center text-gray-400 text-sm dark:text-green-light/60">
+          No proposals yet. Create the first one.
         </div>
         <ul v-else class="divide-y divide-gray-50">
           <li
@@ -273,11 +299,29 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { getPanelNavSections } from '~/config/panelNav';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const proposalStore = useProposalStore();
+
+/** Sidebar-aligned shortcuts for the dashboard (labels in English). */
+const quickAccessCards = computed(() => {
+  const sections = getPanelNavSections(localePath);
+  const pick = (id, hint) => {
+    const section = sections.find((s) => s.id === id);
+    const first = section?.items?.[0];
+    return first ? { label: section.label, href: first.href, hint } : null;
+  };
+  return [
+    pick('overview', 'Home'),
+    pick('commercial', 'Proposals and clients'),
+    pick('site', 'Blog and portfolio'),
+    pick('documents', 'Markdown → PDF'),
+    pick('system', 'Admins and tools'),
+  ].filter(Boolean);
+});
 const kpis = ref(null);
 const loading = ref(true);
 

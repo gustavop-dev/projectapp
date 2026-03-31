@@ -1,5 +1,14 @@
 from django.urls import path
 
+from accounts.collection_account_views import (
+    collection_account_detail_view,
+    collection_account_issue_view,
+    collection_account_list_create_view,
+    collection_account_mark_cancelled_view,
+    collection_account_mark_paid_view,
+    collection_account_pdf_view,
+    project_collection_account_list_view,
+)
 from accounts.views import (
     admin_detail_view,
     admin_list_view,
@@ -11,8 +20,15 @@ from accounts.views import (
     bug_report_list_view,
     change_request_all_view,
     deliverable_all_view,
+    deliverable_attachment_files_view,
+    deliverable_client_folder_detail_view,
+    deliverable_client_folders_view,
+    deliverable_client_uploads_view,
+    deliverable_commercial_proposal_pdf_view,
     deliverable_detail_view,
     deliverable_list_view,
+    deliverable_sync_technical_requirements_view,
+    deliverable_technical_document_pdf_view,
     deliverable_upload_version_view,
     notification_list_view,
     notification_mark_all_read_view,
@@ -76,13 +92,6 @@ urlpatterns = [
     path('projects/', project_list_view, name='platform-project-list'),
     path('projects/<int:project_id>/', project_detail_view, name='platform-project-detail'),
 
-    # Requirements (Kanban board)
-    path('projects/<int:project_id>/requirements/', requirement_list_view, name='platform-requirement-list'),
-    path('projects/<int:project_id>/requirements/bulk/', requirement_bulk_upload_view, name='platform-requirement-bulk'),
-    path('projects/<int:project_id>/requirements/<int:req_id>/', requirement_detail_view, name='platform-requirement-detail'),
-    path('projects/<int:project_id>/requirements/<int:req_id>/move/', requirement_move_view, name='platform-requirement-move'),
-    path('projects/<int:project_id>/requirements/<int:req_id>/comments/', requirement_comment_view, name='platform-requirement-comments'),
-
     # Change Requests
     path('change-requests/', change_request_all_view, name='platform-change-request-all'),
     path('projects/<int:project_id>/change-requests/', change_request_list_view, name='platform-change-request-list'),
@@ -101,14 +110,107 @@ urlpatterns = [
     # Deliverables
     path('deliverables/', deliverable_all_view, name='platform-deliverable-all'),
     path('projects/<int:project_id>/deliverables/', deliverable_list_view, name='platform-deliverable-list'),
+    path(
+        'projects/<int:project_id>/deliverables/<int:deliverable_id>/sync-technical-requirements/',
+        deliverable_sync_technical_requirements_view,
+        name='platform-deliverable-sync-technical',
+    ),
+    path(
+        'projects/<int:project_id>/deliverables/<int:deliverable_id>/requirements/',
+        requirement_list_view,
+        name='platform-requirement-list',
+    ),
+    path(
+        'projects/<int:project_id>/deliverables/<int:deliverable_id>/requirements/bulk/',
+        requirement_bulk_upload_view,
+        name='platform-requirement-bulk',
+    ),
+    path(
+        'projects/<int:project_id>/deliverables/<int:deliverable_id>/requirements/<int:req_id>/',
+        requirement_detail_view,
+        name='platform-requirement-detail',
+    ),
+    path(
+        'projects/<int:project_id>/deliverables/<int:deliverable_id>/requirements/<int:req_id>/move/',
+        requirement_move_view,
+        name='platform-requirement-move',
+    ),
+    path(
+        'projects/<int:project_id>/deliverables/<int:deliverable_id>/requirements/<int:req_id>/comments/',
+        requirement_comment_view,
+        name='platform-requirement-comments',
+    ),
+    path(
+        'projects/<int:project_id>/deliverables/<int:deliverable_id>/client-folders/',
+        deliverable_client_folders_view,
+        name='platform-deliverable-client-folders',
+    ),
+    path(
+        'projects/<int:project_id>/deliverables/<int:deliverable_id>/client-folders/<int:folder_id>/',
+        deliverable_client_folder_detail_view,
+        name='platform-deliverable-client-folder-detail',
+    ),
+    path(
+        'projects/<int:project_id>/deliverables/<int:deliverable_id>/client-uploads/',
+        deliverable_client_uploads_view,
+        name='platform-deliverable-client-uploads',
+    ),
     path('projects/<int:project_id>/deliverables/<int:deliverable_id>/', deliverable_detail_view, name='platform-deliverable-detail'),
     path('projects/<int:project_id>/deliverables/<int:deliverable_id>/upload-version/', deliverable_upload_version_view, name='platform-deliverable-upload-version'),
+    path(
+        'projects/<int:project_id>/deliverables/<int:deliverable_id>/attachments/',
+        deliverable_attachment_files_view,
+        name='platform-deliverable-attachments',
+    ),
+    path(
+        'projects/<int:project_id>/deliverables/<int:deliverable_id>/download/commercial-proposal-pdf/',
+        deliverable_commercial_proposal_pdf_view,
+        name='platform-deliverable-commercial-pdf',
+    ),
+    path(
+        'projects/<int:project_id>/deliverables/<int:deliverable_id>/download/technical-document-pdf/',
+        deliverable_technical_document_pdf_view,
+        name='platform-deliverable-technical-pdf',
+    ),
 
     # Notifications
     path('notifications/', notification_list_view, name='platform-notification-list'),
     path('notifications/unread-count/', notification_unread_count_view, name='platform-notification-unread-count'),
     path('notifications/<int:notification_id>/read/', notification_mark_read_view, name='platform-notification-mark-read'),
     path('notifications/mark-all-read/', notification_mark_all_read_view, name='platform-notification-mark-all-read'),
+
+    # Collection accounts (commercial documents)
+    path('collection-accounts/', collection_account_list_create_view, name='platform-collection-account-list'),
+    path(
+        'collection-accounts/<int:account_id>/',
+        collection_account_detail_view,
+        name='platform-collection-account-detail',
+    ),
+    path(
+        'collection-accounts/<int:account_id>/issue/',
+        collection_account_issue_view,
+        name='platform-collection-account-issue',
+    ),
+    path(
+        'collection-accounts/<int:account_id>/mark-paid/',
+        collection_account_mark_paid_view,
+        name='platform-collection-account-mark-paid',
+    ),
+    path(
+        'collection-accounts/<int:account_id>/mark-cancelled/',
+        collection_account_mark_cancelled_view,
+        name='platform-collection-account-mark-cancelled',
+    ),
+    path(
+        'collection-accounts/<int:account_id>/pdf/',
+        collection_account_pdf_view,
+        name='platform-collection-account-pdf',
+    ),
+    path(
+        'projects/<int:project_id>/collection-accounts/',
+        project_collection_account_list_view,
+        name='platform-project-collection-accounts',
+    ),
 
     # Payments & Subscriptions
     path('proposals/', proposal_list_for_selector_view, name='platform-proposal-list'),

@@ -15,7 +15,7 @@ function _getCsrfToken() {
  *
  * @param {import('vue').Ref<string>} proposalUuid - Reactive proposal UUID.
  * @param {import('vue').Ref<object>} currentPanel - Reactive current panel object.
- * @param {import('vue').Ref<string>} [viewMode] - Reactive view mode ('executive' or 'detailed').
+ * @param {import('vue').Ref<string>} [viewMode] - Reactive view mode ('executive', 'detailed', or 'technical').
  */
 export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
   // Skip all tracking for admin previews to avoid polluting analytics

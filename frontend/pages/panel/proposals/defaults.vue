@@ -111,6 +111,13 @@
 
     <!-- ═══ TAB: Secciones ═══ -->
     <div v-show="activeTab === 'sections'">
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4 max-w-3xl">
+        Edita las secciones comerciales del modelo por defecto. El
+        <strong class="text-gray-700 dark:text-gray-300">documento técnico</strong>
+        (<code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">technical_document</code>)
+        tiene su propia pestaña <strong class="text-gray-700 dark:text-gray-300">Doc. técnico</strong>
+        con editor estructurado y JSON, igual que al editar una propuesta.
+      </p>
       <!-- Language selector -->
       <div class="mb-6 flex items-center gap-3">
         <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Idioma:</span>
@@ -138,10 +145,10 @@
         Cargando configuración...
       </div>
 
-      <!-- Sections list -->
+      <!-- Sections list (commercial only; technical → tab Doc. técnico) -->
       <div v-else-if="sections.length" class="space-y-3">
         <div
-          v-for="(section, idx) in sections"
+          v-for="{ section, idx } in commercialDefaultsEntries"
           :key="`${selectedLang}-${section.section_type}-${idx}`"
           class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
         >
@@ -221,6 +228,85 @@
             {{ isSaving ? 'Guardando...' : 'Guardar Todos los Cambios' }}
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: Doc. técnico (misma UX que editar propuesta) ═══ -->
+    <div v-show="activeTab === 'technical'" class="max-w-5xl">
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        Valores por defecto del bloque técnico (nuevas propuestas). Idioma actual:
+        <strong>{{ selectedLang === 'es' ? 'Español' : 'English' }}</strong> — cambia el idioma en la pestaña Secciones si necesitas la otra plantilla.
+      </p>
+      <div class="flex gap-1 mb-4 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 max-w-sm">
+        <button
+          type="button"
+          :class="[
+            'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
+            defaultsTechnicalSubTab === 'editor'
+              ? 'bg-white dark:bg-gray-700 shadow-sm font-medium text-gray-900 dark:text-gray-100'
+              : 'text-gray-500',
+          ]"
+          @click="defaultsTechnicalSubTab = 'editor'"
+        >
+          Editor
+        </button>
+        <button
+          type="button"
+          :class="[
+            'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
+            defaultsTechnicalSubTab === 'json'
+              ? 'bg-white dark:bg-gray-700 shadow-sm font-medium text-gray-900 dark:text-gray-100'
+              : 'text-gray-500',
+          ]"
+          @click="defaultsTechnicalSubTab = 'json'"
+        >
+          JSON
+        </button>
+      </div>
+
+      <div v-show="defaultsTechnicalSubTab === 'editor'">
+        <p
+          v-if="technicalDocumentIndex < 0"
+          class="text-sm text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3"
+        >
+          No hay sección <code class="text-xs">technical_document</code> en la plantilla.
+          Restaura valores originales desde Secciones o añade la entrada en la pestaña JSON.
+        </p>
+        <TechnicalDocumentEditor
+          v-else
+          :key="`defaults-tech-${selectedLang}-${technicalDocumentIndex}`"
+          :section="technicalDefaultVirtualSection"
+          @save="handleSaveSection"
+        />
+      </div>
+
+      <div v-show="defaultsTechnicalSubTab === 'json'" class="space-y-4">
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          Solo el objeto <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">content_json</code> del documento técnico. Mismo esquema que en el editor. Pulsa «Aplicar» para actualizar la plantilla en memoria; luego
+          <strong>Guardar todos los cambios</strong> en Secciones o guarda desde JSON global.
+        </p>
+        <textarea
+          v-model="defaultsTechnicalJsonRaw"
+          rows="22"
+          class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-xs font-mono bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 resize-y outline-none focus:ring-2 focus:ring-emerald-500"
+        />
+        <div v-if="defaultsTechnicalJsonError" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-lg">
+          {{ defaultsTechnicalJsonError }}
+        </div>
+        <div
+          v-if="defaultsTechnicalJsonMsg"
+          class="text-sm px-4 py-2 rounded-lg"
+          :class="defaultsTechnicalJsonMsg.type === 'success' ? 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-50 text-red-600'"
+        >
+          {{ defaultsTechnicalJsonMsg.text }}
+        </div>
+        <button
+          type="button"
+          class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700"
+          @click="handleApplyDefaultsTechnicalJson"
+        >
+          Aplicar a plantilla
+        </button>
       </div>
     </div>
 
@@ -398,89 +484,182 @@
 
     <!-- ═══ TAB: Prompt IA ═══ -->
     <div v-show="activeTab === 'prompt'" class="max-w-4xl">
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-        Este prompt se usa con IA (ChatGPT, Claude, etc.) para generar propuestas comerciales personalizadas a partir del JSON plantilla.
-      </p>
+      <PromptSubTabsPanel v-model="defaultsPromptSubTab" dark-track>
+        <template #commercial>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          Este prompt se usa con IA (ChatGPT, Claude, etc.) para generar propuestas comerciales personalizadas a partir del JSON plantilla.
+          El documento técnico por defecto se edita en la pestaña <strong class="text-gray-600 dark:text-gray-300">Doc. técnico</strong>;
+          para la IA solo técnica usa la subpestaña <strong class="text-gray-600 dark:text-gray-300">Técnico</strong> aquí abajo.
+        </p>
 
-      <!-- Action bar -->
-      <div class="flex flex-wrap items-center gap-2 mb-4">
-        <template v-if="!promptIsEditing">
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            @click="startEditPrompt"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-            Editar
-          </button>
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            @click="handleCopyPrompt"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-            {{ promptCopied ? '¡Copiado!' : 'Copiar' }}
-          </button>
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            @click="promptDownload"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-            Descargar .md
-          </button>
-          <button
-            v-if="promptText !== promptDefault"
-            type="button"
-            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-            @click="handleResetPrompt"
-          >
-            Restaurar original
-          </button>
-        </template>
-        <template v-else>
-          <button
-            type="button"
-            class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
-            @click="saveEditPrompt"
-          >
-            Guardar cambios
-          </button>
-          <button
-            type="button"
-            class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-            @click="cancelEditPrompt"
-          >
-            Cancelar
-          </button>
-        </template>
-      </div>
-
-      <!-- Editing mode -->
-      <div v-if="promptIsEditing" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <textarea
-          v-model="promptEditBuffer"
-          rows="30"
-          class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 dark:text-gray-200 bg-transparent border-0 outline-none resize-y focus:ring-0"
-        ></textarea>
-      </div>
-
-      <!-- Read-only mode -->
-      <div v-else class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
-          <pre class="text-xs leading-relaxed text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono break-words">{{ promptText }}</pre>
+        <!-- Action bar -->
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <template v-if="!promptIsEditing">
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              @click="startEditPrompt"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+              Editar
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              @click="handleCopyPrompt"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              {{ promptCopied ? '¡Copiado!' : 'Copiar' }}
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              @click="promptDownload"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Descargar .md
+            </button>
+            <button
+              v-if="promptText !== promptDefault"
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              @click="handleResetPrompt"
+            >
+              Restaurar original
+            </button>
+          </template>
+          <template v-else>
+            <button
+              type="button"
+              class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+              @click="saveEditPrompt"
+            >
+              Guardar cambios
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              @click="cancelEditPrompt"
+            >
+              Cancelar
+            </button>
+          </template>
         </div>
-      </div>
 
-      <p v-if="promptText !== promptDefault" class="text-xs text-amber-600 mt-3">
-        Este prompt ha sido personalizado. Usa "Restaurar original" para volver al valor por defecto.
-      </p>
+        <!-- Editing mode -->
+        <div v-if="promptIsEditing" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <textarea
+            v-model="promptEditBuffer"
+            rows="30"
+            class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 dark:text-gray-200 bg-transparent border-0 outline-none resize-y focus:ring-0"
+          ></textarea>
+        </div>
+
+        <!-- Read-only mode -->
+        <div v-else class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
+            <pre class="text-xs leading-relaxed text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono break-words">{{ promptText }}</pre>
+          </div>
+        </div>
+
+        <p v-if="promptText !== promptDefault" class="text-xs text-amber-600 mt-3">
+          Este prompt ha sido personalizado. Usa "Restaurar original" para volver al valor por defecto.
+        </p>
+        </template>
+
+        <template #technical>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          Prompt para generar la clave <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">technicalDocument</code> (arquitectura, épicas, requerimientos). Sin narrativa comercial ni precios.
+          La estructura por defecto del documento técnico está en la pestaña <strong class="text-gray-600 dark:text-gray-300">Doc. técnico</strong> (editor o JSON) y en la pestaña <strong class="text-gray-600 dark:text-gray-300">JSON</strong> global.
+        </p>
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <template v-if="!technicalDefaultsPromptIsEditing">
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              @click="startEditTechnicalDefaultsPrompt"
+            >
+              Editar
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              @click="handleCopyTechnicalDefaultsPrompt"
+            >
+              {{ technicalDefaultsPromptCopied ? '¡Copiado!' : 'Copiar' }}
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              @click="technicalDefaultsPromptDownload"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Descargar .md
+            </button>
+            <button
+              v-if="technicalDefaultsPromptText !== technicalDefaultsPromptDefault"
+              type="button"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              @click="handleResetTechnicalDefaultsPrompt"
+            >
+              Restaurar original
+            </button>
+          </template>
+          <template v-else>
+            <button
+              type="button"
+              class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+              @click="saveEditTechnicalDefaultsPrompt"
+            >
+              Guardar cambios
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              @click="cancelEditTechnicalDefaultsPrompt"
+            >
+              Cancelar
+            </button>
+          </template>
+        </div>
+        <div v-if="technicalDefaultsPromptIsEditing" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <textarea
+            v-model="technicalDefaultsPromptEditBuffer"
+            rows="28"
+            class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 dark:text-gray-200 bg-transparent border-0 outline-none resize-y focus:ring-0"
+          ></textarea>
+        </div>
+        <div v-else class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
+            <pre class="text-xs leading-relaxed text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono break-words">{{ technicalDefaultsPromptText }}</pre>
+          </div>
+        </div>
+        <p v-if="technicalDefaultsPromptText !== technicalDefaultsPromptDefault" class="text-xs text-amber-600 mt-3">
+          Prompt técnico personalizado. «Restaurar original» vuelve al valor por defecto.
+        </p>
+        </template>
+      </PromptSubTabsPanel>
     </div>
 
     <!-- ═══ TAB: JSON ═══ -->
     <div v-show="activeTab === 'json'" class="max-w-4xl">
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
         Representación JSON de la configuración por defecto (secciones plantilla). Puedes editar directamente el JSON y guardar los cambios.
+      </p>
+      <ul class="text-xs text-gray-500 dark:text-gray-400 mb-4 list-disc list-inside space-y-1">
+        <li>
+          Debe existir una entrada con <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">section_type: &quot;technical_document&quot;</code> y su
+          <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">content_json</code> (arquitectura, épicas, <code class="text-[10px]">epicKey</code> / <code class="text-[10px]">flowKey</code>, etc.).
+        </li>
+        <li>
+          Al importar una propuesta desde JSON global, la clave camelCase es <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">technicalDocument</code> — distinta de este formato de plantilla.
+        </li>
+      </ul>
+      <p
+        v-if="defaultsTechnicalEpicCount !== null"
+        class="text-xs text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 border border-teal-100 dark:border-teal-800 rounded-lg px-3 py-2 mb-4"
+      >
+        Vista rápida: <strong>{{ defaultsTechnicalEpicCount }}</strong> épica(s) en el documento técnico por defecto (idioma {{ selectedLang }}).
       </p>
 
       <!-- Action bar -->
@@ -668,11 +847,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
+import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
 import SectionPreviewModal from '~/components/BusinessProposal/admin/SectionPreviewModal.vue';
+import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
+import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 
 const localePath = useLocalePath();
@@ -684,12 +866,15 @@ const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useCo
 const tabs = [
   { id: 'general', label: 'Vista General' },
   { id: 'sections', label: 'Secciones' },
+  { id: 'technical', label: 'Doc. técnico' },
   { id: 'emails', label: 'Plantillas de Email' },
   { id: 'prompt', label: 'Prompt Proposal' },
   { id: 'json', label: 'JSON' },
 ];
 const route = useRoute();
-const initialTab = ['general', 'sections', 'emails', 'prompt', 'json'].includes(route.query.tab) ? route.query.tab : 'general';
+const initialTab = ['general', 'sections', 'technical', 'emails', 'prompt', 'json'].includes(route.query.tab)
+  ? route.query.tab
+  : 'general';
 const activeTab = ref(initialTab);
 
 const languageOptions = [
@@ -752,6 +937,98 @@ const savedSections = ref(new Set());
 const showResetConfirm = ref(false);
 const showSectionPreview = ref(false);
 const previewSection = ref({});
+
+/** Commercial sections only — technical defaults live in tab Doc. técnico. */
+const commercialDefaultsEntries = computed(() =>
+  sections.value.map((section, idx) => ({ section, idx })).filter(
+    ({ section }) => section.section_type !== 'technical_document',
+  ),
+);
+
+const technicalDocumentIndex = computed(() =>
+  sections.value.findIndex((s) => s.section_type === 'technical_document'),
+);
+
+const technicalDefaultVirtualSection = computed(() => {
+  const idx = technicalDocumentIndex.value;
+  if (idx < 0) return null;
+  return toVirtualSection(sections.value[idx], idx);
+});
+
+const defaultsTechnicalSubTab = ref('editor');
+const defaultsTechnicalJsonRaw = ref('{}');
+const defaultsTechnicalJsonError = ref('');
+const defaultsTechnicalJsonMsg = ref(null);
+
+const defaultsTechnicalEpicCount = computed(() => {
+  const idx = technicalDocumentIndex.value;
+  if (idx < 0) return null;
+  const epics = sections.value[idx]?.content_json?.epics;
+  if (!Array.isArray(epics)) return 0;
+  return epics.length;
+});
+
+function refreshDefaultsTechnicalJson() {
+  defaultsTechnicalJsonError.value = '';
+  defaultsTechnicalJsonMsg.value = null;
+  const idx = technicalDocumentIndex.value;
+  if (idx < 0) {
+    defaultsTechnicalJsonRaw.value = '{}';
+    return;
+  }
+  const cj = sections.value[idx]?.content_json;
+  try {
+    defaultsTechnicalJsonRaw.value = JSON.stringify(
+      cj && typeof cj === 'object' ? cj : {},
+      null,
+      2,
+    );
+  } catch {
+    defaultsTechnicalJsonRaw.value = '{}';
+  }
+}
+
+function handleApplyDefaultsTechnicalJson() {
+  defaultsTechnicalJsonError.value = '';
+  defaultsTechnicalJsonMsg.value = null;
+  const idx = technicalDocumentIndex.value;
+  if (idx < 0) {
+    defaultsTechnicalJsonError.value = 'No hay sección technical_document en la plantilla.';
+    return;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(defaultsTechnicalJsonRaw.value.trim());
+  } catch (e) {
+    defaultsTechnicalJsonError.value = `JSON inválido: ${e.message}`;
+    return;
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    defaultsTechnicalJsonError.value = 'El contenido debe ser un objeto JSON.';
+    return;
+  }
+  sections.value[idx] = {
+    ...sections.value[idx],
+    content_json: parsed,
+  };
+  savedSections.value = new Set([...savedSections.value, idx]);
+  defaultsTechnicalJsonMsg.value = {
+    type: 'success',
+    text: 'Plantilla técnica actualizada en memoria. Usa «Guardar todos los cambios» en Secciones (o guarda desde JSON global).',
+  };
+}
+
+watch(defaultsTechnicalSubTab, (sub) => {
+  if (sub === 'json') {
+    refreshDefaultsTechnicalJson();
+  }
+});
+
+watch(activeTab, (tab) => {
+  if (tab === 'technical' && defaultsTechnicalSubTab.value === 'json') {
+    refreshDefaultsTechnicalJson();
+  }
+});
 
 function handleSectionPreview(idx) {
   if (idx >= 0 && idx < sections.value.length) {
@@ -1060,6 +1337,46 @@ async function handleCopyPrompt() {
   showFeedback('Prompt copiado al portapapeles.', 'success');
 }
 
+const defaultsPromptSubTab = ref('commercial');
+
+const {
+  promptText: technicalDefaultsPromptText,
+  isEditing: technicalDefaultsPromptIsEditing,
+  DEFAULT_PROMPT: technicalDefaultsPromptDefault,
+  loadSavedPrompt: loadTechnicalDefaultsPrompt,
+  savePrompt: technicalDefaultsPromptSave,
+  resetPrompt: technicalDefaultsPromptReset,
+  copyPrompt: technicalDefaultsPromptCopy,
+  downloadPrompt: technicalDefaultsPromptDownload,
+} = useTechnicalPrompt();
+
+const technicalDefaultsPromptEditBuffer = ref('');
+const technicalDefaultsPromptCopied = ref(false);
+
+function startEditTechnicalDefaultsPrompt() {
+  technicalDefaultsPromptEditBuffer.value = technicalDefaultsPromptText.value;
+  technicalDefaultsPromptIsEditing.value = true;
+}
+function cancelEditTechnicalDefaultsPrompt() {
+  technicalDefaultsPromptIsEditing.value = false;
+}
+function saveEditTechnicalDefaultsPrompt() {
+  technicalDefaultsPromptSave(technicalDefaultsPromptEditBuffer.value);
+  technicalDefaultsPromptIsEditing.value = false;
+  showFeedback('Prompt técnico guardado correctamente.', 'success');
+}
+async function handleCopyTechnicalDefaultsPrompt() {
+  await technicalDefaultsPromptCopy();
+  technicalDefaultsPromptCopied.value = true;
+  setTimeout(() => { technicalDefaultsPromptCopied.value = false; }, 2000);
+  showFeedback('Prompt técnico copiado al portapapeles.', 'success');
+}
+function handleResetTechnicalDefaultsPrompt() {
+  technicalDefaultsPromptReset();
+  technicalDefaultsPromptIsEditing.value = false;
+  showFeedback('Prompt técnico restaurado al valor original.', 'success');
+}
+
 // ── JSON tab ──
 const defaultsJsonLoading = ref(false);
 const defaultsJsonCopied = ref(false);
@@ -1179,5 +1496,6 @@ onMounted(() => {
   loadDefaults(selectedLang.value);
   loadEmailTemplates();
   loadSavedPrompt();
+  loadTechnicalDefaultsPrompt();
 });
 </script>

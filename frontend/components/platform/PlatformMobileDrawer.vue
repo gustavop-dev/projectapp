@@ -195,7 +195,7 @@ const projectItems = computed(() => {
     { label: 'Solicitudes', href: lp('/platform/changes'), icon: 'refresh' },
     { label: 'Bugs', href: lp('/platform/bugs'), icon: 'bug' },
     { label: 'Entregables', href: lp('/platform/deliverables'), icon: 'file' },
-    { label: 'Pagos', href: lp('/platform/payments'), icon: 'credit-card' },
+      { label: 'Pagos', href: lp('/platform/payments'), icon: 'credit-card' },
   ]
 })
 
@@ -219,7 +219,7 @@ function isActive(href) {
   const cleanPath = route.path.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
   const cleanHref = href.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
 
-  const projectSubMatch = cleanPath.match(/^\/platform\/projects\/\d+\/(\w+)/)
+  const projectSubMatch = cleanPath.match(/^\/platform\/projects\/\d+\/([^/]+)/)
   if (projectSubMatch) {
     const subSection = projectSubMatch[1]
     const mappedModule = projectSubModules[subSection]

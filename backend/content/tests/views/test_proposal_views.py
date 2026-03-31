@@ -21,6 +21,7 @@ from content.models import (
     ProposalShareLink,
     ProposalViewEvent,
 )
+from content.tests.constants import EXPECTED_DEFAULT_SECTION_COUNT
 
 pytestmark = pytest.mark.django_db
 
@@ -129,6 +130,59 @@ class TestDownloadProposalPdf:
         url = reverse('download-proposal-pdf', kwargs={'proposal_uuid': expired_proposal.uuid})
         response = api_client.get(url)
         assert response.status_code == 410
+
+    @patch('content.services.technical_document_pdf.generate_technical_document_pdf')
+    def test_doc_technical_returns_pdf_when_service_returns_bytes(
+        self, mock_tech, api_client, sent_proposal,
+    ):
+        """?doc=technical uses technical PDF service when section exists."""
+        ProposalSection.objects.create(
+            proposal=sent_proposal,
+            section_type='technical_document',
+            title='Technical',
+            order=0,
+            is_enabled=True,
+            content_json={'purpose': 'Test purpose'},
+        )
+        mock_tech.return_value = b'%PDF-technical-fake'
+        url = reverse('download-proposal-pdf', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.get(url, {'doc': 'technical'})
+        assert response.status_code == 200
+        assert response['Content-Type'] == 'application/pdf'
+        assert b'%PDF-technical-fake' in response.content
+        mock_tech.assert_called_once_with(sent_proposal, selected_modules=None)
+
+    @patch('content.services.technical_document_pdf.generate_technical_document_pdf')
+    def test_doc_technical_passes_selected_modules_query(
+        self, mock_tech, api_client, sent_proposal,
+    ):
+        """?doc=technical forwards selected_modules to technical PDF service."""
+        ProposalSection.objects.create(
+            proposal=sent_proposal,
+            section_type='technical_document',
+            title='Technical',
+            order=0,
+            is_enabled=True,
+            content_json={'purpose': 'x'},
+        )
+        mock_tech.return_value = b'%PDF-technical-fake'
+        url = reverse('download-proposal-pdf', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.get(
+            url,
+            {'doc': 'technical', 'selected_modules': 'module-1,group-2'},
+        )
+        assert response.status_code == 200
+        mock_tech.assert_called_once_with(
+            sent_proposal, selected_modules=['module-1', 'group-2'],
+        )
+
+    def test_doc_technical_returns_404_when_no_technical_section(
+        self, api_client, sent_proposal,
+    ):
+        """?doc=technical returns 404 if technical_document is absent."""
+        url = reverse('download-proposal-pdf', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.get(url, {'doc': 'technical'})
+        assert response.status_code == 404
 
 
 class TestRespondToProposal:
@@ -285,7 +339,7 @@ class TestAdminCreateProposal:
             reverse('create-proposal'), payload, format='json'
         )
         assert response.status_code == 201
-        assert len(response.data['sections']) == 14
+        assert len(response.data['sections']) == EXPECTED_DEFAULT_SECTION_COUNT
 
     def test_auto_fills_investment_section_from_proposal_data(self, admin_client):
         """Investment section auto-fills totalInvestment, currency, and paymentOptions."""
@@ -463,12 +517,42 @@ class TestCreateProposalFromJSON:
         response = admin_client.post(url, self._minimal_payload(), format='json')
         assert response.data['title'] == 'JSON Proposal'
 
-    def test_creates_default_13_sections(self, admin_client):
-        """JSON import creates all 13 default sections."""
+    def test_creates_default_sections_count_matches_expected(self, admin_client):
+        """JSON import creates all default sections (see EXPECTED_DEFAULT_SECTION_COUNT)."""
         url = reverse('create-proposal-from-json')
         response = admin_client.post(url, self._minimal_payload(), format='json')
         assert response.status_code == 201
-        assert len(response.data['sections']) == 14
+        assert len(response.data['sections']) == EXPECTED_DEFAULT_SECTION_COUNT
+
+    def test_technical_document_section_present_after_minimal_json_create(self, admin_client):
+        url = reverse('create-proposal-from-json')
+        response = admin_client.post(url, self._minimal_payload(), format='json')
+        assert response.status_code == 201
+        types = {s['section_type'] for s in response.data['sections']}
+        assert 'technical_document' in types
+
+    def test_custom_technical_document_content_from_json(self, admin_client):
+        url = reverse('create-proposal-from-json')
+        payload = self._minimal_payload()
+        payload['sections']['technicalDocument'] = {
+            'purpose': 'Doc de arquitectura',
+            'epics': [
+                {
+                    'epicKey': 'core',
+                    'title': 'Núcleo',
+                    'requirements': [
+                        {'flowKey': 'auth', 'title': 'Autenticación'},
+                    ],
+                },
+            ],
+        }
+        response = admin_client.post(url, payload, format='json')
+        assert response.status_code == 201
+        sections = {s['section_type']: s for s in response.data['sections']}
+        td = sections['technical_document']['content_json']
+        assert td['purpose'] == 'Doc de arquitectura'
+        assert len(td['epics']) == 1
+        assert td['epics'][0]['epicKey'] == 'core'
 
     def test_greeting_section_has_client_name(self, admin_client):
         url = reverse('create-proposal-from-json')
@@ -620,6 +704,20 @@ class TestExportProposalJSON:
         response = admin_client.get(self._url(proposal.id))
         assert 'general' in response.data
 
+    def test_contains_technical_document_key_when_section_exists(self, admin_client, proposal):
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='technical_document',
+            title='Doc técnico',
+            order=13,
+            is_enabled=True,
+            content_json={'purpose': 'Test purpose', 'epics': []},
+        )
+        response = admin_client.get(self._url(proposal.id))
+        assert response.status_code == 200
+        assert 'technicalDocument' in response.data
+        assert response.data['technicalDocument']['purpose'] == 'Test purpose'
+
     def test_returns_404_for_missing_proposal(self, admin_client):
         response = admin_client.get(self._url(99999))
         assert response.status_code == 404
@@ -717,6 +815,34 @@ class TestUpdateProposalFromJSON:
         assert response.status_code == 200
         assert 'warnings' in response.data
         assert any('unknownSection' in w for w in response.data['warnings'])
+
+    def test_updates_technical_document_section_from_json(self, admin_client, proposal):
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='technical_document',
+            title='Doc técnico',
+            order=13,
+            is_enabled=True,
+            content_json={'purpose': 'Antes', 'epics': []},
+        )
+        payload = self._minimal_payload()
+        payload['sections']['technicalDocument'] = {
+            'purpose': 'Después',
+            'stack': [],
+            'architecture': {'summary': '', 'patterns': []},
+            'dataModel': {'summary': '', 'entities': []},
+            'epics': [],
+            'integrations': {'included': [], 'excluded': []},
+            'security': [],
+            'performanceQuality': {'metrics': [], 'practices': []},
+            'decisions': [],
+        }
+        response = admin_client.put(
+            self._url(proposal.id), payload, format='json',
+        )
+        assert response.status_code == 200
+        sections = {s['section_type']: s for s in response.data['sections']}
+        assert sections['technical_document']['content_json']['purpose'] == 'Después'
 
     def test_round_trip_export_import(self, admin_client, proposal, proposal_section):
         """Export JSON and re-import it — proposal data should remain consistent."""
@@ -1349,6 +1475,11 @@ class TestGetProposalJsonTemplate:
         response = api_client.get(self._url())
         assert response.status_code in (401, 403)
 
+    def test_template_includes_technical_document_key(self, admin_client):
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        assert 'technicalDocument' in response.data
+
 
 # ---------------------------------------------------------------------------
 # Respond — re-engagement scheduling
@@ -1533,6 +1664,7 @@ class TestExportAnalyticsCsv:
         response = admin_client.get(self._url(proposal.id))
         content = response.content.decode()
         assert 'SECTION ENGAGEMENT' in content
+        assert 'Metric group' in content
         assert 'SESSION HISTORY' in content
         assert 'CHANGE LOG' in content
 
@@ -1603,7 +1735,7 @@ class TestRetrieveProposalAnalyticsExtended:
         assert response.status_code == 200
         for key in ('total_views', 'unique_sessions', 'sections',
                      'skipped_sections', 'device_breakdown', 'sessions',
-                     'funnel', 'comparison', 'share_links'):
+                     'funnel', 'comparison', 'share_links', 'technical_engagement'):
             assert key in response.data
 
     @freeze_time('2026-03-01 12:00:00')
@@ -1691,6 +1823,45 @@ class TestRetrieveProposalAnalyticsExtended:
         assert len(exec_sections) >= 1
         greeting = next(s for s in exec_sections if s['section_type'] == 'greeting')
         assert greeting['section_title'] == '👋 Saludo ejecutivo'
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_technical_public_tracking_counts_as_technical_document(self, admin_client, sent_proposal):
+        """technical_document_public views satisfy technical_document for skip list and funnel."""
+        ProposalSection.objects.get_or_create(
+            proposal=sent_proposal,
+            section_type='technical_document',
+            defaults={
+                'title': 'Doc técnico',
+                'order': 99,
+                'is_enabled': True,
+                'content_json': {},
+            },
+        )
+        event = ProposalViewEvent.objects.create(
+            proposal=sent_proposal,
+            session_id='sess-tech-pub',
+            view_mode='technical',
+        )
+        ProposalSectionView.objects.create(
+            view_event=event,
+            section_type='technical_document_public',
+            section_title='Intro técnica',
+            time_spent_seconds=40,
+            entered_at=timezone.now(),
+            view_mode='technical',
+        )
+        response = admin_client.get(self._url(sent_proposal.id))
+        assert response.status_code == 200
+        skipped_types = [s['section_type'] for s in response.data['skipped_sections']]
+        assert 'technical_document' not in skipped_types
+        td_funnel = next(
+            s for s in response.data['funnel']
+            if s['section_type'] == 'technical_document'
+        )
+        assert td_funnel['reached_count'] == 1
+        te = response.data['technical_engagement']
+        assert te['sessions_reached'] == 1
+        assert te['total_time_seconds'] == 40.0
 
     @freeze_time('2026-03-01 12:00:00')
     def test_funnel_includes_in_executive_mode_flag(self, admin_client, sent_proposal):

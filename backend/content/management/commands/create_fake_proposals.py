@@ -1,11 +1,13 @@
 import random
 import uuid
 
+from copy import deepcopy
 from datetime import timedelta
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
+from content.demo_technical_document import DEMO_TECHNICAL_DOCUMENT_JSON
 from content.models import (
     BusinessProposal,
     ProposalAlert,
@@ -70,19 +72,10 @@ USER_AGENTS = [
     'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) Safari/17.0',
 ]
 
+# Aligned with ProposalService.get_hardcoded_defaults('es') for synthetic ProposalSectionView rows.
 SECTION_TYPES = [
-    ('greeting', 'Saludo'),
-    ('executive_summary', 'Resumen ejecutivo'),
-    ('context_diagnostic', 'Contexto y diagnóstico'),
-    ('conversion_strategy', 'Estrategia de conversión'),
-    ('design_ux', 'Diseño UX'),
-    ('creative_support', 'Acompañamiento creativo'),
-    ('development_stages', 'Etapas de desarrollo'),
-    ('functional_requirements', 'Requerimientos funcionales'),
-    ('timeline', 'Línea de tiempo'),
-    ('investment', 'Inversión'),
-    ('final_note', 'Nota final'),
-    ('next_steps', 'Próximos pasos'),
+    (s['section_type'], s['title'])
+    for s in ProposalService.get_hardcoded_defaults(language='es')
 ]
 
 ALERT_TYPES = [
@@ -94,7 +87,10 @@ STATUSES = list(BusinessProposal.Status.values)
 
 
 class Command(BaseCommand):
-    help = 'Create fake business proposals with sections and requirement groups'
+    help = (
+        'Create fake business proposals with all default sections; technical_document uses '
+        'demo content for dev (public technical mode + panel JSON).'
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -215,20 +211,23 @@ class Command(BaseCommand):
             # Create default sections (groups now stored in content_json)
             default_sections = ProposalService.get_default_sections(language=lang)
             for section_cfg in default_sections:
-                if section_cfg['section_type'] == 'greeting':
-                    section_cfg['content_json']['clientName'] = proposal.client_name
-                if section_cfg['section_type'] == 'investment':
+                cfg = deepcopy(section_cfg)
+                if cfg['section_type'] == 'greeting':
+                    cfg['content_json']['clientName'] = proposal.client_name
+                if cfg['section_type'] == 'investment':
                     total = float(investment)
                     cur = currency
                     fmt = lambda n: f'${n:,.0f}'
-                    section_cfg['content_json']['totalInvestment'] = fmt(total)
-                    section_cfg['content_json']['currency'] = cur
-                    section_cfg['content_json']['paymentOptions'] = [
+                    cfg['content_json']['totalInvestment'] = fmt(total)
+                    cfg['content_json']['currency'] = cur
+                    cfg['content_json']['paymentOptions'] = [
                         {'label': f'40% al firmar el contrato ✍️', 'description': f'{fmt(total * 0.4)} {cur}'},
                         {'label': f'30% al aprobar el diseño final ✅', 'description': f'{fmt(total * 0.3)} {cur}'},
-                        {'label': f'30% al desplegar el sitio web �', 'description': f'{fmt(total * 0.3)} {cur}'},
+                        {'label': f'30% al desplegar el sitio web 🚀', 'description': f'{fmt(total * 0.3)} {cur}'},
                     ]
-                ProposalSection.objects.create(proposal=proposal, **section_cfg)
+                if cfg['section_type'] == 'technical_document':
+                    cfg['content_json'] = deepcopy(DEMO_TECHNICAL_DOCUMENT_JSON)
+                ProposalSection.objects.create(proposal=proposal, **cfg)
 
             created += 1
 

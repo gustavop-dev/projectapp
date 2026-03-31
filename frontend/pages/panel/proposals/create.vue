@@ -368,7 +368,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h3 class="text-sm font-medium text-gray-900">Plantilla JSON</h3>
-            <p class="text-xs text-gray-400 mt-0.5">Descarga la plantilla con todas las secciones y campos de ejemplo.</p>
+            <p class="text-xs text-gray-400 mt-0.5">Incluye secciones comerciales y la clave <code class="text-[10px]">technicalDocument</code> (documento técnico).</p>
           </div>
           <div class="flex items-center gap-3">
             <select
@@ -437,6 +437,7 @@
           <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
             <span><span class="text-gray-500">Cliente:</span> <span class="font-medium text-gray-900">{{ jsonPreview.clientName }}</span></span>
             <span><span class="text-gray-500">Secciones:</span> <span class="font-medium text-gray-900">{{ jsonPreview.sectionCount }}</span></span>
+            <span v-if="jsonPreview.epicCount != null"><span class="text-gray-500">Épicas (doc. técnico):</span> <span class="font-medium text-gray-900">{{ jsonPreview.epicCount }}</span></span>
             <span v-if="jsonPreview.investment"><span class="text-gray-500">Inversión:</span> <span class="font-medium text-gray-900">{{ jsonPreview.investment }}</span></span>
           </div>
         </div>
@@ -613,44 +614,161 @@
     <!-- ============================================================ -->
     <div v-if="mode === 'prompt'" class="max-w-3xl space-y-6">
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <div>
-            <h3 class="text-sm font-medium text-gray-900">Prompt para IA</h3>
-            <p class="text-xs text-gray-400 mt-0.5">Copia este prompt y úsalo con ChatGPT, Claude u otra IA junto con el JSON plantilla para generar propuestas personalizadas.</p>
+        <PromptSubTabsPanel v-model="createPromptSubTab">
+          <template #commercial>
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <div>
+              <h3 class="text-sm font-medium text-gray-900">Prompt comercial</h3>
+              <p class="text-xs text-gray-400 mt-0.5">Para rellenar el JSON de propuesta comercial (plantilla en «Importar JSON»).</p>
+            </div>
           </div>
-          <div class="flex items-center gap-2 flex-shrink-0">
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              @click="handleCopyCreatePrompt"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-              {{ createPromptCopied ? '¡Copiado!' : 'Copiar' }}
-            </button>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              @click="createPromptDownload"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              Descargar .md
-            </button>
+          <div class="flex flex-wrap items-center gap-2 mb-4">
+            <template v-if="!createCommercialPromptIsEditing">
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                @click="startEditCreateCommercialPrompt"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                @click="handleCopyCreateCommercialPrompt"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                {{ createCommercialPromptCopied ? '¡Copiado!' : 'Copiar' }}
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                @click="createCommercialPromptDownload"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Descargar .md
+              </button>
+              <button
+                v-if="createCommercialPromptText !== createCommercialPromptDefault"
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-gray-200 rounded-lg hover:bg-red-50 transition-colors"
+                @click="handleResetCreateCommercialPrompt"
+              >
+                Restaurar original
+              </button>
+            </template>
+            <template v-else>
+              <button
+                type="button"
+                class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+                @click="saveEditCreateCommercialPrompt"
+              >
+                Guardar cambios
+              </button>
+              <button
+                type="button"
+                class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+                @click="cancelEditCreateCommercialPrompt"
+              >
+                Cancelar
+              </button>
+            </template>
           </div>
-        </div>
+          <div v-if="createCommercialPromptIsEditing" class="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+            <textarea
+              v-model="createCommercialPromptEditBuffer"
+              rows="28"
+              class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 bg-transparent border-0 outline-none resize-y focus:ring-0"
+            />
+          </div>
+          <div v-else class="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+            <div class="px-4 sm:px-6 py-4 max-h-[60vh] overflow-y-auto">
+              <pre class="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap font-mono break-words">{{ createCommercialPromptText }}</pre>
+            </div>
+          </div>
+          <p v-if="createCommercialPromptText !== createCommercialPromptDefault" class="text-xs text-amber-600 mt-3">
+            Prompt personalizado. «Restaurar original» vuelve al texto por defecto.
+          </p>
+          </template>
 
-        <div class="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
-          <div class="px-4 sm:px-6 py-4 max-h-[60vh] overflow-y-auto">
-            <pre class="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap font-mono break-words">{{ createPromptText }}</pre>
+          <template #technical>
+          <p class="text-sm text-gray-500 mb-4">
+            Para generar solo la clave <code class="text-xs bg-gray-100 px-1 rounded">technicalDocument</code> del JSON (sin narrativa comercial ni precios). Combínalo con la plantilla que incluye esa clave.
+          </p>
+          <div class="flex flex-wrap items-center gap-2 mb-4">
+            <template v-if="!createTechnicalPromptIsEditing">
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                @click="startEditCreateTechnicalPrompt"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                @click="handleCopyCreateTechnicalPrompt"
+              >
+                {{ createTechnicalPromptCopied ? '¡Copiado!' : 'Copiar' }}
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                @click="createTechnicalPromptDownload"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Descargar .md
+              </button>
+              <button
+                v-if="createTechnicalPromptText !== createTechnicalPromptDefault"
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-gray-200 rounded-lg hover:bg-red-50 transition-colors"
+                @click="handleResetCreateTechnicalPrompt"
+              >
+                Restaurar original
+              </button>
+            </template>
+            <template v-else>
+              <button
+                type="button"
+                class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+                @click="saveEditCreateTechnicalPrompt"
+              >
+                Guardar cambios
+              </button>
+              <button
+                type="button"
+                class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+                @click="cancelEditCreateTechnicalPrompt"
+              >
+                Cancelar
+              </button>
+            </template>
           </div>
-        </div>
+          <div v-if="createTechnicalPromptIsEditing" class="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+            <textarea
+              v-model="createTechnicalPromptEditBuffer"
+              rows="26"
+              class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 bg-transparent border-0 outline-none resize-y focus:ring-0"
+            />
+          </div>
+          <div v-else class="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+            <div class="px-4 sm:px-6 py-4 max-h-[60vh] overflow-y-auto">
+              <pre class="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap font-mono break-words">{{ createTechnicalPromptText }}</pre>
+            </div>
+          </div>
+          <p v-if="createTechnicalPromptText !== createTechnicalPromptDefault" class="text-xs text-amber-600 mt-3">
+            Prompt técnico personalizado. «Restaurar original» vuelve al texto por defecto.
+          </p>
+          </template>
+        </PromptSubTabsPanel>
 
         <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
           <p class="text-xs text-blue-700">
             <strong>Flujo recomendado:</strong><br/>
-            1) Descarga la plantilla JSON desde la pestaña "Importar JSON"<br/>
-            → 2) Copia este prompt<br/>
-            → 3) Pega ambos en tu IA favorita<br/>
-            → 4) Pega el JSON resultante de vuelta en "Importar JSON".
+            1) Descarga la plantilla JSON desde «Importar JSON» (incluye <code class="text-[11px]">technicalDocument</code>).<br/>
+            → 2) Usa el prompt comercial y/o el técnico según lo que quieras generar.<br/>
+            → 3) Pega plantilla + prompts en tu IA.<br/>
+            → 4) Pega el JSON resultante en «Importar JSON».
           </p>
         </div>
       </div>
@@ -699,8 +817,10 @@
 
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue';
+import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import { get_request } from '~/stores/services/request_http';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
+import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -713,23 +833,81 @@ const createdProposal = ref(null);
 const showPostCreateModal = ref(false);
 
 // ── Prompt IA ──
+const createPromptSubTab = ref('commercial');
+
 const {
-  promptText: createPromptText,
-  loadSavedPrompt: createLoadPrompt,
-  copyPrompt: createCopyPrompt,
-  downloadPrompt: createPromptDownload,
+  promptText: createCommercialPromptText,
+  isEditing: createCommercialPromptIsEditing,
+  DEFAULT_PROMPT: createCommercialPromptDefault,
+  loadSavedPrompt: loadCreateCommercialPrompt,
+  savePrompt: saveCreateCommercialPrompt,
+  resetPrompt: resetCreateCommercialPrompt,
+  copyPrompt: copyCreateCommercialPrompt,
+  downloadPrompt: createCommercialPromptDownload,
 } = useSellerPrompt();
 
-const createPromptCopied = ref(false);
+const createCommercialPromptEditBuffer = ref('');
+const createCommercialPromptCopied = ref(false);
 
-async function handleCopyCreatePrompt() {
-  await createCopyPrompt();
-  createPromptCopied.value = true;
-  setTimeout(() => { createPromptCopied.value = false; }, 2000);
+function startEditCreateCommercialPrompt() {
+  createCommercialPromptEditBuffer.value = createCommercialPromptText.value;
+  createCommercialPromptIsEditing.value = true;
+}
+function cancelEditCreateCommercialPrompt() {
+  createCommercialPromptIsEditing.value = false;
+}
+function saveEditCreateCommercialPrompt() {
+  saveCreateCommercialPrompt(createCommercialPromptEditBuffer.value);
+  createCommercialPromptIsEditing.value = false;
+}
+async function handleCopyCreateCommercialPrompt() {
+  await copyCreateCommercialPrompt();
+  createCommercialPromptCopied.value = true;
+  setTimeout(() => { createCommercialPromptCopied.value = false; }, 2000);
+}
+function handleResetCreateCommercialPrompt() {
+  resetCreateCommercialPrompt();
+  createCommercialPromptIsEditing.value = false;
+}
+
+const {
+  promptText: createTechnicalPromptText,
+  isEditing: createTechnicalPromptIsEditing,
+  DEFAULT_PROMPT: createTechnicalPromptDefault,
+  loadSavedPrompt: loadCreateTechnicalPrompt,
+  savePrompt: saveCreateTechnicalPrompt,
+  resetPrompt: resetCreateTechnicalPrompt,
+  copyPrompt: copyCreateTechnicalPrompt,
+  downloadPrompt: createTechnicalPromptDownload,
+} = useTechnicalPrompt();
+
+const createTechnicalPromptEditBuffer = ref('');
+const createTechnicalPromptCopied = ref(false);
+
+function startEditCreateTechnicalPrompt() {
+  createTechnicalPromptEditBuffer.value = createTechnicalPromptText.value;
+  createTechnicalPromptIsEditing.value = true;
+}
+function cancelEditCreateTechnicalPrompt() {
+  createTechnicalPromptIsEditing.value = false;
+}
+function saveEditCreateTechnicalPrompt() {
+  saveCreateTechnicalPrompt(createTechnicalPromptEditBuffer.value);
+  createTechnicalPromptIsEditing.value = false;
+}
+async function handleCopyCreateTechnicalPrompt() {
+  await copyCreateTechnicalPrompt();
+  createTechnicalPromptCopied.value = true;
+  setTimeout(() => { createTechnicalPromptCopied.value = false; }, 2000);
+}
+function handleResetCreateTechnicalPrompt() {
+  resetCreateTechnicalPrompt();
+  createTechnicalPromptIsEditing.value = false;
 }
 
 onMounted(() => {
-  createLoadPrompt();
+  loadCreateCommercialPrompt();
+  loadCreateTechnicalPrompt();
 });
 
 // -------------------------------------------------------------------------
@@ -828,8 +1006,9 @@ async function handleSendCreated() {
 // -------------------------------------------------------------------------
 const EXPECTED_SECTION_KEYS = [
   'general', 'executiveSummary', 'contextDiagnostic', 'conversionStrategy',
-  'designUX', 'creativeSupport', 'developmentStages', 'functionalRequirements',
-  'timeline', 'investment', 'proposalSummary', 'finalNote', 'nextSteps',
+  'designUX', 'creativeSupport', 'developmentStages', 'processMethodology',
+  'functionalRequirements', 'timeline', 'investment', 'proposalSummary',
+  'finalNote', 'nextSteps', 'technicalDocument',
 ];
 
 const jsonRaw = ref('');
@@ -866,7 +1045,9 @@ const jsonPreview = computed(() => {
   const clientName = p.general?.clientName || '';
   const sectionCount = EXPECTED_SECTION_KEYS.filter((k) => k in p).length;
   const investment = p.investment?.totalInvestment || '';
-  return { clientName, sectionCount, investment };
+  const epics = p.technicalDocument?.epics;
+  const epicCount = Array.isArray(epics) ? epics.length : null;
+  return { clientName, sectionCount, investment, epicCount };
 });
 
 function parseJson() {

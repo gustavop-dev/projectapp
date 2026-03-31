@@ -57,6 +57,7 @@ describe('usePlatformRequirementsStore', () => {
       expect(store.requirements).toEqual([])
       expect(store.currentRequirement).toBeNull()
       expect(store.projectId).toBeNull()
+      expect(store.deliverableId).toBeNull()
       expect(store.isLoading).toBe(false)
       expect(store.error).toBe('')
     })
@@ -126,12 +127,14 @@ describe('usePlatformRequirementsStore', () => {
     it('populates requirements on success', async () => {
       mockGet.mockResolvedValueOnce({ data: [SAMPLE_REQ] })
 
-      const result = await store.fetchRequirements(1)
+      const result = await store.fetchRequirements(1, 7)
 
       expect(result.success).toBe(true)
       expect(store.requirements).toEqual([SAMPLE_REQ])
       expect(store.projectId).toBe(1)
+      expect(store.deliverableId).toBe(7)
       expect(store.isLoading).toBe(false)
+      expect(mockGet).toHaveBeenCalledWith('projects/1/deliverables/7/requirements/')
     })
 
     it('sets error on failure', async () => {
@@ -139,7 +142,7 @@ describe('usePlatformRequirementsStore', () => {
         response: { data: { detail: 'No autorizado.' } },
       })
 
-      const result = await store.fetchRequirements(1)
+      const result = await store.fetchRequirements(1, 7)
 
       expect(result.success).toBe(false)
       expect(store.error).toBe('No autorizado.')
@@ -151,7 +154,7 @@ describe('usePlatformRequirementsStore', () => {
       const detail = { ...SAMPLE_REQ, comments: [], history: [] }
       mockGet.mockResolvedValueOnce({ data: detail })
 
-      const result = await store.fetchRequirement(1, 1)
+      const result = await store.fetchRequirement(1, 7, 1)
 
       expect(result.success).toBe(true)
       expect(store.currentRequirement).toEqual(detail)
@@ -162,7 +165,7 @@ describe('usePlatformRequirementsStore', () => {
         response: { data: { detail: 'No encontrado.' } },
       })
 
-      const result = await store.fetchRequirement(1, 999)
+      const result = await store.fetchRequirement(1, 7, 999)
 
       expect(result.success).toBe(false)
       expect(store.error).toBe('No encontrado.')
@@ -175,7 +178,7 @@ describe('usePlatformRequirementsStore', () => {
       const newReq = { ...SAMPLE_REQ, id: 10 }
       mockPost.mockResolvedValueOnce({ data: newReq })
 
-      const result = await store.createRequirement(1, { title: 'New' })
+      const result = await store.createRequirement(1, 7, { title: 'New' })
 
       expect(result.success).toBe(true)
       expect(store.requirements).toContainEqual(newReq)
@@ -186,7 +189,7 @@ describe('usePlatformRequirementsStore', () => {
         response: { data: { detail: 'Error.' } },
       })
 
-      const result = await store.createRequirement(1, { title: '' })
+      const result = await store.createRequirement(1, 7, { title: '' })
 
       expect(result.success).toBe(false)
       expect(store.error).toBe('Error.')
@@ -199,7 +202,7 @@ describe('usePlatformRequirementsStore', () => {
       const movedReq = { ...SAMPLE_REQ, id: 1, status: 'in_progress', order: 0 }
       mockPost.mockResolvedValueOnce({ data: movedReq })
 
-      const result = await store.moveRequirement(1, 1, 'in_progress', 0)
+      const result = await store.moveRequirement(1, 7, 1, 'in_progress', 0)
 
       expect(result.success).toBe(true)
       expect(store.requirements[0].status).toBe('in_progress')
@@ -211,7 +214,7 @@ describe('usePlatformRequirementsStore', () => {
         response: { data: { detail: 'Forbidden.' } },
       })
 
-      const result = await store.moveRequirement(1, 1, 'done', 0)
+      const result = await store.moveRequirement(1, 7, 1, 'done', 0)
 
       expect(result.success).toBe(false)
       expect(store.requirements[0].status).toBe('todo')
@@ -220,7 +223,7 @@ describe('usePlatformRequirementsStore', () => {
     it('returns error when card not found', async () => {
       store.requirements = []
 
-      const result = await store.moveRequirement(1, 999, 'done', 0)
+      const result = await store.moveRequirement(1, 7, 999, 'done', 0)
 
       expect(result.success).toBe(false)
     })
@@ -232,7 +235,7 @@ describe('usePlatformRequirementsStore', () => {
       const updated = { ...SAMPLE_REQ, title: 'Updated' }
       mockPatch.mockResolvedValueOnce({ data: updated })
 
-      const result = await store.updateRequirement(1, 1, { title: 'Updated' })
+      const result = await store.updateRequirement(1, 7, 1, { title: 'Updated' })
 
       expect(result.success).toBe(true)
       expect(store.requirements[0].title).toBe('Updated')
@@ -244,7 +247,7 @@ describe('usePlatformRequirementsStore', () => {
       const updated = { ...SAMPLE_REQ, title: 'Updated' }
       mockPatch.mockResolvedValueOnce({ data: updated })
 
-      await store.updateRequirement(1, 1, { title: 'Updated' })
+      await store.updateRequirement(1, 7, 1, { title: 'Updated' })
 
       expect(store.currentRequirement.title).toBe('Updated')
     })
@@ -254,7 +257,7 @@ describe('usePlatformRequirementsStore', () => {
         response: { data: { detail: 'Error al actualizar.' } },
       })
 
-      const result = await store.updateRequirement(1, 1, { title: 'X' })
+      const result = await store.updateRequirement(1, 7, 1, { title: 'X' })
 
       expect(result.success).toBe(false)
       expect(store.error).toBe('Error al actualizar.')
@@ -267,7 +270,7 @@ describe('usePlatformRequirementsStore', () => {
       store.requirements = [SAMPLE_REQ, { ...SAMPLE_REQ, id: 2 }]
       mockDelete.mockResolvedValueOnce({})
 
-      const result = await store.deleteRequirement(1, 1)
+      const result = await store.deleteRequirement(1, 7, 1)
 
       expect(result.success).toBe(true)
       expect(store.requirements).toHaveLength(1)
@@ -279,7 +282,7 @@ describe('usePlatformRequirementsStore', () => {
         response: { data: { detail: 'No autorizado.' } },
       })
 
-      const result = await store.deleteRequirement(1, 1)
+      const result = await store.deleteRequirement(1, 7, 1)
 
       expect(result.success).toBe(false)
       expect(store.error).toBe('No autorizado.')
@@ -292,7 +295,7 @@ describe('usePlatformRequirementsStore', () => {
       const comment = { id: 1, content: 'Hello', is_internal: false }
       mockPost.mockResolvedValueOnce({ data: comment })
 
-      const result = await store.addComment(1, 1, 'Hello', false)
+      const result = await store.addComment(1, 7, 1, 'Hello', false)
 
       expect(result.success).toBe(true)
       expect(store.currentRequirement.comments).toContainEqual(comment)
@@ -303,7 +306,7 @@ describe('usePlatformRequirementsStore', () => {
         response: { data: { detail: 'Error.' } },
       })
 
-      const result = await store.addComment(1, 1, '', false)
+      const result = await store.addComment(1, 7, 1, '', false)
 
       expect(result.success).toBe(false)
     })

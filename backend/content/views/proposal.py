@@ -33,6 +33,30 @@ from content.serializers.proposal import (
 
 logger = logging.getLogger(__name__)
 
+# Public technical mode tracks synthetic panels as technical_document_public;
+# the DB section is technical_document. Metrics union both.
+TECHNICAL_DOCUMENT_TRACKING_TYPES = frozenset({
+    'technical_document',
+    'technical_document_public',
+})
+
+
+def _dashboard_top_dropoff_allowlist():
+    """Section types used for global top_dropoff KPI (excludes technical doc)."""
+    return frozenset(
+        c for c, _ in ProposalSection.SectionType.choices
+        if c != 'technical_document'
+    )
+
+
+def _csv_analytics_section_group(section_type):
+    """Human-readable group for CSV export (technical variants align)."""
+    if section_type == 'technical_document_public':
+        return 'Documento técnico (vista pública)'
+    if section_type == 'technical_document':
+        return 'Documento técnico'
+    return ''
+
 
 # ---------------------------------------------------------------------------
 # Public endpoints (no auth required)
@@ -209,26 +233,48 @@ def download_proposal_pdf(request, proposal_uuid):
             status=status.HTTP_410_GONE,
         )
 
-    selected_modules_param = request.query_params.get('selected_modules', '')
-    selected_modules = (
-        [m.strip() for m in selected_modules_param.split(',') if m.strip()]
-        if selected_modules_param
-        else None
-    )
-    # Fallback to persisted selections from the model
-    if selected_modules is None and proposal.selected_modules:
-        selected_modules = proposal.selected_modules
+    doc_variant = (request.query_params.get('doc') or '').strip().lower()
+    if doc_variant == 'technical':
+        from content.services.technical_document_pdf import generate_technical_document_pdf
 
-    from content.services.proposal_pdf_service import ProposalPdfService
-    pdf_bytes = ProposalPdfService.generate(
-        proposal, selected_modules=selected_modules
-    )
-
-    if not pdf_bytes:
-        return Response(
-            {'error': 'PDF generation failed. Please try again later.'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        selected_modules_param = request.query_params.get('selected_modules', '')
+        selected_modules = (
+            [m.strip() for m in selected_modules_param.split(',') if m.strip()]
+            if selected_modules_param
+            else None
         )
+        if selected_modules is None and proposal.selected_modules:
+            selected_modules = proposal.selected_modules
+
+        pdf_bytes = generate_technical_document_pdf(
+            proposal, selected_modules=selected_modules
+        )
+        if not pdf_bytes:
+            return Response(
+                {'error': 'Technical document is not available for this proposal.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+    else:
+        selected_modules_param = request.query_params.get('selected_modules', '')
+        selected_modules = (
+            [m.strip() for m in selected_modules_param.split(',') if m.strip()]
+            if selected_modules_param
+            else None
+        )
+        # Fallback to persisted selections from the model
+        if selected_modules is None and proposal.selected_modules:
+            selected_modules = proposal.selected_modules
+
+        from content.services.proposal_pdf_service import ProposalPdfService
+        pdf_bytes = ProposalPdfService.generate(
+            proposal, selected_modules=selected_modules
+        )
+
+        if not pdf_bytes:
+            return Response(
+                {'error': 'PDF generation failed. Please try again later.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     from django.http import HttpResponse
     from django.utils import timezone as _tz
@@ -237,7 +283,11 @@ def download_proposal_pdf(request, proposal_uuid):
     date_suffix = _created.strftime('%Y-%m-%d')
     safe_title = _re.sub(r'[^\w\s-]', '', proposal.title or proposal.client_name).strip()
     safe_title = _re.sub(r'\s+', '_', safe_title)[:100]
-    filename = f'{safe_title}_{date_suffix}.pdf'
+    filename = (
+        f'{safe_title}_technical_{date_suffix}.pdf'
+        if doc_variant == 'technical'
+        else f'{safe_title}_{date_suffix}.pdf'
+    )
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
@@ -501,8 +551,8 @@ def create_proposal_from_json(request):
 @permission_classes([IsAdminUser])
 def get_proposal_json_template(request):
     """
-    Return a downloadable JSON template with all 12 sections
-    pre-populated with default placeholder content.
+    Return a downloadable JSON template with all default sections
+    (commercial + technicalDocument) pre-populated with placeholder content.
 
     Query params:
         lang: 'es' (default) or 'en'
@@ -1031,6 +1081,15 @@ def update_proposal_status(request, proposal_id):
         description=f'Status changed from {old_status} to {new_status} (inline).',
     )
 
+    if new_status == BusinessProposal.Status.ACCEPTED and old_status != BusinessProposal.Status.ACCEPTED:
+        from accounts.services.proposal_platform_onboarding import (
+            handle_proposal_accepted_for_platform,
+        )
+
+        handle_proposal_accepted_for_platform(
+            proposal, source='admin_panel', acting_user=request.user,
+        )
+
     detail = ProposalDetailSerializer(
         proposal, context={'request': request, 'is_admin': True}
     )
@@ -1369,7 +1428,13 @@ def respond_to_proposal(request, proposal_uuid):
     ProposalEmailService.send_response_notification(proposal, action)
 
     if action == 'accepted':
-        ProposalEmailService.send_acceptance_confirmation(proposal)
+        from accounts.services.proposal_platform_onboarding import (
+            handle_proposal_accepted_for_platform,
+        )
+
+        handle_proposal_accepted_for_platform(
+            proposal, source='client_response', acting_user=None,
+        )
     elif action == 'rejected':
         ProposalEmailService.send_rejection_thank_you(proposal)
         # Schedule re-engagement email 48h later if rejection is budget-related
@@ -1529,7 +1594,7 @@ def track_proposal_engagement(request, proposal_uuid):
     ip_address = _get_client_ip(request)
     user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]
     view_mode = request.data.get('view_mode', 'unknown')
-    if view_mode not in ('executive', 'detailed'):
+    if view_mode not in ('executive', 'detailed', 'technical'):
         view_mode = 'unknown'
 
     view_event, _created = ProposalViewEvent.objects.get_or_create(
@@ -1852,6 +1917,7 @@ def _compute_engagement_score(proposal, view_events, sections_data, unique_sessi
     Compute engagement score (0-100) for a proposal based on:
     - Recent sessions (last 7 days): 0-25 pts
     - Time on investment section / total time: 0-25 pts
+    - Time on technical doc (technical_document + technical_document_public): max 12 pts
     - Number of unique stakeholders (IPs): 0-20 pts
     - Inverse days-without-response: 0-15 pts
     - Re-visits (sessions > 1): 0-15 pts
@@ -1873,6 +1939,16 @@ def _compute_engagement_score(proposal, view_events, sections_data, unique_sessi
     if total_time > 0:
         inv_ratio = inv_time / total_time
         score += min(25, round(inv_ratio * 100))
+
+    # 2b. Technical document reading — max 12 pts (public mode uses synthetic types)
+    tech_time = sum(
+        s.get('total_time_seconds', 0)
+        for s in sections_data
+        if s.get('section_type') in TECHNICAL_DOCUMENT_TRACKING_TYPES
+    )
+    if total_time > 0 and tech_time > 0:
+        tech_ratio = tech_time / total_time
+        score += min(12, round(tech_ratio * 55))
 
     # 3. Unique stakeholders (IPs) — max 20 pts
     unique_ips = view_events.exclude(
@@ -1943,6 +2019,18 @@ def _compute_heat_score_with_summary(proposal_id, now=None):
     elif inv_time >= 15:
         score += 1
 
+    # Time on technical document (panel + public synthetic) — max 1 pt
+    tech_time = (
+        ProposalSectionView.objects
+        .filter(
+            view_event__proposal_id=proposal_id,
+            section_type__in=TECHNICAL_DOCUMENT_TRACKING_TYPES,
+        )
+        .aggregate(t=Sum('time_spent_seconds'))
+    )['t'] or 0
+    if tech_time >= 20:
+        score += 1
+
     # Unique IPs — max 2 pts
     unique_ips = (
         ProposalViewEvent.objects
@@ -1999,6 +2087,8 @@ def _compute_heat_score_with_summary(proposal_id, now=None):
         'views': p['view_count'],
         'last_activity': last_activity_str,
         'investment_time_sec': round(inv_time),
+        'technical_time_sec': round(tech_time),
+        'technical_viewed': tech_time >= 5,
         'unique_devices': unique_ips,
         'skipped_sections': skipped,
     }
@@ -2314,17 +2404,44 @@ def retrieve_proposal_analytics(request, proposal_id):
             'avg_time_seconds': round(stat['avg_time_seconds'] or 0, 1),
         })
 
+    technical_reached = bool(
+        visited_types & TECHNICAL_DOCUMENT_TRACKING_TYPES
+    )
+    tech_time_total = sum(
+        s.get('total_time_seconds', 0)
+        for s in sections_data
+        if s.get('section_type') in TECHNICAL_DOCUMENT_TRACKING_TYPES
+    )
+    technical_sessions_reached = (
+        ProposalSectionView.objects
+        .filter(
+            view_event__proposal=proposal,
+            section_type__in=TECHNICAL_DOCUMENT_TRACKING_TYPES,
+        )
+        .values('view_event__session_id')
+        .distinct()
+        .count()
+    )
+    technical_engagement = {
+        'total_time_seconds': round(tech_time_total, 1),
+        'sessions_reached': technical_sessions_reached,
+    }
+
     # Skipped sections — enabled sections not in tracking data
     enabled_sections = (
         proposal.sections
         .filter(is_enabled=True)
         .values_list('section_type', 'title')
     )
-    skipped_sections = [
-        {'section_type': st, 'section_title': title}
-        for st, title in enabled_sections
-        if st not in visited_types
-    ]
+    skipped_sections = []
+    for st, title in enabled_sections:
+        if st == 'technical_document' and technical_reached:
+            continue
+        if st not in visited_types:
+            skipped_sections.append({
+                'section_type': st,
+                'section_title': title,
+            })
 
     # Device breakdown from user_agent
     # Check tablet FIRST because iPad UA strings contain "mobile"
@@ -2409,16 +2526,19 @@ def retrieve_proposal_analytics(request, proposal_id):
     )
     funnel_data = []
     for section_type, section_title in ordered_sections:
-        reached = (
-            ProposalSectionView.objects
-            .filter(
-                view_event__proposal=proposal,
-                section_type=section_type,
+        if section_type == 'technical_document':
+            reached = technical_sessions_reached
+        else:
+            reached = (
+                ProposalSectionView.objects
+                .filter(
+                    view_event__proposal=proposal,
+                    section_type=section_type,
+                )
+                .values('view_event__session_id')
+                .distinct()
+                .count()
             )
-            .values('view_event__session_id')
-            .distinct()
-            .count()
-        )
         drop_off = round(
             (1 - reached / unique_sessions) * 100, 1
         ) if unique_sessions > 0 else 0
@@ -2477,9 +2597,9 @@ def retrieve_proposal_analytics(request, proposal_id):
         proposal, view_events, sections_data, unique_sessions,
     )
 
-    # --- F6: View mode breakdown (executive vs detailed) ---
+    # --- F6: View mode breakdown (executive / detailed / technical) ---
     by_view_mode = {}
-    for mode in ('executive', 'detailed'):
+    for mode in ('executive', 'detailed', 'technical'):
         mode_events = view_events.filter(view_mode=mode)
         mode_sessions = mode_events.values('session_id').distinct().count()
         mode_section_stats = (
@@ -2539,6 +2659,7 @@ def retrieve_proposal_analytics(request, proposal_id):
         'share_links': share_links,
         'engagement_score': engagement_score,
         'by_view_mode': by_view_mode,
+        'technical_engagement': technical_engagement,
     }, status=status.HTTP_200_OK)
 
 
@@ -2733,11 +2854,14 @@ def proposal_dashboard(request):
     total_sessions_global = _PVE.objects.values('session_id').distinct().count()
     top_dropoff_section = None
     if total_sessions_global > 0:
+        dropoff_allow = _dashboard_top_dropoff_allowlist()
         section_types_qs = (
             _PSV.objects.values_list('section_type', flat=True).distinct()
         )
         dropoff_by_section = {}
         for sec_type in section_types_qs:
+            if sec_type not in dropoff_allow:
+                continue
             sessions_reached = (
                 _PSV.objects
                 .filter(section_type=sec_type)
@@ -2864,16 +2988,20 @@ def proposal_dashboard(request):
     calc_total = calc_confirmed + calc_abandoned
     calc_abandonment_rate = round(calc_abandoned / calc_total * 100, 1) if calc_total > 0 else None
 
-    # --- Win rate by predominant view_mode (executive vs detailed) ---
+    # --- Win rate by predominant view_mode (executive / detailed / technical) ---
     from content.models import ProposalViewEvent as _PVE_dm
     terminal_proposals = all_proposals.filter(
         status__in=['accepted', 'rejected', 'expired'],
     )
-    view_mode_stats = {'executive': {'total': 0, 'accepted': 0}, 'detailed': {'total': 0, 'accepted': 0}}
+    view_mode_stats = {
+        'executive': {'total': 0, 'accepted': 0},
+        'detailed': {'total': 0, 'accepted': 0},
+        'technical': {'total': 0, 'accepted': 0},
+    }
     for p in terminal_proposals:
         mode_counts = (
             _PVE_dm.objects
-            .filter(proposal=p, view_mode__in=['executive', 'detailed'])
+            .filter(proposal=p, view_mode__in=['executive', 'detailed', 'technical'])
             .values('view_mode')
             .annotate(cnt=Count('id'))
         )
@@ -2954,7 +3082,14 @@ def export_proposal_analytics_csv(request, proposal_id):
 
     # Section engagement
     writer.writerow(['--- SECTION ENGAGEMENT ---'])
-    writer.writerow(['Section Type', 'Section Title', 'Visit Count', 'Total Time (s)', 'Avg Time (s)'])
+    writer.writerow([
+        'Note: technical_document + technical_document_public both belong to '
+        '“documento técnico” (vista panel vs vista pública).',
+    ])
+    writer.writerow([
+        'Section Type', 'Metric group', 'Section Title', 'Visit Count',
+        'Total Time (s)', 'Avg Time (s)',
+    ])
 
     section_stats = (
         ProposalSectionView.objects
@@ -2975,8 +3110,10 @@ def export_proposal_analytics_csv(request, proposal_id):
             .values_list('section_title', flat=True)
             .first()
         ) or stat['section_type']
+        stype = stat['section_type']
         writer.writerow([
-            stat['section_type'],
+            stype,
+            _csv_analytics_section_group(stype),
             latest_title,
             stat['visit_count'],
             round(stat['total_time'] or 0, 1),

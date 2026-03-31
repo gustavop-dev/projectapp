@@ -185,6 +185,39 @@
             </div>
           </div>
 
+          <!-- Win rate by predominant view mode (tracking) -->
+          <div
+            v-if="data.win_rate_by_view_mode && Object.keys(data.win_rate_by_view_mode).length"
+            class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700"
+          >
+            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">Win rate por modo de vista</h3>
+            <p class="text-xs text-gray-400 mb-3">
+              Por propuesta cerrada se toma el modo con más eventos de tracking (ejecutiva, completa o técnica).
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div
+                v-for="mode in ['executive', 'detailed', 'technical']"
+                :key="mode"
+                class="rounded-lg border p-3"
+                :class="mode === 'executive'
+                  ? 'border-purple-100 bg-purple-50/40 dark:border-purple-900/40 dark:bg-purple-900/15'
+                  : mode === 'detailed'
+                    ? 'border-blue-100 bg-blue-50/40 dark:border-blue-900/40 dark:bg-blue-900/15'
+                    : 'border-teal-100 bg-teal-50/40 dark:border-teal-900/40 dark:bg-teal-900/15'"
+              >
+                <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  {{ viewModeDashboardLabel(mode) }}
+                </p>
+                <p class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-1">
+                  {{ data.win_rate_by_view_mode[mode]?.win_rate != null ? data.win_rate_by_view_mode[mode].win_rate + '%' : '—' }}
+                </p>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                  {{ data.win_rate_by_view_mode[mode]?.accepted ?? 0 }} aceptadas / {{ data.win_rate_by_view_mode[mode]?.total ?? 0 }} cerradas
+                </p>
+              </div>
+            </div>
+          </div>
+
           <!-- Win rate by combination -->
           <div v-if="data.win_rate_by_combination?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
             <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Mejor combinación proyecto × mercado</h3>
@@ -361,6 +394,11 @@ const marketTypeLabels = {
 };
 function projectTypeLabel(t) { return projectTypeLabels[t] || t; }
 function marketTypeLabel(t) { return marketTypeLabels[t] || t; }
+
+function viewModeDashboardLabel(mode) {
+  const map = { executive: 'Ejecutiva', detailed: 'Completa', technical: 'Técnica' };
+  return map[mode] || mode;
+}
 
 const bestProjectWinRate = computed(() => {
   const rates = (data.value?.win_rate_by_project_type || []).map(i => i.win_rate);

@@ -9,6 +9,7 @@ from rest_framework.test import APIClient
 from accounts.models import (
     ChangeRequest,
     ChangeRequestComment,
+    Deliverable,
     Project,
     Requirement,
     UserProfile,
@@ -72,6 +73,17 @@ def project(client_user):
     return Project.objects.create(
         name='CR Project', client=client_user,
         status=Project.STATUS_ACTIVE, progress=0,
+    )
+
+
+@pytest.fixture
+def default_deliverable(project, client_user):
+    return Deliverable.objects.create(
+        project=project,
+        title='CR default deliverable',
+        category=Deliverable.CATEGORY_OTHER,
+        file=None,
+        uploaded_by=client_user,
     )
 
 
@@ -575,10 +587,10 @@ class TestChangeRequestConvert:
         assert approved_cr.module_or_screen in req.configuration
 
     def test_convert_recalculates_project_progress(
-        self, api_client, admin_headers, project, sample_change_requests,
+        self, api_client, admin_headers, project, sample_change_requests, default_deliverable,
     ):
         Requirement.objects.create(
-            project=project, title='Existing Done', status='done', order=0,
+            deliverable=default_deliverable, title='Existing Done', status='done', order=0,
         )
         approved_cr = sample_change_requests[1]
 

@@ -1,11 +1,19 @@
 import { defineStore } from 'pinia'
 import { usePlatformApi } from '~/composables/usePlatformApi'
 
+function requirementsBase(projectId, deliverableId) {
+  if (!deliverableId) {
+    throw new Error('deliverableId is required for platform requirements API')
+  }
+  return `projects/${projectId}/deliverables/${deliverableId}/requirements`
+}
+
 export const usePlatformRequirementsStore = defineStore('platformRequirements', {
   state: () => ({
     requirements: [],
     currentRequirement: null,
     projectId: null,
+    deliverableId: null,
     isLoading: false,
     isUpdating: false,
     error: '',
@@ -45,14 +53,15 @@ export const usePlatformRequirementsStore = defineStore('platformRequirements', 
   },
 
   actions: {
-    async fetchRequirements(projectId) {
+    async fetchRequirements(projectId, deliverableId) {
       this.isLoading = true
       this.error = ''
       this.projectId = projectId
+      this.deliverableId = deliverableId
 
       try {
         const { get } = usePlatformApi()
-        const response = await get(`projects/${projectId}/requirements/`)
+        const response = await get(`${requirementsBase(projectId, deliverableId)}/`)
         this.requirements = response.data
         return { success: true }
       } catch (error) {
@@ -64,13 +73,13 @@ export const usePlatformRequirementsStore = defineStore('platformRequirements', 
       }
     },
 
-    async fetchRequirement(projectId, reqId) {
+    async fetchRequirement(projectId, deliverableId, reqId) {
       this.isLoading = true
       this.error = ''
 
       try {
         const { get } = usePlatformApi()
-        const response = await get(`projects/${projectId}/requirements/${reqId}/`)
+        const response = await get(`${requirementsBase(projectId, deliverableId)}/${reqId}/`)
         this.currentRequirement = response.data
         return { success: true, data: response.data }
       } catch (error) {
@@ -82,13 +91,13 @@ export const usePlatformRequirementsStore = defineStore('platformRequirements', 
       }
     },
 
-    async createRequirement(projectId, payload) {
+    async createRequirement(projectId, deliverableId, payload) {
       this.isUpdating = true
       this.error = ''
 
       try {
         const { post } = usePlatformApi()
-        const response = await post(`projects/${projectId}/requirements/`, payload)
+        const response = await post(`${requirementsBase(projectId, deliverableId)}/`, payload)
         this.requirements.push(response.data)
         return { success: true, data: response.data }
       } catch (error) {
@@ -100,7 +109,7 @@ export const usePlatformRequirementsStore = defineStore('platformRequirements', 
       }
     },
 
-    async moveRequirement(projectId, reqId, newStatus, newOrder = 0) {
+    async moveRequirement(projectId, deliverableId, reqId, newStatus, newOrder = 0) {
       const card = this.requirements.find((r) => r.id === reqId)
       if (!card) return { success: false, message: 'Card not found' }
 
@@ -112,10 +121,13 @@ export const usePlatformRequirementsStore = defineStore('platformRequirements', 
 
       try {
         const { post } = usePlatformApi()
-        const response = await post(`projects/${projectId}/requirements/${reqId}/move/`, {
-          status: newStatus,
-          order: newOrder,
-        })
+        const response = await post(
+          `${requirementsBase(projectId, deliverableId)}/${reqId}/move/`,
+          {
+            status: newStatus,
+            order: newOrder,
+          },
+        )
 
         const idx = this.requirements.findIndex((r) => r.id === reqId)
         if (idx !== -1) this.requirements[idx] = response.data
@@ -130,13 +142,16 @@ export const usePlatformRequirementsStore = defineStore('platformRequirements', 
       }
     },
 
-    async updateRequirement(projectId, reqId, payload) {
+    async updateRequirement(projectId, deliverableId, reqId, payload) {
       this.isUpdating = true
       this.error = ''
 
       try {
         const { patch } = usePlatformApi()
-        const response = await patch(`projects/${projectId}/requirements/${reqId}/`, payload)
+        const response = await patch(
+          `${requirementsBase(projectId, deliverableId)}/${reqId}/`,
+          payload,
+        )
 
         const idx = this.requirements.findIndex((r) => r.id === reqId)
         if (idx !== -1) this.requirements[idx] = { ...this.requirements[idx], ...response.data }
@@ -154,13 +169,13 @@ export const usePlatformRequirementsStore = defineStore('platformRequirements', 
       }
     },
 
-    async deleteRequirement(projectId, reqId) {
+    async deleteRequirement(projectId, deliverableId, reqId) {
       this.isUpdating = true
       this.error = ''
 
       try {
         const { delete: destroy } = usePlatformApi()
-        await destroy(`projects/${projectId}/requirements/${reqId}/`)
+        await destroy(`${requirementsBase(projectId, deliverableId)}/${reqId}/`)
         this.requirements = this.requirements.filter((r) => r.id !== reqId)
         return { success: true }
       } catch (error) {
@@ -172,13 +187,16 @@ export const usePlatformRequirementsStore = defineStore('platformRequirements', 
       }
     },
 
-    async addComment(projectId, reqId, content, isInternal = false) {
+    async addComment(projectId, deliverableId, reqId, content, isInternal = false) {
       try {
         const { post } = usePlatformApi()
-        const response = await post(`projects/${projectId}/requirements/${reqId}/comments/`, {
-          content,
-          is_internal: isInternal,
-        })
+        const response = await post(
+          `${requirementsBase(projectId, deliverableId)}/${reqId}/comments/`,
+          {
+            content,
+            is_internal: isInternal,
+          },
+        )
 
         if (this.currentRequirement?.id === reqId && this.currentRequirement.comments) {
           this.currentRequirement.comments.push(response.data)
@@ -191,13 +209,13 @@ export const usePlatformRequirementsStore = defineStore('platformRequirements', 
       }
     },
 
-    async bulkUpload(projectId, items) {
+    async bulkUpload(projectId, deliverableId, items) {
       this.isUpdating = true
       this.error = ''
 
       try {
         const { post } = usePlatformApi()
-        const response = await post(`projects/${projectId}/requirements/bulk/`, items)
+        const response = await post(`${requirementsBase(projectId, deliverableId)}/bulk/`, items)
         if (response.data.requirements) {
           this.requirements.push(...response.data.requirements)
         }

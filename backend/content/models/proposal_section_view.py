@@ -25,9 +25,14 @@ class ProposalSectionView(models.Model):
     )
     view_mode = models.CharField(
         max_length=20,
-        choices=[('executive', 'Executive'), ('detailed', 'Detailed'), ('unknown', 'Unknown')],
+        choices=[
+            ('executive', 'Executive'),
+            ('detailed', 'Detailed'),
+            ('technical', 'Technical'),
+            ('unknown', 'Unknown'),
+        ],
         default='unknown',
-        help_text='Whether this section was viewed in executive or detailed mode.',
+        help_text='Whether this section was viewed in executive, detailed, or technical mode.',
     )
 
     class Meta:

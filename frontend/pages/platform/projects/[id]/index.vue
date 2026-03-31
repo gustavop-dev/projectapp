@@ -38,7 +38,15 @@
           </div>
 
           <!-- Admin actions -->
-          <div v-if="authStore.isAdmin" class="flex shrink-0 gap-2">
+          <div v-if="authStore.isAdmin" class="flex shrink-0 flex-wrap gap-2">
+            <button
+              type="button"
+              class="rounded-xl border border-esmerald/10 px-4 py-2 text-sm font-medium text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
+              :disabled="syncLoading"
+              @click="runTechnicalSync"
+            >
+              {{ syncLoading ? 'Sincronizando…' : 'Sync doc. técnico' }}
+            </button>
             <button
               type="button"
               class="rounded-xl border border-esmerald/10 px-4 py-2 text-sm font-medium text-green-light transition hover:text-esmerald dark:border-white/10 dark:hover:text-white"
@@ -252,6 +260,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
+import { usePlatformApi } from '~/composables/usePlatformApi'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 import SidebarIcon from '~/components/platform/SidebarIcon.vue'
@@ -269,6 +278,7 @@ const projectsStore = usePlatformProjectsStore()
 usePageEntrance('#platform-project-detail')
 
 const isEditModalOpen = ref(false)
+const syncLoading = ref(false)
 const editError = ref('')
 const editForm = reactive({
   name: '',
@@ -327,6 +337,15 @@ const projectModules = computed(() => [
     iconBg: 'bg-purple-500/10',
     iconColor: 'text-purple-500',
     href: localePath(`/platform/projects/${route.params.id}/deliverables`),
+  },
+  {
+    title: 'Collection accounts',
+    subtitle: 'Billing documents',
+    description: 'View collection accounts and PDFs linked to this project.',
+    icon: 'file',
+    iconBg: 'bg-emerald-500/10',
+    iconColor: 'text-emerald-600',
+    href: localePath(`/platform/projects/${route.params.id}/collection-accounts`),
   },
   {
     title: 'Pagos',
@@ -400,6 +419,35 @@ async function handleUpdateProject() {
 watch(isEditModalOpen, (val) => {
   if (val) openEditModal()
 })
+
+async function runTechnicalSync() {
+  if (!project.value) return
+  syncLoading.value = true
+  try {
+    const { get, post } = usePlatformApi()
+    const dres = await get(`projects/${project.value.id}/deliverables/`)
+    const list = dres.data || []
+    const anchor = list.find((d) => d.has_business_proposal) || list[0]
+    if (!anchor?.id) {
+      // eslint-disable-next-line no-alert
+      alert('No hay entregable con propuesta para sincronizar.')
+      return
+    }
+    await post(
+      `projects/${project.value.id}/deliverables/${anchor.id}/sync-technical-requirements/`,
+      {},
+    )
+    // eslint-disable-next-line no-alert
+    alert('Sincronización completada. Revisa entregables y tablero.')
+    await projectsStore.fetchProject(project.value.id)
+  } catch (e) {
+    const msg = e.response?.data?.detail || 'No se pudo sincronizar.'
+    // eslint-disable-next-line no-alert
+    alert(msg)
+  } finally {
+    syncLoading.value = false
+  }
+}
 
 onMounted(async () => {
   const projectId = route.params.id

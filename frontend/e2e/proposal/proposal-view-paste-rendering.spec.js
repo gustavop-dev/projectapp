@@ -10,7 +10,7 @@
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
-import { PROPOSAL_VIEW } from '../helpers/flow-tags.js';
+import { PROPOSAL_VIEW_PASTE_RENDERING } from '../helpers/flow-tags.js';
 
 const MOCK_UUID = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 
@@ -131,7 +131,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   });
 
   test('paste-mode section renders RawContentSection with markdown', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_PASTE_RENDERING, '@role:guest'],
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
@@ -151,7 +151,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   });
 
   test('paste-mode section renders markdown headings and bold text', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_PASTE_RENDERING, '@role:guest'],
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
@@ -173,7 +173,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   });
 
   test('paste-mode section shows content in a styled card with rounded borders', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_PASTE_RENDERING, '@role:guest'],
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
@@ -193,7 +193,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   });
 
   test('form-mode section renders structured component, NOT RawContentSection', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_PASTE_RENDERING, '@role:guest'],
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
@@ -212,7 +212,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   });
 
   test('paste-mode section displays the section title', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_PASTE_RENDERING, '@role:guest'],
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
@@ -231,7 +231,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   });
 
   test('paste-mode section displays the section index number', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_PASTE_RENDERING, '@role:guest'],
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
@@ -248,7 +248,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   });
 
   test('second paste-mode section also renders as RawContentSection', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_PASTE_RENDERING, '@role:guest'],
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
@@ -268,7 +268,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   });
 
   test('mixed proposal: greeting (form) has no raw-content, timeline (form) has no raw-content', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_PASTE_RENDERING, '@role:guest'],
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
@@ -288,7 +288,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   });
 
   test('markdown list items render correctly in paste section', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_PASTE_RENDERING, '@role:guest'],
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));
@@ -305,7 +305,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   });
 
   test('all-form proposal renders zero RawContentSection components', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_PASTE_RENDERING, '@role:guest'],
   }, async ({ page }) => {
     const allFormProposal = {
       id: 100,

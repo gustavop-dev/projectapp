@@ -25,6 +25,7 @@ export const BLOG_DETAIL = ['@flow:blog-detail', '@module:blog', '@priority:P2']
 
 // ── Proposal ──
 export const PROPOSAL_VIEW = ['@flow:proposal-view', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_VIEW_PASTE_RENDERING = ['@flow:proposal-view-paste-rendering', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_VIEW_NAVIGATION = ['@flow:proposal-view-navigation', '@module:proposal', '@priority:P1'];
 export const PROPOSAL_VIEW_ONBOARDING = ['@flow:proposal-view-onboarding', '@module:proposal', '@priority:P3'];
 export const PROPOSAL_RESPOND = ['@flow:proposal-respond', '@module:proposal', '@priority:P1'];
@@ -80,7 +81,6 @@ export const ADMIN_PROPOSAL_METRICS_MANUAL = ['@flow:admin-proposal-metrics-manu
 export const PROPOSAL_WELCOME_BACK = ['@flow:proposal-welcome-back', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_PROCESS_METHODOLOGY = ['@flow:proposal-process-methodology', '@module:proposal', '@priority:P2'];
 export const ADMIN_PROPOSAL_ZOMBIE_SEGMENT = ['@flow:admin-proposal-zombie-segment', '@module:admin', '@priority:P2'];
-export const PROPOSAL_SHARE_HINT = ['@flow:proposal-share-hint', '@module:proposal', '@priority:P3'];
 export const PROPOSAL_COUNTDOWN_REALTIME = ['@flow:proposal-countdown-realtime', '@module:proposal', '@priority:P3'];
 export const ADMIN_PROPOSAL_CREATE_AND_SEND = ['@flow:admin-proposal-create-and-send', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_CREATE_PREVIEW = ['@flow:admin-proposal-create-preview', '@module:admin', '@priority:P2'];
@@ -96,9 +96,7 @@ export const ADMIN_PROPOSAL_ACTIONS_MODAL = ['@flow:admin-proposal-actions-modal
 export const PROPOSAL_COMMENT_FROM_CLOSING = ['@flow:proposal-comment-from-closing', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_REJECTION_SMART_RECOVERY = ['@flow:proposal-rejection-smart-recovery', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_FUNCTIONAL_REQUIREMENTS_MODAL = ['@flow:proposal-functional-requirements-modal', '@module:proposal', '@priority:P2'];
-export const ADMIN_PROPOSAL_SEND_FROM_LISTING = ['@flow:admin-proposal-send-from-listing', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_ACTIVITY_LOG = ['@flow:admin-proposal-log-activity', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_AUTOMATIONS_TOGGLE = ['@flow:admin-proposal-automations-toggle', '@module:admin', '@priority:P2'];
 
 // ── Calculator modules (PWA, AI, Reports & Alerts) ──
 export const PROPOSAL_CALCULATOR_MODULES = ['@flow:proposal-calculator-modules', '@module:proposal', '@priority:P1'];
@@ -128,6 +126,7 @@ export const ADMIN_PROPOSAL_DEFAULTS_CONFIG = ['@flow:admin-proposal-defaults-co
 export const ADMIN_EMAIL_TEMPLATES_CONFIG = ['@flow:admin-email-templates-config', '@module:admin', '@priority:P2'];
 // PROPOSAL_STICKY_BAR_ACCEPT removed — feature deleted (ProposalResponseButtons removed)
 export const PROPOSAL_EXECUTIVE_TO_DETAILED = ['@flow:proposal-executive-to-detailed', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_TECHNICAL_VIEW = ['@flow:proposal-technical-view', '@module:proposal', '@priority:P2'];
 export const PROPOSAL_SECTION_ONBOARDING = ['@flow:proposal-section-onboarding', '@module:proposal', '@priority:P3'];
 
 // ── Platform ──
@@ -154,6 +153,10 @@ export const PLATFORM_HOSTING_SUBSCRIPTION = ['@flow:platform-hosting-subscripti
 export const PLATFORM_NOTIFICATIONS = ['@flow:platform-notifications', '@module:platform', '@priority:P2'];
 export const PLATFORM_KANBAN_JSON_UPLOAD = ['@flow:platform-kanban-json-upload', '@module:platform', '@priority:P2'];
 export const PLATFORM_REQUIREMENT_CLIENT_REVIEW = ['@flow:platform-requirement-client-review', '@module:platform', '@priority:P2'];
+export const PLATFORM_COLLECTION_ACCOUNTS_LIST = ['@flow:platform-collection-accounts-list', '@module:platform', '@priority:P2'];
+export const PLATFORM_COLLECTION_ACCOUNT_DETAIL = ['@flow:platform-collection-account-detail', '@module:platform', '@priority:P2'];
+export const PLATFORM_PROJECT_COLLECTION_ACCOUNTS = ['@flow:platform-project-collection-accounts', '@module:platform', '@priority:P2'];
+export const PLATFORM_DELIVERABLE_DETAIL = ['@flow:platform-deliverable-detail', '@module:platform', '@priority:P2'];
 
 // ── v2.7.0 new flows ──
 export const ADMIN_DOCUMENT_LIST = ['@flow:admin-document-list', '@module:admin', '@priority:P2'];

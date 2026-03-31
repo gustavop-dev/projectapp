@@ -228,13 +228,6 @@ class Project(models.Model):
         related_name='projects',
         help_text='The client user this project belongs to.',
     )
-    proposal = models.ForeignKey(
-        'content.BusinessProposal',
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='platform_projects',
-        help_text='Linked business proposal for cost/hosting derivation.',
-    )
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE,
     )
@@ -269,6 +262,17 @@ class Project(models.Model):
     def status_display(self):
         return dict(self.STATUS_CHOICES).get(self.status, self.status)
 
+    def linked_business_proposal(self):
+        """First BusinessProposal linked via a deliverable on this project (hosting/PDFs)."""
+        from content.models import BusinessProposal
+
+        return (
+            BusinessProposal.objects.filter(deliverable__project_id=self.id)
+            .select_related('deliverable')
+            .order_by('deliverable_id')
+            .first()
+        )
+
 
 class Requirement(models.Model):
     """
@@ -301,8 +305,8 @@ class Requirement(models.Model):
         (PRIORITY_LOW, 'Baja'),
     ]
 
-    project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name='requirements',
+    deliverable = models.ForeignKey(
+        'Deliverable', on_delete=models.CASCADE, related_name='requirements',
     )
     title = models.CharField(max_length=300)
     description = models.TextField(blank=True, default='')
@@ -323,14 +327,33 @@ class Requirement(models.Model):
     order = models.PositiveIntegerField(
         default=0, help_text='Sort order within the column.',
     )
+    source_epic_key = models.CharField(max_length=200, blank=True, default='', db_index=True)
+    source_epic_title = models.CharField(max_length=300, blank=True, default='')
+    source_flow_key = models.CharField(max_length=200, blank=True, default='', db_index=True)
+    synced_from_proposal = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['order', '-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['deliverable', 'source_flow_key'],
+                condition=~models.Q(source_flow_key=''),
+                name='uniq_requirement_deliverable_flow_key',
+            ),
+        ]
 
     def __str__(self):
         return f'{self.title} [{self.get_status_display()}]'
+
+    @property
+    def project(self):
+        return self.deliverable.project
+
+    @property
+    def project_id(self):
+        return self.deliverable.project_id
 
 
 class RequirementComment(models.Model):
@@ -611,18 +634,25 @@ class Deliverable(models.Model):
     """
     A file deliverable for a project, organized by category.
     Admin uploads, client downloads. Supports version history.
+    Optional file for logical rows (e.g. epic scope / linked business proposal).
     """
 
     CATEGORY_DESIGNS = 'designs'
     CATEGORY_CREDENTIALS = 'credentials'
     CATEGORY_DOCUMENTS = 'documents'
     CATEGORY_APKS = 'apks'
+    CATEGORY_CONTRACT = 'contract'
+    CATEGORY_AMENDMENT = 'amendment'
+    CATEGORY_LEGAL_ANNEX = 'legal_annex'
     CATEGORY_OTHER = 'other'
     CATEGORY_CHOICES = [
         (CATEGORY_DESIGNS, 'Diseños'),
         (CATEGORY_CREDENTIALS, 'Credenciales'),
         (CATEGORY_DOCUMENTS, 'Documentos'),
         (CATEGORY_APKS, 'APKs / Builds'),
+        (CATEGORY_CONTRACT, 'Contrato'),
+        (CATEGORY_AMENDMENT, 'Otrosí'),
+        (CATEGORY_LEGAL_ANNEX, 'Anexo legal'),
         (CATEGORY_OTHER, 'Otros'),
     ]
 
@@ -634,7 +664,9 @@ class Deliverable(models.Model):
     )
     title = models.CharField(max_length=300)
     description = models.TextField(blank=True, default='')
-    file = models.FileField(upload_to='deliverables/')
+    source_epic_key = models.CharField(max_length=200, blank=True, default='', db_index=True)
+    source_epic_title = models.CharField(max_length=300, blank=True, default='')
+    file = models.FileField(upload_to='deliverables/', blank=True, null=True)
     current_version = models.PositiveIntegerField(default=1)
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
@@ -645,6 +677,13 @@ class Deliverable(models.Model):
 
     class Meta:
         ordering = ['category', '-updated_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['project', 'source_epic_key'],
+                condition=~models.Q(source_epic_key=''),
+                name='uniq_deliverable_project_epic_key',
+            ),
+        ]
 
     def __str__(self):
         return f'{self.title} v{self.current_version} [{self.get_category_display()}]'
@@ -695,6 +734,88 @@ class DeliverableVersion(models.Model):
             return self.file.size
         except Exception:
             return 0
+
+
+class DeliverableFile(models.Model):
+    """Additional file attached to a deliverable (contract, annex, etc.)."""
+
+    deliverable = models.ForeignKey(
+        Deliverable, on_delete=models.CASCADE, related_name='attachment_files',
+    )
+    file = models.FileField(upload_to='deliverables/attachments/')
+    title = models.CharField(max_length=300, blank=True, default='')
+    category = models.CharField(
+        max_length=20, choices=Deliverable.CATEGORY_CHOICES, default=Deliverable.CATEGORY_OTHER,
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='deliverable_attachment_files',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.deliverable.title} — {self.title or self.file_name}'
+
+    @property
+    def file_name(self):
+        if self.file:
+            return self.file.name.split('/')[-1]
+        return ''
+
+
+class DeliverableClientFolder(models.Model):
+    """Optional folder label for client-uploaded PDFs on a deliverable."""
+
+    deliverable = models.ForeignKey(
+        Deliverable, on_delete=models.CASCADE, related_name='client_folders',
+    )
+    name = models.CharField(max_length=200)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='deliverable_client_folders',
+    )
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f'{self.deliverable_id} — {self.name}'
+
+
+class DeliverableClientUpload(models.Model):
+    """PDF uploaded by the client (or admin) under a deliverable, optionally in a folder."""
+
+    deliverable = models.ForeignKey(
+        Deliverable, on_delete=models.CASCADE, related_name='client_uploads',
+    )
+    folder = models.ForeignKey(
+        DeliverableClientFolder, on_delete=models.CASCADE,
+        null=True, blank=True, related_name='uploads',
+    )
+    file = models.FileField(upload_to='deliverables/client_uploads/')
+    title = models.CharField(max_length=300, blank=True, default='')
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='deliverable_client_uploads',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.deliverable_id} — {self.title or self.file_name}'
+
+    @property
+    def file_name(self):
+        if self.file:
+            return self.file.name.split('/')[-1]
+        return ''
 
 
 class Notification(models.Model):

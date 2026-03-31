@@ -11,8 +11,15 @@
       />
     </label>
 
+    <TechnicalDocumentEditor
+      v-if="sectionType === 'technical_document'"
+      :section="section"
+      :module-link-options="moduleLinkOptions"
+      @save="emit('save', $event)"
+    />
+
     <!-- Paste mode toggle -->
-    <div v-if="hasPasteSupport" class="mb-5">
+    <div v-else-if="hasPasteSupport" class="mb-5">
       <div class="flex items-center gap-3 mb-3">
         <button
           type="button"
@@ -60,7 +67,7 @@
     </div>
 
     <!-- Dynamic form fields based on section_type -->
-    <div v-show="!pasteMode" class="space-y-5">
+    <div v-show="!pasteMode && sectionType !== 'technical_document'" class="space-y-5">
       <!-- GREETING -->
       <template v-if="sectionType === 'greeting'">
         <FieldInput v-model="form.proposalTitle" label="Título de la propuesta" />
@@ -746,7 +753,7 @@
     </template>
 
     <!-- Raw JSON toggle -->
-    <div class="mt-6 border-t border-gray-100 pt-4">
+    <div v-if="sectionType !== 'technical_document'" class="mt-6 border-t border-gray-100 pt-4">
       <button type="button" class="text-xs text-gray-400 hover:text-gray-600" @click="showRawJson = !showRawJson">
         {{ showRawJson ? 'Ocultar' : 'Mostrar' }} JSON crudo
       </button>
@@ -761,7 +768,7 @@
     </div>
 
     <!-- Save button -->
-    <div class="flex flex-wrap items-center gap-3 mt-5">
+    <div v-if="sectionType !== 'technical_document'" class="flex flex-wrap items-center gap-3 mt-5">
       <button
         type="button"
         :disabled="isSaving"
@@ -789,7 +796,7 @@
       </button>
       <span v-if="savedMsg" class="text-xs text-green-600">{{ savedMsg }}</span>
     </div>
-    <p v-if="validationError" class="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">{{ validationError }}</p>
+    <p v-if="sectionType !== 'technical_document' && validationError" class="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">{{ validationError }}</p>
 
     <!-- Section preview modal -->
     <SectionPreviewModal
@@ -814,6 +821,7 @@
 import { reactive, ref, computed, watch, h } from 'vue';
 import EmojiIconField from '~/components/BusinessProposal/admin/EmojiIconField.vue';
 import SectionPreviewModal from '~/components/BusinessProposal/admin/SectionPreviewModal.vue';
+import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
 import draggable from 'vuedraggable';
 import {
   arrToText, textToArr,
@@ -860,9 +868,12 @@ const FieldTextarea = {
 const props = defineProps({
   section: { type: Object, required: true },
   proposalData: { type: Object, default: () => ({}) },
+  /** { id, label }[] for technical_document linked_module_ids */
+  moduleLinkOptions: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['save', 'syncHostingPercent']);
+// emit exposed for TechnicalDocumentEditor @save in template
 
 const sectionType = computed(() => props.section.section_type);
 const sectionTitle = ref(props.section.title);

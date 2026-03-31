@@ -218,6 +218,7 @@ export function usePlatformApi() {
     headers: extraHeaders,
     skipAuth = false,
     skipRefresh = false,
+    ...axiosConfig
   }) => {
     const headers = { ...(extraHeaders || {}) }
     if (token) {
@@ -231,6 +232,7 @@ export function usePlatformApi() {
       skipPlatformAuth: skipAuth,
       skipPlatformRefresh: skipRefresh,
       headers: Object.keys(headers).length ? headers : undefined,
+      ...axiosConfig,
     })
   }
 

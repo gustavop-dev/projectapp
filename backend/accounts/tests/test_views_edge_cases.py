@@ -2,7 +2,14 @@ import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
-from accounts.models import Project, Requirement, RequirementHistory, UserProfile, VerificationCode
+from accounts.models import (
+    Deliverable,
+    Project,
+    Requirement,
+    RequirementHistory,
+    UserProfile,
+    VerificationCode,
+)
 from accounts.services.tokens import get_tokens_for_user, get_verification_token_for_user
 
 User = get_user_model()
@@ -399,18 +406,22 @@ class TestRequirementViewEdgeCases:
     @pytest.fixture
     def project_with_req(self, client_user):
         project = Project.objects.create(name='P', client=client_user)
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=client_user,
+        )
         req = Requirement.objects.create(
-            project=project, title='Card 1', status=Requirement.STATUS_TODO,
+            deliverable=d, title='Card 1', status=Requirement.STATUS_TODO,
         )
         return project, req
 
     def test_create_requirement_with_empty_title_returns_400(
         self, api_client, admin_headers, project_with_req,
     ):
-        project, _ = project_with_req
+        project, req = project_with_req
 
         response = api_client.post(
-            f'/api/accounts/projects/{project.id}/requirements/',
+            f'/api/accounts/projects/{project.id}/deliverables/{req.deliverable_id}/requirements/',
             {'title': ''},
             content_type='application/json',
             **admin_headers,
@@ -424,7 +435,7 @@ class TestRequirementViewEdgeCases:
         project, req = project_with_req
 
         response = api_client.post(
-            f'/api/accounts/projects/{project.id}/requirements/{req.id}/comments/',
+            f'/api/accounts/projects/{project.id}/deliverables/{req.deliverable_id}/requirements/{req.id}/comments/',
             {'content': ''},
             content_type='application/json',
             **admin_headers,
@@ -434,7 +445,7 @@ class TestRequirementViewEdgeCases:
 
     def test_move_to_nonexistent_project_returns_404(self, api_client, admin_headers):
         response = api_client.post(
-            '/api/accounts/projects/99999/requirements/1/move/',
+            '/api/accounts/projects/99999/deliverables/1/requirements/1/move/',
             {'status': 'done'},
             content_type='application/json',
             **admin_headers,
@@ -446,13 +457,17 @@ class TestRequirementViewEdgeCases:
         self, api_client, client_headers, client_user,
     ):
         project = Project.objects.create(name='P', client=client_user)
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=client_user,
+        )
         req = Requirement.objects.create(
-            project=project, title='Approve me',
+            deliverable=d, title='Approve me',
             status=Requirement.STATUS_APPROVAL,
         )
 
         response = api_client.post(
-            f'/api/accounts/projects/{project.id}/requirements/{req.id}/move/',
+            f'/api/accounts/projects/{project.id}/deliverables/{d.id}/requirements/{req.id}/move/',
             {'status': 'done', 'order': 0},
             format='json',
             **client_headers,
@@ -466,13 +481,17 @@ class TestRequirementViewEdgeCases:
         self, api_client, client_headers, client_user,
     ):
         project = Project.objects.create(name='P', client=client_user)
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=client_user,
+        )
         req = Requirement.objects.create(
-            project=project, title='No move',
+            deliverable=d, title='No move',
             status=Requirement.STATUS_TODO,
         )
 
         response = api_client.post(
-            f'/api/accounts/projects/{project.id}/requirements/{req.id}/move/',
+            f'/api/accounts/projects/{project.id}/deliverables/{d.id}/requirements/{req.id}/move/',
             {'status': 'in_progress', 'order': 0},
             format='json',
             **client_headers,
@@ -484,13 +503,17 @@ class TestRequirementViewEdgeCases:
         self, api_client, admin_headers, client_user,
     ):
         project = Project.objects.create(name='P', client=client_user)
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=client_user,
+        )
         req = Requirement.objects.create(
-            project=project, title='Track me',
+            deliverable=d, title='Track me',
             status=Requirement.STATUS_TODO,
         )
 
         response = api_client.patch(
-            f'/api/accounts/projects/{project.id}/requirements/{req.id}/',
+            f'/api/accounts/projects/{project.id}/deliverables/{d.id}/requirements/{req.id}/',
             {'status': 'in_progress'},
             format='json',
             **admin_headers,
@@ -506,13 +529,17 @@ class TestRequirementViewEdgeCases:
         self, api_client, admin_headers, client_user,
     ):
         project = Project.objects.create(name='P', client=client_user)
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=client_user,
+        )
         req = Requirement.objects.create(
-            project=project, title='No history',
+            deliverable=d, title='No history',
             status=Requirement.STATUS_TODO,
         )
 
         response = api_client.patch(
-            f'/api/accounts/projects/{project.id}/requirements/{req.id}/',
+            f'/api/accounts/projects/{project.id}/deliverables/{d.id}/requirements/{req.id}/',
             {'title': 'Renamed'},
             format='json',
             **admin_headers,
@@ -525,9 +552,13 @@ class TestRequirementViewEdgeCases:
         self, api_client, admin_headers, client_user,
     ):
         project = Project.objects.create(name='P', client=client_user)
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=client_user,
+        )
 
         response = api_client.get(
-            f'/api/accounts/projects/{project.id}/requirements/99999/',
+            f'/api/accounts/projects/{project.id}/deliverables/{d.id}/requirements/99999/',
             **admin_headers,
         )
 
@@ -537,12 +568,16 @@ class TestRequirementViewEdgeCases:
         self, api_client, admin_headers, client_user,
     ):
         project = Project.objects.create(name='P', client=client_user)
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=client_user,
+        )
         req = Requirement.objects.create(
-            project=project, title='Delete me', status=Requirement.STATUS_TODO,
+            deliverable=d, title='Delete me', status=Requirement.STATUS_TODO,
         )
 
         response = api_client.delete(
-            f'/api/accounts/projects/{project.id}/requirements/{req.id}/',
+            f'/api/accounts/projects/{project.id}/deliverables/{d.id}/requirements/{req.id}/',
             **admin_headers,
         )
 
@@ -553,12 +588,16 @@ class TestRequirementViewEdgeCases:
         self, api_client, client_headers, client_user,
     ):
         project = Project.objects.create(name='P', client=client_user)
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=client_user,
+        )
         req = Requirement.objects.create(
-            project=project, title='Protected', status=Requirement.STATUS_TODO,
+            deliverable=d, title='Protected', status=Requirement.STATUS_TODO,
         )
 
         response = api_client.delete(
-            f'/api/accounts/projects/{project.id}/requirements/{req.id}/',
+            f'/api/accounts/projects/{project.id}/deliverables/{d.id}/requirements/{req.id}/',
             **client_headers,
         )
 

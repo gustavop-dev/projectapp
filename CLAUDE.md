@@ -362,7 +362,7 @@ flowchart TD
 
 - **Never run the full test suite** — always specify files
 - **Maximum per execution**: 20 tests per batch, 3 commands per cycle
-- **Backend**: Always activate venv first: `source venv/bin/activate && pytest path/to/test_file.py -v`
+- **Backend**: Activate venv first (typical: `source .venv/bin/activate` from repo root, or `source ../.venv/bin/activate` from `backend/`), then `pytest path/to/test_file.py -v` with cwd `backend/` — see `backend/CLAUDE.md`
 - **Frontend unit**: `npm test -- path/to/file.spec.ts`
 - **E2E**: max 2 files per `npx playwright test` invocation
 - Use `E2E_REUSE_SERVER=1` when dev server is already running
@@ -425,7 +425,8 @@ Full reference: `docs/TESTING_QUALITY_STANDARDS.md`
 
 #### Backend Commands Always Need venv
 ```bash
-source venv/bin/activate && <command>
+source .venv/bin/activate   # repo root, or: source ../.venv/bin/activate from backend/
+cd backend && <command>
 ```
 
 #### Huey Immediate Mode in Development

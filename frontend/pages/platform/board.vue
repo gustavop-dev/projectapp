@@ -181,9 +181,17 @@ onMounted(async () => {
     for (const p of projects) {
       if (p.status === 'archived') continue
       try {
-        const res = await get(`projects/${p.id}/requirements/`)
-        for (const card of res.data) {
-          cards.push({ ...card, _projectId: p.id })
+        const dres = await get(`projects/${p.id}/deliverables/`)
+        const dels = dres.data || []
+        for (const d of dels) {
+          try {
+            const res = await get(`projects/${p.id}/deliverables/${d.id}/requirements/`)
+            for (const card of res.data) {
+              cards.push({ ...card, _projectId: p.id })
+            }
+          } catch {
+            // skip deliverable errors
+          }
         }
       } catch {
         // skip projects with errors

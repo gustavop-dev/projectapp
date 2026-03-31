@@ -24,8 +24,8 @@ test.describe('Contact Form Submit', () => {
   test('submits contact form successfully', {
     tag: [...PUBLIC_CONTACT_SUBMIT, '@role:guest'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ _route, apiPath }) => {
-      if (apiPath === 'new-contact/') {
+    await mockApi(page, async ({ _route, apiPath, method }) => {
+      if (apiPath === 'new-contact/' && method === 'POST') {
         return {
           status: 201,
           contentType: 'application/json',
@@ -42,10 +42,15 @@ test.describe('Contact Form Submit', () => {
     await page.goto('/contact');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible({ timeout: 15000 });
 
-    // Fill in form fields
-    // quality: allow-fragile-selector (first text input is the name field, no label/placeholder available)
-    await page.locator('input[type="text"]').first().fill('Test User');
-    await page.locator('input[type="tel"]').fill('+573001234567');
-    await page.locator('input[type="email"]').fill('test@example.com');
+    const form = page.locator('form');
+    await form.locator('input[type="text"]').fill('Test User');
+    await form.locator('input[type="tel"]').fill('+573001234567');
+    await form.locator('input[type="email"]').fill('test@example.com');
+    await form.locator('textarea').fill('E2E contact project description');
+
+    await form.getByRole('button', { name: /send message|enviar mensaje|enviar/i }).click();
+
+    await page.waitForURL(/contact-success/, { timeout: 20_000 });
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(/gracias|thank/i);
   });
 });

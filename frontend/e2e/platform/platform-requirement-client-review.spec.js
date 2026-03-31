@@ -47,15 +47,22 @@ function setupMocks(page, { user }) {
     if (apiPath === 'accounts/projects/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProject]) };
     }
-    if (apiPath === 'accounts/projects/1/requirements/' && method === 'GET') {
+    if (apiPath === 'accounts/projects/1/deliverables/' && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([{ id: 1, title: 'Main', has_business_proposal: true }]),
+      };
+    }
+    if (apiPath === 'accounts/projects/1/deliverables/1/requirements/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockRequirements) };
     }
-    if (apiPath.match(/accounts\/projects\/1\/requirements\/\d+\/$/) && method === 'GET') {
+    if (apiPath.match(/accounts\/projects\/1\/deliverables\/1\/requirements\/\d+\/$/) && method === 'GET') {
       const id = parseInt(apiPath.match(/requirements\/(\d+)/)[1], 10);
       const req = mockRequirements.find((r) => r.id === id);
       return { status: 200, contentType: 'application/json', body: JSON.stringify(req || mockRequirements[0]) };
     }
-    if (apiPath.match(/accounts\/projects\/1\/requirements\/\d+\/move\/$/) && method === 'POST') {
+    if (apiPath.match(/accounts\/projects\/1\/deliverables\/1\/requirements\/\d+\/move\/$/) && method === 'POST') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockRequirements[0], status: 'done' }) };
     }
     if (apiPath === 'accounts/notifications/unread-count/' && method === 'GET') {

@@ -1692,6 +1692,8 @@ class ProposalPdfService:
 
             for sec in sections:
                 stype = sec.section_type
+                if stype == 'technical_document':
+                    continue
                 data = sec.content_json or {}
 
                 if 'title' not in data or not data['title']:

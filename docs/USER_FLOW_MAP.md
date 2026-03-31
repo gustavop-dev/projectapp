@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.0.0
-> **Last updated:** 2026-03-18
+> **Version:** 2.8.0
+> **Last updated:** 2026-03-31
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -61,6 +61,11 @@
 
 - **[Branch A]** / **[Branch B]** — Alternative outcomes within a flow
 - **[Optional]** — Step that may or may not occur
+
+### E2E scope decisions (audit follow-up)
+
+- **TechnicalDocumentEditor (panel):** No dedicated flow ID. Scope remains within `admin-proposal-edit` and `admin-proposal-defaults-config`; client-facing technical reading is covered by `proposal-technical-view`.
+- **Panel sidebar (collapse / mobile drawer):** No dedicated flow ID. Exercised indirectly by specs that load `/panel` routes using the admin layout.
 
 ---
 
@@ -377,6 +382,17 @@
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-executive-to-detailed.spec.js`
 - **Components:** `ProposalIndex.vue` (`switchToDetailed` emit), `[uuid]/index.vue` (`handleSwitchToDetailed`)
+
+### FLOW: `proposal-technical-view`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid?mode=technical`
+- **Description:** Third gateway option when `technical_document` is enabled: carousel of synthetic panels from `content_json` (intro, stack, architecture, etc.) plus `proposal_closing`. PDF download uses `?doc=technical`. Tracking sends `view_mode: technical`.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-technical-view.spec.js`
+- **Components:** `ProposalViewGateway.vue`, `TechnicalDocumentPublicPanel.vue`, `[uuid]/index.vue`, `technicalProposalPanels.js`
 
 ### FLOW: `proposal-respond`
 
@@ -733,7 +749,7 @@
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/proposals/:id/edit` (Analytics tab)
-- **Description:** View detailed analytics for a single proposal including engagement funnel, section time heatmap, device breakdown, shared links, session history, suggested actions, and CSV export.
+- **Description:** View detailed analytics for a single proposal including engagement funnel, section time heatmap, device breakdown, shared links, session history, suggested actions, and CSV export. Technical engagement unifies `technical_document` (sección) and `technical_document_public` (paneles en modo técnico) for skip list, funnel, `technical_engagement`, engagement score, and CSV “Metric group”.
 - **Steps:**
   1. Admin opens a proposal and navigates to the Analytics tab.
   2. ProposalAnalytics component loads data from `GET /api/proposals/:id/analytics/`.
@@ -753,7 +769,7 @@
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/` (Dashboard KPI section)
-- **Description:** View global KPI dashboard for all proposals: total proposals, conversion rate, average time to first view, average time to response, average value by status, status distribution, top rejection reasons, monthly trends, and discount vs no-discount close rates.
+- **Description:** View global KPI dashboard for all proposals: total proposals, conversion rate, average time to first view, average time to response, average value by status, status distribution, top rejection reasons, monthly trends, discount vs no-discount close rates, win rate by predominant tracking view mode (ejecutiva / completa / técnica), and top drop-off section scoped to commercial section types (excluye doc. técnico y paneles sintéticos).
 - **Steps:**
   1. Admin navigates to `/panel/`.
   2. ProposalDashboard component loads data from `GET /api/proposals/dashboard/`.
@@ -1494,6 +1510,7 @@
 | `proposal-view-onboarding` | proposal | guest | P3 | ✅ Covered | `e2e/proposal/proposal-onboarding.spec.js` |
 | `proposal-section-onboarding` | proposal | guest | P3 | ✅ Covered | `e2e/proposal/proposal-section-onboarding.spec.js` |
 | `proposal-executive-to-detailed` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-executive-to-detailed.spec.js` |
+| `proposal-technical-view` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-technical-view.spec.js` |
 | `proposal-respond` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-respond.spec.js` |
 | `proposal-download-pdf` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-pdf.spec.js` |
 | `proposal-share` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-share.spec.js` |
@@ -1818,7 +1835,7 @@
 - **Role:** platform-admin / platform-client
 - **Priority:** P1
 - **Routes:** `/platform/projects/:id/board`
-- **API:** `GET /api/accounts/projects/:id/requirements/`, `POST /api/accounts/projects/:id/requirements/`, `POST /api/accounts/projects/:id/requirements/:id/move/`, `GET /api/accounts/projects/:id/requirements/:id/`
+- **API:** `GET /api/accounts/projects/:id/deliverables/`, `GET|POST /api/accounts/projects/:projectId/deliverables/:deliverableId/requirements/`, `POST .../requirements/:id/move/`, `GET .../requirements/:id/` (requirements are scoped to a deliverable).
 - **Description:** 3-column kanban board with drag & drop, card detail modal, and completed checklist.
 - **Steps:**
   1. User navigates to `/platform/projects/:id/board`.
@@ -1843,7 +1860,7 @@
 - **Role:** platform-admin / platform-client
 - **Priority:** P2
 - **Routes:** `/platform/board`
-- **API:** `GET /api/accounts/projects/`, per-project requirements APIs
+- **API:** `GET /api/accounts/projects/`, then per deliverable `GET .../deliverables/:deliverableId/requirements/`
 - **Description:** Cross-project view showing active requirement cards grouped by project.
 - **Steps:**
   1. User navigates to `/platform/board`.
@@ -1864,7 +1881,7 @@
 - **Role:** platform-admin / platform-client
 - **Priority:** P3
 - **Routes:** `/platform/projects/:id/board` (card detail modal)
-- **API:** `POST /api/accounts/projects/:id/requirements/:id/comments/`
+- **API:** `POST /api/accounts/projects/:projectId/deliverables/:deliverableId/requirements/:id/comments/`
 - **Description:** Add public or internal (admin-only) comments on requirement cards.
 - **Steps:**
   1. User opens card detail modal (from kanban board flow).
@@ -1993,9 +2010,9 @@
 - **Module:** platform
 - **Role:** platform-admin / platform-client
 - **Priority:** P2
-- **Routes:** `/platform/projects/:id/deliverables`, `/platform/deliverables`
+- **Routes:** `/platform/projects/:id/deliverables` (list), `/platform/deliverables` (cross-project), `/platform/projects/:id/deliverables/:deliverableId` (full-page ficha — see `platform-deliverable-detail`)
 - **API:** `GET/POST /api/accounts/projects/:id/deliverables/`, `POST .../upload-version/`
-- **Description:** Admin uploads deliverables (designs, documents, APKs, credentials) with version history. Client downloads files.
+- **Description:** Admin uploads deliverables (designs, documents, APKs, credentials) with version history. Client downloads files. List UI is implemented as `pages/.../deliverables/index.vue` so nested dynamic routes resolve correctly.
 - **Steps:**
   1. User navigates to deliverables page.
   2. Deliverable list renders with category filter tabs and file count.
@@ -2057,7 +2074,7 @@
 - **Role:** platform-admin
 - **Priority:** P2
 - **Routes:** `/platform/projects/:id/board`
-- **API:** `POST /api/accounts/projects/:id/requirements/bulk/`
+- **API:** `POST /api/accounts/projects/:projectId/deliverables/:deliverableId/requirements/bulk/`
 - **Description:** Admin bulk-creates requirements by uploading a JSON file. Includes downloadable example template.
 - **Steps:**
   1. Admin clicks "Ejemplo" button → downloads `requerimientos-ejemplo.json` template.
@@ -2074,6 +2091,7 @@
 - **Role:** platform-client
 - **Priority:** P2
 - **Routes:** `/platform/projects/:id/board`
+- **API:** `GET .../deliverables/:deliverableId/requirements/`, `GET .../requirements/:id/`, `POST .../requirements/:id/move/`
 - **Description:** Client reviews completed requirements. Clicking a done card shows: Approve, Request Change, or Report Bug.
 - **Steps:**
   1. Client clicks a completed requirement in the "Completados" section.
@@ -2084,7 +2102,74 @@
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/platform/platform-requirement-client-review.spec.js`
 
-### 8.11 Platform Coverage Index
+### 8.11 Collection Accounts & Deliverable Detail
+
+#### FLOW: `platform-collection-accounts-list`
+
+- **Module:** platform
+- **Role:** platform-admin, platform-client
+- **Priority:** P2
+- **Routes:** `/platform/collection-accounts`
+- **API:** `GET /api/accounts/collection-accounts/` (optional query params for admin filters)
+- **Description:** Global list of collection accounts; admin sees filters and “New collection account”; client sees “My collection accounts”. Table rows link to detail via Open.
+- **Steps:**
+  1. User navigates to `/platform/collection-accounts`.
+  2. List loads from API → table shows number, title, status, total, due date.
+  3. User clicks Open → navigates to `/platform/collection-accounts/:id`.
+  4. **[Admin]** User applies project/status filters and Apply filters → list refreshes.
+  5. **[Admin]** User clicks New collection account → create modal → submit → redirect to new detail (optional branch).
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-collection-accounts.spec.js`
+
+#### FLOW: `platform-collection-account-detail`
+
+- **Module:** platform
+- **Role:** platform-admin, platform-client
+- **Priority:** P2
+- **Routes:** `/platform/collection-accounts/:id`
+- **API:** `GET/PATCH /api/accounts/collection-accounts/:id/`, `POST .../issue/`, `.../mark-paid/`, `.../mark-cancelled/`, `GET .../pdf/`
+- **Description:** Single document view: status, amounts, line items; Download PDF; admin actions Issue / Mark paid / Cancel by status.
+- **Steps:**
+  1. User opens detail from list or direct URL.
+  2. Document loads → title, public number, status, totals, line items render.
+  3. User clicks Download PDF → PDF downloaded (blob).
+  4. **[Admin — draft]** User clicks Issue → status becomes issued.
+  5. **[Admin — issued]** User clicks Mark paid → status becomes paid.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-collection-accounts.spec.js`
+
+#### FLOW: `platform-project-collection-accounts`
+
+- **Module:** platform
+- **Role:** platform-admin, platform-client
+- **Priority:** P2
+- **Routes:** `/platform/projects/:id/collection-accounts`
+- **API:** `GET /api/accounts/projects/:id/collection-accounts/`
+- **Description:** Project-scoped list of collection accounts with Open links to shared detail route.
+- **Steps:**
+  1. User navigates from project hub or URL to `/platform/projects/:projectId/collection-accounts`.
+  2. List loads → cards or rows per account with status.
+  3. User clicks Open → `/platform/collection-accounts/:id`.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-collection-accounts.spec.js`
+
+#### FLOW: `platform-deliverable-detail`
+
+- **Module:** platform
+- **Role:** platform-admin, platform-client
+- **Priority:** P2
+- **Routes:** `/platform/projects/:id/deliverables/:deliverableId`
+- **API:** `GET /api/accounts/projects/:id/deliverables/:deliverableId/`, PDF subpaths from `pdf_download_paths`, optional attachment upload (admin)
+- **Description:** Deliverable hub: title, description, epic; linked commercial proposal PDFs; main file and attachments; link to kanban filtered by deliverable; admin can upload annex.
+- **Steps:**
+  1. User navigates to deliverable detail URL (from list or deep link).
+  2. Detail loads → heading, Documents section, Requirements / board CTA.
+  3. If linked proposal exists → user clicks PDF comercial or PDF técnico → download.
+  4. **[Admin]** User may upload attachment via form (optional branch).
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-deliverables.spec.js`
+
+### 8.12 Platform Coverage Index
 
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
@@ -2107,16 +2192,20 @@
 | `platform-notifications` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-notifications.spec.js` |
 | `platform-kanban-json-upload` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-kanban-json-upload.spec.js` |
 | `platform-requirement-client-review` | platform | platform-client | P2 | ✅ Covered | `e2e/platform/platform-requirement-client-review.spec.js` |
+| `platform-collection-accounts-list` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-collection-accounts.spec.js` |
+| `platform-collection-account-detail` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-collection-accounts.spec.js` |
+| `platform-project-collection-accounts` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-collection-accounts.spec.js` |
+| `platform-deliverable-detail` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-deliverables.spec.js` |
 | `platform-admin-project-create` | platform | platform-admin | P3 | ✅ Covered | `e2e/platform/platform-project-create.spec.js` |
 | `platform-kanban-card-comments` | platform | platform-admin/client | P3 | ✅ Covered | `e2e/platform/platform-kanban-comments.spec.js` |
 
 ### Platform Coverage Summary
 
-- **Total platform flows:** 21
+- **Total platform flows:** 25
 - **P1 (Critical):** 5
-- **P2 (High):** 14
+- **P2 (High):** 18
 - **P3 (Medium):** 2
-- **Covered:** 21 (100%)
+- **Covered:** 25 (100%)
 - **Missing:** 0
 - **Deferred:** 0
 

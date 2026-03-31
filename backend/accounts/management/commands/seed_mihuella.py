@@ -124,8 +124,9 @@ class Command(BaseCommand):
         self._create_subscription(project)
 
         # Compute progress from statuses
-        total = project.requirements.count()
-        done = project.requirements.filter(status=Requirement.STATUS_DONE).count()
+        req_qs = Requirement.objects.filter(deliverable__project=project)
+        total = req_qs.count()
+        done = req_qs.filter(status=Requirement.STATUS_DONE).count()
         project.progress = round((done / total) * 100) if total else 0
         project.save(update_fields=['progress'])
 
@@ -135,7 +136,7 @@ class Command(BaseCommand):
         self.stdout.write(f'  Project → {PROJECT_NAME}')
 
         for status, label in Requirement.STATUS_CHOICES:
-            count = project.requirements.filter(status=status).count()
+            count = req_qs.filter(status=status).count()
             self.stdout.write(f'    {label:<15} {count}')
 
         self.stdout.write(f'  Progress         → {project.progress}%')
@@ -208,9 +209,19 @@ class Command(BaseCommand):
         return project
 
     def _create_requirements(self, project):
-        if project.requirements.exists():
+        if Requirement.objects.filter(deliverable__project=project).exists():
             self.stdout.write(f'  Requirements already exist for {project.name}')
             return
+
+        d = Deliverable.objects.filter(project=project).order_by('id').first()
+        if not d:
+            d = Deliverable.objects.create(
+                project=project,
+                title='Alcance Mi Huella',
+                category=Deliverable.CATEGORY_OTHER,
+                file=None,
+                uploaded_by=project.client,
+            )
 
         order_counters = {}
         objs = []
@@ -218,7 +229,7 @@ class Command(BaseCommand):
             status = req_data['status']
             order_counters.setdefault(status, 0)
             objs.append(Requirement(
-                project=project,
+                deliverable=d,
                 title=req_data['title'],
                 description=req_data.get('description', ''),
                 configuration=req_data.get('configuration', ''),

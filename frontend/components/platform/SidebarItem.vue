@@ -1,9 +1,21 @@
 <template>
+  <a
+    v-if="!disabled && item.external"
+    :href="item.href"
+    :target="item.openInNewTab ? '_blank' : undefined"
+    :rel="item.openInNewTab ? 'noopener noreferrer' : undefined"
+    :class="itemClasses"
+    :title="isCollapsed ? item.label : undefined"
+  >
+    <SidebarIcon :name="item.icon" class="h-5 w-5 shrink-0" />
+    <span v-if="!isCollapsed" class="truncate">{{ item.label }}</span>
+  </a>
   <NuxtLink
-    v-if="!disabled"
+    v-else-if="!disabled"
     :to="item.href"
     :class="itemClasses"
     :title="isCollapsed ? item.label : undefined"
+    :aria-current="isActive ? 'page' : undefined"
   >
     <SidebarIcon :name="item.icon" class="h-5 w-5 shrink-0" />
     <span v-if="!isCollapsed" class="truncate">{{ item.label }}</span>

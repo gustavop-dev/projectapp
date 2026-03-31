@@ -65,6 +65,7 @@
         v-if="!viewMode"
         :language="pLang"
         :clientName="proposal.client_name || ''"
+        :show-technical="hasTechnicalDocument"
         @select="handleViewModeSelect"
       />
 
@@ -85,7 +86,7 @@
         <ExpirationBadge v-if="proposal.expires_at" :expiresAt="proposal.expires_at" />
 
         <!-- PDF download + Share -->
-        <PdfDownloadButton />
+        <PdfDownloadButton :view-mode="viewMode" />
         <ShareProposalButton
           v-if="proposal?.uuid"
           :proposalUuid="proposal.uuid"
@@ -94,7 +95,7 @@
 
         <!-- Restart tutorial button -->
         <button
-          v-if="viewMode"
+          v-if="viewMode && viewMode !== 'technical'"
           class="restart-tutorial-btn fixed bottom-[68px] left-6 z-[9990] w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110"
           :class="proposalDarkMode ? 'bg-gray-700 text-emerald-300 hover:bg-gray-600' : 'bg-white text-emerald-600 border border-gray-200 hover:bg-gray-50'"
           :title="pLang === 'es' ? 'Reiniciar tutorial' : 'Restart tutorial'"
@@ -107,7 +108,7 @@
 
         <!-- Dark mode toggle -->
         <button
-          v-if="viewMode"
+          v-if="viewMode && viewMode !== 'technical'"
           class="dark-mode-toggle fixed bottom-6 left-6 z-[9990] w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-lg transition-all hover:scale-110"
           :class="proposalDarkMode ? 'bg-gray-700 text-yellow-300 hover:bg-gray-600' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'"
           :title="pLang === 'es' ? 'Cambiar tema' : 'Toggle theme'"
@@ -117,10 +118,16 @@
         </button>
 
         <!-- Onboarding tutorial tooltips -->
-        <ProposalOnboarding ref="onboardingRef" :language="pLang" @complete="showReadingTimePopup" />
+        <ProposalOnboarding
+          v-if="viewMode !== 'technical'"
+          ref="onboardingRef"
+          :language="pLang"
+          @complete="showReadingTimePopup"
+        />
 
         <!-- Investment section onboarding (customize button tutorial) -->
         <InvestmentOnboarding
+          v-if="viewMode === 'detailed'"
           ref="investmentOnboardingRef"
           :language="pLang"
           :proposalUuid="proposal?.uuid || ''"
@@ -129,6 +136,7 @@
 
         <!-- Executive mode: teaser button onboarding -->
         <ExecutiveInvestmentOnboarding
+          v-if="viewMode === 'executive'"
           ref="executiveInvestmentOnboardingRef"
           :language="pLang"
           :proposalUuid="proposal?.uuid || ''"
@@ -136,6 +144,7 @@
 
         <!-- Functional requirements onboarding (click cards tutorial) -->
         <RequirementsOnboarding
+          v-if="viewMode !== 'technical'"
           ref="requirementsOnboardingRef"
           :language="pLang"
           :proposalUuid="proposal?.uuid || ''"
@@ -152,6 +161,9 @@
                 <svg v-if="switchOverlayMode === 'executive'" class="w-8 h-8 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
+                <svg v-else-if="switchOverlayMode === 'technical'" class="w-8 h-8 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
                 <svg v-else class="w-8 h-8 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -159,12 +171,16 @@
               <h2 class="text-2xl sm:text-3xl font-bold text-lemon mb-3">
                 {{ switchOverlayMode === 'executive'
                   ? (pLang === 'es' ? 'Vista Ejecutiva' : 'Executive View')
-                  : (pLang === 'es' ? 'Propuesta Completa' : 'Full Proposal') }}
+                  : switchOverlayMode === 'technical'
+                    ? (pLang === 'es' ? 'Detalle técnico' : 'Technical detail')
+                    : (pLang === 'es' ? 'Propuesta Completa' : 'Full Proposal') }}
               </h2>
               <p class="text-sm text-lemon/70 font-light max-w-xs mx-auto">
                 {{ switchOverlayMode === 'executive'
                   ? (pLang === 'es' ? 'Lo esencial de tu proyecto en un vistazo' : 'The essentials of your project at a glance')
-                  : (pLang === 'es' ? 'Ahora verás todos los detalles de tu proyecto' : 'Now you\'ll see all the details of your project') }}
+                  : switchOverlayMode === 'technical'
+                    ? (pLang === 'es' ? 'Arquitectura, stack y requerimientos técnicos' : 'Architecture, stack, and technical requirements')
+                    : (pLang === 'es' ? 'Ahora verás todos los detalles de tu proyecto' : 'Now you\'ll see all the details of your project') }}
               </p>
             </div>
           </div>
@@ -223,7 +239,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 class="text-lg font-bold text-esmerald mb-2">{{ pLang === 'es' ? `Tiempo de lectura: ~${viewMode === 'executive' ? '2' : '8'} minutos` : `Reading time: ~${viewMode === 'executive' ? '2' : '8'} minutes` }}</h3>
+              <h3 class="text-lg font-bold text-esmerald mb-2">{{ pLang === 'es' ? `Tiempo de lectura: ~${readMinutesEstimate} minutos` : `Reading time: ~${readMinutesEstimate} minutes` }}</h3>
               <p class="text-sm text-esmerald/70 font-light leading-relaxed mb-6">
                 {{ pLang === 'es' ? 'Por favor lee el contenido de todas las secciones. Cada una aborda un punto importante y diferente de la propuesta.' : 'Please read through all sections. Each one covers an important and different aspect of the proposal.' }}
               </p>
@@ -310,6 +326,9 @@ import RequirementsOnboarding from '~/components/BusinessProposal/RequirementsOn
 import ShareProposalButton from '~/components/BusinessProposal/ShareProposalButton.vue';
 import WhatsAppFloatingButton from '~/components/BusinessProposal/WhatsAppFloatingButton.vue';
 import ProposalViewGateway from '~/components/BusinessProposal/ProposalViewGateway.vue';
+import TechnicalDocumentPublicPanel from '~/components/BusinessProposal/TechnicalDocumentPublicPanel.vue';
+import { buildSyntheticTechnicalPanels } from '~/utils/technicalProposalPanels';
+import { filterTechnicalDocumentByModules } from '~/utils/filterTechnicalDocumentByModules';
 import { useProposalDarkMode } from '~/composables/useProposalDarkMode';
 
 definePageMeta({ layout: false });
@@ -348,6 +367,7 @@ const sectionComponentMap = {
   next_steps: NextSteps,
   proposal_summary: ProposalSummary,
   proposal_closing: ProposalClosing,
+  technical_document_public: TechnicalDocumentPublicPanel,
 };
 
 const proposal = computed(() => proposalStore.currentProposal);
@@ -391,20 +411,66 @@ useHead({
   }),
 });
 
-const viewMode = ref(null); // null = gateway, 'executive', 'detailed'
+const viewMode = ref(null); // null = gateway, 'executive', 'detailed', 'technical'
 const EXECUTIVE_SECTION_TYPES = new Set([
   'greeting', 'executive_summary', 'proposal_summary', 'functional_requirements', 'investment', 'timeline', 'proposal_closing',
 ]);
 
+const hasTechnicalDocument = computed(() =>
+  enabledSections.value.some((s) => s.section_type === 'technical_document'),
+);
+
+function effectiveSelectedModuleIdsForTechnical() {
+  const fromUi = [...selectedCalculatorModuleIds.value];
+  if (fromUi.length) return fromUi;
+  const persisted = proposal.value?.selected_modules;
+  if (Array.isArray(persisted) && persisted.length) return [...persisted];
+  return [];
+}
+
+const readMinutesEstimate = computed(() => {
+  if (viewMode.value === 'executive') return 2;
+  if (viewMode.value === 'technical') return 12;
+  return 8;
+});
+
 // Build display panels: skip next_steps (merged into final_note), no FR sub-panels
 // When viewMode is 'executive', filter to only executive section types
+// When 'technical', synthetic panels from technical_document + closing
 const displayPanels = computed(() => {
+  const lang = pLang.value === 'en' ? 'en' : 'es';
+
+  if (viewMode.value === 'technical') {
+    const tech = enabledSections.value.find((s) => s.section_type === 'technical_document');
+    if (!tech) return [];
+    const rawDoc = tech.content_json && typeof tech.content_json === 'object' ? tech.content_json : {};
+    const docForPanels = filterTechnicalDocumentByModules(
+      rawDoc,
+      effectiveSelectedModuleIdsForTechnical(),
+    );
+    const panels = buildSyntheticTechnicalPanels({ ...tech, content_json: docForPanels }, lang);
+    if (enabledSections.value.length > 0) {
+      const finalNote = enabledSections.value.find((s) => s.section_type === 'final_note');
+      const fnContent = finalNote?.content_json || {};
+      panels.push({
+        id: 'proposal_closing',
+        section_type: 'proposal_closing',
+        title: lang === 'en' ? '🤝 Next Steps' : '🤝 Próximos pasos',
+        _validityMessage: fnContent.validityMessage || '',
+        _thankYouMessage: fnContent.thankYouMessage || '',
+        _expiresAt: proposal.value?.expires_at || '',
+      });
+    }
+    return panels;
+  }
+
   const panels = [];
   const isExecutive = viewMode.value === 'executive';
 
   for (const section of enabledSections.value) {
     // Skip next_steps — its content is merged into final_note
     if (section.section_type === 'next_steps') continue;
+    if (section.section_type === 'technical_document') continue;
     // In executive mode, skip sections not in the executive set
     if (isExecutive && !EXECUTIVE_SECTION_TYPES.has(section.section_type)) continue;
     panels.push(section);
@@ -418,7 +484,7 @@ const displayPanels = computed(() => {
     panels.push({
       id: 'proposal_closing',
       section_type: 'proposal_closing',
-      title: pLang.value === 'es' ? '🤝 Próximos pasos' : '🤝 Next Steps',
+      title: lang === 'es' ? '🤝 Próximos pasos' : '🤝 Next Steps',
       _validityMessage: fnContent.validityMessage || '',
       _thankYouMessage: fnContent.thankYouMessage || '',
       _expiresAt: proposal.value?.expires_at || '',
@@ -508,7 +574,8 @@ watch(currentPanel, (panel) => {
   // Trigger requirements onboarding when user reaches functional_requirements section
   if (
     panel?.section_type === 'functional_requirements' &&
-    !requirementsOnboardingTriggered
+    !requirementsOnboardingTriggered &&
+    viewMode.value !== 'technical'
   ) {
     requirementsOnboardingTriggered = true;
     setTimeout(() => {
@@ -655,6 +722,15 @@ function getSectionProps(section) {
       paymentOptions: recomputePaymentOptions(rawPaymentOptions, investContent.totalInvestment, customizedTotal.value),
       customizedTotal: customizedTotal.value,
       selectedModuleIds: [...selectedCalculatorModuleIds.value],
+      viewMode: viewMode.value || 'detailed',
+    };
+  }
+
+  if (section.section_type === 'technical_document_public') {
+    return {
+      fragment: section._technicalFragment || 'intro',
+      contentJson: section.content_json || {},
+      language: proposal.value?.language || 'es',
     };
   }
 
@@ -1015,10 +1091,24 @@ const onAnimationComplete = () => {
   nextTick(() => applyProposalTheme(false));
   window.addEventListener('keydown', handleKeydown);
 
+  const uuid = proposal.value?.uuid;
+  if (uuid) {
+    try {
+      const savedVm = localStorage.getItem(`proposal-${uuid}-viewMode`);
+      if (savedVm === 'executive' || savedVm === 'detailed') {
+        viewMode.value = savedVm;
+      } else if (savedVm === 'technical' && hasTechnicalDocument.value) {
+        viewMode.value = 'technical';
+      }
+    } catch (_e) { /* ignore */ }
+  }
+
   // Allow bypassing gateway via URL query param (used by E2E tests and direct links)
-  const queryMode = route.query.mode;
-  if (queryMode === 'executive' || queryMode === 'detailed') {
-    viewMode.value = queryMode;
+  const queryMode = typeof route.query.mode === 'string' ? route.query.mode : '';
+  if (queryMode === 'executive' || queryMode === 'detailed' || queryMode === 'technical') {
+    if (queryMode !== 'technical' || hasTechnicalDocument.value) {
+      viewMode.value = queryMode;
+    }
   }
 
   // Check for returning client (welcome-back) — viewMode is null here so gateway always shows first

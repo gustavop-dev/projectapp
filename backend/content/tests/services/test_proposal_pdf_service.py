@@ -886,6 +886,54 @@ class TestGenerate:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
+    def test_commercial_pdf_excludes_technical_document_section(
+        self, mock_back, mock_cover, db,
+    ):
+        """Commercial PDF must not embed technical_document body text."""
+        p = BusinessProposal.objects.create(
+            title='Tech exclusion test',
+            client_name='Client',
+            client_email='c@example.com',
+            language='es',
+            total_investment=Decimal('1000000'),
+            currency='COP',
+            status='sent',
+            expires_at=timezone.now() + timezone.timedelta(days=10),
+        )
+        ProposalSection.objects.create(
+            proposal=p,
+            section_type='greeting',
+            title='Hi',
+            order=0,
+            is_enabled=True,
+            content_json={
+                'clientName': 'Client',
+                'inspirationalQuote': 'Q',
+            },
+        )
+        marker = 'UNIQUE_TECH_PDF_MARKER_Z9y8x7w6'
+        ProposalSection.objects.create(
+            proposal=p,
+            section_type='technical_document',
+            title='Technical',
+            order=1,
+            is_enabled=True,
+            content_json={'purpose': marker},
+        )
+
+        pdf_bytes = ProposalPdfService.generate(p)
+        assert pdf_bytes is not None
+        latin = pdf_bytes.decode('latin-1', errors='ignore')
+        assert marker not in latin
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
     def test_handles_db_requirement_groups(self, mock_back, mock_cover, proposal):
         """DB-backed requirement groups are rendered into the PDF."""
         ProposalSection.objects.create(
