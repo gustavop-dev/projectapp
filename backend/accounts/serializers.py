@@ -917,7 +917,7 @@ class CreateDeliverableSerializer(serializers.Serializer):
     category = serializers.ChoiceField(
         choices=Deliverable.CATEGORY_CHOICES, default=Deliverable.CATEGORY_OTHER,
     )
-    file = serializers.FileField(required=False, allow_null=True)
+    file = serializers.FileField()
 
 
 class UpdateDeliverableSerializer(serializers.Serializer):
