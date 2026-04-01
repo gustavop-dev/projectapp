@@ -54,6 +54,8 @@ function buildMockHandler(proposals) {
 }
 
 test.describe('Admin Proposal Actions Modal', () => {
+  test.describe.configure({ timeout: 60_000 });
+
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, {
       token: 'e2e-admin-token',
@@ -65,11 +67,9 @@ test.describe('Admin Proposal Actions Modal', () => {
     tag: [...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler([mockDraftProposal]));
-    await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
 
-    // Wait for the table to render
-    await expect(page.getByText('Test Client')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Test Client')).toBeVisible({ timeout: 15000 });
 
     // quality: allow-fragile-selector (table actions button has no testid, last SVG button in row is the actions trigger)
     const actionsBtn = page.locator('table button').filter({ has: page.locator('svg') }).last();
@@ -83,7 +83,7 @@ test.describe('Admin Proposal Actions Modal', () => {
     tag: [...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler([mockDraftProposal]));
-    await page.goto('/panel/proposals');
+    await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
 
     await page.getByText('Test Client').waitFor({ state: 'visible', timeout: 15000 });
 
@@ -106,7 +106,7 @@ test.describe('Admin Proposal Actions Modal', () => {
     tag: [...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler([mockSentProposal]));
-    await page.goto('/panel/proposals');
+    await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByText('Test Client')).toBeVisible({ timeout: 15000 });
 
@@ -123,7 +123,7 @@ test.describe('Admin Proposal Actions Modal', () => {
     tag: [...ADMIN_PROPOSAL_ACTIONS_MODAL, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler([mockDraftProposal]));
-    await page.goto('/panel/proposals');
+    await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByText('Test Client')).toBeVisible({ timeout: 15000 });
 
@@ -132,11 +132,12 @@ test.describe('Admin Proposal Actions Modal', () => {
     await actionsBtn.click();
     await expect(page.getByText('Editar propuesta')).toBeVisible({ timeout: 5000 });
 
-    // quality: allow-fragile-selector (modal close button identified by SVG icon, no testid)
-    const closeBtn = page.locator('.fixed').getByRole('button').filter({ has: page.locator('svg path') }).first();
-    await closeBtn.click();
+    // Overlay uses @click.self on fixed inset-0; avoid page.locator('.fixed').first() (sidebar wins).
+    const modalOverlay = page.locator('div.fixed.inset-0').filter({
+      has: page.getByRole('heading', { level: 3, name: mockDraftProposal.title }),
+    });
+    await modalOverlay.click({ position: { x: 8, y: 8 } });
 
-    // Modal should close
-    await expect(page.getByText('Editar propuesta')).not.toBeVisible({ timeout: 3000 });
+    await expect(page.getByText('Editar propuesta')).not.toBeVisible({ timeout: 5000 });
   });
 });

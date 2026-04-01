@@ -111,7 +111,12 @@ test.describe('Proposal technical view mode', () => {
     await page.goto(`/proposal/${MOCK_UUID}?mode=technical`);
     await page.waitForLoadState('domcontentloaded');
     await expect(page.locator('[data-section-type="technical_document_public"]')).toBeVisible({ timeout: 20_000 });
-    await expect(page.getByText('E2E base scope')).toBeVisible();
+    // Intro panel renders first; epics (requirements text) follow stack (two "next" steps for this mock).
+    const navNext = page.getByTestId('nav-next');
+    await expect(navNext).toBeVisible({ timeout: 15_000 });
+    await navNext.click();
+    await navNext.click();
+    await expect(page.getByText('E2E base scope')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('E2E linked hidden when module not selected')).toHaveCount(0);
   });
 });
