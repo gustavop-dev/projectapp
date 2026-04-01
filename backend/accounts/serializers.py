@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from rest_framework import serializers
 
 from accounts.models import UserProfile
@@ -122,7 +123,7 @@ class CreateAdminSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         value = value.lower().strip()
-        if User.objects.filter(email=value).exists():
+        if User.objects.filter(Q(email=value) | Q(username=value)).exists():
             raise serializers.ValidationError('Ya existe un usuario con este email.')
         return value
 
@@ -136,7 +137,7 @@ class CreateClientSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         value = value.lower().strip()
-        if User.objects.filter(email=value).exists():
+        if User.objects.filter(Q(email=value) | Q(username=value)).exists():
             raise serializers.ValidationError('Ya existe un usuario con este email.')
         return value
 

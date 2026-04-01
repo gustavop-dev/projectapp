@@ -2,6 +2,7 @@ import secrets
 import string
 
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -26,7 +27,7 @@ def create_client(*, email, first_name, last_name, company_name='', phone='', cr
     """
     email = email.lower().strip()
 
-    if User.objects.filter(email=email).exists():
+    if User.objects.filter(Q(email=email) | Q(username=email)).exists():
         raise ValueError(f'Ya existe un usuario con el email {email}')
 
     temp_password = generate_temp_password()
@@ -78,7 +79,7 @@ def create_admin(*, email, first_name, last_name, created_by=None):
     """
     email = email.lower().strip()
 
-    if User.objects.filter(email=email).exists():
+    if User.objects.filter(Q(email=email) | Q(username=email)).exists():
         raise ValueError(f'Ya existe un usuario con el email {email}')
 
     temp_password = generate_temp_password()

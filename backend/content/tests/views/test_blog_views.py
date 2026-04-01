@@ -3,8 +3,11 @@
 Covers: public GET list/detail with ?lang=, admin CRUD (auth required),
 happy path, 404s, validation errors, permission checks.
 """
+from datetime import datetime
+
 import pytest
 from django.urls import reverse
+from django.utils import timezone as dj_timezone
 from freezegun import freeze_time
 
 from content.models import BlogPost
@@ -498,9 +501,10 @@ class TestBlogCalendar:
         assert response.status_code == 400
         assert 'invalid' in response.data['detail'].lower()
 
-    @freeze_time('2026-03-15 12:00:00')
     def test_returns_published_posts_in_range(self, admin_client, blog_post):
         """Published posts within the date range are returned."""
+        in_range = dj_timezone.make_aware(datetime(2026, 3, 10, 12, 0, 0))
+        BlogPost.objects.filter(pk=blog_post.pk).update(published_at=in_range)
         response = admin_client.get(self._url(), {
             'start': '2026-03-01',
             'end': '2026-03-31',
@@ -512,9 +516,10 @@ class TestBlogCalendar:
         assert 'calendar_status' in post
         assert post['calendar_status'] == 'published'
 
-    @freeze_time('2026-03-15 12:00:00')
     def test_returns_draft_posts_created_in_range(self, admin_client, draft_blog_post):
         """Drafts created within the date range are returned with status 'draft'."""
+        in_range = dj_timezone.make_aware(datetime(2026, 3, 10, 12, 0, 0))
+        BlogPost.objects.filter(pk=draft_blog_post.pk).update(created_at=in_range)
         response = admin_client.get(self._url(), {
             'start': '2026-03-01',
             'end': '2026-03-31',
