@@ -141,14 +141,13 @@ test.describe('Platform Deliverable detail', () => {
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/deliverables/1', { waitUntil: 'domcontentloaded' });
-    const root = page.locator('#platform-deliverable-detail');
-    await expect(root.getByRole('heading', { name: 'Wireframes página principal' })).toBeVisible({ timeout: 30_000 });
-    await expect(root.getByRole('button', { name: /pdf comercial/i })).toBeVisible();
-    await expect(root.getByRole('link', { name: /abrir tablero/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Wireframes página principal' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('button', { name: /pdf comercial/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /abrir tablero/i })).toBeVisible();
     const pdfWait = page.waitForResponse(
       (res) => res.url().includes('deliverables/1/pdf/commercial/') && res.status() === 200,
     );
-    await root.getByRole('button', { name: /pdf comercial/i }).click();
+    await page.getByRole('button', { name: /pdf comercial/i }).click();
     await pdfWait;
   });
 });

@@ -6,10 +6,10 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
+from accounts.models import Project, UserProfile
 from django.contrib.auth import get_user_model
 from pypdf import PdfReader
 
-from accounts.models import Project, UserProfile
 from content.models import (
     Document,
     DocumentCollectionAccount,
@@ -18,7 +18,10 @@ from content.models import (
     IssuerProfile,
 )
 from content.services.collection_account_pdf_service import CollectionAccountPdfService
-from content.services.document_type_utils import get_collection_account_document_type, get_markdown_document_type
+from content.services.document_type_utils import (
+    get_collection_account_document_type,
+    get_markdown_document_type,
+)
 
 User = get_user_model()
 pytestmark = pytest.mark.django_db
@@ -138,6 +141,7 @@ def test_generate_returns_none_when_document_is_not_collection_account(project, 
 
 
 def test_generate_returns_none_when_collection_account_extension_row_is_absent(project, client_user):
+    """Return None when the document has no collection_account extension row."""
     dt = get_collection_account_document_type()
     doc = Document.objects.create(
         title='No extension',
@@ -157,6 +161,7 @@ def test_generate_returns_none_when_collection_account_extension_row_is_absent(p
 
 
 def test_generate_returns_pdf_bytes_for_issued_collection_account(issuer, project, client_user):
+    """Return PDF bytes for an issued collection account with line items."""
     dt = get_collection_account_document_type()
     doc = Document.objects.create(
         title='Invoice PDF',
@@ -193,6 +198,7 @@ def test_generate_returns_pdf_bytes_for_issued_collection_account(issuer, projec
 
 
 def test_generate_returns_none_when_canvas_raises(project, client_user):
+    """Return None when ReportLab canvas construction raises."""
     dt = get_collection_account_document_type()
     doc = Document.objects.create(
         title='Broken PDF',

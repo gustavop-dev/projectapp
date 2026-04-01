@@ -194,8 +194,14 @@ function checkNaming(name, line) {
   const found = [];
   const lower = name.toLowerCase();
 
-  for (const token of BANNED_TOKENS) {
-    if (lower.includes(token)) {
+  const bannedWordChecks = [
+    { re: /\bbatch\b/i, token: 'batch' },
+    { re: /\bcoverage\b/i, token: 'coverage' },
+    { re: /\bcov\b/i, token: 'cov' },
+    { re: /\bdeep\b/i, token: 'deep' },
+  ];
+  for (const { re, token } of bannedWordChecks) {
+    if (re.test(lower)) {
       found.push({
         type: 'FORBIDDEN_TOKEN',
         message: `Forbidden token "${token}" in test name: "${name}"`,

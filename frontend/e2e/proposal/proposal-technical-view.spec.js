@@ -99,8 +99,9 @@ test.describe('Proposal technical view mode', () => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=technical`);
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('[data-section-type="technical_document_public"]')).toBeVisible({ timeout: 20_000 });
-    await expect(page.locator('.technical-doc-public')).toContainText('E2E propósito documento técnico');
+    const technicalSection = page.locator('[data-section-type="technical_document_public"]');
+    await expect(technicalSection).toBeVisible({ timeout: 20_000 });
+    await expect(technicalSection).toContainText('E2E propósito documento técnico');
   });
 
   test('mode=technical hides requirement linked to unselected module', {

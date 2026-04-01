@@ -5,12 +5,16 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
+from accounts.models import Project, UserProfile
 from django.contrib.auth import get_user_model
-from django.utils import timezone
 from freezegun import freeze_time
 
-from accounts.models import Project, UserProfile
-from content.models import Document, DocumentCollectionAccount, DocumentItem, IssuerProfile
+from content.models import (
+    Document,
+    DocumentCollectionAccount,
+    DocumentItem,
+    IssuerProfile,
+)
 from content.services.collection_account_service import (
     CollectionAccountError,
     allocate_public_number,
@@ -110,7 +114,7 @@ def test_commercial_is_overdue_returns_false_for_non_collection_account_document
         title='Md',
         document_type=md,
         commercial_status=Document.CommercialStatus.ISSUED,
-        due_date=timezone.now().date(),
+        due_date=date(2026, 6, 15),
     )
 
     assert commercial_is_overdue(doc) is False
@@ -119,7 +123,7 @@ def test_commercial_is_overdue_returns_false_for_non_collection_account_document
 def test_commercial_is_overdue_returns_false_when_status_is_draft():
     doc = _ca_document(commercial_status=Document.CommercialStatus.DRAFT)
     DocumentCollectionAccount.objects.create(document=doc)
-    doc.due_date = timezone.now().date()
+    doc.due_date = date(2026, 6, 15)
     doc.save(update_fields=['due_date'])
 
     assert commercial_is_overdue(doc) is False
@@ -173,6 +177,7 @@ def test_recalculate_document_totals_sets_zero_totals_when_no_line_items():
 
 
 def test_recalculate_document_totals_aggregates_line_items():
+    """recalculate_document_totals sums line items into subtotal, tax, and total."""
     doc = _ca_document(discount_total=Decimal('0'))
     DocumentItem.objects.create(
         document=doc,
@@ -219,8 +224,9 @@ def test_issue_collection_account_raises_when_document_is_not_collection_type(is
         client_user=client_user,
     )
 
-    with pytest.raises(CollectionAccountError, match='not a collection account'):
+    with pytest.raises(CollectionAccountError, match='not a collection account') as exc_info:
         issue_collection_account(doc, issuer=issuer)
+    assert isinstance(exc_info.value, CollectionAccountError)
 
 
 def test_issue_collection_account_raises_when_status_is_not_draft(issuer, project, client_user):
@@ -231,16 +237,18 @@ def test_issue_collection_account_raises_when_status_is_not_draft(issuer, projec
     )
     DocumentCollectionAccount.objects.create(document=doc)
 
-    with pytest.raises(CollectionAccountError, match='Only draft'):
+    with pytest.raises(CollectionAccountError, match='Only draft') as exc_info:
         issue_collection_account(doc, issuer=issuer)
+    assert isinstance(exc_info.value, CollectionAccountError)
 
 
 def test_issue_collection_account_raises_when_no_client_can_be_resolved(issuer):
     doc = _ca_document()
     DocumentCollectionAccount.objects.create(document=doc)
 
-    with pytest.raises(CollectionAccountError, match='client_user or project'):
+    with pytest.raises(CollectionAccountError, match='client_user or project') as exc_info:
         issue_collection_account(doc, issuer=issuer)
+    assert isinstance(exc_info.value, CollectionAccountError)
 
 
 def test_issue_collection_account_raises_for_fixed_date_without_due_date(issuer, project, client_user):
@@ -250,11 +258,13 @@ def test_issue_collection_account_raises_for_fixed_date_without_due_date(issuer,
         payment_term_type=DocumentCollectionAccount.PaymentTermType.FIXED_DATE,
     )
 
-    with pytest.raises(CollectionAccountError, match='due_date is required'):
+    with pytest.raises(CollectionAccountError, match='due_date is required') as exc_info:
         issue_collection_account(doc, issuer=issuer)
+    assert isinstance(exc_info.value, CollectionAccountError)
 
 
 def test_issue_collection_account_preserves_due_date_for_fixed_date_term(issuer, project, client_user):
+    """issue_collection_account keeps an existing due_date when payment term is fixed date."""
     doc = _ca_document(
         project=project,
         client_user=client_user,
@@ -323,8 +333,9 @@ def test_mark_collection_account_paid_raises_when_document_is_not_issued(project
     )
     DocumentCollectionAccount.objects.create(document=doc)
 
-    with pytest.raises(CollectionAccountError, match='Only issued'):
+    with pytest.raises(CollectionAccountError, match='Only issued') as exc_info:
         mark_collection_account_paid(doc)
+    assert isinstance(exc_info.value, CollectionAccountError)
 
 
 def test_mark_collection_account_paid_raises_when_document_is_not_collection_type(project, client_user):
@@ -337,8 +348,9 @@ def test_mark_collection_account_paid_raises_when_document_is_not_collection_typ
         client_user=client_user,
     )
 
-    with pytest.raises(CollectionAccountError, match='not a collection account'):
+    with pytest.raises(CollectionAccountError, match='not a collection account') as exc_info:
         mark_collection_account_paid(doc)
+    assert isinstance(exc_info.value, CollectionAccountError)
 
 
 def test_mark_collection_account_paid_sets_paid_when_document_is_issued(admin_actor, project, client_user):
@@ -378,8 +390,9 @@ def test_mark_collection_account_cancelled_raises_when_document_is_paid(issuer, 
     )
     DocumentCollectionAccount.objects.create(document=doc)
 
-    with pytest.raises(CollectionAccountError, match='Paid documents cannot'):
+    with pytest.raises(CollectionAccountError, match='Paid documents cannot') as exc_info:
         mark_collection_account_cancelled(doc)
+    assert isinstance(exc_info.value, CollectionAccountError)
 
 
 def test_mark_collection_account_cancelled_raises_when_document_is_not_collection_type(project, client_user):
@@ -392,8 +405,9 @@ def test_mark_collection_account_cancelled_raises_when_document_is_not_collectio
         client_user=client_user,
     )
 
-    with pytest.raises(CollectionAccountError, match='not a collection account'):
+    with pytest.raises(CollectionAccountError, match='not a collection account') as exc_info:
         mark_collection_account_cancelled(doc)
+    assert isinstance(exc_info.value, CollectionAccountError)
 
 
 def test_mark_collection_account_cancelled_sets_cancelled_when_document_is_issued(
@@ -422,8 +436,9 @@ def test_mark_collection_account_cancelled_raises_for_unsupported_commercial_sta
     )
     DocumentCollectionAccount.objects.create(document=doc)
 
-    with pytest.raises(CollectionAccountError, match='Only draft or issued'):
+    with pytest.raises(CollectionAccountError, match='Only draft or issued') as exc_info:
         mark_collection_account_cancelled(doc)
+    assert isinstance(exc_info.value, CollectionAccountError)
 
 
 def test_assert_draft_for_mutation_raises_when_document_is_not_collection_account(project, client_user):
@@ -436,8 +451,9 @@ def test_assert_draft_for_mutation_raises_when_document_is_not_collection_accoun
         client_user=client_user,
     )
 
-    with pytest.raises(CollectionAccountError, match='not a collection account'):
+    with pytest.raises(CollectionAccountError, match='not a collection account') as exc_info:
         assert_draft_for_mutation(doc)
+    assert isinstance(exc_info.value, CollectionAccountError)
 
 
 def test_assert_draft_for_mutation_raises_when_document_is_not_draft(project, client_user):
@@ -448,8 +464,9 @@ def test_assert_draft_for_mutation_raises_when_document_is_not_draft(project, cl
     )
     DocumentCollectionAccount.objects.create(document=doc)
 
-    with pytest.raises(CollectionAccountError, match='Only draft collection accounts'):
+    with pytest.raises(CollectionAccountError, match='Only draft collection accounts') as exc_info:
         assert_draft_for_mutation(doc)
+    assert isinstance(exc_info.value, CollectionAccountError)
 
 
 def test_assert_draft_for_mutation_succeeds_for_draft_collection_account(project, client_user):
@@ -461,6 +478,7 @@ def test_assert_draft_for_mutation_succeeds_for_draft_collection_account(project
     DocumentCollectionAccount.objects.create(document=doc)
 
     assert_draft_for_mutation(doc)
+    assert doc.commercial_status == Document.CommercialStatus.DRAFT
 
 
 def test_is_collection_account_returns_true_for_collection_document_type():
@@ -483,6 +501,7 @@ def test_issue_collection_account_uses_project_client_when_client_user_not_set(i
 def test_issue_collection_account_uses_person_name_when_user_has_no_profile(
     issuer, admin_actor,
 ):
+    """issue_collection_account uses first and last name when the client has no profile."""
     user = User.objects.create_user(
         username='svc-person@test.com',
         email='svc-person@test.com',

@@ -532,6 +532,7 @@ class TestCreateProposalFromJSON:
         assert 'technical_document' in types
 
     def test_custom_technical_document_content_from_json(self, admin_client):
+        """Create-from-JSON stores custom technical_document section content from the payload."""
         url = reverse('create-proposal-from-json')
         payload = self._minimal_payload()
         payload['sections']['technicalDocument'] = {
@@ -744,6 +745,19 @@ class TestUpdateProposalFromJSON:
             },
         }
 
+    def _technical_document_section_shape(self, purpose='Después'):
+        return {
+            'purpose': purpose,
+            'stack': [],
+            'architecture': {'summary': '', 'patterns': []},
+            'dataModel': {'summary': '', 'entities': []},
+            'epics': [],
+            'integrations': {'included': [], 'excluded': []},
+            'security': [],
+            'performanceQuality': {'metrics': [], 'practices': []},
+            'decisions': [],
+        }
+
     def test_updates_proposal_returns_200(self, admin_client, proposal, proposal_section):
         response = admin_client.put(
             self._url(proposal.id), self._minimal_payload(), format='json',
@@ -817,6 +831,7 @@ class TestUpdateProposalFromJSON:
         assert any('unknownSection' in w for w in response.data['warnings'])
 
     def test_updates_technical_document_section_from_json(self, admin_client, proposal):
+        """PUT update replaces technical_document content_json from technicalDocument in the payload."""
         ProposalSection.objects.create(
             proposal=proposal,
             section_type='technical_document',
@@ -826,17 +841,7 @@ class TestUpdateProposalFromJSON:
             content_json={'purpose': 'Antes', 'epics': []},
         )
         payload = self._minimal_payload()
-        payload['sections']['technicalDocument'] = {
-            'purpose': 'Después',
-            'stack': [],
-            'architecture': {'summary': '', 'patterns': []},
-            'dataModel': {'summary': '', 'entities': []},
-            'epics': [],
-            'integrations': {'included': [], 'excluded': []},
-            'security': [],
-            'performanceQuality': {'metrics': [], 'practices': []},
-            'decisions': [],
-        }
+        payload['sections']['technicalDocument'] = self._technical_document_section_shape()
         response = admin_client.put(
             self._url(proposal.id), payload, format='json',
         )

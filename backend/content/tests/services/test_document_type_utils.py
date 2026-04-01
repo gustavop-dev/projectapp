@@ -2,11 +2,11 @@
 
 import pytest
 
+from content.services.document_type_codes import COLLECTION_ACCOUNT, MARKDOWN
 from content.services.document_type_utils import (
     get_collection_account_document_type,
     get_markdown_document_type,
 )
-from content.services.document_type_codes import COLLECTION_ACCOUNT, MARKDOWN
 
 pytestmark = pytest.mark.django_db
 

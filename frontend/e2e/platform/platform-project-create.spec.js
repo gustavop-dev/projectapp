@@ -103,7 +103,7 @@ test.describe('Platform Admin Project Create', () => {
 
     await page.getByRole('button', { name: /nuevo proyecto/i }).click();
     await page.getByPlaceholder(/plataforma e-commerce/i).fill('New Project');
-    await page.locator('select').first().selectOption({ value: '9002' });
+    await page.getByLabel(/Cliente/i).selectOption({ value: '9002' });
     await page.getByRole('button', { name: /crear proyecto/i }).click();
 
     await expect(page.getByRole('heading', { name: 'Nuevo proyecto' })).not.toBeVisible({ timeout: 5000 });

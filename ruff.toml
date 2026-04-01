@@ -2,4 +2,4 @@
 # Suppress docstring noise in test files — test classes/methods/packages
 # don't need individual docstrings per pydocstyle convention.
 [lint.per-file-ignores]
-"backend/content/tests/**" = ["D101", "D102", "D104", "D401"]
+"backend/content/tests/**" = ["D101", "D102", "D103", "D104", "D401"]

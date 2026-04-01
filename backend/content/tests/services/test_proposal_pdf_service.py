@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
+from freezegun import freeze_time
 from pypdf import PdfReader
 from reportlab.lib.pagesizes import A4, LETTER
 from reportlab.pdfgen import canvas
@@ -886,6 +887,7 @@ class TestGenerate:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
+    @freeze_time('2026-06-01T12:00:00')
     def test_commercial_pdf_excludes_technical_document_section(
         self, mock_back, mock_cover, db,
     ):
@@ -925,6 +927,8 @@ class TestGenerate:
         assert pdf_bytes is not None
         latin = pdf_bytes.decode('latin-1', errors='ignore')
         assert marker not in latin
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
