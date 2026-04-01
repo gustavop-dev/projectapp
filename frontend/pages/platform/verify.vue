@@ -1,5 +1,5 @@
 <template>
-  <div :class="{ dark: isDark }" id="platform-verify" class="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
+  <div id="platform-verify" class="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
     <BackgroundGradientAnimation
       gradient-background-start="rgb(0, 41, 33)"
       gradient-background-end="rgb(0, 25, 20)"
@@ -17,11 +17,6 @@
 
     <div class="grain-overlay"></div>
 
-    <button type="button" class="fixed right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white/60 transition hover:text-white" aria-label="Cambiar tema" @click="toggle">
-      <svg v-if="isDark" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-      <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-    </button>
-
     <div class="relative z-10 w-full max-w-md">
       <div class="mb-10 text-center" data-enter>
         <h1 class="font-bold text-2xl tracking-tight text-white">
@@ -30,21 +25,21 @@
         <p class="mt-2 text-sm font-medium uppercase tracking-[0.25em] text-white/50">Verificación</p>
       </div>
 
-      <div class="rounded-3xl border border-white/[0.1] bg-white/95 p-8 shadow-2xl backdrop-blur-2xl dark:border-white/[0.06] dark:bg-white/[0.08] dark:shadow-black/30" data-enter>
-        <h2 class="text-xl font-medium text-esmerald dark:text-white">Confirma tu identidad</h2>
-        <p class="mt-2 text-sm leading-6 text-green-light dark:text-white/50">
+      <div class="rounded-3xl border border-white/[0.1] bg-white/95 p-8 shadow-2xl backdrop-blur-2xl" data-enter>
+        <h2 class="text-xl font-medium text-esmerald">Confirma tu identidad</h2>
+        <p class="mt-2 text-sm leading-6 text-green-light">
           Enviamos un código de 6 dígitos a
-          <span class="font-medium text-esmerald dark:text-white">{{ authStore.pendingEmail || 'tu correo' }}</span>.
+          <span class="font-medium text-esmerald">{{ authStore.pendingEmail || 'tu correo' }}</span>.
           Ingresa el código y define tu contraseña definitiva.
         </p>
 
-        <div v-if="feedbackMessage" class="mt-6 rounded-2xl border px-4 py-3 text-sm" :class="feedbackVariant === 'success' ? 'border-emerald-500/20 bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300' : 'border-red-500/20 bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-200'">
+        <div v-if="feedbackMessage" class="mt-6 rounded-2xl border px-4 py-3 text-sm" :class="feedbackVariant === 'success' ? 'border-emerald-500/20 bg-emerald-50 text-emerald-600' : 'border-red-500/20 bg-red-50 text-red-600'">
           {{ feedbackMessage }}
         </div>
 
         <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
           <div>
-            <label class="mb-3 block text-sm font-medium text-esmerald/70 dark:text-white/70">Código de verificación</label>
+            <label class="mb-3 block text-sm font-medium text-esmerald/70">Código de verificación</label>
             <div class="grid grid-cols-6 gap-2" @paste="handlePaste">
               <input
                 v-for="(_, index) in codeDigits"
@@ -54,7 +49,7 @@
                 type="text"
                 inputmode="numeric"
                 maxlength="1"
-                class="h-12 rounded-xl border border-esmerald/10 bg-esmerald-light/40 text-center text-lg font-semibold text-esmerald outline-none transition focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10 dark:border-white/[0.08] dark:bg-white/[0.06] dark:text-white dark:focus:border-white/20 dark:focus:ring-white/10"
+                class="h-12 rounded-xl border border-esmerald/10 bg-esmerald-light/40 text-center text-lg font-semibold text-esmerald outline-none transition focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10"
                 @input="handleDigitInput(index, $event)"
                 @keydown="handleKeydown(index, $event)"
               >
@@ -62,32 +57,32 @@
           </div>
 
           <div>
-            <label for="platform-new-password" class="mb-2 block text-sm font-medium text-esmerald/70 dark:text-white/70">Nueva contraseña</label>
+            <label for="platform-new-password" class="mb-2 block text-sm font-medium text-esmerald/70">Nueva contraseña</label>
             <input
               id="platform-new-password"
               v-model="form.newPassword"
               type="password"
               autocomplete="new-password"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10 dark:border-white/[0.08] dark:bg-white/[0.06] dark:text-white dark:placeholder:text-white/30 dark:focus:border-white/20 dark:focus:ring-white/10"
+              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10"
               placeholder="Mínimo 8 caracteres"
             >
           </div>
 
           <div>
-            <label for="platform-confirm-password" class="mb-2 block text-sm font-medium text-esmerald/70 dark:text-white/70">Confirmar contraseña</label>
+            <label for="platform-confirm-password" class="mb-2 block text-sm font-medium text-esmerald/70">Confirmar contraseña</label>
             <input
               id="platform-confirm-password"
               v-model="form.confirmPassword"
               type="password"
               autocomplete="new-password"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10 dark:border-white/[0.08] dark:bg-white/[0.06] dark:text-white dark:placeholder:text-white/30 dark:focus:border-white/20 dark:focus:ring-white/10"
+              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/60 focus:border-esmerald/30 focus:ring-1 focus:ring-esmerald/10"
               placeholder="Repite tu contraseña"
             >
           </div>
 
           <button
             type="submit"
-            class="w-full rounded-full bg-esmerald px-4 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-lemon dark:text-esmerald-dark dark:hover:bg-lemon/90"
+            class="w-full rounded-full bg-esmerald px-4 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50"
             :disabled="authStore.isVerifying"
           >
             {{ authStore.isVerifying ? 'Validando...' : 'Completar verificación' }}
@@ -96,7 +91,7 @@
 
         <button
           type="button"
-          class="mt-5 text-sm font-medium text-green-light transition hover:text-esmerald dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          class="mt-5 text-sm font-medium text-green-light transition hover:text-esmerald disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="authStore.isVerifying"
           @click="handleResendCode"
         >
@@ -111,7 +106,6 @@
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
-import { usePlatformTheme } from '~/composables/usePlatformTheme'
 import BackgroundGradientAnimation from '~/components/ui/BackgroundGradientAnimation.vue'
 
 definePageMeta({
@@ -122,9 +116,6 @@ definePageMeta({
 useHead({
   title: 'Verificación de acceso — ProjectApp',
 })
-
-const { isDark, toggle, hydrate: hydrateTheme } = usePlatformTheme()
-onMounted(() => hydrateTheme())
 
 usePageEntrance('#platform-verify')
 

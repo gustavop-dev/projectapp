@@ -1,12 +1,12 @@
 <template>
-  <div id="platform-complete-profile" :class="{ dark: isDark }" class="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 dark:bg-esmerald-dark">
+  <div id="platform-complete-profile" class="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
     <div class="w-full max-w-lg">
       <!-- Logo -->
       <div class="mb-8 text-center">
-        <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-esmerald text-lg font-bold text-white dark:bg-lemon dark:text-esmerald-dark">
+        <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-esmerald text-lg font-bold text-white">
           PA
         </div>
-        <h1 class="text-2xl font-bold text-esmerald dark:text-white">
+        <h1 class="text-2xl font-bold text-esmerald">
           Completa tu perfil
         </h1>
         <p class="mt-2 text-sm text-green-light">
@@ -16,13 +16,13 @@
 
       <!-- Form card -->
       <form
-        class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none sm:p-8"
+        class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm sm:p-8"
         @submit.prevent="handleSubmit"
       >
         <!-- Error message -->
         <div
           v-if="errorMessage"
-          class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400"
+          class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
         >
           {{ errorMessage }}
         </div>
@@ -30,7 +30,7 @@
         <!-- Avatar upload -->
         <div class="mb-6 flex flex-col items-center gap-3">
           <div
-            class="relative flex h-20 w-20 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-esmerald/20 bg-esmerald-light transition hover:border-esmerald/40 dark:border-white/20 dark:bg-esmerald-dark dark:hover:border-white/40"
+            class="relative flex h-20 w-20 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-esmerald/20 bg-esmerald-light transition hover:border-esmerald/40"
             @click="triggerFileInput"
           >
             <img
@@ -53,7 +53,7 @@
           />
           <button
             type="button"
-            class="text-xs text-green-light transition hover:text-esmerald dark:hover:text-white"
+            class="text-xs text-green-light transition hover:text-esmerald"
             @click="triggerFileInput"
           >
             {{ avatarPreview ? 'Cambiar foto' : 'Subir foto (opcional)' }}
@@ -63,82 +63,82 @@
         <!-- Name row -->
         <div class="mb-4 grid grid-cols-2 gap-3">
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Nombre</label>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Nombre</label>
             <input
               v-model="form.first_name"
               type="text"
               placeholder="Tu nombre"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 "
             />
           </div>
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Apellido</label>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Apellido</label>
             <input
               v-model="form.last_name"
               type="text"
               placeholder="Tu apellido"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 "
             />
           </div>
         </div>
 
         <!-- Company -->
         <div class="mb-4">
-          <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Empresa <span class="text-red-400">*</span></label>
+          <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Empresa <span class="text-red-400">*</span></label>
           <input
             v-model="form.company_name"
             type="text"
             required
             placeholder="Nombre de tu empresa"
-            class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+            class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 "
           />
         </div>
 
         <!-- Phone + Cedula row -->
         <div class="mb-4 grid grid-cols-2 gap-3">
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Teléfono <span class="text-red-400">*</span></label>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Teléfono <span class="text-red-400">*</span></label>
             <input
               v-model="form.phone"
               type="tel"
               required
               placeholder="+57 300 000 0000"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 "
             />
           </div>
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Cédula <span class="text-red-400">*</span></label>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Cédula <span class="text-red-400">*</span></label>
             <input
               v-model="form.cedula"
               type="text"
               required
               placeholder="1020304050"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 "
             />
           </div>
         </div>
 
         <!-- Date of birth -->
         <div class="mb-4">
-          <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Fecha de nacimiento <span class="text-red-400">*</span></label>
+          <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Fecha de nacimiento <span class="text-red-400">*</span></label>
           <input
             v-model="form.date_of_birth"
             type="date"
             required
             data-testid="date-of-birth"
-            class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
+            class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 "
           />
         </div>
 
         <!-- Gender + Education row -->
         <div class="mb-6 grid grid-cols-2 gap-3">
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Sexo <span class="text-red-400">*</span></label>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Sexo <span class="text-red-400">*</span></label>
             <select
               v-model="form.gender"
               required
               data-testid="gender-select"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 "
             >
               <option value="" disabled>Selecciona</option>
               <option value="male">Masculino</option>
@@ -148,12 +148,12 @@
             </select>
           </div>
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Nivel de educación <span class="text-red-400">*</span></label>
+            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 ">Nivel de educación <span class="text-red-400">*</span></label>
             <select
               v-model="form.education_level"
               required
               data-testid="education-select"
-              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+              class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition focus:border-esmerald/30 "
             >
               <option value="" disabled>Selecciona</option>
               <option value="primaria">Primaria</option>
@@ -192,8 +192,6 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
-import { usePlatformTheme } from '~/composables/usePlatformTheme'
-
 definePageMeta({
   layout: false,
   middleware: ['platform-auth'],
@@ -202,9 +200,6 @@ definePageMeta({
 useHead({
   title: 'Completar perfil — ProjectApp',
 })
-
-const { isDark, hydrate: hydrateTheme } = usePlatformTheme()
-onMounted(() => hydrateTheme())
 
 usePageEntrance('#platform-complete-profile')
 

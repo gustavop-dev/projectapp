@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 
 const STORAGE_KEY = 'platform_theme'
-const isDark = ref(true)
+const isDark = ref(false)
 
 export function usePlatformTheme() {
   function hydrate() {
