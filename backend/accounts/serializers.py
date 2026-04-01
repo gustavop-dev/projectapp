@@ -321,6 +321,7 @@ class RequirementListSerializer(serializers.ModelSerializer):
             'id', 'deliverable_id', 'title', 'description', 'configuration', 'flow',
             'status', 'priority', 'order',
             'source_epic_key', 'source_epic_title', 'source_flow_key', 'synced_from_proposal',
+            'is_archived', 'archived_at',
             'comments_count', 'created_at', 'updated_at',
         ]
 
@@ -338,6 +339,7 @@ class RequirementDetailSerializer(serializers.ModelSerializer):
             'id', 'deliverable_id', 'title', 'description', 'configuration', 'flow',
             'status', 'priority', 'order',
             'source_epic_key', 'source_epic_title', 'source_flow_key', 'synced_from_proposal',
+            'is_archived', 'archived_at',
             'comments', 'history',
             'created_at', 'updated_at',
         ]
@@ -373,6 +375,7 @@ class UpdateRequirementSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=Requirement.STATUS_CHOICES, required=False)
     priority = serializers.ChoiceField(choices=Requirement.PRIORITY_CHOICES, required=False)
     order = serializers.IntegerField(min_value=0, required=False)
+    is_archived = serializers.BooleanField(required=False)
 
 
 class MoveRequirementSerializer(serializers.Serializer):
@@ -418,6 +421,7 @@ class ChangeRequestListSerializer(serializers.ModelSerializer):
             'suggested_priority', 'is_urgent', 'status',
             'admin_response', 'estimated_cost', 'estimated_time',
             'linked_requirement_id', 'screenshot_url',
+            'is_archived', 'archived_at',
             'created_by_name', 'created_by_email',
             'comments_count', 'created_at', 'updated_at',
         ]
@@ -452,6 +456,7 @@ class ChangeRequestDetailSerializer(serializers.ModelSerializer):
             'suggested_priority', 'is_urgent', 'status',
             'admin_response', 'estimated_cost', 'estimated_time',
             'linked_requirement_id', 'screenshot_url',
+            'is_archived', 'archived_at',
             'created_by_name', 'created_by_email',
             'comments', 'created_at', 'updated_at',
         ]
@@ -507,7 +512,7 @@ class CreateChangeRequestCommentSerializer(serializers.Serializer):
 # Bug Report serializers
 # =========================================================================
 
-from accounts.models import BugReport, BugComment  # noqa: E402
+from accounts.models import BugComment, BugReport, Deliverable  # noqa: E402
 
 
 class BugCommentSerializer(serializers.ModelSerializer):
@@ -528,14 +533,18 @@ class BugReportListSerializer(serializers.ModelSerializer):
     reported_by_email = serializers.EmailField(source='reported_by.email', read_only=True)
     comments_count = serializers.SerializerMethodField()
     screenshot_url = serializers.SerializerMethodField()
+    deliverable_id = serializers.IntegerField(source='deliverable.id', read_only=True)
+    deliverable_title = serializers.CharField(source='deliverable.title', read_only=True)
 
     class Meta:
         model = BugReport
         fields = [
-            'id', 'title', 'description', 'severity', 'status',
+            'id', 'deliverable_id', 'deliverable_title',
+            'title', 'description', 'severity', 'status',
             'environment', 'device_browser', 'is_recurring',
             'steps_to_reproduce', 'expected_behavior', 'actual_behavior',
             'admin_response', 'linked_bug_id', 'screenshot_url',
+            'is_archived', 'archived_at',
             'reported_by_name', 'reported_by_email',
             'comments_count', 'created_at', 'updated_at',
         ]
@@ -562,14 +571,18 @@ class BugReportDetailSerializer(serializers.ModelSerializer):
     reported_by_email = serializers.EmailField(source='reported_by.email', read_only=True)
     comments = serializers.SerializerMethodField()
     screenshot_url = serializers.SerializerMethodField()
+    deliverable_id = serializers.IntegerField(source='deliverable.id', read_only=True)
+    deliverable_title = serializers.CharField(source='deliverable.title', read_only=True)
 
     class Meta:
         model = BugReport
         fields = [
-            'id', 'title', 'description', 'severity', 'status',
+            'id', 'deliverable_id', 'deliverable_title',
+            'title', 'description', 'severity', 'status',
             'environment', 'device_browser', 'is_recurring',
             'steps_to_reproduce', 'expected_behavior', 'actual_behavior',
             'admin_response', 'linked_bug_id', 'screenshot_url',
+            'is_archived', 'archived_at',
             'reported_by_name', 'reported_by_email',
             'comments', 'created_at', 'updated_at',
         ]
@@ -597,6 +610,7 @@ class BugReportDetailSerializer(serializers.ModelSerializer):
 
 
 class CreateBugReportSerializer(serializers.Serializer):
+    deliverable_id = serializers.IntegerField()
     title = serializers.CharField(max_length=300)
     description = serializers.CharField(required=False, default='', allow_blank=True)
     severity = serializers.ChoiceField(
@@ -614,17 +628,36 @@ class CreateBugReportSerializer(serializers.Serializer):
     is_recurring = serializers.BooleanField(default=False)
     screenshot = serializers.ImageField(required=False, allow_null=True)
 
+    def validate_deliverable_id(self, value):
+        project = self.context.get('project')
+        if project is None:
+            raise serializers.ValidationError('Contexto de proyecto requerido.')
+        if not Deliverable.objects.filter(pk=value, project=project, is_archived=False).exists():
+            raise serializers.ValidationError(
+                'Entregable no encontrado, archivado o no pertenece a este proyecto.',
+            )
+        return value
+
 
 class EvaluateBugReportSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=BugReport.STATUS_CHOICES)
     admin_response = serializers.CharField(required=False, default='', allow_blank=True)
     linked_bug_id = serializers.IntegerField(required=False, allow_null=True)
 
-    def validate_linked_bug_id(self, value):
-        if value is not None:
-            if not BugReport.objects.filter(id=value).exists():
-                raise serializers.ValidationError('Bug vinculado no encontrado.')
-        return value
+    def validate(self, attrs):
+        linked_id = attrs.get('linked_bug_id')
+        bug = self.context.get('bug')
+        if linked_id is not None and bug is not None:
+            other = BugReport.objects.filter(pk=linked_id).first()
+            if not other:
+                raise serializers.ValidationError({'linked_bug_id': 'Bug vinculado no encontrado.'})
+            if other.is_archived:
+                raise serializers.ValidationError({'linked_bug_id': 'El bug vinculado está archivado.'})
+            if other.deliverable_id != bug.deliverable_id:
+                raise serializers.ValidationError({
+                    'linked_bug_id': 'El bug vinculado debe pertenecer al mismo entregable.',
+                })
+        return attrs
 
 
 class CreateBugCommentSerializer(serializers.Serializer):
@@ -637,7 +670,6 @@ class CreateBugCommentSerializer(serializers.Serializer):
 # =========================================================================
 
 from accounts.models import (  # noqa: E402
-    Deliverable,
     DeliverableClientFolder,
     DeliverableClientUpload,
     DeliverableFile,
@@ -686,6 +718,7 @@ class DeliverableListSerializer(serializers.ModelSerializer):
             'file_url', 'file_name', 'file_size',
             'uploaded_by_name', 'versions_count',
             'source_epic_key', 'source_epic_title',
+            'is_archived', 'archived_at',
             'created_at', 'updated_at',
         ]
 
@@ -891,6 +924,7 @@ class UpdateDeliverableSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=300, required=False)
     description = serializers.CharField(required=False, allow_blank=True)
     category = serializers.ChoiceField(choices=Deliverable.CATEGORY_CHOICES, required=False)
+    is_archived = serializers.BooleanField(required=False)
 
 
 class UploadNewVersionSerializer(serializers.Serializer):
@@ -914,6 +948,7 @@ from accounts.models import Notification  # noqa: E402
 
 class NotificationSerializer(serializers.ModelSerializer):
     project_name = serializers.SerializerMethodField()
+    deliverable_title = serializers.SerializerMethodField()
 
     class Meta:
         model = Notification
@@ -921,6 +956,7 @@ class NotificationSerializer(serializers.ModelSerializer):
             'id', 'type', 'title', 'message',
             'related_object_type', 'related_object_id',
             'project', 'project_name',
+            'deliverable', 'deliverable_title',
             'is_read', 'created_at',
         ]
 
@@ -929,17 +965,29 @@ class NotificationSerializer(serializers.ModelSerializer):
             return obj.project.name
         return None
 
+    def get_deliverable_title(self, obj):
+        if obj.deliverable:
+            return obj.deliverable.title
+        return None
+
 
 # =========================================================================
 # Payment / Subscription serializers
 # =========================================================================
 
-from accounts.models import HostingSubscription, Payment  # noqa: E402
+from accounts.models import HostingSubscription, Payment, PaymentHistory  # noqa: E402
+
+
+class PaymentHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentHistory
+        fields = ['id', 'from_status', 'to_status', 'source', 'metadata', 'created_at']
 
 
 class PaymentSerializer(serializers.ModelSerializer):
     project_id = serializers.IntegerField(source='subscription.project_id', read_only=True)
     project_name = serializers.SerializerMethodField()
+    history = PaymentHistorySerializer(many=True, read_only=True)
 
     class Meta:
         model = Payment
@@ -948,7 +996,9 @@ class PaymentSerializer(serializers.ModelSerializer):
             'billing_period_start', 'billing_period_end', 'due_date',
             'status', 'paid_at',
             'wompi_payment_link_url',
+            'is_archived', 'archived_at',
             'project_id', 'project_name',
+            'history',
             'created_at',
         ]
 
@@ -971,6 +1021,7 @@ class HostingSubscriptionSerializer(serializers.ModelSerializer):
             'effective_monthly_amount', 'billing_amount',
             'status', 'status_display',
             'start_date', 'next_billing_date',
+            'is_archived', 'archived_at',
             'project_id', 'project_name',
             'payments', 'created_at', 'updated_at',
         ]
@@ -994,6 +1045,7 @@ class HostingSubscriptionListSerializer(serializers.ModelSerializer):
             'effective_monthly_amount', 'billing_amount',
             'status', 'status_display',
             'start_date', 'next_billing_date',
+            'is_archived', 'archived_at',
             'project_id', 'project_name',
             'pending_payments', 'created_at',
         ]
@@ -1006,6 +1058,7 @@ class HostingSubscriptionListSerializer(serializers.ModelSerializer):
         from datetime import timedelta
         cutoff = timezone.now().date() + timedelta(days=7)
         return obj.payments.filter(
+            is_archived=False,
             status__in=['pending', 'overdue', 'failed'],
             due_date__lte=cutoff,
         ).count()
@@ -1018,6 +1071,7 @@ class UpdateSubscriptionSerializer(serializers.Serializer):
     status = serializers.ChoiceField(
         choices=HostingSubscription.STATUS_CHOICES, required=False,
     )
+    is_archived = serializers.BooleanField(required=False)
 
 
 class ProposalSummarySerializer(serializers.Serializer):

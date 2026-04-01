@@ -1,13 +1,22 @@
 <template>
   <div id="platform-unified-bugs">
     <!-- Header -->
-    <div class="mb-6" data-enter>
-      <h1 class="text-2xl font-bold text-esmerald dark:text-white">
-        {{ authStore.isAdmin ? 'Reporte de bugs' : 'Mis bugs reportados' }}
-      </h1>
-      <p class="mt-1 text-sm text-green-light">
-        {{ authStore.isAdmin ? 'Todos los bugs reportados en todos los proyectos.' : 'Bugs reportados en tus proyectos.' }}
-      </p>
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" data-enter>
+      <div>
+        <h1 class="text-2xl font-bold text-esmerald dark:text-white">
+          {{ authStore.isAdmin ? 'Reporte de bugs' : 'Mis bugs reportados' }}
+        </h1>
+        <p class="mt-1 text-sm text-green-light">
+          {{ authStore.isAdmin ? 'Todos los bugs reportados en todos los proyectos.' : 'Bugs reportados en tus proyectos.' }}
+        </p>
+      </div>
+      <label
+        v-if="authStore.isAdmin"
+        class="flex cursor-pointer items-center gap-2 rounded-full border border-esmerald/10 px-3 py-1.5 text-xs font-medium text-green-light dark:border-white/10"
+      >
+        <input v-model="includeArchived" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+        Mostrar archivados
+      </label>
     </div>
 
     <!-- Loading -->
@@ -63,6 +72,9 @@
                 <span class="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="statusBadgeClass(bug.status)">
                   {{ statusLabel(bug.status) }}
                 </span>
+                <span v-if="bug.is_archived" class="rounded-full bg-gray-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-gray-600 dark:text-gray-400">
+                  Archivado
+                </span>
                 <span v-if="bug.is_recurring" class="rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-purple-600 dark:text-purple-400">
                   Recurrente
                 </span>
@@ -86,8 +98,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
+import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 
 const localePath = useLocalePath()
@@ -99,6 +112,7 @@ usePageEntrance('#platform-unified-bugs')
 
 const authStore = usePlatformAuthStore()
 const bugStore = usePlatformBugReportsStore()
+const includeArchived = usePlatformIncludeArchived()
 
 const summaryPills = computed(() => {
   const pills = [
@@ -169,5 +183,15 @@ function severityLabel(sev) {
   return map[sev] || sev
 }
 
-onMounted(async () => { await bugStore.fetchAllBugReports() })
+async function loadBugs() {
+  await bugStore.fetchAllBugReports(null, authStore.isAdmin && includeArchived.value)
+}
+
+onMounted(async () => {
+  await loadBugs()
+})
+
+watch(includeArchived, () => {
+  if (authStore.isAdmin) loadBugs()
+})
 </script>

@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.8.0
-> **Last updated:** 2026-03-31
+> **Version:** 2.8.1
+> **Last updated:** 2026-04-01
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -66,6 +66,10 @@
 
 - **TechnicalDocumentEditor (panel):** No dedicated flow ID. Scope remains within `admin-proposal-edit` and `admin-proposal-defaults-config`; client-facing technical reading is covered by `proposal-technical-view`.
 - **Panel sidebar (collapse / mobile drawer):** No dedicated flow ID. Exercised indirectly by specs that load `/panel` routes using the admin layout.
+
+### Backend-only and system-triggered flows (not browser E2E)
+
+Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 0` describe **automations** (Huey/cron, alert generation, digests). They remain in the registry for traceability to backend tests but are **out of scope** for Playwright user-journey coverage. Examples: `proposal-pre-expiration-discount-suggestion`, `admin-seller-inactivity-escalation`, `admin-daily-pipeline-digest`, `admin-high-engagement-alert`, `admin-calculator-followup-alert`, `admin-whatsapp-suggestion`, `admin-auto-archive-zombie`, `admin-proposal-engagement-decay-alert`, `admin-proposal-post-rejection-revisit`, `proposal-calculator-abandonment-tracking`.
 
 ---
 
@@ -1594,13 +1598,13 @@
 | `proposal-conditional-acceptance` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-conditional-acceptance.spec.js` |
 | `proposal-view-paste-rendering` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-view-paste-rendering.spec.js` |
 | `proposal-sticky-bar-accept` | proposal | guest | ~~P2~~ | 🗄️ Archived | — (feature removed) |
-| `admin-document-list` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-document-list.spec.js` |
-| `admin-document-create` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-document-create.spec.js` |
-| `admin-document-edit` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-document-edit.spec.js` |
-| `admin-admin-management` | admin | admin | P3 | ❌ Missing | `e2e/admin/admin-admin-management.spec.js` |
-| `admin-email-deliverability` | admin | admin | P3 | ❌ Missing | `e2e/admin/admin-email-deliverability.spec.js` |
-| `public-landing-software` | public | guest | P3 | ❌ Missing | `e2e/public/public-landing-software.spec.js` |
-| `public-landing-apps` | public | guest | P3 | ❌ Missing | `e2e/public/public-landing-apps.spec.js` |
+| `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
+| `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
+| `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
+| `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
+| `admin-email-deliverability` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-email-deliverability.spec.js` |
+| `public-landing-software` | public | guest | P3 | ✅ Covered | `e2e/public/public-landing-software.spec.js` |
+| `public-landing-apps` | public | guest | P3 | ✅ Covered | `e2e/public/public-landing-apps.spec.js` |
 | `platform-login` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-login.spec.js` |
 | `platform-verify-onboarding` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-verify.spec.js` |
 | `platform-complete-profile` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-complete-profile.spec.js` |
@@ -1629,10 +1633,10 @@
 - **P1 (Critical):** 24
 - **P2 (High):** 76
 - **P3 (Medium):** 23
-- **Covered (full):** 96 (77%)
+- **Covered (full):** 103 (83%)
 - **Backend-only:** 10 (8%) — system-triggered alerts and automation covered by backend unit tests
 - **Partial:** 0 (0%)
-- **Missing:** 7 (6%) — newly discovered admin document management, admin user management, email deliverability, and public landing pages
+- **Missing:** 0 (0%)
 - **Deferred:** 0
 - **Archived:** 2 — `public-about-us`, `proposal-sticky-bar-accept` (feature removed)
 
@@ -2030,7 +2034,7 @@
 - **Role:** platform-admin / platform-client
 - **Priority:** P1
 - **Routes:** `/platform/projects/:id/payments`, `/platform/payments`
-- **API:** `GET/POST/PATCH /api/accounts/projects/:id/subscription/`, `GET /api/accounts/projects/:id/payments/`, `POST .../card-pay/`, `POST .../verify/`, `GET .../widget-data/`
+- **API:** `GET /api/accounts/subscriptions/` (unified `/platform/payments` list), `GET/POST/PATCH /api/accounts/projects/:id/subscription/`, `GET /api/accounts/projects/:id/payments/`, `POST .../card-pay/`, `POST .../verify/`, `GET .../widget-data/`
 - **Description:** Client selects hosting plan (semiannual/quarterly/monthly), activates subscription, and pays via Wompi (card or widget). Admin sees subscription status. Netflix-style active state with next renewal date.
 - **Steps:**
   1. Client navigates to `/platform/projects/:id/payments`.
@@ -2117,7 +2121,7 @@
   2. List loads from API → table shows number, title, status, total, due date.
   3. User clicks Open → navigates to `/platform/collection-accounts/:id`.
   4. **[Admin]** User applies project/status filters and Apply filters → list refreshes.
-  5. **[Admin]** User clicks New collection account → create modal → submit → redirect to new detail (optional branch).
+  5. **[Admin]** User clicks New collection account → modal → `POST /api/accounts/collection-accounts/` → redirect to new detail (covered in E2E).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/platform/platform-collection-accounts.spec.js`
 
@@ -2213,7 +2217,7 @@
 
 ## 9. New Feature Flows (v2.7.0)
 
-> Flows discovered during the v2.7.0 audit — pages that existed in the codebase but had not been registered in the flow registry. All are `❌ Missing` (no E2E spec yet).
+> Flows registered during the v2.7.0 audit (documents, admin management, deliverability, public landings). E2E specs were added afterward; coverage below reflects the current Playwright suite (`frontend/e2e/`).
 
 ### 9.1 Admin Document Management
 
@@ -2235,7 +2239,7 @@
   - [Branch B — Download PDF] Admin clicks download icon → PDF generated and downloaded.
   - [Branch C — Duplicate] Admin clicks duplicate icon → document cloned and list refreshes.
   - [Branch D — Delete] Admin clicks delete icon → confirm modal → document removed from list.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-list.spec.js`
 
 #### FLOW: `admin-document-create`
@@ -2256,7 +2260,7 @@
 - **Branches:**
   - [Branch A — Validation error] Missing required fields → inline errors displayed.
   - [Branch B — Preview toggle] Admin clicks preview button → split-pane preview shown alongside editor.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-create.spec.js`
 
 #### FLOW: `admin-document-edit`
@@ -2277,7 +2281,7 @@
   - [Branch A — Download PDF] Admin clicks "Descargar PDF" → PDF generated from current content.
   - [Branch B — Status change] Admin updates status (draft/published/archived) → status badge updates.
   - [Branch C — Back] "Volver a documentos" link → navigates to list without saving.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-edit.spec.js`
 
 ### 9.2 Admin User Management
@@ -2299,7 +2303,7 @@
   - [Branch B — Filter] Admin clicks status tab → list filters client-side.
   - [Branch C — Deactivate] Admin clicks deactivate → confirm → `PATCH /api/accounts/admins/:id/` → status changes.
   - [Branch D — Empty state] No admins → empty state message with invite CTA.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-admin-management.spec.js`
 
 ### 9.3 Email Deliverability Dashboard
@@ -2319,7 +2323,7 @@
 - **Branches:**
   - [Branch A — Empty state] No emails sent yet → "No hay datos de entregas." message.
   - [Branch B — Date filter] Admin filters by date range → metrics update.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-email-deliverability.spec.js`
 
 ### 9.4 Public Landing Pages
@@ -2339,7 +2343,7 @@
 - **Branches:**
   - [Branch A — CTA click] Guest clicks primary CTA → scrolls to contact section or navigates to `/contacto`.
   - [Branch B — Locale] Page renders in both ES and EN via locale switcher.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/public/public-landing-software.spec.js`
 
 #### FLOW: `public-landing-apps`
@@ -2357,7 +2361,7 @@
 - **Branches:**
   - [Branch A — CTA click] Guest clicks primary CTA → scrolls to contact section or navigates to `/contacto`.
   - [Branch B — Locale] Page renders in both ES and EN via locale switcher.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/public/public-landing-apps.spec.js`
 
 ---
@@ -2366,10 +2370,10 @@
 
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
-| `admin-document-list` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-document-list.spec.js` |
-| `admin-document-create` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-document-create.spec.js` |
-| `admin-document-edit` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-document-edit.spec.js` |
-| `admin-admin-management` | admin | admin | P3 | ❌ Missing | `e2e/admin/admin-admin-management.spec.js` |
-| `admin-email-deliverability` | admin | admin | P3 | ❌ Missing | `e2e/admin/admin-email-deliverability.spec.js` |
-| `public-landing-software` | public | guest | P3 | ❌ Missing | `e2e/public/public-landing-software.spec.js` |
-| `public-landing-apps` | public | guest | P3 | ❌ Missing | `e2e/public/public-landing-apps.spec.js` |
+| `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
+| `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
+| `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
+| `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
+| `admin-email-deliverability` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-email-deliverability.spec.js` |
+| `public-landing-software` | public | guest | P3 | ✅ Covered | `e2e/public/public-landing-software.spec.js` |
+| `public-landing-apps` | public | guest | P3 | ✅ Covered | `e2e/public/public-landing-apps.spec.js` |

@@ -119,8 +119,8 @@ class Command(BaseCommand):
         project = self._create_project(client)
         self._create_requirements(project)
         self._create_change_requests(project, client, admin)
-        self._create_bug_reports(project, client, admin)
         self._create_deliverables(project, admin)
+        self._create_bug_reports(project, client, admin)
         self._create_subscription(project)
 
         # Compute progress from statuses
@@ -141,7 +141,7 @@ class Command(BaseCommand):
 
         self.stdout.write(f'  Progress         → {project.progress}%')
         self.stdout.write(f'  Change requests  → {ChangeRequest.objects.filter(project=project).count()}')
-        self.stdout.write(f'  Bug reports      → {BugReport.objects.filter(project=project).count()}')
+        self.stdout.write(f'  Bug reports      → {BugReport.objects.filter(deliverable__project=project).count()}')
         self.stdout.write(f'  Deliverables     → {Deliverable.objects.filter(project=project).count()}')
         self.stdout.write(f'  Subscription     → {HostingSubscription.objects.filter(project=project).count()}')
         self.stdout.write('')
@@ -334,8 +334,15 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'  Created {len(crs)} change requests'))
 
     def _create_bug_reports(self, project, client, admin):
-        if BugReport.objects.filter(project=project).exists():
+        if BugReport.objects.filter(deliverable__project=project).exists():
             self.stdout.write(f'  Bug reports already exist for {project.name}')
+            return
+
+        deliverable_list = list(
+            Deliverable.objects.filter(project=project).order_by('id'),
+        )
+        if not deliverable_list:
+            self.stdout.write(self.style.WARNING(f'  Skipping bug reports — no deliverables for {project.name}'))
             return
 
         bugs = [
@@ -431,9 +438,10 @@ class Command(BaseCommand):
             },
         ]
 
-        for bug_data in bugs:
+        for i, bug_data in enumerate(bugs):
+            dlv = deliverable_list[i % len(deliverable_list)]
             bug = BugReport.objects.create(
-                project=project,
+                deliverable=dlv,
                 reported_by=client,
                 title=bug_data['title'],
                 description=bug_data['description'],

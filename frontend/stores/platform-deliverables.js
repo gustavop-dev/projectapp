@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { buildPlatformListUrl } from '~/composables/useIncludeArchivedQuery'
 import { usePlatformApi } from '~/composables/usePlatformApi'
 
 export const usePlatformDeliverablesStore = defineStore('platformDeliverables', {
@@ -28,15 +29,18 @@ export const usePlatformDeliverablesStore = defineStore('platformDeliverables', 
   },
 
   actions: {
-    async fetchDeliverables(projectId, category = null) {
+    async fetchDeliverables(projectId, category = null, includeArchived = false) {
       this.isLoading = true
       this.error = ''
       this.projectId = projectId
 
       try {
         const { get } = usePlatformApi()
-        let url = `projects/${projectId}/deliverables/`
-        if (category) url += `?category=${category}`
+        const url = buildPlatformListUrl(
+          `projects/${projectId}/deliverables/`,
+          category ? { category } : {},
+          includeArchived,
+        )
         const response = await get(url)
         this.deliverables = response.data
         return { success: true }
@@ -49,15 +53,18 @@ export const usePlatformDeliverablesStore = defineStore('platformDeliverables', 
       }
     },
 
-    async fetchAllDeliverables(category = null) {
+    async fetchAllDeliverables(category = null, includeArchived = false) {
       this.isLoading = true
       this.error = ''
       this.projectId = null
 
       try {
         const { get } = usePlatformApi()
-        let url = 'deliverables/'
-        if (category) url += `?category=${category}`
+        const url = buildPlatformListUrl(
+          'deliverables/',
+          category ? { category } : {},
+          includeArchived,
+        )
         const response = await get(url)
         this.deliverables = response.data
         return { success: true }
@@ -138,11 +145,11 @@ export const usePlatformDeliverablesStore = defineStore('platformDeliverables', 
 
       try {
         const { delete: destroy } = usePlatformApi()
-        await destroy(`projects/${projectId}/deliverables/${deliverableId}/`)
+        const { data } = await destroy(`projects/${projectId}/deliverables/${deliverableId}/`)
         this.deliverables = this.deliverables.filter((d) => d.id !== deliverableId)
-        return { success: true }
+        return { success: true, message: data?.detail || '' }
       } catch (error) {
-        const message = error.response?.data?.detail || 'No pudimos eliminar el entregable.'
+        const message = error.response?.data?.detail || 'No pudimos archivar el entregable.'
         this.error = message
         return { success: false, message }
       } finally {

@@ -18,7 +18,16 @@ Usage:
 from accounts.models import Notification, Project, UserProfile
 
 
-def notify(user, type, title, message='', project=None, related_object_type='', related_object_id=None):
+def notify(
+    user,
+    type,
+    title,
+    message='',
+    project=None,
+    deliverable=None,
+    related_object_type='',
+    related_object_id=None,
+):
     """Create a single notification for a user."""
     return Notification.objects.create(
         user=user,
@@ -26,12 +35,22 @@ def notify(user, type, title, message='', project=None, related_object_type='', 
         title=title,
         message=message,
         project=project,
+        deliverable=deliverable,
         related_object_type=related_object_type,
         related_object_id=related_object_id,
     )
 
 
-def notify_project_admins(project, type, title, message='', related_object_type='', related_object_id=None, exclude_user=None):
+def notify_project_admins(
+    project,
+    type,
+    title,
+    message='',
+    related_object_type='',
+    related_object_id=None,
+    exclude_user=None,
+    deliverable=None,
+):
     """Notify all admin users about an event in a project."""
     admin_profiles = UserProfile.objects.filter(role=UserProfile.ROLE_ADMIN).select_related('user')
     notifications = []
@@ -44,6 +63,7 @@ def notify_project_admins(project, type, title, message='', related_object_type=
             title=title,
             message=message,
             project=project,
+            deliverable=deliverable,
             related_object_type=related_object_type,
             related_object_id=related_object_id,
         ))
@@ -52,7 +72,16 @@ def notify_project_admins(project, type, title, message='', related_object_type=
     return notifications
 
 
-def notify_project_client(project, type, title, message='', related_object_type='', related_object_id=None, exclude_user=None):
+def notify_project_client(
+    project,
+    type,
+    title,
+    message='',
+    related_object_type='',
+    related_object_id=None,
+    exclude_user=None,
+    deliverable=None,
+):
     """Notify the project's client about an event."""
     client = project.client
     if exclude_user and client.id == exclude_user.id:
@@ -63,6 +92,7 @@ def notify_project_client(project, type, title, message='', related_object_type=
         title=title,
         message=message,
         project=project,
+        deliverable=deliverable,
         related_object_type=related_object_type,
         related_object_id=related_object_id,
     )

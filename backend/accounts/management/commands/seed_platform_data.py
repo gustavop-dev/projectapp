@@ -156,8 +156,8 @@ class Command(BaseCommand):
             if ecommerce_project:
                 self._create_requirements(ecommerce_project)
                 self._create_change_requests(ecommerce_project, client_user, admin_user)
-                self._create_bug_reports(ecommerce_project, client_user, admin_user)
                 self._create_deliverables(ecommerce_project, admin_user)
+                self._create_bug_reports(ecommerce_project, client_user, admin_user)
                 self._create_subscription(ecommerce_project)
             self._create_collection_accounts(
                 ecommerce_project, inventory_project, client_user, admin_user,
@@ -205,8 +205,8 @@ class Command(BaseCommand):
 
         self._create_requirements(ecommerce_project)
         self._create_change_requests(ecommerce_project, client_user, admin_user)
-        self._create_bug_reports(ecommerce_project, client_user, admin_user)
         self._create_deliverables(ecommerce_project, admin_user)
+        self._create_bug_reports(ecommerce_project, client_user, admin_user)
         self._create_subscription(ecommerce_project)
 
         inventory_project = Project.objects.filter(client=client_user, name='App Móvil Inventarios').first()
@@ -265,7 +265,7 @@ class Command(BaseCommand):
             return
 
         deliverable = Deliverable.objects.filter(project=project).first()
-        bug = BugReport.objects.filter(project=project).first()
+        bug = BugReport.objects.filter(deliverable__project=project).first()
         cr = ChangeRequest.objects.filter(project=project).first()
 
         Notification.objects.create(
@@ -282,6 +282,7 @@ class Command(BaseCommand):
             title=f'{SEED_PREFIX} New deliverable available',
             message='Synthetic row for deliverable notification styling.',
             project=project,
+            deliverable=deliverable,
             related_object_type='deliverable',
             related_object_id=deliverable.id if deliverable else None,
             is_read=False,
@@ -302,6 +303,7 @@ class Command(BaseCommand):
             title=f'{SEED_PREFIX} Bug status changed',
             message='Synthetic row tied to a bug report.',
             project=project,
+            deliverable=bug.deliverable if bug else None,
             related_object_type='bug_report',
             related_object_id=bug.id if bug else None,
             is_read=False,
@@ -313,6 +315,7 @@ class Command(BaseCommand):
             title=f'{SEED_PREFIX} Client reported a bug (sample)',
             message='Synthetic row for admin notification list.',
             project=project,
+            deliverable=bug.deliverable if bug else None,
             related_object_type='bug_report',
             related_object_id=bug.id if bug else None,
             is_read=False,
@@ -349,7 +352,7 @@ class Command(BaseCommand):
                 )
                 self.stdout.write(self.style.SUCCESS('  Created seed requirement comments'))
 
-        first_bug = BugReport.objects.filter(project=project).order_by('id').first()
+        first_bug = BugReport.objects.filter(deliverable__project=project).order_by('id').first()
         if first_bug and not BugComment.objects.filter(
             bug_report=first_bug,
             content__startswith=SEED_PREFIX,
@@ -677,8 +680,15 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'  Created {len(crs)} change requests for {project.name}'))
 
     def _create_bug_reports(self, project, client_user, admin_user):
-        if BugReport.objects.filter(project=project).exists():
+        if BugReport.objects.filter(deliverable__project=project).exists():
             self.stdout.write(f'  Bug reports already exist for {project.name}')
+            return
+
+        deliverable_list = list(
+            Deliverable.objects.filter(project=project).order_by('id'),
+        )
+        if not deliverable_list:
+            self.stdout.write(self.style.WARNING(f'  Skipping bug reports — no deliverables for {project.name}'))
             return
 
         bugs = [
@@ -772,9 +782,10 @@ class Command(BaseCommand):
             },
         ]
 
-        for bug_data in bugs:
+        for i, bug_data in enumerate(bugs):
+            dlv = deliverable_list[i % len(deliverable_list)]
             bug = BugReport.objects.create(
-                project=project,
+                deliverable=dlv,
                 reported_by=client_user,
                 title=bug_data['title'],
                 description=bug_data['description'],

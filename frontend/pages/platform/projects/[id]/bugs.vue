@@ -16,7 +16,14 @@
           <h1 class="text-xl font-bold text-esmerald dark:text-white sm:text-2xl">Reporte de bugs</h1>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+          <label
+            v-if="authStore.isAdmin"
+            class="flex cursor-pointer items-center gap-2 rounded-full border border-esmerald/10 px-3 py-1.5 text-xs font-medium text-green-light dark:border-white/10"
+          >
+            <input v-model="includeArchived" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+            Mostrar archivados
+          </label>
           <div class="hidden items-center gap-2 sm:flex">
             <span class="rounded-full bg-red-500/15 px-2.5 py-1 text-[10px] font-semibold text-red-600 dark:text-red-400">
               {{ bugStore.reportedCount }} reportados
@@ -71,6 +78,9 @@
                 <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="severityBadgeClass(bug.severity)">
                   {{ severityLabel(bug.severity) }}
                 </span>
+                <span v-if="bug.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:text-gray-400">
+                  Archivado
+                </span>
                 <span v-if="bug.is_recurring" class="rounded-full bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-purple-600 dark:text-purple-400">
                   Recurrente
                 </span>
@@ -84,7 +94,8 @@
             <svg class="h-4 w-4 shrink-0 text-green-light/30 transition group-hover:text-esmerald dark:group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
           </div>
 
-          <div class="mt-3 flex items-center gap-4 text-[10px] text-green-light/60">
+          <div class="mt-3 flex flex-wrap items-center gap-4 text-[10px] text-green-light/60">
+            <span v-if="bug.deliverable_title" class="font-medium text-esmerald/80 dark:text-white/70">{{ bug.deliverable_title }}</span>
             <span>{{ envLabel(bug.environment) }}</span>
             <span v-if="bug.device_browser">{{ bug.device_browser }}</span>
             <span>{{ bug.reported_by_name }}</span>
@@ -119,7 +130,27 @@
             <div v-if="isCreateOpen" class="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-2xl dark:border-white/[0.06] dark:bg-esmerald sm:p-8">
               <h2 class="mb-5 text-lg font-bold text-esmerald dark:text-white">Reportar bug</h2>
 
+              <p v-if="!deliverablesStore.deliverables.length && !deliverablesStore.isLoading" class="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-800 dark:text-amber-200">
+                No hay entregables en este proyecto. Un administrador debe crear al menos uno antes de reportar bugs.
+              </p>
+
               <form class="space-y-4" @submit.prevent="handleCreate">
+                <div>
+                  <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Entregable <span class="text-red-400">*</span></label>
+                  <select
+                    v-model.number="createForm.deliverable_id"
+                    required
+                    class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40"
+                    :disabled="!deliverablesStore.deliverables.length"
+                  >
+                    <option v-if="!deliverablesStore.deliverables.length" :value="null" disabled>
+                      Sin entregables
+                    </option>
+                    <option v-for="d in deliverablesStore.deliverables" :key="d.id" :value="d.id">
+                      {{ d.title }}
+                    </option>
+                  </select>
+                </div>
                 <div>
                   <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Título <span class="text-red-400">*</span></label>
                   <input v-model="createForm.title" type="text" required placeholder="¿Qué está fallando?" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-3 text-sm text-esmerald outline-none transition placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
@@ -234,8 +265,15 @@
                   <div class="mb-2 flex flex-wrap items-center gap-2">
                     <span class="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase" :class="statusBadgeClass(detailBug.status)">{{ statusLabel(detailBug.status) }}</span>
                     <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="severityBadgeClass(detailBug.severity)">{{ severityLabel(detailBug.severity) }}</span>
+                    <span v-if="detailBug.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:text-gray-400">Archivado</span>
                     <span v-if="detailBug.is_recurring" class="rounded-full bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-purple-600 dark:text-purple-400">Recurrente</span>
                   </div>
+                  <p v-if="detailBug.is_archived && detailBug.archived_at" class="mb-1 text-[10px] text-green-light/60">
+                    Archivado el {{ formatDate(detailBug.archived_at) }}
+                  </p>
+                  <p v-if="detailBug.deliverable_title" class="mb-1 text-xs font-medium text-green-light/70">
+                    Entregable: {{ detailBug.deliverable_title }}
+                  </p>
                   <h2 class="text-lg font-bold text-esmerald dark:text-white">{{ detailBug.title }}</h2>
                 </div>
                 <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white" @click="detailBug = null">
@@ -306,43 +344,53 @@
 
               <!-- Admin actions -->
               <div v-if="authStore.isAdmin" class="mb-5 space-y-3">
-                <div v-if="showEvaluateForm" class="rounded-xl border border-esmerald/[0.06] p-4 dark:border-white/[0.06]">
-                  <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-green-light/60">Evaluar bug</p>
-                  <div class="space-y-3">
-                    <div>
-                      <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Estado</label>
-                      <select v-model="evalForm.status" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40">
-                        <option value="reported">Reportado</option>
-                        <option value="confirmed">Confirmado</option>
-                        <option value="fixing">En corrección</option>
-                        <option value="qa">En QA</option>
-                        <option value="resolved">Resuelto</option>
-                        <option value="not_reproducible">No reproducible</option>
-                        <option value="wont_fix">No se corregirá</option>
-                        <option value="duplicate">Duplicado</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Respuesta</label>
-                      <textarea v-model="evalForm.admin_response" rows="2" placeholder="Respuesta para el cliente..." class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
-                    </div>
-                    <div class="flex justify-end gap-2">
-                      <button type="button" class="rounded-lg px-3 py-1.5 text-xs text-green-light hover:text-esmerald dark:hover:text-white" @click="showEvaluateForm = false">Cancelar</button>
-                      <button type="button" :disabled="bugStore.isUpdating" class="rounded-lg bg-esmerald px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-esmerald/90 disabled:opacity-50 dark:bg-lemon dark:text-esmerald-dark" @click="handleEvaluate">
-                        {{ bugStore.isUpdating ? 'Guardando...' : 'Guardar' }}
-                      </button>
+                <div v-if="detailBug.is_archived" class="rounded-xl border border-esmerald/[0.06] px-4 py-3 text-xs text-green-light/70 dark:border-white/[0.06]">
+                  Este reporte está archivado.
+                </div>
+                <template v-else>
+                  <div v-if="showEvaluateForm" class="rounded-xl border border-esmerald/[0.06] p-4 dark:border-white/[0.06]">
+                    <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-green-light/60">Evaluar bug</p>
+                    <div class="space-y-3">
+                      <div>
+                        <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Estado</label>
+                        <select v-model="evalForm.status" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40">
+                          <option value="reported">Reportado</option>
+                          <option value="confirmed">Confirmado</option>
+                          <option value="fixing">En corrección</option>
+                          <option value="qa">En QA</option>
+                          <option value="resolved">Resuelto</option>
+                          <option value="not_reproducible">No reproducible</option>
+                          <option value="wont_fix">No se corregirá</option>
+                          <option value="duplicate">Duplicado</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Respuesta</label>
+                        <textarea v-model="evalForm.admin_response" rows="2" placeholder="Respuesta para el cliente..." class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                      </div>
+                      <div class="flex justify-end gap-2">
+                        <button type="button" class="rounded-lg px-3 py-1.5 text-xs text-green-light hover:text-esmerald dark:hover:text-white" @click="showEvaluateForm = false">Cancelar</button>
+                        <button type="button" :disabled="bugStore.isUpdating" class="rounded-lg bg-esmerald px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-esmerald/90 disabled:opacity-50 dark:bg-lemon dark:text-esmerald-dark" @click="handleEvaluate">
+                          {{ bugStore.isUpdating ? 'Guardando...' : 'Guardar' }}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div v-else class="flex flex-wrap gap-2">
-                  <button type="button" class="rounded-xl border border-esmerald/10 px-4 py-2 text-xs font-medium text-esmerald transition hover:bg-esmerald-light dark:border-white/10 dark:text-white dark:hover:bg-white/[0.06]" @click="openEvaluateForm">
-                    Evaluar
-                  </button>
-                  <button type="button" class="rounded-xl border border-red-200 px-4 py-2 text-xs font-medium text-red-500 transition hover:bg-red-50 dark:border-red-500/20 dark:hover:bg-red-500/10" @click="handleDelete">
-                    Eliminar
-                  </button>
-                </div>
+                  <div v-else class="flex flex-wrap gap-2">
+                    <button type="button" class="rounded-xl border border-esmerald/10 px-4 py-2 text-xs font-medium text-esmerald transition hover:bg-esmerald-light dark:border-white/10 dark:text-white dark:hover:bg-white/[0.06]" @click="openEvaluateForm">
+                      Evaluar
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-xl border border-red-200 px-4 py-2 text-xs font-medium text-red-500 transition hover:bg-red-50 dark:border-red-500/20 dark:hover:bg-red-500/10"
+                      :disabled="bugStore.isUpdating"
+                      @click="handleDelete"
+                    >
+                      Archivar
+                    </button>
+                  </div>
+                </template>
               </div>
 
               <!-- Comments -->
@@ -387,10 +435,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
+import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformBugReportsStore } from '~/stores/platform-bug-reports'
+import { usePlatformDeliverablesStore } from '~/stores/platform-deliverables'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
@@ -401,7 +451,9 @@ const route = useRoute()
 const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const bugStore = usePlatformBugReportsStore()
+const deliverablesStore = usePlatformDeliverablesStore()
 const projectsStore = usePlatformProjectsStore()
+const includeArchived = usePlatformIncludeArchived()
 
 const projectId = computed(() => route.params.id)
 const projectName = computed(() => projectsStore.currentProject?.name || 'Proyecto')
@@ -423,6 +475,7 @@ const filteredBugs = computed(() => bugStore.filteredByStatus(activeFilter.value
 
 const isCreateOpen = ref(false)
 const createForm = reactive({
+  deliverable_id: null,
   title: '', description: '', severity: 'medium', environment: 'production',
   device_browser: '', is_recurring: false, steps_to_reproduce: [''],
   expected_behavior: '', actual_behavior: '',
@@ -485,6 +538,8 @@ function formatDate(value) {
 }
 
 function openCreateModal() {
+  const firstD = deliverablesStore.deliverables[0]
+  createForm.deliverable_id = firstD ? firstD.id : null
   createForm.title = ''; createForm.description = ''; createForm.severity = 'medium'
   createForm.environment = 'production'; createForm.device_browser = ''
   createForm.is_recurring = false; createForm.steps_to_reproduce = ['']
@@ -508,11 +563,12 @@ function removeScreenshot() {
 }
 
 async function handleCreate() {
-  if (!createForm.title.trim()) return
+  if (!createForm.title.trim() || createForm.deliverable_id == null) return
   const steps = createForm.steps_to_reproduce.filter((s) => s.trim())
   let payload
   if (screenshotFile.value) {
     payload = new FormData()
+    payload.append('deliverable_id', String(createForm.deliverable_id))
     payload.append('title', createForm.title)
     payload.append('description', createForm.description)
     payload.append('severity', createForm.severity)
@@ -524,7 +580,18 @@ async function handleCreate() {
     steps.forEach((s) => payload.append('steps_to_reproduce', s))
     payload.append('screenshot', screenshotFile.value)
   } else {
-    payload = { ...createForm, steps_to_reproduce: steps }
+    payload = {
+      deliverable_id: createForm.deliverable_id,
+      title: createForm.title,
+      description: createForm.description,
+      severity: createForm.severity,
+      environment: createForm.environment,
+      device_browser: createForm.device_browser,
+      is_recurring: createForm.is_recurring,
+      steps_to_reproduce: steps,
+      expected_behavior: createForm.expected_behavior,
+      actual_behavior: createForm.actual_behavior,
+    }
   }
   const result = await bugStore.createBugReport(projectId.value, payload)
   if (result.success) {
@@ -553,8 +620,17 @@ async function handleEvaluate() {
 
 async function handleDelete() {
   if (!detailBug.value) return
+  if (!window.confirm('¿Archivar este reporte de bug? Podrás verlo otra vez activando "Mostrar archivados".')) return
   const result = await bugStore.deleteBugReport(projectId.value, detailBug.value.id)
   if (result.success) detailBug.value = null
+}
+
+async function loadBugsAndDeliverables() {
+  const arch = authStore.isAdmin && includeArchived.value
+  await Promise.all([
+    bugStore.fetchBugReports(projectId.value, null, arch),
+    deliverablesStore.fetchDeliverables(projectId.value, null, arch),
+  ])
 }
 
 async function handleAddComment() {
@@ -565,9 +641,13 @@ async function handleAddComment() {
 
 onMounted(async () => {
   await Promise.all([
-    bugStore.fetchBugReports(projectId.value),
+    loadBugsAndDeliverables(),
     projectsStore.currentProject?.id !== Number(projectId.value) ? projectsStore.fetchProject(projectId.value) : Promise.resolve(),
   ])
+})
+
+watch([includeArchived, projectId], () => {
+  loadBugsAndDeliverables()
 })
 </script>
 

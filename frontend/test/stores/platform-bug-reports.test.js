@@ -77,6 +77,18 @@ describe('usePlatformBugReportsStore', () => {
     expect(store.projectId).toBe(5)
   })
 
+  it('fetchBugReports adds include_archived when requested', async () => {
+    mockGet.mockResolvedValueOnce({ data: [] })
+    await store.fetchBugReports(5, null, true)
+    expect(mockGet).toHaveBeenCalledWith('projects/5/bug-reports/?include_archived=1')
+  })
+
+  it('fetchAllBugReports adds include_archived when requested', async () => {
+    mockGet.mockResolvedValueOnce({ data: [] })
+    await store.fetchAllBugReports(null, true)
+    expect(mockGet).toHaveBeenCalledWith('bug-reports/?include_archived=1')
+  })
+
   it('fetchAllBugReports clears projectId', async () => {
     mockGet.mockResolvedValueOnce({ data: [{ id: 1 }] })
     await store.fetchAllBugReports()
@@ -93,7 +105,7 @@ describe('usePlatformBugReportsStore', () => {
 
   it('createBugReport posts JSON without multipart header', async () => {
     mockPost.mockResolvedValueOnce({ data: { id: 3 } })
-    const payload = { title: 'x' }
+    const payload = { deliverable_id: 10, title: 'x' }
     const result = await store.createBugReport(2, payload)
     expect(mockPost).toHaveBeenCalledWith('projects/2/bug-reports/', payload, {})
     expect(store.bugReports[0]).toEqual({ id: 3 })

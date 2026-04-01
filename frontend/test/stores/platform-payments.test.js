@@ -141,6 +141,12 @@ describe('usePlatformPaymentsStore', () => {
     expect(store.subscriptions).toEqual([])
   })
 
+  it('fetchSubscriptions adds include_archived when requested', async () => {
+    mockGet.mockResolvedValueOnce({ data: [] })
+    await store.fetchSubscriptions(true)
+    expect(mockGet).toHaveBeenCalledWith('subscriptions/?include_archived=1')
+  })
+
   it('fetchProjectSubscription clears state on 404', async () => {
     store.currentSubscription = { id: 1 }
     store.payments = [{ id: 1 }]
@@ -165,6 +171,12 @@ describe('usePlatformPaymentsStore', () => {
     const result = await store.fetchProjectPayments(1)
     expect(result.success).toBe(true)
     expect(store.payments).toEqual([{ id: 2 }])
+  })
+
+  it('fetchProjectPayments adds include_archived when requested', async () => {
+    mockGet.mockResolvedValueOnce({ data: [] })
+    await store.fetchProjectPayments(7, true)
+    expect(mockGet).toHaveBeenCalledWith('projects/7/payments/?include_archived=1')
   })
 
   it('updateSubscription patches current subscription', async () => {

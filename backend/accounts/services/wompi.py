@@ -64,12 +64,19 @@ def create_payment_link(payment):
         link_id = data.get('id', '')
         link_url = f'https://checkout.wompi.co/l/{link_id}' if link_id else ''
 
+        from accounts.models import PaymentHistory
+        from accounts.services.payment_history import record_payment_status_change
+
+        old_status = payment.status
         payment.wompi_payment_link_id = link_id
         payment.wompi_payment_link_url = link_url
         payment.status = Payment.STATUS_PROCESSING
         payment.save(update_fields=[
             'wompi_payment_link_id', 'wompi_payment_link_url', 'status',
         ])
+        record_payment_status_change(
+            payment, old_status, Payment.STATUS_PROCESSING, PaymentHistory.SOURCE_WOMPI_LINK,
+        )
 
         logger.info('Wompi payment link created: %s for payment %s', link_id, payment.id)
         return link_id, link_url

@@ -33,7 +33,14 @@
           </div>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+          <label
+            v-if="authStore.isAdmin"
+            class="flex cursor-pointer items-center gap-2 rounded-full border border-esmerald/10 px-3 py-2 text-xs font-medium text-green-light dark:border-white/10"
+          >
+            <input v-model="includeArchived" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+            Mostrar archivados
+          </label>
           <!-- Progress pill -->
           <div class="flex items-center gap-2 rounded-full border border-esmerald/10 px-4 py-2 dark:border-white/10">
             <div class="h-2 w-16 overflow-hidden rounded-full bg-esmerald/[0.06] dark:bg-white/[0.06]">
@@ -469,6 +476,8 @@ import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 import { usePlatformRequirementsStore } from '~/stores/platform-requirements'
 import { usePlatformApi } from '~/composables/usePlatformApi'
+import { buildPlatformListUrl } from '~/composables/useIncludeArchivedQuery'
+import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 
 definePageMeta({
   layout: 'platform',
@@ -484,6 +493,7 @@ const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const projectsStore = usePlatformProjectsStore()
 const reqStore = usePlatformRequirementsStore()
+const includeArchived = usePlatformIncludeArchived()
 
 const projectId = computed(() => route.params.id)
 /** Resolved entregable for nested requirements API (query filter or default). */
@@ -743,16 +753,18 @@ async function handleApprove() {
 async function resolveBoardDeliverableId() {
   if (deliverableFilterId.value) return Number(deliverableFilterId.value)
   const { get } = usePlatformApi()
-  const dres = await get(`projects/${projectId.value}/deliverables/`)
+  const url = buildPlatformListUrl(
+    `projects/${projectId.value}/deliverables/`,
+    {},
+    authStore.isAdmin && includeArchived.value,
+  )
+  const dres = await get(url)
   const list = dres.data || []
   const withBp = list.find((d) => d.has_business_proposal)
   return (withBp || list[0])?.id ?? null
 }
 
-onMounted(async () => {
-  if (projectsStore.currentProject?.id !== Number(projectId.value)) {
-    await projectsStore.fetchProject(projectId.value)
-  }
+async function refreshBoardDeliverable() {
   const did = await resolveBoardDeliverableId()
   activeDeliverableId.value = did
   if (!did) {
@@ -760,16 +772,21 @@ onMounted(async () => {
     return
   }
   await reqStore.fetchRequirements(projectId.value, did)
+}
+
+onMounted(async () => {
+  if (projectsStore.currentProject?.id !== Number(projectId.value)) {
+    await projectsStore.fetchProject(projectId.value)
+  }
+  await refreshBoardDeliverable()
 })
 
-watch(deliverableFilterId, async () => {
-  const did = await resolveBoardDeliverableId()
-  activeDeliverableId.value = did
-  if (did) {
-    await reqStore.fetchRequirements(projectId.value, did)
-  } else {
-    reqStore.requirements = []
-  }
+watch(deliverableFilterId, () => {
+  refreshBoardDeliverable()
+})
+
+watch(includeArchived, () => {
+  if (authStore.isAdmin) refreshBoardDeliverable()
 })
 </script>
 

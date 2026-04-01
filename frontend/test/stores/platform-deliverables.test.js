@@ -76,10 +76,28 @@ describe('usePlatformDeliverablesStore', () => {
     expect(mockGet).toHaveBeenCalledWith('projects/1/deliverables/?category=apks')
   })
 
+  it('fetchDeliverables adds include_archived when requested', async () => {
+    mockGet.mockResolvedValueOnce({ data: [] })
+    await store.fetchDeliverables(1, null, true)
+    expect(mockGet).toHaveBeenCalledWith('projects/1/deliverables/?include_archived=1')
+  })
+
+  it('fetchDeliverables combines category and include_archived', async () => {
+    mockGet.mockResolvedValueOnce({ data: [] })
+    await store.fetchDeliverables(1, 'documents', true)
+    expect(mockGet).toHaveBeenCalledWith('projects/1/deliverables/?category=documents&include_archived=1')
+  })
+
   it('fetchAllDeliverables clears projectId', async () => {
     mockGet.mockResolvedValueOnce({ data: [] })
     await store.fetchAllDeliverables()
     expect(store.projectId).toBeNull()
+  })
+
+  it('fetchAllDeliverables adds include_archived when requested', async () => {
+    mockGet.mockResolvedValueOnce({ data: [] })
+    await store.fetchAllDeliverables(null, true)
+    expect(mockGet).toHaveBeenCalledWith('deliverables/?include_archived=1')
   })
 
   it('fetchDeliverable sets current', async () => {

@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { buildPlatformListUrl } from '~/composables/useIncludeArchivedQuery'
 import { usePlatformApi } from '~/composables/usePlatformApi'
 
 export const usePlatformBugReportsStore = defineStore('platformBugReports', {
@@ -24,15 +25,18 @@ export const usePlatformBugReportsStore = defineStore('platformBugReports', {
   },
 
   actions: {
-    async fetchBugReports(projectId, statusFilter = null) {
+    async fetchBugReports(projectId, statusFilter = null, includeArchived = false) {
       this.isLoading = true
       this.error = ''
       this.projectId = projectId
 
       try {
         const { get } = usePlatformApi()
-        let url = `projects/${projectId}/bug-reports/`
-        if (statusFilter) url += `?status=${statusFilter}`
+        const url = buildPlatformListUrl(
+          `projects/${projectId}/bug-reports/`,
+          statusFilter ? { status: statusFilter } : {},
+          includeArchived,
+        )
         const response = await get(url)
         this.bugReports = response.data
         return { success: true }
@@ -45,15 +49,18 @@ export const usePlatformBugReportsStore = defineStore('platformBugReports', {
       }
     },
 
-    async fetchAllBugReports(statusFilter = null) {
+    async fetchAllBugReports(statusFilter = null, includeArchived = false) {
       this.isLoading = true
       this.error = ''
       this.projectId = null
 
       try {
         const { get } = usePlatformApi()
-        let url = 'bug-reports/'
-        if (statusFilter) url += `?status=${statusFilter}`
+        const url = buildPlatformListUrl(
+          'bug-reports/',
+          statusFilter ? { status: statusFilter } : {},
+          includeArchived,
+        )
         const response = await get(url)
         this.bugReports = response.data
         return { success: true }
@@ -135,11 +142,11 @@ export const usePlatformBugReportsStore = defineStore('platformBugReports', {
 
       try {
         const { delete: destroy } = usePlatformApi()
-        await destroy(`projects/${projectId}/bug-reports/${bugId}/`)
+        const { data } = await destroy(`projects/${projectId}/bug-reports/${bugId}/`)
         this.bugReports = this.bugReports.filter((b) => b.id !== bugId)
-        return { success: true }
+        return { success: true, message: data?.detail || '' }
       } catch (error) {
-        const message = error.response?.data?.detail || 'No pudimos eliminar el reporte de bug.'
+        const message = error.response?.data?.detail || 'No pudimos archivar el reporte de bug.'
         this.error = message
         return { success: false, message }
       } finally {

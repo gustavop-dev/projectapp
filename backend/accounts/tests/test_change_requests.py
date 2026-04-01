@@ -367,7 +367,9 @@ class TestChangeRequestDelete:
         resp = api_client.delete(_detail_url(project.id, cr.id), **admin_headers)
 
         assert resp.status_code == 200
-        assert not ChangeRequest.objects.filter(id=cr.id).exists()
+        assert resp.json()['detail'] == 'Solicitud de cambio archivada.'
+        cr.refresh_from_db()
+        assert cr.is_archived is True
 
     def test_client_cannot_delete_change_request(
         self, api_client, client_headers, project, sample_change_requests,

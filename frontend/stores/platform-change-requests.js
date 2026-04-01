@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { buildPlatformListUrl } from '~/composables/useIncludeArchivedQuery'
 import { usePlatformApi } from '~/composables/usePlatformApi'
 
 export const usePlatformChangeRequestsStore = defineStore('platformChangeRequests', {
@@ -24,15 +25,18 @@ export const usePlatformChangeRequestsStore = defineStore('platformChangeRequest
   },
 
   actions: {
-    async fetchChangeRequests(projectId, statusFilter = null) {
+    async fetchChangeRequests(projectId, statusFilter = null, includeArchived = false) {
       this.isLoading = true
       this.error = ''
       this.projectId = projectId
 
       try {
         const { get } = usePlatformApi()
-        let url = `projects/${projectId}/change-requests/`
-        if (statusFilter) url += `?status=${statusFilter}`
+        const url = buildPlatformListUrl(
+          `projects/${projectId}/change-requests/`,
+          statusFilter ? { status: statusFilter } : {},
+          includeArchived,
+        )
         const response = await get(url)
         this.changeRequests = response.data
         return { success: true }
@@ -84,15 +88,18 @@ export const usePlatformChangeRequestsStore = defineStore('platformChangeRequest
       }
     },
 
-    async fetchAllChangeRequests(statusFilter = null) {
+    async fetchAllChangeRequests(statusFilter = null, includeArchived = false) {
       this.isLoading = true
       this.error = ''
       this.projectId = null
 
       try {
         const { get } = usePlatformApi()
-        let url = 'change-requests/'
-        if (statusFilter) url += `?status=${statusFilter}`
+        const url = buildPlatformListUrl(
+          'change-requests/',
+          statusFilter ? { status: statusFilter } : {},
+          includeArchived,
+        )
         const response = await get(url)
         this.changeRequests = response.data
         return { success: true }
@@ -135,11 +142,11 @@ export const usePlatformChangeRequestsStore = defineStore('platformChangeRequest
 
       try {
         const { delete: destroy } = usePlatformApi()
-        await destroy(`projects/${projectId}/change-requests/${crId}/`)
+        const { data } = await destroy(`projects/${projectId}/change-requests/${crId}/`)
         this.changeRequests = this.changeRequests.filter((cr) => cr.id !== crId)
-        return { success: true }
+        return { success: true, message: data?.detail || '' }
       } catch (error) {
-        const message = error.response?.data?.detail || 'No pudimos eliminar la solicitud de cambio.'
+        const message = error.response?.data?.detail || 'No pudimos archivar la solicitud de cambio.'
         this.error = message
         return { success: false, message }
       } finally {

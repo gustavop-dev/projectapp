@@ -9,6 +9,13 @@
       </p>
     </section>
 
+    <section v-if="authStore.isAdmin" class="flex justify-end" data-enter>
+      <label class="flex cursor-pointer items-center gap-2 rounded-full border border-esmerald/10 px-3 py-1.5 text-xs font-medium text-green-light dark:border-white/10">
+        <input v-model="includeArchived" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+        Mostrar archivados en listas agregadas
+      </label>
+    </section>
+
     <section v-if="authStore.isAdmin" class="grid gap-4 sm:grid-cols-2 md:grid-cols-4" data-enter>
       <article class="rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:shadow-none">
         <p class="text-xs font-medium uppercase tracking-[0.18em] text-green-light">Clientes activos</p>
@@ -296,8 +303,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
+import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 
 const localePath = useLocalePath()
@@ -326,6 +334,7 @@ const projectsStore = usePlatformProjectsStore()
 const bugStore = usePlatformBugReportsStore()
 const changeStore = usePlatformChangeRequestsStore()
 const deliverablesStore = usePlatformDeliverablesStore()
+const includeArchived = usePlatformIncludeArchived()
 
 authStore.hydrate()
 
@@ -422,15 +431,22 @@ function deliverableCategoryClass(cat) {
   return map[cat] || 'bg-gray-500/15 text-gray-600 dark:text-gray-400'
 }
 
+async function loadAggregatedLists() {
+  const a = authStore.isAdmin && includeArchived.value
+  await Promise.all([
+    payStore.fetchSubscriptions(a),
+    bugStore.fetchAllBugReports(null, a),
+    changeStore.fetchAllChangeRequests(null, a),
+    deliverablesStore.fetchAllDeliverables(null, a),
+  ])
+}
+
 onMounted(async () => {
   if (authStore.isAdmin) {
     await Promise.all([
       platformClientsStore.fetchClients('all'),
       projectsStore.fetchProjects(),
-      payStore.fetchSubscriptions(),
-      bugStore.fetchAllBugReports(),
-      changeStore.fetchAllChangeRequests(),
-      deliverablesStore.fetchAllDeliverables(),
+      loadAggregatedLists(),
     ])
   } else {
     await Promise.all([
@@ -441,5 +457,9 @@ onMounted(async () => {
       deliverablesStore.fetchAllDeliverables(),
     ])
   }
+})
+
+watch(includeArchived, () => {
+  if (authStore.isAdmin) loadAggregatedLists()
 })
 </script>

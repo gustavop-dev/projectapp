@@ -35,7 +35,10 @@ const mockClients = [
 function setupCreateProjectMocks(page) {
   return mockApi(page, async ({ apiPath, method }) => {
     if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(mockPlatformAdmin);
-    if (apiPath === 'accounts/projects/' && method === 'GET') {
+    if (apiPath === 'accounts/proposals/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+    }
+    if (method === 'GET' && apiPath.startsWith('accounts/projects/')) {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
     }
     if (apiPath === 'accounts/projects/' && method === 'POST') {
@@ -54,7 +57,7 @@ function setupCreateProjectMocks(page) {
         }),
       };
     }
-    if (apiPath.startsWith('accounts/clients/')) {
+    if (apiPath.startsWith('accounts/clients')) {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockClients) };
     }
     return null;
@@ -102,8 +105,10 @@ test.describe('Platform Admin Project Create', () => {
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
 
     await page.getByRole('button', { name: /nuevo proyecto/i }).click();
+    const clientSelect = page.locator('select').filter({ has: page.locator('option[value="9002"]') });
+    await expect(clientSelect).toBeVisible({ timeout: 20_000 });
     await page.getByPlaceholder(/plataforma e-commerce/i).fill('New Project');
-    await page.getByLabel(/Cliente/i).selectOption({ value: '9002' });
+    await clientSelect.selectOption({ value: '9002' });
     await page.getByRole('button', { name: /crear proyecto/i }).click();
 
     await expect(page.getByRole('heading', { name: 'Nuevo proyecto' })).not.toBeVisible({ timeout: 5000 });

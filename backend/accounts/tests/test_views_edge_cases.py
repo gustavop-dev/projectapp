@@ -582,7 +582,8 @@ class TestRequirementViewEdgeCases:
         )
 
         assert response.status_code == 200
-        assert not Requirement.objects.filter(id=req.id).exists()
+        req.refresh_from_db()
+        assert req.is_archived is True
 
     def test_client_cannot_delete_requirement(
         self, api_client, client_headers, client_user,

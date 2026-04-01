@@ -1,6 +1,6 @@
 {
-  "version": "2.8.0",
-  "lastUpdated": "2026-03-31",
+  "version": "2.8.1",
+  "lastUpdated": "2026-04-01",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -112,9 +112,9 @@
       "module": "proposal",
       "roles": ["guest"],
       "priority": "P2",
-      "description": "Download a proposal as PDF.",
+      "description": "Client uses the floating PDF button; browser fetches GET /api/proposals/:uuid/pdf. E2E mocks a 200 PDF response.",
       "expectedSpecs": 1,
-      "knownGaps": ["PDF generation returns 501 Not Implemented in v1"]
+      "knownGaps": ["Production may return 501 if PDF generation is disabled; E2E covers the UI path when the API succeeds."]
     },
     "admin-login": {
       "name": "Admin Login",
@@ -638,8 +638,7 @@
       "roles": ["admin"],
       "priority": "P2",
       "description": "Admin logs seller activity from proposal edit page Activity tab.",
-      "expectedSpecs": 1,
-      "knownGaps": ["Similar to quick-log but from edit page; deferred"]
+      "expectedSpecs": 1
     },
     "admin-proposal-engagement-decay-alert": {
       "name": "Admin Proposal Engagement Decay Alert",

@@ -1,13 +1,22 @@
 <template>
   <div id="platform-unified-changes">
     <!-- Header -->
-    <div class="mb-6" data-enter>
-      <h1 class="text-2xl font-bold text-esmerald dark:text-white">
-        {{ authStore.isAdmin ? 'Solicitudes de cambio' : 'Mis solicitudes' }}
-      </h1>
-      <p class="mt-1 text-sm text-green-light">
-        {{ authStore.isAdmin ? 'Todas las solicitudes de cambio de todos los proyectos.' : 'Solicitudes de cambio de tus proyectos.' }}
-      </p>
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" data-enter>
+      <div>
+        <h1 class="text-2xl font-bold text-esmerald dark:text-white">
+          {{ authStore.isAdmin ? 'Solicitudes de cambio' : 'Mis solicitudes' }}
+        </h1>
+        <p class="mt-1 text-sm text-green-light">
+          {{ authStore.isAdmin ? 'Todas las solicitudes de cambio de todos los proyectos.' : 'Solicitudes de cambio de tus proyectos.' }}
+        </p>
+      </div>
+      <label
+        v-if="authStore.isAdmin"
+        class="flex cursor-pointer items-center gap-2 rounded-full border border-esmerald/10 px-3 py-1.5 text-xs font-medium text-green-light dark:border-white/10"
+      >
+        <input v-model="includeArchived" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+        Mostrar archivados
+      </label>
     </div>
 
     <!-- Loading -->
@@ -63,6 +72,9 @@
                 <span class="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="statusBadgeClass(cr.status)">
                   {{ statusLabel(cr.status) }}
                 </span>
+                <span v-if="cr.is_archived" class="rounded-full bg-gray-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-gray-600 dark:text-gray-400">
+                  Archivado
+                </span>
                 <span v-if="cr.is_urgent" class="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-600 dark:text-red-400">
                   Urgente
                 </span>
@@ -87,8 +99,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
+import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 
 const localePath = useLocalePath()
@@ -104,6 +117,7 @@ usePageEntrance('#platform-unified-changes')
 
 const authStore = usePlatformAuthStore()
 const crStore = usePlatformChangeRequestsStore()
+const includeArchived = usePlatformIncludeArchived()
 
 const activeStatuses = ['pending', 'evaluating', 'needs_clarification']
 
@@ -187,7 +201,15 @@ function priorityLabel(p) {
   return map[p] || p
 }
 
+async function loadChangeRequests() {
+  await crStore.fetchAllChangeRequests(null, authStore.isAdmin && includeArchived.value)
+}
+
 onMounted(async () => {
-  await crStore.fetchAllChangeRequests()
+  await loadChangeRequests()
+})
+
+watch(includeArchived, () => {
+  if (authStore.isAdmin) loadChangeRequests()
 })
 </script>

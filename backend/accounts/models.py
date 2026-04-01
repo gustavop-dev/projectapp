@@ -331,6 +331,12 @@ class Requirement(models.Model):
     source_epic_title = models.CharField(max_length=300, blank=True, default='')
     source_flow_key = models.CharField(max_length=200, blank=True, default='', db_index=True)
     synced_from_proposal = models.BooleanField(default=False)
+    is_archived = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text='Hidden from default lists; row kept for audit.',
+    )
+    archived_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -464,6 +470,12 @@ class ChangeRequest(models.Model):
         upload_to='change_requests/', null=True, blank=True,
         help_text='Optimized automatically on upload (WhatsApp-like compression).',
     )
+    is_archived = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text='Hidden from default lists; row kept for audit.',
+    )
+    archived_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -509,7 +521,7 @@ class ChangeRequestComment(models.Model):
 
 class BugReport(models.Model):
     """
-    A bug report filed by a client (or admin) for a project.
+    A bug report filed for a specific project deliverable (epic/scope).
     Admin manages the lifecycle: confirm, fix, QA, resolve.
     """
 
@@ -552,8 +564,8 @@ class BugReport(models.Model):
         (ENV_DEV, 'Desarrollo'),
     ]
 
-    project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name='bug_reports',
+    deliverable = models.ForeignKey(
+        'Deliverable', on_delete=models.CASCADE, related_name='bug_reports',
     )
     reported_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bug_reports',
@@ -587,6 +599,12 @@ class BugReport(models.Model):
         upload_to='bug_reports/', null=True, blank=True,
         help_text='Optimized automatically on upload (WhatsApp-like compression).',
     )
+    is_archived = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text='Hidden from default lists; row kept for audit.',
+    )
+    archived_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -672,6 +690,12 @@ class Deliverable(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='uploaded_deliverables',
     )
+    is_archived = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text='Hidden from default lists; row kept for audit.',
+    )
+    archived_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -866,6 +890,11 @@ class Notification(models.Model):
         related_name='notifications',
         help_text='Project context for deep-linking.',
     )
+    deliverable = models.ForeignKey(
+        'Deliverable', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='notifications',
+        help_text='Deliverable context for deep-linking when applicable.',
+    )
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -937,6 +966,12 @@ class HostingSubscription(models.Model):
         null=True, blank=True,
         help_text='Next date a payment is due.',
     )
+    is_archived = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text='Hidden from subscription lists; row kept for audit.',
+    )
+    archived_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -978,7 +1013,7 @@ class Payment(models.Model):
     ]
 
     subscription = models.ForeignKey(
-        HostingSubscription, on_delete=models.CASCADE, related_name='payments',
+        HostingSubscription, on_delete=models.PROTECT, related_name='payments',
     )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     description = models.CharField(max_length=300, blank=True, default='')
@@ -992,6 +1027,12 @@ class Payment(models.Model):
     wompi_transaction_id = models.CharField(max_length=100, blank=True, default='')
     wompi_payment_link_id = models.CharField(max_length=100, blank=True, default='')
     wompi_payment_link_url = models.URLField(max_length=500, blank=True, default='')
+    is_archived = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text='Hidden from default payment lists; row kept for audit.',
+    )
+    archived_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -999,3 +1040,40 @@ class Payment(models.Model):
 
     def __str__(self):
         return f'Payment ${self.amount:,.0f} — {self.get_status_display()} ({self.billing_period_start} → {self.billing_period_end})'
+
+
+class PaymentHistory(models.Model):
+    """Append-only log of payment status transitions."""
+
+    SOURCE_API = 'api'
+    SOURCE_WOMPI_LINK = 'wompi_link'
+    SOURCE_WEBHOOK = 'webhook'
+    SOURCE_WOMPI_VERIFY = 'wompi_verify'
+    SOURCE_SYSTEM = 'system'
+    SOURCE_CHOICES = [
+        (SOURCE_API, 'API'),
+        (SOURCE_WOMPI_LINK, 'Wompi payment link'),
+        (SOURCE_WEBHOOK, 'Wompi webhook'),
+        (SOURCE_WOMPI_VERIFY, 'Wompi verify'),
+        (SOURCE_SYSTEM, 'System'),
+    ]
+
+    payment = models.ForeignKey(
+        Payment, on_delete=models.PROTECT, related_name='history',
+    )
+    from_status = models.CharField(max_length=20, choices=Payment.STATUS_CHOICES)
+    to_status = models.CharField(max_length=20, choices=Payment.STATUS_CHOICES)
+    source = models.CharField(
+        max_length=32, choices=SOURCE_CHOICES, blank=True, default='',
+    )
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['payment', '-created_at']),
+        ]
+
+    def __str__(self):
+        return f'{self.from_status} → {self.to_status} (payment {self.payment_id})'

@@ -51,13 +51,44 @@ const mockDetail = {
   collection_account: null,
 };
 
+const CREATED_ACCOUNT_ID = 99;
+
+const mockCreatedDetail = {
+  ...mockDetail,
+  id: CREATED_ACCOUNT_ID,
+  title: 'E2E New Account',
+  public_number: 'CA-E2E-99',
+  commercial_status: 'draft',
+  subtotal: '0.00',
+  tax_total: '0.00',
+  total: '0.00',
+  items: [],
+};
+
 const meResponse = (user) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(user) });
 
-function setupCollectionAccountsMocks(page, { user }) {
+function setupCollectionAccountsMocks(page, { user, withCreateFlow = false }) {
   return mockApi(page, async ({ apiPath, method }) => {
     if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(user);
     if (apiPath === 'accounts/notifications/unread-count/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify({ unread_count: 0 }) };
+    }
+    if (withCreateFlow && apiPath === 'accounts/collection-accounts/' && method === 'POST') {
+      return {
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: CREATED_ACCOUNT_ID,
+          title: 'E2E New Account',
+          public_number: 'CA-E2E-99',
+          commercial_status: 'draft',
+          currency: 'COP',
+          total: '0.00',
+        }),
+      };
+    }
+    if (withCreateFlow && apiPath === `accounts/collection-accounts/${CREATED_ACCOUNT_ID}/` && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockCreatedDetail) };
     }
     if (apiPath === 'accounts/collection-accounts/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([mockRow]) };
@@ -98,6 +129,27 @@ test.describe('Platform collection accounts', () => {
     await page.goto('/platform/collection-accounts', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: /^collection accounts$/i })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole('button', { name: /new collection account/i })).toBeVisible();
+  });
+
+  test('admin submits new collection account form and navigates to new detail', {
+    tag: [...PLATFORM_COLLECTION_ACCOUNTS_LIST, '@role:platform-admin'],
+  }, async ({ page }) => {
+    await setPlatformAuth(page, { user: mockPlatformAdmin });
+    await setupCollectionAccountsMocks(page, { user: mockPlatformAdmin, withCreateFlow: true });
+    await page.goto('/platform/collection-accounts', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: /^collection accounts$/i })).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('button', { name: /new collection account/i }).click();
+    const modal = page.locator('div.fixed.inset-0').filter({ has: page.getByRole('heading', { name: 'New collection account' }) });
+    await expect(modal).toBeVisible();
+    await modal.locator('input:not([type="number"])').first().fill('E2E New Account');
+    await modal.locator('input[type="number"]').nth(0).fill('1');
+    const postWait = page.waitForResponse(
+      (res) => res.request().method() === 'POST' && res.url().includes('collection-accounts/') && !res.url().includes('/pdf/'),
+    );
+    await modal.getByRole('button', { name: 'Create' }).click();
+    await postWait;
+    await expect(page).toHaveURL(new RegExp(`collection-accounts/${CREATED_ACCOUNT_ID}`));
+    await expect(page.getByRole('heading', { name: 'E2E New Account' })).toBeVisible({ timeout: 30_000 });
   });
 
   test('user sees project-scoped collection account list', {

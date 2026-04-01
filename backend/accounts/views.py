@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -32,6 +33,20 @@ from accounts.serializers import (
 from accounts.services.onboarding import create_admin, create_client, resend_invitation
 from accounts.services.tokens import get_tokens_for_user, get_verification_token_for_user
 from accounts.services.verification import create_and_send_otp, validate_otp
+from accounts.services.archive import (
+    archive_record,
+    bug_visible_for_request,
+    change_request_visible_for_request,
+    deliverable_visible_for_request,
+    filter_bug_reports_for_list,
+    filter_change_requests_for_list,
+    filter_deliverables_for_list,
+    filter_requirements_for_list,
+    filter_subscriptions_for_list,
+    requirement_visible_for_request,
+    unarchive_record,
+    wants_include_archived,
+)
 
 User = get_user_model()
 
@@ -753,6 +768,12 @@ def deliverable_sync_technical_requirements_view(request, project_id, deliverabl
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    if d.is_archived:
+        return Response(
+            {'detail': 'El entregable está archivado.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     result = sync_technical_requirements_for_deliverable(d, request.user)
     if not result.get('ok'):
         return Response(
@@ -794,14 +815,14 @@ def _pick_default_deliverable_for_requirements(proj):
     from accounts.models import Deliverable
 
     d = (
-        Deliverable.objects.filter(project=proj)
+        Deliverable.objects.filter(project=proj, is_archived=False)
         .filter(business_proposal__isnull=False)
         .order_by('id')
         .first()
     )
     if d:
         return d
-    d = Deliverable.objects.filter(project=proj).order_by('id').first()
+    d = Deliverable.objects.filter(project=proj, is_archived=False).order_by('id').first()
     if d:
         return d
     return Deliverable.objects.create(
@@ -816,13 +837,16 @@ def _pick_default_deliverable_for_requirements(proj):
 
 def _recalculate_project_progress(project):
     """Auto-sync project.progress from done/total requirements."""
-    total = Requirement.objects.filter(deliverable__project=project).count()
+    scope = Requirement.objects.filter(
+        deliverable__project=project,
+        is_archived=False,
+        deliverable__is_archived=False,
+    )
+    total = scope.count()
     if total == 0:
         project.progress = 0
     else:
-        done = Requirement.objects.filter(
-            deliverable__project=project, status=Requirement.STATUS_DONE,
-        ).count()
+        done = scope.filter(status=Requirement.STATUS_DONE).count()
         project.progress = round((done / total) * 100)
     project.save(update_fields=['progress', 'updated_at'])
 
@@ -849,9 +873,18 @@ def requirement_list_view(request, project_id, deliverable_id=None):
                 {'detail': 'Entregable no encontrado en este proyecto.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
+        if not deliverable_visible_for_request(scoped_deliverable, request):
+            return Response(
+                {'detail': 'Entregable no encontrado en este proyecto.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+    profile = getattr(request.user, 'profile', None)
+    is_admin = profile and profile.is_admin
 
     if request.method == 'GET':
         qs = Requirement.objects.filter(deliverable__project=proj).select_related('deliverable')
+        qs = filter_requirements_for_list(qs, request, is_admin=is_admin)
         if scoped_deliverable is not None:
             qs = qs.filter(deliverable_id=scoped_deliverable.id)
         else:
@@ -861,7 +894,6 @@ def requirement_list_view(request, project_id, deliverable_id=None):
         serializer = RequirementListSerializer(qs, many=True)
         return Response(serializer.data)
 
-    profile = getattr(request.user, 'profile', None)
     if not profile or not profile.is_admin:
         return Response(
             {'detail': 'Solo los administradores pueden crear requerimientos.'},
@@ -885,6 +917,12 @@ def requirement_list_view(request, project_id, deliverable_id=None):
                 )
         else:
             d = _pick_default_deliverable_for_requirements(proj)
+
+    if d.is_archived:
+        return Response(
+            {'detail': 'El entregable está archivado.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     max_order = Requirement.objects.filter(
         deliverable=d, status=data.get('status', Requirement.STATUS_BACKLOG),
@@ -927,6 +965,12 @@ def requirement_bulk_upload_view(request, project_id, deliverable_id=None):
             )
     else:
         d = _pick_default_deliverable_for_requirements(proj)
+
+    if d.is_archived:
+        return Response(
+            {'detail': 'El entregable está archivado.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     items = request.data
     if not isinstance(items, list):
@@ -985,6 +1029,9 @@ def requirement_detail_view(request, project_id, req_id, deliverable_id=None):
     if deliverable_id is not None and req.deliverable_id != deliverable_id:
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
+    if not requirement_visible_for_request(req, request):
+        return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
     if request.method == 'GET':
         return Response(RequirementDetailSerializer(req, context={'request': request}).data)
 
@@ -996,13 +1043,22 @@ def requirement_detail_view(request, project_id, req_id, deliverable_id=None):
         )
 
     if request.method == 'DELETE':
-        req.delete()
+        req.updated_at = timezone.now()
+        archive_record(req, extra_update_fields=('updated_at',))
         _recalculate_project_progress(proj)
-        return Response({'detail': 'Requerimiento eliminado.'})
+        return Response({'detail': 'Requerimiento archivado.'})
 
     serializer = UpdateRequirementSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    data = serializer.validated_data
+    data = dict(serializer.validated_data)
+
+    if 'is_archived' in data:
+        flag = data.pop('is_archived')
+        req.updated_at = timezone.now()
+        if flag:
+            archive_record(req, extra_update_fields=('updated_at',))
+        else:
+            unarchive_record(req, extra_update_fields=('updated_at',))
 
     old_status = req.status
     upd_fields = ['updated_at']
@@ -1010,7 +1066,8 @@ def requirement_detail_view(request, project_id, req_id, deliverable_id=None):
         if field in data:
             setattr(req, field, data[field])
             upd_fields.append(field)
-    req.save(update_fields=upd_fields)
+    if len(upd_fields) > 1:
+        req.save(update_fields=upd_fields)
 
     if 'status' in data and data['status'] != old_status:
         RequirementHistory.objects.create(
@@ -1039,6 +1096,9 @@ def requirement_move_view(request, project_id, req_id, deliverable_id=None):
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
     if deliverable_id is not None and req.deliverable_id != deliverable_id:
+        return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not requirement_visible_for_request(req, request):
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
     serializer = MoveRequirementSerializer(data=request.data)
@@ -1082,6 +1142,7 @@ def requirement_move_view(request, project_id, req_id, deliverable_id=None):
                 message=f'{request.user.first_name} aprobó "{req.title}" en {proj.name}.',
                 related_object_type='requirement', related_object_id=req.id,
                 exclude_user=request.user,
+                deliverable=req.deliverable,
             )
         elif is_admin:
             notify_project_client(
@@ -1090,6 +1151,7 @@ def requirement_move_view(request, project_id, req_id, deliverable_id=None):
                 message=f'"{req.title}" se movió a "{new_label}" en {proj.name}.',
                 related_object_type='requirement', related_object_id=req.id,
                 exclude_user=request.user,
+                deliverable=req.deliverable,
             )
 
     return Response(RequirementListSerializer(req).data)
@@ -1109,6 +1171,9 @@ def requirement_comment_view(request, project_id, req_id, deliverable_id=None):
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
     if deliverable_id is not None and req.deliverable_id != deliverable_id:
+        return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not requirement_visible_for_request(req, request):
         return Response({'detail': 'Requerimiento no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
     serializer = CreateCommentSerializer(data=request.data)
@@ -1161,6 +1226,8 @@ def change_request_all_view(request):
             project__client=request.user,
         )
 
+    qs = filter_change_requests_for_list(qs, request, is_admin=is_admin)
+
     status_filter = request.query_params.get('status')
     if status_filter:
         qs = qs.filter(status=status_filter)
@@ -1186,8 +1253,12 @@ def change_request_list_view(request, project_id):
     if err:
         return err
 
+    profile = getattr(request.user, 'profile', None)
+    is_admin = profile and profile.is_admin
+
     if request.method == 'GET':
         qs = ChangeRequest.objects.filter(project=proj).select_related('created_by')
+        qs = filter_change_requests_for_list(qs, request, is_admin=is_admin)
         status_filter = request.query_params.get('status')
         if status_filter:
             qs = qs.filter(status=status_filter)
@@ -1211,8 +1282,6 @@ def change_request_list_view(request, project_id):
         cr.screenshot = data['screenshot']
     cr.save()
 
-    profile = getattr(request.user, 'profile', None)
-    is_admin = profile and profile.is_admin
     if is_admin:
         notify_project_client(
             proj, Notification.TYPE_CR_CREATED, f'Nueva solicitud de cambio: {cr.title}',
@@ -1255,6 +1324,12 @@ def change_request_detail_view(request, project_id, cr_id):
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    if not change_request_visible_for_request(cr, request):
+        return Response(
+            {'detail': 'Solicitud de cambio no encontrada.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
     if request.method == 'GET':
         return Response(
             ChangeRequestDetailSerializer(cr, context={'request': request}).data,
@@ -1267,8 +1342,9 @@ def change_request_detail_view(request, project_id, cr_id):
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    cr.delete()
-    return Response({'detail': 'Solicitud de cambio eliminada.'})
+    cr.updated_at = timezone.now()
+    archive_record(cr, extra_update_fields=('updated_at',))
+    return Response({'detail': 'Solicitud de cambio archivada.'})
 
 
 @api_view(['POST'])
@@ -1338,6 +1414,12 @@ def change_request_comment_view(request, project_id, cr_id):
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    if not change_request_visible_for_request(cr, request):
+        return Response(
+            {'detail': 'Solicitud de cambio no encontrada.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
     serializer = CreateChangeRequestCommentSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
@@ -1397,6 +1479,12 @@ def change_request_convert_view(request, project_id, cr_id):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    if cr.is_archived:
+        return Response(
+            {'detail': 'La solicitud está archivada.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     d = _pick_default_deliverable_for_requirements(proj)
     max_order = Requirement.objects.filter(
         deliverable=d, status=Requirement.STATUS_TODO,
@@ -1449,11 +1537,17 @@ def bug_report_all_view(request):
     is_admin = profile and profile.is_admin
 
     if is_admin:
-        qs = BugReport.objects.select_related('reported_by', 'project').all()
+        qs = BugReport.objects.select_related(
+            'reported_by', 'deliverable', 'deliverable__project',
+        ).all()
     else:
-        qs = BugReport.objects.select_related('reported_by', 'project').filter(
-            project__client=request.user,
+        qs = BugReport.objects.select_related(
+            'reported_by', 'deliverable', 'deliverable__project',
+        ).filter(
+            deliverable__project__client=request.user,
         )
+
+    qs = filter_bug_reports_for_list(qs, request, is_admin=is_admin)
 
     status_filter = request.query_params.get('status')
     if status_filter:
@@ -1466,8 +1560,8 @@ def bug_report_all_view(request):
 
     data = serializer.data
     for item, bug in zip(data, qs):
-        item['project_id'] = bug.project_id
-        item['project_name'] = bug.project.name
+        item['project_id'] = bug.deliverable.project_id
+        item['project_name'] = bug.deliverable.project.name
 
     return Response(data)
 
@@ -1483,8 +1577,14 @@ def bug_report_list_view(request, project_id):
     if err:
         return err
 
+    profile = getattr(request.user, 'profile', None)
+    is_admin = profile and profile.is_admin
+
     if request.method == 'GET':
-        qs = BugReport.objects.filter(project=proj).select_related('reported_by')
+        qs = BugReport.objects.filter(deliverable__project=proj).select_related(
+            'reported_by', 'deliverable',
+        )
+        qs = filter_bug_reports_for_list(qs, request, is_admin=is_admin)
         status_filter = request.query_params.get('status')
         if status_filter:
             qs = qs.filter(status=status_filter)
@@ -1494,12 +1594,12 @@ def bug_report_list_view(request, project_id):
         serializer = BugReportListSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
 
-    serializer = CreateBugReportSerializer(data=request.data)
+    serializer = CreateBugReportSerializer(data=request.data, context={'project': proj})
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
     bug = BugReport(
-        project=proj,
+        deliverable_id=data['deliverable_id'],
         reported_by=request.user,
         title=data['title'],
         description=data.get('description', ''),
@@ -1515,14 +1615,14 @@ def bug_report_list_view(request, project_id):
         bug.screenshot = data['screenshot']
     bug.save()
 
-    profile = getattr(request.user, 'profile', None)
-    is_admin = profile and profile.is_admin
+    dlv = bug.deliverable
     if is_admin:
         notify_project_client(
             proj, Notification.TYPE_BUG_REPORTED, f'Bug reportado: {bug.title}',
             message=f'El equipo reportó un bug en {proj.name}.',
             related_object_type='bug_report', related_object_id=bug.id,
             exclude_user=request.user,
+            deliverable=dlv,
         )
     else:
         notify_project_admins(
@@ -1530,6 +1630,7 @@ def bug_report_list_view(request, project_id):
             message=f'{request.user.first_name} reportó un bug en {proj.name}.',
             related_object_type='bug_report', related_object_id=bug.id,
             exclude_user=request.user,
+            deliverable=dlv,
         )
 
     return Response(
@@ -1551,9 +1652,15 @@ def bug_report_detail_view(request, project_id, bug_id):
 
     try:
         bug = BugReport.objects.prefetch_related('comments__user').get(
-            id=bug_id, project=proj,
+            id=bug_id, deliverable__project=proj,
         )
     except BugReport.DoesNotExist:
+        return Response(
+            {'detail': 'Bug no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if not bug_visible_for_request(bug, request):
         return Response(
             {'detail': 'Bug no encontrado.'},
             status=status.HTTP_404_NOT_FOUND,
@@ -1571,8 +1678,9 @@ def bug_report_detail_view(request, project_id, bug_id):
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    bug.delete()
-    return Response({'detail': 'Reporte de bug eliminado.'})
+    bug.updated_at = timezone.now()
+    archive_record(bug, extra_update_fields=('updated_at',))
+    return Response({'detail': 'Reporte de bug archivado.'})
 
 
 @api_view(['POST'])
@@ -1593,14 +1701,14 @@ def bug_report_evaluate_view(request, project_id, bug_id):
         )
 
     try:
-        bug = BugReport.objects.get(id=bug_id, project=proj)
+        bug = BugReport.objects.get(id=bug_id, deliverable__project=proj)
     except BugReport.DoesNotExist:
         return Response(
             {'detail': 'Bug no encontrado.'},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    serializer = EvaluateBugReportSerializer(data=request.data)
+    serializer = EvaluateBugReportSerializer(data=request.data, context={'bug': bug})
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
@@ -1622,6 +1730,7 @@ def bug_report_evaluate_view(request, project_id, bug_id):
             message=f'Estado cambiado a "{status_display}".',
             related_object_type='bug_report', related_object_id=bug.id,
             exclude_user=request.user,
+            deliverable=bug.deliverable,
         )
 
     return Response(
@@ -1638,8 +1747,14 @@ def bug_report_comment_view(request, project_id, bug_id):
         return err
 
     try:
-        bug = BugReport.objects.get(id=bug_id, project=proj)
+        bug = BugReport.objects.get(id=bug_id, deliverable__project=proj)
     except BugReport.DoesNotExist:
+        return Response(
+            {'detail': 'Bug no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if not bug_visible_for_request(bug, request):
         return Response(
             {'detail': 'Bug no encontrado.'},
             status=status.HTTP_404_NOT_FOUND,
@@ -1697,6 +1812,8 @@ def deliverable_all_view(request):
             project__client=request.user,
         )
 
+    qs = filter_deliverables_for_list(qs, request, is_admin=is_admin)
+
     category_filter = request.query_params.get('category')
     if category_filter:
         qs = qs.filter(category=category_filter)
@@ -1722,15 +1839,18 @@ def deliverable_list_view(request, project_id):
     if err:
         return err
 
+    profile = getattr(request.user, 'profile', None)
+    is_admin = profile and profile.is_admin
+
     if request.method == 'GET':
         qs = Deliverable.objects.filter(project=proj).select_related('uploaded_by')
+        qs = filter_deliverables_for_list(qs, request, is_admin=is_admin)
         category_filter = request.query_params.get('category')
         if category_filter:
             qs = qs.filter(category=category_filter)
         serializer = DeliverableListSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
 
-    profile = getattr(request.user, 'profile', None)
     if not profile or not profile.is_admin:
         return Response(
             {'detail': 'Solo los administradores pueden subir entregables.'},
@@ -1765,6 +1885,7 @@ def deliverable_list_view(request, project_id):
             message=f'Se subió un archivo en {proj.name}.',
             related_object_type='deliverable', related_object_id=deliverable.id,
             exclude_user=request.user,
+            deliverable=deliverable,
         )
 
     return Response(
@@ -1796,6 +1917,11 @@ def deliverable_detail_view(request, project_id, deliverable_id):
         )
 
     if request.method == 'GET':
+        if not deliverable_visible_for_request(deliverable, request):
+            return Response(
+                {'detail': 'Entregable no encontrado.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         return Response(
             DeliverableDetailSerializer(deliverable, context={'request': request}).data,
         )
@@ -1808,19 +1934,29 @@ def deliverable_detail_view(request, project_id, deliverable_id):
         )
 
     if request.method == 'DELETE':
-        deliverable.delete()
-        return Response({'detail': 'Entregable eliminado.'})
+        deliverable.updated_at = timezone.now()
+        archive_record(deliverable, extra_update_fields=('updated_at',))
+        return Response({'detail': 'Entregable archivado.'})
 
     serializer = UpdateDeliverableSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    data = serializer.validated_data
+    data = dict(serializer.validated_data)
+
+    if 'is_archived' in data:
+        flag = data.pop('is_archived')
+        deliverable.updated_at = timezone.now()
+        if flag:
+            archive_record(deliverable, extra_update_fields=('updated_at',))
+        else:
+            unarchive_record(deliverable, extra_update_fields=('updated_at',))
 
     upd_fields = ['updated_at']
     for field in ('title', 'description', 'category'):
         if field in data:
             setattr(deliverable, field, data[field])
             upd_fields.append(field)
-    deliverable.save(update_fields=upd_fields)
+    if len(upd_fields) > 1:
+        deliverable.save(update_fields=upd_fields)
 
     return Response(
         DeliverableDetailSerializer(deliverable, context={'request': request}).data,
@@ -1853,6 +1989,12 @@ def deliverable_upload_version_view(request, project_id, deliverable_id):
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    if deliverable.is_archived:
+        return Response(
+            {'detail': 'El entregable está archivado.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     serializer = UploadNewVersionSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
@@ -1875,6 +2017,7 @@ def deliverable_upload_version_view(request, project_id, deliverable_id):
         message=f'Se actualizó un entregable en {proj.name}.',
         related_object_type='deliverable', related_object_id=deliverable.id,
         exclude_user=request.user,
+        deliverable=deliverable,
     )
 
     return Response(
@@ -1953,6 +2096,12 @@ def deliverable_commercial_proposal_pdf_view(request, project_id, deliverable_id
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    if not deliverable_visible_for_request(deliverable, request):
+        return Response(
+            {'detail': 'Entregable no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
     bp = getattr(deliverable, 'business_proposal', None)
     if not bp:
         return Response(
@@ -1979,6 +2128,12 @@ def deliverable_technical_document_pdf_view(request, project_id, deliverable_id)
             id=deliverable_id, project=proj,
         )
     except Deliverable.DoesNotExist:
+        return Response(
+            {'detail': 'Entregable no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if not deliverable_visible_for_request(deliverable, request):
         return Response(
             {'detail': 'Entregable no encontrado.'},
             status=status.HTTP_404_NOT_FOUND,
@@ -2017,6 +2172,11 @@ def deliverable_attachment_files_view(request, project_id, deliverable_id):
         )
 
     if request.method == 'GET':
+        if not deliverable_visible_for_request(deliverable, request):
+            return Response(
+                {'detail': 'Entregable no encontrado.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         qs = deliverable.attachment_files.select_related('uploaded_by').all()
         return Response(DeliverableFileSerializer(qs, many=True, context={'request': request}).data)
 
@@ -2025,6 +2185,12 @@ def deliverable_attachment_files_view(request, project_id, deliverable_id):
         return Response(
             {'detail': 'Solo los administradores pueden subir archivos adicionales.'},
             status=status.HTTP_403_FORBIDDEN,
+        )
+
+    if deliverable.is_archived:
+        return Response(
+            {'detail': 'El entregable está archivado.'},
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
     serializer = CreateDeliverableFileSerializer(data=request.data)
@@ -2073,8 +2239,19 @@ def deliverable_client_folders_view(request, project_id, deliverable_id):
         return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
 
     if request.method == 'GET':
+        if not deliverable_visible_for_request(deliverable, request):
+            return Response(
+                {'detail': 'Entregable no encontrado.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         qs = deliverable.client_folders.all()
         return Response(DeliverableClientFolderSerializer(qs, many=True).data)
+
+    if deliverable.is_archived:
+        return Response(
+            {'detail': 'El entregable está archivado.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     serializer = CreateDeliverableClientFolderSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -2109,6 +2286,12 @@ def deliverable_client_folder_detail_view(request, project_id, deliverable_id, f
         )
     if not _client_or_admin_for_project_docs(request, proj):
         return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if not deliverable_visible_for_request(deliverable, request):
+        return Response(
+            {'detail': 'Entregable no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
     try:
         folder = DeliverableClientFolder.objects.get(
@@ -2158,9 +2341,20 @@ def deliverable_client_uploads_view(request, project_id, deliverable_id):
         return Response({'detail': 'No autorizado.'}, status=status.HTTP_403_FORBIDDEN)
 
     if request.method == 'GET':
+        if not deliverable_visible_for_request(deliverable, request):
+            return Response(
+                {'detail': 'Entregable no encontrado.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         qs = deliverable.client_uploads.select_related('uploaded_by', 'folder').all()
         return Response(
             DeliverableClientUploadSerializer(qs, many=True, context={'request': request}).data,
+        )
+
+    if deliverable.is_archived:
+        return Response(
+            {'detail': 'El entregable está archivado.'},
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
     serializer = CreateDeliverableClientUploadSerializer(
@@ -2429,7 +2623,7 @@ def _generate_next_payment(subscription):
     return payment
 
 
-def _handle_payment_approved(payment):
+def _handle_payment_approved(payment, payment_history_source=''):
     """
     Common logic when a payment is approved (card-pay, verify, webhook).
     Marks payment as paid, updates subscription, and generates next payment (auto-renewal).
@@ -2437,9 +2631,19 @@ def _handle_payment_approved(payment):
     from django.utils import timezone as tz
     from dateutil.relativedelta import relativedelta
 
+    from accounts.models import PaymentHistory
+    from accounts.services.payment_history import record_payment_status_change
+
+    old_status = payment.status
     payment.status = Payment.STATUS_PAID
     payment.paid_at = tz.now()
     payment.save(update_fields=['wompi_transaction_id', 'status', 'paid_at'])
+    record_payment_status_change(
+        payment,
+        old_status,
+        Payment.STATUS_PAID,
+        source=payment_history_source or PaymentHistory.SOURCE_SYSTEM,
+    )
 
     sub = payment.subscription
     sub.next_billing_date = payment.billing_period_end + relativedelta(days=1)
@@ -2505,6 +2709,8 @@ def subscription_list_view(request):
             project__client=request.user,
         )
 
+    qs = filter_subscriptions_for_list(qs, request, is_admin=is_admin)
+
     serializer = HostingSubscriptionListSerializer(qs, many=True)
     return Response(serializer.data)
 
@@ -2549,6 +2755,7 @@ def project_subscription_view(request, project_id):
         from datetime import date
         start_date = proj.hosting_start_date or date.today()
         sub = _create_subscription_from_proposal(proj, bp, plan, start_date)
+        sub = HostingSubscription.objects.prefetch_related(_subscription_payment_prefetch()).get(pk=sub.pk)
         return Response(
             HostingSubscriptionSerializer(sub).data,
             status=status.HTTP_201_CREATED,
@@ -2556,22 +2763,27 @@ def project_subscription_view(request, project_id):
 
     # --- GET / PATCH: existing subscription ---
     try:
-        sub = HostingSubscription.objects.prefetch_related('payments').get(project=proj)
+        sub = HostingSubscription.objects.prefetch_related(_subscription_payment_prefetch()).get(project=proj)
     except HostingSubscription.DoesNotExist:
         return Response(
             {'detail': 'No hay suscripción de hosting para este proyecto.'},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if request.method == 'GET':
-        return Response(HostingSubscriptionSerializer(sub).data)
-
     profile = getattr(request.user, 'profile', None)
     is_admin = profile and profile.is_admin
 
+    if request.method == 'GET':
+        if sub.is_archived and not is_admin:
+            return Response(
+                {'detail': 'No hay suscripción de hosting para este proyecto.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return Response(HostingSubscriptionSerializer(sub).data)
+
     serializer = UpdateSubscriptionSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    data = serializer.validated_data
+    data = dict(serializer.validated_data)
 
     # Client can only change plan, not status
     if 'status' in data and not is_admin:
@@ -2579,6 +2791,19 @@ def project_subscription_view(request, project_id):
             {'detail': 'Solo los administradores pueden cambiar el estado de la suscripción.'},
             status=status.HTTP_403_FORBIDDEN,
         )
+
+    if 'is_archived' in data:
+        if not is_admin:
+            return Response(
+                {'detail': 'Solo los administradores pueden archivar la suscripción.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        flag = data.pop('is_archived')
+        sub.updated_at = timezone.now()
+        if flag:
+            archive_record(sub, extra_update_fields=('updated_at',))
+        else:
+            unarchive_record(sub, extra_update_fields=('updated_at',))
 
     if 'plan' in data:
         sub.plan = data['plan']
@@ -2589,7 +2814,19 @@ def project_subscription_view(request, project_id):
         sub.status = data['status']
     sub.save()
 
+    sub = HostingSubscription.objects.prefetch_related(_subscription_payment_prefetch()).get(pk=sub.pk)
     return Response(HostingSubscriptionSerializer(sub).data)
+
+
+def _subscription_payment_prefetch():
+    from django.db.models import Prefetch
+
+    from accounts.models import Payment
+
+    return Prefetch(
+        'payments',
+        queryset=Payment.objects.filter(is_archived=False).prefetch_related('history'),
+    )
 
 
 def _get_plan_discount(project, plan):
@@ -2628,7 +2865,13 @@ def project_payments_view(request, project_id):
     except HostingSubscription.DoesNotExist:
         return Response([])
 
-    payments = Payment.objects.filter(subscription=sub).select_related('subscription__project')
+    profile = getattr(request.user, 'profile', None)
+    is_admin = profile and profile.is_admin
+
+    payments = Payment.objects.filter(subscription=sub)
+    if not (is_admin and wants_include_archived(request)):
+        payments = payments.filter(is_archived=False)
+    payments = payments.select_related('subscription__project').prefetch_related('history')
     serializer = PaymentSerializer(payments, many=True)
     return Response(serializer.data)
 
@@ -2793,14 +3036,25 @@ def payment_card_pay_view(request, project_id, payment_id):
 
         payment.wompi_transaction_id = str(txn_id)
 
+        from accounts.models import PaymentHistory
+        from accounts.services.payment_history import record_payment_status_change
+
         if txn_status == 'APPROVED':
-            _handle_payment_approved(payment)
+            _handle_payment_approved(payment, PaymentHistory.SOURCE_API)
         elif txn_status == 'PENDING':
+            old_status = payment.status
             payment.status = Payment.STATUS_PROCESSING
             payment.save(update_fields=['wompi_transaction_id', 'status'])
+            record_payment_status_change(
+                payment, old_status, Payment.STATUS_PROCESSING, PaymentHistory.SOURCE_API,
+            )
         elif txn_status in ('DECLINED', 'ERROR', 'VOIDED'):
+            old_status = payment.status
             payment.status = Payment.STATUS_FAILED
             payment.save(update_fields=['wompi_transaction_id', 'status'])
+            record_payment_status_change(
+                payment, old_status, Payment.STATUS_FAILED, PaymentHistory.SOURCE_API,
+            )
 
         return Response({
             'payment_id': payment.id,
@@ -2858,14 +3112,21 @@ def payment_verify_transaction_view(request, project_id, payment_id):
             status=status.HTTP_502_BAD_GATEWAY,
         )
 
+    from accounts.models import PaymentHistory
+    from accounts.services.payment_history import record_payment_status_change
+
     txn_status = txn_data.get('status', '')
     payment.wompi_transaction_id = str(transaction_id)
 
     if txn_status == 'APPROVED':
-        _handle_payment_approved(payment)
+        _handle_payment_approved(payment, PaymentHistory.SOURCE_WOMPI_VERIFY)
     elif txn_status in ('DECLINED', 'ERROR', 'VOIDED'):
+        old_status = payment.status
         payment.status = Payment.STATUS_FAILED
         payment.save(update_fields=['wompi_transaction_id', 'status'])
+        record_payment_status_change(
+            payment, old_status, Payment.STATUS_FAILED, PaymentHistory.SOURCE_WOMPI_VERIFY,
+        )
     else:
         payment.save(update_fields=['wompi_transaction_id'])
 
@@ -2933,13 +3194,20 @@ def wompi_webhook_view(request):
         logger.warning('Wompi webhook — payment not found for reference=%s', reference)
         return Response({'status': 'payment not found'}, status=status.HTTP_404_NOT_FOUND)
 
+    from accounts.models import PaymentHistory
+    from accounts.services.payment_history import record_payment_status_change
+
     payment.wompi_transaction_id = str(transaction_id)
 
     if transaction_status == 'APPROVED':
-        _handle_payment_approved(payment)
+        _handle_payment_approved(payment, PaymentHistory.SOURCE_WEBHOOK)
     elif transaction_status in ('DECLINED', 'ERROR', 'VOIDED'):
+        old_status = payment.status
         payment.status = Payment.STATUS_FAILED
         payment.save(update_fields=['wompi_transaction_id', 'status'])
+        record_payment_status_change(
+            payment, old_status, Payment.STATUS_FAILED, PaymentHistory.SOURCE_WEBHOOK,
+        )
     else:
         payment.save(update_fields=['wompi_transaction_id'])
 

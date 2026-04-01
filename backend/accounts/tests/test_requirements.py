@@ -213,7 +213,9 @@ class TestRequirementDetail:
         resp = api_client.delete(_detail_url(project.id, req.deliverable_id, req.id), **admin_headers)
 
         assert resp.status_code == 200
-        assert not Requirement.objects.filter(id=req.id).exists()
+        assert resp.json()['detail'] == 'Requerimiento archivado.'
+        req.refresh_from_db()
+        assert req.is_archived is True
 
     def test_delete_requirement_recalculates_project_progress(self, api_client, admin_headers, project, sample_requirements):
         api_client.delete(

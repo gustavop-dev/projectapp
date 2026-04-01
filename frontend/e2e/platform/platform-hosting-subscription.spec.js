@@ -104,6 +104,20 @@ function setupMocksWithSubscription(page, { user }) {
   });
 }
 
+/** `/platform/payments` — only `fetchSubscriptions()` (GET subscriptions list). */
+function setupMocksUnifiedPaymentsPage(page, { user, subscriptions }) {
+  return mockApi(page, async ({ apiPath, method }) => {
+    if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(user);
+    if (apiPath === 'accounts/subscriptions/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(subscriptions) };
+    }
+    if (apiPath === 'accounts/notifications/unread-count/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify({ unread_count: 0 }) };
+    }
+    return null;
+  });
+}
+
 test.describe('Platform Hosting Subscription — Client selects plan', () => {
   test.setTimeout(60_000);
 
@@ -174,5 +188,58 @@ test.describe('Platform Hosting Subscription — Admin view', () => {
     await page.getByRole('heading', { name: /suscripción/i }).waitFor({ state: 'visible', timeout: 30000 });
 
     await expect(page.getByText(/suscripción activa/i)).toBeVisible();
+  });
+});
+
+test.describe('Platform Hosting Subscription — Unified /platform/payments', () => {
+  test.setTimeout(60_000);
+
+  test('client unified payments page shows empty state when no subscriptions', {
+    tag: [...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
+  }, async ({ page }) => {
+    await setPlatformAuth(page, { user: mockPlatformClient });
+    await setupMocksUnifiedPaymentsPage(page, { user: mockPlatformClient, subscriptions: [] });
+    await page.goto('/platform/payments', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Mi suscripción' }).waitFor({ state: 'visible', timeout: 30000 });
+    await expect(page.getByText('No hay suscripciones de hosting activas.')).toBeVisible();
+  });
+
+  test('client unified payments page lists active subscription with link to project payments', {
+    tag: [...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
+  }, async ({ page }) => {
+    await setPlatformAuth(page, { user: mockPlatformClient });
+    await setupMocksUnifiedPaymentsPage(page, {
+      user: mockPlatformClient,
+      subscriptions: [{ ...mockSubscription, pending_payments: 0 }],
+    });
+    await page.goto('/platform/payments', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Mi suscripción' }).waitFor({ state: 'visible', timeout: 30000 });
+    await expect(page.getByRole('link', { name: 'E-commerce Platform' })).toBeVisible();
+    await expect(page.getByText('Activa')).toBeVisible();
+    await expect(page.getByRole('link', { name: /ver suscripción/i })).toBeVisible();
+  });
+
+  test('admin unified payments page shows empty state when no subscriptions', {
+    tag: [...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-admin'],
+  }, async ({ page }) => {
+    await setPlatformAuth(page, { user: mockPlatformAdmin });
+    await setupMocksUnifiedPaymentsPage(page, { user: mockPlatformAdmin, subscriptions: [] });
+    await page.goto('/platform/payments', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Suscripciones' }).waitFor({ state: 'visible', timeout: 30000 });
+    await expect(page.getByText('No hay suscripciones de hosting activas.')).toBeVisible();
+  });
+
+  test('admin unified payments page lists subscriptions across projects', {
+    tag: [...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-admin'],
+  }, async ({ page }) => {
+    await setPlatformAuth(page, { user: mockPlatformAdmin });
+    await setupMocksUnifiedPaymentsPage(page, {
+      user: mockPlatformAdmin,
+      subscriptions: [{ ...mockSubscription, pending_payments: 0 }],
+    });
+    await page.goto('/platform/payments', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Suscripciones' }).waitFor({ state: 'visible', timeout: 30000 });
+    await expect(page.getByText('Suscripciones de hosting de todos los proyectos.')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'E-commerce Platform' })).toBeVisible();
   });
 });

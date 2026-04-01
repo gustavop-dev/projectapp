@@ -261,6 +261,8 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformApi } from '~/composables/usePlatformApi'
+import { buildPlatformListUrl } from '~/composables/useIncludeArchivedQuery'
+import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 import SidebarIcon from '~/components/platform/SidebarIcon.vue'
@@ -274,6 +276,7 @@ const route = useRoute()
 const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const projectsStore = usePlatformProjectsStore()
+const includeArchived = usePlatformIncludeArchived()
 
 usePageEntrance('#platform-project-detail')
 
@@ -425,7 +428,12 @@ async function runTechnicalSync() {
   syncLoading.value = true
   try {
     const { get, post } = usePlatformApi()
-    const dres = await get(`projects/${project.value.id}/deliverables/`)
+    const dUrl = buildPlatformListUrl(
+      `projects/${project.value.id}/deliverables/`,
+      {},
+      authStore.isAdmin && includeArchived.value,
+    )
+    const dres = await get(dUrl)
     const list = dres.data || []
     const anchor = list.find((d) => d.has_business_proposal) || list[0]
     if (!anchor?.id) {

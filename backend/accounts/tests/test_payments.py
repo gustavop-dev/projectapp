@@ -8,6 +8,7 @@ from rest_framework.test import APIClient
 from accounts.models import (
     HostingSubscription,
     Payment,
+    PaymentHistory,
     Project,
     Requirement,
     UserProfile,
@@ -816,6 +817,11 @@ class TestAutoRenewal:
 
         payment.refresh_from_db()
         assert payment.status == Payment.STATUS_PAID
+
+        hist = PaymentHistory.objects.filter(payment=payment).first()
+        assert hist is not None
+        assert hist.from_status == Payment.STATUS_PENDING
+        assert hist.to_status == Payment.STATUS_PAID
 
         all_payments = Payment.objects.filter(subscription=sub).order_by('billing_period_start')
         assert all_payments.count() == 2

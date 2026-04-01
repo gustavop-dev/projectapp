@@ -1,13 +1,22 @@
 <template>
   <div id="platform-unified-board">
     <!-- Header -->
-    <div class="mb-6" data-enter>
-      <h1 class="text-2xl font-bold text-esmerald dark:text-white">
-        {{ authStore.isAdmin ? 'Actividad general' : 'Mi tablero' }}
-      </h1>
-      <p class="mt-1 text-sm text-green-light">
-        {{ authStore.isAdmin ? 'Requerimientos activos de todos los proyectos.' : 'Estado de los requerimientos de tus proyectos.' }}
-      </p>
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" data-enter>
+      <div>
+        <h1 class="text-2xl font-bold text-esmerald dark:text-white">
+          {{ authStore.isAdmin ? 'Actividad general' : 'Mi tablero' }}
+        </h1>
+        <p class="mt-1 text-sm text-green-light">
+          {{ authStore.isAdmin ? 'Requerimientos activos de todos los proyectos.' : 'Estado de los requerimientos de tus proyectos.' }}
+        </p>
+      </div>
+      <label
+        v-if="authStore.isAdmin"
+        class="flex cursor-pointer items-center gap-2 rounded-full border border-esmerald/10 px-3 py-1.5 text-xs font-medium text-green-light dark:border-white/10"
+      >
+        <input v-model="includeArchived" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+        Mostrar archivados
+      </label>
     </div>
 
     <!-- Loading -->
@@ -80,13 +89,15 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 
 const localePath = useLocalePath()
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 import { usePlatformApi } from '~/composables/usePlatformApi'
+import { buildPlatformListUrl } from '~/composables/useIncludeArchivedQuery'
+import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 
 definePageMeta({
   layout: 'platform',
@@ -98,6 +109,7 @@ usePageEntrance('#platform-unified-board')
 
 const authStore = usePlatformAuthStore()
 const projectsStore = usePlatformProjectsStore()
+const includeArchived = usePlatformIncludeArchived()
 
 const isLoading = ref(true)
 const allCards = ref([])
@@ -164,7 +176,7 @@ function priorityLabel(p) {
   return map[p] || p
 }
 
-onMounted(async () => {
+async function loadUnifiedBoard() {
   isLoading.value = true
   try {
     await projectsStore.fetchProjects()
@@ -177,11 +189,12 @@ onMounted(async () => {
     projectMap.value = pMap
 
     const { get } = usePlatformApi()
+    const inc = authStore.isAdmin && includeArchived.value
     const cards = []
     for (const p of projects) {
       if (p.status === 'archived') continue
       try {
-        const dres = await get(`projects/${p.id}/deliverables/`)
+        const dres = await get(buildPlatformListUrl(`projects/${p.id}/deliverables/`, {}, inc))
         const dels = dres.data || []
         for (const d of dels) {
           try {
@@ -201,5 +214,13 @@ onMounted(async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+onMounted(async () => {
+  await loadUnifiedBoard()
+})
+
+watch(includeArchived, () => {
+  if (authStore.isAdmin) loadUnifiedBoard()
 })
 </script>

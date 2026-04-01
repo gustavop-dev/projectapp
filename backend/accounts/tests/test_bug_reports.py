@@ -9,6 +9,7 @@ from rest_framework.test import APIClient
 from accounts.models import (
     BugComment,
     BugReport,
+    Deliverable,
     Project,
     UserProfile,
 )
@@ -75,10 +76,18 @@ def project(client_user):
 
 
 @pytest.fixture
-def sample_bugs(project, client_user):
+def deliverable(project, client_user):
+    return Deliverable.objects.create(
+        project=project, title='Main deliverable', category=Deliverable.CATEGORY_OTHER,
+        file=None, uploaded_by=client_user,
+    )
+
+
+@pytest.fixture
+def sample_bugs(project, client_user, deliverable):
     bugs = []
     bugs.append(BugReport.objects.create(
-        project=project, reported_by=client_user,
+        deliverable=deliverable, reported_by=client_user,
         title='Button does not work', description='Click does nothing.',
         severity=BugReport.SEVERITY_CRITICAL,
         steps_to_reproduce=['Open page', 'Click button', 'Nothing happens'],
@@ -89,13 +98,13 @@ def sample_bugs(project, client_user):
         status=BugReport.STATUS_REPORTED,
     ))
     bugs.append(BugReport.objects.create(
-        project=project, reported_by=client_user,
+        deliverable=deliverable, reported_by=client_user,
         title='Slow page load', severity=BugReport.SEVERITY_HIGH,
         status=BugReport.STATUS_FIXING,
         admin_response='Working on optimization.',
     ))
     bugs.append(BugReport.objects.create(
-        project=project, reported_by=client_user,
+        deliverable=deliverable, reported_by=client_user,
         title='Typo in footer', severity=BugReport.SEVERITY_LOW,
         status=BugReport.STATUS_RESOLVED,
         admin_response='Fixed.',
@@ -192,9 +201,10 @@ class TestBugReportList:
 @pytest.mark.django_db
 class TestBugReportCreate:
     def test_client_creates_bug_report_with_steps(
-        self, api_client, client_headers, project,
+        self, api_client, client_headers, project, deliverable,
     ):
         resp = api_client.post(_url(project.id), {
+            'deliverable_id': deliverable.id,
             'title': 'Login fails',
             'description': 'Cannot login with valid creds.',
             'severity': 'high',
@@ -216,31 +226,34 @@ class TestBugReportCreate:
         assert len(data['steps_to_reproduce']) == 4
 
     def test_admin_creates_bug_report(
-        self, api_client, admin_headers, project,
+        self, api_client, admin_headers, project, deliverable,
     ):
         resp = api_client.post(_url(project.id), {
+            'deliverable_id': deliverable.id,
             'title': 'Admin-found bug',
         }, format='json', **admin_headers)
 
         assert resp.status_code == 201
 
     def test_create_without_title_fails(
-        self, api_client, client_headers, project,
+        self, api_client, client_headers, project, deliverable,
     ):
         resp = api_client.post(_url(project.id), {
+            'deliverable_id': deliverable.id,
             'description': 'No title.',
         }, format='json', **client_headers)
 
         assert resp.status_code == 400
 
     def test_create_with_screenshot_saves_optimized_image(
-        self, api_client, client_headers, project,
+        self, api_client, client_headers, project, deliverable,
     ):
         image = _make_test_image(2000, 1500)
 
         resp = api_client.post(
             _url(project.id),
             {
+                'deliverable_id': deliverable.id,
                 'title': 'With screenshot',
                 'severity': 'medium',
                 'environment': 'production',
@@ -254,6 +267,32 @@ class TestBugReportCreate:
         data = resp.json()
         assert data['screenshot_url'] is not None
         assert data['screenshot_url'].endswith('.jpg')
+
+    def test_create_without_deliverable_id_fails(
+        self, api_client, client_headers, project,
+    ):
+        resp = api_client.post(_url(project.id), {
+            'title': 'Missing deliverable',
+        }, format='json', **client_headers)
+
+        assert resp.status_code == 400
+
+    def test_create_with_deliverable_from_other_project_fails(
+        self, api_client, client_headers, project, admin_user,
+    ):
+        other = Project.objects.create(
+            name='Other', client=admin_user, status=Project.STATUS_ACTIVE,
+        )
+        other_d = Deliverable.objects.create(
+            project=other, title='Other D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=admin_user,
+        )
+        resp = api_client.post(_url(project.id), {
+            'deliverable_id': other_d.id,
+            'title': 'Wrong scope',
+        }, format='json', **client_headers)
+
+        assert resp.status_code == 400
 
 
 # =========================================================================
@@ -342,7 +381,9 @@ class TestBugReportDelete:
         resp = api_client.delete(_detail_url(project.id, bug.id), **admin_headers)
 
         assert resp.status_code == 200
-        assert not BugReport.objects.filter(id=bug.id).exists()
+        assert resp.json()['detail'] == 'Reporte de bug archivado.'
+        bug.refresh_from_db()
+        assert bug.is_archived is True
 
     def test_client_cannot_delete_bug_report(
         self, api_client, client_headers, project, sample_bugs,
@@ -421,6 +462,30 @@ class TestBugReportEvaluate:
         assert resp.status_code == 200
         assert resp.json()['status'] == 'duplicate'
         assert resp.json()['linked_bug_id'] == original.id
+
+    def test_evaluate_rejects_linked_bug_from_other_deliverable(
+        self, api_client, admin_headers, project, client_user, deliverable,
+    ):
+        other_d = Deliverable.objects.create(
+            project=project, title='Other epic', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=client_user,
+        )
+        local = BugReport.objects.create(
+            deliverable=deliverable, reported_by=client_user,
+            title='Here', severity=BugReport.SEVERITY_LOW,
+        )
+        foreign = BugReport.objects.create(
+            deliverable=other_d, reported_by=client_user,
+            title='There', severity=BugReport.SEVERITY_LOW,
+        )
+
+        resp = api_client.post(
+            _detail_url(project.id, local.id, 'evaluate/'),
+            {'status': 'duplicate', 'linked_bug_id': foreign.id},
+            format='json', **admin_headers,
+        )
+
+        assert resp.status_code == 400
 
     def test_client_cannot_evaluate_bug(
         self, api_client, client_headers, project, sample_bugs,
@@ -540,8 +605,12 @@ class TestBugReportAllView:
         other_project = Project.objects.create(
             name='Other Project', client=client_user, status=Project.STATUS_ACTIVE,
         )
+        other_d = Deliverable.objects.create(
+            project=other_project, title='OD', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=client_user,
+        )
         BugReport.objects.create(
-            project=other_project, reported_by=client_user,
+            deliverable=other_d, reported_by=client_user,
             title='Other bug', severity='low',
         )
 
@@ -567,8 +636,12 @@ class TestBugReportAllView:
         other_project = Project.objects.create(
             name='Secret Project', client=other_client, status=Project.STATUS_ACTIVE,
         )
+        secret_d = Deliverable.objects.create(
+            project=other_project, title='SD', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=other_client,
+        )
         BugReport.objects.create(
-            project=other_project, reported_by=other_client,
+            deliverable=secret_d, reported_by=other_client,
             title='Secret bug', severity='low',
         )
 
@@ -613,11 +686,11 @@ class TestBugReportAllView:
 
 @pytest.mark.django_db
 class TestBugScreenshotOptimization:
-    def test_screenshot_saved_as_jpeg(self, project, client_user):
+    def test_screenshot_saved_as_jpeg(self, project, client_user, deliverable):
         image = _make_test_image(800, 600)
 
         bug = BugReport(
-            project=project, reported_by=client_user,
+            deliverable=deliverable, reported_by=client_user,
             title='Screenshot test', severity='medium',
         )
         bug.screenshot = image
@@ -625,11 +698,11 @@ class TestBugScreenshotOptimization:
 
         assert bug.screenshot.name.endswith('.jpg')
 
-    def test_large_screenshot_resized_to_max_1200px(self, project, client_user):
+    def test_large_screenshot_resized_to_max_1200px(self, project, client_user, deliverable):
         image = _make_test_image(2400, 1800)
 
         bug = BugReport(
-            project=project, reported_by=client_user,
+            deliverable=deliverable, reported_by=client_user,
             title='Large image', severity='medium',
         )
         bug.screenshot = image
@@ -638,9 +711,9 @@ class TestBugScreenshotOptimization:
         saved_img = Image.open(bug.screenshot.path)
         assert max(saved_img.width, saved_img.height) <= 1200
 
-    def test_bug_without_screenshot_saves_normally(self, project, client_user):
+    def test_bug_without_screenshot_saves_normally(self, project, client_user, deliverable):
         bug = BugReport.objects.create(
-            project=project, reported_by=client_user,
+            deliverable=deliverable, reported_by=client_user,
             title='No screenshot', severity='medium',
         )
 

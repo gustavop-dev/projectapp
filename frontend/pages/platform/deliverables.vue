@@ -1,12 +1,21 @@
 <template>
   <div id="platform-unified-deliverables">
-    <div class="mb-6" data-enter>
-      <h1 class="text-2xl font-bold text-esmerald dark:text-white">
-        {{ authStore.isAdmin ? 'Entregables' : 'Mis entregables' }}
-      </h1>
-      <p class="mt-1 text-sm text-green-light">
-        {{ authStore.isAdmin ? 'Todos los entregables de todos los proyectos.' : 'Entregables de tus proyectos.' }}
-      </p>
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" data-enter>
+      <div>
+        <h1 class="text-2xl font-bold text-esmerald dark:text-white">
+          {{ authStore.isAdmin ? 'Entregables' : 'Mis entregables' }}
+        </h1>
+        <p class="mt-1 text-sm text-green-light">
+          {{ authStore.isAdmin ? 'Todos los entregables de todos los proyectos.' : 'Entregables de tus proyectos.' }}
+        </p>
+      </div>
+      <label
+        v-if="authStore.isAdmin"
+        class="flex cursor-pointer items-center gap-2 rounded-full border border-esmerald/10 px-3 py-1.5 text-xs font-medium text-green-light dark:border-white/10"
+      >
+        <input v-model="includeArchived" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+        Mostrar archivados
+      </label>
     </div>
 
     <div v-if="store.isLoading" class="py-20 text-center">
@@ -54,10 +63,11 @@
               class="group cursor-pointer rounded-xl border border-esmerald/[0.06] bg-white p-4 transition hover:border-esmerald/15 hover:shadow-sm dark:border-white/[0.06] dark:bg-esmerald dark:hover:border-white/12"
               @click="navigateTo(`/platform/projects/${group.projectId}/deliverables`)"
             >
-              <div class="mb-2 flex items-center gap-2">
+              <div class="mb-2 flex flex-wrap items-center gap-2">
                 <span class="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase" :class="categoryBadgeClass(d.category)">
                   {{ categoryLabel(d.category) }}
                 </span>
+                <span v-if="d.is_archived" class="rounded-full bg-gray-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-gray-600 dark:text-gray-400">Archivado</span>
                 <span class="ml-auto rounded-full bg-esmerald/[0.06] px-1.5 py-0.5 text-[9px] font-semibold text-green-light dark:bg-white/[0.06]">v{{ d.current_version }}</span>
               </div>
               <h4 class="text-sm font-medium text-esmerald dark:text-white">{{ d.title }}</h4>
@@ -74,8 +84,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
+import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 
 const localePath = useLocalePath()
@@ -87,6 +98,7 @@ usePageEntrance('#platform-unified-deliverables')
 
 const authStore = usePlatformAuthStore()
 const store = usePlatformDeliverablesStore()
+const includeArchived = usePlatformIncludeArchived()
 
 const summaryPills = computed(() => {
   const pills = [
@@ -129,5 +141,15 @@ function categoryBadgeClass(cat) {
   return map[cat] || map.other
 }
 
-onMounted(async () => { await store.fetchAllDeliverables() })
+async function loadDeliverables() {
+  await store.fetchAllDeliverables(null, authStore.isAdmin && includeArchived.value)
+}
+
+onMounted(async () => {
+  await loadDeliverables()
+})
+
+watch(includeArchived, () => {
+  if (authStore.isAdmin) loadDeliverables()
+})
 </script>

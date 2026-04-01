@@ -16,7 +16,14 @@
           <h1 class="text-xl font-bold text-esmerald dark:text-white sm:text-2xl">Solicitudes de cambio</h1>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+          <label
+            v-if="authStore.isAdmin"
+            class="flex cursor-pointer items-center gap-2 rounded-full border border-esmerald/10 px-3 py-1.5 text-xs font-medium text-green-light dark:border-white/10"
+          >
+            <input v-model="includeArchived" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+            Mostrar archivados
+          </label>
           <!-- Stats pills -->
           <div class="hidden items-center gap-2 sm:flex">
             <span class="rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
@@ -72,6 +79,9 @@
                 </span>
                 <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="priorityBadgeClass(cr.suggested_priority)">
                   {{ priorityLabel(cr.suggested_priority) }}
+                </span>
+                <span v-if="cr.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:text-gray-400">
+                  Archivado
                 </span>
                 <span v-if="cr.is_urgent" class="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-red-600 dark:text-red-400">
                   Urgente
@@ -213,8 +223,12 @@
                   <div class="mb-2 flex flex-wrap items-center gap-2">
                     <span class="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase" :class="statusBadgeClass(detailCR.status)">{{ statusLabel(detailCR.status) }}</span>
                     <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="priorityBadgeClass(detailCR.suggested_priority)">{{ priorityLabel(detailCR.suggested_priority) }}</span>
+                    <span v-if="detailCR.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:text-gray-400">Archivado</span>
                     <span v-if="detailCR.is_urgent" class="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-red-600 dark:text-red-400">Urgente</span>
                   </div>
+                  <p v-if="detailCR.is_archived && detailCR.archived_at" class="mb-1 text-[10px] text-green-light/60">
+                    Archivado el {{ formatDate(detailCR.archived_at) }}
+                  </p>
                   <h2 class="text-lg font-bold text-esmerald dark:text-white">{{ detailCR.title }}</h2>
                 </div>
                 <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white" @click="detailCR = null">
@@ -273,70 +287,74 @@
 
               <!-- Admin actions -->
               <div v-if="authStore.isAdmin" class="mb-5 space-y-3">
-                <!-- Evaluate form -->
-                <div v-if="showEvaluateForm" class="rounded-xl border border-esmerald/[0.06] p-4 dark:border-white/[0.06]">
-                  <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-green-light/60">Evaluar solicitud</p>
-                  <div class="space-y-3">
-                    <div>
-                      <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Estado</label>
-                      <select v-model="evalForm.status" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40">
-                        <option value="pending">Pendiente</option>
-                        <option value="evaluating">En evaluación</option>
-                        <option value="approved">Aprobada</option>
-                        <option value="rejected">Rechazada</option>
-                        <option value="needs_clarification">Requiere aclaración</option>
-                        <option value="out_of_scope">Fuera de alcance</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Respuesta</label>
-                      <textarea v-model="evalForm.admin_response" rows="2" placeholder="Respuesta para el cliente..." class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
+                <div v-if="detailCR.is_archived" class="rounded-xl border border-esmerald/[0.06] px-4 py-3 text-xs text-green-light/70 dark:border-white/[0.06]">
+                  Esta solicitud está archivada.
+                </div>
+                <template v-else>
+                  <div v-if="showEvaluateForm" class="rounded-xl border border-esmerald/[0.06] p-4 dark:border-white/[0.06]">
+                    <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-green-light/60">Evaluar solicitud</p>
+                    <div class="space-y-3">
                       <div>
-                        <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Tiempo estimado</label>
-                        <input v-model="evalForm.estimated_time" type="text" placeholder="Ej: 2 semanas" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                        <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Estado</label>
+                        <select v-model="evalForm.status" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:focus:border-lemon/40">
+                          <option value="pending">Pendiente</option>
+                          <option value="evaluating">En evaluación</option>
+                          <option value="approved">Aprobada</option>
+                          <option value="rejected">Rechazada</option>
+                          <option value="needs_clarification">Requiere aclaración</option>
+                          <option value="out_of_scope">Fuera de alcance</option>
+                        </select>
                       </div>
                       <div>
-                        <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Costo estimado</label>
-                        <input v-model.number="evalForm.estimated_cost" type="number" min="0" step="1000" placeholder="0" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                        <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Respuesta</label>
+                        <textarea v-model="evalForm.admin_response" rows="2" placeholder="Respuesta para el cliente..." class="w-full resize-none rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                       </div>
-                    </div>
-                    <div class="flex justify-end gap-2">
-                      <button type="button" class="rounded-lg px-3 py-1.5 text-xs text-green-light hover:text-esmerald dark:hover:text-white" @click="showEvaluateForm = false">Cancelar</button>
-                      <button type="button" :disabled="crStore.isUpdating" class="rounded-lg bg-esmerald px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-esmerald/90 disabled:opacity-50 dark:bg-lemon dark:text-esmerald-dark" @click="handleEvaluate">
-                        {{ crStore.isUpdating ? 'Guardando...' : 'Guardar evaluación' }}
-                      </button>
+                      <div class="grid grid-cols-2 gap-3">
+                        <div>
+                          <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Tiempo estimado</label>
+                          <input v-model="evalForm.estimated_time" type="text" placeholder="Ej: 2 semanas" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                        </div>
+                        <div>
+                          <label class="mb-1 block text-xs font-medium text-esmerald/70 dark:text-white/70">Costo estimado</label>
+                          <input v-model.number="evalForm.estimated_cost" type="number" min="0" step="1000" placeholder="0" class="w-full rounded-xl border border-esmerald/10 bg-esmerald-light/40 px-4 py-2.5 text-sm text-esmerald outline-none placeholder:text-green-light/50 focus:border-esmerald/30 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
+                        </div>
+                      </div>
+                      <div class="flex justify-end gap-2">
+                        <button type="button" class="rounded-lg px-3 py-1.5 text-xs text-green-light hover:text-esmerald dark:hover:text-white" @click="showEvaluateForm = false">Cancelar</button>
+                        <button type="button" :disabled="crStore.isUpdating" class="rounded-lg bg-esmerald px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-esmerald/90 disabled:opacity-50 dark:bg-lemon dark:text-esmerald-dark" @click="handleEvaluate">
+                          {{ crStore.isUpdating ? 'Guardando...' : 'Guardar evaluación' }}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <!-- Action buttons -->
-                <div v-else class="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    class="rounded-xl border border-esmerald/10 px-4 py-2 text-xs font-medium text-esmerald transition hover:bg-esmerald-light dark:border-white/10 dark:text-white dark:hover:bg-white/[0.06]"
-                    @click="openEvaluateForm"
-                  >
-                    Evaluar
-                  </button>
-                  <button
-                    v-if="detailCR.status === 'approved' && !detailCR.linked_requirement_id"
-                    type="button"
-                    :disabled="crStore.isUpdating"
-                    class="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-50"
-                    @click="handleConvert"
-                  >
-                    Convertir en requerimiento
-                  </button>
-                  <button
-                    type="button"
-                    class="rounded-xl border border-red-200 px-4 py-2 text-xs font-medium text-red-500 transition hover:bg-red-50 dark:border-red-500/20 dark:hover:bg-red-500/10"
-                    @click="handleDelete"
-                  >
-                    Eliminar
-                  </button>
-                </div>
+                  <div v-else class="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      class="rounded-xl border border-esmerald/10 px-4 py-2 text-xs font-medium text-esmerald transition hover:bg-esmerald-light dark:border-white/10 dark:text-white dark:hover:bg-white/[0.06]"
+                      @click="openEvaluateForm"
+                    >
+                      Evaluar
+                    </button>
+                    <button
+                      v-if="detailCR.status === 'approved' && !detailCR.linked_requirement_id"
+                      type="button"
+                      :disabled="crStore.isUpdating"
+                      class="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-50"
+                      @click="handleConvert"
+                    >
+                      Convertir en requerimiento
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-xl border border-red-200 px-4 py-2 text-xs font-medium text-red-500 transition hover:bg-red-50 dark:border-red-500/20 dark:hover:bg-red-500/10"
+                      :disabled="crStore.isUpdating"
+                      @click="handleDelete"
+                    >
+                      Archivar
+                    </button>
+                  </div>
+                </template>
               </div>
 
               <!-- Comments -->
@@ -391,8 +409,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
+import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformChangeRequestsStore } from '~/stores/platform-change-requests'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
@@ -410,6 +429,7 @@ const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const crStore = usePlatformChangeRequestsStore()
 const projectsStore = usePlatformProjectsStore()
+const includeArchived = usePlatformIncludeArchived()
 
 const projectId = computed(() => route.params.id)
 const projectName = computed(() => projectsStore.currentProject?.name || 'Proyecto')
@@ -588,10 +608,15 @@ async function handleConvert() {
 
 async function handleDelete() {
   if (!detailCR.value) return
+  if (!window.confirm('¿Archivar esta solicitud de cambio? Podrás verla otra vez activando "Mostrar archivados".')) return
   const result = await crStore.deleteChangeRequest(projectId.value, detailCR.value.id)
   if (result.success) {
     detailCR.value = null
   }
+}
+
+async function loadChangeRequests() {
+  await crStore.fetchChangeRequests(projectId.value, null, authStore.isAdmin && includeArchived.value)
 }
 
 async function handleAddComment() {
@@ -605,11 +630,15 @@ async function handleAddComment() {
 
 onMounted(async () => {
   await Promise.all([
-    crStore.fetchChangeRequests(projectId.value),
+    loadChangeRequests(),
     projectsStore.currentProject?.id !== Number(projectId.value)
       ? projectsStore.fetchProject(projectId.value)
       : Promise.resolve(),
   ])
+})
+
+watch([includeArchived, projectId], () => {
+  loadChangeRequests()
 })
 </script>
 

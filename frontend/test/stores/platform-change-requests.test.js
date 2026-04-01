@@ -97,6 +97,18 @@ describe('usePlatformChangeRequestsStore', () => {
     expect(store.projectId).toBeNull()
   })
 
+  it('fetchChangeRequests adds include_archived when requested', async () => {
+    mockGet.mockResolvedValueOnce({ data: [] })
+    await store.fetchChangeRequests(8, null, true)
+    expect(mockGet).toHaveBeenCalledWith('projects/8/change-requests/?include_archived=1')
+  })
+
+  it('fetchAllChangeRequests adds include_archived when requested', async () => {
+    mockGet.mockResolvedValueOnce({ data: [] })
+    await store.fetchAllChangeRequests(null, true)
+    expect(mockGet).toHaveBeenCalledWith('change-requests/?include_archived=1')
+  })
+
   it('evaluateChangeRequest updates current when ids match', async () => {
     store.changeRequests = [{ id: 10, status: 'pending' }]
     store.currentChangeRequest = { id: 10, status: 'pending' }
