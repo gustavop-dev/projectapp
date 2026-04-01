@@ -243,6 +243,7 @@ SECTION_KEY_MAP = {
     'proposalSummary': 'proposal_summary',
     'finalNote': 'final_note',
     'nextSteps': 'next_steps',
+    'technicalDocument': 'technical_document',
 }
 
 SECTION_TYPE_TO_KEY = {v: k for k, v in SECTION_KEY_MAP.items()}

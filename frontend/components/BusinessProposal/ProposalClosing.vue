@@ -386,6 +386,7 @@ const props = defineProps({
   paymentOptions: { type: Array, default: () => [] },
   customizedTotal: { type: Number, default: null },
   selectedModuleIds: { type: Array, default: () => [] },
+  viewMode: { type: String, default: 'detailed' },
 });
 
 // Use customizedTotal from calculator when available, otherwise fall back to proposal.total_investment
@@ -588,10 +589,15 @@ const proposalStore = useProposalStore();
 
 const pdfUrl = computed(() => {
   const base = `/api/proposals/${props.proposal?.uuid}/pdf/`;
+  const params = new URLSearchParams();
   if (props.selectedModuleIds.length) {
-    return `${base}?selected_modules=${encodeURIComponent(props.selectedModuleIds.join(','))}`;
+    params.set('selected_modules', props.selectedModuleIds.join(','));
   }
-  return base;
+  if (props.viewMode === 'technical') {
+    params.set('doc', 'technical');
+  }
+  const q = params.toString();
+  return q ? `${base}?${q}` : base;
 });
 
 const pdfFilename = computed(() => {

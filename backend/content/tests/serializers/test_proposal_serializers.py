@@ -289,3 +289,13 @@ class TestProposalFromJSONSerializer:
         })
         serializer = ProposalFromJSONSerializer(data=payload)
         assert serializer.is_valid(), serializer.errors
+
+    def test_technical_document_section_in_payload_is_valid(self):
+        payload = self._valid_payload()
+        payload['sections']['technicalDocument'] = {
+            'purpose': 'Arquitectura',
+            'epics': [{'epicKey': 'a', 'title': 'A', 'requirements': []}],
+        }
+        serializer = ProposalFromJSONSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+        assert 'technicalDocument' in serializer.validated_data['sections']

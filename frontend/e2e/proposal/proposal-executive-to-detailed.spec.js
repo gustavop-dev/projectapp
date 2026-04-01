@@ -190,7 +190,11 @@ test.describe('Proposal Executive to Detailed View Switch', () => {
       }
       if (await nextBtn.isVisible().catch(() => false)) {
         await nextBtn.click();
-        await page.waitForTimeout(600);
+        try {
+          await page.locator('[data-section-type="context_diagnostic"]').waitFor({ state: 'visible', timeout: 2000 });
+        } catch {
+          /* section not reached yet; loop continues */
+        }
       }
     }
 

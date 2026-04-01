@@ -12,4 +12,12 @@ Próximos pasos:
 
 Ver propuesta: {{ proposal_url }}
 
+{% if platform_login_url %}
+Acceso a la plataforma (seguimiento del proyecto, documentos y tablero):
+{{ platform_login_url }}
+{% if project_name %}Proyecto: {{ project_name }}{% endif %}
+{% if deliverable_title %}Entregable principal: {{ deliverable_title }}{% endif %}
+Adjuntos: propuesta comercial (PDF), documento técnico (si aplica) y guía de uso de la plataforma.
+{% endif %}
+
 ¿Dudas? Escríbenos a team@projectapp.co o WhatsApp +57 323 812 2373

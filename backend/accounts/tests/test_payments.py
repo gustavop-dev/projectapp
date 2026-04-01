@@ -8,7 +8,9 @@ from rest_framework.test import APIClient
 from accounts.models import (
     HostingSubscription,
     Payment,
+    PaymentHistory,
     Project,
+    Requirement,
     UserProfile,
 )
 
@@ -500,7 +502,9 @@ class TestProjectCreationWithProposal:
         assert data['proposal_id'] == proposal.id
 
         project = Project.objects.get(id=data['id'])
-        assert project.proposal_id == proposal.id
+        proposal.refresh_from_db()
+        assert proposal.deliverable is not None
+        assert proposal.deliverable.project_id == project.id
         assert not HostingSubscription.objects.filter(project=project).exists()
 
     def test_create_project_without_proposal(
@@ -513,7 +517,7 @@ class TestProjectCreationWithProposal:
 
         assert resp.status_code == 201
         project = Project.objects.get(id=resp.json()['id'])
-        assert project.proposal is None
+        assert project.linked_business_proposal() is None
         assert not HostingSubscription.objects.filter(project=project).exists()
 
     def test_create_project_with_invalid_proposal_fails(
@@ -620,7 +624,7 @@ class TestAutoCreateRequirements:
 
         assert resp.status_code == 201
         project = Project.objects.get(id=resp.json()['id'])
-        reqs = project.requirements.all()
+        reqs = Requirement.objects.filter(deliverable__project=project)
 
         assert reqs.count() == 0
 
@@ -634,7 +638,7 @@ class TestAutoCreateRequirements:
         }, format='json', **admin_headers)
 
         project = Project.objects.get(id=resp.json()['id'])
-        assert project.requirements.count() == 0
+        assert Requirement.objects.filter(deliverable__project=project).count() == 0
 
     def test_project_from_proposal_stores_milestones(
         self, api_client, admin_headers, client_user, proposal_with_sections,
@@ -813,6 +817,11 @@ class TestAutoRenewal:
 
         payment.refresh_from_db()
         assert payment.status == Payment.STATUS_PAID
+
+        hist = PaymentHistory.objects.filter(payment=payment).first()
+        assert hist is not None
+        assert hist.from_status == Payment.STATUS_PENDING
+        assert hist.to_status == Payment.STATUS_PAID
 
         all_payments = Payment.objects.filter(subscription=sub).order_by('billing_period_start')
         assert all_payments.count() == 2

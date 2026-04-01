@@ -4,6 +4,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from accounts.models import (
+    Deliverable,
     Project,
     Requirement,
     RequirementComment,
@@ -178,7 +179,13 @@ class TestRequirementModel:
     def test_str_representation(self):
         user = User.objects.create_user(username='rm@test.com', email='rm@test.com', password='pass')
         project = Project.objects.create(name='P', client=user)
-        req = Requirement.objects.create(project=project, title='Login page', status=Requirement.STATUS_TODO)
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=user,
+        )
+        req = Requirement.objects.create(
+            deliverable=d, title='Login page', status=Requirement.STATUS_TODO,
+        )
 
         assert str(req) == 'Login page [To do]'
 
@@ -188,7 +195,11 @@ class TestRequirementCommentModel:
     def test_str_representation(self):
         user = User.objects.create_user(username='rc@test.com', email='rc@test.com', password='pass')
         project = Project.objects.create(name='P', client=user)
-        req = Requirement.objects.create(project=project, title='R')
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=user,
+        )
+        req = Requirement.objects.create(deliverable=d, title='R')
         comment = RequirementComment.objects.create(requirement=req, user=user, content='Note')
 
         result = str(comment)
@@ -201,7 +212,11 @@ class TestRequirementHistoryModel:
     def test_str_representation(self):
         user = User.objects.create_user(username='rh@test.com', email='rh@test.com', password='pass')
         project = Project.objects.create(name='P', client=user)
-        req = Requirement.objects.create(project=project, title='R')
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=user,
+        )
+        req = Requirement.objects.create(deliverable=d, title='R')
         history = RequirementHistory.objects.create(
             requirement=req, from_status='todo', to_status='in_progress', changed_by=user,
         )

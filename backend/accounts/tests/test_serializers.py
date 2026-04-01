@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APIRequestFactory
 
 from accounts.models import (
+    Deliverable,
     Project,
     Requirement,
     RequirementComment,
@@ -496,7 +497,11 @@ class TestRequirementDetailSerializer:
             user=client, role=UserProfile.ROLE_CLIENT,
         )
         project = Project.objects.create(name='P', client=client)
-        req = Requirement.objects.create(project=project, title='Card')
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=client,
+        )
+        req = Requirement.objects.create(deliverable=d, title='Card')
         RequirementComment.objects.create(
             requirement=req, user=admin, content='Public', is_internal=False,
         )
@@ -540,7 +545,11 @@ class TestRequirementCommentSerializer:
         )
         UserProfile.objects.create(user=client, role=UserProfile.ROLE_CLIENT)
         project = Project.objects.create(name='P', client=client)
-        req = Requirement.objects.create(project=project, title='R')
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=client,
+        )
+        req = Requirement.objects.create(deliverable=d, title='R')
         comment = RequirementComment.objects.create(
             requirement=req, user=user, content='Note',
         )
@@ -559,7 +568,11 @@ class TestRequirementCommentSerializer:
         )
         UserProfile.objects.create(user=client, role=UserProfile.ROLE_CLIENT)
         project = Project.objects.create(name='P', client=client)
-        req = Requirement.objects.create(project=project, title='R')
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=client,
+        )
+        req = Requirement.objects.create(deliverable=d, title='R')
         comment = RequirementComment.objects.create(
             requirement=req, user=user, content='Note',
         )
@@ -645,7 +658,11 @@ class TestRequirementHistorySerializer:
         )
         UserProfile.objects.create(user=client, role=UserProfile.ROLE_CLIENT)
         project = Project.objects.create(name='P', client=client)
-        req = Requirement.objects.create(project=project, title='R')
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=client,
+        )
+        req = Requirement.objects.create(deliverable=d, title='R')
         history = RequirementHistory.objects.create(
             requirement=req, from_status='todo',
             to_status='in_progress', changed_by=admin,
@@ -671,7 +688,11 @@ class TestRequirementListSerializerCommentsCount:
         )
         UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
         project = Project.objects.create(name='P', client=user)
-        req = Requirement.objects.create(project=project, title='R')
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=user,
+        )
+        req = Requirement.objects.create(deliverable=d, title='R')
         RequirementComment.objects.create(requirement=req, user=user, content='A')
         RequirementComment.objects.create(requirement=req, user=user, content='B')
 
@@ -685,7 +706,11 @@ class TestRequirementListSerializerCommentsCount:
         )
         UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
         project = Project.objects.create(name='P', client=user)
-        req = Requirement.objects.create(project=project, title='R')
+        d = Deliverable.objects.create(
+            project=project, title='D', category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=user,
+        )
+        req = Requirement.objects.create(deliverable=d, title='R')
 
         data = RequirementListSerializer(req).data
 

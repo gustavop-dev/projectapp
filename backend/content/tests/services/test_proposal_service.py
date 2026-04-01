@@ -12,6 +12,7 @@ from freezegun import freeze_time
 
 from content.models import BusinessProposal, ProposalDefaultConfig
 from content.services.proposal_service import ProposalService
+from content.tests.constants import EXPECTED_DEFAULT_SECTION_COUNT
 
 pytestmark = pytest.mark.django_db
 
@@ -41,15 +42,15 @@ EXPECTED_ADDITIONAL_MODULE_ORDER = [
 
 
 class TestGetDefaultSections:
-    def test_returns_14_sections_for_es(self):
-        """Verify ES defaults include all 14 section types (greeting through next_steps)."""
+    def test_returns_expected_default_section_count_for_es(self):
+        """Verify ES defaults length matches EXPECTED_DEFAULT_SECTION_COUNT."""
         sections = ProposalService.get_default_sections('es')
-        assert len(sections) == 14
+        assert len(sections) == EXPECTED_DEFAULT_SECTION_COUNT
 
-    def test_returns_14_sections_for_en(self):
-        """Verify EN defaults include all 14 section types (greeting through next_steps)."""
+    def test_returns_expected_default_section_count_for_en(self):
+        """Verify EN defaults length matches EXPECTED_DEFAULT_SECTION_COUNT."""
         sections = ProposalService.get_default_sections('en')
-        assert len(sections) == 14
+        assert len(sections) == EXPECTED_DEFAULT_SECTION_COUNT
 
     def test_all_sections_have_required_keys(self):
         sections = ProposalService.get_default_sections('es')
@@ -64,18 +65,18 @@ class TestGetDefaultSections:
         """Verify each section has an order field and no duplicate orders (except co-located pairs)."""
         sections = ProposalService.get_default_sections('es')
         orders = [s['order'] for s in sections]
-        assert len(orders) == 14
+        assert len(orders) == EXPECTED_DEFAULT_SECTION_COUNT
         assert all(isinstance(o, int) for o in orders)
 
-    def test_section_types_cover_all_14_types(self):
-        """Verify all 14 section types are present in the ES defaults."""
+    def test_section_types_cover_all_default_types(self):
+        """Verify all default section types are present (count = EXPECTED_DEFAULT_SECTION_COUNT)."""
         expected_types = {
             'greeting', 'executive_summary', 'context_diagnostic',
             'conversion_strategy', 'design_ux', 'creative_support',
             'development_stages', 'process_methodology',
             'functional_requirements',
             'timeline', 'investment', 'proposal_summary',
-            'final_note', 'next_steps',
+            'final_note', 'next_steps', 'technical_document',
         }
         sections = ProposalService.get_default_sections('es')
         actual_types = {s['section_type'] for s in sections}
@@ -433,9 +434,9 @@ class TestGetDefaultSections:
         assert 'annualPrice' not in hp
 
     def test_defaults_to_es_for_unknown_language(self):
-        """Unknown language code falls back to Spanish defaults (14 sections)."""
+        """Unknown language code falls back to Spanish defaults."""
         sections = ProposalService.get_default_sections('fr')
-        assert len(sections) == 14
+        assert len(sections) == EXPECTED_DEFAULT_SECTION_COUNT
 
 
 CUSTOM_SECTIONS = [
@@ -473,12 +474,12 @@ class TestGetDefaultSectionsFromDB:
 
     def test_falls_back_to_hardcoded_when_no_db_config(self):
         sections = ProposalService.get_default_sections('es')
-        assert len(sections) == 14
+        assert len(sections) == EXPECTED_DEFAULT_SECTION_COUNT
 
     def test_falls_back_when_db_config_has_empty_sections(self):
         ProposalDefaultConfig.objects.create(language='es', sections_json=[])
         sections = ProposalService.get_default_sections('es')
-        assert len(sections) == 14
+        assert len(sections) == EXPECTED_DEFAULT_SECTION_COUNT
 
     def test_db_config_returns_independent_copy(self):
         ProposalDefaultConfig.objects.create(language='es', sections_json=CUSTOM_SECTIONS)
@@ -490,12 +491,12 @@ class TestGetDefaultSectionsFromDB:
     def test_es_db_config_does_not_affect_en(self):
         ProposalDefaultConfig.objects.create(language='es', sections_json=CUSTOM_SECTIONS)
         en_sections = ProposalService.get_default_sections('en')
-        assert len(en_sections) == 14
+        assert len(en_sections) == EXPECTED_DEFAULT_SECTION_COUNT
 
     def test_get_hardcoded_defaults_always_returns_hardcoded(self):
         ProposalDefaultConfig.objects.create(language='es', sections_json=CUSTOM_SECTIONS)
         hardcoded = ProposalService.get_hardcoded_defaults('es')
-        assert len(hardcoded) == 14
+        assert len(hardcoded) == EXPECTED_DEFAULT_SECTION_COUNT
 
 
 class TestSendProposal:

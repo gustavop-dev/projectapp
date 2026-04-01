@@ -6,6 +6,8 @@ from .models import (
     BlogPost, ProposalViewEvent, ProposalSectionView, ProposalChangeLog,
     ProposalDefaultConfig, EmailTemplateConfig,
     Document,
+    DocumentType,
+    IssuerProfile,
 )
 
 class PortfolioWorkAdmin(admin.ModelAdmin):
@@ -120,7 +122,7 @@ class BusinessProposalAdmin(admin.ModelAdmin):
     inlines = [ProposalSectionInline, ProposalRequirementGroupInline]
     fieldsets = (
         ('Identity', {
-            'fields': ('uuid', 'title', 'client_name', 'client_email', 'slug'),
+            'fields': ('uuid', 'title', 'client_name', 'client_email', 'slug', 'deliverable'),
         }),
         ('Financial', {
             'fields': ('total_investment', 'currency'),
@@ -278,3 +280,5 @@ admin_site.register(ProposalChangeLog)
 admin_site.register(ProposalDefaultConfig, ProposalDefaultConfigAdmin)
 admin_site.register(EmailTemplateConfig, EmailTemplateConfigAdmin)
 admin_site.register(Document, DocumentAdmin)
+admin_site.register(DocumentType, admin.ModelAdmin)
+admin_site.register(IssuerProfile, admin.ModelAdmin)

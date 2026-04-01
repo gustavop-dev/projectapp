@@ -1,7 +1,10 @@
 import logging
+from copy import deepcopy
 from datetime import timedelta
 
 from django.utils import timezone
+
+from content.technical_document_defaults import EMPTY_TECHNICAL_DOCUMENT_JSON
 
 logger = logging.getLogger(__name__)
 
@@ -1044,6 +1047,13 @@ DEFAULT_SECTIONS = [
             ),
         },
     },
+    {
+        'section_type': 'technical_document',
+        'title': '🔧 Documento técnico',
+        'order': 13,
+        'is_wide_panel': True,
+        'content_json': deepcopy(EMPTY_TECHNICAL_DOCUMENT_JSON),
+    },
 ]
 
 DEFAULT_SECTIONS_EN = [
@@ -2047,6 +2057,13 @@ DEFAULT_SECTIONS_EN = [
                 'We look forward to the possibility of working with you.'
             ),
         },
+    },
+    {
+        'section_type': 'technical_document',
+        'title': '🔧 Technical document',
+        'order': 13,
+        'is_wide_panel': True,
+        'content_json': deepcopy(EMPTY_TECHNICAL_DOCUMENT_JSON),
     },
 ]
 

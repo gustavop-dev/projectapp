@@ -25,3 +25,9 @@ from .proposal_default_config import ProposalDefaultConfig
 from .email_template_config import EmailTemplateConfig
 from .email_log import EmailLog
 from .document import Document
+from .document_type import DocumentType
+from .issuer_profile import IssuerProfile
+from .document_number_sequence import DocumentNumberSequence
+from .document_collection_account import DocumentCollectionAccount
+from .document_item import DocumentItem
+from .document_payment_method import DocumentPaymentMethod

@@ -17,11 +17,14 @@ class ProposalSection(models.Model):
         DESIGN_UX = 'design_ux', 'Design & UX'
         CREATIVE_SUPPORT = 'creative_support', 'Creative Support'
         DEVELOPMENT_STAGES = 'development_stages', 'Development Stages'
+        PROCESS_METHODOLOGY = 'process_methodology', 'Process Methodology'
         FUNCTIONAL_REQUIREMENTS = 'functional_requirements', 'Functional Requirements'
         TIMELINE = 'timeline', 'Timeline'
         INVESTMENT = 'investment', 'Investment'
+        PROPOSAL_SUMMARY = 'proposal_summary', 'Proposal Summary'
         FINAL_NOTE = 'final_note', 'Final Note'
         NEXT_STEPS = 'next_steps', 'Next Steps'
+        TECHNICAL_DOCUMENT = 'technical_document', 'Technical Document'
 
     proposal = models.ForeignKey(
         'BusinessProposal',

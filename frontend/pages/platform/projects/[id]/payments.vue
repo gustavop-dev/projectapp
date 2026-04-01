@@ -65,6 +65,24 @@
       </div>
 
       <template v-else>
+        <div
+          v-if="sub.is_archived && authStore.isAdmin"
+          class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-500/20 bg-gray-500/5 px-4 py-3 dark:border-white/10"
+          data-enter
+        >
+          <div class="flex items-center gap-2 text-xs text-green-light">
+            <span class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:text-gray-400">Suscripción archivada</span>
+            <span v-if="sub.archived_at">desde {{ formatDate(sub.archived_at) }}</span>
+          </div>
+          <button
+            type="button"
+            :disabled="payStore.isUpdating"
+            class="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-500/10 dark:text-emerald-400"
+            @click="handleRestoreSubscription"
+          >
+            {{ payStore.isUpdating ? '…' : 'Restaurar suscripción' }}
+          </button>
+        </div>
         <!-- ACTIVE / UP TO DATE state (like Netflix) -->
         <div v-if="payStore.subscriptionUpToDate" data-enter>
           <div class="mb-6 rounded-2xl border border-emerald-500/20 bg-white p-6 dark:border-emerald-500/15 dark:bg-esmerald">
@@ -155,6 +173,7 @@
                 </button>
               </div>
             </div>
+            <PlatformPaymentStatusHistory :payment="currentPayment" />
           </div>
 
           <!-- Admin info alert -->
@@ -222,6 +241,7 @@
                     </span>
                   </div>
                 </div>
+                <PlatformPaymentStatusHistory :payment="payment" />
               </div>
             </div>
           </transition>
@@ -554,6 +574,13 @@ async function handleCreateSubscription() {
     planError.value = error.response?.data?.detail || 'Error activando el plan de hosting.'
   } finally {
     isCreatingSub.value = false
+  }
+}
+
+async function handleRestoreSubscription() {
+  const result = await payStore.updateSubscription(projectId.value, { is_archived: false })
+  if (result.success) {
+    await payStore.fetchProjectSubscription(projectId.value)
   }
 }
 

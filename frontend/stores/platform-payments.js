@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { buildPlatformListUrl } from '~/composables/useIncludeArchivedQuery'
 import { usePlatformApi } from '~/composables/usePlatformApi'
 
 export const usePlatformPaymentsStore = defineStore('platformPayments', {
@@ -76,13 +77,14 @@ export const usePlatformPaymentsStore = defineStore('platformPayments', {
       }
     },
 
-    async fetchSubscriptions() {
+    async fetchSubscriptions(includeArchived = false) {
       this.isLoading = true
       this.error = ''
 
       try {
         const { get } = usePlatformApi()
-        const response = await get('subscriptions/')
+        const url = buildPlatformListUrl('subscriptions/', {}, includeArchived)
+        const response = await get(url)
         this.subscriptions = response.data
         return { success: true }
       } catch (error) {
@@ -118,13 +120,14 @@ export const usePlatformPaymentsStore = defineStore('platformPayments', {
       }
     },
 
-    async fetchProjectPayments(projectId) {
+    async fetchProjectPayments(projectId, includeArchived = false) {
       this.isLoading = true
       this.error = ''
 
       try {
         const { get } = usePlatformApi()
-        const response = await get(`projects/${projectId}/payments/`)
+        const url = buildPlatformListUrl(`projects/${projectId}/payments/`, {}, includeArchived)
+        const response = await get(url)
         this.payments = response.data
         return { success: true }
       } catch (error) {

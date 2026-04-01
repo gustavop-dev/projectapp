@@ -1,6 +1,6 @@
 {
-  "version": "2.7.0",
-  "lastUpdated": "2026-03-30",
+  "version": "2.8.1",
+  "lastUpdated": "2026-04-01",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -112,9 +112,9 @@
       "module": "proposal",
       "roles": ["guest"],
       "priority": "P2",
-      "description": "Download a proposal as PDF.",
+      "description": "Client uses the floating PDF button; browser fetches GET /api/proposals/:uuid/pdf. E2E mocks a 200 PDF response.",
       "expectedSpecs": 1,
-      "knownGaps": ["PDF generation returns 501 Not Implemented in v1"]
+      "knownGaps": ["Production may return 501 if PDF generation is disabled; E2E covers the UI path when the API succeeds."]
     },
     "admin-login": {
       "name": "Admin Login",
@@ -638,8 +638,7 @@
       "roles": ["admin"],
       "priority": "P2",
       "description": "Admin logs seller activity from proposal edit page Activity tab.",
-      "expectedSpecs": 1,
-      "knownGaps": ["Similar to quick-log but from edit page; deferred"]
+      "expectedSpecs": 1
     },
     "admin-proposal-engagement-decay-alert": {
       "name": "Admin Proposal Engagement Decay Alert",
@@ -841,6 +840,14 @@
       "description": "Client switches from executive view to full detailed proposal via 'Ver Propuesta Completa' button with branded transition overlay.",
       "expectedSpecs": 1
     },
+    "proposal-technical-view": {
+      "name": "Proposal Technical View Mode",
+      "module": "proposal",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "Client opens public proposal with ?mode=technical to read the technical document (synthetic panels from technical_document) plus closing.",
+      "expectedSpecs": 1
+    },
     "platform-login": {
       "name": "Platform Login",
       "module": "platform",
@@ -1015,7 +1022,7 @@
       "module": "platform",
       "roles": ["platform-admin"],
       "priority": "P2",
-      "description": "Admin bulk-creates requirements by uploading a JSON file. Includes downloadable example template. Each requirement has title, description, configuration (roles/permissions), and flow (user flow). POST /api/accounts/projects/:id/requirements/bulk/.",
+      "description": "Admin bulk-creates requirements by uploading a JSON file. Includes downloadable example template. Each requirement has title, description, configuration (roles/permissions), and flow (user flow). POST /api/accounts/projects/:projectId/deliverables/:deliverableId/requirements/bulk/.",
       "expectedSpecs": 1
     },
     "platform-requirement-client-review": {
@@ -1080,6 +1087,38 @@
       "roles": ["guest"],
       "priority": "P3",
       "description": "View the mobile app development landing page with hero, features, CTA, and contact form section.",
+      "expectedSpecs": 1
+    },
+    "platform-collection-accounts-list": {
+      "name": "Platform Collection Accounts List",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P2",
+      "description": "Browse collection accounts at /platform/collection-accounts: table, filters (admin), new draft (admin), Open links to detail.",
+      "expectedSpecs": 1
+    },
+    "platform-collection-account-detail": {
+      "name": "Platform Collection Account Detail",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P2",
+      "description": "View a single collection account: amounts, line items, Download PDF; admin Issue / Mark paid / Cancel when applicable.",
+      "expectedSpecs": 1
+    },
+    "platform-project-collection-accounts": {
+      "name": "Platform Project Collection Accounts",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P2",
+      "description": "List collection accounts scoped to a project at /platform/projects/:id/collection-accounts with links to detail.",
+      "expectedSpecs": 1
+    },
+    "platform-deliverable-detail": {
+      "name": "Platform Deliverable Detail",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P2",
+      "description": "View deliverable detail at /platform/projects/:id/deliverables/:deliverableId: linked proposal PDFs, main file, epic, board link; admin attachment upload.",
       "expectedSpecs": 1
     }
   }

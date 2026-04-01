@@ -27,6 +27,13 @@
 <script setup>
 import { ref } from 'vue';
 
+const props = defineProps({
+  viewMode: {
+    type: String,
+    default: '',
+  },
+});
+
 const isGenerating = ref(false);
 
 const proposalStore = useProposalStore();
@@ -39,17 +46,21 @@ async function downloadPdf() {
     const uuid = proposalStore.currentProposal?.uuid;
     if (!uuid) return;
 
-    // Read selected modules from localStorage if available
-    let pdfUrl = `/api/proposals/${uuid}/pdf/`;
+    const params = new URLSearchParams();
     try {
       const raw = localStorage.getItem(`proposal-${uuid}-modules`);
       if (raw) {
         const selectedIds = JSON.parse(raw);
         if (Array.isArray(selectedIds) && selectedIds.length) {
-          pdfUrl += `?selected_modules=${encodeURIComponent(selectedIds.join(','))}`;
+          params.set('selected_modules', selectedIds.join(','));
         }
       }
     } catch (_e) { /* ignore */ }
+    if (props.viewMode === 'technical') {
+      params.set('doc', 'technical');
+    }
+    const q = params.toString();
+    const pdfUrl = `/api/proposals/${uuid}/pdf${q ? `?${q}` : ''}`;
 
     const response = await fetch(pdfUrl);
     if (!response.ok) {

@@ -251,7 +251,9 @@ EMAIL_TEMPLATE_REGISTRY = {
                 'type': 'textarea',
                 'default': (
                     'Hemos recibido tu confirmación para la propuesta {title}. '
-                    'Estamos emocionados de comenzar este proyecto contigo.'
+                    'Estamos emocionados de comenzar este proyecto contigo. '
+                    'Encontrarás enlaces y PDFs adjuntos: propuesta comercial, documento técnico (si aplica) '
+                    'y una guía para usar la plataforma de seguimiento.'
                 ),
             },
             {
@@ -263,9 +265,13 @@ EMAIL_TEMPLATE_REGISTRY = {
         ],
         'available_variables': [
             'client_name', 'title', 'total_investment', 'currency',
+            'platform_login_url', 'project_name', 'deliverable_title',
         ],
         'sample_context': {
             **_client_sample(),
+            'platform_login_url': 'https://projectapp.co/platform/login',
+            'project_name': 'Proyecto demo',
+            'deliverable_title': 'Propuesta comercial',
         },
     },
 

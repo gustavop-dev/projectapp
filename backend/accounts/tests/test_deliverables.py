@@ -323,7 +323,9 @@ class TestDeliverableDelete:
         resp = api_client.delete(_detail_url(project.id, d.id), **admin_headers)
 
         assert resp.status_code == 200
-        assert not Deliverable.objects.filter(id=d.id).exists()
+        assert resp.json()['detail'] == 'Entregable archivado.'
+        d.refresh_from_db()
+        assert d.is_archived is True
 
     def test_client_cannot_delete_deliverable(
         self, api_client, client_headers, project, sample_deliverables,

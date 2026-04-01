@@ -14,9 +14,33 @@
             Tablero
           </NuxtLink>
           <h1 class="text-xl font-bold text-esmerald dark:text-white sm:text-2xl">Tablero</h1>
+          <div v-if="deliverableFilterId" class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            <span class="rounded-full border border-esmerald/15 bg-esmerald-light/30 px-3 py-1 font-medium text-esmerald dark:border-white/15 dark:bg-white/[0.06] dark:text-lemon">
+              Solo este entregable
+            </span>
+            <NuxtLink
+              :to="localePath(`/platform/projects/${projectId}/deliverables/${deliverableFilterId}`)"
+              class="text-green-light underline decoration-green-light/30 transition hover:text-esmerald dark:hover:text-white"
+            >
+              Ficha del entregable
+            </NuxtLink>
+            <NuxtLink
+              :to="localePath(`/platform/projects/${projectId}/board`)"
+              class="text-green-light/80 underline decoration-transparent transition hover:text-esmerald dark:hover:text-white"
+            >
+              Ver todo el proyecto
+            </NuxtLink>
+          </div>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+          <label
+            v-if="authStore.isAdmin"
+            class="flex cursor-pointer items-center gap-2 rounded-full border border-esmerald/10 px-3 py-2 text-xs font-medium text-green-light dark:border-white/10"
+          >
+            <input v-model="includeArchived" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+            Mostrar archivados
+          </label>
           <!-- Progress pill -->
           <div class="flex items-center gap-2 rounded-full border border-esmerald/10 px-4 py-2 dark:border-white/10">
             <div class="h-2 w-16 overflow-hidden rounded-full bg-esmerald/[0.06] dark:bg-white/[0.06]">
@@ -77,7 +101,10 @@
               class="flex items-center gap-3 rounded-lg px-3 py-2.5 transition hover:bg-esmerald-light/30 dark:hover:bg-white/[0.03]"
             >
               <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400" />
-              <button type="button" class="flex-1 text-left text-sm text-esmerald dark:text-white" @click="openDetailModal(card)">{{ card.title }}</button>
+              <button type="button" class="flex-1 text-left text-sm text-esmerald dark:text-white" @click="openDetailModal(card)">
+                <span v-if="epicLabel(card)" class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-teal-600/80 dark:text-teal-300/80">{{ epicLabel(card) }}</span>
+                {{ card.title }}
+              </button>
               <button
                 v-if="authStore.isAdmin"
                 type="button"
@@ -143,6 +170,10 @@
                 <span class="h-1.5 w-1.5 rounded-full" :class="priorityDotClass(card.priority)" />
               </div>
 
+              <p v-if="epicLabel(card)" class="mb-1 line-clamp-2 text-[10px] font-semibold uppercase tracking-wide text-teal-600/90 dark:text-teal-300/90">
+                {{ epicLabel(card) }}
+              </p>
+
               <!-- Title -->
               <h4 class="pr-6 text-sm font-medium leading-snug text-esmerald dark:text-white">{{ card.title }}</h4>
 
@@ -205,7 +236,10 @@
               <svg class="h-5 w-5 shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span class="flex-1 text-sm text-green-light line-through decoration-green-light/30">{{ card.title }}</span>
+              <span class="flex-1 text-sm text-green-light line-through decoration-green-light/30">
+                <span v-if="epicLabel(card)" class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-teal-600/70 dark:text-teal-300/70">{{ epicLabel(card) }}</span>
+                {{ card.title }}
+              </span>
             </div>
           </div>
         </Transition>
@@ -331,6 +365,12 @@
                     <span class="rounded-full bg-esmerald/[0.06] px-2.5 py-0.5 text-[10px] font-medium text-green-light dark:bg-white/[0.06]">{{ statusLabel(detailCard.status) }}</span>
                   </div>
                   <h2 class="text-lg font-bold text-esmerald dark:text-white">{{ detailCard.title }}</h2>
+                  <p v-if="epicLabel(detailCard)" class="mt-2 text-xs font-medium text-teal-600 dark:text-teal-300">
+                    Épica: {{ epicLabel(detailCard) }}
+                  </p>
+                  <p v-if="detailCard.source_flow_key" class="mt-1 text-[10px] text-green-light/70">
+                    Ref. flujo: {{ detailCard.source_flow_key }}
+                  </p>
                 </div>
                 <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white" @click="detailCard = null">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -430,11 +470,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 import { usePlatformRequirementsStore } from '~/stores/platform-requirements'
+import { usePlatformApi } from '~/composables/usePlatformApi'
+import { buildPlatformListUrl } from '~/composables/useIncludeArchivedQuery'
+import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 
 definePageMeta({
   layout: 'platform',
@@ -445,12 +488,16 @@ useHead({ title: 'Tablero — ProjectApp' })
 usePageEntrance('#platform-board')
 
 const route = useRoute()
+const deliverableFilterId = computed(() => route.query.deliverable_id || null)
 const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const projectsStore = usePlatformProjectsStore()
 const reqStore = usePlatformRequirementsStore()
+const includeArchived = usePlatformIncludeArchived()
 
 const projectId = computed(() => route.params.id)
+/** Resolved entregable for nested requirements API (query filter or default). */
+const activeDeliverableId = ref(null)
 const projectName = computed(() => projectsStore.currentProject?.name || 'Proyecto')
 
 const isCreateOpen = ref(false)
@@ -496,6 +543,11 @@ function priorityBadgeClass(priority) {
 function priorityLabel(p) {
   const map = { critical: 'Crítica', high: 'Alta', medium: 'Media', low: 'Baja' }
   return map[p] || p
+}
+
+function epicLabel(card) {
+  if (!card) return ''
+  return (card.source_epic_title || card.source_epic_key || '').trim()
 }
 
 function statusLabel(s) {
@@ -547,11 +599,22 @@ function openMoveItemModal(card) {
 }
 
 async function handleMoveSubmit() {
-  if (!moveSingleCard.value) return
+  if (!moveSingleCard.value || !activeDeliverableId.value) return
   isMoving.value = true
   try {
-    await reqStore.updateRequirement(projectId.value, moveSingleCard.value.id, { priority: moveForm.priority })
-    await reqStore.moveRequirement(projectId.value, moveSingleCard.value.id, moveForm.status, 0)
+    await reqStore.updateRequirement(
+      projectId.value,
+      activeDeliverableId.value,
+      moveSingleCard.value.id,
+      { priority: moveForm.priority },
+    )
+    await reqStore.moveRequirement(
+      projectId.value,
+      activeDeliverableId.value,
+      moveSingleCard.value.id,
+      moveForm.status,
+      0,
+    )
     isMoveOpen.value = false
   } finally {
     isMoving.value = false
@@ -570,7 +633,11 @@ async function handleJsonUpload(event) {
       jsonUploadError.value = 'El JSON debe ser un array de objetos.'
       return
     }
-    const result = await reqStore.bulkUpload(projectId.value, items)
+    if (!activeDeliverableId.value) {
+      jsonUploadError.value = 'No hay entregable seleccionado.'
+      return
+    }
+    const result = await reqStore.bulkUpload(projectId.value, activeDeliverableId.value, items)
     if (result.success) {
       jsonUploadError.value = ''
       alert(`Se crearon ${result.data.created} requerimientos.`)
@@ -617,7 +684,8 @@ async function handleDrop(event, colKey) {
 
   if (card.status === colKey) return
 
-  await reqStore.moveRequirement(projectId.value, card.id, colKey, 0)
+  if (!activeDeliverableId.value) return
+  await reqStore.moveRequirement(projectId.value, activeDeliverableId.value, card.id, colKey, 0)
 }
 
 function openCreateModal() {
@@ -631,12 +699,14 @@ function openCreateModal() {
 }
 
 async function handleComplete(card) {
-  await reqStore.moveRequirement(projectId.value, card.id, 'done', 0)
+  if (!activeDeliverableId.value) return
+  await reqStore.moveRequirement(projectId.value, activeDeliverableId.value, card.id, 'done', 0)
 }
 
 async function handleCreate() {
   if (!createForm.title.trim()) return
-  const result = await reqStore.createRequirement(projectId.value, { ...createForm })
+  if (!activeDeliverableId.value) return
+  const result = await reqStore.createRequirement(projectId.value, activeDeliverableId.value, { ...createForm })
   if (result.success) isCreateOpen.value = false
 }
 
@@ -644,13 +714,21 @@ async function openDetailModal(card) {
   detailCard.value = card
   newComment.value = ''
   commentInternal.value = false
-  const result = await reqStore.fetchRequirement(projectId.value, card.id)
+  if (!activeDeliverableId.value) return
+  const result = await reqStore.fetchRequirement(projectId.value, activeDeliverableId.value, card.id)
   if (result.success) detailCard.value = result.data
 }
 
 async function handleAddComment() {
   if (!newComment.value.trim() || !detailCard.value) return
-  const result = await reqStore.addComment(projectId.value, detailCard.value.id, newComment.value.trim(), commentInternal.value)
+  if (!activeDeliverableId.value) return
+  const result = await reqStore.addComment(
+    projectId.value,
+    activeDeliverableId.value,
+    detailCard.value.id,
+    newComment.value.trim(),
+    commentInternal.value,
+  )
   if (result.success) {
     newComment.value = ''
     commentInternal.value = false
@@ -659,19 +737,56 @@ async function handleAddComment() {
 
 async function handleApprove() {
   if (!detailCard.value) return
-  const result = await reqStore.moveRequirement(projectId.value, detailCard.value.id, 'done', 0)
+  if (!activeDeliverableId.value) return
+  const result = await reqStore.moveRequirement(
+    projectId.value,
+    activeDeliverableId.value,
+    detailCard.value.id,
+    'done',
+    0,
+  )
   if (result.success) {
     detailCard.value = null
   }
 }
 
+async function resolveBoardDeliverableId() {
+  if (deliverableFilterId.value) return Number(deliverableFilterId.value)
+  const { get } = usePlatformApi()
+  const url = buildPlatformListUrl(
+    `projects/${projectId.value}/deliverables/`,
+    {},
+    authStore.isAdmin && includeArchived.value,
+  )
+  const dres = await get(url)
+  const list = dres.data || []
+  const withBp = list.find((d) => d.has_business_proposal)
+  return (withBp || list[0])?.id ?? null
+}
+
+async function refreshBoardDeliverable() {
+  const did = await resolveBoardDeliverableId()
+  activeDeliverableId.value = did
+  if (!did) {
+    reqStore.requirements = []
+    return
+  }
+  await reqStore.fetchRequirements(projectId.value, did)
+}
+
 onMounted(async () => {
-  await Promise.all([
-    reqStore.fetchRequirements(projectId.value),
-    projectsStore.currentProject?.id !== Number(projectId.value)
-      ? projectsStore.fetchProject(projectId.value)
-      : Promise.resolve(),
-  ])
+  if (projectsStore.currentProject?.id !== Number(projectId.value)) {
+    await projectsStore.fetchProject(projectId.value)
+  }
+  await refreshBoardDeliverable()
+})
+
+watch(deliverableFilterId, () => {
+  refreshBoardDeliverable()
+})
+
+watch(includeArchived, () => {
+  if (authStore.isAdmin) refreshBoardDeliverable()
 })
 </script>
 

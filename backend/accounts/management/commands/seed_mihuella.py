@@ -119,13 +119,14 @@ class Command(BaseCommand):
         project = self._create_project(client)
         self._create_requirements(project)
         self._create_change_requests(project, client, admin)
-        self._create_bug_reports(project, client, admin)
         self._create_deliverables(project, admin)
+        self._create_bug_reports(project, client, admin)
         self._create_subscription(project)
 
         # Compute progress from statuses
-        total = project.requirements.count()
-        done = project.requirements.filter(status=Requirement.STATUS_DONE).count()
+        req_qs = Requirement.objects.filter(deliverable__project=project)
+        total = req_qs.count()
+        done = req_qs.filter(status=Requirement.STATUS_DONE).count()
         project.progress = round((done / total) * 100) if total else 0
         project.save(update_fields=['progress'])
 
@@ -135,12 +136,12 @@ class Command(BaseCommand):
         self.stdout.write(f'  Project → {PROJECT_NAME}')
 
         for status, label in Requirement.STATUS_CHOICES:
-            count = project.requirements.filter(status=status).count()
+            count = req_qs.filter(status=status).count()
             self.stdout.write(f'    {label:<15} {count}')
 
         self.stdout.write(f'  Progress         → {project.progress}%')
         self.stdout.write(f'  Change requests  → {ChangeRequest.objects.filter(project=project).count()}')
-        self.stdout.write(f'  Bug reports      → {BugReport.objects.filter(project=project).count()}')
+        self.stdout.write(f'  Bug reports      → {BugReport.objects.filter(deliverable__project=project).count()}')
         self.stdout.write(f'  Deliverables     → {Deliverable.objects.filter(project=project).count()}')
         self.stdout.write(f'  Subscription     → {HostingSubscription.objects.filter(project=project).count()}')
         self.stdout.write('')
@@ -208,9 +209,19 @@ class Command(BaseCommand):
         return project
 
     def _create_requirements(self, project):
-        if project.requirements.exists():
+        if Requirement.objects.filter(deliverable__project=project).exists():
             self.stdout.write(f'  Requirements already exist for {project.name}')
             return
+
+        d = Deliverable.objects.filter(project=project).order_by('id').first()
+        if not d:
+            d = Deliverable.objects.create(
+                project=project,
+                title='Alcance Mi Huella',
+                category=Deliverable.CATEGORY_OTHER,
+                file=None,
+                uploaded_by=project.client,
+            )
 
         order_counters = {}
         objs = []
@@ -218,7 +229,7 @@ class Command(BaseCommand):
             status = req_data['status']
             order_counters.setdefault(status, 0)
             objs.append(Requirement(
-                project=project,
+                deliverable=d,
                 title=req_data['title'],
                 description=req_data.get('description', ''),
                 configuration=req_data.get('configuration', ''),
@@ -323,8 +334,15 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f'  Created {len(crs)} change requests'))
 
     def _create_bug_reports(self, project, client, admin):
-        if BugReport.objects.filter(project=project).exists():
+        if BugReport.objects.filter(deliverable__project=project).exists():
             self.stdout.write(f'  Bug reports already exist for {project.name}')
+            return
+
+        deliverable_list = list(
+            Deliverable.objects.filter(project=project).order_by('id'),
+        )
+        if not deliverable_list:
+            self.stdout.write(self.style.WARNING(f'  Skipping bug reports — no deliverables for {project.name}'))
             return
 
         bugs = [
@@ -420,9 +438,10 @@ class Command(BaseCommand):
             },
         ]
 
-        for bug_data in bugs:
+        for i, bug_data in enumerate(bugs):
+            dlv = deliverable_list[i % len(deliverable_list)]
             bug = BugReport.objects.create(
-                project=project,
+                deliverable=dlv,
                 reported_by=client,
                 title=bug_data['title'],
                 description=bug_data['description'],

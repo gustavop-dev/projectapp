@@ -10,6 +10,8 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from content.models import Document
+from content.services.document_type_codes import COLLECTION_ACCOUNT
+from content.services.document_type_utils import get_markdown_document_type
 from content.serializers.document import (
     DocumentListSerializer,
     DocumentDetailSerializer,
@@ -39,6 +41,9 @@ def create_document(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     document = serializer.save()
+    if not document.document_type_id:
+        document.document_type = get_markdown_document_type()
+        document.save(update_fields=['document_type'])
 
     # If markdown was provided but no JSON, parse it
     if document.content_markdown and not document.content_json:
@@ -74,6 +79,7 @@ def create_document_from_markdown(request):
 
     document = Document.objects.create(
         title=data['title'],
+        document_type=get_markdown_document_type(),
         client_name=data.get('client_name', ''),
         language=data.get('language', 'es'),
         cover_type=data.get('cover_type', 'generic'),
@@ -138,6 +144,7 @@ def upload_document_markdown(request):
 
     document = Document.objects.create(
         title=title,
+        document_type=get_markdown_document_type(),
         client_name=client_name,
         language=language,
         cover_type=cover_type,
@@ -218,9 +225,16 @@ def delete_document(request, document_id):
 def duplicate_document(request, document_id):
     """Duplicate a document."""
     document = get_object_or_404(Document, pk=document_id)
+    if document.document_type and document.document_type.code == COLLECTION_ACCOUNT:
+        return Response(
+            {'detail': 'Collection accounts cannot be duplicated from the panel.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
+    doc_type = document.document_type or get_markdown_document_type()
     new_document = Document.objects.create(
         title=f'{document.title} (copia)',
+        document_type=doc_type,
         client_name=document.client_name,
         language=document.language,
         cover_type=document.cover_type,

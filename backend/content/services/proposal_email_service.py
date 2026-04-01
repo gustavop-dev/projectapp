@@ -456,12 +456,24 @@ class ProposalEmailService:
             logger.info('Skipping proposal_accepted_client: template disabled')
             return False
 
+        base = getattr(settings, 'FRONTEND_BASE_URL', 'http://localhost:3000').rstrip('/')
+        platform_login_url = f'{base}/platform/login'
+        dlv = getattr(proposal, 'deliverable', None)
+        project_name = ''
+        deliverable_title = ''
+        if dlv is not None:
+            project_name = dlv.project.name if dlv.project_id else ''
+            deliverable_title = dlv.title or ''
+
         context = {
             'client_name': proposal.client_name,
             'proposal_url': proposal.public_url,
             'title': proposal.title,
             'total_investment': proposal.total_investment,
             'currency': proposal.currency,
+            'platform_login_url': platform_login_url,
+            'project_name': project_name,
+            'deliverable_title': deliverable_title,
         }
 
         resolved = cls._resolve_content('proposal_accepted_client', context)
@@ -488,23 +500,74 @@ class ProposalEmailService:
             )
             email.attach_alternative(html_content, 'text/html')
 
-            # Attach proposal PDF if generation succeeds
+            from django.utils.text import slugify
+
+            safe_client = slugify(proposal.client_name) or 'Cliente'
+
+            # Commercial proposal PDF
             try:
-                from content.services.proposal_pdf_service import (
-                    ProposalPdfService,
-                )
+                from content.services.proposal_pdf_service import ProposalPdfService
+
                 pdf_bytes = ProposalPdfService.generate(proposal)
                 if pdf_bytes:
-                    filename = f'Propuesta_{proposal.client_name}.pdf'
-                    email.attach(filename, pdf_bytes, 'application/pdf')
+                    email.attach(
+                        f'Propuesta_comercial_{safe_client}.pdf',
+                        pdf_bytes,
+                        'application/pdf',
+                    )
                     logger.info(
-                        'Attached PDF (%d bytes) to acceptance email for %s',
+                        'Attached commercial PDF (%d bytes) to acceptance email for %s',
                         len(pdf_bytes), proposal.uuid,
                     )
             except Exception:
                 logger.warning(
-                    'PDF generation failed for proposal %s, '
-                    'sending email without attachment',
+                    'Commercial PDF generation failed for proposal %s',
+                    proposal.uuid,
+                    exc_info=True,
+                )
+
+            # Technical document PDF
+            try:
+                from content.services.technical_document_pdf import (
+                    generate_technical_document_pdf,
+                )
+
+                tech_pdf = generate_technical_document_pdf(proposal)
+                if tech_pdf:
+                    email.attach(
+                        f'Documento_tecnico_{safe_client}.pdf',
+                        tech_pdf,
+                        'application/pdf',
+                    )
+            except Exception:
+                logger.warning(
+                    'Technical PDF attachment failed for proposal %s',
+                    proposal.uuid,
+                    exc_info=True,
+                )
+
+            # Platform onboarding guide PDF
+            try:
+                from content.services.platform_onboarding_pdf import (
+                    generate_platform_onboarding_pdf,
+                )
+
+                guide_pdf = generate_platform_onboarding_pdf(
+                    client_name=proposal.client_name or '',
+                    client_email=proposal.client_email or '',
+                    project_name=project_name,
+                    deliverable_title=deliverable_title,
+                    platform_login_url=platform_login_url,
+                )
+                if guide_pdf:
+                    email.attach(
+                        f'Guia_plataforma_{safe_client}.pdf',
+                        guide_pdf,
+                        'application/pdf',
+                    )
+            except Exception:
+                logger.warning(
+                    'Platform guide PDF failed for proposal %s',
                     proposal.uuid,
                     exc_info=True,
                 )

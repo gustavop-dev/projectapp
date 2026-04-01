@@ -155,6 +155,12 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         tw.write("\n")
 
 
+@pytest.fixture(autouse=True)
+def disable_recaptcha_for_tests(settings):
+    """Login and other views gate on RECAPTCHA_SECRET_KEY; CI often sets it without a test token."""
+    settings.RECAPTCHA_SECRET_KEY = ''
+
+
 @pytest.fixture
 def api_client():
     """Unauthenticated DRF API client."""

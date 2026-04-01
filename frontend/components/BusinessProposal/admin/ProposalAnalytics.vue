@@ -75,25 +75,50 @@
         </div>
       </div>
 
-      <!-- F6: View mode breakdown (executive vs detailed) -->
+      <!-- Technical document engagement (unified tracking types) -->
+      <div
+        v-if="analytics.technical_engagement && (analytics.technical_engagement.sessions_reached > 0 || analytics.technical_engagement.total_time_seconds > 0)"
+        class="bg-white rounded-xl border border-teal-100 shadow-sm p-4 dark:bg-gray-800 dark:border-teal-900/40"
+      >
+        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Documento técnico</h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          Paneles en modo técnico y sección técnica se unifican en métricas (sesiones que abrieron el bloque técnico).
+        </p>
+        <div class="flex flex-wrap gap-6 mt-3 text-sm">
+          <div>
+            <span class="text-xs text-gray-400 uppercase">Sesiones</span>
+            <p class="text-xl font-light text-teal-800 dark:text-teal-300">{{ analytics.technical_engagement.sessions_reached }}</p>
+          </div>
+          <div>
+            <span class="text-xs text-gray-400 uppercase">Tiempo total</span>
+            <p class="text-xl font-light text-gray-900 dark:text-gray-100">{{ formatTime(analytics.technical_engagement.total_time_seconds) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- F6: View mode breakdown (executive / detailed / technical) -->
       <div v-if="analytics.by_view_mode && Object.keys(analytics.by_view_mode).length" class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden dark:bg-gray-800 dark:border-gray-700">
         <div class="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
           <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">📊 Comparación por Modo de Vista</h3>
-          <p class="text-xs text-gray-400 mt-0.5">Engagement separado entre vista ejecutiva y detallada</p>
+          <p class="text-xs text-gray-400 mt-0.5">Engagement por vista ejecutiva, completa o técnica</p>
         </div>
         <div class="px-4 sm:px-6 py-4">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div v-for="mode in ['executive', 'detailed']" :key="mode"
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <div v-for="mode in ['executive', 'detailed', 'technical']" :key="mode"
               class="rounded-xl border p-4"
               :class="mode === 'executive'
                 ? 'border-purple-200 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-900/20'
-                : 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20'"
+                : mode === 'detailed'
+                  ? 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20'
+                  : 'border-teal-200 bg-teal-50/50 dark:border-teal-800 dark:bg-teal-900/20'"
             >
               <div class="flex items-center gap-2 mb-3">
                 <span class="text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
                   :class="mode === 'executive'
                     ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400'
-                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'"
+                    : mode === 'detailed'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
+                      : 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300'"
                 >{{ mode }}</span>
                 <span class="text-xs text-gray-400">{{ analytics.by_view_mode[mode]?.sessions || 0 }} sesiones</span>
               </div>
@@ -102,7 +127,7 @@
                   <span class="text-xs text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{{ sec.section_title || sec.section_type }}</span>
                   <span class="text-xs text-gray-400 tabular-nums flex-shrink-0">{{ sec.visit_count }}×</span>
                   <span class="text-xs font-medium tabular-nums flex-shrink-0"
-                    :class="mode === 'executive' ? 'text-purple-600 dark:text-purple-400' : 'text-blue-600 dark:text-blue-400'"
+                    :class="mode === 'executive' ? 'text-purple-600 dark:text-purple-400' : mode === 'detailed' ? 'text-blue-600 dark:text-blue-400' : 'text-teal-700 dark:text-teal-400'"
                   >{{ viewModeFormatTime(sec.total_time_seconds) }}</span>
                 </div>
               </div>
@@ -167,7 +192,8 @@
             <div class="flex-1">
               <div class="flex items-center justify-between mb-1">
                 <span class="text-sm text-gray-700 font-medium truncate">{{ step.section_title }}</span>
-                <span v-if="step.in_executive_mode === false" class="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-500 font-medium flex-shrink-0">solo detallado</span>
+                <span v-if="step.section_type === 'technical_document'" class="text-[10px] px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 font-medium flex-shrink-0">panel + vista pública</span>
+                <span v-else-if="step.in_executive_mode === false" class="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-500 font-medium flex-shrink-0">solo detallado</span>
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-gray-500">{{ step.reached_count }} sesiones</span>
                   <span v-if="step.drop_off_percent > 0" class="text-xs text-red-500 font-medium">
@@ -332,7 +358,7 @@
               <tr v-for="section in analytics.sections" :key="section.section_type" class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50">
                 <td class="px-4 sm:px-6 py-3">
                   <span class="font-medium text-gray-900 dark:text-gray-100">{{ section.section_title }}</span>
-                  <span class="text-xs text-gray-400 ml-1">({{ section.section_type }})</span>
+                  <span class="text-xs text-gray-400 ml-1">({{ sectionAnalyticsTypeLabel(section.section_type) || section.section_type }})</span>
                 </td>
                 <td class="px-4 py-3 text-center text-gray-600">{{ section.visit_count }}</td>
                 <td class="px-4 py-3 text-right text-gray-600">{{ formatTime(section.total_time_seconds) }}</td>
@@ -437,7 +463,7 @@
                 <td class="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{{ session.sections_viewed }}</td>
                 <td class="px-4 py-3 text-center">
                   <span v-if="session.view_mode" class="text-xs px-2 py-0.5 rounded-full font-medium"
-                    :class="session.view_mode === 'executive' ? 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : session.view_mode === 'detailed' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'">
+                    :class="session.view_mode === 'executive' ? 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : session.view_mode === 'detailed' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : session.view_mode === 'technical' ? 'bg-teal-50 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'">
                     {{ session.view_mode }}
                   </span>
                   <span v-else class="text-xs text-gray-400">—</span>
@@ -472,6 +498,15 @@ const suggestions = computed(() => {
   const list = [];
   const a = analytics.value;
   const status = props.proposal?.status;
+
+  const techSec = a.technical_engagement;
+  const techSessions = a.by_view_mode?.technical?.sessions || 0;
+  if (techSec && (techSec.total_time_seconds >= 40 || (techSessions >= 1 && techSec.total_time_seconds >= 15))) {
+    list.push({
+      icon: '🔧',
+      text: 'Hubo lectura del documento técnico — buena señal si el decisor técnico o un CTO revisó arquitectura y requerimientos. Refuerza ese hilo en el seguimiento.',
+    });
+  }
 
   const skippedTypes = (a.skipped_sections || []).map(s => s.section_type);
 
@@ -553,6 +588,16 @@ const SECTION_INSIGHTS = {
     label: 'Revisó tu portafolio',
     text: 'Está validando la calidad de tu trabajo. Menciona proyectos similares en el follow-up.',
   },
+  technical_document_public: {
+    icon: '🔧',
+    label: 'Profundizó en lo técnico',
+    text: 'Pasó tiempo en el documento técnico (vista pública). Es señal de validación técnica: ofrece una llamada con perfil técnico o aclara integraciones y riesgos.',
+  },
+  technical_document: {
+    icon: '🔧',
+    label: 'Sección técnica vista',
+    text: 'Registro en flujo comercial de la sección técnica. Alinea la conversación con arquitectura y alcance técnico acordado.',
+  },
 };
 
 const sectionInsights = computed(() => {
@@ -576,6 +621,13 @@ onMounted(async () => {
   }
   loading.value = false;
 });
+
+/** Friendly label for raw tracking section_type (technical split). */
+function sectionAnalyticsTypeLabel(sectionType) {
+  if (sectionType === 'technical_document_public') return 'doc. técnico (vista pública)';
+  if (sectionType === 'technical_document') return 'doc. técnico';
+  return '';
+}
 
 function downloadCSV() {
   const url = `/api/proposals/${props.proposalId}/analytics/csv/`;

@@ -258,6 +258,7 @@ const projectItems = computed(() => {
       { label: 'Bugs', href: lp('/platform/bugs'), icon: 'bug' },
       { label: 'Entregables', href: lp('/platform/deliverables'), icon: 'file' },
       { label: 'Pagos', href: lp('/platform/payments'), icon: 'credit-card' },
+      { label: 'Collection accounts', href: lp('/platform/collection-accounts'), icon: 'file' },
     ]
   }
   return [
@@ -267,6 +268,7 @@ const projectItems = computed(() => {
     { label: 'Bugs', href: lp('/platform/bugs'), icon: 'bug' },
     { label: 'Entregables', href: lp('/platform/deliverables'), icon: 'file' },
     { label: 'Pagos', href: lp('/platform/payments'), icon: 'credit-card' },
+    { label: 'Collection accounts', href: lp('/platform/collection-accounts'), icon: 'file' },
   ]
 })
 
@@ -284,6 +286,7 @@ const projectSubModules = {
   bugs: '/platform/bugs',
   deliverables: '/platform/deliverables',
   payments: '/platform/payments',
+  'collection-accounts': '/platform/collection-accounts',
 }
 
 function isActive(href) {
@@ -291,7 +294,7 @@ function isActive(href) {
   const cleanHref = href.replace(/^\/[a-z]{2}-[a-z]{2}/, '')
 
   // Check if we're on a project sub-route (e.g. /platform/projects/5/payments)
-  const projectSubMatch = cleanPath.match(/^\/platform\/projects\/\d+\/(\w+)/)
+  const projectSubMatch = cleanPath.match(/^\/platform\/projects\/\d+\/([^/]+)/)
   if (projectSubMatch) {
     const subSection = projectSubMatch[1]
     const mappedModule = projectSubModules[subSection]

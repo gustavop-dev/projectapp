@@ -1,12 +1,21 @@
 <template>
   <div id="platform-payments">
-    <div class="mb-6" data-enter>
-      <h1 class="text-2xl font-bold text-esmerald dark:text-white">
-        {{ authStore.isAdmin ? 'Suscripciones' : 'Mi suscripción' }}
-      </h1>
-      <p class="mt-1 text-sm text-green-light">
-        {{ authStore.isAdmin ? 'Suscripciones de hosting de todos los proyectos.' : 'Estado de tu suscripción de hosting.' }}
-      </p>
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between" data-enter>
+      <div>
+        <h1 class="text-2xl font-bold text-esmerald dark:text-white">
+          {{ authStore.isAdmin ? 'Suscripciones' : 'Mi suscripción' }}
+        </h1>
+        <p class="mt-1 text-sm text-green-light">
+          {{ authStore.isAdmin ? 'Suscripciones de hosting de todos los proyectos.' : 'Estado de tu suscripción de hosting.' }}
+        </p>
+      </div>
+      <label
+        v-if="authStore.isAdmin"
+        class="flex cursor-pointer items-center gap-2 rounded-full border border-esmerald/10 px-3 py-1.5 text-xs font-medium text-green-light dark:border-white/10"
+      >
+        <input v-model="includeArchived" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+        Mostrar archivados
+      </label>
     </div>
 
     <div v-if="payStore.isLoading" class="py-20 text-center">
@@ -28,13 +37,16 @@
           <!-- Sub header -->
           <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div class="flex items-center gap-2">
+              <div class="flex flex-wrap items-center gap-2">
                 <NuxtLink
                   :to="localePath(`/platform/projects/${sub.project_id}`)"
                   class="text-base font-semibold text-esmerald transition hover:text-esmerald/70 dark:text-white dark:hover:text-lemon"
                 >
                   {{ sub.project_name }}
                 </NuxtLink>
+                <span v-if="sub.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:text-gray-400">
+                  Archivada
+                </span>
                 <span class="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase" :class="subStatusClass(sub.status)">
                   {{ sub.status_display }}
                 </span>
@@ -80,8 +92,9 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
+import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 
 const localePath = useLocalePath()
@@ -93,6 +106,7 @@ usePageEntrance('#platform-payments')
 
 const authStore = usePlatformAuthStore()
 const payStore = usePlatformPaymentsStore()
+const includeArchived = usePlatformIncludeArchived()
 
 function subStatusClass(s) {
   const map = {
@@ -114,5 +128,15 @@ function formatDate(val) {
   return new Date(val).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-onMounted(async () => { await payStore.fetchSubscriptions() })
+async function loadSubscriptions() {
+  await payStore.fetchSubscriptions(authStore.isAdmin && includeArchived.value)
+}
+
+onMounted(async () => {
+  await loadSubscriptions()
+})
+
+watch(includeArchived, () => {
+  if (authStore.isAdmin) loadSubscriptions()
+})
 </script>

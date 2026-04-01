@@ -298,6 +298,18 @@ class TestTrackProposalEngagementEdgeCases:
         event.refresh_from_db()
         assert event.view_mode == 'executive'
 
+    def test_view_mode_technical_persisted_on_track(self, api_client, tracked_proposal):
+        """Technical view mode is stored on the view event."""
+        p = tracked_proposal
+        url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': p.uuid})
+        api_client.post(url, {
+            'session_id': 'sess-tech',
+            'sections': [{'section_type': 'tech_intro', 'time_spent_seconds': 2}],
+            'view_mode': 'technical',
+        }, format='json')
+        event = ProposalViewEvent.objects.get(proposal=p, session_id='sess-tech')
+        assert event.view_mode == 'technical'
+
     def test_engagement_declining_reset_on_normal_engagement(
         self, api_client, tracked_proposal,
     ):
@@ -421,6 +433,68 @@ class TestDashboardViewModeAnalytics:
 
         assert response.status_code == 200
         assert 'win_rate_by_view_mode' in response.data
+
+    def test_dashboard_top_dropoff_omits_synthetic_technical_public(self, admin_client, db):
+        """Global top_dropoff ignores technical_document_public (not in funnel allowlist)."""
+        p = BusinessProposal.objects.create(
+            title='Tech Only', client_name='T', client_email='t@t.com',
+            status='sent', total_investment=Decimal('1000.00'),
+            sent_at=FROZEN_NOW - timedelta(days=1),
+            expires_at=FROZEN_NOW + timedelta(days=10),
+        )
+        ev = ProposalViewEvent.objects.create(
+            proposal=p, session_id='only-synth-tech', view_mode='technical',
+            viewed_at=FROZEN_NOW - timedelta(hours=1),
+        )
+        ProposalSectionView.objects.create(
+            view_event=ev,
+            section_type='technical_document_public',
+            section_title='Stack',
+            time_spent_seconds=30,
+            entered_at=FROZEN_NOW - timedelta(hours=1),
+            view_mode='technical',
+        )
+        url = reverse('proposal-dashboard')
+        response = admin_client.get(url)
+        assert response.status_code == 200
+        assert response.data['top_dropoff_section'] is None
+
+
+# ═══════════════════════════════════════════════════════════════════
+# content/views/proposal.py — heat score technical summary
+# ═══════════════════════════════════════════════════════════════════
+
+
+@freeze_time('2026-01-15T10:00:00Z')
+class TestHeatScoreTechnicalSummary:
+    def test_engagement_summary_includes_technical_fields(self, db):
+        """Heat score summary exposes technical_time_sec after public technical views."""
+        p = BusinessProposal.objects.create(
+            title='H', client_name='H', client_email='h@h.com',
+            status='viewed', total_investment=Decimal('5000.00'),
+            sent_at=FROZEN_NOW - timedelta(days=2),
+            first_viewed_at=FROZEN_NOW - timedelta(days=1),
+            view_count=1,
+            expires_at=FROZEN_NOW + timedelta(days=10),
+        )
+        ev = ProposalViewEvent.objects.create(
+            proposal=p, session_id='heat-tech', view_mode='technical',
+            viewed_at=FROZEN_NOW - timedelta(hours=2),
+        )
+        ProposalSectionView.objects.create(
+            view_event=ev,
+            section_type='technical_document_public',
+            section_title='Arquitectura',
+            time_spent_seconds=30,
+            entered_at=FROZEN_NOW - timedelta(hours=2),
+            view_mode='technical',
+        )
+        from content.views.proposal import _compute_heat_score_with_summary
+
+        result = _compute_heat_score_with_summary(p.id, FROZEN_NOW)
+        summary = result['engagement_summary']
+        assert summary['technical_time_sec'] == 30
+        assert summary['technical_viewed'] is True
 
 
 # ═══════════════════════════════════════════════════════════════════

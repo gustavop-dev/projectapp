@@ -32,6 +32,7 @@ module.exports = {
     collectCoverageFrom: [
         'stores/**/*.js',
         'composables/**/*.js',
+        'utils/**/*.js',
         '!**/node_modules/**',
     ],
     coveragePathIgnorePatterns: [

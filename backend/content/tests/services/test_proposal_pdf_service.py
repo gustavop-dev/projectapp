@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
+from freezegun import freeze_time
 from pypdf import PdfReader
 from reportlab.lib.pagesizes import A4, LETTER
 from reportlab.pdfgen import canvas
@@ -875,6 +876,57 @@ class TestGenerate:
 
         assert result is not None
         assert isinstance(result, bytes)
+        mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @freeze_time('2026-06-01T12:00:00')
+    def test_commercial_pdf_excludes_technical_document_section(
+        self, mock_back, mock_cover, db,
+    ):
+        """Commercial PDF must not embed technical_document body text."""
+        p = BusinessProposal.objects.create(
+            title='Tech exclusion test',
+            client_name='Client',
+            client_email='c@example.com',
+            language='es',
+            total_investment=Decimal('1000000'),
+            currency='COP',
+            status='sent',
+            expires_at=timezone.now() + timezone.timedelta(days=10),
+        )
+        ProposalSection.objects.create(
+            proposal=p,
+            section_type='greeting',
+            title='Hi',
+            order=0,
+            is_enabled=True,
+            content_json={
+                'clientName': 'Client',
+                'inspirationalQuote': 'Q',
+            },
+        )
+        marker = 'UNIQUE_TECH_PDF_MARKER_Z9y8x7w6'
+        ProposalSection.objects.create(
+            proposal=p,
+            section_type='technical_document',
+            title='Technical',
+            order=1,
+            is_enabled=True,
+            content_json={'purpose': marker},
+        )
+
+        pdf_bytes = ProposalPdfService.generate(p)
+        assert pdf_bytes is not None
+        latin = pdf_bytes.decode('latin-1', errors='ignore')
+        assert marker not in latin
         mock_cover.exists.assert_called()
         mock_back.exists.assert_called()
 

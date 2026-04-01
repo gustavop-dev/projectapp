@@ -23,9 +23,11 @@ def admin_user():
 
 @pytest.fixture
 def admin_headers(api_client, admin_user):
-    resp = api_client.post('/api/accounts/login/', {
-        'email': 'admin@test.com', 'password': 'adminpass1',
-    })
+    resp = api_client.post(
+        '/api/accounts/login/',
+        {'email': 'admin@test.com', 'password': 'adminpass1'},
+        format='json',
+    )
     token = resp.json()['tokens']['access']
     return {'HTTP_AUTHORIZATION': f'Bearer {token}'}
 
@@ -71,12 +73,17 @@ class TestClientList:
 @pytest.mark.django_db
 class TestCreateClient:
     def test_create_client_success(self, api_client, admin_headers, mailoutbox):
-        resp = api_client.post('/api/accounts/clients/', {
-            'email': 'new@client.com',
-            'first_name': 'New',
-            'last_name': 'Client',
-            'company_name': 'NewCorp',
-        }, **admin_headers)
+        resp = api_client.post(
+            '/api/accounts/clients/',
+            {
+                'email': 'new@client.com',
+                'first_name': 'New',
+                'last_name': 'Client',
+                'company_name': 'NewCorp',
+            },
+            format='json',
+            **admin_headers,
+        )
 
         assert resp.status_code == 201
         data = resp.json()
@@ -85,10 +92,16 @@ class TestCreateClient:
         assert len(mailoutbox) == 1
 
     def test_create_duplicate_email_rejected(self, api_client, admin_headers, sample_client):
-        resp = api_client.post('/api/accounts/clients/', {
-            'email': 'existing@client.com',
-            'first_name': 'Dup', 'last_name': 'User',
-        }, **admin_headers)
+        resp = api_client.post(
+            '/api/accounts/clients/',
+            {
+                'email': 'existing@client.com',
+                'first_name': 'Dup',
+                'last_name': 'User',
+            },
+            format='json',
+            **admin_headers,
+        )
 
         assert resp.status_code == 400
 

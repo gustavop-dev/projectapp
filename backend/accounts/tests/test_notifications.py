@@ -4,6 +4,7 @@ from rest_framework.test import APIClient
 
 from accounts.models import (
     ChangeRequest,
+    Deliverable,
     Notification,
     Project,
     UserProfile,
@@ -68,6 +69,14 @@ def project(client_user):
     return Project.objects.create(
         name='Notif Project', client=client_user,
         status=Project.STATUS_ACTIVE, progress=0,
+    )
+
+
+@pytest.fixture
+def deliverable(project, client_user):
+    return Deliverable.objects.create(
+        project=project, title='Notif D', category=Deliverable.CATEGORY_OTHER,
+        file=None, uploaded_by=client_user,
     )
 
 
@@ -159,6 +168,17 @@ class TestNotificationService:
         )
 
         assert result is None
+
+    def test_notify_persists_deliverable(self, client_user, project, deliverable):
+        notif = notify(
+            user=client_user,
+            type=Notification.TYPE_DELIVERABLE_UPLOADED,
+            title='With deliverable',
+            project=project,
+            deliverable=deliverable,
+        )
+
+        assert notif.deliverable_id == deliverable.id
 
 
 # =========================================================================
@@ -390,11 +410,11 @@ class TestNotificationIntegration:
         assert client_notifs.count() == 1
 
     def test_bug_report_by_client_notifies_admins(
-        self, api_client, client_headers, project, admin_user,
+        self, api_client, client_headers, project, admin_user, deliverable,
     ):
         api_client.post(
             f'/api/accounts/projects/{project.id}/bug-reports/',
-            {'title': 'Button broken', 'severity': 'high'},
+            {'deliverable_id': deliverable.id, 'title': 'Button broken', 'severity': 'high'},
             format='json', **client_headers,
         )
 
@@ -402,13 +422,14 @@ class TestNotificationIntegration:
             user=admin_user, type=Notification.TYPE_BUG_REPORTED,
         )
         assert admin_notifs.count() == 1
+        assert admin_notifs.first().deliverable_id == deliverable.id
 
     def test_bug_evaluate_notifies_client(
-        self, api_client, admin_headers, client_headers, project, client_user,
+        self, api_client, admin_headers, client_headers, project, client_user, deliverable,
     ):
         resp = api_client.post(
             f'/api/accounts/projects/{project.id}/bug-reports/',
-            {'title': 'Some bug', 'severity': 'medium'},
+            {'deliverable_id': deliverable.id, 'title': 'Some bug', 'severity': 'medium'},
             format='json', **client_headers,
         )
         bug_id = resp.json()['id']
@@ -423,6 +444,7 @@ class TestNotificationIntegration:
             user=client_user, type=Notification.TYPE_BUG_STATUS_CHANGED,
         )
         assert client_notifs.count() == 1
+        assert client_notifs.first().deliverable_id == deliverable.id
 
     def test_deliverable_upload_notifies_client(
         self, api_client, admin_headers, project, client_user,
@@ -441,3 +463,4 @@ class TestNotificationIntegration:
             user=client_user, type=Notification.TYPE_DELIVERABLE_UPLOADED,
         )
         assert client_notifs.count() == 1
+        assert client_notifs.first().deliverable_id is not None

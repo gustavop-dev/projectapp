@@ -377,83 +377,155 @@
 
       <!-- Tab: Prompt Proposal -->
       <div v-show="activeTab === 'prompt'" class="max-w-4xl">
-        <p class="text-sm text-gray-500 mb-6">
-          Este prompt se usa con IA (ChatGPT, Claude, etc.) para generar propuestas comerciales personalizadas a partir del JSON plantilla.
-        </p>
+        <PromptSubTabsPanel v-model="promptSubTab">
+          <template #commercial>
+          <p class="text-sm text-gray-500 mb-6">
+            Este prompt se usa con IA (ChatGPT, Claude, etc.) para generar propuestas comerciales personalizadas a partir del JSON plantilla.
+          </p>
 
-        <!-- Action bar -->
-        <div class="flex flex-wrap items-center gap-2 mb-4">
-          <template v-if="!promptIsEditing">
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-              @click="startEditPrompt"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-              Editar
-            </button>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-              @click="handleCopyPrompt"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-              {{ promptCopied ? '¡Copiado!' : 'Copiar' }}
-            </button>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-              @click="promptDownload"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              Descargar .md
-            </button>
-            <button
-              v-if="promptText !== promptDefault"
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-gray-200 rounded-xl hover:bg-red-50 transition-colors"
-              @click="handleResetPrompt"
-            >
-              Restaurar original
-            </button>
-          </template>
-          <template v-else>
-            <button
-              type="button"
-              class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
-              @click="saveEditPrompt"
-            >
-              Guardar cambios
-            </button>
-            <button
-              type="button"
-              class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-              @click="cancelEditPrompt"
-            >
-              Cancelar
-            </button>
-          </template>
-        </div>
-
-        <!-- Editing mode -->
-        <div v-if="promptIsEditing" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <textarea
-            v-model="promptEditBuffer"
-            rows="30"
-            class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 bg-transparent border-0 outline-none resize-y focus:ring-0"
-          ></textarea>
-        </div>
-
-        <!-- Read-only mode -->
-        <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
-            <pre class="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap font-mono break-words">{{ promptText }}</pre>
+          <!-- Action bar -->
+          <div class="flex flex-wrap items-center gap-2 mb-4">
+            <template v-if="!promptIsEditing">
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                @click="startEditPrompt"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                Editar
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                @click="handleCopyPrompt"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                {{ promptCopied ? '¡Copiado!' : 'Copiar' }}
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                @click="promptDownload"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Descargar .md
+              </button>
+              <button
+                v-if="promptText !== promptDefault"
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-gray-200 rounded-xl hover:bg-red-50 transition-colors"
+                @click="handleResetPrompt"
+              >
+                Restaurar original
+              </button>
+            </template>
+            <template v-else>
+              <button
+                type="button"
+                class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+                @click="saveEditPrompt"
+              >
+                Guardar cambios
+              </button>
+              <button
+                type="button"
+                class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+                @click="cancelEditPrompt"
+              >
+                Cancelar
+              </button>
+            </template>
           </div>
-        </div>
 
-        <p v-if="promptText !== promptDefault" class="text-xs text-amber-600 mt-3">
-          Este prompt ha sido personalizado. Usa "Restaurar original" para volver al valor por defecto.
-        </p>
+          <div v-if="promptIsEditing" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <textarea
+              v-model="promptEditBuffer"
+              rows="30"
+              class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 bg-transparent border-0 outline-none resize-y focus:ring-0"
+            />
+          </div>
+
+          <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
+              <pre class="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap font-mono break-words">{{ promptText }}</pre>
+            </div>
+          </div>
+
+          <p v-if="promptText !== promptDefault" class="text-xs text-amber-600 mt-3">
+            Este prompt ha sido personalizado. Usa "Restaurar original" para volver al valor por defecto.
+          </p>
+          </template>
+
+          <template #technical>
+          <p class="text-sm text-gray-500 mb-6">
+            Prompt para generar solo la clave <code class="text-xs bg-gray-100 px-1 rounded">technicalDocument</code> del JSON (arquitectura, épicas, requerimientos, integraciones, etc.). Sin narrativa comercial ni precios.
+          </p>
+          <div class="flex flex-wrap items-center gap-2 mb-4">
+            <template v-if="!technicalPromptIsEditing">
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                @click="startEditTechnicalPrompt"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                @click="handleCopyTechnicalPrompt"
+              >
+                {{ technicalPromptCopied ? '¡Copiado!' : 'Copiar' }}
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                @click="technicalPromptDownload"
+              >
+                Descargar .md
+              </button>
+              <button
+                v-if="technicalPromptText !== technicalPromptDefault"
+                type="button"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-gray-200 rounded-xl hover:bg-red-50 transition-colors"
+                @click="handleResetTechnicalPrompt"
+              >
+                Restaurar original
+              </button>
+            </template>
+            <template v-else>
+              <button
+                type="button"
+                class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+                @click="saveEditTechnicalPrompt"
+              >
+                Guardar cambios
+              </button>
+              <button
+                type="button"
+                class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+                @click="cancelEditTechnicalPrompt"
+              >
+                Cancelar
+              </button>
+            </template>
+          </div>
+          <div v-if="technicalPromptIsEditing" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <textarea
+              v-model="technicalPromptEditBuffer"
+              rows="28"
+              class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 bg-transparent border-0 outline-none resize-y focus:ring-0"
+            />
+          </div>
+          <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
+              <pre class="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap font-mono break-words">{{ technicalPromptText }}</pre>
+            </div>
+          </div>
+          <p v-if="technicalPromptText !== technicalPromptDefault" class="text-xs text-amber-600 mt-3">
+            Prompt técnico personalizado. «Restaurar original» vuelve al texto por defecto.
+          </p>
+          </template>
+        </PromptSubTabsPanel>
       </div>
 
       <!-- Tab: JSON -->
@@ -547,6 +619,7 @@
             <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
               <span><span class="text-gray-500">Cliente:</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.clientName }}</span></span>
               <span><span class="text-gray-500">Secciones:</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.sectionCount }}</span></span>
+              <span v-if="jsonImportPreview.epicCount != null"><span class="text-gray-500">Épicas (téc.):</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.epicCount }}</span></span>
               <span v-if="jsonImportPreview.investment"><span class="text-gray-500">Inversión:</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.investment }}</span></span>
             </div>
           </div>
@@ -619,6 +692,75 @@
         <ProposalAnalytics :proposalId="proposal.id" :proposal="proposal" />
       </div>
 
+      <!-- Tab: Documento técnico -->
+      <div v-show="activeTab === 'technical'" class="max-w-5xl">
+        <div class="flex gap-1 mb-4 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 max-w-sm">
+          <button
+            type="button"
+            :class="[
+              'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
+              technicalSubTab === 'editor' ? 'bg-white dark:bg-gray-700 shadow-sm font-medium text-gray-900 dark:text-gray-100' : 'text-gray-500',
+            ]"
+            @click="technicalSubTab = 'editor'"
+          >
+            Editor
+          </button>
+          <button
+            type="button"
+            :class="[
+              'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
+              technicalSubTab === 'json' ? 'bg-white dark:bg-gray-700 shadow-sm font-medium text-gray-900 dark:text-gray-100' : 'text-gray-500',
+            ]"
+            @click="technicalSubTab = 'json'"
+          >
+            JSON
+          </button>
+        </div>
+        <div v-show="technicalSubTab === 'editor'">
+          <p v-if="!technicalSection" class="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+            No se encontró la sección «Documento técnico». Ejecuta migraciones o crea la propuesta de nuevo.
+          </p>
+          <template v-else>
+            <label class="flex items-center gap-2 text-sm text-gray-600 mb-4 cursor-pointer">
+              <input
+                type="checkbox"
+                class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                :checked="technicalSection.is_enabled"
+                @change="toggleTechnicalSectionEnabled"
+              />
+              Visible en la propuesta (cuando exista vista pública del modo técnico)
+            </label>
+            <TechnicalDocumentEditor
+              :key="technicalSection.id"
+              :section="technicalSection"
+              :module-link-options="technicalModuleLinkOptions"
+              @save="handleSaveSection"
+            />
+          </template>
+        </div>
+        <div v-show="technicalSubTab === 'json'" class="space-y-4">
+          <p class="text-xs text-gray-500">
+            Solo el objeto <code class="bg-gray-100 px-1 rounded">content_json</code> del documento técnico. Debe ser JSON válido (mismo esquema que el editor).
+          </p>
+          <textarea
+            v-model="technicalJsonRaw"
+            rows="22"
+            class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-xs font-mono bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 resize-y outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+          <div v-if="technicalJsonError" class="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">{{ technicalJsonError }}</div>
+          <div v-if="technicalJsonMsg" class="text-sm px-4 py-2 rounded-lg" :class="technicalJsonMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'">
+            {{ technicalJsonMsg.text }}
+          </div>
+          <button
+            type="button"
+            class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700"
+            @click="handleApplyTechnicalJson"
+          >
+            Guardar JSON
+          </button>
+        </div>
+      </div>
+
       <!-- Tab: Sections -->
       <div v-show="activeTab === 'sections'">
         <!-- F10: Section completeness indicator -->
@@ -637,13 +779,13 @@
             />
           </div>
           <p class="text-[11px] text-gray-400 mt-1.5">
-            {{ sectionsWithContent }}/{{ enabledSectionsCount }} secciones habilitadas tienen contenido
+            {{ sectionsWithContent }}/{{ enabledSectionsCount }} secciones comerciales habilitadas tienen contenido (sin contar «Doc. técnico» — pestaña dedicada).
           </p>
         </div>
 
         <div class="space-y-3">
           <div
-            v-for="section in allSections"
+            v-for="section in commercialSections"
             :key="section.id"
             class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
           >
@@ -683,6 +825,7 @@
               <SectionEditor
                 :section="section"
                 :proposalData="proposal"
+                :module-link-options="technicalModuleLinkOptions"
                 @save="handleSaveSection"
                 @syncHostingPercent="handleSyncHostingPercent"
               />
@@ -778,10 +921,14 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
+import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
+import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
+import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
+import { buildProposalModuleLinkOptions } from '~/utils/proposalModuleLinkOptions';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -804,12 +951,24 @@ const allSections = computed(() =>
   [...(proposal.value?.sections || [])].sort((a, b) => a.order - b.order)
 );
 
+const commercialSections = computed(() =>
+  allSections.value.filter(s => s.section_type !== 'technical_document')
+);
+
+const technicalSection = computed(() =>
+  allSections.value.find(s => s.section_type === 'technical_document') || null
+);
+
+const technicalModuleLinkOptions = computed(() =>
+  buildProposalModuleLinkOptions(proposal.value?.sections || []),
+);
+
 const enabledSectionsCount = computed(() =>
-  allSections.value.filter(s => s.is_enabled).length
+  commercialSections.value.filter(s => s.is_enabled).length
 );
 
 const sectionsWithContent = computed(() => {
-  return allSections.value.filter(s => {
+  return commercialSections.value.filter(s => {
     if (!s.is_enabled) return false;
     let cj = s.content_json;
     if (typeof cj === 'string') {
@@ -825,9 +984,11 @@ const sectionCompleteness = computed(() => {
 });
 
 const activeTab = ref('general');
+const technicalSubTab = ref('editor');
 const tabs = [
   { id: 'general', label: 'General' },
   { id: 'sections', label: 'Secciones' },
+  { id: 'technical', label: 'Doc. técnico' },
   { id: 'prompt', label: 'Prompt Proposal' },
   { id: 'json', label: 'JSON' },
   { id: 'activity', label: 'Actividad' },
@@ -869,6 +1030,90 @@ function handleResetPrompt() {
   promptReset();
 }
 
+const promptSubTab = ref('commercial');
+
+const {
+  promptText: technicalPromptText,
+  isEditing: technicalPromptIsEditing,
+  DEFAULT_PROMPT: technicalPromptDefault,
+  loadSavedPrompt: loadTechnicalPrompt,
+  savePrompt: technicalPromptSave,
+  resetPrompt: technicalPromptReset,
+  copyPrompt: technicalPromptCopy,
+  downloadPrompt: technicalPromptDownload,
+} = useTechnicalPrompt();
+
+const technicalPromptEditBuffer = ref('');
+const technicalPromptCopied = ref(false);
+
+function startEditTechnicalPrompt() {
+  technicalPromptEditBuffer.value = technicalPromptText.value;
+  technicalPromptIsEditing.value = true;
+}
+function cancelEditTechnicalPrompt() {
+  technicalPromptIsEditing.value = false;
+}
+function saveEditTechnicalPrompt() {
+  technicalPromptSave(technicalPromptEditBuffer.value);
+  technicalPromptIsEditing.value = false;
+}
+async function handleCopyTechnicalPrompt() {
+  await technicalPromptCopy();
+  technicalPromptCopied.value = true;
+  setTimeout(() => { technicalPromptCopied.value = false; }, 2000);
+}
+function handleResetTechnicalPrompt() {
+  technicalPromptReset();
+  technicalPromptIsEditing.value = false;
+}
+
+const technicalJsonRaw = ref('');
+const technicalJsonError = ref('');
+const technicalJsonMsg = ref(null);
+
+function refreshTechnicalJsonFromProposal() {
+  const s = technicalSection.value;
+  if (!s?.content_json) {
+    technicalJsonRaw.value = '{}';
+    return;
+  }
+  try {
+    technicalJsonRaw.value = JSON.stringify(s.content_json, null, 2);
+  } catch {
+    technicalJsonRaw.value = '{}';
+  }
+  technicalJsonError.value = '';
+}
+
+async function handleApplyTechnicalJson() {
+  technicalJsonError.value = '';
+  technicalJsonMsg.value = null;
+  const sid = technicalSection.value?.id;
+  if (!sid) {
+    technicalJsonError.value = 'No hay sección técnica.';
+    return;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(technicalJsonRaw.value.trim());
+  } catch (e) {
+    technicalJsonError.value = `JSON inválido: ${e.message}`;
+    return;
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    technicalJsonError.value = 'El contenido debe ser un objeto JSON.';
+    return;
+  }
+  const result = await proposalStore.updateSection(sid, { content_json: parsed });
+  if (result.success) {
+    technicalJsonMsg.value = { type: 'success', text: 'Documento técnico actualizado.' };
+    await proposalStore.fetchProposal(proposal.value.id);
+    refreshTechnicalJsonFromProposal();
+  } else {
+    technicalJsonMsg.value = { type: 'error', text: 'No se pudo guardar.' };
+  }
+}
+
 const isRefreshing = ref(false);
 const expandedSections = ref(new Set());
 const updateMsg = ref(null);
@@ -899,6 +1144,7 @@ onMounted(async () => {
   const id = route.params.id;
   await proposalStore.fetchProposal(id);
   loadSavedPrompt();
+  loadTechnicalPrompt();
   if (proposal.value) {
     Object.assign(form, {
       title: proposal.value.title,
@@ -1063,6 +1309,12 @@ function handleResend() {
   });
 }
 
+async function toggleTechnicalSectionEnabled() {
+  const s = technicalSection.value;
+  if (!s?.id) return;
+  await proposalStore.updateSection(s.id, { is_enabled: !s.is_enabled });
+}
+
 async function handleToggleActive() {
   const result = await proposalStore.toggleProposalActive(proposal.value.id);
   if (result.success) {
@@ -1120,7 +1372,7 @@ const EXPECTED_SECTION_KEYS = [
   'general', 'executiveSummary', 'contextDiagnostic', 'conversionStrategy',
   'designUX', 'creativeSupport', 'developmentStages', 'processMethodology',
   'functionalRequirements', 'timeline', 'investment', 'proposalSummary',
-  'finalNote', 'nextSteps',
+  'finalNote', 'nextSteps', 'technicalDocument',
 ];
 
 const jsonExportLoading = ref(false);
@@ -1144,7 +1396,9 @@ const jsonImportPreview = computed(() => {
   const clientName = p.general?.clientName || '';
   const sectionCount = EXPECTED_SECTION_KEYS.filter((k) => k in p).length;
   const investment = p.investment?.totalInvestment || '';
-  return { clientName, sectionCount, investment };
+  const epics = p.technicalDocument?.epics;
+  const epicCount = Array.isArray(epics) ? epics.length : null;
+  return { clientName, sectionCount, investment, epicCount };
 });
 
 async function refreshExportJson() {
@@ -1322,6 +1576,15 @@ async function handleApplyImportJson() {
 watch(activeTab, (newTab) => {
   if (newTab === 'json' && proposal.value?.id) {
     refreshExportJson();
+  }
+  if (newTab === 'technical') {
+    refreshTechnicalJsonFromProposal();
+  }
+});
+
+watch(technicalSubTab, (sub) => {
+  if (activeTab.value === 'technical' && sub === 'json') {
+    refreshTechnicalJsonFromProposal();
   }
 });
 

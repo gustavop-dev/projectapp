@@ -17,7 +17,9 @@
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "e2e:coverage": "npm run e2e:clean && playwright test",
-    "e2e:clean": "rm -rf e2e-results"
+    "e2e:clean": "rm -rf e2e-results",
+    "check:e2e-flow-sync": "node scripts/check-flow-definitions-sync.mjs",
+    "ci:e2e-flow-summary": "node scripts/report-e2e-flow-coverage-ci.mjs"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.22",

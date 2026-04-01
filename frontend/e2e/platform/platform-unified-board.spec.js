@@ -37,8 +37,17 @@ function setupUnifiedBoardMocks(page, user) {
     if (apiPath === 'accounts/projects/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProjects) };
     }
-    if (apiPath.match(/accounts\/projects\/\d+\/requirements\//) && method === 'GET') {
-      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockRequirements) };
+    if (apiPath === 'accounts/projects/1/deliverables/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([{ id: 1, title: 'Main' }]) };
+    }
+    if (apiPath === 'accounts/projects/2/deliverables/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([{ id: 2, title: 'Main' }]) };
+    }
+    if (apiPath === 'accounts/projects/1/deliverables/1/requirements/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([mockRequirements[0]]) };
+    }
+    if (apiPath === 'accounts/projects/2/deliverables/2/requirements/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([mockRequirements[1]]) };
     }
     if (apiPath.startsWith('accounts/clients/')) {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };

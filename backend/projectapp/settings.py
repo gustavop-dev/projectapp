@@ -184,6 +184,12 @@ STORAGES = {
 
 FRONTEND_BASE_URL = config('FRONTEND_BASE_URL', default='http://localhost:3000')
 
+# When True, accepting a proposal without a linked deliverable creates a platform client
+# (if missing) + project + deliverable from proposal.client_email / client_name.
+AUTO_PROVISION_CLIENT_FROM_PROPOSAL = config(
+    'AUTO_PROVISION_CLIENT_FROM_PROPOSAL', default=False, cast=bool,
+)
+
 # ==============================================================================
 # EMAIL — override in settings_dev.py / settings_prod.py
 # ==============================================================================

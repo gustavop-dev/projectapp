@@ -16,7 +16,14 @@
           <h1 class="text-xl font-bold text-esmerald dark:text-white sm:text-2xl">Entregables</h1>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+          <label
+            v-if="authStore.isAdmin"
+            class="flex cursor-pointer items-center gap-2 rounded-full border border-esmerald/10 px-3 py-1.5 text-xs font-medium text-green-light dark:border-white/10"
+          >
+            <input v-model="includeArchived" type="checkbox" class="rounded border-esmerald/20 dark:border-white/20" />
+            Mostrar archivados
+          </label>
           <span class="rounded-full border border-esmerald/10 px-3 py-1.5 text-xs font-semibold text-green-light dark:border-white/10">
             {{ store.totalCount }} archivos
           </span>
@@ -64,22 +71,35 @@
               v-for="d in group.items"
               :key="d.id"
               class="group cursor-pointer rounded-2xl border border-esmerald/[0.06] bg-white p-5 transition hover:border-esmerald/15 hover:shadow-md dark:border-white/[0.06] dark:bg-esmerald dark:hover:border-white/12"
+              :class="d.is_archived ? 'opacity-85' : ''"
               @click="openDetailModal(d)"
             >
               <div class="mb-3 flex items-start justify-between gap-2">
                 <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" :class="categoryIconBg(d.category)">
                   <span class="text-lg">{{ categoryIcon(d.category) }}</span>
                 </div>
-                <span class="rounded-full bg-esmerald/[0.06] px-2 py-0.5 text-[10px] font-semibold text-green-light dark:bg-white/[0.06]">
-                  v{{ d.current_version }}
-                </span>
+                <div class="flex shrink-0 flex-col items-end gap-1">
+                  <span v-if="d.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[9px] font-semibold uppercase text-gray-600 dark:text-gray-400">
+                    Archivado
+                  </span>
+                  <span class="rounded-full bg-esmerald/[0.06] px-2 py-0.5 text-[10px] font-semibold text-green-light dark:bg-white/[0.06]">
+                    v{{ d.current_version }}
+                  </span>
+                </div>
               </div>
               <h4 class="text-sm font-semibold text-esmerald dark:text-white">{{ d.title }}</h4>
               <p v-if="d.description" class="mt-1 line-clamp-2 text-xs text-green-light">{{ d.description }}</p>
               <div class="mt-3 flex items-center justify-between text-[10px] text-green-light/60">
-                <span>{{ d.file_name }}</span>
+                <span>{{ d.file_name || '—' }}</span>
                 <span>{{ formatDate(d.updated_at) }}</span>
               </div>
+              <NuxtLink
+                :to="localePath(`/platform/projects/${projectId}/deliverables/${d.id}`)"
+                class="mt-3 inline-block text-xs font-medium text-esmerald dark:text-lemon"
+                @click.stop
+              >
+                Ficha: documentos y Kanban →
+              </NuxtLink>
             </div>
           </div>
         </div>
@@ -119,6 +139,9 @@
                     <option value="designs">Diseños</option>
                     <option value="credentials">Credenciales</option>
                     <option value="documents">Documentos</option>
+                    <option value="contract">Contrato</option>
+                    <option value="amendment">Otrosí</option>
+                    <option value="legal_annex">Anexo legal</option>
                     <option value="apks">APKs / Builds</option>
                     <option value="other">Otros</option>
                   </select>
@@ -167,10 +190,16 @@
             <div v-if="detailItem" class="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-esmerald/[0.06] bg-white p-6 shadow-2xl dark:border-white/[0.06] dark:bg-esmerald sm:p-8">
               <div class="mb-5 flex items-start justify-between gap-4">
                 <div class="flex-1">
-                  <div class="mb-2 flex items-center gap-2">
+                  <div class="mb-2 flex flex-wrap items-center gap-2">
                     <span class="rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase" :class="categoryBadgeClass(detailItem.category)">{{ categoryLabel(detailItem.category) }}</span>
                     <span class="rounded-full bg-esmerald/[0.06] px-2 py-0.5 text-[10px] font-semibold text-green-light dark:bg-white/[0.06]">v{{ detailItem.current_version }}</span>
+                    <span v-if="detailItem.is_archived" class="rounded-full bg-gray-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:text-gray-400">
+                      Archivado
+                    </span>
                   </div>
+                  <p v-if="detailItem.is_archived && detailItem.archived_at" class="mb-1 text-[10px] text-green-light/70">
+                    Archivado el {{ formatDate(detailItem.archived_at) }}
+                  </p>
                   <h2 class="text-lg font-bold text-esmerald dark:text-white">{{ detailItem.title }}</h2>
                 </div>
                 <button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white" @click="detailItem = null">
@@ -236,11 +265,31 @@
 
               <!-- Admin actions -->
               <div v-if="authStore.isAdmin" class="flex flex-wrap gap-2">
-                <button type="button" class="rounded-xl border border-esmerald/10 px-4 py-2 text-xs font-medium text-esmerald transition hover:bg-esmerald-light dark:border-white/10 dark:text-white dark:hover:bg-white/[0.06]" @click="openUploadVersion">
+                <button
+                  v-if="detailItem.is_archived"
+                  type="button"
+                  class="rounded-xl border border-emerald-500/30 px-4 py-2 text-xs font-medium text-emerald-700 transition hover:bg-emerald-500/10 dark:border-emerald-500/25 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
+                  :disabled="store.isUpdating"
+                  @click="handleRestore"
+                >
+                  {{ store.isUpdating ? '…' : 'Restaurar' }}
+                </button>
+                <button
+                  v-else
+                  type="button"
+                  class="rounded-xl border border-esmerald/10 px-4 py-2 text-xs font-medium text-esmerald transition hover:bg-esmerald-light dark:border-white/10 dark:text-white dark:hover:bg-white/[0.06]"
+                  @click="openUploadVersion"
+                >
                   Subir nueva versión
                 </button>
-                <button type="button" class="rounded-xl border border-red-200 px-4 py-2 text-xs font-medium text-red-500 transition hover:bg-red-50 dark:border-red-500/20 dark:hover:bg-red-500/10" @click="handleDelete">
-                  Eliminar
+                <button
+                  v-if="!detailItem.is_archived"
+                  type="button"
+                  class="rounded-xl border border-red-200 px-4 py-2 text-xs font-medium text-red-500 transition hover:bg-red-50 dark:border-red-500/20 dark:hover:bg-red-500/10"
+                  :disabled="store.isUpdating"
+                  @click="handleDelete"
+                >
+                  Archivar
                 </button>
               </div>
             </div>
@@ -290,8 +339,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { usePageEntrance } from '~/composables/usePageEntrance'
+import { usePlatformIncludeArchived } from '~/composables/usePlatformIncludeArchived'
 import { usePlatformAuthStore } from '~/stores/platform-auth'
 import { usePlatformDeliverablesStore } from '~/stores/platform-deliverables'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
@@ -305,6 +355,7 @@ const localePath = useLocalePath()
 const authStore = usePlatformAuthStore()
 const store = usePlatformDeliverablesStore()
 const projectsStore = usePlatformProjectsStore()
+const includeArchived = usePlatformIncludeArchived()
 
 const projectId = computed(() => route.params.id)
 const projectName = computed(() => projectsStore.currentProject?.name || 'Proyecto')
@@ -314,6 +365,9 @@ const categoryTabs = [
   { value: 'all', label: 'Todos' },
   { value: 'designs', label: 'Diseños' },
   { value: 'documents', label: 'Documentos' },
+  { value: 'contract', label: 'Contrato' },
+  { value: 'amendment', label: 'Otrosí' },
+  { value: 'legal_annex', label: 'Anexo legal' },
   { value: 'credentials', label: 'Credenciales' },
   { value: 'apks', label: 'APKs / Builds' },
   { value: 'other', label: 'Otros' },
@@ -333,19 +387,34 @@ const isVersionUploadOpen = ref(false)
 const versionFile = ref(null)
 
 function categoryLabel(cat) {
-  const map = { designs: 'Diseños', credentials: 'Credenciales', documents: 'Documentos', apks: 'APKs / Builds', other: 'Otros' }
+  const map = {
+    designs: 'Diseños', credentials: 'Credenciales', documents: 'Documentos',
+    contract: 'Contrato', amendment: 'Otrosí', legal_annex: 'Anexo legal',
+    apks: 'APKs / Builds', other: 'Otros',
+  }
   return map[cat] || cat
 }
 function categoryDotClass(cat) {
-  const map = { designs: 'bg-purple-500', credentials: 'bg-amber-500', documents: 'bg-blue-500', apks: 'bg-emerald-500', other: 'bg-gray-400' }
+  const map = {
+    designs: 'bg-purple-500', credentials: 'bg-amber-500', documents: 'bg-blue-500',
+    contract: 'bg-teal-500', amendment: 'bg-orange-500', legal_annex: 'bg-indigo-500',
+    apks: 'bg-emerald-500', other: 'bg-gray-400',
+  }
   return map[cat] || 'bg-gray-400'
 }
 function categoryIconBg(cat) {
-  const map = { designs: 'bg-purple-500/10', credentials: 'bg-amber-500/10', documents: 'bg-blue-500/10', apks: 'bg-emerald-500/10', other: 'bg-gray-500/10' }
+  const map = {
+    designs: 'bg-purple-500/10', credentials: 'bg-amber-500/10', documents: 'bg-blue-500/10',
+    contract: 'bg-teal-500/10', amendment: 'bg-orange-500/10', legal_annex: 'bg-indigo-500/10',
+    apks: 'bg-emerald-500/10', other: 'bg-gray-500/10',
+  }
   return map[cat] || 'bg-gray-500/10'
 }
 function categoryIcon(cat) {
-  const map = { designs: '🎨', credentials: '🔑', documents: '📄', apks: '📱', other: '📦' }
+  const map = {
+    designs: '🎨', credentials: '🔑', documents: '📄', contract: '📜', amendment: '✏️',
+    legal_annex: '⚖️', apks: '📱', other: '📦',
+  }
   return map[cat] || '📦'
 }
 function categoryBadgeClass(cat) {
@@ -353,6 +422,9 @@ function categoryBadgeClass(cat) {
     designs: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
     credentials: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
     documents: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+    contract: 'bg-teal-500/15 text-teal-600 dark:text-teal-400',
+    amendment: 'bg-orange-500/15 text-orange-600 dark:text-orange-400',
+    legal_annex: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400',
     apks: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
     other: 'bg-gray-500/15 text-gray-500',
   }
@@ -399,17 +471,35 @@ async function handleUploadVersion() {
   if (result.success) { detailItem.value = result.data; isVersionUploadOpen.value = false }
 }
 
+async function loadDeliverables() {
+  await store.fetchDeliverables(projectId.value, null, authStore.isAdmin && includeArchived.value)
+}
+
 async function handleDelete() {
   if (!detailItem.value) return
+  if (!window.confirm('¿Archivar este entregable? Podrás verlo otra vez activando "Mostrar archivados".')) return
   const result = await store.deleteDeliverable(projectId.value, detailItem.value.id)
   if (result.success) detailItem.value = null
 }
 
+async function handleRestore() {
+  if (!detailItem.value?.is_archived) return
+  const result = await store.updateDeliverable(projectId.value, detailItem.value.id, { is_archived: false })
+  if (result.success) {
+    detailItem.value = result.data
+    await loadDeliverables()
+  }
+}
+
 onMounted(async () => {
   await Promise.all([
-    store.fetchDeliverables(projectId.value),
+    loadDeliverables(),
     projectsStore.currentProject?.id !== Number(projectId.value) ? projectsStore.fetchProject(projectId.value) : Promise.resolve(),
   ])
+})
+
+watch([includeArchived, projectId], () => {
+  loadDeliverables()
 })
 </script>
 
