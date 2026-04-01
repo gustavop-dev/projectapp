@@ -11,10 +11,24 @@ class Command(BaseCommand):
 
     """
     To delete fake data via console, run:
-    python3 manage.py delete_fake_data
+    python3 manage.py delete_fake_data --confirm
     """
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--confirm',
+            action='store_true',
+            help='Confirm that you want to delete all fake data',
+        )
+
     def handle(self, *args, **options):
+        if not options['confirm']:
+            self.stdout.write(self.style.WARNING(
+                'This will delete ALL contacts, proposals, and blog posts.\n'
+                'Run with --confirm to proceed: python manage.py delete_fake_data --confirm'
+            ))
+            return
+
         # Delete all contacts
         for contact in Contact.objects.all():
             contact.delete()
