@@ -32,8 +32,6 @@
       "Bash(E2E_REUSE_SERVER=1:*)"
     ],
     "deny": [
-      "Bash(rm -rf:*)",
-      "Bash(sudo:*)"
     ],
     "ask": []
   }
