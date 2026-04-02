@@ -113,9 +113,9 @@
     <div v-show="activeTab === 'sections'">
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-4 max-w-3xl">
         Edita las secciones comerciales del modelo por defecto. El
-        <strong class="text-gray-700 dark:text-gray-300">documento técnico</strong>
+        <strong class="text-gray-700 dark:text-gray-300">detalle técnico</strong>
         (<code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">technical_document</code>)
-        tiene su propia pestaña <strong class="text-gray-700 dark:text-gray-300">Doc. técnico</strong>
+        tiene su propia pestaña <strong class="text-gray-700 dark:text-gray-300">Det. técnico</strong>
         con editor estructurado y JSON, igual que al editar una propuesta.
       </p>
       <!-- Language selector -->
@@ -145,7 +145,7 @@
         Cargando configuración...
       </div>
 
-      <!-- Sections list (commercial only; technical → tab Doc. técnico) -->
+      <!-- Sections list (commercial only; technical → tab Det. técnico) -->
       <div v-else-if="sections.length" class="space-y-3">
         <div
           v-for="{ section, idx } in commercialDefaultsEntries"
@@ -231,7 +231,7 @@
       </div>
     </div>
 
-    <!-- ═══ TAB: Doc. técnico (misma UX que editar propuesta) ═══ -->
+    <!-- ═══ TAB: Det. técnico (misma UX que editar propuesta) ═══ -->
     <div v-show="activeTab === 'technical'" class="max-w-5xl">
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
         Valores por defecto del bloque técnico (nuevas propuestas). Idioma actual:
@@ -282,7 +282,7 @@
 
       <div v-show="defaultsTechnicalSubTab === 'json'" class="space-y-4">
         <p class="text-xs text-gray-500 dark:text-gray-400">
-          Solo el objeto <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">content_json</code> del documento técnico. Mismo esquema que en el editor. Pulsa «Aplicar» para actualizar la plantilla en memoria; luego
+          Solo el objeto <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">content_json</code> del detalle técnico. Mismo esquema que en el editor. Pulsa «Aplicar» para actualizar la plantilla en memoria; luego
           <strong>Guardar todos los cambios</strong> en Secciones o guarda desde JSON global.
         </p>
         <textarea
@@ -488,7 +488,7 @@
         <template #commercial>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Este prompt se usa con IA (ChatGPT, Claude, etc.) para generar propuestas comerciales personalizadas a partir del JSON plantilla.
-          El documento técnico por defecto se edita en la pestaña <strong class="text-gray-600 dark:text-gray-300">Doc. técnico</strong>;
+          El detalle técnico por defecto se edita en la pestaña <strong class="text-gray-600 dark:text-gray-300">Det. técnico</strong>;
           para la IA solo técnica usa la subpestaña <strong class="text-gray-600 dark:text-gray-300">Técnico</strong> aquí abajo.
         </p>
 
@@ -569,8 +569,8 @@
 
         <template #technical>
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          Prompt para generar la clave <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">technicalDocument</code> (arquitectura, épicas, requerimientos). Sin narrativa comercial ni precios.
-          La estructura por defecto del documento técnico está en la pestaña <strong class="text-gray-600 dark:text-gray-300">Doc. técnico</strong> (editor o JSON) y en la pestaña <strong class="text-gray-600 dark:text-gray-300">JSON</strong> global.
+          Prompt para generar la clave <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded">technicalDocument</code> (arquitectura, módulos del producto, requerimientos). Sin narrativa comercial ni precios.
+          La estructura por defecto del detalle técnico está en la pestaña <strong class="text-gray-600 dark:text-gray-300">Det. técnico</strong> (editor o JSON) y en la pestaña <strong class="text-gray-600 dark:text-gray-300">JSON</strong> global.
         </p>
         <div class="flex flex-wrap items-center gap-2 mb-4">
           <template v-if="!technicalDefaultsPromptIsEditing">
@@ -649,7 +649,7 @@
       <ul class="text-xs text-gray-500 dark:text-gray-400 mb-4 list-disc list-inside space-y-1">
         <li>
           Debe existir una entrada con <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">section_type: &quot;technical_document&quot;</code> y su
-          <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">content_json</code> (arquitectura, épicas, <code class="text-[10px]">epicKey</code> / <code class="text-[10px]">flowKey</code>, etc.).
+          <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">content_json</code> (arquitectura, módulos del producto, <code class="text-[10px]">epicKey</code> / <code class="text-[10px]">flowKey</code>, etc.).
         </li>
         <li>
           Al importar una propuesta desde JSON global, la clave camelCase es <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">technicalDocument</code> — distinta de este formato de plantilla.
@@ -659,7 +659,7 @@
         v-if="defaultsTechnicalEpicCount !== null"
         class="text-xs text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 border border-teal-100 dark:border-teal-800 rounded-lg px-3 py-2 mb-4"
       >
-        Vista rápida: <strong>{{ defaultsTechnicalEpicCount }}</strong> épica(s) en el documento técnico por defecto (idioma {{ selectedLang }}).
+        Vista rápida: <strong>{{ defaultsTechnicalEpicCount }}</strong> módulo(s) en el detalle técnico por defecto (idioma {{ selectedLang }}).
       </p>
 
       <!-- Action bar -->
@@ -866,7 +866,7 @@ const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useCo
 const tabs = [
   { id: 'general', label: 'Vista General' },
   { id: 'sections', label: 'Secciones' },
-  { id: 'technical', label: 'Doc. técnico' },
+  { id: 'technical', label: 'Det. técnico' },
   { id: 'emails', label: 'Plantillas de Email' },
   { id: 'prompt', label: 'Prompt Proposal' },
   { id: 'json', label: 'JSON' },
@@ -938,7 +938,7 @@ const showResetConfirm = ref(false);
 const showSectionPreview = ref(false);
 const previewSection = ref({});
 
-/** Commercial sections only — technical defaults live in tab Doc. técnico. */
+/** Commercial sections only — technical defaults live in tab Det. técnico. */
 const commercialDefaultsEntries = computed(() =>
   sections.value.map((section, idx) => ({ section, idx })).filter(
     ({ section }) => section.section_type !== 'technical_document',

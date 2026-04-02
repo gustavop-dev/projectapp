@@ -252,7 +252,7 @@ EMAIL_TEMPLATE_REGISTRY = {
                 'default': (
                     'Hemos recibido tu confirmación para la propuesta {title}. '
                     'Estamos emocionados de comenzar este proyecto contigo. '
-                    'Encontrarás enlaces y PDFs adjuntos: propuesta comercial, documento técnico (si aplica) '
+                    'Encontrarás enlaces y PDFs adjuntos: propuesta comercial, detalle técnico (si aplica) '
                     'y una guía para usar la plataforma de seguimiento.'
                 ),
             },

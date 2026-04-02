@@ -1,7 +1,7 @@
 <template>
   <div class="technical-document-editor space-y-8" data-testid="technical-document-editor">
     <p class="text-xs text-gray-500">
-      Documento técnico: cómo se construye el sistema. Épicas y requerimientos con <code class="text-[10px] bg-gray-100 px-1 rounded">epicKey</code> /
+      Detalle técnico: cómo se construye el sistema. Módulos del producto y requerimientos con <code class="text-[10px] bg-gray-100 px-1 rounded">epicKey</code> /
       <code class="text-[10px] bg-gray-100 px-1 rounded">flowKey</code> para enlazar después con el tablero en plataforma.
       Opcional: <code class="text-[10px] bg-gray-100 px-1 rounded">linked_module_ids</code> alinea el detalle técnico con módulos opcionales de la propuesta comercial (solo visibles si el cliente los incluye).
     </p>
@@ -12,7 +12,7 @@
     >
       <p class="text-xs font-medium text-gray-700">Plantilla genérica por módulo opcional</p>
       <p class="text-[11px] text-gray-500">
-        Inserta una épica con texto neutro y vínculo al módulo. El cliente solo la verá en modo técnico si ese módulo forma parte de su selección.
+        Inserta un módulo con texto neutro y vínculo al módulo comercial. El cliente solo lo verá en modo técnico si ese módulo forma parte de su selección.
       </p>
       <div class="flex flex-wrap items-end gap-2">
         <label class="text-xs text-gray-600 flex flex-col gap-1">
@@ -33,7 +33,7 @@
           :disabled="!stubModuleId"
           @click="insertGenericStub"
         >
-          Insertar épica genérica
+          Insertar módulo genérico
         </button>
       </div>
     </div>
@@ -144,11 +144,11 @@
       </div>
     </section>
 
-    <!-- Épicas -->
+    <!-- Módulos del producto -->
     <section class="space-y-4">
       <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-800">Épicas y requerimientos</h3>
-        <button type="button" class="text-xs px-3 py-1.5 bg-emerald-600 text-white rounded-lg" @click="addEpic">+ Épica</button>
+        <h3 class="text-sm font-semibold text-gray-800">Módulos del producto</h3>
+        <button type="button" class="text-xs px-3 py-1.5 bg-emerald-600 text-white rounded-lg" @click="addEpic">+ Módulo</button>
       </div>
       <div
         v-for="(epic, ei) in doc.epics"
@@ -158,13 +158,13 @@
         <div class="flex flex-wrap gap-2 items-start justify-between">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1 min-w-0">
             <input v-model="epic.epicKey" placeholder="epicKey (slug único)" class="px-2 py-1.5 border rounded-lg text-sm font-mono text-xs">
-            <input v-model="epic.title" placeholder="Título de la épica" class="px-2 py-1.5 border rounded-lg text-sm">
+            <input v-model="epic.title" placeholder="Título del módulo" class="px-2 py-1.5 border rounded-lg text-sm">
           </div>
-          <button type="button" class="text-xs text-red-600" @click="doc.epics.splice(ei, 1)">Eliminar épica</button>
+          <button type="button" class="text-xs text-red-600" @click="doc.epics.splice(ei, 1)">Eliminar módulo</button>
         </div>
-        <textarea v-model="epic.description" rows="2" class="w-full px-2 py-1.5 border rounded-lg text-sm" placeholder="Descripción de la épica" />
+        <textarea v-model="epic.description" rows="2" class="w-full px-2 py-1.5 border rounded-lg text-sm" placeholder="Descripción del módulo" />
         <div v-if="moduleLinkOptions.length" class="space-y-1">
-          <p class="text-[11px] text-gray-500">Mostrar esta épica solo si el cliente incluye (modo técnico / PDF técnico):</p>
+          <p class="text-[11px] text-gray-500">Mostrar este módulo solo si el cliente incluye (modo técnico / PDF técnico):</p>
           <div class="flex flex-wrap gap-x-3 gap-y-1">
             <label
               v-for="opt in moduleLinkOptions"
@@ -383,7 +383,7 @@
           <button type="button" class="text-red-500" @click="doc.quality.testTypes.splice(i, 1)">✕</button>
         </div>
       </div>
-      <p class="text-xs text-gray-500">Flujos críticos de aceptación (texto; no duplicar épicas)</p>
+      <p class="text-xs text-gray-500">Flujos críticos de aceptación (texto; no duplicar módulos)</p>
       <textarea
         v-model="doc.quality.criticalFlowsNote"
         rows="2"
@@ -415,7 +415,7 @@
         class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
         @click="handleSave"
       >
-        {{ isSaving ? 'Guardando...' : 'Guardar documento técnico' }}
+        {{ isSaving ? 'Guardando...' : 'Guardar detalle técnico' }}
       </button>
       <span v-if="savedMsg" class="text-sm text-emerald-600">{{ savedMsg }}</span>
       <span v-if="validationError" class="text-sm text-red-600">{{ validationError }}</span>
@@ -717,7 +717,7 @@ function validate() {
   for (let ei = 0; ei < doc.epics.length; ei++) {
     const ep = doc.epics[ei];
     if (ep.epicKey && !slugRe.test(ep.epicKey)) {
-      return `epicKey inválido en épica "${ep.title || ei + 1}": use solo minúsculas, números y guiones.`;
+      return `epicKey inválido en módulo "${ep.title || ei + 1}": use solo minúsculas, números y guiones.`;
     }
     if (ep.epicKey) {
       if (keys.has(`e:${ep.epicKey}`)) return `epicKey duplicado: ${ep.epicKey}`;

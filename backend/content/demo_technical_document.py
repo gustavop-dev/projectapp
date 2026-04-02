@@ -13,8 +13,8 @@ def _build_demo_technical_document_json():
     d = deepcopy(EMPTY_TECHNICAL_DOCUMENT_JSON)
 
     d['purpose'] = (
-        'Este documento describe la arquitectura, el stack, los entornos y los requisitos '
-        'técnicos del e-commerce acordado en la propuesta comercial. Sirve de referencia para '
+        'Este detalle técnico describe la arquitectura, el stack, los entornos y los requisitos '
+        'del e-commerce acordado en la propuesta comercial. Sirve de referencia para '
         'equipo técnico, auditorías y alineación con el tablero de entregas.'
     )
 
@@ -115,22 +115,22 @@ def _build_demo_technical_document_json():
         {
             'epicKey': 'storefront',
             'title': 'Tienda pública',
-            'description': 'Experiencia de compra: catálogo, PDP, carrito y checkout.',
+            'description': 'Todo lo que el cliente final ve y usa para explorar productos y completar su compra en línea.',
             'requirements': [
                 {
                     'flowKey': 'flow-catalog-filters',
-                    'title': 'Catálogo con filtros',
-                    'description': 'Filtro por categoría, precio y disponibilidad; paginación.',
+                    'title': 'Explorar productos con filtros',
+                    'description': 'El visitante puede buscar y filtrar productos por categoría, rango de precio y disponibilidad.',
                     'configuration': 'Índices en category_id y price_cents.',
                     'usageFlow': 'Usuario abre catálogo → aplica filtros → ve resultados.',
                     'priority': 'high',
                 },
                 {
                     'flowKey': 'flow-checkout-wompi',
-                    'title': 'Checkout con Wompi',
-                    'description': 'Cobro tarjeta y PSE; manejo de estados y webhooks.',
+                    'title': 'Pago en línea con tarjeta o PSE',
+                    'description': 'El comprador puede pagar su pedido de forma segura con tarjeta de crédito, débito o transferencia PSE.',
                     'configuration': 'Claves sandbox/prod por entorno; firma de webhook verificada.',
-                    'usageFlow': 'Carrito → datos envío → Wompi → retorno → pedido confirmado.',
+                    'usageFlow': 'Carrito → datos envío → pasarela de pago → confirmación del pedido.',
                     'priority': 'critical',
                 },
             ],
@@ -138,14 +138,14 @@ def _build_demo_technical_document_json():
         {
             'epicKey': 'admin-ops',
             'title': 'Panel administrativo',
-            'description': 'Gestión de productos, pedidos y usuarios internos.',
+            'description': 'Herramientas internas para que el equipo gestione productos, pedidos y usuarios del negocio.',
             'requirements': [
                 {
                     'flowKey': 'flow-order-management',
-                    'title': 'Gestión de pedidos',
-                    'description': 'Listado, detalle, cambio de estado y notas internas.',
+                    'title': 'Administrar pedidos',
+                    'description': 'El operador puede ver todos los pedidos, revisar su detalle, actualizar el estado y agregar notas internas.',
                     'configuration': 'Roles: staff_full, store_operator.',
-                    'usageFlow': 'Operador abre pedido → actualiza estado → cliente recibe email.',
+                    'usageFlow': 'Operador abre pedido → actualiza estado → cliente recibe email de notificación.',
                     'priority': 'medium',
                 },
             ],
@@ -216,7 +216,7 @@ def _build_demo_technical_document_json():
             'whoAccesses': 'Solo despliegue automatizado + break-glass',
         },
     ]
-    d['environmentsNote'] = 'Promoción dev → staging → prod con pipeline CI; sin cambios directos en prod.'
+    d['environmentsNote'] = 'Promoción dev → staging → prod con pipeline CI; sin cambios directos en prod. Servidor estándar: VPS con 4 CPUs y 8 GB RAM.'
 
     d['security'] = [
         {
@@ -259,8 +259,9 @@ def _build_demo_technical_document_json():
     }
 
     d['backupsNote'] = (
-        'Backups diarios de BD con retención 14 días; restore probado trimestralmente. '
-        'Medios estáticos en volumen con snapshot semanal.'
+        'Backup semanal automatizado de base de datos y archivos multimedia, '
+        'con retención de 4 semanas. Restore probado trimestralmente. '
+        'Sin almacenamiento externo.'
     )
 
     d['quality'] = {

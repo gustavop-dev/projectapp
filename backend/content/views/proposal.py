@@ -52,9 +52,9 @@ def _dashboard_top_dropoff_allowlist():
 def _csv_analytics_section_group(section_type):
     """Human-readable group for CSV export (technical variants align)."""
     if section_type == 'technical_document_public':
-        return 'Documento técnico (vista pública)'
+        return 'Detalle técnico (vista pública)'
     if section_type == 'technical_document':
-        return 'Documento técnico'
+        return 'Detalle técnico'
     return ''
 
 
@@ -3084,7 +3084,7 @@ def export_proposal_analytics_csv(request, proposal_id):
     writer.writerow(['--- SECTION ENGAGEMENT ---'])
     writer.writerow([
         'Note: technical_document + technical_document_public both belong to '
-        '“documento técnico” (vista panel vs vista pública).',
+        '”detalle técnico” (vista panel vs vista pública).',
     ])
     writer.writerow([
         'Section Type', 'Metric group', 'Section Title', 'Visit Count',

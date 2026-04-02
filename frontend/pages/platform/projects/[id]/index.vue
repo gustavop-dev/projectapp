@@ -45,7 +45,7 @@
               :disabled="syncLoading"
               @click="runTechnicalSync"
             >
-              {{ syncLoading ? 'Sincronizando…' : 'Sync doc. técnico' }}
+              {{ syncLoading ? 'Sincronizando…' : 'Sync det. técnico' }}
             </button>
             <button
               type="button"

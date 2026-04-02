@@ -56,7 +56,7 @@ def _sync_technical_requirements_core(
             if not isinstance(epic, dict):
                 continue
             key = (epic.get('epicKey') or '').strip()
-            title = (epic.get('title') or '').strip() or key or f'Épica {idx + 1}'
+            title = (epic.get('title') or '').strip() or key or f'Módulo {idx + 1}'
             description = epic.get('description') or ''
             reqs = epic.get('requirements') or []
             if not isinstance(reqs, list):

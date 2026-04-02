@@ -27,7 +27,7 @@ const mockDeliverableDetail = {
   title: 'Wireframes página principal',
   description: 'Wireframes de baja fidelidad.',
   source_epic_key: 'EPIC-1',
-  source_epic_title: 'Épica onboarding',
+  source_epic_title: 'Módulo onboarding',
   has_business_proposal: true,
   proposal_title: 'Propuesta comercial demo',
   file_url: '/media/wireframes-v1.pdf',

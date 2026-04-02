@@ -652,7 +652,7 @@ class Command(BaseCommand):
                 'Incluye catálogo de animales, sistema de solicitudes de adopción, '
                 'campañas de donación con pasarela Wompi, panel de refugios, '
                 'blog, y panel de administración con métricas. '
-                '50 vistas, 27 modelos, 9 épicas.'
+                '50 vistas, 27 modelos, 9 módulos.'
             ),
             client=client,
             status=Project.STATUS_ACTIVE,
@@ -1059,7 +1059,7 @@ class Command(BaseCommand):
             },
             {
                 'title': 'Plan de integración Wompi — Webhooks y suscripciones',
-                'description': 'Documento técnico con el plan de integración de Wompi: endpoints, estructura de webhooks, manejo de eventos (donaciones y apadrinamientos) y casos de error.',
+                'description': 'Detalle técnico con el plan de integración de Wompi: endpoints, estructura de webhooks, manejo de eventos (donaciones y apadrinamientos) y casos de error.',
                 'category': Deliverable.CATEGORY_DOCUMENTS,
                 'filename': 'plan-integracion-wompi-v1.pdf',
                 'epic_key': '',

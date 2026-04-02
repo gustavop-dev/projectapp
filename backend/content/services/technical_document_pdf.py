@@ -67,7 +67,7 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
         _register_fonts()
         buf = io.BytesIO()
         c = canvas.Canvas(buf, pagesize=A4)
-        c.setTitle(f'Documento técnico — {proposal.client_name}')
+        c.setTitle(f'Detalle técnico — {proposal.client_name}')
         c.setAuthor('Project App')
 
         ps = {'num': 1, 'client': proposal.client_name}
@@ -77,7 +77,7 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
         # Title block
         c.setFont(_font('light'), 28)
         c.setFillColor(ESMERALD)
-        title = _strip_emoji(f'Documento técnico — {proposal.client_name or "Cliente"}')
+        title = _strip_emoji(f'Detalle técnico — {proposal.client_name or "Cliente"}')
         for line in textwrap.wrap(title, width=36) or [title]:
             y = _check_y(c, y, ps, need=36)
             c.drawString(MARGIN_L, y, line)
@@ -201,9 +201,9 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
             if _nonempty_str(ep.get('title')) or _nonempty_str(ep.get('description')) or reqs:
                 epic_blocks.append((ep, reqs))
         if epic_blocks:
-            y = next_section('Épicas y requerimientos')
+            y = next_section('Módulos del producto')
             for ep, reqs in epic_blocks:
-                head = _safe(ep, 'title') or _safe(ep, 'epicKey') or 'Épica'
+                head = _safe(ep, 'title') or _safe(ep, 'epicKey') or 'Módulo'
                 y = _check_y(c, y, ps, need=28)
                 c.setFont(_font('bold'), 11)
                 c.setFillColor(ESMERALD)

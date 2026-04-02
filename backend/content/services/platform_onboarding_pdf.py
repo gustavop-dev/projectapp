@@ -107,7 +107,7 @@ def generate_platform_onboarding_pdf(
             (
                 '4. Documentos',
                 [
-                    'Descarga la propuesta comercial y el documento técnico cuando estén disponibles en el entregable.',
+                    'Descarga la propuesta comercial y el detalle técnico cuando estén disponibles en el entregable.',
                     'También encontrarás contratos, anexos y cuentas de cobro en la misma vista de documentos.',
                     'Puedes subir PDFs en la sección indicada para aportes del cliente.',
                 ],

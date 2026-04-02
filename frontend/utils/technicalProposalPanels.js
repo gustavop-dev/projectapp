@@ -39,12 +39,12 @@ const FRAGMENT_IDS = {
 
 export const TECH_PANEL_TITLES = {
   es: {
-    intro: 'Documento técnico',
+    intro: 'Detalle técnico',
     stack: 'Stack tecnológico',
     architecture: 'Arquitectura',
     dataModel: 'Modelo de datos',
     growthReadiness: 'Preparación para el crecimiento',
-    epics: 'Épicas y requerimientos',
+    epics: 'Módulos del producto',
     api: 'API y endpoints',
     integrations: 'Integraciones',
     environments: 'Ambientes',
@@ -55,12 +55,12 @@ export const TECH_PANEL_TITLES = {
     decisions: 'Decisiones técnicas',
   },
   en: {
-    intro: 'Technical document',
+    intro: 'Technical detail',
     stack: 'Technology stack',
     architecture: 'Architecture',
     dataModel: 'Data model',
     growthReadiness: 'Growth readiness',
-    epics: 'Epics and requirements',
+    epics: 'Product modules',
     api: 'API and endpoints',
     integrations: 'Integrations',
     environments: 'Environments',

@@ -962,12 +962,6 @@ function handleViewModeSelect(mode) {
   setTimeout(() => {
     viewMode.value = mode;
     currentIndex.value = 0;
-    // Persist choice for tracking
-    if (proposal.value?.uuid) {
-      try {
-        localStorage.setItem(`proposal-${proposal.value.uuid}-viewMode`, mode);
-      } catch (_e) { /* ignore */ }
-    }
     // Hide overlay after content has rendered
     setTimeout(() => {
       switchOverlayVisible.value = false;
@@ -988,11 +982,6 @@ function handleSwitchToDetailed() {
     viewMode.value = 'detailed';
     currentIndex.value = 0;
     window.scrollTo({ top: 0, behavior: 'auto' });
-    if (proposal.value?.uuid) {
-      try {
-        localStorage.setItem(`proposal-${proposal.value.uuid}-viewMode`, 'detailed');
-      } catch (_e) { /* ignore */ }
-    }
     // Hide overlay after content has rendered
     setTimeout(() => {
       switchOverlayVisible.value = false;
@@ -1090,18 +1079,6 @@ const onAnimationComplete = () => {
   showContent.value = true;
   nextTick(() => applyProposalTheme(false));
   window.addEventListener('keydown', handleKeydown);
-
-  const uuid = proposal.value?.uuid;
-  if (uuid) {
-    try {
-      const savedVm = localStorage.getItem(`proposal-${uuid}-viewMode`);
-      if (savedVm === 'executive' || savedVm === 'detailed') {
-        viewMode.value = savedVm;
-      } else if (savedVm === 'technical' && hasTechnicalDocument.value) {
-        viewMode.value = 'technical';
-      }
-    } catch (_e) { /* ignore */ }
-  }
 
   // Allow bypassing gateway via URL query param (used by E2E tests and direct links)
   const queryMode = typeof route.query.mode === 'string' ? route.query.mode : '';

@@ -1049,7 +1049,7 @@ DEFAULT_SECTIONS = [
     },
     {
         'section_type': 'technical_document',
-        'title': '🔧 Documento técnico',
+        'title': '🔧 Detalle técnico',
         'order': 13,
         'is_wide_panel': True,
         'content_json': deepcopy(EMPTY_TECHNICAL_DOCUMENT_JSON),

@@ -1,32 +1,35 @@
 /**
- * Prompt for IA to fill the proposal JSON key `technicalDocument` (documento técnico).
+ * Prompt for IA to fill the proposal JSON key `technicalDocument` (detalle técnico).
  * Separate from the commercial proposal prompt (useSellerPrompt).
  */
 import { ref } from 'vue';
 
 const STORAGE_KEY = 'projectapp-technical-prompt-override';
 
-const DEFAULT_PROMPT = `# Prompt — Documento técnico (JSON technicalDocument) — Paso 2 de 2
+const DEFAULT_PROMPT = `# Prompt — Detalle técnico (JSON technicalDocument) — Paso 2 de 2
 
 ## ROL
 
-Eres un arquitecto de software / líder técnico. Este prompt es el **segundo paso** después del **prompt comercial** del panel: ese primero genera el JSON importable de la propuesta; tú produces **solo** el fragmento técnico.
+Eres un arquitecto de software / líder técnico que trabaja con **ProjectApp**, una agencia de desarrollo web especializada en crear soluciones digitales a medida para negocios. Este prompt es el **segundo paso** después del **prompt comercial** del panel: ese primero genera el JSON importable de la propuesta; tú produces **solo** el fragmento técnico.
 
-No escribes narrativa comercial ni precios. Respondes: **cómo** se construye y opera el sistema, de forma clara para un CTO o auditor técnico.
+No escribes narrativa comercial ni precios. Respondes: **cómo** se construye y opera el sistema, de forma clara tanto para un perfil técnico (CTO, auditor) como para el cliente dueño de negocio que quiere entender la solución que está contratando.
 
-**No generes** un JSON nuevo de propuesta completo (con \`title\`, \`client_name\`, todas las \`sections\` comerciales, etc.). Tu salida es **únicamente** el objeto que corresponde al valor de \`sections.technicalDocument\`: el mismo trozo que el panel guarda en **Doc. técnico → subpestaña JSON**, o que se puede pegar dentro del archivo de importación reemplazando solo \`sections.technicalDocument\`.
+**No generes** un JSON nuevo de propuesta completo (con \`title\`, \`client_name\`, todas las \`sections\` comerciales, etc.). Tu salida es **únicamente** el objeto que corresponde al valor de \`sections.technicalDocument\`: el mismo trozo que el panel guarda en **Det. técnico → subpestaña JSON**, o que se puede pegar dentro del archivo de importación reemplazando solo \`sections.technicalDocument\`.
 
 ## PRINCIPIOS
 
 1. **Sin duplicar la propuesta comercial** — No repitas valor de negocio, storytelling ni inversión.
-2. **Claves estables** — Cada épica tiene \`epicKey\` único (slug: minúsculas, guiones). Cada requerimiento bajo una épica tiene \`flowKey\` único en toda la propuesta (slug).
-3. **Épicas = agrupadores** — Las épicas son módulos o áreas del producto (ej. Públicas, Panel admin). Los requerimientos son entregables o flujos concretos dentro de esa épica.
+2. **Claves estables** — Cada módulo del producto tiene \`epicKey\` único (slug: minúsculas, guiones). Cada requerimiento bajo un módulo tiene \`flowKey\` único en toda la propuesta (slug).
+3. **Módulos del producto = agrupadores** — Los módulos del producto son áreas o bloques funcionales del sistema (ej. Tienda pública, Panel admin). Los requerimientos son entregables o flujos concretos dentro de ese módulo.
 4. **No inventes stack** — Si el contexto no indica tecnología, deja campos vacíos o "Por definir" en una sola palabra donde aplique.
 5. **Preparación para el crecimiento (\`growthReadiness\`)** — Describe **cómo el sistema está preparado para crecer** (tráfico, datos, integraciones, equipos), no solo métricas puntuales de rendimiento: es complementario a \`performanceQuality\`.
+6. **Lenguaje accesible en requerimientos** — Los campos \`title\` y \`description\` de cada requerimiento deben usar lenguaje que un dueño de negocio entienda sin ayuda técnica. Los detalles de implementación van en \`configuration\` y \`usageFlow\`.
+7. **Stack por defecto de ProjectApp** — Salvo que el contexto indique otra cosa, el stack estándar es: **Nuxt 3 + Vue 3 + Tailwind** (cliente/SSR con routing por archivos, componentes por sección, Pinia stores y composables), **Django 5 + DRF** (API), **MySQL 8 + Redis** (datos y caché), **VPS + Nginx + Gunicorn** (infraestructura). **No menciones** AWS, S3, servicios cloud ni infraestructura que no forme parte del proyecto real.
+8. **Backups sin almacenamiento externo** — Los backups son automatizados con periodicidad definida (semanal para BD y archivos multimedia) y retención configurada. **Nunca** menciones almacenamiento externo (S3, cloud buckets, etc.); los backups son locales.
 
 ## ESTRUCTURA OBLIGATORIA (technicalDocument)
 
-Debes producir **solo** este objeto JSON (el valor de \`technicalDocument\`, sin envolver en \`sections\` ni en el payload completo de importación).
+Debes producir **solo** este objeto JSON (el valor de \`technicalDocument\`, sin envolver en \`sections\` ni en el payload completo de importación). **Servidor estándar de ProjectApp:** VPS con 4 CPUs y 8 GB RAM; considera esta capacidad al describir entornos y estrategias de crecimiento.
 
 El siguiente bloque es un **esqueleto vacío** (solo forma y claves). En tu respuesta **sustituye** \`""\` y \`[]\` por contenido real según el proyecto. **No** copies dentro del JSON textos meta tipo "string — …", instrucciones ni etiquetas de ayuda: solo datos técnicos.
 
@@ -75,14 +78,14 @@ El siguiente bloque es un **esqueleto vacío** (solo forma y claves). En tu resp
 
 ### Forma de elementos al rellenar arrays (referencia)
 
-- \`stack[]\`: \`{ "layer", "technology", "rationale" }\`
+- \`stack[]\`: \`{ "layer", "technology", "rationale" }\` — Para la capa frontend Nuxt 3, mencionar: routing por archivos (\`pages/\`), componentes de UI organizados por sección (\`components/\`), Pinia para estado global, y composables para lógica reutilizable.
 - \`architecture.patterns[]\`: \`{ "component", "pattern", "description" }\`
 - \`dataModel.entities[]\`: \`{ "name", "description", "keyFields" }\`
 - \`growthReadiness\`: \`summary\` (texto) y \`strategies[]\` con \`dimension\` (ámbito: tráfico, datos, colas…), \`preparation\` (qué ya está previsto), \`evolution\` (cómo evoluciona ante más carga o alcance)
-- \`epics[]\`: \`{ "epicKey", "title", "description", "linked_module_ids"?, "requirements" }\` — opcional \`linked_module_ids\`: array de ids comerciales (\`module-…\`, \`group-…\`, o id de módulo de inversión); si falta o está vacío, la épica/requisito es alcance base (siempre visible en modo técnico). Cada ítem de \`requirements\`: \`flowKey\`, \`title\` (obligatorio si el requerimiento no es vacío), opcionales \`description\`, \`configuration\`, \`usageFlow\`, \`priority\`, \`linked_module_ids\`
+- \`epics[]\`: \`{ "epicKey", "title", "description", "linked_module_ids"?, "requirements" }\` — opcional \`linked_module_ids\`: array de ids comerciales (\`module-…\`, \`group-…\`, o id de módulo de inversión); si falta o está vacío, el módulo/requisito es alcance base (siempre visible en modo técnico). Cada ítem de \`requirements\`: \`flowKey\`, \`title\` (obligatorio si el requerimiento no es vacío), opcionales \`description\`, \`configuration\`, \`usageFlow\`, \`priority\`, \`linked_module_ids\`
 - \`apiDomains[]\`: \`{ "domain", "summary" }\`
 - \`integrations.included[]\`: \`service\`, \`provider\`, \`connection\`, \`dataExchange\`, \`accountOwner\` — \`excluded[]\`: \`service\`, \`reason\`, \`availability\`
-- \`environments[]\`: \`name\`, \`purpose\`, \`url\`, \`database\`, \`whoAccesses\`
+- \`environments[]\`: \`name\`, \`purpose\`, \`url\`, \`database\`, \`whoAccesses\` — Servidor estándar ProjectApp: VPS con 4 CPUs y 8 GB RAM.
 - \`security[]\`: \`aspect\`, \`implementation\`
 - \`performanceQuality.metrics[]\`: \`metric\`, \`target\`, \`howMeasured\` — \`practices[]\`: \`strategy\`, \`description\`
 - \`quality.dimensions[]\`: \`dimension\`, \`evaluates\`, \`standard\` — \`testTypes[]\`: \`type\`, \`validates\`, \`tool\`, \`whenRun\`
@@ -102,7 +105,7 @@ Devuelve **únicamente** un objeto JSON válido: el contenido de \`technicalDocu
 
 ## CONTEXTO (rellenar por el usuario)
 
-**1) Alineación con el paso 1 (recomendado)** — Pega el JSON comercial que generaste con el prompt comercial, o **extractos** (por ejemplo \`sections\` relevantes: \`functionalRequirements\`, \`general\`, \`timeline\`, etc.) para que el documento técnico sea coherente con el alcance ya descrito. Si el contexto es muy largo, basta con un resumen fiel más las partes clave.
+**1) Alineación con el paso 1 (recomendado)** — Pega el JSON comercial que generaste con el prompt comercial, o **extractos** (por ejemplo \`sections\` relevantes: \`functionalRequirements\`, \`general\`, \`timeline\`, etc.) para que el detalle técnico sea coherente con el alcance ya descrito. Si el contexto es muy largo, basta con un resumen fiel más las partes clave.
 
 **2) Datos adicionales** (opcional, si faltan en el JSON pegado):
 
@@ -115,7 +118,7 @@ Integraciones requeridas o excluidas:
 Restricciones de seguridad o compliance:
 \`\`\`
 
-**3) Dónde pegar tu respuesta** — En el panel: **editar propuesta → Doc. técnico → subpestaña JSON → guardar**. O sustituye solo el valor de \`sections.technicalDocument\` en el archivo JSON de importación.
+**3) Dónde pegar tu respuesta** — En el panel: **editar propuesta → Det. técnico → subpestaña JSON → guardar**. O sustituye solo el valor de \`sections.technicalDocument\` en el archivo JSON de importación.
 `;
 
 export function useTechnicalPrompt() {
@@ -155,7 +158,7 @@ export function useTechnicalPrompt() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'prompt-documento-tecnico.md';
+    a.download = 'prompt-detalle-tecnico.md';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

@@ -9,7 +9,7 @@ class Command(BaseCommand):
     help = (
         'Create all fake data (contacts, proposals, blog posts). '
         'Business proposals include all default sections plus a populated technical_document '
-        '(modo técnico / panel Doc. técnico). '
+        '(modo técnico / panel Det. técnico). '
         'Recommended order for a full local demo: (1) create_fake_data, (2) seed_platform_data — '
         'or pass --with-platform to run seed_platform_data after this command.'
     )

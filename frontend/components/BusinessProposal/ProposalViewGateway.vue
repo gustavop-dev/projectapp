@@ -139,9 +139,9 @@ const i18n = {
     detailedTime: '~8 min de lectura',
     detailedCta: 'Ver todo el detalle',
     technicalTitle: 'Detalle técnico',
-    technicalSub: 'Arquitectura, stack, modelo de datos, épicas y requerimientos — sin narrativa comercial ni precios.',
+    technicalSub: 'Arquitectura, stack, modelo de datos, módulos del producto y requerimientos — sin narrativa comercial ni precios.',
     technicalTime: '~12 min de lectura',
-    technicalCta: 'Ver documento técnico',
+    technicalCta: 'Ver detalle técnico',
   },
   en: {
     heading: 'How would you like to explore this proposal?',
@@ -155,9 +155,9 @@ const i18n = {
     detailedTime: '~8 min read',
     detailedCta: 'See all the details',
     technicalTitle: 'Technical detail',
-    technicalSub: 'Architecture, stack, data model, epics and requirements — no commercial narrative or pricing.',
+    technicalSub: 'Architecture, stack, data model, product modules and requirements — no commercial narrative or pricing.',
     technicalTime: '~12 min read',
-    technicalCta: 'View technical document',
+    technicalCta: 'View technical detail',
   },
 };
 

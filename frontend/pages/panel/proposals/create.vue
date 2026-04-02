@@ -368,7 +368,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h3 class="text-sm font-medium text-gray-900">Plantilla JSON</h3>
-            <p class="text-xs text-gray-400 mt-0.5">Incluye secciones comerciales y la clave <code class="text-[10px]">technicalDocument</code> (documento técnico).</p>
+            <p class="text-xs text-gray-400 mt-0.5">Incluye secciones comerciales y la clave <code class="text-[10px]">technicalDocument</code> (detalle técnico).</p>
           </div>
           <div class="flex items-center gap-3">
             <select
@@ -437,7 +437,7 @@
           <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
             <span><span class="text-gray-500">Cliente:</span> <span class="font-medium text-gray-900">{{ jsonPreview.clientName }}</span></span>
             <span><span class="text-gray-500">Secciones:</span> <span class="font-medium text-gray-900">{{ jsonPreview.sectionCount }}</span></span>
-            <span v-if="jsonPreview.epicCount != null"><span class="text-gray-500">Épicas (doc. técnico):</span> <span class="font-medium text-gray-900">{{ jsonPreview.epicCount }}</span></span>
+            <span v-if="jsonPreview.epicCount != null"><span class="text-gray-500">Módulos (det. técnico):</span> <span class="font-medium text-gray-900">{{ jsonPreview.epicCount }}</span></span>
             <span v-if="jsonPreview.investment"><span class="text-gray-500">Inversión:</span> <span class="font-medium text-gray-900">{{ jsonPreview.investment }}</span></span>
           </div>
         </div>
