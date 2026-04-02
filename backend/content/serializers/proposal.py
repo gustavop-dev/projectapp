@@ -60,6 +60,7 @@ class ProposalListSerializer(serializers.ModelSerializer):
     """
     days_remaining = serializers.SerializerMethodField()
     is_expired = serializers.SerializerMethodField()
+    available_transitions = serializers.SerializerMethodField()
 
     class Meta:
         model = BusinessProposal
@@ -71,6 +72,7 @@ class ProposalListSerializer(serializers.ModelSerializer):
             'project_type', 'market_type', 'client_phone',
             'project_type_custom', 'market_type_custom',
             'cached_heat_score', 'engagement_declining',
+            'available_transitions',
         )
 
     def get_days_remaining(self, obj):
@@ -78,6 +80,9 @@ class ProposalListSerializer(serializers.ModelSerializer):
 
     def get_is_expired(self, obj):
         return obj.is_expired
+
+    def get_available_transitions(self, obj):
+        return obj.available_transitions
 
 
 class ProposalDetailSerializer(serializers.ModelSerializer):
@@ -93,6 +98,8 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
     is_expired = serializers.SerializerMethodField()
     public_url = serializers.SerializerMethodField()
     discounted_investment = serializers.SerializerMethodField()
+    available_transitions = serializers.SerializerMethodField()
+    proposal_documents = serializers.SerializerMethodField()
 
     change_logs = serializers.SerializerMethodField()
 
@@ -114,6 +121,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
             'sections', 'requirement_groups', 'change_logs',
             'days_remaining', 'is_expired', 'public_url',
             'discounted_investment', 'selected_modules',
+            'contract_params', 'available_transitions', 'proposal_documents',
         )
 
     def get_sections(self, obj):
@@ -164,6 +172,17 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         from decimal import Decimal
         factor = (Decimal(100) - Decimal(obj.discount_percent)) / Decimal(100)
         return str(round(obj.total_investment * factor, 2))
+
+    def get_available_transitions(self, obj):
+        return obj.available_transitions
+
+    def get_proposal_documents(self, obj):
+        is_admin = self.context.get('is_admin', False)
+        if not is_admin:
+            return []
+        from content.views.proposal import _serialize_proposal_document
+        docs = obj.proposal_documents.all().order_by('-created_at')
+        return [_serialize_proposal_document(d) for d in docs]
 
 
 class ProposalCreateUpdateSerializer(serializers.ModelSerializer):

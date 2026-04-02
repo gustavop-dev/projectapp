@@ -60,7 +60,7 @@ async function downloadPdf() {
       params.set('doc', 'technical');
     }
     const q = params.toString();
-    const pdfUrl = `/api/proposals/${uuid}/pdf${q ? `?${q}` : ''}`;
+    const pdfUrl = `/api/proposals/${uuid}/pdf/${q ? `?${q}` : ''}`;
 
     const response = await fetch(pdfUrl);
     if (!response.ok) {

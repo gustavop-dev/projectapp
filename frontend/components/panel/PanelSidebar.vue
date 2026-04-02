@@ -39,14 +39,16 @@
         >
           {{ section.label }}
         </p>
-        <SidebarItem
-          v-for="item in section.items"
-          :key="item.href + item.label"
-          :item="item"
-          :is-collapsed="isCollapsed"
-          :is-active="isItemActive(item)"
-          :disabled="item.disabled"
-        />
+        <div class="flex flex-col gap-0.5">
+          <SidebarItem
+            v-for="item in section.items"
+            :key="item.href + item.label"
+            :item="item"
+            :is-collapsed="isCollapsed"
+            :is-active="isItemActive(item)"
+            :disabled="item.disabled"
+          />
+        </div>
       </div>
     </nav>
 

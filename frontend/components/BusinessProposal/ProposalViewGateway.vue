@@ -140,7 +140,7 @@ const i18n = {
     detailedCta: 'Ver todo el detalle',
     technicalTitle: 'Detalle técnico',
     technicalSub: 'Arquitectura, stack, modelo de datos, módulos del producto y requerimientos — sin narrativa comercial ni precios.',
-    technicalTime: '~12 min de lectura',
+    technicalTime: '~30 min de lectura',
     technicalCta: 'Ver detalle técnico',
   },
   en: {
@@ -156,7 +156,7 @@ const i18n = {
     detailedCta: 'See all the details',
     technicalTitle: 'Technical detail',
     technicalSub: 'Architecture, stack, data model, product modules and requirements — no commercial narrative or pricing.',
-    technicalTime: '~12 min read',
+    technicalTime: '~30 min read',
     technicalCta: 'View technical detail',
   },
 };

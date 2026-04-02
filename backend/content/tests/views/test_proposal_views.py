@@ -3190,23 +3190,23 @@ class TestScorecardReadsFromSectionContent:
 
 class TestInlineStatusChange:
     def test_valid_status_change_succeeds(self, admin_client, sent_proposal):
-        """PATCH update-status with valid transition returns 200."""
+        """PATCH update-status with valid transition (sent → negotiating) returns 200."""
         url = reverse('update-proposal-status', kwargs={'proposal_id': sent_proposal.id})
-        response = admin_client.patch(url, {'status': 'viewed'}, format='json')
+        response = admin_client.patch(url, {'status': 'negotiating'}, format='json')
         assert response.status_code == 200
         sent_proposal.refresh_from_db()
-        assert sent_proposal.status == 'viewed'
+        assert sent_proposal.status == 'negotiating'
 
     def test_status_change_creates_changelog(self, admin_client, sent_proposal):
         """Inline status change creates a ProposalChangeLog entry."""
         url = reverse('update-proposal-status', kwargs={'proposal_id': sent_proposal.id})
-        admin_client.patch(url, {'status': 'expired'}, format='json')
+        admin_client.patch(url, {'status': 'negotiating'}, format='json')
         log = ProposalChangeLog.objects.filter(
             proposal=sent_proposal, change_type='status_change'
         ).first()
         assert log is not None
         assert log.old_value == 'sent'
-        assert log.new_value == 'expired'
+        assert log.new_value == 'negotiating'
 
     def test_invalid_status_returns_400(self, admin_client, sent_proposal):
         """PATCH with invalid status value returns 400."""

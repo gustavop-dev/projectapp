@@ -10,6 +10,12 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
+    <ContractParamsModal
+      :visible="showContractModal"
+      :proposal="contractModalProposal || {}"
+      @confirm="handleContractConfirmFromList"
+      @cancel="showContractModal = false; contractModalProposal = null"
+    />
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
       <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Propuestas</h1>
       <div class="flex items-center gap-3">
@@ -289,15 +295,21 @@
               <div v-if="p.client_phone" class="text-[10px] text-gray-400">📱 {{ p.client_phone }}</div>
             </td>
             <td class="px-6 py-4">
-              <select
-                :value="p.status"
-                class="text-xs px-2.5 py-1 rounded-full font-medium border-0 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500 pr-6"
-                :class="statusClass(p.status)"
-                @change="handleInlineStatusChange(p.id, $event.target.value)"
-                @click.stop
-              >
-                <option v-for="s in allStatuses" :key="s" :value="s">{{ s }}</option>
-              </select>
+              <template v-if="(p.available_transitions || []).length">
+                <select
+                  :value="p.status"
+                  class="text-xs px-2.5 py-1 rounded-full font-medium border-0 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500 pr-6"
+                  :class="statusClass(p.status)"
+                  @change="handleInlineStatusChange(p, $event.target.value, $event)"
+                  @click.stop
+                >
+                  <option :value="p.status" disabled>{{ statusLabel(p.status) }}</option>
+                  <option v-for="s in p.available_transitions" :key="s" :value="s">{{ statusLabel(s) }}</option>
+                </select>
+              </template>
+              <span v-else class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(p.status)">
+                {{ statusLabel(p.status) }}
+              </span>
             </td>
             <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 tabular-nums">
               ${{ Number(p.total_investment).toLocaleString() }} {{ p.currency }}
@@ -826,13 +838,35 @@ const statusOptions = [
   { value: 'expired', label: 'Expiradas' },
 ];
 
-const allStatuses = ['draft', 'sent', 'viewed', 'accepted', 'rejected', 'negotiating', 'expired'];
+const statusLabelMap = Object.fromEntries(statusOptions.map(o => [o.value, o.label]));
+function statusLabel(s) { return statusLabelMap[s] || s; }
 
-async function handleInlineStatusChange(proposalId, newStatus) {
-  const result = await proposalStore.updateProposalStatus(proposalId, newStatus);
+// Contract modal for inline negotiation
+const showContractModal = ref(false);
+const contractModalProposal = ref(null);
+
+async function handleInlineStatusChange(proposal, newStatus, event) {
+  if (newStatus === 'negotiating') {
+    contractModalProposal.value = proposal;
+    showContractModal.value = true;
+    // Revert the select visually
+    if (event?.target) event.target.value = proposal.status;
+    return;
+  }
+  const result = await proposalStore.updateProposalStatus(proposal.id, newStatus);
   if (!result.success) {
     proposalStore.fetchProposals(activeFilter.value || undefined);
   }
+}
+
+async function handleContractConfirmFromList(params) {
+  showContractModal.value = false;
+  if (!contractModalProposal.value) return;
+  const result = await proposalStore.saveContractAndNegotiate(contractModalProposal.value.id, params);
+  if (result.success) {
+    proposalStore.fetchProposals(activeFilter.value || undefined);
+  }
+  contractModalProposal.value = null;
 }
 
 const alerts = ref([]);

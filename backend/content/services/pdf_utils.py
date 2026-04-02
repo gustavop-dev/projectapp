@@ -49,8 +49,6 @@ def _register_fonts():
                 pdfmetrics.registerFont(TTFont(name, str(path)))
             except Exception:
                 logger.debug('Could not register font %s', name)
-    pdfmetrics.registerFont(TTFont('Ubuntu-Italic',     str(_FONTS_DIR / 'Ubuntu-Italic.ttf')))
-    pdfmetrics.registerFont(TTFont('Ubuntu-BoldItalic', str(_FONTS_DIR / 'Ubuntu-BoldItalic.ttf')))
     _fonts_registered = True
 
 
@@ -1025,3 +1023,10 @@ def _draw_separator(c, y, ps=None):
     c.setLineWidth(0.5)
     c.line(MARGIN_L, y, PAGE_W - MARGIN_R, y)
     return y - 12
+
+
+def safe_pdf_filename(prefix, proposal_title, date_str):
+    """Build a clean filename: Prefix_SafeTitle_YYYY-MM-DD.pdf"""
+    safe = re.sub(r'[^\w\s-]', '', proposal_title or '').strip()
+    safe = re.sub(r'\s+', '_', safe)[:80]
+    return f'{prefix}_{safe}_{date_str}.pdf'

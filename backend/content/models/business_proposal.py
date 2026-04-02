@@ -23,6 +23,16 @@ class BusinessProposal(models.Model):
         NEGOTIATING = 'negotiating', 'Negotiating'
         EXPIRED = 'expired', 'Expired'
 
+    # Whitelist of allowed manual status transitions (seller-initiated).
+    # 'viewed' and 'expired' are system-only — not available as manual targets.
+    ALLOWED_TRANSITIONS = {
+        'draft':       frozenset({'sent'}),
+        'sent':        frozenset({'negotiating', 'rejected'}),
+        'viewed':      frozenset({'negotiating', 'rejected'}),
+        'negotiating': frozenset({'accepted', 'rejected'}),
+        # accepted, rejected, expired → terminal (no outgoing transitions)
+    }
+
     class Currency(models.TextChoices):
         COP = 'COP', 'COP'
         USD = 'USD', 'USD'
@@ -98,6 +108,12 @@ class BusinessProposal(models.Model):
         ('booking', 'Sistema de Reservas'),
         ('dashboard', 'Dashboard / Reportes'),
         ('crm', 'Sistema CRM'),
+        ('saas', 'SaaS / Plataforma'),
+        ('chatbot', 'Chatbot / Asistente Virtual'),
+        ('ai_tool', 'Herramienta con IA'),
+        ('automation', 'Automatización / RPA'),
+        ('data_analytics', 'Analítica de Datos / BI'),
+        ('plugin_extension', 'Plugin / Extensión'),
         ('other', 'Otro'),
     ]
     MARKET_TYPE_CHOICES = [
@@ -119,6 +135,14 @@ class BusinessProposal(models.Model):
         ('media', 'Medios / Entretenimiento'),
         ('ngo', 'ONG / Sector Público'),
         ('agriculture', 'Agro / Tecnología Agrícola'),
+        ('tech', 'Tecnología / Software'),
+        ('consulting', 'Consultoría / Asesoría'),
+        ('automotive', 'Automotriz'),
+        ('fashion', 'Moda / Textil'),
+        ('beauty', 'Belleza / Cuidado Personal'),
+        ('manufacturing', 'Manufactura / Industrial'),
+        ('energy', 'Energía / Utilities'),
+        ('gaming', 'Videojuegos / Gaming'),
         ('other', 'Otro'),
     ]
     project_type = models.CharField(
@@ -175,6 +199,12 @@ class BusinessProposal(models.Model):
         help_text='List of module IDs selected by the client in the calculator (e.g. ["module-payments", "module-reservations"]).',
     )
 
+    # Contract parameters for PDF generation (populated when status → negotiating)
+    contract_params = models.JSONField(
+        default=dict, blank=True,
+        help_text='Parameters for contract PDF generation (party names, cédulas, bank details, etc.).',
+    )
+
     # Platform: commercial proposal lives on a project deliverable (OneToOne)
     deliverable = models.OneToOneField(
         'accounts.Deliverable',
@@ -201,6 +231,11 @@ class BusinessProposal(models.Model):
 
     def __str__(self):
         return f'{self.title} — {self.client_name}'
+
+    @property
+    def available_transitions(self):
+        """Return sorted list of valid manual status transitions from current status."""
+        return sorted(self.ALLOWED_TRANSITIONS.get(self.status, frozenset()))
 
     def save(self, *args, **kwargs):
         if not self.slug:
