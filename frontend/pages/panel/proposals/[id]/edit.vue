@@ -458,7 +458,7 @@
 
           <template #technical>
           <p class="text-sm text-gray-500 mb-6">
-            Prompt para generar solo la clave <code class="text-xs bg-gray-100 px-1 rounded">technicalDocument</code> del JSON (arquitectura, épicas, requerimientos, integraciones, etc.). Sin narrativa comercial ni precios.
+            Prompt para generar solo la clave <code class="text-xs bg-gray-100 px-1 rounded">technicalDocument</code> del JSON (arquitectura, módulos del producto, requerimientos, integraciones, etc.). Sin narrativa comercial ni precios.
           </p>
           <div class="flex flex-wrap items-center gap-2 mb-4">
             <template v-if="!technicalPromptIsEditing">
@@ -619,7 +619,7 @@
             <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
               <span><span class="text-gray-500">Cliente:</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.clientName }}</span></span>
               <span><span class="text-gray-500">Secciones:</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.sectionCount }}</span></span>
-              <span v-if="jsonImportPreview.epicCount != null"><span class="text-gray-500">Épicas (téc.):</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.epicCount }}</span></span>
+              <span v-if="jsonImportPreview.epicCount != null"><span class="text-gray-500">Módulos (téc.):</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.epicCount }}</span></span>
               <span v-if="jsonImportPreview.investment"><span class="text-gray-500">Inversión:</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.investment }}</span></span>
             </div>
           </div>
@@ -629,10 +629,14 @@
             <button
               type="button"
               :disabled="proposalStore.isUpdating"
-              class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
-                     hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+              class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
+                     hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-wait"
               @click="handleApplyImportJson"
             >
+              <svg v-if="proposalStore.isUpdating" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
               {{ proposalStore.isUpdating ? 'Aplicando...' : 'Aplicar JSON' }}
             </button>
             <p class="text-xs text-gray-400">Esto reemplazará la metadata y todas las secciones de la propuesta.</p>
@@ -692,7 +696,7 @@
         <ProposalAnalytics :proposalId="proposal.id" :proposal="proposal" />
       </div>
 
-      <!-- Tab: Documento técnico -->
+      <!-- Tab: Detalle técnico -->
       <div v-show="activeTab === 'technical'" class="max-w-5xl">
         <div class="flex gap-1 mb-4 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 max-w-sm">
           <button
@@ -718,7 +722,7 @@
         </div>
         <div v-show="technicalSubTab === 'editor'">
           <p v-if="!technicalSection" class="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-            No se encontró la sección «Documento técnico». Ejecuta migraciones o crea la propuesta de nuevo.
+            No se encontró la sección «Detalle técnico». Ejecuta migraciones o crea la propuesta de nuevo.
           </p>
           <template v-else>
             <label class="flex items-center gap-2 text-sm text-gray-600 mb-4 cursor-pointer">
@@ -740,7 +744,7 @@
         </div>
         <div v-show="technicalSubTab === 'json'" class="space-y-4">
           <p class="text-xs text-gray-500">
-            Solo el objeto <code class="bg-gray-100 px-1 rounded">content_json</code> del documento técnico. Debe ser JSON válido (mismo esquema que el editor).
+            Solo el objeto <code class="bg-gray-100 px-1 rounded">content_json</code> del detalle técnico. Debe ser JSON válido (mismo esquema que el editor).
           </p>
           <textarea
             v-model="technicalJsonRaw"
@@ -779,7 +783,7 @@
             />
           </div>
           <p class="text-[11px] text-gray-400 mt-1.5">
-            {{ sectionsWithContent }}/{{ enabledSectionsCount }} secciones comerciales habilitadas tienen contenido (sin contar «Doc. técnico» — pestaña dedicada).
+            {{ sectionsWithContent }}/{{ enabledSectionsCount }} secciones comerciales habilitadas tienen contenido (sin contar «Det. técnico» — pestaña dedicada).
           </p>
         </div>
 
@@ -988,7 +992,7 @@ const technicalSubTab = ref('editor');
 const tabs = [
   { id: 'general', label: 'General' },
   { id: 'sections', label: 'Secciones' },
-  { id: 'technical', label: 'Doc. técnico' },
+  { id: 'technical', label: 'Det. técnico' },
   { id: 'prompt', label: 'Prompt Proposal' },
   { id: 'json', label: 'JSON' },
   { id: 'activity', label: 'Actividad' },
@@ -1106,7 +1110,7 @@ async function handleApplyTechnicalJson() {
   }
   const result = await proposalStore.updateSection(sid, { content_json: parsed });
   if (result.success) {
-    technicalJsonMsg.value = { type: 'success', text: 'Documento técnico actualizado.' };
+    technicalJsonMsg.value = { type: 'success', text: 'Detalle técnico actualizado.' };
     await proposalStore.fetchProposal(proposal.value.id);
     refreshTechnicalJsonFromProposal();
   } else {
@@ -1487,89 +1491,89 @@ function parseInvestmentString(str) {
   return cleaned ? Number(cleaned) : 0;
 }
 
-async function handleApplyImportJson() {
+function handleApplyImportJson() {
   if (!jsonImportParsed.value || !proposal.value?.id) return;
 
-  const confirmed = await requestConfirm({
+  requestConfirm({
     title: 'Aplicar JSON',
     message: 'Esto reemplazará la metadata y todas las secciones de la propuesta. ¿Continuar?',
     variant: 'warning',
     confirmText: 'Aplicar',
     cancelText: 'Cancelar',
+    onConfirm: async () => {
+      jsonImportMsg.value = null;
+
+      const sections = { ...jsonImportParsed.value };
+      delete sections._meta;
+      delete sections._seller_prompt;
+
+      const meta = jsonImportParsed.value._meta || {};
+      const payload = {
+        title: meta.title || proposal.value.title,
+        client_name: jsonImportParsed.value.general?.clientName || proposal.value.client_name,
+        client_email: meta.client_email || proposal.value.client_email || '',
+        client_phone: meta.client_phone || proposal.value.client_phone || '',
+        project_type: meta.project_type || proposal.value.project_type || '',
+        market_type: meta.market_type || proposal.value.market_type || '',
+        project_type_custom: meta.project_type_custom || proposal.value.project_type_custom || '',
+        market_type_custom: meta.market_type_custom || proposal.value.market_type_custom || '',
+        language: meta.language || proposal.value.language || 'es',
+        total_investment: parseInvestmentString(meta.total_investment || jsonImportParsed.value.investment?.totalInvestment) || Number(proposal.value.total_investment) || 0,
+        currency: meta.currency || jsonImportParsed.value.investment?.currency || proposal.value.currency || 'COP',
+        expires_at: meta.expires_at || (proposal.value.expires_at ? proposal.value.expires_at : null),
+        reminder_days: meta.reminder_days || proposal.value.reminder_days || 10,
+        urgency_reminder_days: meta.urgency_reminder_days || proposal.value.urgency_reminder_days || 15,
+        discount_percent: meta.discount_percent ?? proposal.value.discount_percent ?? 0,
+        sections,
+      };
+
+      const result = await proposalStore.updateProposalFromJSON(proposal.value.id, payload);
+      if (result.success) {
+        jsonImportMsg.value = { type: 'success', text: 'Propuesta actualizada desde JSON.' };
+        jsonImportRaw.value = '';
+        jsonImportParsed.value = null;
+        jsonImportFileName.value = '';
+
+        // Sync local form with updated proposal
+        if (proposal.value) {
+          Object.assign(form, {
+            title: proposal.value.title,
+            client_name: proposal.value.client_name,
+            client_email: proposal.value.client_email || '',
+            client_phone: proposal.value.client_phone || '',
+            project_type: proposal.value.project_type || '',
+            market_type: proposal.value.market_type || '',
+            project_type_custom: proposal.value.project_type_custom || '',
+            market_type_custom: proposal.value.market_type_custom || '',
+            language: proposal.value.language || 'es',
+            total_investment: Number(proposal.value.total_investment),
+            currency: proposal.value.currency,
+            hosting_percent: proposal.value.hosting_percent ?? 30,
+            hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
+            hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
+            expires_at: proposal.value.expires_at ? proposal.value.expires_at.slice(0, 16) : '',
+            reminder_days: proposal.value.reminder_days,
+            urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
+            discount_percent: proposal.value.discount_percent ?? 0,
+            automations_paused: proposal.value.automations_paused ?? false,
+          });
+        }
+
+        // Refresh the export JSON view
+        await refreshExportJson();
+      } else {
+        const errors = result.errors;
+        jsonImportMsg.value = {
+          type: 'error',
+          text: errors
+            ? (typeof errors === 'object'
+              ? Object.entries(errors).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' | ')
+              : String(errors))
+            : 'Error al aplicar el JSON.',
+        };
+      }
+    },
   });
-  if (!confirmed) return;
-
-  jsonImportMsg.value = null;
-
-  const sections = { ...jsonImportParsed.value };
-  delete sections._meta;
-  delete sections._seller_prompt;
-
-  const meta = jsonImportParsed.value._meta || {};
-  const payload = {
-    title: meta.title || proposal.value.title,
-    client_name: jsonImportParsed.value.general?.clientName || proposal.value.client_name,
-    client_email: meta.client_email || proposal.value.client_email || '',
-    client_phone: meta.client_phone || proposal.value.client_phone || '',
-    project_type: meta.project_type || proposal.value.project_type || '',
-    market_type: meta.market_type || proposal.value.market_type || '',
-    project_type_custom: meta.project_type_custom || proposal.value.project_type_custom || '',
-    market_type_custom: meta.market_type_custom || proposal.value.market_type_custom || '',
-    language: meta.language || proposal.value.language || 'es',
-    total_investment: parseInvestmentString(meta.total_investment || jsonImportParsed.value.investment?.totalInvestment) || Number(proposal.value.total_investment) || 0,
-    currency: meta.currency || jsonImportParsed.value.investment?.currency || proposal.value.currency || 'COP',
-    expires_at: meta.expires_at || (proposal.value.expires_at ? proposal.value.expires_at : null),
-    reminder_days: meta.reminder_days || proposal.value.reminder_days || 10,
-    urgency_reminder_days: meta.urgency_reminder_days || proposal.value.urgency_reminder_days || 15,
-    discount_percent: meta.discount_percent ?? proposal.value.discount_percent ?? 0,
-    sections,
-  };
-
-  const result = await proposalStore.updateProposalFromJSON(proposal.value.id, payload);
-  if (result.success) {
-    jsonImportMsg.value = { type: 'success', text: 'Propuesta actualizada desde JSON.' };
-    jsonImportRaw.value = '';
-    jsonImportParsed.value = null;
-    jsonImportFileName.value = '';
-
-    // Sync local form with updated proposal
-    if (proposal.value) {
-      Object.assign(form, {
-        title: proposal.value.title,
-        client_name: proposal.value.client_name,
-        client_email: proposal.value.client_email || '',
-        client_phone: proposal.value.client_phone || '',
-        project_type: proposal.value.project_type || '',
-        market_type: proposal.value.market_type || '',
-        project_type_custom: proposal.value.project_type_custom || '',
-        market_type_custom: proposal.value.market_type_custom || '',
-        language: proposal.value.language || 'es',
-        total_investment: Number(proposal.value.total_investment),
-        currency: proposal.value.currency,
-        hosting_percent: proposal.value.hosting_percent ?? 30,
-        hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
-        hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
-        expires_at: proposal.value.expires_at ? proposal.value.expires_at.slice(0, 16) : '',
-        reminder_days: proposal.value.reminder_days,
-        urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
-        discount_percent: proposal.value.discount_percent ?? 0,
-        automations_paused: proposal.value.automations_paused ?? false,
-      });
-    }
-
-    // Refresh the export JSON view
-    await refreshExportJson();
-  } else {
-    const errors = result.errors;
-    jsonImportMsg.value = {
-      type: 'error',
-      text: errors
-        ? (typeof errors === 'object'
-          ? Object.entries(errors).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' | ')
-          : String(errors))
-        : 'Error al aplicar el JSON.',
-    };
-  }
 }
 
 // Auto-load JSON export when switching to json tab

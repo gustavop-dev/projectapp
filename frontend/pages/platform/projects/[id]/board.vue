@@ -366,7 +366,7 @@
                   </div>
                   <h2 class="text-lg font-bold text-esmerald dark:text-white">{{ detailCard.title }}</h2>
                   <p v-if="epicLabel(detailCard)" class="mt-2 text-xs font-medium text-teal-600 dark:text-teal-300">
-                    Épica: {{ epicLabel(detailCard) }}
+                    Módulo: {{ epicLabel(detailCard) }}
                   </p>
                   <p v-if="detailCard.source_flow_key" class="mt-1 text-[10px] text-green-light/70">
                     Ref. flujo: {{ detailCard.source_flow_key }}

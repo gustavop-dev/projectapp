@@ -27,17 +27,17 @@ const mockProposal = {
     {
       id: 9101,
       section_type: 'technical_document',
-      title: 'Documento técnico',
+      title: 'Detalle técnico',
       order: 0,
       is_enabled: true,
       is_wide_panel: true,
       content_json: {
-        purpose: 'E2E propósito documento técnico',
+        purpose: 'E2E propósito detalle técnico',
         stack: [{ layer: 'App', technology: 'Vue', rationale: 'SPA' }],
         epics: [
           {
             epicKey: 'e2e-epic',
-            title: 'Épica E2E',
+            title: 'Módulo E2E',
             requirements: [
               { title: 'Req siempre visible', description: 'E2E base scope' },
               {
@@ -101,7 +101,7 @@ test.describe('Proposal technical view mode', () => {
     await page.waitForLoadState('domcontentloaded');
     const technicalSection = page.locator('[data-section-type="technical_document_public"]');
     await expect(technicalSection).toBeVisible({ timeout: 20_000 });
-    await expect(technicalSection).toContainText('E2E propósito documento técnico');
+    await expect(technicalSection).toContainText('E2E propósito detalle técnico');
   });
 
   test('mode=technical hides requirement linked to unselected module', {

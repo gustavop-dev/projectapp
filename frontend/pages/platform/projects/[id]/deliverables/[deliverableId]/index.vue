@@ -16,7 +16,7 @@
         <h1 class="text-xl font-bold text-esmerald dark:text-white sm:text-2xl">{{ detail.title }}</h1>
         <p v-if="detail.description" class="mt-2 max-w-2xl text-sm text-green-light">{{ detail.description }}</p>
         <div v-if="detail.source_epic_key" class="mt-2 text-xs text-green-light/70">
-          Épica: {{ detail.source_epic_title || detail.source_epic_key }}
+          Módulo: {{ detail.source_epic_title || detail.source_epic_key }}
         </div>
       </div>
 

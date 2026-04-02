@@ -80,7 +80,7 @@
         v-if="analytics.technical_engagement && (analytics.technical_engagement.sessions_reached > 0 || analytics.technical_engagement.total_time_seconds > 0)"
         class="bg-white rounded-xl border border-teal-100 shadow-sm p-4 dark:bg-gray-800 dark:border-teal-900/40"
       >
-        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Documento técnico</h3>
+        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Detalle técnico</h3>
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
           Paneles en modo técnico y sección técnica se unifican en métricas (sesiones que abrieron el bloque técnico).
         </p>
@@ -504,7 +504,7 @@ const suggestions = computed(() => {
   if (techSec && (techSec.total_time_seconds >= 40 || (techSessions >= 1 && techSec.total_time_seconds >= 15))) {
     list.push({
       icon: '🔧',
-      text: 'Hubo lectura del documento técnico — buena señal si el decisor técnico o un CTO revisó arquitectura y requerimientos. Refuerza ese hilo en el seguimiento.',
+      text: 'Hubo lectura del detalle técnico — buena señal si el decisor técnico o un CTO revisó arquitectura y requerimientos. Refuerza ese hilo en el seguimiento.',
     });
   }
 
@@ -591,7 +591,7 @@ const SECTION_INSIGHTS = {
   technical_document_public: {
     icon: '🔧',
     label: 'Profundizó en lo técnico',
-    text: 'Pasó tiempo en el documento técnico (vista pública). Es señal de validación técnica: ofrece una llamada con perfil técnico o aclara integraciones y riesgos.',
+    text: 'Pasó tiempo en el detalle técnico (vista pública). Es señal de validación técnica: ofrece una llamada con perfil técnico o aclara integraciones y riesgos.',
   },
   technical_document: {
     icon: '🔧',
@@ -624,8 +624,8 @@ onMounted(async () => {
 
 /** Friendly label for raw tracking section_type (technical split). */
 function sectionAnalyticsTypeLabel(sectionType) {
-  if (sectionType === 'technical_document_public') return 'doc. técnico (vista pública)';
-  if (sectionType === 'technical_document') return 'doc. técnico';
+  if (sectionType === 'technical_document_public') return 'det. técnico (vista pública)';
+  if (sectionType === 'technical_document') return 'det. técnico';
   return '';
 }
 

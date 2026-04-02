@@ -16,7 +16,7 @@
         :class="tabButtonClass('technical')"
         @click="select('technical')"
       >
-        Documento técnico
+        Detalle técnico
       </button>
     </div>
     <div v-show="modelValue === 'commercial'">

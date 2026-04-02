@@ -157,4 +157,38 @@ describe('useConfirmModal', () => {
       expect(confirmState.value.onConfirm).toBeNull()
     })
   })
+
+  describe('promise pattern', () => {
+    it('returns a promise from requestConfirm', () => {
+      const result = requestConfirm({ title: 'Test' })
+
+      expect(result).toBeInstanceOf(Promise)
+    })
+
+    it('resolves to true when confirmed', async () => {
+      const promise = requestConfirm({ title: 'Test' })
+
+      await handleConfirmed()
+
+      await expect(promise).resolves.toBe(true)
+    })
+
+    it('resolves to false when cancelled', async () => {
+      const promise = requestConfirm({ title: 'Test' })
+
+      handleCancelled()
+
+      await expect(promise).resolves.toBe(false)
+    })
+
+    it('runs onConfirm callback and resolves to true together', async () => {
+      const onConfirm = jest.fn()
+      const promise = requestConfirm({ title: 'Test', onConfirm })
+
+      await handleConfirmed()
+
+      expect(onConfirm).toHaveBeenCalledTimes(1)
+      await expect(promise).resolves.toBe(true)
+    })
+  })
 })

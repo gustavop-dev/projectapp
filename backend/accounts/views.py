@@ -2048,7 +2048,7 @@ def _build_proposal_pdf_http_response(proposal, doc_variant: str):
         )
         if not pdf_bytes:
             return None, Response(
-                {'detail': 'El documento técnico no está disponible.'},
+                {'detail': 'El detalle técnico no está disponible.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
     else:

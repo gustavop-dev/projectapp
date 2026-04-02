@@ -24,7 +24,7 @@ Tu trabajo NO es llenar campos genéricos. Tu trabajo es transformar un JSON de 
 
 ## FLUJO EN DOS PASOS (IA)
 
-La plantilla de importación incluye \`sections.technicalDocument\`: es el **documento técnico** (arquitectura, stack, épicas, requerimientos con claves estables, etc.), distinto de la narrativa comercial.
+La plantilla de importación incluye \`sections.technicalDocument\`: es el **detalle técnico** (arquitectura, stack, módulos del producto, requerimientos con claves estables, etc.), distinto de la narrativa comercial.
 
 **En este paso (prompt comercial — el que estás leyendo):**
 
@@ -35,9 +35,9 @@ La plantilla de importación incluye \`sections.technicalDocument\`: es el **doc
 
 **Paso 2 (después de importar o en otra conversación):**
 
-- En el panel existe un prompt aparte: **«Documento técnico»** (pestaña Prompt al crear o editar propuesta, o en valores por defecto del panel).
-- Ese segundo prompt está pensado para que la IA produzca **solo el objeto** del documento técnico (el valor de \`technicalDocument\`), alineado con la propuesta que generaste aquí.
-- **Dónde pegarlo:** en **panel → editar propuesta → pestaña «Doc. técnico» → subpestaña JSON**, y guardar; o, si trabajas el archivo JSON completo a mano, **sustituye** únicamente el valor de \`sections.technicalDocument\` por ese objeto.
+- En el panel existe un prompt aparte: **«Detalle técnico»** (pestaña Prompt al crear o editar propuesta, o en valores por defecto del panel).
+- Ese segundo prompt está pensado para que la IA produzca **solo el objeto** del detalle técnico (el valor de \`technicalDocument\`), alineado con la propuesta que generaste aquí.
+- **Dónde pegarlo:** en **panel → editar propuesta → pestaña «Det. técnico» → subpestaña JSON**, y guardar; o, si trabajas el archivo JSON completo a mano, **sustituye** únicamente el valor de \`sections.technicalDocument\` por ese objeto.
 
 ---
 
@@ -83,7 +83,7 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 - **No cambies los tipos de datos**: si un campo es un array de strings, debe seguir siendo un array de strings. Si es un array de objetos, debe mantener la misma estructura de keys internas.
 - **Los campos \`index\` no se modifican.** Son el orden de secciones en la UI.
 
-### \`sections.technicalDocument\` (documento técnico — paso 2 en el panel)
+### \`sections.technicalDocument\` (detalle técnico — paso 2 en el panel)
 
 | Regla |
 |---|
@@ -91,7 +91,7 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 | **No añadas** propiedades de primer nivel dentro de ese objeto que no existan en la plantilla. |
 | **Estructura = la de la plantilla** — trata \`technicalDocument\` como un sub-JSON a copiar tal cual en forma; solo vacía valores, no reemplaces por narrativa comercial. |
 | **Claves como \`growthReadiness\`** (preparación para el crecimiento) vienen en la plantilla: **no las elimines**; déjalas vacías en el paso 1 igual que el resto del bloque técnico. |
-| **No uses** ese bloque como narrativa comercial, precios ni storytelling; el relleno técnico detallado corresponde al **prompt «Documento técnico»** del panel después de este paso. |
+| **No uses** ese bloque como narrativa comercial, precios ni storytelling; el relleno técnico detallado corresponde al **prompt «Detalle técnico»** del panel después de este paso. |
 
 ### Tabla de restricciones por sección
 
@@ -338,7 +338,7 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 ## LO QUE NUNCA DEBES HACER
 
 - No uses lenguaje genérico que podría aplicar a cualquier negocio. Cada frase debe gritar "esto fue hecho para ESTE cliente".
-- No dejes campos vacíos ni con texto placeholder **en las secciones comerciales**; la única excepción es \`sections.technicalDocument\`, donde los vacíos según plantilla están permitidos hasta completar el paso 2 (prompt «Documento técnico»).
+- No dejes campos vacíos ni con texto placeholder **en las secciones comerciales**; la única excepción es \`sections.technicalDocument\`, donde los vacíos según plantilla están permitidos hasta completar el paso 2 (prompt «Detalle técnico»).
 - No inventes métricas. Si no tienes un dato, busca uno real del sector o usa un rango conservador con fuente.
 - No elimines grupos de \`functionalRequirements\` que tengan \`_do_not_remove: true\`.
 - No uses jerga técnica en secciones que lee el cliente (todo excepto \`_meta\` y \`_seller_prompt\`).
@@ -346,7 +346,7 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 - No cambies los valores de \`circleColor\`, \`statusColor\`, \`index\`, \`source\` (en cards), \`hostingPercent\`, \`price_percent\`, \`activeStep\`, ni datos de contacto del equipo.
 - No agregues keys nuevas que no existan en la plantilla.
 - No cambies tipos de datos (un array de strings debe seguir siendo un array de strings).
-- No rellenes \`sections.technicalDocument\` con arquitectura detallada ni texto comercial en este paso; déjalo en **estructura de plantilla** hasta completar el paso 2 en **Doc. técnico → JSON** o en el archivo de importación.
+- No rellenes \`sections.technicalDocument\` con arquitectura detallada ni texto comercial en este paso; déjalo en **estructura de plantilla** hasta completar el paso 2 en **Det. técnico → JSON** o en el archivo de importación.
 
 ---
 
@@ -354,7 +354,7 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 
 Tu respuesta debe ser **únicamente** el JSON completo, válido, listo para importar. Sin texto antes ni después. Sin bloques de código markdown. Solo el JSON.
 
-Incluye \`sections.technicalDocument\` **tal como exige la plantilla** (estructura y claves preservadas; contenido técnico profundo vacío o mínimo) hasta que, tras importar, se use el prompt **«Documento técnico»** y se pegue el resultado en la subpestaña JSON de **Doc. técnico** (o se actualice \`sections.technicalDocument\` en el archivo).
+Incluye \`sections.technicalDocument\` **tal como exige la plantilla** (estructura y claves preservadas; contenido técnico profundo vacío o mínimo) hasta que, tras importar, se use el prompt **«Detalle técnico»** y se pegue el resultado en la subpestaña JSON de **Det. técnico** (o se actualice \`sections.technicalDocument\` en el archivo).
 
 ---
 
