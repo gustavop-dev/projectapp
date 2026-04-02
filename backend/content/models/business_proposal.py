@@ -26,11 +26,11 @@ class BusinessProposal(models.Model):
     # Whitelist of allowed manual status transitions (seller-initiated).
     # 'viewed' and 'expired' are system-only — not available as manual targets.
     ALLOWED_TRANSITIONS = {
-        'draft':       frozenset({'sent'}),
-        'sent':        frozenset({'negotiating', 'rejected'}),
-        'viewed':      frozenset({'negotiating', 'rejected'}),
-        'negotiating': frozenset({'accepted', 'rejected'}),
-        # accepted, rejected, expired → terminal (no outgoing transitions)
+        Status.DRAFT:       frozenset({Status.SENT}),
+        Status.SENT:        frozenset({Status.NEGOTIATING, Status.REJECTED}),
+        Status.VIEWED:      frozenset({Status.NEGOTIATING, Status.REJECTED}),
+        Status.NEGOTIATING: frozenset({Status.ACCEPTED, Status.REJECTED}),
+        # ACCEPTED, REJECTED, EXPIRED → terminal (no outgoing transitions)
     }
 
     class Currency(models.TextChoices):

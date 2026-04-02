@@ -39,6 +39,10 @@ class ProposalDocument(models.Model):
     )
     title = models.CharField(max_length=300)
     file = models.FileField(upload_to='proposal_documents/')
+    custom_type_label = models.CharField(
+        max_length=100, blank=True, default='',
+        help_text='Custom label when document_type is "other".',
+    )
     is_generated = models.BooleanField(
         default=False,
         help_text='True for system-generated PDFs (contract). Cannot be deleted by user.',

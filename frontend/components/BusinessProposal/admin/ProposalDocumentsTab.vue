@@ -17,6 +17,13 @@
             </svg>
             Descargar
           </a>
+          <a :href="draftContractPdfUrl" target="_blank"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-100 transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Borrador
+          </a>
           <button type="button" @click="$emit('editContract')"
             class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-100 transition-colors">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -56,6 +63,80 @@
           Detalle técnico
         </a>
       </div>
+    </section>
+
+    <!-- Send documents to client section -->
+    <section class="bg-white border border-emerald-100 rounded-xl p-5">
+      <div class="flex items-center gap-2 mb-4">
+        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+        <h3 class="text-sm font-semibold text-gray-800">Enviar documentos al cliente</h3>
+      </div>
+
+      <!-- Main documents checkboxes -->
+      <div class="space-y-2 mb-4">
+        <label class="flex items-center gap-2 cursor-pointer"
+          :class="{ 'opacity-50 cursor-not-allowed': !contractDoc }">
+          <input type="checkbox" value="draft_contract"
+            v-model="selectedMainDocs"
+            :disabled="!contractDoc"
+            class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+          <span class="text-xs text-gray-700">Contrato de desarrollo (borrador)</span>
+          <span v-if="!contractDoc" class="text-[10px] text-gray-400">(no generado)</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" value="commercial"
+            v-model="selectedMainDocs"
+            class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+          <span class="text-xs text-gray-700">Propuesta comercial</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" value="technical"
+            v-model="selectedMainDocs"
+            class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+          <span class="text-xs text-gray-700">Detalle técnico</span>
+        </label>
+      </div>
+
+      <!-- Additional documents checkboxes -->
+      <div v-if="additionalDocs.length" class="border-t border-gray-100 pt-3 mb-4">
+        <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-2">Documentos adicionales</p>
+        <div class="space-y-2">
+          <label v-for="doc in additionalDocs" :key="doc.id"
+            class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" :value="doc.id"
+              v-model="selectedAdditionalDocIds"
+              class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+            <span class="px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] font-medium">
+              {{ doc.document_type_display }}
+            </span>
+            <span class="text-xs text-gray-700">{{ doc.title }}</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Send button and client email -->
+      <div class="flex items-center justify-between pt-2">
+        <p v-if="proposal.client_email" class="text-xs text-gray-400">
+          Se enviará a: <span class="font-medium text-gray-600">{{ proposal.client_email }}</span>
+        </p>
+        <p v-else class="text-xs text-red-400">No hay email del cliente configurado</p>
+        <button type="button"
+          :disabled="!hasSelectedDocs || !proposal.client_email"
+          @click="showSendModal = true"
+          class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          </svg>
+          Enviar al cliente
+        </button>
+      </div>
+
+      <!-- Success message -->
+      <p v-if="sendSuccess" class="text-xs text-emerald-600 mt-2">
+        Documentos enviados correctamente.
+      </p>
     </section>
 
     <!-- Additional documents section -->
@@ -110,6 +191,11 @@
               <option value="other">Otro</option>
             </select>
           </div>
+          <div v-if="uploadType === 'other'" class="min-w-[120px]">
+            <label class="block text-xs text-gray-400 mb-1">Nombre categoría</label>
+            <input v-model="uploadCustomLabel" type="text" placeholder="Ej: Diseños"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500" />
+          </div>
           <div>
             <label class="block text-xs text-gray-400 mb-1">Archivo</label>
             <input ref="fileInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
@@ -122,11 +208,20 @@
         </div>
       </div>
     </section>
+    <!-- Send documents modal -->
+    <SendDocumentsModal
+      :visible="showSendModal"
+      :proposal="proposal"
+      :selected-main-docs="selectedMainDocs"
+      :selected-additional-docs="selectedAdditionalDocsList"
+      @cancel="showSendModal = false"
+      @sent="handleDocumentsSent"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onBeforeUnmount } from 'vue';
 
 const props = defineProps({
   proposal: { type: Object, required: true },
@@ -139,7 +234,14 @@ const proposalStore = useProposalStore();
 const isUploading = ref(false);
 const uploadTitle = ref('');
 const uploadType = ref('other');
+const uploadCustomLabel = ref('');
 const fileInput = ref(null);
+
+// Send documents state
+const selectedMainDocs = ref(['draft_contract', 'commercial', 'technical']);
+const selectedAdditionalDocIds = ref([]);
+const sendSuccess = ref(false);
+const showSendModal = ref(false);
 
 const contractDoc = computed(() =>
   props.documents.find(d => d.document_type === 'contract'),
@@ -149,8 +251,16 @@ const contractPdfUrl = computed(() =>
   `/api/proposals/${props.proposal.id}/contract/pdf/`,
 );
 
+const draftContractPdfUrl = computed(() =>
+  `/api/proposals/${props.proposal.id}/contract/draft-pdf/`,
+);
+
 const additionalDocs = computed(() =>
   props.documents.filter(d => d.document_type !== 'contract'),
+);
+
+const hasSelectedDocs = computed(() =>
+  selectedMainDocs.value.length > 0 || selectedAdditionalDocIds.value.length > 0,
 );
 
 function formatDate(isoString) {
@@ -158,6 +268,20 @@ function formatDate(isoString) {
   return new Date(isoString).toLocaleDateString('es-CO', {
     day: 'numeric', month: 'short', year: 'numeric',
   });
+}
+
+const selectedAdditionalDocsList = computed(() =>
+  additionalDocs.value.filter(d => selectedAdditionalDocIds.value.includes(d.id)),
+);
+
+let successTimer = null;
+onBeforeUnmount(() => { clearTimeout(successTimer); });
+
+function handleDocumentsSent() {
+  showSendModal.value = false;
+  sendSuccess.value = true;
+  clearTimeout(successTimer);
+  successTimer = setTimeout(() => { sendSuccess.value = false; }, 5000);
 }
 
 async function handleUpload() {
@@ -169,10 +293,14 @@ async function handleUpload() {
   formData.append('file', file);
   formData.append('title', uploadTitle.value || file.name);
   formData.append('document_type', uploadType.value);
+  if (uploadType.value === 'other' && uploadCustomLabel.value) {
+    formData.append('custom_type_label', uploadCustomLabel.value);
+  }
 
   const result = await proposalStore.uploadProposalDocument(props.proposal.id, formData);
   if (result.success) {
     uploadTitle.value = '';
+    uploadCustomLabel.value = '';
     if (fileInput.value) fileInput.value.value = '';
     emit('refresh');
   }

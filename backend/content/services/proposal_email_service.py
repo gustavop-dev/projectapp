@@ -1755,3 +1755,107 @@ class ProposalEmailService:
             )
             logger.exception('Failed to send magic link email to %s', email)
             return False
+
+    @classmethod
+    def send_documents_to_client(cls, proposal, attachments,
+                                  subject=None, greeting=None, body=None,
+                                  footer=None, document_descriptions=None):
+        """
+        Send selected documents to the client as email attachments.
+
+        The admin composes the email content in a modal before sending.
+        If content fields are not provided, defaults from the registry are used.
+
+        Args:
+            proposal: BusinessProposal instance.
+            attachments: list of (filename, pdf_bytes, mime_type) tuples.
+            subject: Email subject (pre-resolved by frontend).
+            greeting: Greeting text.
+            body: Introductory body text.
+            footer: Closing text.
+            document_descriptions: list of dicts [{'name': str, 'description': str}].
+
+        Returns:
+            bool: True if the email was sent successfully.
+        """
+        if not proposal.client_email:
+            logger.warning(
+                'Cannot send documents for proposal %s: no client_email',
+                proposal.pk,
+            )
+            return False
+
+        template_key = 'proposal_documents_sent'
+        if not cls._is_template_active(template_key):
+            logger.info('Skipping %s: template disabled', template_key)
+            return False
+
+        # Fall back to registry defaults for any missing fields
+        if not subject or not greeting or not body or not footer:
+            fallback_context = {
+                'client_name': proposal.client_name,
+                'title': proposal.title,
+            }
+            resolved = cls._resolve_content(template_key, fallback_context)
+            if not subject:
+                subject = resolved.get('subject', (
+                    f'\U0001f4ce {proposal.client_name}, te compartimos documentos '
+                    f'de tu proyecto \u2014 Project App'
+                ))
+            if not greeting:
+                greeting = resolved.get('greeting', f'Hola {proposal.client_name}')
+            if not body:
+                body = resolved.get('body', '')
+            if not footer:
+                footer = resolved.get('footer', '')
+
+        context = {
+            'client_name': proposal.client_name,
+            'title': proposal.title,
+            'greeting': greeting,
+            'body': body,
+            'footer': footer or '',
+            'document_descriptions': document_descriptions or [],
+        }
+
+        try:
+            html_content = render_to_string(
+                'emails/proposal_documents_sent.html', context
+            )
+            text_content = render_to_string(
+                'emails/proposal_documents_sent.txt', context
+            )
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[proposal.client_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+
+            for filename, data, mime_type in attachments:
+                email.attach(filename, data, mime_type)
+
+            email.send(fail_silently=False)
+
+            cls._log_email(
+                template_key, proposal.client_email,
+                subject=subject, proposal=proposal, status='sent',
+            )
+            logger.info(
+                'Sent %d documents for proposal %s to %s',
+                len(attachments), proposal.pk, proposal.client_email,
+            )
+            return True
+
+        except Exception as exc:
+            cls._log_email(
+                template_key, proposal.client_email,
+                subject='', proposal=proposal, status='failed',
+                error_message=str(exc)[:1000],
+            )
+            logger.exception(
+                'Failed to send documents for proposal %s', proposal.pk,
+            )
+            return False

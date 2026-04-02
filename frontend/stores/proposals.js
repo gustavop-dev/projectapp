@@ -965,6 +965,19 @@ export const useProposalStore = defineStore('proposals', {
     },
 
     /**
+     * fetchDefaultContractTemplate: Get the default contract template markdown.
+     */
+    async fetchDefaultContractTemplate() {
+      try {
+        const response = await get_request('proposals/contract-template/default/');
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching default contract template:', error);
+        return { success: false };
+      }
+    },
+
+    /**
      * saveContractAndNegotiate: Save contract params, generate PDF, move to negotiating.
      * @param {number} proposalId
      * @param {Object} contractParams
@@ -1035,6 +1048,24 @@ export const useProposalStore = defineStore('proposals', {
         return { success: true, data: response.data };
       } catch (error) {
         console.error('Error uploading proposal document:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * sendDocumentsToClient: Send selected documents to the client via email.
+     * @param {number} proposalId
+     * @param {Object} payload - { documents, additional_doc_ids, subject, greeting, body, footer, document_descriptions }
+     */
+    async sendDocumentsToClient(proposalId, payload) {
+      try {
+        const response = await create_request(
+          `proposals/${proposalId}/documents/send/`,
+          payload,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error sending documents to client:', error);
         return { success: false };
       }
     },

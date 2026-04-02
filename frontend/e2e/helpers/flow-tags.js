@@ -166,3 +166,10 @@ export const ADMIN_ADMIN_MANAGEMENT = ['@flow:admin-admin-management', '@module:
 export const ADMIN_EMAIL_DELIVERABILITY = ['@flow:admin-email-deliverability', '@module:admin', '@priority:P3'];
 export const PUBLIC_LANDING_SOFTWARE = ['@flow:public-landing-software', '@module:public', '@priority:P3'];
 export const PUBLIC_LANDING_APPS = ['@flow:public-landing-apps', '@module:public', '@priority:P3'];
+
+// ── v2.9.0 contract & documents flows ──
+export const ADMIN_PROPOSAL_CONTRACT_GENERATE = ['@flow:admin-proposal-contract-generate', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_CONTRACT_EDIT = ['@flow:admin-proposal-contract-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_CONTRACT_DOWNLOAD = ['@flow:admin-proposal-contract-download', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_DOCUMENTS_MANAGE = ['@flow:admin-proposal-documents-manage', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_DOCUMENTS_SEND = ['@flow:admin-proposal-documents-send', '@module:admin', '@priority:P1'];

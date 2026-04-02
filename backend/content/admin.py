@@ -10,6 +10,7 @@ from .models import (
     IssuerProfile,
     CompanySettings,
     ProposalDocument,
+    ContractTemplate,
 )
 
 class PortfolioWorkAdmin(admin.ModelAdmin):
@@ -286,3 +287,4 @@ admin_site.register(DocumentType, admin.ModelAdmin)
 admin_site.register(IssuerProfile, admin.ModelAdmin)
 admin_site.register(CompanySettings, admin.ModelAdmin)
 admin_site.register(ProposalDocument, admin.ModelAdmin)
+admin_site.register(ContractTemplate, admin.ModelAdmin)

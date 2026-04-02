@@ -180,9 +180,27 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         is_admin = self.context.get('is_admin', False)
         if not is_admin:
             return []
-        from content.views.proposal import _serialize_proposal_document
         docs = obj.proposal_documents.all().order_by('-created_at')
-        return [_serialize_proposal_document(d) for d in docs]
+        return [serialize_proposal_document(d) for d in docs]
+
+
+def serialize_proposal_document(d):
+    """Serialize a ProposalDocument instance to a dict. Used by views and serializers."""
+    display = (
+        d.custom_type_label
+        if d.document_type == 'other' and d.custom_type_label
+        else d.get_document_type_display()
+    )
+    return {
+        'id': d.id,
+        'document_type': d.document_type,
+        'document_type_display': display,
+        'custom_type_label': d.custom_type_label,
+        'title': d.title,
+        'file': d.file.url if d.file else None,
+        'is_generated': d.is_generated,
+        'created_at': d.created_at.isoformat(),
+    }
 
 
 class ProposalCreateUpdateSerializer(serializers.ModelSerializer):

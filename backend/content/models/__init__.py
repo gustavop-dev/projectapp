@@ -33,3 +33,4 @@ from .document_item import DocumentItem
 from .document_payment_method import DocumentPaymentMethod
 from .company_settings import CompanySettings
 from .proposal_document import ProposalDocument
+from .contract_template import ContractTemplate

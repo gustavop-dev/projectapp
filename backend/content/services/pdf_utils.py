@@ -1030,3 +1030,48 @@ def safe_pdf_filename(prefix, proposal_title, date_str):
     safe = re.sub(r'[^\w\s-]', '', proposal_title or '').strip()
     safe = re.sub(r'\s+', '_', safe)[:80]
     return f'{prefix}_{safe}_{date_str}.pdf'
+
+
+def add_watermark_to_pdf(pdf_bytes, watermark_text='BORRADOR'):
+    """Overlay diagonal *watermark_text* on every page of *pdf_bytes*.
+
+    Uses ReportLab to render a single transparent watermark page, then
+    merges it onto each page of the source PDF via PyPDF.  Returns the
+    watermarked PDF as ``bytes``.
+    """
+    import io
+
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas as rl_canvas
+
+    from pypdf import PdfReader, PdfWriter
+
+    _register_fonts()
+
+    # -- build a single-page watermark overlay --
+    wm_buf = io.BytesIO()
+    wm_c = rl_canvas.Canvas(wm_buf, pagesize=A4)
+    wm_c.saveState()
+    wm_c.setFont(_font('bold'), 72)
+    wm_c.setFillColor(GRAY_300)
+    wm_c.setFillAlpha(0.18)
+    wm_c.translate(PAGE_W / 2, PAGE_H / 2)
+    wm_c.rotate(45)
+    wm_c.drawCentredString(0, 0, watermark_text)
+    wm_c.restoreState()
+    wm_c.save()
+    wm_buf.seek(0)
+
+    watermark_page = PdfReader(wm_buf).pages[0]
+
+    # -- merge watermark onto every page of the source PDF --
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    writer = PdfWriter()
+
+    for page in reader.pages:
+        page.merge_page(watermark_page)
+        writer.add_page(page)
+
+    out_buf = io.BytesIO()
+    writer.write(out_buf)
+    return out_buf.getvalue()
