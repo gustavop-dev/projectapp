@@ -11,6 +11,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
 from content.services.pdf_utils import (
+    COVER_PDF,
     COVER_TECHNICAL_PDF,
     ESMERALD,
     ESMERALD_LIGHT,
@@ -19,6 +20,7 @@ from content.services.pdf_utils import (
     MARGIN_T,
     PAGE_H,
     PAGE_W,
+    _apply_toc_links,
     _check_y,
     _draw_bullet_list,
     _draw_decorative_title_page,
@@ -489,16 +491,20 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
             date_str,
             ps2,
         )
-        _draw_toc_page(c2, toc_entries, ps2)
+        link_areas = []
+        _draw_toc_page(c2, toc_entries, ps2, link_areas=link_areas)
         c2.save()
         prefix_bytes = buf2.getvalue()
         buf2.close()
 
-        return merge_with_covers(
+        final_pdf = merge_with_covers(
             content_bytes,
             cover_path=COVER_TECHNICAL_PDF,
             prepend_bytes=prefix_bytes,
         )
+
+        cover_offset = 1 if (COVER_TECHNICAL_PDF.exists() or COVER_PDF.exists()) else 0
+        return _apply_toc_links(final_pdf, link_areas, cover_offset)
     except Exception:
         logger.exception('Technical PDF failed for proposal %s', proposal.uuid)
         return None

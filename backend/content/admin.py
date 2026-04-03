@@ -265,6 +265,16 @@ class ProjectAppAdminSite(admin.AdminSite):
                     if model['object_name'] == 'Document'
                 ]
             },
+            {
+                'name': _('Contract Settings'),
+                'app_label': 'contract_settings',
+                'models': [
+                    model for model in app_dict.get('content', {}).get('models', [])
+                    if model['object_name'] in [
+                        'CompanySettings', 'ContractTemplate', 'ProposalDocument',
+                    ]
+                ]
+            },
         ]
         return custom_app_list
 

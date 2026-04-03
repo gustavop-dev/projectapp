@@ -53,6 +53,7 @@ _PLACEHOLDER_BLANK = '_______________'
 
 # Times-Roman for contract body — serif font conveys legal formality
 _CONTRACT_BODY_FONT = 'Times-Roman'
+_CONTRACT_BOLD_FONT = 'Times-Bold'
 
 
 def _build_params(raw_params: dict) -> dict:
@@ -135,8 +136,9 @@ def _render_block(c, y, block, ps):
         y = _check_y(c, y, ps, need=30)
         y = _draw_paragraphs(
             c, y, [text], ps=ps,
-            color=ESMERALD_80, font_size=9, leading=13,
+            color=ESMERALD_80, font_size=10, leading=14,
             font_name=_CONTRACT_BODY_FONT, justify=True,
+            bold_font_name=_CONTRACT_BOLD_FONT,
         )
         y -= 4
 
@@ -152,10 +154,11 @@ def _render_block(c, y, block, ps):
             texts.append(txt)
         y = _draw_paragraphs(
             c, y, texts, ps=ps,
-            color=ESMERALD_80, font_size=9, leading=13,
+            color=ESMERALD_80, font_size=10, leading=14,
             x=MARGIN_L + 12,
             max_width=CONTENT_W - 12,
             font_name=_CONTRACT_BODY_FONT, justify=True,
+            bold_font_name=_CONTRACT_BOLD_FONT,
         )
         y -= 4
 
@@ -245,7 +248,7 @@ def _draw_signature_block(c, y, params, ps, signature_path=None):
         draw_w = iw * scale
         draw_h = ih * scale
         img_x = col2_x + (sig_width - draw_w) / 2
-        img_y = y - 5  # overlap the line by ~5pt
+        img_y = y
         c.drawImage(signature_path, img_x, img_y, width=draw_w, height=draw_h, mask='auto')
 
     c.setStrokeColor(GRAY_300)

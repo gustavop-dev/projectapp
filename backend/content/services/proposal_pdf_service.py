@@ -79,6 +79,7 @@ from content.services.pdf_utils import (  # noqa: F401 — re-exported
     _draw_subtitle,
     _draw_pill,
     _draw_banner_box,
+    _apply_toc_links,
     _draw_toc_page,
     format_date_es,
     # Markdown helpers
@@ -1828,12 +1829,16 @@ class ProposalPdfService:
                 c_prefix.showPage()
                 ps_prefix['num'] += 1
 
-            _draw_toc_page(c_prefix, toc_entries, ps_prefix)
+            link_areas = []
+            _draw_toc_page(c_prefix, toc_entries, ps_prefix, link_areas=link_areas)
             c_prefix.save()
             prefix_bytes = buf_prefix.getvalue()
             buf_prefix.close()
 
             pdf_bytes = cls._merge_with_covers(content_bytes, prepend_bytes=prefix_bytes)
+
+            cover_offset = 1 if COVER_PDF.exists() else 0
+            pdf_bytes = _apply_toc_links(pdf_bytes, link_areas, cover_offset)
 
             logger.info(
                 'Generated PDF for proposal %s (%d bytes, %d pages)',

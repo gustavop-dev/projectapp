@@ -291,11 +291,15 @@ def _tokenize_inline(text):
 
 
 def _draw_line_with_links(c, x, y, line, font_name, font_size, text_color,
-                          link_color=None, bold_font_name=None):
+                          link_color=None, bold_font_name=None,
+                          justify=False, max_width=None):
     """Draw a single line of text with full inline Markdown support.
 
     Handles: **bold**, *italic*, ***bold-italic***, `inline code`,
     [text](url) links, bare domain links, ~~strikethrough~~.
+
+    When *justify* is True and *max_width* is given, distributes extra
+    whitespace across word boundaries so the line fills *max_width*.
     """
     if link_color is None:
         link_color = colors.HexColor('#059669')  # emerald-600
@@ -303,81 +307,101 @@ def _draw_line_with_links(c, x, y, line, font_name, font_size, text_color,
         bold_font_name = _font('bold')
 
     tokens = _tokenize_inline(line)
-    cx = x
 
+    def _tok_font(ttype):
+        if ttype == 'bold':
+            return bold_font_name
+        if ttype == 'italic':
+            return _font('italic')
+        if ttype == 'bold_italic':
+            return _font('bolditalic')
+        if ttype == 'code':
+            return 'Courier'
+        return font_name
+
+    # Calculate extra space per word gap when justifying
+    extra = 0.0
+    if justify and max_width:
+        total_w = 0.0
+        n_spaces = 0
+        for tok in tokens:
+            tt = tok.get('text', '')
+            if not tt:
+                continue
+            tp = tok['type']
+            fn = _tok_font(tp)
+            fs = max(font_size - 1, 7) if tp == 'code' else font_size
+            w = c.stringWidth(tt, fn, fs)
+            if tp == 'code':
+                w += 6  # pad * 2
+            total_w += w
+            n_spaces += tt.count(' ')
+        if n_spaces > 0:
+            extra = max(0.0, (max_width - total_w) / n_spaces)
+
+    # Draw tokens
+    cx = x
     for tok in tokens:
         tok_type = tok['type']
         tok_text = tok.get('text', '')
         if not tok_text:
             continue
 
-        if tok_type == 'text':
-            c.setFont(font_name, font_size)
-            c.setFillColor(text_color)
-            c.drawString(cx, y, tok_text)
-            cx += c.stringWidth(tok_text, font_name, font_size)
+        fn = _tok_font(tok_type)
+        fs = max(font_size - 1, 7) if tok_type == 'code' else font_size
 
-        elif tok_type == 'bold':
-            fn = bold_font_name
-            c.setFont(fn, font_size)
-            c.setFillColor(text_color)
-            c.drawString(cx, y, tok_text)
-            cx += c.stringWidth(tok_text, fn, font_size)
-
-        elif tok_type == 'italic':
-            fn = _font('italic')
-            c.setFont(fn, font_size)
-            c.setFillColor(text_color)
-            c.drawString(cx, y, tok_text)
-            cx += c.stringWidth(tok_text, fn, font_size)
-
-        elif tok_type == 'bold_italic':
-            fn = _font('bolditalic')
-            c.setFont(fn, font_size)
-            c.setFillColor(text_color)
-            c.drawString(cx, y, tok_text)
-            cx += c.stringWidth(tok_text, fn, font_size)
-
-        elif tok_type == 'code':
-            fn = 'Courier'
-            code_size = max(font_size - 1, 7)
-            tw = c.stringWidth(tok_text, fn, code_size)
+        # Code blocks: single unit, no word-splitting
+        if tok_type == 'code':
+            tw = c.stringWidth(tok_text, fn, fs)
             pad = 3
-            # Gray pill background
             c.saveState()
             c.setFillColor(colors.HexColor('#F3F4F6'))  # gray-100
             c.roundRect(cx - pad, y - 2, tw + pad * 2, font_size + 2, 2, fill=1, stroke=0)
             c.restoreState()
-            c.setFont(fn, code_size)
+            c.setFont(fn, fs)
             c.setFillColor(colors.HexColor('#6B7280'))  # gray-500
             c.drawString(cx, y, tok_text)
             cx += tw + pad * 2
+            continue
 
-        elif tok_type == 'link':
-            url = tok.get('url', '')
-            c.setFont(font_name, font_size)
-            c.setFillColor(link_color)
-            tw = c.stringWidth(tok_text, font_name, font_size)
-            if url:
-                c.linkURL(url, (cx, y - 2, cx + tw, y + font_size - 1), relative=0)
+        fc = link_color if tok_type == 'link' else text_color
+        c.setFont(fn, fs)
+        c.setFillColor(fc)
+
+        seg_start = cx  # track start for link underlines
+
+        if extra > 0:
+            # Justified: draw word-by-word with distributed spacing
+            words = tok_text.split(' ')
+            for j, word in enumerate(words):
+                if j > 0:
+                    cx += c.stringWidth(' ', fn, fs) + extra
+                if word:
+                    c.drawString(cx, y, word)
+                    ww = c.stringWidth(word, fn, fs)
+                    if tok_type == 'strike':
+                        c.setStrokeColor(text_color)
+                        c.setLineWidth(0.6)
+                        c.line(cx, y + font_size * 0.35, cx + ww, y + font_size * 0.35)
+                    cx += ww
+        else:
+            # Non-justified: draw the whole token at once
             c.drawString(cx, y, tok_text)
-            # Underline
+            tw = c.stringWidth(tok_text, fn, fs)
+            if tok_type == 'strike':
+                c.setStrokeColor(text_color)
+                c.setLineWidth(0.6)
+                c.line(cx, y + font_size * 0.35, cx + tw, y + font_size * 0.35)
+            cx += tw
+
+        # Link: URL + underline
+        if tok_type == 'link':
+            url = tok.get('url', '')
+            if url:
+                c.linkURL(url, (seg_start, y - 2, cx, y + font_size - 1), relative=0)
             c.setStrokeColor(link_color)
             c.setLineWidth(0.4)
-            c.line(cx, y - 1.5, cx + tw, y - 1.5)
-            cx += tw
-
-        elif tok_type == 'strike':
-            c.setFont(font_name, font_size)
-            c.setFillColor(text_color)
-            tw = c.stringWidth(tok_text, font_name, font_size)
-            c.drawString(cx, y, tok_text)
-            # Strikethrough line at 40% of font height
-            strike_y = y + font_size * 0.35
-            c.setStrokeColor(text_color)
-            c.setLineWidth(0.6)
-            c.line(cx, strike_y, cx + tw, strike_y)
-            cx += tw
+            c.line(seg_start, y - 1.5, cx, y - 1.5)
 
     return cx
 
@@ -476,27 +500,9 @@ def _draw_section_header(c, y, index_str, title, ps=None):
     return y
 
 
-def _draw_justified_line(c, x, y, line, font, font_size, color, max_width):
-    """Draw *line* with full justification — distribute whitespace between words."""
-    words = line.split()
-    if len(words) <= 1:
-        c.setFont(font, font_size)
-        c.setFillColor(color)
-        c.drawString(x, y, line)
-        return
-    word_widths = [c.stringWidth(w, font, font_size) for w in words]
-    gap = (max_width - sum(word_widths)) / (len(words) - 1)
-    cur_x = x
-    c.setFont(font, font_size)
-    c.setFillColor(color)
-    for word, width in zip(words, word_widths):
-        c.drawString(cur_x, y, word)
-        cur_x += width + gap
-
-
 def _draw_paragraphs(c, y, paragraphs, max_width=None, font_size=10,
                       leading=15, color=ESMERALD_80, ps=None, x=None,
-                      font_name=None, justify=False):
+                      font_name=None, justify=False, bold_font_name=None):
     """Draw a list of paragraph strings and return the new y."""
     if max_width is None:
         max_width = CONTENT_W
@@ -516,10 +522,12 @@ def _draw_paragraphs(c, y, paragraphs, max_width=None, font_size=10,
                 y = _check_y(c, y, ps)
             elif y < MARGIN_B + 20:
                 return y
-            if justify and i < len(lines) - 1:
-                _draw_justified_line(c, x, y, line, fn, font_size, color, max_width)
-            else:
-                _draw_line_with_links(c, x, y, line, fn, font_size, color)
+            is_justified = justify and i < len(lines) - 1
+            _draw_line_with_links(
+                c, x, y, line, fn, font_size, color,
+                bold_font_name=bold_font_name,
+                justify=is_justified, max_width=max_width,
+            )
             y -= leading
         y -= 5
     return y
@@ -1195,13 +1203,16 @@ def _draw_decorative_title_page(c, document_label, client_name, date_str, ps):
     ps['num'] += 1
 
 
-def _draw_toc_page(c, entries, ps):
+def _draw_toc_page(c, entries, ps, link_areas=None):
     """Draw a Table of Contents page and advance to the next page.
 
     Args:
         c: ReportLab canvas.
         entries: List of (index_str, title, page_num) tuples.
         ps: Page-state dict with 'num' and optional 'client'.
+        link_areas: Optional list; each entry's clickable rect and target
+            page num are appended as ((x1,y1,x2,y2), page_num) so the
+            caller can later add GoTo annotations via _apply_toc_links.
     """
     _draw_header_bar(c)
     y = PAGE_H - MARGIN_T
@@ -1224,6 +1235,7 @@ def _draw_toc_page(c, entries, ps):
 
     for idx_str, title, page_num in entries:
         y = _check_y(c, y, ps, need=36)
+        y_top = y  # baseline of this entry after any page break
 
         c.setFont(_font('light'), 11)
         c.setFillColor(GREEN_LIGHT)
@@ -1248,6 +1260,10 @@ def _draw_toc_page(c, entries, ps):
             c.setFillColor(GRAY_500)
             c.drawRightString(PAGE_W - MARGIN_R, y, page_str)
 
+            if link_areas is not None:
+                # rect spans full row width; y coords in PDF space (origin bottom-left)
+                link_areas.append(((MARGIN_L, y_top - 32, PAGE_W - MARGIN_R, y_top + 4), page_num))
+
         c.setStrokeColor(ESMERALD_LIGHT)
         c.setLineWidth(0.5)
         c.line(MARGIN_L, y - 16, PAGE_W - MARGIN_R, y - 16)
@@ -1256,6 +1272,50 @@ def _draw_toc_page(c, entries, ps):
     _draw_footer(c, ps['num'], client_name=ps.get('client'))
     c.showPage()
     ps['num'] += 1
+
+
+def _apply_toc_links(pdf_bytes, link_areas, cover_offset):
+    """Add clickable GoTo annotations to the TOC page of a merged PDF.
+
+    Called after merge_with_covers so absolute page indices are known.
+
+    Args:
+        pdf_bytes: Fully assembled PDF (cover + prefix + content + back).
+        link_areas: List of ((x1,y1,x2,y2), section_ps_num) from _draw_toc_page.
+        cover_offset: 1 if a cover page was prepended, else 0.  Used to convert
+            a content-pass ps['num'] (1-indexed, starting at 3) to the
+            0-indexed page position in the final assembled PDF.
+
+    Returns updated PDF bytes.
+    """
+    if not link_areas:
+        return pdf_bytes
+
+    from pypdf import PdfReader, PdfWriter
+    from pypdf.annotations import Link
+
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    writer = PdfWriter()
+    writer.append(reader)
+
+    # TOC is always the second page after the cover (cover=0, TOC=1 when cover exists)
+    toc_page_idx = cover_offset + 1
+    total = len(writer.pages)
+    for rect, section_ps_num in link_areas:
+        # content-pass ps['num'] is 1-indexed starting at 3 (page 1=greeting/title, 2=TOC)
+        # subtract 1 to get 0-indexed, then add cover_offset to shift past the cover
+        target_idx = section_ps_num + cover_offset - 1
+        if 0 <= target_idx < total:
+            writer.add_annotation(
+                page_number=toc_page_idx,
+                annotation=Link(rect=rect, target_page_index=target_idx),
+            )
+
+    out = io.BytesIO()
+    writer.write(out)
+    result = out.getvalue()
+    out.close()
+    return result
 
 
 def add_watermark_to_pdf(pdf_bytes, watermark_text='BORRADOR'):
