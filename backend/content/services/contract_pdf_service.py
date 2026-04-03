@@ -51,9 +51,11 @@ logger = logging.getLogger(__name__)
 # Placeholder default values when a param is missing
 _PLACEHOLDER_BLANK = '_______________'
 
-# Times-Roman for contract body — serif font conveys legal formality
-_CONTRACT_BODY_FONT = 'Times-Roman'
-_CONTRACT_BOLD_FONT = 'Times-Bold'
+# Helvetica for contract body — clean sans-serif, similar to Arial
+_CONTRACT_BODY_FONT = 'Helvetica'
+_CONTRACT_BOLD_FONT = 'Helvetica-Bold'
+_CONTRACT_BODY_SIZE = 11
+_CONTRACT_BODY_LEADING = 15
 
 
 def _build_params(raw_params: dict) -> dict:
@@ -136,7 +138,7 @@ def _render_block(c, y, block, ps):
         y = _check_y(c, y, ps, need=30)
         y = _draw_paragraphs(
             c, y, [text], ps=ps,
-            color=ESMERALD_80, font_size=10, leading=14,
+            color=ESMERALD_80, font_size=_CONTRACT_BODY_SIZE, leading=_CONTRACT_BODY_LEADING,
             font_name=_CONTRACT_BODY_FONT, justify=True,
             bold_font_name=_CONTRACT_BOLD_FONT,
         )
@@ -154,7 +156,7 @@ def _render_block(c, y, block, ps):
             texts.append(txt)
         y = _draw_paragraphs(
             c, y, texts, ps=ps,
-            color=ESMERALD_80, font_size=10, leading=14,
+            color=ESMERALD_80, font_size=_CONTRACT_BODY_SIZE, leading=_CONTRACT_BODY_LEADING,
             x=MARGIN_L + 12,
             max_width=CONTENT_W - 12,
             font_name=_CONTRACT_BODY_FONT, justify=True,
@@ -233,7 +235,7 @@ def _draw_signature_block(c, y, params, ps, signature_path=None):
         MARGIN_L, y,
         'las partes firman el presente contrato en dos (2) ejemplares del mismo tenor.',
     )
-    y -= 40
+    y -= 55
 
     col1_x = MARGIN_L
     col2_x = MARGIN_L + CONTENT_W / 2 + 10
@@ -243,12 +245,11 @@ def _draw_signature_block(c, y, params, ps, signature_path=None):
     if signature_path and os.path.isfile(signature_path):
         img = ImageReader(signature_path)
         iw, ih = img.getSize()
-        max_h = 55
-        scale = min(sig_width / iw, max_h / ih)
+        scale = sig_width / iw * 1.1  # slightly larger than column width
         draw_w = iw * scale
         draw_h = ih * scale
-        img_x = col2_x + (sig_width - draw_w) / 2
-        img_y = y
+        img_x = col2_x - draw_w * 0.067  # compensate left whitespace in image
+        img_y = y - draw_h * 0.4  # image sits above the line
         c.drawImage(signature_path, img_x, img_y, width=draw_w, height=draw_h, mask='auto')
 
     c.setStrokeColor(GRAY_300)
@@ -278,17 +279,21 @@ def _draw_signature_block(c, y, params, ps, signature_path=None):
 # Public API
 # ---------------------------------------------------------------------------
 
-def generate_contract_pdf(proposal) -> bytes | None:
-    """Generate a contract PDF and return raw bytes, or None on failure."""
+def generate_contract_pdf(proposal, draft=False) -> bytes | None:
+    """Generate a contract PDF and return raw bytes, or None on failure.
+
+    When *draft* is True the contractor signature is omitted.
+    """
     try:
         raw_params = getattr(proposal, 'contract_params', None) or {}
         source = raw_params.get('contract_source', 'default')
         params = _build_params(raw_params)
 
-        # Load contractor signature image path from company settings
-        from content.models import CompanySettings
-        company = CompanySettings.load()
-        sig_path = company.contractor_signature.path if company.contractor_signature else None
+        sig_path = None
+        if not draft:
+            from content.models import CompanySettings
+            company = CompanySettings.load()
+            sig_path = company.contractor_signature.path if company.contractor_signature else None
 
         markdown_text = _get_contract_markdown(raw_params, params)
         if not markdown_text:

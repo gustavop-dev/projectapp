@@ -3897,16 +3897,18 @@ def download_contract_pdf(request, proposal_id):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def download_draft_contract_pdf(request, proposal_id):
-    """Download the contract PDF with a diagonal BORRADOR watermark."""
+    """Download the contract PDF with a diagonal BORRADOR watermark and no signature."""
     proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
-    doc = _get_contract_doc(proposal)
-    if not doc or not doc.file:
-        return Response(
-            {'error': 'Contract PDF not found. Generate it first.'},
-            status=status.HTTP_404_NOT_FOUND,
-        )
+    from content.services.contract_pdf_service import generate_contract_pdf
     from content.services.pdf_utils import add_watermark_to_pdf
-    draft_bytes = add_watermark_to_pdf(doc.file.read())
+
+    pdf_bytes = generate_contract_pdf(proposal, draft=True)
+    if not pdf_bytes:
+        return Response(
+            {'error': 'Could not generate draft contract PDF.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+    draft_bytes = add_watermark_to_pdf(pdf_bytes)
     return _contract_pdf_response(draft_bytes, proposal, 'Borrador_Contrato')
 
 
