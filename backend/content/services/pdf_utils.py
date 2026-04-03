@@ -6,6 +6,7 @@ text processing helpers, and reusable drawing functions used by
 proposal_pdf_service and other PDF generators.
 """
 
+import io
 import logging
 import re
 import textwrap
@@ -91,6 +92,9 @@ ESMERALD_80 = colors.HexColor('#335550')  # esmerald at ~80% mixed with white
 
 # ── Cover / back-cover PDF paths ─────────────────────────────
 COVER_PDF = Path(settings.BASE_DIR) / 'static' / 'front_page' / 'Portada_Propuesta_ProjectApp.pdf'
+COVER_TECHNICAL_PDF = (
+    Path(settings.BASE_DIR) / 'static' / 'front_page' / 'Portada_Detalle_Tecnico.pdf'
+)
 BACK_COVER_PDF = (
     Path(settings.BASE_DIR) / 'static' / 'front_page' / 'Contraportada_ProjectApp.pdf'
 )
@@ -105,6 +109,19 @@ CONTENT_W = PAGE_W - MARGIN_L - MARGIN_R
 TEXT_AREA_W = CONTENT_W * 0.60
 SIDEBAR_X = MARGIN_L + TEXT_AREA_W + 20
 SIDEBAR_W = CONTENT_W - TEXT_AREA_W - 20
+
+# ── Spanish date formatting ─────────────────────────────────
+_MONTHS_ES = {
+    1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
+    5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',
+    9: 'septiembre', 10: 'octubre', 11: 'noviembre',
+    12: 'diciembre',
+}
+
+
+def format_date_es(dt):
+    """Format a datetime as '3 de abril de 2026'."""
+    return f'{dt.day} de {_MONTHS_ES.get(dt.month, "")} de {dt.year}'
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1026,10 +1043,124 @@ def _draw_separator(c, y, ps=None):
 
 
 def safe_pdf_filename(prefix, proposal_title, date_str):
-    """Build a clean filename: Prefix_SafeTitle_YYYY-MM-DD.pdf"""
+    """Build a clean filename: Prefix_SafeTitle_dd-mm-yy.pdf"""
     safe = re.sub(r'[^\w\s-]', '', proposal_title or '').strip()
     safe = re.sub(r'\s+', '_', safe)[:80]
     return f'{prefix}_{safe}_{date_str}.pdf'
+
+
+def merge_with_covers(content_bytes, include_portada=True,
+                      include_contraportada=True, cover_path=None):
+    """Merge static Portada + content + Contraportada PDFs.
+
+    Args:
+        content_bytes: The generated PDF content as bytes.
+        include_portada: Whether to prepend the front cover.
+        include_contraportada: Whether to append the back cover.
+        cover_path: Optional Path to a custom front cover PDF.
+            Falls back to COVER_PDF if not provided or not found.
+
+    Returns merged bytes.
+    """
+    from pypdf import PdfReader, PdfWriter
+
+    if not include_portada and not include_contraportada:
+        return content_bytes
+
+    writer = PdfWriter()
+
+    if include_portada:
+        front = cover_path if cover_path and cover_path.exists() else COVER_PDF
+        if front.exists():
+            try:
+                cover_reader = PdfReader(str(front))
+                for page in cover_reader.pages:
+                    page.scale_to(PAGE_W, PAGE_H)
+                    writer.add_page(page)
+            except Exception:
+                logger.warning('Could not read cover PDF: %s', front)
+
+    content_reader = PdfReader(io.BytesIO(content_bytes))
+    for page in content_reader.pages:
+        writer.add_page(page)
+
+    if include_contraportada and BACK_COVER_PDF.exists():
+        try:
+            back_reader = PdfReader(str(BACK_COVER_PDF))
+            for page in back_reader.pages:
+                page.scale_to(PAGE_W, PAGE_H)
+                writer.add_page(page)
+        except Exception:
+            logger.warning('Could not read back cover PDF: %s', BACK_COVER_PDF)
+
+    out = io.BytesIO()
+    writer.write(out)
+    return out.getvalue()
+
+
+def _draw_decorative_title_page(c, document_label, client_name, date_str, ps):
+    """Draw a decorative title page (sub-portada) and advance to next page.
+
+    Mirrors the greeting/title page style of the commercial proposal PDF.
+    """
+    _draw_header_bar(c)
+
+    # Decorative circle top-right
+    c.saveState()
+    c.setFillColor(ESMERALD_LIGHT)
+    c.circle(PAGE_W - 40, PAGE_H - 40, 140, fill=1, stroke=0)
+    c.restoreState()
+
+    # Small accent circle bottom-left
+    c.saveState()
+    c.setFillColor(BONE)
+    c.circle(50, 60, 70, fill=1, stroke=0)
+    c.restoreState()
+
+    mid_y = PAGE_H / 2 + 80
+
+    # Document type label
+    c.setFont(_font('light'), 14)
+    c.setFillColor(GREEN_LIGHT)
+    c.drawCentredString(PAGE_W / 2, mid_y + 60, document_label)
+
+    # Client name — large, centred
+    name = _strip_emoji(client_name or 'Cliente')
+    c.setFont(_font('light'), 36)
+    c.setFillColor(ESMERALD)
+    if len(name) > 22:
+        lines = textwrap.wrap(name, width=22)
+        ny = mid_y + 10
+        for line in lines:
+            c.drawCentredString(PAGE_W / 2, ny, line)
+            ny -= 44
+    else:
+        c.drawCentredString(PAGE_W / 2, mid_y + 10, name)
+
+    # Decorative divider line with lemon accent
+    line_y = mid_y - 40
+    c.setStrokeColor(LEMON)
+    c.setLineWidth(2)
+    c.line(PAGE_W / 2 - 60, line_y, PAGE_W / 2 + 60, line_y)
+    c.setFillColor(LEMON)
+    c.circle(PAGE_W / 2 - 60, line_y, 2.5, fill=1, stroke=0)
+    c.circle(PAGE_W / 2 + 60, line_y, 2.5, fill=1, stroke=0)
+
+    # Date below divider
+    if date_str:
+        c.setFont(_font('regular'), 11)
+        c.setFillColor(GRAY_500)
+        c.drawCentredString(PAGE_W / 2, line_y - 30, date_str)
+
+    # Bottom branding
+    c.setFont(_font('regular'), 8)
+    c.setFillColor(GRAY_500)
+    c.drawCentredString(PAGE_W / 2, MARGIN_B + 10,
+                        'Project App  |  projectapp.co')
+
+    # End title page and start new page
+    c.showPage()
+    ps['num'] += 1
 
 
 def add_watermark_to_pdf(pdf_bytes, watermark_text='BORRADOR'):
@@ -1039,9 +1170,6 @@ def add_watermark_to_pdf(pdf_bytes, watermark_text='BORRADOR'):
     merges it onto each page of the source PDF via PyPDF.  Returns the
     watermarked PDF as ``bytes``.
     """
-    import io
-
-    from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas as rl_canvas
 
     from pypdf import PdfReader, PdfWriter

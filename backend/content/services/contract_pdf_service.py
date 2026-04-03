@@ -58,7 +58,7 @@ def _build_params(raw_params: dict) -> dict:
         'bank_name': raw_params.get('bank_name', _PLACEHOLDER_BLANK),
         'bank_account_type': raw_params.get('bank_account_type', 'Ahorros'),
         'bank_account_number': raw_params.get('bank_account_number', _PLACEHOLDER_BLANK),
-        'contract_city': raw_params.get('contract_city', 'Medellin'),
+        'contract_city': raw_params.get('contract_city', 'Medellín'),
         'client_full_name': raw_params.get('client_full_name', _PLACEHOLDER_BLANK),
         'client_cedula': raw_params.get('client_cedula', _PLACEHOLDER_BLANK),
         'client_email': raw_params.get('client_email', _PLACEHOLDER_BLANK),

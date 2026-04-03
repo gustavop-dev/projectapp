@@ -19,6 +19,7 @@ from content.models import (
     ProposalDefaultConfig,
 )
 from content.serializers.proposal import (
+    ContractParamsSerializer,
     ProposalAlertSerializer,
     ProposalCreateUpdateSerializer,
     ProposalDefaultConfigSerializer,
@@ -280,7 +281,7 @@ def download_proposal_pdf(request, proposal_uuid):
     from django.http import HttpResponse
     from content.services.pdf_utils import safe_pdf_filename
     _created = proposal.created_at or timezone.now()
-    date_suffix = _created.strftime('%Y-%m-%d')
+    date_suffix = _created.strftime('%d-%m-%y')
     prefix = 'Detalle_Tecnico' if doc_variant == 'technical' else 'Propuesta_Comercial'
     filename = safe_pdf_filename(prefix, proposal.title or proposal.client_name, date_suffix)
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
@@ -3811,15 +3812,12 @@ def save_contract_and_negotiate(request, proposal_id):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    contract_params = request.data.get('contract_params', {})
-    if not contract_params.get('client_cedula'):
-        return Response(
-            {'error': 'client_cedula is required.'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    serializer = ContractParamsSerializer(data=request.data.get('contract_params', {}))
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     old_status = proposal.status
-    proposal.contract_params = contract_params
+    proposal.contract_params = serializer.validated_data
     proposal.status = BusinessProposal.Status.NEGOTIATING
     proposal.save(update_fields=['contract_params', 'status', 'updated_at'])
 
@@ -3845,14 +3843,11 @@ def update_contract_params(request, proposal_id):
     """Update contract params and regenerate contract PDF."""
     proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
 
-    contract_params = request.data.get('contract_params', {})
-    if not contract_params.get('client_cedula'):
-        return Response(
-            {'error': 'client_cedula is required.'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    serializer = ContractParamsSerializer(data=request.data.get('contract_params', {}))
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    proposal.contract_params = contract_params
+    proposal.contract_params = serializer.validated_data
     proposal.save(update_fields=['contract_params', 'updated_at'])
 
     _generate_and_save_contract_pdf(proposal)

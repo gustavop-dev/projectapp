@@ -73,11 +73,16 @@ async function downloadPdf() {
     const title = proposalStore.currentProposal?.title || proposalStore.currentProposal?.client_name || 'Propuesta';
     const safeName = title.replace(/[^\w\sáéíóúñÁÉÍÓÚÑ-]/g, '').trim().replace(/\s+/g, '_').slice(0, 100);
     const createdAt = proposalStore.currentProposal?.created_at;
-    const dateSuffix = createdAt ? new Date(createdAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+    const d = createdAt ? new Date(createdAt) : new Date();
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    const dateSuffix = `${dd}-${mm}-${yy}`;
+    const filePrefix = props.viewMode === 'technical' ? 'Detalle_Tecnico' : 'Propuesta_Comercial';
 
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${safeName}_${dateSuffix}.pdf`;
+    link.download = `${filePrefix}_${safeName}_${dateSuffix}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

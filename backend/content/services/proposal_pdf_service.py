@@ -70,7 +70,6 @@ from content.services.pdf_utils import (  # noqa: F401 — re-exported
     _check_y,
     # Drawing helpers
     _draw_header_bar,
-    _draw_green_bar,
     _draw_footer,
     _draw_section_header,
     _draw_paragraphs,
@@ -1804,18 +1803,9 @@ class ProposalPdfService:
 
             # Creation date line at the bottom of the last content
             from django.utils import timezone as _tz
+            from content.services.pdf_utils import format_date_es
             _created = proposal.created_at or _tz.now()
-            _MONTHS_ES = {
-                1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
-                5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',
-                9: 'septiembre', 10: 'octubre', 11: 'noviembre',
-                12: 'diciembre',
-            }
-            date_str = (
-                f'{_created.day} de '
-                f'{_MONTHS_ES.get(_created.month, "")} de '
-                f'{_created.year}'
-            )
+            date_str = format_date_es(_created)
             y -= 30
             y = _check_y(c, y, ps, need=20)
             c.setFont(_font('regular'), 8)
@@ -1849,42 +1839,12 @@ class ProposalPdfService:
 
     @staticmethod
     def _merge_with_covers(content_bytes):
+        """Merge static Portada + content + Contraportada.
+
+        Delegates to the shared ``merge_with_covers`` in pdf_utils.
         """
-        Merge static cover (Portada) and back cover (Contraportada)
-        PDFs with the generated proposal content.
-
-        Returns the merged PDF bytes, or the original content_bytes
-        if cover files are not found.
-        """
-        writer = PdfWriter()
-
-        if COVER_PDF.exists():
-            try:
-                cover_reader = PdfReader(str(COVER_PDF))
-                for page in cover_reader.pages:
-                    page.scale_to(PAGE_W, PAGE_H)
-                    writer.add_page(page)
-            except Exception:
-                logger.warning('Could not read cover PDF: %s', COVER_PDF)
-
-        content_reader = PdfReader(io.BytesIO(content_bytes))
-        for page in content_reader.pages:
-            writer.add_page(page)
-
-        if BACK_COVER_PDF.exists():
-            try:
-                back_reader = PdfReader(str(BACK_COVER_PDF))
-                for page in back_reader.pages:
-                    page.scale_to(PAGE_W, PAGE_H)
-                    writer.add_page(page)
-            except Exception:
-                logger.warning(
-                    'Could not read back cover PDF: %s', BACK_COVER_PDF,
-                )
-
-        out = io.BytesIO()
-        writer.write(out)
-        return out.getvalue()
+        from content.services.pdf_utils import merge_with_covers
+        return merge_with_covers(content_bytes)
 
     @classmethod
     def generate_to_file(cls, proposal, output_path=None):

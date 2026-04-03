@@ -351,6 +351,15 @@ const projectModules = computed(() => [
     href: localePath(`/platform/projects/${route.params.id}/collection-accounts`),
   },
   {
+    title: 'Modelo de datos',
+    subtitle: 'Entidades del proyecto',
+    description: 'Visualiza las entidades, campos clave y relaciones del modelo de datos.',
+    icon: 'database',
+    iconBg: 'bg-indigo-500/10',
+    iconColor: 'text-indigo-500',
+    href: localePath(`/platform/projects/${route.params.id}/data-model`),
+  },
+  {
     title: 'Pagos',
     subtitle: 'Hosting y suscripción',
     description: 'Gestiona tu plan de hosting, consulta pagos y selecciona tu forma de pago.',

@@ -184,6 +184,37 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         return [serialize_proposal_document(d) for d in docs]
 
 
+class ContractParamsSerializer(serializers.Serializer):
+    """Validate contract_params before saving to the JSONField."""
+
+    CONTRACT_SOURCE_CHOICES = ('default', 'custom')
+
+    contract_source = serializers.ChoiceField(
+        choices=CONTRACT_SOURCE_CHOICES, default='default',
+    )
+    client_full_name = serializers.CharField(max_length=255, required=False, default='')
+    client_cedula = serializers.CharField(max_length=30)
+    client_email = serializers.EmailField(required=False, default='')
+    contractor_full_name = serializers.CharField(max_length=255, required=False, default='')
+    contractor_cedula = serializers.CharField(max_length=30, required=False, default='')
+    contractor_email = serializers.EmailField(required=False, default='')
+    bank_name = serializers.CharField(max_length=100, required=False, default='')
+    bank_account_type = serializers.ChoiceField(
+        choices=('Ahorros', 'Corriente'), default='Ahorros', required=False,
+    )
+    bank_account_number = serializers.CharField(max_length=50, required=False, default='')
+    contract_city = serializers.CharField(max_length=100, required=False, default='Medellín')
+    contract_date = serializers.CharField(max_length=20, required=False, default='')
+    custom_contract_markdown = serializers.CharField(required=False, default='')
+
+    def validate(self, data):
+        if data.get('contract_source') == 'custom' and not data.get('custom_contract_markdown'):
+            raise serializers.ValidationError(
+                {'custom_contract_markdown': 'Required when contract_source is "custom".'}
+            )
+        return data
+
+
 def serialize_proposal_document(d):
     """Serialize a ProposalDocument instance to a dict. Used by views and serializers."""
     display = (

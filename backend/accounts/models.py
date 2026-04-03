@@ -726,6 +726,79 @@ class Deliverable(models.Model):
             return 0
 
 
+class DataModelEntity(models.Model):
+    """
+    A data model entity synced from the BusinessProposal technical document.
+    One copy per deliverable (FK).
+    """
+
+    deliverable = models.ForeignKey(
+        Deliverable, on_delete=models.CASCADE, related_name='data_model_entities',
+    )
+    name = models.CharField(max_length=300)
+    description = models.TextField(blank=True, default='')
+    key_fields = models.TextField(
+        blank=True, default='',
+        help_text='Comma-separated key fields for this entity.',
+    )
+    source_entity_name = models.CharField(
+        max_length=300, blank=True, default='', db_index=True,
+        help_text='Original entity name from proposal JSON, used for idempotent sync.',
+    )
+    synced_from_proposal = models.BooleanField(default=False)
+    is_archived = models.BooleanField(
+        default=False, db_index=True,
+        help_text='Hidden from default lists; row kept for audit.',
+    )
+    archived_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['deliverable', 'source_entity_name'],
+                condition=~models.Q(source_entity_name=''),
+                name='uniq_data_model_entity_deliverable_source',
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.name} (deliverable={self.deliverable_id})'
+
+
+class ProjectDataModelEntity(models.Model):
+    """
+    A data-model entity defined at the project level via admin JSON upload.
+    Reflects the actual/real state of the project's data model.
+    Separate from DataModelEntity (deliverable-scoped, proposal-synced).
+    """
+
+    project = models.ForeignKey(
+        'Project', on_delete=models.CASCADE,
+        related_name='project_data_model_entities',
+    )
+    name = models.CharField(max_length=300)
+    description = models.TextField(blank=True, default='')
+    key_fields = models.TextField(
+        blank=True, default='',
+        help_text='Comma-separated key fields for this entity.',
+    )
+    relationship = models.CharField(
+        max_length=500, blank=True, default='',
+        help_text='Relationship description (e.g. "1:N with Order").',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return f'{self.name} (project={self.project_id})'
+
+
 class DeliverableVersion(models.Model):
     """Historical version of a deliverable file."""
 

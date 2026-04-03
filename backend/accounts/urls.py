@@ -25,7 +25,10 @@ from accounts.views import (
     deliverable_client_folders_view,
     deliverable_client_uploads_view,
     deliverable_commercial_proposal_pdf_view,
+    deliverable_data_model_entities_view,
     deliverable_detail_view,
+    project_data_model_entities_view,
+    project_data_model_template_view,
     deliverable_list_view,
     deliverable_sync_technical_requirements_view,
     deliverable_technical_document_pdf_view,
@@ -171,6 +174,21 @@ urlpatterns = [
         'projects/<int:project_id>/deliverables/<int:deliverable_id>/download/technical-document-pdf/',
         deliverable_technical_document_pdf_view,
         name='platform-deliverable-technical-pdf',
+    ),
+    path(
+        'projects/<int:project_id>/deliverables/<int:deliverable_id>/data-model-entities/',
+        deliverable_data_model_entities_view,
+        name='platform-deliverable-data-model-entities',
+    ),
+    path(
+        'projects/<int:project_id>/data-model-entities/',
+        project_data_model_entities_view,
+        name='platform-project-data-model-entities',
+    ),
+    path(
+        'projects/<int:project_id>/data-model-entities/template/',
+        project_data_model_template_view,
+        name='platform-project-data-model-template',
     ),
 
     # Notifications

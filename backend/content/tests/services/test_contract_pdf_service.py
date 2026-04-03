@@ -1,5 +1,6 @@
 """Tests for contract_pdf_service: parameter building, placeholder substitution, PDF generation."""
 import logging
+import re
 from unittest.mock import patch, MagicMock
 
 import pytest
@@ -13,12 +14,17 @@ from content.services.contract_pdf_service import (
 pytestmark = pytest.mark.django_db
 
 
+# Keys that _build_params() returns but are NOT used inside the markdown
+# template (e.g. consumed only by _draw_title_page).
+_TEMPLATE_EXEMPT_KEYS = {'contract_date'}
+
+
 class TestBuildParams:
     def test_returns_defaults_for_empty_dict(self):
         result = _build_params({})
         assert result['contractor_full_name'] == '_______________'
         assert result['bank_account_type'] == 'Ahorros'
-        assert result['contract_city'] == 'Medellin'
+        assert result['contract_city'] == 'Medellín'
 
     def test_uses_provided_values(self):
         result = _build_params({
@@ -101,3 +107,36 @@ class TestGenerateContractPdf:
         proposal.pk = 4
         result = generate_contract_pdf(proposal)
         assert result is None
+
+
+class TestDefaultTemplateIntegrity:
+    """Ensure the default ContractTemplate uses every placeholder that _build_params provides."""
+
+    @pytest.fixture(autouse=True)
+    def _load_default_template(self):
+        from content.models import ContractTemplate
+        tpl = ContractTemplate.get_default()
+        assert tpl is not None, 'No default ContractTemplate in DB'
+        self.template = tpl
+
+    def test_contains_all_build_params_keys(self):
+        expected_keys = set(_build_params({}).keys()) - _TEMPLATE_EXEMPT_KEYS
+        found = set(re.findall(r'\{(\w+)\}', self.template.content_markdown))
+        missing = expected_keys - found
+        assert not missing, f'Placeholders missing from default template: {missing}'
+
+    def test_has_no_unknown_placeholders(self):
+        known_keys = set(_build_params({}).keys())
+        found = set(re.findall(r'\{(\w+)\}', self.template.content_markdown))
+        unknown = found - known_keys
+        assert not unknown, f'Unknown placeholders in template (not in _build_params): {unknown}'
+
+    def test_format_succeeds_with_all_params(self):
+        params = _build_params({
+            'client_full_name': 'Test Client',
+            'client_cedula': '123',
+            'contractor_full_name': 'Test Contractor',
+            'contractor_cedula': '456',
+        })
+        result = self.template.content_markdown.format(**params)
+        assert '{' not in result or '{{' in self.template.content_markdown

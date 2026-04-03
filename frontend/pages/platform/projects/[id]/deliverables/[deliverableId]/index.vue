@@ -177,6 +177,36 @@
           </NuxtLink>
         </div>
       </div>
+
+      <div
+        v-if="detail.data_model_entities?.length"
+        class="mb-8 rounded-2xl border border-esmerald/[0.06] bg-white p-5 dark:border-white/[0.06] dark:bg-esmerald"
+        data-enter
+      >
+        <h2 class="mb-4 text-xs font-semibold uppercase tracking-wider text-green-light/60">Modelo de datos</h2>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div
+            v-for="entity in detail.data_model_entities"
+            :key="entity.id"
+            class="rounded-xl border border-esmerald/[0.06] p-4 dark:border-white/[0.06]"
+          >
+            <h3 class="text-sm font-semibold text-esmerald dark:text-white">{{ entity.name }}</h3>
+            <p v-if="entity.description" class="mt-1 text-xs text-green-light">{{ entity.description }}</p>
+            <div v-if="entity.key_fields" class="mt-2">
+              <span class="text-[10px] font-medium uppercase tracking-wider text-green-light/50">Campos clave</span>
+              <div class="mt-1 flex flex-wrap gap-1">
+                <span
+                  v-for="field in entity.key_fields.split(',')"
+                  :key="field.trim()"
+                  class="rounded-md bg-esmerald-light/30 px-2 py-0.5 text-[11px] font-medium text-esmerald dark:bg-white/[0.06] dark:text-lemon"
+                >
+                  {{ field.trim() }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </template>
 
     <div v-else class="py-16 text-center text-sm text-green-light">

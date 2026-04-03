@@ -9,7 +9,7 @@ from typing import Any
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
-from accounts.models import Deliverable, Requirement
+from accounts.models import DataModelEntity, Deliverable, Requirement
 from accounts.services.archive import archive_record
 from content.models import ProposalSection
 
@@ -20,6 +20,13 @@ def _parse_epics_from_json(content_json: dict) -> list:
     """Extract and normalize the epics list from a technical_document content_json."""
     epics = (content_json or {}).get('epics') or []
     return epics if isinstance(epics, list) else []
+
+
+def _parse_data_model_entities(content_json: dict) -> list:
+    """Extract and normalize the entities list from a technical_document content_json."""
+    dm = (content_json or {}).get('dataModel') or {}
+    entities = dm.get('entities') or []
+    return entities if isinstance(entities, list) else []
 
 
 def compute_sync_diff(project, new_content_json: dict) -> dict[str, Any]:
@@ -57,6 +64,7 @@ def compute_sync_diff(project, new_content_json: dict) -> dict[str, Any]:
     diff: dict[str, Any] = {
         'epics': {'to_create': [], 'to_update': [], 'to_delete': []},
         'requirements': {'to_create': [], 'to_update': [], 'to_delete': []},
+        'data_model_entities': {'to_create': [], 'to_update': [], 'to_delete': []},
     }
 
     seen_epic_keys: set[str] = set()
@@ -137,6 +145,49 @@ def compute_sync_diff(project, new_content_json: dict) -> dict[str, Any]:
                 'epicKey': req.source_epic_key or '',
             })
 
+    # --- Data model entities diff ---
+    # Entities are duplicated per deliverable; diff only needs one representative
+    # per source_entity_name, so we use setdefault to keep the first occurrence.
+    entities_list = _parse_data_model_entities(new_content_json)
+    current_entities: dict[str, DataModelEntity] = {}
+    for e in DataModelEntity.objects.filter(
+        deliverable__project=project,
+        is_archived=False,
+    ):
+        if e.source_entity_name:
+            current_entities.setdefault(e.source_entity_name, e)
+    seen_entity_names: set[str] = set()
+
+    for ent in entities_list:
+        if not isinstance(ent, dict):
+            continue
+        ent_name = (ent.get('name') or '').strip()
+        if not ent_name:
+            continue
+        seen_entity_names.add(ent_name)
+        ent_desc = (ent.get('description') or '').strip()
+        ent_kf = (ent.get('keyFields') or '').strip()
+
+        if ent_name not in current_entities:
+            diff['data_model_entities']['to_create'].append({
+                'name': ent_name, 'description': ent_desc,
+            })
+        else:
+            existing = current_entities[ent_name]
+            changed_e: list[str] = []
+            if existing.description != ent_desc:
+                changed_e.append('description')
+            if existing.key_fields != ent_kf:
+                changed_e.append('key_fields')
+            if changed_e:
+                diff['data_model_entities']['to_update'].append({
+                    'name': ent_name, 'changed_fields': changed_e,
+                })
+
+    for ent_name, ent_obj in current_entities.items():
+        if ent_name not in seen_entity_names:
+            diff['data_model_entities']['to_delete'].append({'name': ent_name})
+
     return diff
 
 
@@ -177,11 +228,15 @@ def _sync_technical_requirements_core(
         'requirements_updated': 0,
         'requirements_skipped': 0,
         'requirements_deleted': 0,
+        'entities_created': 0,
+        'entities_updated': 0,
+        'entities_deleted': 0,
     }
 
     with transaction.atomic():
         seen_epic_keys: set[str] = set()
         seen_flow_keys: set[str] = set()
+        synced_deliverables: list[Deliverable] = []
 
         for idx, epic in enumerate(epics):
             if not isinstance(epic, dict):
@@ -212,6 +267,7 @@ def _sync_technical_requirements_core(
                     'source_epic_title': title[:300],
                 },
             )
+            synced_deliverables.append(d)
             if created:
                 stats['deliverables_created'] += 1
             else:
@@ -298,6 +354,79 @@ def _sync_technical_requirements_core(
             for r_del in to_del_r:
                 archive_record(r_del)
                 stats['requirements_deleted'] += 1
+
+        # --- Sync data model entities ---
+        entities_list = _parse_data_model_entities(doc)
+        seen_entity_names: set[str] = set()
+
+        # Prefetch all existing entities in one query → in-memory lookup
+        existing_entity_map: dict[tuple[int, str], DataModelEntity] = {
+            (e.deliverable_id, e.source_entity_name): e
+            for e in DataModelEntity.objects.filter(
+                deliverable__in=synced_deliverables,
+            )
+            if e.source_entity_name
+        }
+
+        to_create: list[DataModelEntity] = []
+        to_update: list[DataModelEntity] = []
+
+        for ent in entities_list:
+            if not isinstance(ent, dict):
+                continue
+            ent_name = (ent.get('name') or '').strip()
+            if not ent_name:
+                continue
+            seen_entity_names.add(ent_name)
+            ent_desc = (ent.get('description') or '')[:5000]
+            ent_kf = (ent.get('keyFields') or '')[:5000]
+
+            for d in synced_deliverables:
+                existing = existing_entity_map.get((d.id, ent_name))
+                if existing:
+                    updated = False
+                    if existing.name != ent_name[:300]:
+                        existing.name = ent_name[:300]
+                        updated = True
+                    if existing.description != ent_desc:
+                        existing.description = ent_desc
+                        updated = True
+                    if existing.key_fields != ent_kf:
+                        existing.key_fields = ent_kf
+                        updated = True
+                    if updated:
+                        existing.synced_from_proposal = True
+                        to_update.append(existing)
+                        stats['entities_updated'] += 1
+                else:
+                    to_create.append(DataModelEntity(
+                        deliverable=d,
+                        name=ent_name[:300],
+                        description=ent_desc,
+                        key_fields=ent_kf,
+                        source_entity_name=ent_name[:300],
+                        synced_from_proposal=True,
+                    ))
+                    stats['entities_created'] += 1
+
+        if to_create:
+            DataModelEntity.objects.bulk_create(to_create)
+        if to_update:
+            DataModelEntity.objects.bulk_update(
+                to_update, ['name', 'description', 'key_fields', 'synced_from_proposal'],
+            )
+
+        if delete_removed and seen_entity_names:
+            to_del_e = DataModelEntity.objects.filter(
+                deliverable__project=project,
+                source_entity_name__isnull=False,
+                is_archived=False,
+            ).exclude(source_entity_name='').exclude(
+                source_entity_name__in=seen_entity_names,
+            )
+            for e_del in to_del_e:
+                archive_record(e_del)
+                stats['entities_deleted'] += 1
 
         total = Requirement.objects.filter(
             deliverable__project=project, is_archived=False,

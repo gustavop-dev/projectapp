@@ -670,10 +670,12 @@ class CreateBugCommentSerializer(serializers.Serializer):
 # =========================================================================
 
 from accounts.models import (  # noqa: E402
+    DataModelEntity,
     DeliverableClientFolder,
     DeliverableClientUpload,
     DeliverableFile,
     DeliverableVersion,
+    ProjectDataModelEntity,
 )
 
 
@@ -825,6 +827,36 @@ class CreateDeliverableClientUploadSerializer(serializers.Serializer):
         return attrs
 
 
+class DataModelEntitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DataModelEntity
+        fields = [
+            'id', 'name', 'description', 'key_fields',
+            'source_entity_name', 'synced_from_proposal',
+            'created_at', 'updated_at',
+        ]
+
+
+class ProjectDataModelEntitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectDataModelEntity
+        fields = [
+            'id', 'name', 'description', 'key_fields',
+            'relationship', 'created_at', 'updated_at',
+        ]
+
+
+class ProjectDataModelEntityItemSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=300)
+    description = serializers.CharField(required=False, default='', allow_blank=True)
+    keyFields = serializers.CharField(required=False, default='', allow_blank=True)
+    relationship = serializers.CharField(required=False, default='', allow_blank=True)
+
+
+class ProjectDataModelUploadSerializer(serializers.Serializer):
+    entities = ProjectDataModelEntityItemSerializer(many=True)
+
+
 class DeliverableDetailSerializer(DeliverableListSerializer):
     versions = serializers.SerializerMethodField()
     has_business_proposal = serializers.SerializerMethodField()
@@ -835,6 +867,7 @@ class DeliverableDetailSerializer(DeliverableListSerializer):
     client_folders = serializers.SerializerMethodField()
     client_uploads = serializers.SerializerMethodField()
     collection_accounts = serializers.SerializerMethodField()
+    data_model_entities = serializers.SerializerMethodField()
 
     class Meta(DeliverableListSerializer.Meta):
         fields = DeliverableListSerializer.Meta.fields + [
@@ -849,6 +882,7 @@ class DeliverableDetailSerializer(DeliverableListSerializer):
             'client_folders',
             'client_uploads',
             'collection_accounts',
+            'data_model_entities',
         ]
 
     def get_versions(self, obj):
@@ -909,6 +943,10 @@ class DeliverableDetailSerializer(DeliverableListSerializer):
             }
             for d in qs
         ]
+
+    def get_data_model_entities(self, obj):
+        qs = obj.data_model_entities.filter(is_archived=False)
+        return DataModelEntitySerializer(qs, many=True).data
 
 
 class CreateDeliverableSerializer(serializers.Serializer):

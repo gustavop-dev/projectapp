@@ -135,6 +135,13 @@
       <line x1="18" y1="14" x2="18" y2="17" />
     </template>
 
+    <!-- Database / Data model -->
+    <template v-else-if="name === 'database'">
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M21 12c0 1.66-4.03 3-9 3s-9-1.34-9-3" />
+      <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
+    </template>
+
     <!-- Fallback: circle -->
     <template v-else>
       <circle cx="12" cy="12" r="10" />

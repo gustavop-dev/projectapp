@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -2374,6 +2375,114 @@ def deliverable_client_uploads_view(request, project_id, deliverable_id):
         DeliverableClientUploadSerializer(row, context={'request': request}).data,
         status=status.HTTP_201_CREATED,
     )
+
+
+# ==========================================================================
+# Data Model Entities
+# ==========================================================================
+
+from accounts.models import DataModelEntity, ProjectDataModelEntity  # noqa: E402
+from accounts.serializers import (  # noqa: E402
+    DataModelEntitySerializer,
+    ProjectDataModelEntitySerializer,
+    ProjectDataModelUploadSerializer,
+)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def deliverable_data_model_entities_view(request, project_id, deliverable_id):
+    """GET — List data model entities linked to a deliverable."""
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    try:
+        deliverable = Deliverable.objects.get(id=deliverable_id, project=proj)
+    except Deliverable.DoesNotExist:
+        return Response(
+            {'detail': 'Entregable no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if not deliverable_visible_for_request(deliverable, request):
+        return Response(
+            {'detail': 'Entregable no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    qs = deliverable.data_model_entities.filter(is_archived=False)
+    return Response(DataModelEntitySerializer(qs, many=True).data)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def project_data_model_entities_view(request, project_id):
+    """
+    GET  — List project-level data model entities (admin or owning client).
+    POST — Admin uploads JSON to create/replace entities for the project.
+    """
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    if request.method == 'GET':
+        qs = ProjectDataModelEntity.objects.filter(project=proj)
+        return Response(ProjectDataModelEntitySerializer(qs, many=True).data)
+
+    profile = getattr(request.user, 'profile', None)
+    if not (profile and profile.is_admin):
+        return Response(
+            {'detail': 'Solo administradores pueden subir el modelo de datos.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    serializer = ProjectDataModelUploadSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    entities_data = serializer.validated_data['entities']
+
+    with transaction.atomic():
+        ProjectDataModelEntity.objects.filter(project=proj).delete()
+        objs = [
+            ProjectDataModelEntity(
+                project=proj,
+                name=item['name'][:300],
+                description=item.get('description', ''),
+                key_fields=item.get('keyFields', ''),
+                relationship=item.get('relationship', ''),
+            )
+            for item in entities_data
+        ]
+        ProjectDataModelEntity.objects.bulk_create(objs)
+
+    qs = ProjectDataModelEntity.objects.filter(project=proj)
+    return Response(
+        ProjectDataModelEntitySerializer(qs, many=True).data,
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def project_data_model_template_view(request, project_id):
+    """GET — Return the JSON template for project data model upload."""
+    proj, err = _get_project_or_403(request, project_id)
+    if err:
+        return err
+
+    template = {
+        'entities': [
+            {
+                'name': 'ExampleEntity',
+                'description': 'Brief description of the entity',
+                'keyFields': 'id, name, created_at',
+                'relationship': '1:N with OtherEntity',
+            },
+        ],
+    }
+    return Response(template)
 
 
 # ==========================================================================

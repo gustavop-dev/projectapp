@@ -240,14 +240,8 @@ class DocumentPdfService:
         # Date
         date_str = meta.get('date', '')
         if not date_str and document.created_at:
-            _MONTHS_ES = {
-                1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
-                5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',
-                9: 'septiembre', 10: 'octubre', 11: 'noviembre',
-                12: 'diciembre',
-            }
-            dt = document.created_at
-            date_str = f'{dt.day} de {_MONTHS_ES.get(dt.month, "")} de {dt.year}'
+            from content.services.pdf_utils import format_date_es
+            date_str = format_date_es(document.created_at)
         if date_str:
             c.setFont(_font('regular'), 9)
             c.setFillColor(GRAY_500)
@@ -537,34 +531,13 @@ class DocumentPdfService:
 
     @classmethod
     def _merge_with_covers(cls, content_bytes, include_portada=True, include_contraportada=True):
-        """Merge content with cover PDFs based on include_* flags."""
-        writer = PdfWriter()
+        """Merge content with cover PDFs based on include_* flags.
 
-        # Front cover (portada PDF)
-        if include_portada and COVER_PDF.exists():
-            try:
-                cover_reader = PdfReader(str(COVER_PDF))
-                for page in cover_reader.pages:
-                    page.scale_to(PAGE_W, PAGE_H)
-                    writer.add_page(page)
-            except Exception:
-                logger.warning('Could not read cover PDF: %s', COVER_PDF)
-
-        # Content pages (includes subportada if it was rendered)
-        content_reader = PdfReader(io.BytesIO(content_bytes))
-        for page in content_reader.pages:
-            writer.add_page(page)
-
-        # Back cover (contraportada PDF)
-        if include_contraportada and BACK_COVER_PDF.exists():
-            try:
-                back_reader = PdfReader(str(BACK_COVER_PDF))
-                for page in back_reader.pages:
-                    page.scale_to(PAGE_W, PAGE_H)
-                    writer.add_page(page)
-            except Exception:
-                logger.warning('Could not read back cover PDF: %s', BACK_COVER_PDF)
-
-        out = io.BytesIO()
-        writer.write(out)
-        return out.getvalue()
+        Delegates to the shared ``merge_with_covers`` in pdf_utils.
+        """
+        from content.services.pdf_utils import merge_with_covers
+        return merge_with_covers(
+            content_bytes,
+            include_portada=include_portada,
+            include_contraportada=include_contraportada,
+        )
