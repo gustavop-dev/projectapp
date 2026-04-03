@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.9.0
-> **Last updated:** 2026-04-02
+> **Version:** 2.10.0
+> **Last updated:** 2026-04-03
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -2173,6 +2173,31 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/platform/platform-deliverables.spec.js`
 
+#### FLOW: `platform-project-data-model`
+
+- **Module:** platform
+- **Role:** platform-admin, platform-client
+- **Priority:** P2
+- **Routes:** `/platform/projects/:id/data-model`
+- **API:** `GET/POST /api/accounts/projects/:id/data-model-entities/`, `GET /api/accounts/projects/:id/data-model-entities/template/`
+- **Description:** Manage the data model (entity list) for a project. Admin can upload a JSON payload via file or textarea, validate, and sync entities to the backend. Both roles browse the entity table.
+- **Steps:**
+  1. User navigates to `/platform/projects/:id/data-model` (linked from project detail or sidebar).
+  2. Page loads entities from `GET /api/accounts/projects/:id/data-model-entities/`.
+  3. **[Admin only]** "Subir modelo de datos" card renders with two template buttons ("Copiar plantilla" / "Descargar plantilla").
+  4. Admin copies/downloads the JSON template (`{ entities: [{ name, description, keyFields, relationship }] }`).
+  5. Admin uploads a `.json` file via file input OR pastes JSON into the textarea.
+  6. Parse/validate runs on `@input`; detected entity count preview renders if valid; error message if invalid JSON.
+  7. Admin clicks "Subir modelo de datos" → `POST /api/accounts/projects/:id/data-model-entities/`.
+  8. Success banner "Modelo de datos actualizado correctamente." renders.
+  9. Entity table refreshes with rows: Entidad | Descripción | Campos clave (badge chips) | Relación.
+- **Branches:**
+  - [Branch A — Empty state] No entities yet: client sees "No hay modelo de datos definido para este proyecto." Admin sees additional hint "Sube un JSON con las entidades para empezar."
+  - [Branch B — Error state] API fetch fails: error message + "Reintentar" button visible.
+  - [Branch C — Client role] Upload section not rendered; only entity table (or empty state) shown.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-data-model.spec.js`
+
 ### 8.12 Platform Coverage Index
 
 | Flow ID | Module | Role | Priority | Status | Spec |
@@ -2200,16 +2225,17 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `platform-collection-account-detail` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-collection-accounts.spec.js` |
 | `platform-project-collection-accounts` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-collection-accounts.spec.js` |
 | `platform-deliverable-detail` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-deliverables.spec.js` |
+| `platform-project-data-model` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-data-model.spec.js` |
 | `platform-admin-project-create` | platform | platform-admin | P3 | ✅ Covered | `e2e/platform/platform-project-create.spec.js` |
 | `platform-kanban-card-comments` | platform | platform-admin/client | P3 | ✅ Covered | `e2e/platform/platform-kanban-comments.spec.js` |
 
 ### Platform Coverage Summary
 
-- **Total platform flows:** 25
+- **Total platform flows:** 26
 - **P1 (Critical):** 5
-- **P2 (High):** 18
+- **P2 (High):** 19
 - **P3 (Medium):** 2
-- **Covered:** 25 (100%)
+- **Covered:** 26 (100%)
 - **Missing:** 0
 - **Deferred:** 0
 
@@ -2402,7 +2428,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   6. [Branch B — Custom] Admin toggles to "Contrato personalizado", pastes or uploads a `.md` file, optionally toggles preview.
   7. Admin clicks "Generar contrato y negociar" → API call to `POST /api/proposals/:id/contract/save-and-negotiate/`.
   8. Contract document appears in the Documents tab with download links.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-contract-generate.spec.js`
 
 #### FLOW: `admin-proposal-contract-edit`
@@ -2419,7 +2445,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   4. Admin modifies fields and clicks "Actualizar contrato".
   5. API call to `PUT /api/proposals/:id/contract/update/`.
   6. Updated contract reflected in Documents tab.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-contract-edit.spec.js`
 
 #### FLOW: `admin-proposal-contract-download`
@@ -2434,7 +2460,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   2. "Descargar" link points to `GET /api/proposals/:id/contract/pdf/`.
   3. "Borrador" link points to `GET /api/proposals/:id/contract/draft-pdf/`.
   4. [Branch A — No contract] When no contract is generated, section shows "No generado" and no download links.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-contract-download.spec.js`
 
 #### FLOW: `admin-proposal-documents-manage`
@@ -2452,7 +2478,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   5. New document appears in the list after refresh.
   6. Admin clicks delete icon on a non-generated document → `DELETE /api/proposals/:id/documents/:docId/delete/`.
   7. Document removed from list.
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-documents-manage.spec.js`
 
 #### FLOW: `admin-proposal-documents-send`
@@ -2471,7 +2497,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   6. Admin edits email fields as needed.
   7. Admin clicks "Enviar documentos" → API call to `POST /api/proposals/:id/documents/send/`.
   8. Success message: "Documentos enviados correctamente."
-- **Coverage:** ❌ Missing
+- **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-documents-send.spec.js`
 
 ---
@@ -2480,8 +2506,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
-| `admin-proposal-contract-generate` | admin | admin | P1 | ❌ Missing | `e2e/admin/admin-proposal-contract-generate.spec.js` |
-| `admin-proposal-contract-edit` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-proposal-contract-edit.spec.js` |
-| `admin-proposal-contract-download` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-proposal-contract-download.spec.js` |
-| `admin-proposal-documents-manage` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-proposal-documents-manage.spec.js` |
-| `admin-proposal-documents-send` | admin | admin | P1 | ❌ Missing | `e2e/admin/admin-proposal-documents-send.spec.js` |
+| `admin-proposal-contract-generate` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-contract-generate.spec.js` |
+| `admin-proposal-contract-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-contract-edit.spec.js` |
+| `admin-proposal-contract-download` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-contract-download.spec.js` |
+| `admin-proposal-documents-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-documents-manage.spec.js` |
+| `admin-proposal-documents-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-documents-send.spec.js` |

@@ -1,6 +1,6 @@
 {
-  "version": "2.9.0",
-  "lastUpdated": "2026-04-02",
+  "version": "2.10.0",
+  "lastUpdated": "2026-04-03",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1159,6 +1159,14 @@
       "roles": ["admin"],
       "priority": "P1",
       "description": "Admin selects documents to send (draft contract, commercial PDF, technical PDF, additional docs via checkboxes), clicks 'Enviar al cliente', edits email subject/greeting/body/footer/document descriptions in SendDocumentsModal, submits to send API. Disabled when no client email or no docs selected.",
+      "expectedSpecs": 1
+    },
+    "platform-project-data-model": {
+      "name": "Platform Project Data Model",
+      "module": "platform",
+      "roles": ["platform-admin", "platform-client"],
+      "priority": "P2",
+      "description": "Admin uploads a JSON data model for a project (copy/download template, file upload or paste, validate, submit). Both roles see the entity table (name, description, keyFields, relationship). Empty state and error/retry state.",
       "expectedSpecs": 1
     }
   }

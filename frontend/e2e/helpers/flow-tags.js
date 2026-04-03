@@ -167,6 +167,9 @@ export const ADMIN_EMAIL_DELIVERABILITY = ['@flow:admin-email-deliverability', '
 export const PUBLIC_LANDING_SOFTWARE = ['@flow:public-landing-software', '@module:public', '@priority:P3'];
 export const PUBLIC_LANDING_APPS = ['@flow:public-landing-apps', '@module:public', '@priority:P3'];
 
+// ── v2.10.0 new flows ──
+export const PLATFORM_PROJECT_DATA_MODEL = ['@flow:platform-project-data-model', '@module:platform', '@priority:P2'];
+
 // ── v2.9.0 contract & documents flows ──
 export const ADMIN_PROPOSAL_CONTRACT_GENERATE = ['@flow:admin-proposal-contract-generate', '@module:admin', '@priority:P1'];
 export const ADMIN_PROPOSAL_CONTRACT_EDIT = ['@flow:admin-proposal-contract-edit', '@module:admin', '@priority:P2'];
