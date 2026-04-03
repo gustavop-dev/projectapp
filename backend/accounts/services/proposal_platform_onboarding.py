@@ -133,6 +133,10 @@ def handle_proposal_accepted_for_platform(
                 proposal.pk, sync_result.get('detail'),
             )
 
+    # Sync proposal documents (contract, uploaded annexes) to deliverable
+    if d and actor:
+        _sync_proposal_documents_to_deliverable(proposal, d, actor)
+
     from content.services.proposal_email_service import ProposalEmailService
 
     ProposalEmailService.send_acceptance_confirmation(proposal)
@@ -145,3 +149,74 @@ def handle_proposal_accepted_for_platform(
         'deliverable_id': d.id if d else None,
         'sync': sync_result,
     }
+
+
+def _sync_proposal_documents_to_deliverable(proposal, deliverable, acting_user):
+    """
+    Copy ProposalDocument files and generated PDFs to the deliverable.
+    Maps document types to Deliverable categories.
+    """
+    from accounts.models import Deliverable, DeliverableFile
+    from content.models import ProposalDocument
+    from content.services.pdf_utils import safe_pdf_filename
+    from django.core.files.base import ContentFile
+
+    TYPE_TO_CATEGORY = {
+        ProposalDocument.DOC_TYPE_CONTRACT: Deliverable.CATEGORY_CONTRACT,
+        ProposalDocument.DOC_TYPE_AMENDMENT: Deliverable.CATEGORY_AMENDMENT,
+        ProposalDocument.DOC_TYPE_LEGAL_ANNEX: Deliverable.CATEGORY_LEGAL_ANNEX,
+        ProposalDocument.DOC_TYPE_CLIENT_DOCUMENT: Deliverable.CATEGORY_OTHER,
+        ProposalDocument.DOC_TYPE_OTHER: Deliverable.CATEGORY_OTHER,
+    }
+
+    # 1. Sync existing proposal documents (contract PDF, uploaded files)
+    for doc in proposal.proposal_documents.all():
+        if doc.file:
+            DeliverableFile.objects.create(
+                deliverable=deliverable,
+                file=doc.file,
+                title=doc.title,
+                category=TYPE_TO_CATEGORY.get(doc.document_type, Deliverable.CATEGORY_OTHER),
+                uploaded_by=acting_user,
+            )
+
+    # 2. Generate and attach commercial proposal PDF
+    date_str = (proposal.created_at or timezone.now()).strftime('%Y-%m-%d')
+    try:
+        from content.services.proposal_pdf_service import ProposalPdfService
+        commercial_bytes = ProposalPdfService.generate(proposal)
+        if commercial_bytes:
+            filename = safe_pdf_filename(
+                'Propuesta_Comercial',
+                proposal.title or proposal.client_name,
+                date_str,
+            )
+            df = DeliverableFile.objects.create(
+                deliverable=deliverable,
+                title=f'Propuesta comercial — {proposal.title or proposal.client_name}',
+                category=Deliverable.CATEGORY_DOCUMENTS,
+                uploaded_by=acting_user,
+            )
+            df.file.save(filename, ContentFile(commercial_bytes), save=True)
+    except Exception:
+        logger.exception('Failed to generate commercial PDF for deliverable sync')
+
+    # 3. Generate and attach technical detail PDF
+    try:
+        from content.services.technical_document_pdf import generate_technical_document_pdf
+        technical_bytes = generate_technical_document_pdf(proposal)
+        if technical_bytes:
+            filename = safe_pdf_filename(
+                'Detalle_Tecnico',
+                proposal.title or proposal.client_name,
+                date_str,
+            )
+            df = DeliverableFile.objects.create(
+                deliverable=deliverable,
+                title=f'Detalle técnico — {proposal.title or proposal.client_name}',
+                category=Deliverable.CATEGORY_DOCUMENTS,
+                uploaded_by=acting_user,
+            )
+            df.file.save(filename, ContentFile(technical_bytes), save=True)
+    except Exception:
+        logger.exception('Failed to generate technical PDF for deliverable sync')

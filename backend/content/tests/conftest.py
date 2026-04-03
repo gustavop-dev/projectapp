@@ -10,11 +10,16 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from django.core.files.base import ContentFile
+
 from content.models import (
     BlogPost,
     BusinessProposal,
+    CompanySettings,
     Contact,
+    ContractTemplate,
     PortfolioWork,
+    ProposalDocument,
     ProposalRequirementGroup,
     ProposalRequirementItem,
     ProposalSection,
@@ -345,4 +350,61 @@ def requirement_item(db, requirement_group):
         options=[],
         fields=[],
         order=0,
+    )
+
+
+# ── Contract & Document Fixtures ──
+
+@pytest.fixture
+def contract_template(db):
+    """A default contract template with placeholders."""
+    return ContractTemplate.objects.create(
+        name='Standard Contract',
+        content_markdown=(
+            '# CONTRATO DE PRESTACION DE SERVICIOS\n\n'
+            'Entre {client_full_name}, CC {client_cedula}, y '
+            '{contractor_full_name}, CC {contractor_cedula}.\n\n'
+            'Ciudad: {contract_city}. Fecha: {contract_date}.'
+        ),
+        is_default=True,
+    )
+
+
+@pytest.fixture
+def proposal_document(db, negotiating_proposal):
+    """A user-uploaded proposal document."""
+    doc = ProposalDocument.objects.create(
+        proposal=negotiating_proposal,
+        document_type=ProposalDocument.DOC_TYPE_LEGAL_ANNEX,
+        title='Legal annex',
+        is_generated=False,
+    )
+    doc.file.save('legal_annex.pdf', ContentFile(b'%PDF-1.4 fake'), save=True)
+    return doc
+
+
+@pytest.fixture
+def generated_contract_document(db, negotiating_proposal):
+    """A system-generated contract PDF document."""
+    doc = ProposalDocument.objects.create(
+        proposal=negotiating_proposal,
+        document_type=ProposalDocument.DOC_TYPE_CONTRACT,
+        title='Contrato de desarrollo de software',
+        is_generated=True,
+    )
+    doc.file.save('contract.pdf', ContentFile(b'%PDF-1.4 fake contract'), save=True)
+    return doc
+
+
+@pytest.fixture
+def company_settings(db):
+    """Pre-configured company settings singleton."""
+    return CompanySettings.objects.create(
+        pk=1,
+        contractor_full_name='CARLOS MARIO BLANCO',
+        contractor_cedula='123456789',
+        contractor_email='carlos@company.com',
+        bank_name='Bancolombia',
+        bank_account_number='1234567890',
+        contract_city='Medellin',
     )

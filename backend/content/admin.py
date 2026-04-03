@@ -8,6 +8,9 @@ from .models import (
     Document,
     DocumentType,
     IssuerProfile,
+    CompanySettings,
+    ProposalDocument,
+    ContractTemplate,
 )
 
 class PortfolioWorkAdmin(admin.ModelAdmin):
@@ -282,3 +285,6 @@ admin_site.register(EmailTemplateConfig, EmailTemplateConfigAdmin)
 admin_site.register(Document, DocumentAdmin)
 admin_site.register(DocumentType, admin.ModelAdmin)
 admin_site.register(IssuerProfile, admin.ModelAdmin)
+admin_site.register(CompanySettings, admin.ModelAdmin)
+admin_site.register(ProposalDocument, admin.ModelAdmin)
+admin_site.register(ContractTemplate, admin.ModelAdmin)

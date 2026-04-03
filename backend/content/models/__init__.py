@@ -31,3 +31,6 @@ from .document_number_sequence import DocumentNumberSequence
 from .document_collection_account import DocumentCollectionAccount
 from .document_item import DocumentItem
 from .document_payment_method import DocumentPaymentMethod
+from .company_settings import CompanySettings
+from .proposal_document import ProposalDocument
+from .contract_template import ContractTemplate

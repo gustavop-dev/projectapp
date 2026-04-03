@@ -965,6 +965,65 @@ EMAIL_TEMPLATE_REGISTRY = {
             'message': 'Hola, me interesa desarrollar una plataforma para mi empresa.',
         },
     },
+
+    # -----------------------------------------------------------------------
+    # Document dispatch (manual send from documents tab)
+    # -----------------------------------------------------------------------
+    'proposal_documents_sent': {
+        'name': 'Documentos Enviados al Cliente',
+        'description': 'Se envía cuando el vendedor envía documentos (borrador de contrato, propuesta, etc.) al cliente desde el tab de documentos.',
+        'category': 'client',
+        'html_template': 'emails/proposal_documents_sent.html',
+        'txt_template': 'emails/proposal_documents_sent.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '📎 {client_name}, te compartimos documentos de tu proyecto — Project App',
+            },
+            {
+                'key': 'greeting',
+                'label': 'Saludo',
+                'type': 'text',
+                'default': 'Hola {client_name} 👋',
+            },
+            {
+                'key': 'body',
+                'label': 'Texto introductorio',
+                'type': 'textarea',
+                'default': (
+                    'Te enviamos los siguientes documentos relacionados con tu proyecto. '
+                    'Encontrarás cada uno adjunto a este correo.'
+                ),
+            },
+            {
+                'key': 'footer',
+                'label': 'Texto de cierre',
+                'type': 'textarea',
+                'default': (
+                    'Si tienes dudas sobre alguno de los documentos, '
+                    'no dudes en responder este correo o escribirnos por WhatsApp.'
+                ),
+            },
+        ],
+        'available_variables': [
+            'client_name', 'title', 'document_descriptions',
+        ],
+        'sample_context': {
+            **_client_sample(),
+            'document_descriptions': [
+                {
+                    'name': 'Contrato de desarrollo',
+                    'description': 'Contrato de desarrollo de software formalizado para el proyecto.',
+                },
+                {
+                    'name': 'Propuesta comercial',
+                    'description': 'Propuesta comercial con el alcance, inversión y condiciones del proyecto.',
+                },
+            ],
+        },
+    },
 }
 
 

@@ -10,6 +10,8 @@
  * fetchProposalDefaults, saveProposalDefaults, resetProposalDefaults,
  * fetchEmailTemplates, fetchEmailTemplateDetail, saveEmailTemplate,
  * previewEmailTemplate, resetEmailTemplate, fetchEmailDeliverability,
+ * fetchDefaultContractTemplate, fetchCompanySettings,
+ * uploadProposalDocument, sendDocumentsToClient, deleteProposalDocument,
  * getters: getProposalById, enabledSections, totalSections.
  */
 import { setActivePinia, createPinia } from 'pinia';
@@ -1507,6 +1509,115 @@ describe('useProposalStore', () => {
 
       expect(result.success).toBe(false);
       expect(store.error).toBe('fetch_email_deliverability_failed');
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Contract & document management actions
+  // -----------------------------------------------------------------------
+
+  describe('fetchDefaultContractTemplate', () => {
+    it('returns success with template data', async () => {
+      const data = { id: 1, name: 'Standard', content_markdown: '# Contract' };
+      get_request.mockResolvedValueOnce({ data });
+
+      const result = await store.fetchDefaultContractTemplate();
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+      expect(get_request).toHaveBeenCalledWith('proposals/contract-template/default/');
+    });
+
+    it('returns failure on rejected request', async () => {
+      get_request.mockRejectedValueOnce(new Error('fail'));
+
+      const result = await store.fetchDefaultContractTemplate();
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('fetchCompanySettings', () => {
+    it('returns success with settings data', async () => {
+      const data = { contractor_full_name: 'Carlos', bank_name: 'Bancolombia' };
+      get_request.mockResolvedValueOnce({ data });
+
+      const result = await store.fetchCompanySettings();
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+      expect(get_request).toHaveBeenCalledWith('proposals/company-settings/');
+    });
+
+    it('returns failure on rejected request', async () => {
+      get_request.mockRejectedValueOnce(new Error('fail'));
+
+      const result = await store.fetchCompanySettings();
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('uploadProposalDocument', () => {
+    it('returns success on resolved request', async () => {
+      const docData = { id: 10, title: 'Annex', document_type: 'legal_annex' };
+      create_request.mockResolvedValueOnce({ data: docData });
+
+      const formData = new FormData();
+      const result = await store.uploadProposalDocument(1, formData);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(docData);
+      expect(create_request).toHaveBeenCalledWith('proposals/1/documents/upload/', formData);
+    });
+
+    it('returns failure on rejected request', async () => {
+      create_request.mockRejectedValueOnce(new Error('fail'));
+
+      const result = await store.uploadProposalDocument(1, new FormData());
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('sendDocumentsToClient', () => {
+    it('returns success with data on resolved request', async () => {
+      const response = { message: 'Sent to client@test.com' };
+      create_request.mockResolvedValueOnce({ data: response });
+
+      const payload = { documents: ['commercial'], subject: 'Test' };
+      const result = await store.sendDocumentsToClient(5, payload);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(response);
+      expect(create_request).toHaveBeenCalledWith('proposals/5/documents/send/', payload);
+    });
+
+    it('returns failure on rejected request', async () => {
+      create_request.mockRejectedValueOnce(new Error('fail'));
+
+      const result = await store.sendDocumentsToClient(5, {});
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('deleteProposalDocument', () => {
+    it('returns success on resolved request', async () => {
+      delete_request.mockResolvedValueOnce({ data: {} });
+
+      const result = await store.deleteProposalDocument(1, 10);
+
+      expect(result.success).toBe(true);
+      expect(delete_request).toHaveBeenCalledWith('proposals/1/documents/10/delete/');
+    });
+
+    it('returns failure on rejected request', async () => {
+      delete_request.mockRejectedValueOnce(new Error('fail'));
+
+      const result = await store.deleteProposalDocument(1, 10);
+
+      expect(result.success).toBe(false);
     });
   });
 });

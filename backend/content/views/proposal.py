@@ -29,6 +29,7 @@ from content.serializers.proposal import (
     ProposalShareLinkSerializer,
     SECTION_KEY_MAP,
     SECTION_TYPE_TO_KEY,
+    serialize_proposal_document,
 )
 
 logger = logging.getLogger(__name__)
@@ -277,17 +278,11 @@ def download_proposal_pdf(request, proposal_uuid):
             )
 
     from django.http import HttpResponse
-    from django.utils import timezone as _tz
-    import re as _re
-    _created = proposal.created_at or _tz.now()
+    from content.services.pdf_utils import safe_pdf_filename
+    _created = proposal.created_at or timezone.now()
     date_suffix = _created.strftime('%Y-%m-%d')
-    safe_title = _re.sub(r'[^\w\s-]', '', proposal.title or proposal.client_name).strip()
-    safe_title = _re.sub(r'\s+', '_', safe_title)[:100]
-    filename = (
-        f'{safe_title}_technical_{date_suffix}.pdf'
-        if doc_variant == 'technical'
-        else f'{safe_title}_{date_suffix}.pdf'
-    )
+    prefix = 'Detalle_Tecnico' if doc_variant == 'technical' else 'Propuesta_Comercial'
+    filename = safe_pdf_filename(prefix, proposal.title or proposal.client_name, date_suffix)
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
@@ -1055,13 +1050,9 @@ def update_proposal_status(request, proposal_id):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    # Block illogical transitions
-    blocked = {
-        'accepted': {'draft'},
-        'rejected': {'draft'},
-        'draft': {'accepted', 'rejected', 'negotiating'},
-    }
-    if new_status in blocked.get(proposal.status, set()):
+    # Enforce whitelist-based transitions
+    allowed = BusinessProposal.ALLOWED_TRANSITIONS.get(proposal.status, frozenset())
+    if new_status not in allowed:
         return Response(
             {'error': f'Cannot transition from {proposal.status} to {new_status}.'},
             status=status.HTTP_400_BAD_REQUEST,
@@ -1307,6 +1298,98 @@ def update_proposal_section(request, section_id):
     from content.serializers.proposal import ProposalSectionDetailSerializer
     detail = ProposalSectionDetailSerializer(section)
     return Response(detail.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def preview_sync_section(request, section_id):
+    """
+    Compute a read-only diff between the submitted content_json and the current
+    project state. Does not save anything.
+
+    Returns has_project=False if the proposal has no linked project yet.
+    """
+    from django.db import transaction as _tx
+    from accounts.models import Project
+    from accounts.services.technical_requirements_sync import compute_sync_diff
+
+    section = get_object_or_404(ProposalSection, pk=section_id)
+    if section.section_type != ProposalSection.SectionType.TECHNICAL_DOCUMENT:
+        return Response({'detail': 'Not a technical_document section.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    content_json = request.data.get('content_json')
+    if not isinstance(content_json, dict):
+        return Response({'detail': 'content_json must be a dict.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    proposal = section.proposal
+    if not proposal.platform_onboarding_completed_at or not proposal.deliverable_id:
+        return Response({'ok': True, 'has_project': False})
+
+    deliverable = proposal.deliverable
+    project = Project.objects.select_related('client').get(pk=deliverable.project_id)
+
+    diff = compute_sync_diff(project, content_json)
+
+    return Response({
+        'ok': True,
+        'has_project': True,
+        'project': {
+            'id': project.id,
+            'name': project.name,
+            'client_email': project.client.email,
+        },
+        'deliverable': {
+            'id': deliverable.id,
+            'title': deliverable.title,
+        },
+        'diff': diff,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def apply_sync_section(request, section_id):
+    """
+    Save the submitted content_json to the section and sync project requirements
+    (with soft-deletion of records removed from the JSON). Transactional.
+    """
+    from django.db import transaction as _tx
+    from accounts.services.technical_requirements_sync import sync_technical_requirements_for_deliverable
+
+    section = get_object_or_404(ProposalSection, pk=section_id)
+    if section.section_type != ProposalSection.SectionType.TECHNICAL_DOCUMENT:
+        return Response({'detail': 'Not a technical_document section.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    content_json = request.data.get('content_json')
+    if not isinstance(content_json, dict):
+        return Response({'detail': 'content_json must be a dict.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    proposal = section.proposal
+    if not proposal.platform_onboarding_completed_at or not proposal.deliverable_id:
+        return Response(
+            {'detail': 'Esta propuesta no tiene proyecto asociado.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    from content.serializers.proposal import ProposalSectionDetailSerializer
+
+    with _tx.atomic():
+        serializer = ProposalSectionUpdateSerializer(
+            section, data={'content_json': content_json}, partial=True
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.save()
+
+        deliverable = proposal.deliverable
+        sync_result = sync_technical_requirements_for_deliverable(
+            deliverable, request.user, delete_removed=True,
+        )
+
+    return Response({
+        **sync_result,
+        'section': ProposalSectionDetailSerializer(section).data,
+    })
 
 
 @api_view(['POST'])
@@ -3685,3 +3768,391 @@ def email_deliverability_dashboard(request):
         'daily_trend': daily_trend,
         'recent_failures': recent_failures,
     }, status=status.HTTP_200_OK)
+
+
+# ---------------------------------------------------------------------------
+# Contract & document management endpoints
+# ---------------------------------------------------------------------------
+
+def _generate_and_save_contract_pdf(proposal):
+    """Generate contract PDF from proposal.contract_params and save as ProposalDocument."""
+    from content.services.contract_pdf_service import generate_contract_pdf
+
+    pdf_bytes = generate_contract_pdf(proposal)
+    if not pdf_bytes:
+        return
+    from django.core.files.base import ContentFile
+    from content.models import ProposalDocument
+    from content.services.pdf_utils import safe_pdf_filename
+
+    filename = safe_pdf_filename(
+        'Contrato_Desarrollo_Software',
+        proposal.title or proposal.client_name,
+        (proposal.created_at or timezone.now()).strftime('%Y-%m-%d'),
+    )
+    doc, _created = ProposalDocument.objects.get_or_create(
+        proposal=proposal,
+        document_type=ProposalDocument.DOC_TYPE_CONTRACT,
+        defaults={'title': 'Contrato de desarrollo de software', 'is_generated': True},
+    )
+    doc.file.save(filename, ContentFile(pdf_bytes), save=True)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def save_contract_and_negotiate(request, proposal_id):
+    """Save contract params, generate contract PDF, and move status to negotiating."""
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+
+    allowed = BusinessProposal.ALLOWED_TRANSITIONS.get(proposal.status, frozenset())
+    if 'negotiating' not in allowed:
+        return Response(
+            {'error': f'Cannot transition from {proposal.status} to negotiating.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    contract_params = request.data.get('contract_params', {})
+    if not contract_params.get('client_cedula'):
+        return Response(
+            {'error': 'client_cedula is required.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    old_status = proposal.status
+    proposal.contract_params = contract_params
+    proposal.status = BusinessProposal.Status.NEGOTIATING
+    proposal.save(update_fields=['contract_params', 'status', 'updated_at'])
+
+    _generate_and_save_contract_pdf(proposal)
+
+    ProposalChangeLog.objects.create(
+        proposal=proposal,
+        change_type='negotiating',
+        field_name='status',
+        old_value=old_status,
+        new_value='negotiating',
+        actor_type='seller',
+        description='Status changed to negotiating with contract generation.',
+    )
+
+    detail = ProposalDetailSerializer(proposal, context={'request': request, 'is_admin': True})
+    return Response(detail.data, status=status.HTTP_200_OK)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def update_contract_params(request, proposal_id):
+    """Update contract params and regenerate contract PDF."""
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+
+    contract_params = request.data.get('contract_params', {})
+    if not contract_params.get('client_cedula'):
+        return Response(
+            {'error': 'client_cedula is required.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    proposal.contract_params = contract_params
+    proposal.save(update_fields=['contract_params', 'updated_at'])
+
+    _generate_and_save_contract_pdf(proposal)
+
+    detail = ProposalDetailSerializer(proposal, context={'request': request, 'is_admin': True})
+    return Response(detail.data, status=status.HTTP_200_OK)
+
+
+def _get_contract_doc(proposal):
+    """Return the contract ProposalDocument for *proposal*, or None."""
+    from content.models import ProposalDocument
+    return ProposalDocument.objects.filter(
+        proposal=proposal,
+        document_type=ProposalDocument.DOC_TYPE_CONTRACT,
+    ).first()
+
+
+def _contract_pdf_response(pdf_bytes, proposal, prefix):
+    """Build an HttpResponse with a branded PDF filename."""
+    from django.http import HttpResponse
+    from content.services.pdf_utils import safe_pdf_filename
+
+    filename = safe_pdf_filename(
+        prefix,
+        proposal.title or proposal.client_name,
+        (proposal.created_at or timezone.now()).strftime('%Y-%m-%d'),
+    )
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def download_contract_pdf(request, proposal_id):
+    """Download the generated contract PDF for a proposal."""
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+    doc = _get_contract_doc(proposal)
+    if not doc or not doc.file:
+        return Response(
+            {'error': 'Contract PDF not found. Generate it first.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    return _contract_pdf_response(doc.file.read(), proposal, 'Contrato_Desarrollo_Software')
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def download_draft_contract_pdf(request, proposal_id):
+    """Download the contract PDF with a diagonal BORRADOR watermark."""
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+    doc = _get_contract_doc(proposal)
+    if not doc or not doc.file:
+        return Response(
+            {'error': 'Contract PDF not found. Generate it first.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    from content.services.pdf_utils import add_watermark_to_pdf
+    draft_bytes = add_watermark_to_pdf(doc.file.read())
+    return _contract_pdf_response(draft_bytes, proposal, 'Borrador_Contrato')
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_company_settings(request):
+    """Return company settings defaults for contract modal pre-fill."""
+    from content.models import CompanySettings
+    settings = CompanySettings.load()
+    return Response(settings.to_dict(), status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_default_contract_template(request):
+    """Return the default contract template markdown for preview/editing."""
+    from content.models import ContractTemplate
+    template = ContractTemplate.get_default()
+    if not template:
+        return Response(
+            {'error': 'No default contract template configured.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    return Response({
+        'id': template.id,
+        'name': template.name,
+        'content_markdown': template.content_markdown,
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def list_proposal_documents(request, proposal_id):
+    """List all documents attached to a proposal."""
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+    docs = proposal.proposal_documents.all().order_by('-created_at')
+    return Response([serialize_proposal_document(d) for d in docs], status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def upload_proposal_document(request, proposal_id):
+    """Upload an additional document to a proposal (annexes, client docs, etc.)."""
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+    from content.models import ProposalDocument
+
+    file = request.FILES.get('file')
+    if not file:
+        return Response({'error': 'No file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Validate file type and size
+    from pathlib import Path
+    ALLOWED_EXTENSIONS = {'.pdf', '.doc', '.docx', '.xls', '.xlsx', '.png', '.jpg', '.jpeg'}
+    MAX_FILE_SIZE = 15 * 1024 * 1024  # 15 MB
+    ext = Path(file.name).suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        return Response(
+            {'error': f'File type {ext} not allowed. Allowed: {", ".join(sorted(ALLOWED_EXTENSIONS))}'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if file.size > MAX_FILE_SIZE:
+        return Response(
+            {'error': 'File too large. Maximum size is 15 MB.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    title = request.data.get('title', file.name)
+    document_type = request.data.get('document_type', ProposalDocument.DOC_TYPE_OTHER)
+
+    valid_types = {c[0] for c in ProposalDocument.DOC_TYPE_CHOICES}
+    if document_type not in valid_types or document_type == ProposalDocument.DOC_TYPE_CONTRACT:
+        return Response(
+            {'error': f'Invalid document_type: {document_type}'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    custom_type_label = (request.data.get('custom_type_label') or '').strip()[:100]
+
+    doc = ProposalDocument.objects.create(
+        proposal=proposal,
+        document_type=document_type,
+        custom_type_label=custom_type_label if document_type == ProposalDocument.DOC_TYPE_OTHER else '',
+        title=title,
+        file=file,
+        is_generated=False,
+    )
+    return Response(serialize_proposal_document(doc), status=status.HTTP_201_CREATED)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def delete_proposal_document(request, proposal_id, doc_id):
+    """Delete a user-uploaded proposal document. Generated docs cannot be deleted."""
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+    from content.models import ProposalDocument
+
+    doc = get_object_or_404(ProposalDocument, pk=doc_id, proposal=proposal)
+    if doc.is_generated:
+        return Response(
+            {'error': 'Cannot delete system-generated documents.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    doc.file.delete(save=False)
+    doc.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def send_documents_to_client(request, proposal_id):
+    """Send selected proposal documents to the client via email.
+
+    Expects JSON body::
+
+        {
+            "documents": ["draft_contract", "commercial", "technical"],
+            "additional_doc_ids": [12, 15],
+            "subject": "...",
+            "greeting": "...",
+            "body": "...",
+            "footer": "...",
+            "document_descriptions": [
+                {"name": "Contrato", "description": "..."},
+            ]
+        }
+    """
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+
+    if not proposal.client_email:
+        return Response(
+            {'error': 'No hay email del cliente configurado.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    ALLOWED_DOC_KEYS = {'draft_contract', 'commercial', 'technical'}
+    doc_keys = request.data.get('documents', [])
+    additional_ids = request.data.get('additional_doc_ids', [])
+    invalid_keys = set(doc_keys) - ALLOWED_DOC_KEYS
+    if invalid_keys:
+        return Response(
+            {'error': f'Claves de documento no reconocidas: {invalid_keys}'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not doc_keys and not additional_ids:
+        return Response(
+            {'error': 'Debes seleccionar al menos un documento.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    from content.models import ProposalDocument
+    from content.services.pdf_utils import add_watermark_to_pdf, safe_pdf_filename
+
+    date_str = (proposal.created_at or timezone.now()).strftime('%Y-%m-%d')
+    client_title = proposal.client_name or proposal.title
+
+    attachments = []
+
+    if 'draft_contract' in doc_keys:
+        contract_doc = _get_contract_doc(proposal)
+        if contract_doc and contract_doc.file:
+            with contract_doc.file.open('rb') as f:
+                draft_bytes = add_watermark_to_pdf(f.read())
+            attachments.append((
+                safe_pdf_filename('Borrador_Contrato', client_title, date_str),
+                draft_bytes,
+                'application/pdf',
+            ))
+
+    if 'commercial' in doc_keys:
+        from content.services.proposal_pdf_service import ProposalPdfService
+        pdf_bytes = ProposalPdfService.generate(proposal)
+        if pdf_bytes:
+            attachments.append((
+                safe_pdf_filename('Propuesta_Comercial', client_title, date_str),
+                pdf_bytes,
+                'application/pdf',
+            ))
+
+    if 'technical' in doc_keys:
+        from content.services.technical_document_pdf import (
+            generate_technical_document_pdf,
+        )
+        tech_bytes = generate_technical_document_pdf(proposal)
+        if tech_bytes:
+            attachments.append((
+                safe_pdf_filename('Detalle_Tecnico', client_title, date_str),
+                tech_bytes,
+                'application/pdf',
+            ))
+
+    if additional_ids:
+        import mimetypes
+        extra_docs = ProposalDocument.objects.filter(
+            proposal=proposal, pk__in=additional_ids,
+        )
+        for doc in extra_docs:
+            if doc.file:
+                ext = doc.file.name.rsplit('.', 1)[-1] if '.' in doc.file.name else 'pdf'
+                mime = mimetypes.guess_type(doc.file.name)[0] or 'application/octet-stream'
+                safe_title = safe_pdf_filename(
+                    'Documento', doc.title or 'documento', date_str,
+                ).rsplit('.', 1)[0]  # strip the .pdf suffix
+                with doc.file.open('rb') as f:
+                    file_data = f.read()
+                attachments.append((
+                    f'{safe_title}.{ext}',
+                    file_data,
+                    mime,
+                ))
+
+    if not attachments:
+        return Response(
+            {'error': 'No se pudieron generar los documentos seleccionados.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Email content from the compose modal
+    email_subject = request.data.get('subject', '') or None
+    email_greeting = request.data.get('greeting', '') or None
+    email_body = request.data.get('body', '') or None
+    email_footer = request.data.get('footer', '') or None
+    document_descriptions = request.data.get('document_descriptions', [])
+
+    from content.services.proposal_email_service import ProposalEmailService
+    sent = ProposalEmailService.send_documents_to_client(
+        proposal, attachments,
+        subject=email_subject,
+        greeting=email_greeting,
+        body=email_body,
+        footer=email_footer,
+        document_descriptions=document_descriptions,
+    )
+
+    if sent:
+        return Response(
+            {'message': f'Documentos enviados a {proposal.client_email}.'},
+            status=status.HTTP_200_OK,
+        )
+    return Response(
+        {'error': 'Error al enviar el correo. Intenta de nuevo.'},
+        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )

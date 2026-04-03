@@ -431,6 +431,55 @@ export const useProposalStore = defineStore('proposals', {
     },
 
     /**
+     * previewSync: Compute a read-only diff between the submitted content_json
+     * and the current project state. Does not save anything.
+     * @param {number} sectionId - Section ID.
+     * @param {object} contentJson - The new content_json to preview.
+     */
+    async previewSync(sectionId, contentJson) {
+      try {
+        const response = await create_request(
+          `proposals/sections/${sectionId}/sync-preview/`,
+          { content_json: contentJson },
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error previewing sync:', error);
+        return { success: false, errors: error.response?.data };
+      }
+    },
+
+    /**
+     * applySync: Save content_json and sync project requirements (with deletions).
+     * @param {number} sectionId - Section ID.
+     * @param {object} contentJson - The new content_json to save and sync.
+     */
+    async applySync(sectionId, contentJson) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          `proposals/sections/${sectionId}/apply-sync/`,
+          { content_json: contentJson },
+        );
+        if (this.currentProposal?.sections && response.data.section) {
+          const idx = this.currentProposal.sections.findIndex(
+            (s) => s.id === sectionId,
+          );
+          if (idx !== -1) {
+            this.currentProposal.sections[idx] = response.data.section;
+          }
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error applying sync:', error);
+        return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
      * reorderSections: Bulk reorder sections.
      * @param {number} proposalId - Proposal ID.
      * @param {Array} sections - Array of { id, order }.
@@ -898,6 +947,143 @@ export const useProposalStore = defineStore('proposals', {
         return { success: true };
       } catch (error) {
         console.error('Error requesting magic link:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * fetchCompanySettings: Get seller company defaults for contract modal.
+     */
+    async fetchCompanySettings() {
+      try {
+        const response = await get_request('proposals/company-settings/');
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching company settings:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * fetchDefaultContractTemplate: Get the default contract template markdown.
+     */
+    async fetchDefaultContractTemplate() {
+      try {
+        const response = await get_request('proposals/contract-template/default/');
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching default contract template:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * saveContractAndNegotiate: Save contract params, generate PDF, move to negotiating.
+     * @param {number} proposalId
+     * @param {Object} contractParams
+     */
+    async saveContractAndNegotiate(proposalId, contractParams) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          `proposals/${proposalId}/contract/save-and-negotiate/`,
+          { contract_params: contractParams },
+        );
+        if (this.currentProposal?.id === proposalId) {
+          this.currentProposal = response.data;
+        }
+        const idx = this.proposals.findIndex((p) => p.id === proposalId);
+        if (idx !== -1) {
+          this.proposals[idx] = { ...this.proposals[idx], ...response.data };
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'contract_save_failed';
+        console.error('Error saving contract and negotiating:', error);
+        return { success: false };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * updateContractParams: Update contract params and regenerate PDF.
+     * @param {number} proposalId
+     * @param {Object} contractParams
+     */
+    async updateContractParams(proposalId, contractParams) {
+      this.isUpdating = true;
+      try {
+        const response = await patch_request(
+          `proposals/${proposalId}/contract/update/`,
+          { contract_params: contractParams },
+        );
+        if (this.currentProposal?.id === proposalId) {
+          this.currentProposal = response.data;
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error updating contract params:', error);
+        return { success: false };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * uploadProposalDocument: Upload a document to a proposal.
+     * @param {number} proposalId
+     * @param {FormData} formData - Must include 'file', optionally 'title' and 'document_type'
+     */
+    async uploadProposalDocument(proposalId, formData) {
+      try {
+        const response = await create_request(
+          `proposals/${proposalId}/documents/upload/`,
+          formData,
+        );
+        if (this.currentProposal?.id === proposalId) {
+          await this.fetchProposal(proposalId);
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error uploading proposal document:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * sendDocumentsToClient: Send selected documents to the client via email.
+     * @param {number} proposalId
+     * @param {Object} payload - { documents, additional_doc_ids, subject, greeting, body, footer, document_descriptions }
+     */
+    async sendDocumentsToClient(proposalId, payload) {
+      try {
+        const response = await create_request(
+          `proposals/${proposalId}/documents/send/`,
+          payload,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error sending documents to client:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * deleteProposalDocument: Delete a user-uploaded proposal document.
+     * @param {number} proposalId
+     * @param {number} docId
+     */
+    async deleteProposalDocument(proposalId, docId) {
+      try {
+        await delete_request(`proposals/${proposalId}/documents/${docId}/delete/`);
+        if (this.currentProposal?.id === proposalId) {
+          await this.fetchProposal(proposalId);
+        }
+        return { success: true };
+      } catch (error) {
+        console.error('Error deleting proposal document:', error);
         return { success: false };
       }
     },

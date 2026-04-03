@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.8.1
-> **Last updated:** 2026-04-01
+> **Version:** 2.9.0
+> **Last updated:** 2026-04-02
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -2377,3 +2377,111 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-email-deliverability` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-email-deliverability.spec.js` |
 | `public-landing-software` | public | guest | P3 | ✅ Covered | `e2e/public/public-landing-software.spec.js` |
 | `public-landing-apps` | public | guest | P3 | ✅ Covered | `e2e/public/public-landing-apps.spec.js` |
+
+---
+
+## 10. New Feature Flows (v2.9.0)
+
+> Flows registered during the v2.9.0 audit for contract generation, document management, and document sending features on the proposal edit Documents tab. These features are visible only when proposal status is `negotiating`, `accepted`, or `rejected`.
+
+### 10.1 Admin Proposal Contract & Documents
+
+#### FLOW: `admin-proposal-contract-generate`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/proposals/:id/edit` (Documents tab)
+- **Description:** Admin generates a development contract from the proposal edit Documents tab. Two source modes: "Contrato por defecto" (structured params form with auto-populated company settings for contractor/client info, banking details, contract date) or "Contrato personalizado" (paste or upload custom Markdown with live preview). Submit calls `POST /api/proposals/:id/contract/save-and-negotiate/`.
+- **Steps:**
+  1. Admin navigates to `/panel/proposals/:id/edit` for a proposal with status `negotiating`/`accepted`/`rejected`.
+  2. Admin clicks the "Documentos" tab.
+  3. In the "Contrato de desarrollo" section, admin clicks "Generar contrato de desarrollo" button (visible when no contract exists).
+  4. ContractParamsModal opens with "Contrato por defecto" mode selected. Company settings auto-populate contractor fields.
+  5. [Branch A — Default] Admin fills/verifies contractor params (name, cedula, email, city, bank details) and client params (name, cedula, email), sets contract date.
+  6. [Branch B — Custom] Admin toggles to "Contrato personalizado", pastes or uploads a `.md` file, optionally toggles preview.
+  7. Admin clicks "Generar contrato y negociar" → API call to `POST /api/proposals/:id/contract/save-and-negotiate/`.
+  8. Contract document appears in the Documents tab with download links.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/admin/admin-proposal-contract-generate.spec.js`
+
+#### FLOW: `admin-proposal-contract-edit`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/:id/edit` (Documents tab)
+- **Description:** Admin edits an existing contract's parameters via "Editar parámetros" button. ContractParamsModal opens pre-filled with saved params. Submit calls `PUT /api/proposals/:id/contract/update/`.
+- **Steps:**
+  1. Admin opens Documents tab for a proposal that already has a generated contract.
+  2. Admin clicks "Editar parámetros" button next to the contract.
+  3. ContractParamsModal opens in edit mode with existing params pre-filled.
+  4. Admin modifies fields and clicks "Actualizar contrato".
+  5. API call to `PUT /api/proposals/:id/contract/update/`.
+  6. Updated contract reflected in Documents tab.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/admin/admin-proposal-contract-edit.spec.js`
+
+#### FLOW: `admin-proposal-contract-download`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/:id/edit` (Documents tab)
+- **Description:** Admin downloads contract PDF (final) or draft PDF from the Documents tab. Links visible only when a contract has been generated.
+- **Steps:**
+  1. Admin opens Documents tab for a proposal with a generated contract.
+  2. "Descargar" link points to `GET /api/proposals/:id/contract/pdf/`.
+  3. "Borrador" link points to `GET /api/proposals/:id/contract/draft-pdf/`.
+  4. [Branch A — No contract] When no contract is generated, section shows "No generado" and no download links.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/admin/admin-proposal-contract-download.spec.js`
+
+#### FLOW: `admin-proposal-documents-manage`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/:id/edit` (Documents tab)
+- **Description:** Admin uploads additional documents (otrosí, legal annex, client document, other with custom type label) to a proposal. Existing documents listed with type badges. Non-generated documents can be deleted.
+- **Steps:**
+  1. Admin opens Documents tab.
+  2. "Documentos adicionales" section lists existing uploaded documents with type badge and download link.
+  3. Admin fills upload form: title, type (select), file, optionally custom label for "Otro" type.
+  4. Admin clicks "Subir" → `POST /api/proposals/:id/documents/upload/` with FormData.
+  5. New document appears in the list after refresh.
+  6. Admin clicks delete icon on a non-generated document → `DELETE /api/proposals/:id/documents/:docId/delete/`.
+  7. Document removed from list.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/admin/admin-proposal-documents-manage.spec.js`
+
+#### FLOW: `admin-proposal-documents-send`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/proposals/:id/edit` (Documents tab)
+- **Description:** Admin selects documents to send to client via email. Checkboxes for main docs (draft contract, commercial PDF, technical PDF) and additional uploaded docs. Opens SendDocumentsModal with editable email fields (subject, greeting, body, per-document descriptions, footer). Submit calls `POST /api/proposals/:id/documents/send/`.
+- **Steps:**
+  1. Admin opens Documents tab.
+  2. "Enviar documentos al cliente" section shows checkboxes: draft contract (disabled if no contract), commercial, technical, plus any additional docs.
+  3. Admin selects desired documents.
+  4. Admin clicks "Enviar al cliente" button (disabled if no docs selected or no client email).
+  5. SendDocumentsModal opens with pre-filled email: subject, greeting with client name, intro body, per-document descriptions, footer.
+  6. Admin edits email fields as needed.
+  7. Admin clicks "Enviar documentos" → API call to `POST /api/proposals/:id/documents/send/`.
+  8. Success message: "Documentos enviados correctamente."
+- **Coverage:** ❌ Missing
+- **E2E Spec:** `e2e/admin/admin-proposal-documents-send.spec.js`
+
+---
+
+### 10.2 New Flows Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `admin-proposal-contract-generate` | admin | admin | P1 | ❌ Missing | `e2e/admin/admin-proposal-contract-generate.spec.js` |
+| `admin-proposal-contract-edit` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-proposal-contract-edit.spec.js` |
+| `admin-proposal-contract-download` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-proposal-contract-download.spec.js` |
+| `admin-proposal-documents-manage` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-proposal-documents-manage.spec.js` |
+| `admin-proposal-documents-send` | admin | admin | P1 | ❌ Missing | `e2e/admin/admin-proposal-documents-send.spec.js` |

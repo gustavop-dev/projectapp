@@ -19,7 +19,7 @@ class TestEmailTemplateList:
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        assert len(data) == 23
+        assert len(data) == 24
         keys_in_item = {
             'template_key', 'name', 'description', 'category',
             'is_active', 'is_customized', 'editable_fields_count',

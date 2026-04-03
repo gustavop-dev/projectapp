@@ -25,10 +25,13 @@ function getCookie(name) {
  */
 async function makeRequest(method, url, params = {}) {
   const csrfToken = getCookie('csrftoken');
+  const isFormData = typeof FormData !== 'undefined' && params instanceof FormData;
   const headers = {
-    "Content-Type": "application/json",
-    "X-CSRFToken": csrfToken
+    "X-CSRFToken": csrfToken,
   };
+  if (!isFormData) {
+    headers["Content-Type"] = "application/json";
+  }
 
   try {
     let response;

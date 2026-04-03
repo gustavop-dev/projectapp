@@ -28,6 +28,14 @@ from content.views.proposal import (
     proposal_defaults, reset_proposal_defaults,
     email_deliverability_dashboard,
     request_magic_link,
+    preview_sync_section, apply_sync_section,
+    save_contract_and_negotiate, update_contract_params,
+    download_contract_pdf, download_draft_contract_pdf,
+    send_documents_to_client,
+    get_company_settings,
+    get_default_contract_template,
+    list_proposal_documents, upload_proposal_document,
+    delete_proposal_document,
 )
 from content.views.email_templates import (
     email_template_list, email_template_detail,
@@ -95,6 +103,20 @@ urlpatterns = [
 
     # Proposals — section editing
     path('proposals/sections/<int:section_id>/update/', update_proposal_section, name='update-proposal-section'),
+    path('proposals/sections/<int:section_id>/sync-preview/', preview_sync_section, name='section-sync-preview'),
+    path('proposals/sections/<int:section_id>/apply-sync/', apply_sync_section, name='section-apply-sync'),
+
+    # Contract & documents — admin
+    path('proposals/<int:proposal_id>/contract/save-and-negotiate/', save_contract_and_negotiate, name='save-contract-and-negotiate'),
+    path('proposals/<int:proposal_id>/contract/update/', update_contract_params, name='update-contract-params'),
+    path('proposals/<int:proposal_id>/contract/pdf/', download_contract_pdf, name='download-contract-pdf'),
+    path('proposals/<int:proposal_id>/contract/draft-pdf/', download_draft_contract_pdf, name='download-draft-contract-pdf'),
+    path('proposals/<int:proposal_id>/documents/', list_proposal_documents, name='list-proposal-documents'),
+    path('proposals/<int:proposal_id>/documents/upload/', upload_proposal_document, name='upload-proposal-document'),
+    path('proposals/<int:proposal_id>/documents/send/', send_documents_to_client, name='send-documents-to-client'),
+    path('proposals/<int:proposal_id>/documents/<int:doc_id>/delete/', delete_proposal_document, name='delete-proposal-document'),
+    path('proposals/company-settings/', get_company_settings, name='get-company-settings'),
+    path('proposals/contract-template/default/', get_default_contract_template, name='get-default-contract-template'),
 
     # Proposals — default config
     path('proposals/defaults/', proposal_defaults, name='proposal-defaults'),

@@ -10,6 +10,23 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
+    <ContractParamsModal
+      :visible="showContractModal"
+      :proposal="proposal"
+      :initial-params="proposal?.contract_params || {}"
+      :is-editing="contractModalEditing"
+      @confirm="handleContractConfirm"
+      @cancel="showContractModal = false"
+    />
+    <BusinessProposalAdminSyncPreviewModal
+      :visible="syncPreviewVisible"
+      :project-info="syncPreviewData?.project"
+      :deliverable-info="syncPreviewData?.deliverable"
+      :diff="syncPreviewData?.diff"
+      :is-applying="syncApplying"
+      @confirm="handleSyncConfirm"
+      @cancel="handleSyncCancel"
+    />
     <div class="mb-8">
       <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
         ← Volver a propuestas
@@ -79,17 +96,28 @@
             </p>
           </div>
           <div>
-            <span class="text-gray-400 text-xs">PDF / Vista previa</span>
+            <span class="text-gray-400 text-xs">{{ hasDocumentsTab ? 'Vista previa' : 'PDFs / Vista previa' }}</span>
             <div class="flex items-center gap-3 mt-0.5 flex-wrap">
-              <a :href="'/api/proposals/' + proposal.uuid + '/pdf/'"
-                 target="_blank"
-                 class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Descargar PDF
-              </a>
-              <span class="text-gray-300 text-xs">|</span>
+              <template v-if="!hasDocumentsTab">
+                <a :href="'/api/proposals/' + proposal.uuid + '/pdf/'"
+                   target="_blank"
+                   class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Propuesta comercial
+                </a>
+                <span class="text-gray-300 text-xs">|</span>
+                <a :href="'/api/proposals/' + proposal.uuid + '/pdf/?doc=technical'"
+                   target="_blank"
+                   class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Detalle técnico
+                </a>
+                <span class="text-gray-300 text-xs">|</span>
+              </template>
               <a :href="'/proposal/' + proposal.uuid + '?preview=1'"
                  target="_blank"
                  class="inline-flex items-center gap-1.5 text-gray-500 hover:text-emerald-600 text-xs font-medium transition-colors">
@@ -189,6 +217,12 @@
                 <option value="booking">Sistema de Reservas</option>
                 <option value="dashboard">Dashboard / Reportes</option>
                 <option value="crm">Sistema CRM</option>
+                <option value="saas">SaaS / Plataforma</option>
+                <option value="chatbot">Chatbot / Asistente Virtual</option>
+                <option value="ai_tool">Herramienta con IA</option>
+                <option value="automation">Automatización / RPA</option>
+                <option value="data_analytics">Analítica de Datos / BI</option>
+                <option value="plugin_extension">Plugin / Extensión</option>
                 <option value="other">Otro</option>
               </select>
               <input
@@ -222,6 +256,14 @@
                 <option value="media">Medios / Entretenimiento</option>
                 <option value="ngo">ONG / Sector Público</option>
                 <option value="agriculture">Agro / Tecnología Agrícola</option>
+                <option value="tech">Tecnología / Software</option>
+                <option value="consulting">Consultoría / Asesoría</option>
+                <option value="automotive">Automotriz</option>
+                <option value="fashion">Moda / Textil</option>
+                <option value="beauty">Belleza / Cuidado Personal</option>
+                <option value="manufacturing">Manufactura / Industrial</option>
+                <option value="energy">Energía / Utilities</option>
+                <option value="gaming">Videojuegos / Gaming</option>
                 <option value="other">Otro</option>
               </select>
               <input
@@ -367,12 +409,48 @@
             >
               Re-enviar al Cliente
             </button>
+            <!-- Status transition buttons -->
+            <button
+              v-if="(proposal.available_transitions || []).includes('negotiating')"
+              type="button"
+              class="px-5 sm:px-6 py-2.5 bg-amber-500 text-white rounded-xl font-medium text-sm hover:bg-amber-600 transition-colors shadow-sm"
+              @click="openContractModal(false)"
+            >
+              Pasar a Negociación
+            </button>
+            <button
+              v-if="(proposal.available_transitions || []).includes('accepted')"
+              type="button"
+              class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+              @click="handleStatusChange('accepted')"
+            >
+              Aprobar
+            </button>
+            <button
+              v-if="(proposal.available_transitions || []).includes('rejected')"
+              type="button"
+              class="px-4 py-2.5 bg-red-50 text-red-600 rounded-xl font-medium text-sm hover:bg-red-100 transition-colors"
+              @click="handleStatusChange('rejected')"
+            >
+              Rechazar
+            </button>
             <a :href="'/proposal/' + proposal.uuid + '?preview=1'" target="_blank"
               class="text-sm text-gray-500 hover:text-emerald-600 transition-colors">
               Preview →
             </a>
           </div>
         </form>
+      </div>
+
+      <!-- Tab: Documentos -->
+      <div v-show="activeTab === 'documents'" class="max-w-4xl">
+        <ProposalDocumentsTab
+          :proposal="proposal"
+          :documents="proposal.proposal_documents || []"
+          @refresh="proposalStore.fetchProposal(proposal.id).then(r => { if (r?.data) proposal = r.data; })"
+          @edit-contract="openContractModal(true)"
+          @generate-contract="openContractModal(false)"
+        />
       </div>
 
       <!-- Tab: Prompt Proposal -->
@@ -927,6 +1005,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
 import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
+import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
+import ProposalDocumentsTab from '~/components/BusinessProposal/admin/ProposalDocumentsTab.vue';
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
@@ -987,17 +1067,59 @@ const sectionCompleteness = computed(() => {
   return Math.round(sectionsWithContent.value / enabledSectionsCount.value * 100);
 });
 
-const activeTab = ref('general');
+const validTabs = ['general', 'documents', 'sections', 'technical', 'prompt', 'json', 'activity', 'analytics'];
+const activeTab = ref(validTabs.includes(route.query.tab) ? route.query.tab : 'general');
 const technicalSubTab = ref('editor');
-const tabs = [
-  { id: 'general', label: 'General' },
-  { id: 'sections', label: 'Secciones' },
-  { id: 'technical', label: 'Det. técnico' },
-  { id: 'prompt', label: 'Prompt Proposal' },
-  { id: 'json', label: 'JSON' },
-  { id: 'activity', label: 'Actividad' },
-  { id: 'analytics', label: 'Analytics' },
-];
+const hasDocumentsTab = computed(() =>
+  ['negotiating', 'accepted', 'rejected'].includes(proposal.value?.status),
+);
+
+const tabs = computed(() => {
+  const base = [
+    { id: 'general', label: 'General' },
+  ];
+  if (hasDocumentsTab.value) {
+    base.push({ id: 'documents', label: 'Documentos' });
+  }
+  base.push(
+    { id: 'sections', label: 'Secciones' },
+    { id: 'technical', label: 'Det. técnico' },
+    { id: 'prompt', label: 'Prompt Proposal' },
+    { id: 'json', label: 'JSON' },
+    { id: 'activity', label: 'Actividad' },
+    { id: 'analytics', label: 'Analytics' },
+  );
+  return base;
+});
+
+// ── Contract modal state ──
+const showContractModal = ref(false);
+const contractModalEditing = ref(false);
+
+function openContractModal(editing = false) {
+  contractModalEditing.value = editing;
+  showContractModal.value = true;
+}
+
+async function handleContractConfirm(params) {
+  showContractModal.value = false;
+  let result;
+  if (contractModalEditing.value) {
+    result = await proposalStore.updateContractParams(proposal.value.id, params);
+  } else {
+    result = await proposalStore.saveContractAndNegotiate(proposal.value.id, params);
+  }
+  if (result.success) {
+    proposal.value = result.data;
+  }
+}
+
+async function handleStatusChange(newStatus) {
+  const result = await proposalStore.updateProposalStatus(proposal.value.id, newStatus);
+  if (result.success) {
+    proposal.value = result.data;
+  }
+}
 
 // ── Prompt Proposal ──
 const {
@@ -1121,6 +1243,10 @@ async function handleApplyTechnicalJson() {
 const isRefreshing = ref(false);
 const expandedSections = ref(new Set());
 const updateMsg = ref(null);
+const syncPreviewVisible = ref(false);
+const syncPreviewData = ref(null);
+const syncApplying = ref(false);
+const pendingSyncPayload = ref(null);
 
 const form = reactive({
   title: '',
@@ -1343,7 +1469,50 @@ async function toggleEnabled(section) {
 }
 
 async function handleSaveSection({ sectionId, payload }) {
+  const section = proposal.value?.sections?.find((s) => s.id === sectionId);
+  const isAccepted = proposal.value?.status === 'accepted';
+  const isTechDoc = section?.section_type === 'technical_document';
+
+  if (isTechDoc && isAccepted) {
+    updateMsg.value = null;
+    const previewResult = await proposalStore.previewSync(sectionId, payload.content_json);
+    if (!previewResult.success) {
+      updateMsg.value = { type: 'error', text: 'No se pudo calcular la vista previa de sincronización.' };
+      return;
+    }
+    if (!previewResult.data.has_project) {
+      const r = await proposalStore.updateSection(sectionId, payload);
+      updateMsg.value = r.success
+        ? { type: 'success', text: 'Sección técnica guardada.' }
+        : { type: 'error', text: 'Error al guardar.' };
+      return;
+    }
+    syncPreviewData.value = previewResult.data;
+    pendingSyncPayload.value = { sectionId, payload };
+    syncPreviewVisible.value = true;
+    return;
+  }
+
   await proposalStore.updateSection(sectionId, payload);
+}
+
+async function handleSyncConfirm() {
+  syncApplying.value = true;
+  const { sectionId, payload } = pendingSyncPayload.value;
+  const result = await proposalStore.applySync(sectionId, payload.content_json);
+  syncApplying.value = false;
+  syncPreviewVisible.value = false;
+  syncPreviewData.value = null;
+  pendingSyncPayload.value = null;
+  updateMsg.value = result.success
+    ? { type: 'success', text: 'Sección técnica guardada y proyecto sincronizado.' }
+    : { type: 'error', text: 'Error al aplicar la sincronización.' };
+}
+
+function handleSyncCancel() {
+  syncPreviewVisible.value = false;
+  syncPreviewData.value = null;
+  pendingSyncPayload.value = null;
 }
 
 async function handleSyncHostingPercent(percent) {

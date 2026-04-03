@@ -1,0 +1,15 @@
+{{ greeting }}
+
+{{ body }}
+
+Documentos adjuntos:
+{% for doc in document_descriptions %}
+- {{ doc.name }}: {{ doc.description }}
+{% endfor %}
+{% if footer %}
+{{ footer }}
+{% endif %}
+
+¿Dudas? Escríbenos a team@projectapp.co o WhatsApp +57 323 812 2373
+
+— El equipo de ProjectApp.co

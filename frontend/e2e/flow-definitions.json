@@ -1,6 +1,6 @@
 {
-  "version": "2.8.1",
-  "lastUpdated": "2026-04-01",
+  "version": "2.9.0",
+  "lastUpdated": "2026-04-02",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1119,6 +1119,46 @@
       "roles": ["platform-admin", "platform-client"],
       "priority": "P2",
       "description": "View deliverable detail at /platform/projects/:id/deliverables/:deliverableId: linked proposal PDFs, main file, epic, board link; admin attachment upload.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-contract-generate": {
+      "name": "Admin Proposal Contract Generate",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Admin generates a development contract from the proposal edit Documents tab. Two modes: 'Contrato por defecto' (fill contractor/client params form with auto-populated company settings) or 'Contrato personalizado' (paste/upload custom Markdown). Submit calls save-and-negotiate API. Visible only when proposal status is negotiating/accepted/rejected.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-contract-edit": {
+      "name": "Admin Proposal Contract Edit",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin edits an existing contract's parameters via 'Editar parámetros' button in the Documents tab. Modal opens pre-filled with saved params. Submit calls contract update API.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-contract-download": {
+      "name": "Admin Proposal Contract Download",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin downloads contract PDF (final version) or draft PDF from the Documents tab. Download links visible only when contract has been generated.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-documents-manage": {
+      "name": "Admin Proposal Documents Manage",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin uploads additional documents (otrosí, legal annex, client document, other with custom label) to a proposal via the Documents tab. Lists existing documents with type badges. Delete non-generated documents.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-documents-send": {
+      "name": "Admin Proposal Documents Send",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Admin selects documents to send (draft contract, commercial PDF, technical PDF, additional docs via checkboxes), clicks 'Enviar al cliente', edits email subject/greeting/body/footer/document descriptions in SendDocumentsModal, submits to send API. Disabled when no client email or no docs selected.",
       "expectedSpecs": 1
     }
   }

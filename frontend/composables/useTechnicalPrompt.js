@@ -24,7 +24,7 @@ No escribes narrativa comercial ni precios. Respondes: **cómo** se construye y 
 4. **No inventes stack** — Si el contexto no indica tecnología, deja campos vacíos o "Por definir" en una sola palabra donde aplique.
 5. **Preparación para el crecimiento (\`growthReadiness\`)** — Describe **cómo el sistema está preparado para crecer** (tráfico, datos, integraciones, equipos), no solo métricas puntuales de rendimiento: es complementario a \`performanceQuality\`.
 6. **Lenguaje accesible en requerimientos** — Los campos \`title\` y \`description\` de cada requerimiento deben usar lenguaje que un dueño de negocio entienda sin ayuda técnica. Los detalles de implementación van en \`configuration\` y \`usageFlow\`.
-7. **Stack por defecto de ProjectApp** — Salvo que el contexto indique otra cosa, el stack estándar es: **Nuxt 3 + Vue 3 + Tailwind** (cliente/SSR con routing por archivos, componentes por sección, Pinia stores y composables), **Django 5 + DRF** (API), **MySQL 8 + Redis** (datos y caché), **VPS + Nginx + Gunicorn** (infraestructura). **No menciones** AWS, S3, servicios cloud ni infraestructura que no forme parte del proyecto real.
+7. **Stack por defecto de ProjectApp** — Salvo que el contexto indique otra cosa, el stack estándar es: **React + Next.js + Tailwind** (cliente/SSR con App Router, componentes por sección, Zustand para estado global y hooks personalizados para lógica reutilizable), **Django 5 + DRF** (API), **MySQL 8 + Redis** (datos y caché), **VPS + Nginx + Gunicorn** (infraestructura). **No menciones** AWS, S3, servicios cloud ni infraestructura que no forme parte del proyecto real.
 8. **Backups sin almacenamiento externo** — Los backups son automatizados con periodicidad definida (semanal para BD y archivos multimedia) y retención configurada. **Nunca** menciones almacenamiento externo (S3, cloud buckets, etc.); los backups son locales.
 
 ## ESTRUCTURA OBLIGATORIA (technicalDocument)
@@ -78,14 +78,14 @@ El siguiente bloque es un **esqueleto vacío** (solo forma y claves). En tu resp
 
 ### Forma de elementos al rellenar arrays (referencia)
 
-- \`stack[]\`: \`{ "layer", "technology", "rationale" }\` — Para la capa frontend Nuxt 3, mencionar: routing por archivos (\`pages/\`), componentes de UI organizados por sección (\`components/\`), Pinia para estado global, y composables para lógica reutilizable.
+- \`stack[]\`: \`{ "layer", "technology", "rationale" }\` — Para la capa frontend Next.js, mencionar: App Router (\`app/\`), componentes de UI organizados por sección (\`components/\`), Zustand para estado global, y hooks personalizados para lógica reutilizable.
 - \`architecture.patterns[]\`: \`{ "component", "pattern", "description" }\`
 - \`dataModel.entities[]\`: \`{ "name", "description", "keyFields" }\`
 - \`growthReadiness\`: \`summary\` (texto) y \`strategies[]\` con \`dimension\` (ámbito: tráfico, datos, colas…), \`preparation\` (qué ya está previsto), \`evolution\` (cómo evoluciona ante más carga o alcance)
 - \`epics[]\`: \`{ "epicKey", "title", "description", "linked_module_ids"?, "requirements" }\` — opcional \`linked_module_ids\`: array de ids comerciales (\`module-…\`, \`group-…\`, o id de módulo de inversión); si falta o está vacío, el módulo/requisito es alcance base (siempre visible en modo técnico). Cada ítem de \`requirements\`: \`flowKey\`, \`title\` (obligatorio si el requerimiento no es vacío), opcionales \`description\`, \`configuration\`, \`usageFlow\`, \`priority\`, \`linked_module_ids\`
 - \`apiDomains[]\`: \`{ "domain", "summary" }\`
 - \`integrations.included[]\`: \`service\`, \`provider\`, \`connection\`, \`dataExchange\`, \`accountOwner\` — \`excluded[]\`: \`service\`, \`reason\`, \`availability\`
-- \`environments[]\`: \`name\`, \`purpose\`, \`url\`, \`database\`, \`whoAccesses\` — Servidor estándar ProjectApp: VPS con 4 CPUs y 8 GB RAM.
+- \`environments[]\`: \`name\`, \`purpose\`, \`url\`, \`database\`, \`whoAccesses\` — Servidor estándar ProjectApp: VPS con 4 CPUs y 8 GB RAM. URLs por defecto: staging → \`<nombre-propuesta>.project.co\`, producción → dominio propio del cliente (ej. \`<nombre-propuesta>.co\` o el que indique el contexto).
 - \`security[]\`: \`aspect\`, \`implementation\`
 - \`performanceQuality.metrics[]\`: \`metric\`, \`target\`, \`howMeasured\` — \`practices[]\`: \`strategy\`, \`description\`
 - \`quality.dimensions[]\`: \`dimension\`, \`evaluates\`, \`standard\` — \`testTypes[]\`: \`type\`, \`validates\`, \`tool\`, \`whenRun\`
