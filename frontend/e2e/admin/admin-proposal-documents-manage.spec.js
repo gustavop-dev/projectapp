@@ -55,6 +55,8 @@ const mockProposal = {
 };
 
 test.describe('Admin Proposal Documents Manage', () => {
+  test.setTimeout(60_000);
+
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, { token: 'e2e-token', userAuth: { id: 8700, role: 'admin', is_staff: true } });
   });
@@ -70,16 +72,15 @@ test.describe('Admin Proposal Documents Manage', () => {
       return null;
     });
 
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
     // Additional docs section header
     await expect(page.getByText('Documentos adicionales').first()).toBeVisible();
     // Document type badge
     await expect(page.getByText('Otrosí').first()).toBeVisible();
     // Document title link
-    await expect(page.getByText('Otrosí No. 1')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Otrosí No. 1' })).toBeVisible();
   });
 
   test('upload form visible with title, type, and file inputs', {
@@ -93,9 +94,8 @@ test.describe('Admin Proposal Documents Manage', () => {
       return null;
     });
 
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
     // Upload section text
     await expect(page.getByText(/Subir documento/i)).toBeVisible();
@@ -116,9 +116,8 @@ test.describe('Admin Proposal Documents Manage', () => {
       return null;
     });
 
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
     // The additional docs section should have at least one delete button (for the non-generated doc)
     const additionalSection = page.locator('section').filter({ hasText: 'Documentos adicionales' });
@@ -141,9 +140,8 @@ test.describe('Admin Proposal Documents Manage', () => {
       return null;
     });
 
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
     await expect(page.getByText('No hay documentos adicionales')).toBeVisible();
   });

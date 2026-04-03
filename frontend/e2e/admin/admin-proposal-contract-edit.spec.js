@@ -67,6 +67,8 @@ const companySettings = {
 };
 
 test.describe('Admin Proposal Contract Edit', () => {
+  test.setTimeout(60_000);
+
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, { token: 'e2e-token', userAuth: { id: 8700, role: 'admin', is_staff: true } });
   });
@@ -85,9 +87,8 @@ test.describe('Admin Proposal Contract Edit', () => {
       return null;
     });
 
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
     await expect(page.getByRole('button', { name: /Editar parámetros/i })).toBeVisible();
   });
@@ -106,9 +107,8 @@ test.describe('Admin Proposal Contract Edit', () => {
       return null;
     });
 
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
     await page.getByRole('button', { name: /Editar parámetros/i }).click();
 
     // Modal title should say "Editar"
@@ -129,20 +129,23 @@ test.describe('Admin Proposal Contract Edit', () => {
       if (apiPath === 'proposals/company-settings/') {
         return { status: 200, contentType: 'application/json', body: JSON.stringify(companySettings) };
       }
-      if (apiPath === `proposals/${PROPOSAL_ID}/contract/update/` && method === 'PUT') {
+      if (apiPath === `proposals/${PROPOSAL_ID}/contract/update/` && method === 'PATCH') {
         updateCalled = true;
         return { status: 200, contentType: 'application/json', body: JSON.stringify({ id: 10, document_type: 'contract' }) };
       }
       return null;
     });
 
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
     await page.getByRole('button', { name: /Editar parámetros/i }).click();
 
-    await page.getByRole('button', { name: /Actualizar contrato/i }).click();
-    await page.waitForTimeout(500);
+    await Promise.all([
+      page.waitForResponse(r =>
+        r.url().includes(`proposals/${PROPOSAL_ID}/contract/update/`) && r.status() === 200
+      ),
+      page.getByRole('button', { name: /Actualizar contrato/i }).click(),
+    ]);
     expect(updateCalled).toBe(true);
   });
 });

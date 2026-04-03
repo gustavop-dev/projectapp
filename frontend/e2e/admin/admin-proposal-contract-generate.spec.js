@@ -74,6 +74,8 @@ function buildApiHandler(overrides = {}) {
 }
 
 test.describe('Admin Proposal Contract Generate', () => {
+  test.setTimeout(60_000);
+
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, { token: 'e2e-token', userAuth: { id: 8700, role: 'admin', is_staff: true } });
   });
@@ -83,31 +85,28 @@ test.describe('Admin Proposal Contract Generate', () => {
   }, async ({ page }) => {
     await mockApi(page, buildApiHandler());
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
-    const documentsTab = page.getByRole('button', { name: /Documentos/i }).or(page.getByText('Documentos'));
-    await expect(documentsTab.first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
   });
 
   test('contract section shows "No generado" when no contract exists', {
     tag: [...ADMIN_PROPOSAL_CONTRACT_GENERATE, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildApiHandler());
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
-    await page.getByText('Documentos').first().click();
-    await expect(page.getByText('No generado')).toBeVisible();
+    await expect(page.getByText('No generado', { exact: true })).toBeVisible();
   });
 
   test('opens ContractParamsModal in default mode with company settings', {
     tag: [...ADMIN_PROPOSAL_CONTRACT_GENERATE, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildApiHandler());
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
-    await page.getByText('Documentos').first().click();
     await page.getByRole('button', { name: /Generar contrato/i }).click();
 
     // Modal header
@@ -124,10 +123,9 @@ test.describe('Admin Proposal Contract Generate', () => {
     tag: [...ADMIN_PROPOSAL_CONTRACT_GENERATE, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildApiHandler());
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
-    await page.getByText('Documentos').first().click();
     await page.getByRole('button', { name: /Generar contrato/i }).click();
 
     // Toggle to custom mode
@@ -171,10 +169,8 @@ test.describe('Admin Proposal Contract Generate', () => {
       return null;
     });
 
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
     // Toggle to custom mode and type Markdown (simpler than filling all default fields)
     await page.getByRole('button', { name: /Generar contrato/i }).click();

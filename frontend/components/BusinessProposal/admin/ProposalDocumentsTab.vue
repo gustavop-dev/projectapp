@@ -32,7 +32,13 @@
             Editar parámetros
           </button>
         </div>
-        <span v-else class="text-xs text-gray-400">No generado</span>
+        <div v-else class="flex items-center gap-2">
+          <span class="text-xs text-gray-400">No generado</span>
+          <button type="button" @click="$emit('generateContract')"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-medium hover:bg-emerald-100 transition-colors">
+            Generar contrato
+          </button>
+        </div>
       </div>
       <p v-if="contractDoc" class="text-xs text-gray-500">
         Generado el {{ formatDate(contractDoc.created_at) }}
@@ -222,13 +228,14 @@
 
 <script setup>
 import { ref, computed, onBeforeUnmount } from 'vue';
+import SendDocumentsModal from '~/components/BusinessProposal/admin/SendDocumentsModal.vue';
 
 const props = defineProps({
   proposal: { type: Object, required: true },
   documents: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(['refresh', 'editContract']);
+const emit = defineEmits(['refresh', 'editContract', 'generateContract']);
 
 const proposalStore = useProposalStore();
 const isUploading = ref(false);

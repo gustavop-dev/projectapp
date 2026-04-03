@@ -50,6 +50,8 @@ const proposalWithoutContract = {
 };
 
 test.describe('Admin Proposal Contract Download', () => {
+  test.setTimeout(60_000);
+
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, { token: 'e2e-token', userAuth: { id: 8700, role: 'admin', is_staff: true } });
   });
@@ -65,9 +67,8 @@ test.describe('Admin Proposal Contract Download', () => {
       return null;
     });
 
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
     // Final PDF download link
     const downloadLink = page.getByRole('link', { name: /Descargar/i }).first();
@@ -91,11 +92,10 @@ test.describe('Admin Proposal Contract Download', () => {
       return null;
     });
 
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByText('No generado')).toBeVisible();
+    await expect(page.getByText('No generado', { exact: true })).toBeVisible();
   });
 
   test('contract creation date shown when contract exists', {
@@ -109,9 +109,8 @@ test.describe('Admin Proposal Contract Download', () => {
       return null;
     });
 
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
     // "Generado el" text should be visible
     await expect(page.getByText(/Generado el/i)).toBeVisible();

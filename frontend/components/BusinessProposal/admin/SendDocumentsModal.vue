@@ -18,20 +18,20 @@
           <form class="px-6 py-5 space-y-5" @submit.prevent="handleSend">
             <!-- Subject -->
             <div>
-              <label class="block text-xs text-gray-500 mb-1">Asunto</label>
-              <input v-model="emailForm.subject" type="text" required class="send-modal-input" />
+              <label for="send-subject" class="block text-xs text-gray-500 mb-1">Asunto</label>
+              <input id="send-subject" v-model="emailForm.subject" type="text" required class="send-modal-input" />
             </div>
 
             <!-- Greeting -->
             <div>
-              <label class="block text-xs text-gray-500 mb-1">Saludo</label>
-              <input v-model="emailForm.greeting" type="text" required class="send-modal-input" />
+              <label for="send-greeting" class="block text-xs text-gray-500 mb-1">Saludo</label>
+              <input id="send-greeting" v-model="emailForm.greeting" type="text" required class="send-modal-input" />
             </div>
 
             <!-- Body (intro text) -->
             <div>
-              <label class="block text-xs text-gray-500 mb-1">Texto introductorio</label>
-              <textarea v-model="emailForm.body" rows="2" required class="send-modal-input resize-y" />
+              <label for="send-body" class="block text-xs text-gray-500 mb-1">Texto introductorio</label>
+              <textarea id="send-body" v-model="emailForm.body" rows="2" required class="send-modal-input resize-y" />
             </div>
 
             <!-- Document descriptions -->
@@ -51,8 +51,8 @@
 
             <!-- Footer -->
             <div>
-              <label class="block text-xs text-gray-500 mb-1">Texto de cierre</label>
-              <textarea v-model="emailForm.footer" rows="2" class="send-modal-input resize-y" />
+              <label for="send-footer" class="block text-xs text-gray-500 mb-1">Texto de cierre</label>
+              <textarea id="send-footer" v-model="emailForm.footer" rows="2" class="send-modal-input resize-y" />
             </div>
 
             <!-- Error message -->

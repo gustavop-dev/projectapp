@@ -449,6 +449,7 @@
           :documents="proposal.proposal_documents || []"
           @refresh="proposalStore.fetchProposal(proposal.id).then(r => { if (r?.data) proposal = r.data; })"
           @edit-contract="openContractModal(true)"
+          @generate-contract="openContractModal(false)"
         />
       </div>
 
@@ -1004,6 +1005,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
 import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
+import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
+import ProposalDocumentsTab from '~/components/BusinessProposal/admin/ProposalDocumentsTab.vue';
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
@@ -1064,7 +1067,8 @@ const sectionCompleteness = computed(() => {
   return Math.round(sectionsWithContent.value / enabledSectionsCount.value * 100);
 });
 
-const activeTab = ref('general');
+const validTabs = ['general', 'documents', 'sections', 'technical', 'prompt', 'json', 'activity', 'analytics'];
+const activeTab = ref(validTabs.includes(route.query.tab) ? route.query.tab : 'general');
 const technicalSubTab = ref('editor');
 const hasDocumentsTab = computed(() =>
   ['negotiating', 'accepted', 'rejected'].includes(proposal.value?.status),

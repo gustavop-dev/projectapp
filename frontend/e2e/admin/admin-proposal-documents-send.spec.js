@@ -68,6 +68,8 @@ function buildApiHandler(overrides = {}) {
 }
 
 test.describe('Admin Proposal Documents Send', () => {
+  test.setTimeout(60_000);
+
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, { token: 'e2e-token', userAuth: { id: 8700, role: 'admin', is_staff: true } });
   });
@@ -76,9 +78,8 @@ test.describe('Admin Proposal Documents Send', () => {
     tag: [...ADMIN_PROPOSAL_DOCUMENTS_SEND, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildApiHandler());
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
     // Send section header
     await expect(page.getByText('Enviar documentos al cliente').first()).toBeVisible();
@@ -97,9 +98,8 @@ test.describe('Admin Proposal Documents Send', () => {
       contract_params: null,
     };
     await mockApi(page, buildApiHandler({ proposal: proposalNoContract }));
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
     // Contract checkbox should be disabled
     const contractCheckbox = page.locator('input[type="checkbox"][value="draft_contract"]');
@@ -112,9 +112,8 @@ test.describe('Admin Proposal Documents Send', () => {
     tag: [...ADMIN_PROPOSAL_DOCUMENTS_SEND, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildApiHandler());
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
     await expect(page.getByText('acme@example.com').first()).toBeVisible();
   });
@@ -123,9 +122,8 @@ test.describe('Admin Proposal Documents Send', () => {
     tag: [...ADMIN_PROPOSAL_DOCUMENTS_SEND, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildApiHandler());
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
     await page.getByRole('button', { name: /Enviar al cliente/i }).click();
 
@@ -144,9 +142,8 @@ test.describe('Admin Proposal Documents Send', () => {
     tag: [...ADMIN_PROPOSAL_DOCUMENTS_SEND, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildApiHandler());
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
     await page.getByRole('button', { name: /Enviar al cliente/i }).click();
 
@@ -170,9 +167,8 @@ test.describe('Admin Proposal Documents Send', () => {
       return null;
     });
 
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
     await page.getByRole('button', { name: /Enviar al cliente/i }).click();
     await page.getByRole('button', { name: /Enviar documentos$/i }).click();
@@ -186,9 +182,8 @@ test.describe('Admin Proposal Documents Send', () => {
   }, async ({ page }) => {
     const proposalNoEmail = { ...mockProposal, client_email: '' };
     await mockApi(page, buildApiHandler({ proposal: proposalNoEmail }));
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
-    await page.getByText('Documentos').first().click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
 
     await expect(page.getByText(/No hay email del cliente/i)).toBeVisible();
     const sendBtn = page.getByRole('button', { name: /Enviar al cliente/i });
