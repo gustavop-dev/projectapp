@@ -10,6 +10,7 @@ import io
 import logging
 import re
 import textwrap
+from functools import lru_cache
 from pathlib import Path
 
 from django.conf import settings
@@ -54,6 +55,7 @@ def _register_fonts():
 
 
 # Font helpers – fall back to Helvetica if Ubuntu is not available
+@lru_cache(maxsize=8)
 def _font(style='regular'):
     """Return the best available font name for *style*."""
     mapping = {
@@ -474,15 +476,34 @@ def _draw_section_header(c, y, index_str, title, ps=None):
     return y
 
 
+def _draw_justified_line(c, x, y, line, font, font_size, color, max_width):
+    """Draw *line* with full justification — distribute whitespace between words."""
+    words = line.split()
+    if len(words) <= 1:
+        c.setFont(font, font_size)
+        c.setFillColor(color)
+        c.drawString(x, y, line)
+        return
+    word_widths = [c.stringWidth(w, font, font_size) for w in words]
+    gap = (max_width - sum(word_widths)) / (len(words) - 1)
+    cur_x = x
+    c.setFont(font, font_size)
+    c.setFillColor(color)
+    for word, width in zip(words, word_widths):
+        c.drawString(cur_x, y, word)
+        cur_x += width + gap
+
+
 def _draw_paragraphs(c, y, paragraphs, max_width=None, font_size=10,
-                      leading=15, color=ESMERALD_80, ps=None, x=None):
+                      leading=15, color=ESMERALD_80, ps=None, x=None,
+                      font_name=None, justify=False):
     """Draw a list of paragraph strings and return the new y."""
     if max_width is None:
         max_width = CONTENT_W
     if x is None:
         x = MARGIN_L
     chars_per_line = int(max_width / (font_size * 0.48))
-    fn = _font('regular')
+    fn = font_name or _font('regular')
     for para in (paragraphs or []):
         if not para:
             continue
@@ -490,12 +511,15 @@ def _draw_paragraphs(c, y, paragraphs, max_width=None, font_size=10,
         lines = textwrap.wrap(clean, width=chars_per_line)
         if ps and len(lines) > 1 and y < MARGIN_B + leading * 2:
             y = _new_page(c, ps)
-        for line in lines:
+        for i, line in enumerate(lines):
             if ps:
                 y = _check_y(c, y, ps)
             elif y < MARGIN_B + 20:
                 return y
-            _draw_line_with_links(c, x, y, line, fn, font_size, color)
+            if justify and i < len(lines) - 1:
+                _draw_justified_line(c, x, y, line, fn, font_size, color, max_width)
+            else:
+                _draw_line_with_links(c, x, y, line, fn, font_size, color)
             y -= leading
         y -= 5
     return y
@@ -1050,8 +1074,9 @@ def safe_pdf_filename(prefix, proposal_title, date_str):
 
 
 def merge_with_covers(content_bytes, include_portada=True,
-                      include_contraportada=True, cover_path=None):
-    """Merge static Portada + content + Contraportada PDFs.
+                      include_contraportada=True, cover_path=None,
+                      prepend_bytes=None):
+    """Merge static Portada + optional prefix + content + Contraportada PDFs.
 
     Args:
         content_bytes: The generated PDF content as bytes.
@@ -1059,12 +1084,14 @@ def merge_with_covers(content_bytes, include_portada=True,
         include_contraportada: Whether to append the back cover.
         cover_path: Optional Path to a custom front cover PDF.
             Falls back to COVER_PDF if not provided or not found.
+        prepend_bytes: Optional PDF bytes to insert after the portada
+            and before content (e.g. title page + TOC prefix pages).
 
     Returns merged bytes.
     """
     from pypdf import PdfReader, PdfWriter
 
-    if not include_portada and not include_contraportada:
+    if not include_portada and not include_contraportada and not prepend_bytes:
         return content_bytes
 
     writer = PdfWriter()
@@ -1079,6 +1106,11 @@ def merge_with_covers(content_bytes, include_portada=True,
                     writer.add_page(page)
             except Exception:
                 logger.warning('Could not read cover PDF: %s', front)
+
+    if prepend_bytes:
+        prepend_reader = PdfReader(io.BytesIO(prepend_bytes))
+        for page in prepend_reader.pages:
+            writer.add_page(page)
 
     content_reader = PdfReader(io.BytesIO(content_bytes))
     for page in content_reader.pages:
@@ -1163,6 +1195,69 @@ def _draw_decorative_title_page(c, document_label, client_name, date_str, ps):
     ps['num'] += 1
 
 
+def _draw_toc_page(c, entries, ps):
+    """Draw a Table of Contents page and advance to the next page.
+
+    Args:
+        c: ReportLab canvas.
+        entries: List of (index_str, title, page_num) tuples.
+        ps: Page-state dict with 'num' and optional 'client'.
+    """
+    _draw_header_bar(c)
+    y = PAGE_H - MARGIN_T
+
+    c.setFont(_font('light'), 11)
+    c.setFillColor(GREEN_LIGHT)
+    c.drawString(MARGIN_L, y, '\u00cdNDICE')
+    y -= 22
+    c.setStrokeColor(LEMON)
+    c.setLineWidth(2)
+    c.line(MARGIN_L, y + 6, MARGIN_L + 60, y + 6)
+    y -= 14
+
+    c.setFont(_font('light'), 24)
+    c.setFillColor(ESMERALD)
+    c.drawString(MARGIN_L, y, 'Contenido del documento')
+    y -= 44
+
+    title_x = MARGIN_L + 36
+
+    for idx_str, title, page_num in entries:
+        y = _check_y(c, y, ps, need=36)
+
+        c.setFont(_font('light'), 11)
+        c.setFillColor(GREEN_LIGHT)
+        c.drawString(MARGIN_L, y, str(idx_str).zfill(2))
+
+        c.setFont(_font('regular'), 12)
+        c.setFillColor(ESMERALD)
+        c.drawString(title_x, y, title)
+
+        if page_num is not None:
+            page_str = str(page_num)
+            page_w = c.stringWidth(page_str, _font('light'), 10)
+            title_w = c.stringWidth(title, _font('regular'), 12)
+            dot_w = c.stringWidth('.', _font('light'), 9)
+            available = (PAGE_W - MARGIN_R - 4 - page_w) - (title_x + title_w + 6)
+            num_dots = max(0, int(available / dot_w))
+            if num_dots > 2:
+                c.setFont(_font('light'), 9)
+                c.setFillColor(GRAY_500)
+                c.drawString(title_x + title_w + 6, y + 1, '.' * num_dots)
+            c.setFont(_font('light'), 10)
+            c.setFillColor(GRAY_500)
+            c.drawRightString(PAGE_W - MARGIN_R, y, page_str)
+
+        c.setStrokeColor(ESMERALD_LIGHT)
+        c.setLineWidth(0.5)
+        c.line(MARGIN_L, y - 16, PAGE_W - MARGIN_R, y - 16)
+        y -= 34
+
+    _draw_footer(c, ps['num'], client_name=ps.get('client'))
+    c.showPage()
+    ps['num'] += 1
+
+
 def add_watermark_to_pdf(pdf_bytes, watermark_text='BORRADOR'):
     """Overlay diagonal *watermark_text* on every page of *pdf_bytes*.
 
@@ -1180,9 +1275,9 @@ def add_watermark_to_pdf(pdf_bytes, watermark_text='BORRADOR'):
     wm_buf = io.BytesIO()
     wm_c = rl_canvas.Canvas(wm_buf, pagesize=A4)
     wm_c.saveState()
-    wm_c.setFont(_font('bold'), 72)
-    wm_c.setFillColor(GRAY_300)
-    wm_c.setFillAlpha(0.18)
+    wm_c.setFont('Times-Bold', 90)
+    wm_c.setFillColor(GRAY_500)
+    wm_c.setFillAlpha(0.40)
     wm_c.translate(PAGE_W / 2, PAGE_H / 2)
     wm_c.rotate(45)
     wm_c.drawCentredString(0, 0, watermark_text)

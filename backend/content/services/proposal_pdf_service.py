@@ -79,6 +79,8 @@ from content.services.pdf_utils import (  # noqa: F401 — re-exported
     _draw_subtitle,
     _draw_pill,
     _draw_banner_box,
+    _draw_toc_page,
+    format_date_es,
     # Markdown helpers
     _parse_markdown_lines,
     _clean_inline_bold,
@@ -1608,7 +1610,7 @@ class ProposalPdfService:
             )
 
             ps = {
-                'num': 1,
+                'num': 3,
                 'client': proposal.client_name,
                 'selected_modules': selected_modules,
             }
@@ -1683,15 +1685,18 @@ class ProposalPdfService:
                         break
             ps['base_weeks'] = base_weeks
 
-            # Start first page
+            # ── Pass A: Content canvas (pages 3+) ────────────────────
+            # Pages 1 = greeting, 2 = TOC; content starts at page 3.
+            date_str = format_date_es(_created)
+
             _draw_header_bar(c)
             y = PAGE_H - MARGIN_T
-            page_started = True
-            first_content = True  # track whether we need greeting's own page
+            first_content = True
+            toc_entries = []
 
             for sec in sections:
                 stype = sec.section_type
-                if stype == 'technical_document':
+                if stype in ('technical_document', 'greeting'):
                     continue
                 data = sec.content_json or {}
 
@@ -1700,42 +1705,20 @@ class ProposalPdfService:
                 if not data.get('index'):
                     data['index'] = str(sec.order + 1).zfill(2)
 
-                # Decide rendering mode: paste-mode wins over form
                 is_paste = (
                     data.get('_editMode') == 'paste'
                     and data.get('rawText')
                 )
                 renderer = SECTION_RENDERERS.get(stype)
 
-                # ── Greeting gets its own full page ──────────────
-                if stype == 'greeting':
-                    if not first_content:
-                        # finish current page and start fresh
-                        _draw_footer(c, ps['num'], client_name=ps['client'])
-                        c.showPage()
-                        ps['num'] += 1
-                        _draw_header_bar(c)
-                    first_content = False
-                    if is_paste:
-                        _render_raw_text(c, data, proposal, ps=ps)
-                    elif renderer:
-                        renderer(c, data, proposal, ps=ps)
-                    _draw_footer(c, ps['num'], client_name=ps['client'])
-                    c.showPage()
-                    ps['num'] += 1
-                    _draw_header_bar(c)
-                    y = PAGE_H - MARGIN_T
-                    page_started = True
-                    continue
-
-                # ── All other sections flow continuously ─────────
                 if first_content:
                     first_content = False
                 else:
-                    # Section separator space
                     y -= 28
-                    # Need room for header (~80pt); if not, new page
                     y = _check_y(c, y, ps, need=80)
+
+                # Record TOC entry at the page where this section starts
+                toc_entries.append((data['index'], data['title'], ps['num']))
 
                 if is_paste:
                     y = _render_raw_text(c, data, proposal, ps=ps,
@@ -1801,11 +1784,7 @@ class ProposalPdfService:
                     y = _render_raw_text(c, data, proposal, ps=ps,
                                          y=y) or y
 
-            # Creation date line at the bottom of the last content
-            from django.utils import timezone as _tz
-            from content.services.pdf_utils import format_date_es
-            _created = proposal.created_at or _tz.now()
-            date_str = format_date_es(_created)
+            # Creation date line at the bottom of the last content page
             y -= 30
             y = _check_y(c, y, ps, need=20)
             c.setFont(_font('regular'), 8)
@@ -1814,16 +1793,47 @@ class ProposalPdfService:
                 PAGE_W / 2, y,
                 f'Fecha de creaci\u00f3n de la propuesta: {date_str}',
             )
-
-            # Finalize last page
-            if page_started:
-                _draw_footer(c, ps['num'], client_name=ps['client'])
-
+            _draw_footer(c, ps['num'], client_name=ps['client'])
             c.save()
             content_bytes = buf.getvalue()
             buf.close()
 
-            pdf_bytes = cls._merge_with_covers(content_bytes)
+            # ── Pass B: Greeting + TOC (pages 1-2) ───────────────────
+            buf_prefix = io.BytesIO()
+            c_prefix = canvas.Canvas(buf_prefix, pagesize=A4)
+            c_prefix.setTitle(f'Propuesta \u2014 {proposal.client_name}')
+            c_prefix.setAuthor('Project App')
+            ps_prefix = {'num': 1, 'client': proposal.client_name}
+
+            greeting_sec = next(
+                (s for s in sections if s.section_type == 'greeting'), None
+            )
+            if greeting_sec:
+                g_data = greeting_sec.content_json or {}
+                if 'title' not in g_data or not g_data['title']:
+                    g_data['title'] = greeting_sec.title
+                is_paste_g = (
+                    g_data.get('_editMode') == 'paste'
+                    and g_data.get('rawText')
+                )
+                _draw_header_bar(c_prefix)
+                if is_paste_g:
+                    _render_raw_text(c_prefix, g_data, proposal, ps=ps_prefix)
+                else:
+                    renderer_g = SECTION_RENDERERS.get('greeting')
+                    if renderer_g:
+                        renderer_g(c_prefix, g_data, proposal, ps=ps_prefix)
+                _draw_footer(c_prefix, ps_prefix['num'],
+                             client_name=ps_prefix['client'])
+                c_prefix.showPage()
+                ps_prefix['num'] += 1
+
+            _draw_toc_page(c_prefix, toc_entries, ps_prefix)
+            c_prefix.save()
+            prefix_bytes = buf_prefix.getvalue()
+            buf_prefix.close()
+
+            pdf_bytes = cls._merge_with_covers(content_bytes, prepend_bytes=prefix_bytes)
 
             logger.info(
                 'Generated PDF for proposal %s (%d bytes, %d pages)',
@@ -1838,13 +1848,13 @@ class ProposalPdfService:
             return None
 
     @staticmethod
-    def _merge_with_covers(content_bytes):
+    def _merge_with_covers(content_bytes, prepend_bytes=None):
         """Merge static Portada + content + Contraportada.
 
         Delegates to the shared ``merge_with_covers`` in pdf_utils.
         """
         from content.services.pdf_utils import merge_with_covers
-        return merge_with_covers(content_bytes)
+        return merge_with_covers(content_bytes, prepend_bytes=prepend_bytes)
 
     @classmethod
     def generate_to_file(cls, proposal, output_path=None):

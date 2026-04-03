@@ -401,10 +401,11 @@ def company_settings(db):
     """Pre-configured company settings singleton."""
     return CompanySettings.objects.create(
         pk=1,
-        contractor_full_name='CARLOS MARIO BLANCO',
-        contractor_cedula='123456789',
-        contractor_email='carlos@company.com',
+        contractor_full_name='CARLOS MARIO BLANCO PEREZ',
+        contractor_cedula='1.037.635.428',
+        contractor_email='team@projectapp.co',
         bank_name='Bancolombia',
-        bank_account_number='1234567890',
-        contract_city='Medellin',
+        bank_account_type='Ahorros',
+        bank_account_number='26292039530',
+        contract_city='Medellín',
     )

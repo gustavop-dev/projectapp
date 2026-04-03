@@ -14,8 +14,11 @@ Both modes share the same markdown → blocks → ReportLab rendering pipeline.
 
 import io
 import logging
+import os
+import re
 
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 from content.services.markdown_parser import markdown_to_blocks
@@ -47,6 +50,9 @@ logger = logging.getLogger(__name__)
 
 # Placeholder default values when a param is missing
 _PLACEHOLDER_BLANK = '_______________'
+
+# Times-Roman for contract body — serif font conveys legal formality
+_CONTRACT_BODY_FONT = 'Times-Roman'
 
 
 def _build_params(raw_params: dict) -> dict:
@@ -83,16 +89,17 @@ def _get_contract_markdown(raw_params: dict, params: dict) -> str:
     source = raw_params.get('contract_source', 'default')
 
     if source == 'custom':
-        return raw_params.get('custom_contract_markdown', '')
+        markdown = raw_params.get('custom_contract_markdown', '')
+    else:
+        # Default: load template from DB and substitute placeholders
+        from content.models import ContractTemplate
+        template = ContractTemplate.get_default()
+        if not template:
+            logger.error('No default ContractTemplate found in DB')
+            return ''
+        markdown = _substitute_placeholders(template.content_markdown, params)
 
-    # Default: load template from DB and substitute placeholders
-    from content.models import ContractTemplate
-    template = ContractTemplate.get_default()
-    if not template:
-        logger.error('No default ContractTemplate found in DB')
-        return ''
-
-    return _substitute_placeholders(template.content_markdown, params)
+    return re.sub(r' -- ', ' - ', markdown)
 
 
 # ---------------------------------------------------------------------------
@@ -129,6 +136,7 @@ def _render_block(c, y, block, ps):
         y = _draw_paragraphs(
             c, y, [text], ps=ps,
             color=ESMERALD_80, font_size=9, leading=13,
+            font_name=_CONTRACT_BODY_FONT, justify=True,
         )
         y -= 4
 
@@ -147,6 +155,7 @@ def _render_block(c, y, block, ps):
             color=ESMERALD_80, font_size=9, leading=13,
             x=MARGIN_L + 12,
             max_width=CONTENT_W - 12,
+            font_name=_CONTRACT_BODY_FONT, justify=True,
         )
         y -= 4
 
@@ -205,9 +214,10 @@ def _draw_title_page(c, y, params, ps):
     return y
 
 
-def _draw_signature_block(c, y, params, ps):
+def _draw_signature_block(c, y, params, ps, signature_path=None):
     """Draw the signature block at the bottom of the contract."""
-    y = _check_y(c, y, ps, need=160)
+    need = 220 if signature_path else 160
+    y = _check_y(c, y, ps, need=need)
     y -= 20
 
     c.setFont(_font('bold'), 11)
@@ -225,6 +235,18 @@ def _draw_signature_block(c, y, params, ps):
     col1_x = MARGIN_L
     col2_x = MARGIN_L + CONTENT_W / 2 + 10
     sig_width = CONTENT_W / 2 - 20
+
+    # Draw contractor signature image above the line
+    if signature_path and os.path.isfile(signature_path):
+        img = ImageReader(signature_path)
+        iw, ih = img.getSize()
+        max_h = 55
+        scale = min(sig_width / iw, max_h / ih)
+        draw_w = iw * scale
+        draw_h = ih * scale
+        img_x = col2_x + (sig_width - draw_w) / 2
+        img_y = y - 5  # overlap the line by ~5pt
+        c.drawImage(signature_path, img_x, img_y, width=draw_w, height=draw_h, mask='auto')
 
     c.setStrokeColor(GRAY_300)
     c.setLineWidth(0.6)
@@ -260,6 +282,11 @@ def generate_contract_pdf(proposal) -> bytes | None:
         source = raw_params.get('contract_source', 'default')
         params = _build_params(raw_params)
 
+        # Load contractor signature image path from company settings
+        from content.models import CompanySettings
+        company = CompanySettings.load()
+        sig_path = company.contractor_signature.path if company.contractor_signature else None
+
         markdown_text = _get_contract_markdown(raw_params, params)
         if not markdown_text:
             logger.warning('Empty contract markdown for proposal %s', getattr(proposal, 'pk', '?'))
@@ -288,7 +315,7 @@ def generate_contract_pdf(proposal) -> bytes | None:
 
         # Signature block (only for default contracts)
         if source != 'custom':
-            _draw_signature_block(c, y, params, ps)
+            _draw_signature_block(c, y, params, ps, signature_path=sig_path)
 
         _draw_footer(c, ps['num'], client_name=ps['client'])
         c.save()

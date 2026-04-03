@@ -13,6 +13,7 @@ from reportlab.pdfgen import canvas
 from content.services.pdf_utils import (
     COVER_TECHNICAL_PDF,
     ESMERALD,
+    ESMERALD_LIGHT,
     GRAY_500,
     MARGIN_L,
     MARGIN_T,
@@ -28,6 +29,7 @@ from content.services.pdf_utils import (
     _draw_separator,
     _draw_subtitle,
     _draw_table,
+    _draw_toc_page,
     _font,
     _register_fonts,
     _safe,
@@ -82,28 +84,24 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
         _created = proposal.created_at or _tz.now()
         date_str = format_date_es(_created)
 
-        ps = {'num': 1, 'client': proposal.client_name}
+        # ── Pass A: Content pages (ps.num starts at 3) ───────
+        # Page 1 = title page, page 2 = TOC; content begins at page 3.
+        ps = {'num': 3, 'client': proposal.client_name}
 
-        # ── Title page (sub-portada) ──────────────────────────
-        _draw_decorative_title_page(
-            c,
-            'DETALLE T\u00c9CNICO',
-            proposal.client_name or 'Cliente',
-            date_str,
-            ps,
-        )
-
-        # ── Start content pages ───────────────────────────────
         _draw_header_bar(c)
         y = PAGE_H - MARGIN_T
         section_i = 0
+        toc_entries = []
 
         def next_section(title_es):
             nonlocal y, section_i
             section_i += 1
+            idx = str(section_i).zfill(2)
             y -= 24
             y = _check_y(c, y, ps, need=90)
-            y = _draw_section_header(c, y, str(section_i), title_es, ps=ps)
+            section_page = ps['num']
+            y = _draw_section_header(c, y, idx, title_es, ps=ps)
+            toc_entries.append((idx, title_es, section_page))
             return y
 
         # ── 1. Propósito ──────────────────────────────────────
@@ -480,7 +478,27 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
         content_bytes = buf.getvalue()
         buf.close()
 
-        return merge_with_covers(content_bytes, cover_path=COVER_TECHNICAL_PDF)
+        # ── Pass B: Title page + TOC (pages 1-2) ─────────────
+        buf2 = io.BytesIO()
+        c2 = canvas.Canvas(buf2, pagesize=A4)
+        ps2 = {'num': 1, 'client': proposal.client_name}
+        _draw_decorative_title_page(
+            c2,
+            'DETALLE T\u00c9CNICO',
+            proposal.client_name or 'Cliente',
+            date_str,
+            ps2,
+        )
+        _draw_toc_page(c2, toc_entries, ps2)
+        c2.save()
+        prefix_bytes = buf2.getvalue()
+        buf2.close()
+
+        return merge_with_covers(
+            content_bytes,
+            cover_path=COVER_TECHNICAL_PDF,
+            prepend_bytes=prefix_bytes,
+        )
     except Exception:
         logger.exception('Technical PDF failed for proposal %s', proposal.uuid)
         return None

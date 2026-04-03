@@ -296,16 +296,25 @@
             </td>
             <td class="px-6 py-4">
               <template v-if="(p.available_transitions || []).length">
-                <select
-                  :value="p.status"
-                  class="text-xs px-2.5 py-1 rounded-full font-medium border-0 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500 pr-6"
-                  :class="statusClass(p.status)"
-                  @change="handleInlineStatusChange(p, $event.target.value, $event)"
-                  @click.stop
-                >
-                  <option :value="p.status" disabled>{{ statusLabel(p.status) }}</option>
-                  <option v-for="s in p.available_transitions" :key="s" :value="s">{{ statusLabel(s) }}</option>
-                </select>
+                <div class="relative inline-flex items-center">
+                  <select
+                    :value="p.status"
+                    :disabled="updatingStatusId === p.id"
+                    class="text-xs px-2.5 py-1 rounded-full font-medium border-0 cursor-pointer outline-none focus:ring-2 focus:ring-emerald-500 pr-6 disabled:opacity-60 disabled:cursor-not-allowed"
+                    :class="statusClass(p.status)"
+                    @change="handleInlineStatusChange(p, $event.target.value, $event)"
+                    @click.stop
+                  >
+                    <option :value="p.status" disabled>{{ statusLabel(p.status) }}</option>
+                    <option v-for="s in p.available_transitions" :key="s" :value="s">{{ statusLabel(s) }}</option>
+                  </select>
+                  <span v-if="updatingStatusId === p.id" class="absolute right-1.5 flex items-center pointer-events-none">
+                    <svg class="animate-spin h-3 w-3 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  </span>
+                </div>
               </template>
               <span v-else class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(p.status)">
                 {{ statusLabel(p.status) }}
@@ -535,6 +544,27 @@
       </div>
     </div>
 
+    <!-- Status change toast -->
+    <Teleport to="body">
+      <Transition name="toast-slide">
+        <div
+          v-if="statusToast"
+          class="fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium pointer-events-none"
+          :class="statusToast.type === 'success'
+            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+            : 'bg-red-50 text-red-700 border border-red-200'"
+        >
+          <svg v-if="statusToast.type === 'success'" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <svg v-else class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          {{ statusToast.message }}
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- Floating refresh button (above MetricsManual ? button) -->
     <button
       type="button"
@@ -551,7 +581,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import ProposalDashboard from '~/components/BusinessProposal/admin/ProposalDashboard.vue';
 import MetricsManual from '~/components/BusinessProposal/admin/MetricsManual.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
@@ -845,6 +875,17 @@ function statusLabel(s) { return statusLabelMap[s] || s; }
 const showContractModal = ref(false);
 const contractModalProposal = ref(null);
 
+// Status change feedback
+const updatingStatusId = ref(null);
+const statusToast = ref(null);
+let toastTimer = null;
+
+function showStatusToast(message, type) {
+  if (toastTimer) clearTimeout(toastTimer);
+  statusToast.value = { message, type };
+  toastTimer = setTimeout(() => { statusToast.value = null; }, 3500);
+}
+
 async function handleInlineStatusChange(proposal, newStatus, event) {
   if (newStatus === 'negotiating') {
     contractModalProposal.value = proposal;
@@ -853,9 +894,17 @@ async function handleInlineStatusChange(proposal, newStatus, event) {
     if (event?.target) event.target.value = proposal.status;
     return;
   }
-  const result = await proposalStore.updateProposalStatus(proposal.id, newStatus);
-  if (!result.success) {
-    proposalStore.fetchProposals(activeFilter.value || undefined);
+  updatingStatusId.value = proposal.id;
+  try {
+    const result = await proposalStore.updateProposalStatus(proposal.id, newStatus);
+    if (result.success) {
+      showStatusToast('Estado actualizado correctamente', 'success');
+    } else {
+      showStatusToast('Error al actualizar el estado', 'error');
+      proposalStore.fetchProposals(activeFilter.value || undefined);
+    }
+  } finally {
+    updatingStatusId.value = null;
   }
 }
 
@@ -886,6 +935,10 @@ onMounted(async () => {
   proposalStore.fetchProposals();
   const alertResult = await proposalStore.fetchAlerts();
   if (alertResult.success) alerts.value = alertResult.data || [];
+});
+
+onUnmounted(() => {
+  if (toastTimer) clearTimeout(toastTimer);
 });
 
 function alertIcon(type) {
@@ -1100,5 +1153,15 @@ function buildWhatsAppUrl(p) {
 .fade-modal-enter-from,
 .fade-modal-leave-to {
   opacity: 0;
+}
+
+.toast-slide-enter-active,
+.toast-slide-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.toast-slide-enter-from,
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
 }
 </style>

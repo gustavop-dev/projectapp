@@ -51,6 +51,12 @@ class CompanySettings(models.Model):
         blank=True,
         help_text='City for dispute resolution (Cláusula 17).',
     )
+    contractor_signature = models.ImageField(
+        upload_to='signatures/',
+        null=True,
+        blank=True,
+        help_text='Signature image for the contractor (displayed on contract PDFs). PNG with transparent background recommended.',
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -62,55 +62,70 @@
       </div>
 
       <!-- Action buttons — professional B2B hierarchy -->
-      <div v-if="canRespond && !submitted" data-animate="fade-up" class="w-full max-w-md pt-2">
+      <div v-if="canRespond && !submitted" data-animate="fade-up" class="w-full max-w-md pt-4 border-t border-white/10">
         <!-- Primary CTA -->
         <button
-          class="w-full py-4 bg-esmerald text-lemon rounded-2xl font-bold text-lg
-                 hover:bg-esmerald/90 transition-all shadow-[0_0_24px_rgba(16,185,129,0.18)]
-                 hover:shadow-[0_0_32px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2.5 accept-pulse"
+          class="w-full py-4 bg-gradient-to-br from-esmerald to-esmerald/85 text-lemon rounded-2xl font-bold text-lg
+                 hover:from-esmerald/95 hover:to-esmerald/75 transition-all
+                 shadow-[0_4px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_6px_28px_rgba(16,185,129,0.38)]
+                 flex items-center justify-center gap-2.5 accept-pulse disabled:opacity-60 disabled:cursor-not-allowed"
           :disabled="isSubmitting"
           @click="showAcceptConfirm = true"
         >
-          ✅ {{ t.acceptBtn }}
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          {{ t.acceptBtn }}
         </button>
 
         <!-- Secondary actions — side by side -->
         <div class="grid grid-cols-2 gap-3 mt-3">
           <button
-            class="py-3 bg-esmerald/5 border border-esmerald/15 text-esmerald rounded-xl font-medium text-sm
-                   hover:bg-esmerald/10 transition-colors flex items-center justify-center gap-1.5"
+            class="py-3 bg-white/8 border border-esmerald/25 text-esmerald rounded-xl font-medium text-sm
+                   hover:bg-white/15 hover:border-esmerald/40 transition-all shadow-sm
+                   flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             :disabled="isSubmitting"
             @click="showNegotiateModal = true"
           >
-            🤝 {{ t.negotiateBtn }}
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
+            </svg>
+            {{ t.negotiateBtn }}
           </button>
           <button
-            class="py-3 bg-esmerald/5 border border-esmerald/15 text-esmerald rounded-xl font-medium text-sm
-                   hover:bg-esmerald/10 transition-colors flex items-center justify-center gap-1.5"
+            class="py-3 bg-white/8 border border-esmerald/25 text-esmerald rounded-xl font-medium text-sm
+                   hover:bg-white/15 hover:border-esmerald/40 transition-all shadow-sm
+                   flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             :disabled="isSubmitting"
             @click="showCommentModal = true"
           >
-            💬 {{ t.commentBtn }}
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            {{ t.commentBtn }}
           </button>
         </div>
 
         <!-- Tertiary links — inline, subtle -->
-        <div class="flex items-center justify-center gap-4 mt-4">
+        <div class="flex items-center justify-center gap-3 mt-4">
           <button
-            class="text-xs text-esmerald/40 hover:text-esmerald/60 transition-colors"
+            class="text-xs text-esmerald/50 hover:text-esmerald/75 transition-colors font-medium tracking-wide disabled:opacity-40"
             :disabled="isSubmitting"
             @click="showRejectModal = true"
           >
             {{ t.rejectBtn }}
           </button>
-          <span v-if="whatsappTalkUrl" class="text-esmerald/20">·</span>
+          <span v-if="whatsappTalkUrl" class="text-esmerald/25 select-none">·</span>
           <a
             v-if="whatsappTalkUrl"
             :href="whatsappTalkUrl"
             target="_blank"
-            class="text-xs text-esmerald/40 hover:text-esmerald/60 transition-colors flex items-center gap-1"
+            class="text-xs text-esmerald/50 hover:text-esmerald/75 transition-colors font-medium tracking-wide flex items-center gap-1.5"
           >
-            📞 {{ t.talkBtn }}
+            <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            {{ t.talkBtn }}
           </a>
         </div>
       </div>
