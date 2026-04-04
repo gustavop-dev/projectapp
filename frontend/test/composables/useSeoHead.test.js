@@ -123,11 +123,15 @@ describe('useSeoHead', () => {
     expect(arg.htmlAttrs.lang).toBe('en');
   });
 
-  it('includes link tags from i18nHead', () => {
+  it('includes canonical and link tags from i18nHead', () => {
     useSeoHead('aboutUs');
 
     const arg = mockUseHead.mock.calls[0][0];
-    expect(arg.link).toEqual([{ rel: 'alternate' }]);
+    expect(arg.link).toHaveLength(2);
+    expect(arg.link[0]).toMatchObject({ rel: 'canonical' });
+    expect(typeof arg.link[0].href).toBe('function');
+    expect(arg.link[0].href()).toBe('https://projectapp.co/en-us');
+    expect(arg.link[1]).toEqual({ rel: 'alternate' });
   });
 
   it('invokes og:title content callback', () => {
@@ -166,14 +170,16 @@ describe('useSeoHead', () => {
     expect(mockT).toHaveBeenCalledWith('meta.aboutUs.description');
   });
 
-  it('falls back to empty link array when i18nHead link is undefined', () => {
+  it('falls back to canonical-only link array when i18nHead link is undefined', () => {
     global.useLocaleHead = () => ref({ htmlAttrs: { lang: 'en' }, link: undefined });
     jest.resetModules();
     const mod = require('../../composables/useSeoHead');
     mod.useSeoHead('aboutUs');
 
     const arg = mockUseHead.mock.calls[0][0];
-    expect(arg.link).toEqual([]);
+    expect(arg.link).toHaveLength(1);
+    expect(arg.link[0]).toMatchObject({ rel: 'canonical' });
+    expect(typeof arg.link[0].href).toBe('function');
   });
 
   it('returns undefined lang when htmlAttrs is undefined', () => {

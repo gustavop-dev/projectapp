@@ -1,9 +1,24 @@
 <template>
   <footer class="relative p-3 h-svh">
       <div class="relative w-full h-full overflow-hidden">
-          <video ref="mainVideo" class="absolute top-0 left-0 w-full h-full object-cover rounded-xl" autoplay muted loop preload="metadata" aria-label="Mobile footer background video">
-              <source src="~/assets/videos/presentationMobile.mp4" type="video/mp4">
-              <p class="sr-only">Video showcasing our web design and development services</p>
+          <img
+            v-if="!bgVideoActive"
+            :src="videoPosterImg"
+            alt="Video showcasing our web design and development services"
+            class="absolute top-0 left-0 w-full h-full object-cover rounded-xl cursor-pointer"
+            @click="bgVideoActive = true"
+          />
+          <video
+            v-else
+            ref="mainVideo"
+            class="absolute top-0 left-0 w-full h-full object-cover rounded-xl"
+            autoplay
+            muted
+            loop
+            playsinline
+          >
+            <source src="~/assets/videos/presentationMobile.mp4" type="video/mp4">
+            <p class="sr-only">Video showcasing our web design and development services</p>
           </video>
       </div>
 
@@ -96,11 +111,13 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import ArrowUpRightIcon from '@heroicons/vue/20/solid/ArrowUpRightIcon';
 import { useGlobalMessages } from '~/composables/useMessages';
 import { useFreeResources } from '~/composables/useFreeResources';
+import videoPosterImg from '~/assets/images/home/hero/video-poster.jpg';
 
 const localePath = useLocalePath();
 const { globalMessages } = useGlobalMessages('footer');
 
 // Estado reactivo
+const bgVideoActive = ref(false);
 const showModalEmail = ref(false);
 const solutions = computed(() => [
   { name: globalMessages.value?.solutions?.software || 'Custom Software', href: '/' },

@@ -109,16 +109,19 @@
               src="~/assets/images/home/hero/mockup-taptag.png"
               alt="TapTag Platform"
               class="mockup mockup-1"
+              loading="lazy"
             />
             <img
               src="~/assets/images/home/hero/mockup-nidatabba.png"
               alt="Nida Tabba E-Commerce"
               class="mockup mockup-2"
+              loading="lazy"
             />
             <img
               src="~/assets/images/home/hero/mockup-kore.png"
               alt="Kore Dashboard"
               class="mockup mockup-3"
+              loading="lazy"
             />
           </div>
         </div>

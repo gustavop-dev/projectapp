@@ -30,7 +30,7 @@
               :alt="`App screenshot ${i + 1}`"
               class="block w-full h-auto"
               draggable="false"
-              loading="eager"
+              loading="lazy"
             />
           </div>
         </div>
@@ -39,7 +39,7 @@
 
     <!-- Hero Content (overlaps the arc — sits on top) -->
     <div class="relative z-10 flex-1 flex items-center justify-center px-6 pt-32 sm:pt-40 md:pt-48 lg:pt-56">
-      <div class="text-center max-w-3xl arc-fade-in" style="animation-delay: 800ms; animation-fill-mode: forwards; opacity: 0;">
+      <div ref="heroContentRef" class="text-center max-w-3xl" :class="{ 'hero-content-animate': isMounted }">
 
         <!-- Badge -->
         <span
@@ -169,6 +169,8 @@ const { messages } = useMessages()
 const router = useRouter()
 const localePath = useLocalePath()
 const { trackWhatsAppClick } = useGtagConversions()
+const heroContentRef = ref(null)
+const isMounted = ref(false)
 
 const goToContact = () => {
   router.push(localePath('/contact'))
@@ -226,6 +228,7 @@ onMounted(() => {
     handleResize()
     window.addEventListener('resize', handleResize, { passive: true })
   }
+  isMounted.value = true
 })
 
 onBeforeUnmount(() => {
@@ -266,5 +269,9 @@ onBeforeUnmount(() => {
   animation-name: arc-fade-in;
   animation-duration: 0.8s;
   animation-timing-function: ease-out;
+}
+.hero-content-animate {
+  opacity: 0;
+  animation: arc-fade-in 0.8s ease-out 800ms forwards;
 }
 </style>

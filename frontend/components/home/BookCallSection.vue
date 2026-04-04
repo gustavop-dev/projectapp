@@ -10,6 +10,7 @@
               src="~/assets/images/call/seated-man.webp" 
               alt="Book a call"
               class="w-full h-full object-cover rounded-full"
+              loading="lazy"
             />
           </div>
           
@@ -47,6 +48,7 @@
           src="~/assets/images/call/card-book-a-call.webp" 
           alt="Book a call background"
           class="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
         />
 
         <!-- Email Badge / WhatsApp Badge -->

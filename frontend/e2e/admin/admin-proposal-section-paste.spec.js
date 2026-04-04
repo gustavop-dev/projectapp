@@ -129,7 +129,7 @@ function buildMockHandler(capturedUpdates) {
 async function openSectionEditor(page, capturedUpdates, sectionType) {
   await mockApi(page, buildMockHandler(capturedUpdates));
   await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
 
   await page.getByRole('button', { name: 'Secciones' }).click();
 
@@ -356,7 +356,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     });
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.getByRole('button', { name: 'Secciones' }).click();
 
     // Expand executive_summary section
@@ -441,7 +441,7 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     });
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.getByRole('button', { name: 'Secciones' }).click();
     await page.getByText('🎨 Diseño UX').click();
     await page.getByTestId('section-editor').waitFor({ state: 'visible' });

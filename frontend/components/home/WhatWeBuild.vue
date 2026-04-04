@@ -2,8 +2,9 @@
   <section class="px-3 lg:px-8 py-6">
     <div class="gradient-banner relative w-full rounded-[2rem] sm:rounded-[3rem] overflow-hidden">
 
-      <!-- Animated gradient background -->
+      <!-- Animated gradient background (desktop only — too GPU-heavy on mobile) -->
       <BackgroundGradientAnimation
+        v-if="isDesktop"
         gradient-background-start="rgb(180, 40, 50)"
         gradient-background-end="rgb(40, 40, 60)"
         first-color="200, 60, 40"
@@ -150,12 +151,35 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import BackgroundGradientAnimation from '~/components/ui/BackgroundGradientAnimation.vue'
 import { useMessages } from '~/composables/useMessages'
 
 const localePath = useLocalePath()
 const { messages } = useMessages()
+
+const isDesktop = ref(false)
+let resizeTimeout
+function handleResize() {
+  if (resizeTimeout) clearTimeout(resizeTimeout)
+  resizeTimeout = setTimeout(() => {
+    isDesktop.value = window.innerWidth >= 1024
+  }, 150)
+}
+
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    isDesktop.value = window.innerWidth >= 1024
+    window.addEventListener('resize', handleResize, { passive: true })
+  }
+})
+
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', handleResize)
+  }
+  if (resizeTimeout) clearTimeout(resizeTimeout)
+})
 
 const activeTab = ref('web')
 
@@ -189,6 +213,7 @@ const softwareItemsFallback = ['CRMs & ERPs personalizados', 'Automatización de
 
 .gradient-banner {
   min-height: 50vh;
+  background: linear-gradient(40deg, rgb(40, 40, 60), rgb(180, 40, 50));
 }
 
 .grain-overlay {
@@ -200,15 +225,6 @@ const softwareItemsFallback = ['CRMs & ERPs personalizados', 'Automatización de
   pointer-events: none;
   opacity: 0.35;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  animation: grainDrift 8s linear infinite;
-}
-
-@keyframes grainDrift {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(-5%, 5%); }
-  50% { transform: translate(5%, -3%); }
-  75% { transform: translate(-3%, -5%); }
-  100% { transform: translate(0, 0); }
 }
 
 .tab-btn {

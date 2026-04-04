@@ -57,7 +57,7 @@ test.describe('Admin Proposal List', () => {
     await mockApi(page, buildMockHandler([mockProposal]));
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByText('Propuestas')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('heading', { name: 'Propuestas' })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole('link', { name: /nueva propuesta/i })).toBeVisible();
   });
 
@@ -77,7 +77,7 @@ test.describe('Admin Proposal List', () => {
     await mockApi(page, buildMockHandler([]));
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByText('Propuestas')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('heading', { name: 'Propuestas' })).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('table')).not.toBeAttached();
   });
 });

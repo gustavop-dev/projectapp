@@ -37,14 +37,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useMessages } from '~/composables/useMessages'
-import gsap from 'gsap'
 
 const { messages } = useMessages()
 
 const ribbonTop = ref(null)
 const ribbonBottom = ref(null)
 
-onMounted(() => {
+onMounted(async () => {
+  if (!import.meta.client) return
+  const gsap = (await import('gsap')).default
+
   if (ribbonTop.value) {
     gsap.from(ribbonTop.value, {
       y: -80,
