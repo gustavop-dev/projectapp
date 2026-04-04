@@ -89,19 +89,14 @@ test.describe('Admin Proposal Email — Branded', () => {
     const proposal = makeProposal({ status: 'negotiating' });
     await mockApi(page, emailApiRoutes(proposal));
 
-    // Load the edit page and wait for proposal data to render
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+
+    // Wait for page to fully load, then switch to Correos tab
     const correosTab = page.getByRole('button', { name: /Correos/i });
     await expect(correosTab).toBeVisible({ timeout: 15000 });
-
-    // Wait for branded-email defaults to confirm the component mounted
-    const defaultsLoaded = page.waitForResponse(
-      (resp) => resp.url().includes('/branded-email/defaults/') && resp.status() === 200,
-    );
     await correosTab.click();
-    await defaultsLoaded;
 
-    // Composer should show subject, sections, and add button
+    // Composer should show subject, sections, and add button (v-show keeps it mounted)
     await expect(page.locator('input[placeholder*="Asunto"]')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText('Secciones del correo')).toBeVisible();
     await expect(page.getByText('Agregar sección')).toBeVisible();

@@ -443,12 +443,12 @@
       </div>
 
       <!-- Tab: Enviar correo (proposal email, logged as activity) -->
-      <div v-if="activeTab === 'send-email'" class="max-w-4xl">
+      <div v-show="activeTab === 'send-email'" class="max-w-4xl">
         <ProposalEmailsTab :proposal="proposal" mode="proposal" />
       </div>
 
       <!-- Tab: Correos (branded email) -->
-      <div v-if="activeTab === 'emails'" class="max-w-4xl">
+      <div v-show="activeTab === 'emails'" class="max-w-4xl">
         <ProposalEmailsTab :proposal="proposal" />
       </div>
 
