@@ -176,3 +176,7 @@ export const ADMIN_PROPOSAL_CONTRACT_EDIT = ['@flow:admin-proposal-contract-edit
 export const ADMIN_PROPOSAL_CONTRACT_DOWNLOAD = ['@flow:admin-proposal-contract-download', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_DOCUMENTS_MANAGE = ['@flow:admin-proposal-documents-manage', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_DOCUMENTS_SEND = ['@flow:admin-proposal-documents-send', '@module:admin', '@priority:P1'];
+
+// ── Composed email flows ──
+export const ADMIN_SEND_BRANDED_EMAIL = ['@flow:admin-send-branded-email', '@module:admin', '@priority:P2'];
+export const ADMIN_SEND_PROPOSAL_EMAIL = ['@flow:admin-send-proposal-email', '@module:admin', '@priority:P2'];

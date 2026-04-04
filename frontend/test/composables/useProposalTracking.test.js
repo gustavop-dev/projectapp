@@ -43,6 +43,7 @@ afterEach(() => {
   jest.restoreAllMocks();
   sessionStorage.clear();
   delete global.fetch;
+  document.cookie = 'csrftoken=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 });
 
 function createRefs(uuid = 'test-uuid', panel = null) {
@@ -55,6 +56,15 @@ function createRefs(uuid = 'test-uuid', panel = null) {
 
 describe('useProposalTracking', () => {
   describe('initialization', () => {
+    it('returns undefined when preview=1 query param is set', () => {
+      window.history.pushState({}, '', '/?preview=1');
+      const { proposalUuid, currentPanel } = createRefs();
+      const result = useProposalTracking(proposalUuid, currentPanel);
+
+      expect(result).toBeUndefined();
+      window.history.pushState({}, '', '/');
+    });
+
     it('returns sessionId, sectionLog, and flush', () => {
       const { proposalUuid, currentPanel } = createRefs();
       const result = useProposalTracking(proposalUuid, currentPanel);
@@ -194,6 +204,30 @@ describe('useProposalTracking', () => {
     });
   });
 
+  describe('buildPayload with viewMode', () => {
+    it('uses viewMode.value when viewMode ref is provided', async () => {
+      jest.spyOn(performance, 'now').mockReturnValue(1000);
+      global.fetch = jest.fn().mockResolvedValue({ ok: true });
+      const { ref } = jest.requireActual('vue');
+      const { proposalUuid, currentPanel } = createRefs('uuid-vm');
+      const viewMode = ref('executive');
+      const { sectionLog, flush } = useProposalTracking(proposalUuid, currentPanel, viewMode);
+
+      mountedCallbacks[0]();
+      sectionLog.value.push({
+        section_type: 'greeting',
+        section_title: 'Hi',
+        entered_at: '2026-03-07T12:00:00.000Z',
+        time_spent_seconds: 3,
+      });
+
+      await flush();
+
+      const body = JSON.parse(global.fetch.mock.calls[0][1].body);
+      expect(body.view_mode).toBe('executive');
+    });
+  });
+
   describe('flush', () => {
     it('sends POST to tracking endpoint on flush', async () => {
       jest.spyOn(performance, 'now').mockReturnValue(1000);
@@ -279,6 +313,27 @@ describe('useProposalTracking', () => {
       await flush();
 
       expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('includes X-CSRFToken header when CSRF cookie is present', async () => {
+      document.cookie = 'csrftoken=test-csrf-token';
+      jest.spyOn(performance, 'now').mockReturnValue(1000);
+      global.fetch = jest.fn().mockResolvedValue({ ok: true });
+      const { proposalUuid, currentPanel } = createRefs('uuid-csrf');
+      const { sectionLog, flush } = useProposalTracking(proposalUuid, currentPanel);
+
+      mountedCallbacks[0]();
+      sectionLog.value.push({
+        section_type: 'greeting',
+        section_title: 'Hi',
+        entered_at: '2026-03-07T12:00:00.000Z',
+        time_spent_seconds: 3,
+      });
+
+      await flush();
+
+      const [, options] = global.fetch.mock.calls[0];
+      expect(options.headers['X-CSRFToken']).toBe('test-csrf-token');
     });
 
     it('silently handles fetch errors', async () => {

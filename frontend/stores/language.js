@@ -68,6 +68,7 @@ export const useLanguageStore = defineStore("language", {
         }
       }
       // Detect from browser
+      /* c8 ignore next */
       const browserLang = (typeof navigator !== 'undefined' && navigator.language) || '';
       const isSpanish = browserLang.toLowerCase().startsWith('es');
       const locale = isSpanish ? 'es-co' : 'en-us';

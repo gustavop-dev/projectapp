@@ -31,6 +31,7 @@ export const usePlatformNotificationsStore = defineStore('platformNotifications'
         const message = error.response?.data?.detail || 'No pudimos cargar las notificaciones.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false
       }

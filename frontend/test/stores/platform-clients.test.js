@@ -271,6 +271,35 @@ describe('usePlatformClientsStore', () => {
       expect(store.clients[0].is_onboarded).toBe(false)
     })
 
+    it('uses fallback message when response detail is absent', async () => {
+      store.clients = [SAMPLE_CLIENT]
+      mockPost.mockResolvedValueOnce({ data: {} })
+
+      const result = await store.resendInvite(1)
+
+      expect(result.success).toBe(true)
+      expect(result.message).toBe('Invitación reenviada.')
+    })
+
+    it('does not update list when client is not found', async () => {
+      store.clients = []
+      mockPost.mockResolvedValueOnce({ data: { detail: 'ok' } })
+
+      await store.resendInvite(999)
+
+      expect(store.clients).toHaveLength(0)
+    })
+
+    it('updates currentClient when user_id matches', async () => {
+      store.clients = [SAMPLE_CLIENT]
+      store.currentClient = { ...SAMPLE_CLIENT }
+      mockPost.mockResolvedValueOnce({ data: { detail: 'ok' } })
+
+      await store.resendInvite(1)
+
+      expect(store.currentClient.is_onboarded).toBe(false)
+    })
+
     it('sets error on failure', async () => {
       mockPost.mockRejectedValueOnce({
         response: { data: { detail: 'Error al reenviar.' } },
@@ -280,6 +309,140 @@ describe('usePlatformClientsStore', () => {
 
       expect(result.success).toBe(false)
       expect(store.error).toBe('Error al reenviar.')
+    })
+  })
+
+  describe('error fallback messages', () => {
+    it('fetchClients uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchClients()
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar los clientes.')
+    })
+
+    it('fetchClient uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchClient(1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar el detalle del cliente.')
+    })
+
+    it('createClient uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.createClient({
+        email: 'x@test.com', first_name: 'A', last_name: 'B',
+      })
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos crear el cliente.')
+    })
+
+    it('updateClient uses fallback when detail is absent', async () => {
+      mockPatch.mockRejectedValueOnce(new Error('network'))
+      const result = await store.updateClient(1, {})
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos actualizar el cliente.')
+    })
+
+    it('deactivateClient uses fallback when detail is absent', async () => {
+      mockDelete.mockRejectedValueOnce(new Error('network'))
+      const result = await store.deactivateClient(1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos desactivar el cliente.')
+    })
+
+    it('resendInvite uses fallback when detail is absent in error', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.resendInvite(1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos reenviar la invitación.')
+    })
+  })
+
+  describe('createClient conditional branches', () => {
+    it('prepends client when activeFilter is pending', async () => {
+      store.activeFilter = 'pending'
+      store.clients = []
+      mockPost.mockResolvedValueOnce({ data: SAMPLE_CLIENT })
+
+      const result = await store.createClient({
+        email: 'x@test.com', first_name: 'A', last_name: 'B',
+      })
+
+      expect(result.success).toBe(true)
+      expect(store.clients).toHaveLength(1)
+    })
+
+    it('does not prepend client when activeFilter is inactive', async () => {
+      store.activeFilter = 'inactive'
+      store.clients = []
+      mockPost.mockResolvedValueOnce({ data: SAMPLE_CLIENT })
+
+      const result = await store.createClient({
+        email: 'x@test.com', first_name: 'A', last_name: 'B',
+      })
+
+      expect(result.success).toBe(true)
+      expect(store.clients).toHaveLength(0)
+    })
+
+    it('normalizes optional fields when company_name and phone are present', async () => {
+      store.activeFilter = 'all'
+      mockPost.mockResolvedValueOnce({ data: SAMPLE_CLIENT })
+
+      const result = await store.createClient({
+        email: 'x@test.com',
+        first_name: 'A',
+        last_name: 'B',
+        company_name: 'ACME',
+        phone: '+57 300 000 0000',
+      })
+
+      expect(result.success).toBe(true)
+      expect(mockPost).toHaveBeenCalledWith(
+        'clients/',
+        expect.objectContaining({ company_name: 'ACME', phone: '+57 300 000 0000' }),
+      )
+    })
+  })
+
+  describe('deactivateClient conditional branches', () => {
+    it('does not deactivate when client not found in list', async () => {
+      store.clients = [SAMPLE_CLIENT]
+      mockDelete.mockResolvedValueOnce({})
+
+      await store.deactivateClient(999)
+
+      expect(store.clients[0].is_active).toBe(true)
+    })
+
+    it('does not update currentClient when user_id does not match', async () => {
+      store.clients = [SAMPLE_CLIENT]
+      store.currentClient = { ...SAMPLE_CLIENT, user_id: 99 }
+      mockDelete.mockResolvedValueOnce({})
+
+      await store.deactivateClient(1)
+
+      expect(store.currentClient.is_active).toBe(true)
+    })
+  })
+
+  describe('replaceClientInState conditional branches', () => {
+    it('does not update currentClient when user_id does not match', () => {
+      store.clients = [SAMPLE_CLIENT]
+      store.currentClient = { ...SAMPLE_CLIENT, user_id: 99 }
+
+      store.replaceClientInState({ ...SAMPLE_CLIENT, first_name: 'Updated' })
+
+      expect(store.currentClient.first_name).toBe('Ana')
+    })
+
+    it('preserves other clients in list when replacing one', () => {
+      store.clients = [SAMPLE_CLIENT, { ...SAMPLE_CLIENT, user_id: 2, first_name: 'Other' }]
+
+      store.replaceClientInState({ ...SAMPLE_CLIENT, first_name: 'Updated' })
+
+      expect(store.clients[0].first_name).toBe('Updated')
+      expect(store.clients[1].first_name).toBe('Other')
     })
   })
 })

@@ -118,9 +118,27 @@ DRAFT → SENT → VIEWED → ACCEPTED
 - PDF generation via `DocumentPdfService` + `MarkdownParser` + shared `PdfUtils` layer
 - Admin CRUD panel (`/panel/documents/`) with create, edit, list, status management
 - Bilingual support (es/en)
-- Active development on branch `generate-pdf-with-template`
 
-### 3.6 Platform — Expanded Modules
+### 3.6 Contract System
+
+- Reusable contract templates (`ContractTemplate`) with customizable sections and parameter substitution
+- Contract PDFs generated via `ContractPdfService` using ReportLab + shared `PdfUtils`
+- **Draft mode**: generate contract PDF without contractor signature block for review
+- **Final mode**: include contractor signature block once contract is agreed
+- Font: Helvetica throughout for consistent cross-platform rendering
+- Clickable Table of Contents with anchor links to contract sections
+- `ProposalDocument` links a generated contract to a specific proposal
+- `CompanySettings` provides company branding data (name, logo, address, tax ID) used in PDF headers
+
+### 3.7 Data Model Entities
+
+- Reusable JSON-schema–defined data models (`DataModelEntity`) for project technical requirements
+- `ProjectDataModelEntity` links a data model entity to a specific project, with optional custom schema override
+- Technical requirements sync: project requirements can be synchronized from data model entity definitions
+- JSON upload endpoint to bulk-import entity schemas
+- Accessible via platform project data model tab (`/platform/projects/:id/data-model`)
+
+### 3.9 Platform — Expanded Modules
 
 Building on the base Platform (auth, projects, kanban), these modules extend client collaboration:
 
@@ -149,7 +167,7 @@ Building on the base Platform (auth, projects, kanban), these modules extend cli
 - `/platform/board` — global kanban view across all projects
 - `/platform/profile` — user profile management page
 
-### 3.7 Marketing / Landing Pages
+### 3.10 Marketing / Landing Pages
 
 - **Home** (`/`): main company page with animations, portfolio highlights, services overview
 - **Landing Web Design** (`/landing-web-design`): targeted landing for web design services
@@ -158,12 +176,12 @@ Building on the base Platform (auth, projects, kanban), these modules extend cli
 - **About Us** (`/about-us`): team and company information
 - All pages fully responsive with GSAP animations
 
-### 3.8 Admin Panel Enhancements
+### 3.11 Admin Panel Enhancements
 
 - **Panel Login** (`/panel/login`) — dedicated login page for admin panel
 - **Panel Admins** (`/panel/admins`) — admin user management (invite, list, manage admin accounts)
 
-### 3.9 Internationalization (i18n)
+### 3.12 Internationalization (i18n)
 
 - Two locales: `en-us` (English, default) and `es-co` (Spanish Colombia)
 - Prefix strategy: `/en-us/about-us`, `/es-co/about-us`

@@ -25,7 +25,7 @@ class ProposalEmailService:
 
     @classmethod
     def _log_email(cls, template_key, recipient, subject='', proposal=None,
-                   status='sent', error_message=''):
+                   status='sent', error_message='', metadata=None):
         """Log an email send attempt to the EmailLog model."""
         try:
             from content.models import EmailLog
@@ -36,6 +36,7 @@ class ProposalEmailService:
                 subject=subject[:500] if subject else '',
                 status=status,
                 error_message=error_message,
+                metadata=metadata or {},
             )
         except Exception:
             logger.exception('Failed to create EmailLog entry')
@@ -1859,3 +1860,107 @@ class ProposalEmailService:
                 'Failed to send documents for proposal %s', proposal.pk,
             )
             return False
+
+    # ── User-composed emails (branded & proposal) ───────────────────
+
+    @classmethod
+    def _send_composed_email(
+        cls, template_key, proposal, recipient_email, subject,
+        greeting, sections, footer='', attachments=None,
+    ):
+        """
+        Send a user-composed email with the standard Project App branding.
+
+        Shared implementation for branded emails and proposal emails.
+        """
+        attachment_names = [a[0] for a in attachments] if attachments else []
+        log_metadata = {
+            'greeting': greeting,
+            'sections': sections,
+            'footer': footer,
+            'attachment_names': attachment_names,
+        }
+
+        try:
+            context = {
+                'subject': subject,
+                'greeting': greeting,
+                'sections': sections,
+                'footer': footer,
+                'attachment_names': attachment_names,
+            }
+
+            from content.services.email_template_registry import get_template_entry
+            entry = get_template_entry(template_key)
+            html_content = render_to_string(entry['html_template'], context)
+            text_content = render_to_string(entry['txt_template'], context)
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=cls._get_from_email(),
+                to=[recipient_email],
+            )
+            email.attach_alternative(html_content, 'text/html')
+
+            if attachments:
+                for filename, data, mime_type in attachments:
+                    email.attach(filename, data, mime_type)
+
+            email.send(fail_silently=False)
+
+            cls._log_email(
+                template_key, recipient_email,
+                subject=subject, proposal=proposal, status='sent',
+                metadata=log_metadata,
+            )
+            logger.info(
+                'Sent %s for proposal %s to %s',
+                template_key, proposal.pk, recipient_email,
+            )
+            return True
+
+        except Exception as exc:
+            cls._log_email(
+                template_key, recipient_email,
+                subject=subject, proposal=proposal, status='failed',
+                error_message=str(exc)[:1000],
+                metadata=log_metadata,
+            )
+            logger.exception(
+                'Failed to send %s for proposal %s', template_key, proposal.pk,
+            )
+            return False
+
+    @classmethod
+    def send_branded_email(
+        cls, proposal, recipient_email, subject, greeting,
+        sections, footer='', attachments=None,
+    ):
+        """Send a user-composed branded email (generic, no activity logging)."""
+        return cls._send_composed_email(
+            'branded_email', proposal, recipient_email, subject,
+            greeting, sections, footer, attachments,
+        )
+
+    @classmethod
+    def send_proposal_email(
+        cls, proposal, recipient_email, subject, greeting,
+        sections, footer='', attachments=None,
+    ):
+        """Send a proposal-specific email and register it as a proposal activity."""
+        sent = cls._send_composed_email(
+            'proposal_email', proposal, recipient_email, subject,
+            greeting, sections, footer, attachments,
+        )
+        if sent:
+            from content.models import ProposalChangeLog
+            ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type=ProposalChangeLog.ChangeType.EMAIL_SENT,
+                actor_type=ProposalChangeLog.ActorType.SELLER,
+                description=f'Correo enviado a {recipient_email}: {subject}',
+            )
+            proposal.last_activity_at = timezone.now()
+            proposal.save(update_fields=['last_activity_at'])
+        return sent

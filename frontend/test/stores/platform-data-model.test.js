@@ -107,6 +107,13 @@ describe('usePlatformDataModelStore', () => {
     expect(store.error).toBe('No pudimos cargar el modelo de datos.')
   })
 
+  it('fetchEntities uses fallback when response has no data', async () => {
+    mockGet.mockRejectedValueOnce({ response: {} })
+    const result = await store.fetchEntities(1)
+    expect(result.success).toBe(false)
+    expect(store.error).toBe('No pudimos cargar el modelo de datos.')
+  })
+
   it('fetchEntities returns success false on failure', async () => {
     mockGet.mockRejectedValueOnce({})
     const result = await store.fetchEntities(1)
@@ -174,6 +181,13 @@ describe('usePlatformDataModelStore', () => {
   it('uploadEntities uses fallback error message when no detail', async () => {
     mockPost.mockRejectedValueOnce({})
     await store.uploadEntities(3, { entities: [] })
+    expect(store.error).toBe('No pudimos subir el modelo de datos.')
+  })
+
+  it('uploadEntities uses fallback when response has no data', async () => {
+    mockPost.mockRejectedValueOnce({ response: {} })
+    const result = await store.uploadEntities(3, { entities: [] })
+    expect(result.success).toBe(false)
     expect(store.error).toBe('No pudimos subir el modelo de datos.')
   })
 

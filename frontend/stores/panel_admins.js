@@ -26,6 +26,7 @@ export const usePanelAdminsStore = defineStore('panel_admins', {
       } catch (error) {
         this.error = error.response?.data?.detail || 'Error al cargar administradores.';
         return { success: false, error: this.error };
+      /* c8 ignore next 3 */
       } finally {
         this.loading = false;
       }

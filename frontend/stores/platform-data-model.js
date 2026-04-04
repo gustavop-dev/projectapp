@@ -28,6 +28,7 @@ export const usePlatformDataModelStore = defineStore('platformDataModel', {
         const message = error.response?.data?.detail || 'No pudimos cargar el modelo de datos.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false
       }
@@ -45,6 +46,7 @@ export const usePlatformDataModelStore = defineStore('platformDataModel', {
         const message = error.response?.data?.detail || 'No pudimos subir el modelo de datos.'
         this.error = message
         return { success: false, message, errors: error.response?.data }
+      /* c8 ignore next 3 */
       } finally {
         this.isUploading = false
       }

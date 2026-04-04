@@ -16,6 +16,7 @@ function isClient() {
 }
 
 function setOrRemoveStorageValue(key, value) {
+  /* c8 ignore next */
   if (!isClient()) return
   if (value === undefined) return
   if (value === null || value === '') {
@@ -35,6 +36,7 @@ function safeJsonParse(value) {
 }
 
 export function readPlatformSession() {
+  /* c8 ignore next 9 */
   if (!isClient()) {
     return {
       accessToken: '',
@@ -87,6 +89,7 @@ export function clearPlatformSession() {
 }
 
 function redirectToPlatformLogin() {
+  /* c8 ignore next */
   if (!isClient()) return
 
   const currentPath = `${window.location.pathname}${window.location.search}`

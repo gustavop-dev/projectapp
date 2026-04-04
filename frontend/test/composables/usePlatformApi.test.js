@@ -154,6 +154,18 @@ describe('usePlatformApi', () => {
 
       expect(localStorage.getItem(STORAGE_KEYS.accessToken)).toBe('keep')
     })
+
+    it('does nothing when window is undefined', () => {
+      const prev = globalThis.window
+      try {
+        Reflect.deleteProperty(globalThis, 'window')
+        jest.resetModules()
+        const mod = require('../../composables/usePlatformApi')
+        expect(() => mod.writePlatformSession({ accessToken: 'x' })).not.toThrow()
+      } finally {
+        globalThis.window = prev
+      }
+    })
   })
 
   describe('clearPlatformSession', () => {
@@ -167,6 +179,18 @@ describe('usePlatformApi', () => {
       Object.values(STORAGE_KEYS).forEach((key) => {
         expect(localStorage.getItem(key)).toBeNull()
       })
+    })
+
+    it('does nothing when window is undefined', () => {
+      const prev = globalThis.window
+      try {
+        Reflect.deleteProperty(globalThis, 'window')
+        jest.resetModules()
+        const mod = require('../../composables/usePlatformApi')
+        expect(() => mod.clearPlatformSession()).not.toThrow()
+      } finally {
+        globalThis.window = prev
+      }
     })
   })
 
@@ -191,6 +215,33 @@ describe('usePlatformApi', () => {
     })
   })
 
+  describe('shorthand methods delegate to request', () => {
+    it('get calls request with GET method', () => {
+      const api = usePlatformApi()
+      expect(() => { api.get('test/').catch(() => {}) }).not.toThrow()
+    })
+
+    it('post calls request with POST method', () => {
+      const api = usePlatformApi()
+      expect(() => { api.post('test/', {}).catch(() => {}) }).not.toThrow()
+    })
+
+    it('patch calls request with PATCH method', () => {
+      const api = usePlatformApi()
+      expect(() => { api.patch('test/', {}).catch(() => {}) }).not.toThrow()
+    })
+
+    it('put calls request with PUT method', () => {
+      const api = usePlatformApi()
+      expect(() => { api.put('test/', {}).catch(() => {}) }).not.toThrow()
+    })
+
+    it('delete calls request with DELETE method', () => {
+      const api = usePlatformApi()
+      expect(() => { api.delete('test/').catch(() => {}) }).not.toThrow()
+    })
+  })
+
   describe('request method with token option', () => {
     it('request method accepts custom token', async () => {
       const api = usePlatformApi()
@@ -204,7 +255,19 @@ describe('usePlatformApi', () => {
           method: 'GET',
           token: 'custom-token',
           skipAuth: true,
-        })
+        }).catch(() => {})
+      }).not.toThrow()
+    })
+
+    it('passes extraHeaders to underlying request', () => {
+      const api = usePlatformApi()
+
+      expect(() => {
+        api.request({
+          url: 'test/',
+          method: 'GET',
+          headers: { 'X-Custom': 'value' },
+        }).catch(() => {})
       }).not.toThrow()
     })
   })
@@ -311,6 +374,15 @@ describe('usePlatformApi interceptors', () => {
 
       expect(result.headers.Authorization).toBe('Bearer acc-token')
     })
+
+    it('attaches token when config has no headers property', () => {
+      localStorage.setItem('platform_access_token', 'acc-token')
+      const config = {}
+
+      const result = requestInterceptor(config)
+
+      expect(result.headers.Authorization).toBe('Bearer acc-token')
+    })
   })
 
   describe('response interceptor', () => {
@@ -342,6 +414,22 @@ describe('usePlatformApi interceptors', () => {
       const error = {
         config: { url: 'some-url/' },
         response: { status: 500 },
+      }
+
+      await expect(responseErrorInterceptor(error)).rejects.toBe(error)
+    })
+
+    it('handles error with no config property', async () => {
+      const error = {
+        response: { status: 500 },
+      }
+
+      await expect(responseErrorInterceptor(error)).rejects.toBe(error)
+    })
+
+    it('handles error with no response property', async () => {
+      const error = {
+        config: { url: 'some-url/' },
       }
 
       await expect(responseErrorInterceptor(error)).rejects.toBe(error)
@@ -410,6 +498,52 @@ describe('usePlatformApi interceptors', () => {
       await expect(responseErrorInterceptor(error)).rejects.toBe(error)
 
       expect(localStorage.getItem('platform_access_token')).toBeNull()
+    })
+
+    it('does not redirect when path is already login', async () => {
+      window.history.pushState({}, '', '/platform/login')
+
+      const error = {
+        config: { url: 'some-url/', headers: {} },
+        response: { status: 401 },
+      }
+
+      await expect(responseErrorInterceptor(error)).rejects.toBe(error)
+      expect(window.location.pathname).toBe('/platform/login')
+    })
+
+    it('does not redirect when path is already verify', async () => {
+      window.history.pushState({}, '', '/platform/verify')
+
+      const error = {
+        config: { url: 'some-url/', headers: {} },
+        response: { status: 401 },
+      }
+
+      await expect(responseErrorInterceptor(error)).rejects.toBe(error)
+      expect(window.location.pathname).toBe('/platform/verify')
+    })
+
+    it('clears session when redirecting from locale-prefixed path', async () => {
+      window.history.pushState({}, '', '/es-co/panel')
+      localStorage.setItem(STORAGE_KEYS.accessToken, 'tok')
+
+      const error = {
+        config: { url: 'some-url/', headers: {} },
+        response: { status: 401 },
+      }
+
+      await expect(responseErrorInterceptor(error)).rejects.toBe(error)
+      expect(localStorage.getItem(STORAGE_KEYS.accessToken)).toBeNull()
+    })
+
+    it('considers baseURL when matching login endpoint', async () => {
+      const error = {
+        config: { baseURL: '/api/login/', url: 'attempt/', headers: {} },
+        response: { status: 401 },
+      }
+
+      await expect(responseErrorInterceptor(error)).rejects.toBe(error)
     })
 
     it('attempts token refresh on 401 with refresh token', async () => {
@@ -559,6 +693,77 @@ describe('usePlatformApi interceptors', () => {
 
       expect(result.accessToken).toBe('new-access')
       expect(result.refreshToken).toBe('original-ref')
+    })
+  })
+
+  describe('shouldAttemptRefresh with missing config.url', () => {
+    it('clears session on 401 when config has no url property', async () => {
+      const error = {
+        config: { headers: {} },
+        response: { status: 401 },
+      }
+
+      await expect(responseErrorInterceptor(error)).rejects.toBe(error)
+      expect(localStorage.getItem('platform_access_token')).toBeNull()
+    })
+  })
+
+  describe('token refresh with headers-free config', () => {
+    it('sets Authorization header when original request has no headers', async () => {
+      jest.resetModules()
+      localStorage.clear()
+      localStorage.setItem('platform_refresh_token', 'ref-tok')
+
+      delete window.location
+      window.location = { pathname: '/platform/dashboard', search: '', href: '' }
+
+      requestInterceptor = null
+      responseErrorInterceptor = null
+
+      const retryResponse = { data: { retried: true } }
+      const callableMock = jest.fn().mockResolvedValue(retryResponse)
+      callableMock.interceptors = {
+        request: { use: jest.fn((fn) => { requestInterceptor = fn }) },
+        response: {
+          use: jest.fn((success, errorHandler) => {
+            responseSuccessInterceptor = success
+            responseErrorInterceptor = errorHandler
+          }),
+        },
+      }
+
+      jest.doMock('axios', () => ({
+        __esModule: true,
+        default: {
+          create: jest.fn(() => callableMock),
+          post: jest.fn().mockResolvedValue({
+            data: { access: 'new-acc', refresh: 'new-ref' },
+          }),
+        },
+      }))
+
+      const mod2 = require('../../composables/usePlatformApi')
+      mod2.usePlatformApi()
+
+      const error2 = {
+        config: { url: 'some-url/' },
+        response: { status: 401 },
+      }
+
+      const result = await responseErrorInterceptor(error2)
+
+      expect(result).toEqual(retryResponse)
+      expect(callableMock.mock.calls[0][0].headers.Authorization).toBe('Bearer new-acc')
+    })
+  })
+
+  describe('request method with no token or headers', () => {
+    it('passes undefined headers when no token or extraHeaders provided', () => {
+      const api = usePlatformApi()
+
+      expect(() => {
+        api.request({ url: 'test/', method: 'GET' }).catch(() => {})
+      }).not.toThrow()
     })
   })
 })

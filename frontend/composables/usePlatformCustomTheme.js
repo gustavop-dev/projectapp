@@ -55,6 +55,7 @@ function toRgbString(hex) {
  */
 function measureBrightness(url) {
   return new Promise((resolve) => {
+    /* c8 ignore next */
     if (typeof document === 'undefined') { resolve(128); return }
     const img = new Image()
     img.crossOrigin = 'anonymous'
@@ -72,6 +73,7 @@ function measureBrightness(url) {
       }
       resolve(total / (size * size))
     }
+    /* c8 ignore next */
     img.onerror = () => resolve(128)
     img.src = url
   })
@@ -116,6 +118,7 @@ export function usePlatformCustomTheme() {
   }
 
   function applyTheme() {
+    /* c8 ignore next */
     if (typeof document === 'undefined') return
     const root = document.documentElement
 

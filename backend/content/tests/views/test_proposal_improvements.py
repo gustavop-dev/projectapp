@@ -296,7 +296,7 @@ class TestAutoExtension:
             viewed_at=FROZEN_NOW - timedelta(hours=2),
         )
 
-        expire_stale_proposals()
+        expire_stale_proposals.call_local()
 
         about_to_expire_proposal.refresh_from_db()
         assert about_to_expire_proposal.status == 'viewed'  # Not expired
@@ -313,7 +313,7 @@ class TestAutoExtension:
         """expire_stale_proposals should expire when no recent activity."""
         from content.tasks import expire_stale_proposals
 
-        expire_stale_proposals()
+        expire_stale_proposals.call_local()
 
         about_to_expire_proposal.refresh_from_db()
         assert about_to_expire_proposal.status == 'expired'

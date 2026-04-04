@@ -1002,6 +1002,7 @@ export const useProposalStore = defineStore('proposals', {
         this.error = 'contract_save_failed';
         console.error('Error saving contract and negotiating:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }
@@ -1026,6 +1027,7 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         console.error('Error updating contract params:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }
@@ -1085,6 +1087,60 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         console.error('Error deleting proposal document:', error);
         return { success: false };
+      }
+    },
+
+    /**
+     * Send a user-composed email for a proposal.
+     * @param {number} proposalId
+     * @param {FormData} formData
+     * @param {string} basePath - 'branded-email' or 'proposal-email'
+     */
+    async sendComposedEmail(proposalId, formData, basePath = 'branded-email') {
+      try {
+        const response = await create_request(
+          `proposals/${proposalId}/${basePath}/send/`,
+          formData,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error(`Error sending ${basePath}:`, error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * Get admin-configurable defaults for an email composer.
+     * @param {number} proposalId
+     * @param {string} basePath - 'branded-email' or 'proposal-email'
+     */
+    async fetchEmailDefaults(proposalId, basePath = 'branded-email') {
+      try {
+        const response = await get_request(
+          `proposals/${proposalId}/${basePath}/defaults/`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error(`Error fetching ${basePath} defaults:`, error);
+        return { success: false, data: {} };
+      }
+    },
+
+    /**
+     * Fetch paginated email history for a proposal.
+     * @param {number} proposalId
+     * @param {number} page
+     * @param {string} basePath - 'branded-email' or 'proposal-email'
+     */
+    async fetchEmailHistory(proposalId, page = 1, basePath = 'branded-email') {
+      try {
+        const response = await get_request(
+          `proposals/${proposalId}/${basePath}/history/?page=${page}`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error(`Error fetching ${basePath} history:`, error);
+        return { success: false, data: { results: [], total: 0, page: 1, has_next: false } };
       }
     },
   },

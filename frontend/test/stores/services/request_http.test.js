@@ -128,6 +128,21 @@ describe('error handling', () => {
   });
 });
 
+describe('create_request with FormData', () => {
+  it('omits Content-Type header when params is FormData', async () => {
+    jest.resetModules();
+    jest.doMock('axios', () => ({ __esModule: true, default: mockAxios }));
+    const mod = require('../../../stores/services/request_http');
+
+    const formData = new FormData();
+    formData.append('file', 'data');
+    await mod.create_request('upload/', formData);
+
+    const callArgs = mockAxios.post.mock.calls[0];
+    expect(callArgs[2].headers['Content-Type']).toBeUndefined();
+  });
+});
+
 describe('getCookie (via CSRF header)', () => {
   it('includes X-CSRFToken header from document.cookie', async () => {
     Object.defineProperty(document, 'cookie', {

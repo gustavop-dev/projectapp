@@ -226,6 +226,16 @@ describe('usePlatformProjectsStore', () => {
       expect(store.currentProject.status).toBe('archived')
     })
 
+    it('does not update currentProject when id does not match', async () => {
+      store.projects = [SAMPLE_PROJECT]
+      store.currentProject = { ...SAMPLE_PROJECT, id: 99 }
+      mockDelete.mockResolvedValueOnce({})
+
+      await store.archiveProject(1)
+
+      expect(store.currentProject.id).toBe(99)
+    })
+
     it('sets error on failure', async () => {
       mockDelete.mockRejectedValueOnce({
         response: { data: { detail: 'No autorizado.' } },
@@ -235,6 +245,85 @@ describe('usePlatformProjectsStore', () => {
 
       expect(result.success).toBe(false)
       expect(store.error).toBe('No autorizado.')
+    })
+
+    it('uses fallback message when detail is absent', async () => {
+      mockDelete.mockRejectedValueOnce(new Error('network'))
+
+      const result = await store.archiveProject(1)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos archivar el proyecto.')
+    })
+  })
+
+  describe('error fallback messages', () => {
+    it('fetchProjects uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+
+      const result = await store.fetchProjects()
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar los proyectos.')
+    })
+
+    it('fetchProject uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+
+      const result = await store.fetchProject(1)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar el proyecto.')
+    })
+
+    it('createProject uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+
+      const result = await store.createProject({ name: 'x' })
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos crear el proyecto.')
+    })
+
+    it('updateProject uses fallback when detail is absent', async () => {
+      mockPatch.mockRejectedValueOnce(new Error('network'))
+
+      const result = await store.updateProject(1, { name: 'x' })
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos actualizar el proyecto.')
+    })
+  })
+
+  describe('updateProject conditional branches', () => {
+    it('does not update currentProject when id does not match', async () => {
+      store.projects = [SAMPLE_PROJECT]
+      store.currentProject = { ...SAMPLE_PROJECT, id: 99 }
+      mockPatch.mockResolvedValueOnce({ data: { ...SAMPLE_PROJECT, name: 'Updated' } })
+
+      await store.updateProject(1, { name: 'Updated' })
+
+      expect(store.currentProject.id).toBe(99)
+      expect(store.currentProject.name).toBe('Website Redesign')
+    })
+
+    it('preserves other projects in list when updating one', async () => {
+      store.projects = [SAMPLE_PROJECT, { ...SAMPLE_PROJECT, id: 2, name: 'Other' }]
+      mockPatch.mockResolvedValueOnce({ data: { ...SAMPLE_PROJECT, name: 'Updated' } })
+
+      await store.updateProject(1, { name: 'Updated' })
+
+      expect(store.projects[1].name).toBe('Other')
+    })
+
+    it('preserves other projects in list when archiving one', async () => {
+      store.projects = [SAMPLE_PROJECT, { ...SAMPLE_PROJECT, id: 2, name: 'Other' }]
+      mockDelete.mockResolvedValueOnce({})
+
+      await store.archiveProject(1)
+
+      expect(store.projects[1].name).toBe('Other')
+      expect(store.projects[1].status).toBe(SAMPLE_PROJECT.status)
     })
   })
 })

@@ -178,4 +178,106 @@ describe('usePlatformDeliverablesStore', () => {
     mockPost.mockRejectedValueOnce({ response: { data: { detail: 'k' } } })
     expect((await store.uploadNewVersion(1, 1, new FormData())).success).toBe(false)
   })
+
+  describe('error fallback messages', () => {
+    it('fetchDeliverables uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchDeliverables(1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar los entregables.')
+    })
+
+    it('fetchAllDeliverables uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchAllDeliverables()
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar los entregables.')
+    })
+
+    it('fetchDeliverable uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchDeliverable(1, 1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar el entregable.')
+    })
+
+    it('createDeliverable uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.createDeliverable(1, new FormData())
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos subir el entregable.')
+    })
+
+    it('updateDeliverable uses fallback when detail is absent', async () => {
+      mockPatch.mockRejectedValueOnce(new Error('network'))
+      const result = await store.updateDeliverable(1, 1, {})
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos actualizar el entregable.')
+    })
+
+    it('deleteDeliverable uses fallback when detail is absent', async () => {
+      mockDelete.mockRejectedValueOnce(new Error('network'))
+      const result = await store.deleteDeliverable(1, 1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos archivar el entregable.')
+    })
+
+    it('uploadNewVersion uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.uploadNewVersion(1, 1, new FormData())
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos subir la nueva versión.')
+    })
+  })
+
+  describe('fetchAllDeliverables with category filter', () => {
+    it('appends category query when category is provided', async () => {
+      mockGet.mockResolvedValueOnce({ data: [] })
+      await store.fetchAllDeliverables('designs')
+      expect(mockGet).toHaveBeenCalledWith('deliverables/?category=designs')
+    })
+  })
+
+  describe('updateDeliverable conditional branches', () => {
+    it('does not update list entry when id is not found', async () => {
+      store.deliverables = [{ id: 99, name: 'unchanged' }]
+      mockPatch.mockResolvedValueOnce({ data: { id: 5, name: 'updated' } })
+      await store.updateDeliverable(1, 5, { name: 'updated' })
+      expect(store.deliverables[0].name).toBe('unchanged')
+    })
+
+    it('does not update currentDeliverable when id does not match', async () => {
+      store.deliverables = []
+      store.currentDeliverable = { id: 99, name: 'unchanged' }
+      mockPatch.mockResolvedValueOnce({ data: { id: 5, name: 'updated' } })
+      await store.updateDeliverable(1, 5, { name: 'updated' })
+      expect(store.currentDeliverable.name).toBe('unchanged')
+    })
+  })
+
+  describe('uploadNewVersion conditional branches', () => {
+    it('does not update list entry when id is not found', async () => {
+      store.deliverables = [{ id: 99, v: 1 }]
+      mockPost.mockResolvedValueOnce({ data: { id: 5, v: 2 } })
+      await store.uploadNewVersion(1, 5, new FormData())
+      expect(store.deliverables[0].v).toBe(1)
+    })
+
+    it('does not update currentDeliverable when id does not match', async () => {
+      store.deliverables = []
+      store.currentDeliverable = { id: 99, v: 1 }
+      mockPost.mockResolvedValueOnce({ data: { id: 5, v: 2 } })
+      await store.uploadNewVersion(1, 5, new FormData())
+      expect(store.currentDeliverable.v).toBe(1)
+    })
+  })
+
+  describe('deleteDeliverable detail message', () => {
+    it('returns data detail as message when present', async () => {
+      mockDelete.mockResolvedValueOnce({ data: { detail: 'Archived.' } })
+      const result = await store.deleteDeliverable(1, 1)
+      expect(result.success).toBe(true)
+      expect(result.message).toBe('Archived.')
+    })
+  })
 })

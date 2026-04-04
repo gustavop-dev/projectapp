@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.10.0
-> **Last updated:** 2026-04-03
+> **Version:** 2.11.0
+> **Last updated:** 2026-04-04
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -947,6 +947,24 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-list.spec.js`
 
+### FLOW: `admin-proposal-actions-modal`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/proposals`
+- **API:** (no direct API call — modal renders action buttons from listing row data)
+- **Description:** Admin opens an actions modal from a proposal row in the listing. Modal displays quick-action buttons: edit, preview, send/resend, copy link, WhatsApp, duplicate, toggle active, delete. Send/Resend visibility is conditional on proposal status.
+- **Steps:**
+  1. Admin is on the proposal listing `/panel/proposals`.
+  2. Admin clicks the actions icon (⋮) on a proposal row.
+  3. Actions modal opens with buttons: Edit, Preview, Send/Resend, Copy, WhatsApp, Duplicate, Toggle, Delete.
+  4. [Branch A — Draft] "Send" action visible; "Resend" hidden.
+  5. [Branch B — Sent/Viewed] "Resend" action visible; "Send" hidden.
+  6. Admin clicks any action → navigates or triggers the corresponding flow.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-actions-modal.spec.js`
+
 ### FLOW: `admin-proposal-engagement-decay-alert`
 
 - **Module:** admin
@@ -1102,6 +1120,68 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   6. Dashboard aggregates data: `calc_abandonment_rate` = abandoned / (abandoned + confirmed), `dropped_modules` = most frequently deselected modules.
 - **Coverage:** ⚠️ Backend-only
 - **Backend Tests:** `content/tests/views/test_proposal_views.py`
+
+### FLOW: `proposal-investment-calculator`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P1
+- **Routes:** `/proposal/:uuid`
+- **API:** (client-side only — no API call for toggling)
+- **Description:** Client opens investment calculator modal from the closing/investment section, toggles optional feature modules on/off, sees dynamic total investment and estimated timeline update in real time, and confirms or cancels the selection.
+- **Steps:**
+  1. Client views the proposal and navigates to the Investment section.
+  2. Client clicks "Personalizar tu inversión" to open the calculator modal.
+  3. Client toggles optional feature modules — total investment and timeline update dynamically.
+  4. Client clicks "Confirmar selección" → modal closes; closing section reflects updated total.
+  5. [Branch B — Abandon] Client closes modal without confirming → selection reverts.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-investment-calculator.spec.js`
+
+### FLOW: `proposal-comment-from-closing`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** Client submits a written comment from the proposal closing panel via a comment modal. This is distinct from the full accept/reject/negotiate response flow.
+- **Steps:**
+  1. Client is viewing the proposal closing section.
+  2. Client opens the comment modal from the closing panel.
+  3. Client types a comment and submits.
+  4. Comment is recorded; confirmation feedback shown.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-comment-flow.spec.js`
+
+### FLOW: `proposal-rejection-smart-recovery`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** After a client rejects a proposal, context-specific recovery cards render based on the rejection reason, each with appropriate CTAs (e.g., schedule call, adjust budget, revisit later).
+- **Steps:**
+  1. Client rejects the proposal and sees the rejection confirmation screen.
+  2. Recovery cards render based on the rejection reason provided.
+  3. Each card shows a relevant CTA (schedule a call, request changes, revisit later).
+  4. Client can click a CTA to take the suggested recovery action.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-rejection-recovery.spec.js`
+
+### FLOW: `proposal-functional-requirements-modal`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** Client clicks a functional requirement group card in the proposal to open a detail modal showing individual requirement items with icons and descriptions.
+- **Steps:**
+  1. Client views the functional requirements section of the proposal.
+  2. Client clicks a requirement group card.
+  3. Detail modal opens listing individual items with icons and descriptions.
+  4. Client closes the modal by clicking outside or the close button.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-requirements-modal.spec.js`
 
 ### FLOW: `proposal-negotiate`
 
@@ -1603,6 +1683,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
 | `admin-email-deliverability` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-email-deliverability.spec.js` |
+| `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
+| `admin-send-proposal-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `public-landing-software` | public | guest | P3 | ✅ Covered | `e2e/public/public-landing-software.spec.js` |
 | `public-landing-apps` | public | guest | P3 | ✅ Covered | `e2e/public/public-landing-apps.spec.js` |
 | `platform-login` | platform | platform-admin/client | P1 | ✅ Covered | `e2e/platform/platform-login.spec.js` |
@@ -1626,14 +1708,19 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `platform-requirement-client-review` | platform | platform-client | P2 | ✅ Covered | `e2e/platform/platform-requirement-client-review.spec.js` |
 | `platform-admin-project-create` | platform | platform-admin | P3 | ✅ Covered | `e2e/platform/platform-project-create.spec.js` |
 | `platform-kanban-card-comments` | platform | platform-admin/client | P3 | ✅ Covered | `e2e/platform/platform-kanban-comments.spec.js` |
+| `proposal-investment-calculator` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-investment-calculator.spec.js` |
+| `admin-proposal-actions-modal` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-actions-modal.spec.js` |
+| `proposal-comment-from-closing` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-comment-flow.spec.js` |
+| `proposal-rejection-smart-recovery` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-rejection-recovery.spec.js` |
+| `proposal-functional-requirements-modal` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-requirements-modal.spec.js` |
 
 ### Summary
 
-- **Total flows:** 124
-- **P1 (Critical):** 24
-- **P2 (High):** 76
+- **Total flows:** 129
+- **P1 (Critical):** 26
+- **P2 (High):** 79
 - **P3 (Medium):** 23
-- **Covered (full):** 103 (83%)
+- **Covered (full):** 108 (84%)
 - **Backend-only:** 10 (8%) — system-triggered alerts and automation covered by backend unit tests
 - **Partial:** 0 (0%)
 - **Missing:** 0 (0%)
@@ -2401,6 +2488,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
 | `admin-email-deliverability` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-email-deliverability.spec.js` |
+| `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
+| `admin-send-proposal-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `public-landing-software` | public | guest | P3 | ✅ Covered | `e2e/public/public-landing-software.spec.js` |
 | `public-landing-apps` | public | guest | P3 | ✅ Covered | `e2e/public/public-landing-apps.spec.js` |
 
@@ -2500,9 +2589,46 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-documents-send.spec.js`
 
+### 10.3 Composed Email Flows
+
+#### FLOW: `admin-send-branded-email`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Description:** Admin sends a branded email from the proposal edit page "Correos" tab.
+- **Visible when:** Proposal status in `negotiating`, `accepted`, `rejected`
+- **Steps:**
+  1. Navigate to `/panel/proposals/:id/edit`
+  2. Click the "Correos" tab
+  3. Fill composer: recipient, subject, greeting, draggable sections, footer
+  4. Optionally attach files (PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, JPEG; max 15 MB)
+  5. Preview email in "Vista previa" sub-tab
+  6. Click "Enviar correo" → `POST /api/proposals/:id/branded-email/send/`
+  7. Verify history updates with new entry
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-email.spec.js`
+
+#### FLOW: `admin-send-proposal-email`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Description:** Admin sends a proposal email from the proposal edit page "Enviar correo" tab. Each send is logged as `ProposalChangeLog` activity.
+- **Visible when:** Proposal status in `sent`, `viewed`, `negotiating`, `accepted`, `rejected`
+- **Steps:**
+  1. Navigate to `/panel/proposals/:id/edit`
+  2. Click the "Enviar correo" tab
+  3. Fill same composer UI as branded email
+  4. Click "Enviar correo" → `POST /api/proposals/:id/proposal-email/send/`
+  5. Verify `ProposalChangeLog` entry created with `change_type=email_sent`
+  6. Verify `last_activity_at` updated on the proposal
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-email.spec.js`
+
 ---
 
-### 10.2 New Flows Coverage Index
+### 10.4 New Flows Coverage Index
 
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
@@ -2511,3 +2637,5 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-contract-download` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-contract-download.spec.js` |
 | `admin-proposal-documents-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-documents-manage.spec.js` |
 | `admin-proposal-documents-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-documents-send.spec.js` |
+| `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
+| `admin-send-proposal-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |

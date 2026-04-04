@@ -7,7 +7,7 @@
 | Business Proposal — Core Models | ✅ Done | BusinessProposal, ProposalSection, ProposalAlert, RequirementGroup/Item |
 | Business Proposal — Public View | ✅ Done | Fullscreen horizontal scroll, 12 section components, GSAP animations |
 | Business Proposal — Admin CRUD | ✅ Done | Create, edit, send, duplicate, JSON import, section editor, defaults, alerts |
-| Business Proposal — Email System | ✅ Done | 44 templates, automated reminders, cooldown, pause, admin notifications |
+| Business Proposal — Email System | ✅ Done | 48 templates (24 HTML + 24 TXT), automated reminders, cooldown, pause, admin notifications |
 | Business Proposal — Analytics | ✅ Done | View tracking, section time, heat score, session tracking, engagement signals |
 | Business Proposal — PDF | ✅ Done | ReportLab generation, downloadable from proposal page |
 | Business Proposal — Share Links | ✅ Done | UUID share links with independent tracking |
@@ -52,6 +52,11 @@
 | Platform — Notifications | ✅ Done | `platform-notifications.js`; `/platform/notifications`; `test_notifications.py` |
 | Platform — Payments | ✅ Done | `platform-payments.js`; global `/platform/payments` + per-project `/platform/projects/[id]/payments`; `test_payments.py` |
 | Platform — Global Board + Profile | ✅ Done | `/platform/board` (global kanban view); `/platform/profile` (profile management) |
+| Business Proposal — Contract System | ✅ Done | `CompanySettings`, `ContractTemplate`, `ProposalDocument` models (migrations 0061–0068); `contract_pdf_service.py` with contractor signature + draft mode; `ContractParamsModal.vue`, `SendDocumentsModal.vue`, `ProposalDocumentsTab.vue` admin UI; `proposal_documents_sent` email template |
+| Platform — Data Model Entities | ✅ Done | `DataModelEntity` + `ProjectDataModelEntity` in accounts app; `technical_requirements_sync.py` service; `/platform/projects/[id]/data-model.vue` page; `platform-data-model.js` store; 60 backend + 26 unit + E2E tests |
+| Platform — UI Terminology & UX | ✅ Done | Épica → Módulo rename; `useConfirmModal.js` refactored to promise-based API; dark mode removed from platform login/verify/complete-profile pages |
+| Business Proposal — Branded Email | ✅ Done | "Correos" tab on proposal edit (negotiating/accepted/rejected): draggable sections composer, file attachments, branded preview, paginated history; `_send_composed_email()` shared service; 6 URL patterns; `EmailLog.metadata` JSONField |
+| Business Proposal — Proposal Email | ✅ Done | "Enviar correo" tab on proposal edit (sent+ statuses): same composer UI, each send creates `ProposalChangeLog` with `EMAIL_SENT` change type + updates `last_activity_at`; `ProposalEmailsTab.vue` with `mode` prop |
 
 ---
 
@@ -60,8 +65,8 @@
 | Issue | Priority | Notes |
 |-------|----------|-------|
 | Credential rotation needed | High | MySQL password, email password, SECRET_KEY, CallMeBot key exposed in git history (see `docs/deployment-guide.md`) |
-| Large service files | Medium | `proposal_service.py` (132K), `proposal_pdf_service.py` (72K — shared utils extracted to `pdf_utils.py`) — consider further splitting |
-| Large view file | Medium | `views/proposal.py` (123K) — could benefit from splitting into submodules |
+| Large service files | Medium | `proposal_service.py` (133K), `proposal_pdf_service.py` (72K), `proposal_email_service.py` (71K), `pdf_utils.py` (47K) — shared utils extracted but could split further |
+| Large view file | Medium | `views/proposal.py` (162K, 4385 lines) — could benefit from splitting into submodules |
 | Single Django app | Low | All models/views/services in `content` app; consider splitting if scope grows |
 
 ---
@@ -70,9 +75,9 @@
 
 | Suite | Location | Approximate Count | Status |
 |-------|----------|-------------------|--------|
-| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 50 test files (30 content + 17 accounts + 1 projectapp + 2 backend/) | Active |
-| Frontend Unit (Jest) | `frontend/test/` | 36 test files (3 components + 23 composables + 10 stores incl. services) | Active |
-| Frontend E2E (Playwright) | `frontend/e2e/` | 112 spec files across admin, auth, blog, layout, proposal, public, platform | Active |
+| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 74 test files | Active |
+| Frontend Unit (Jest) | `frontend/test/` | 60 test files | Active |
+| Frontend E2E (Playwright) | `frontend/e2e/` | 121 spec files across admin, auth, blog, layout, proposal, public, platform | Active |
 | Quality Gate | `scripts/test_quality_gate.py` | 100/100, 0 warnings/info | Active |
 
 ---
@@ -101,7 +106,7 @@
 
 ## 5. Potential Improvements
 
-1. **Split large files** — proposal views (123K), proposal service (132K), PDF service (72K — shared utils already extracted to `pdf_utils.py`)
+1. **Split large files** — proposal views (162K), proposal service (133K), email service (71K), PDF service (72K), pdf_utils (47K)
 2. **API versioning** — no versioning strategy currently
 3. **Rate limiting** — no rate limiting on public endpoints
 4. **Caching layer** — Redis available but no application-level caching implemented

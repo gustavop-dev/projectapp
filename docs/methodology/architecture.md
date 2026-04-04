@@ -93,8 +93,8 @@ flowchart TD
     URLRouter -->|/api/health/| HealthCheck
     URLRouter -->|/admin/| DjangoAdmin
 
-    URLRouter -->|/api/*| ContentURLs["content.urls (81 patterns)"]
-    URLRouter -->|/api/auth/*<br>/api/platform/*| AccountsURLs["accounts.urls (48 patterns)"]
+    URLRouter -->|/api/*| ContentURLs["content.urls (99 patterns)"]
+    URLRouter -->|/api/auth/*<br>/api/platform/*| AccountsURLs["accounts.urls (65 patterns)"]
     URLRouter -->|/sitemap.xml| Sitemap
     URLRouter -->|/*| ServeNuxt["serve_nuxt (catch-all)"]
 
@@ -123,15 +123,19 @@ erDiagram
     BusinessProposal ||--o{ ProposalShareLink : "has share links"
     BusinessProposal ||--o{ EmailLog : "has email logs"
     BusinessProposal ||--o{ ProposalRequirementGroup : "has requirement groups"
+    BusinessProposal ||--o{ ProposalDocument : "has contract documents"
     ProposalRequirementGroup ||--o{ ProposalRequirementItem : "has items"
     ProposalViewEvent ||--o{ ProposalSectionView : "has section views"
     Document }o--o{ UserProfile : "created by (optional)"
+    ContractTemplate ||--o{ ProposalDocument : "used in"
 
     UserProfile ||--o{ Project : "owns projects"
     UserProfile ||--o{ VerificationCode : "has codes"
     Project ||--o{ Requirement : "has requirements"
+    Project ||--o{ ProjectDataModelEntity : "has data model entities"
     Requirement ||--o{ RequirementComment : "has comments"
     Requirement ||--o{ RequirementHistory : "has history"
+    DataModelEntity ||--o{ ProjectDataModelEntity : "linked to projects"
 ```
 
 ### 4.2 Model Details
@@ -149,17 +153,27 @@ erDiagram
 | **ProposalShareLink** | Multi-stakeholder sharing | proposal_fk, uuid, shared_by_name, recipient_name, view_count |
 | **ProposalDefaultConfig** | Default section templates per language | language (unique), sections_json |
 | **EmailTemplateConfig** | Admin-editable email content | template_key (unique), content_overrides, is_active |
-| **EmailLog** | Email deliverability tracking | proposal_fk, template_key, recipient, status, error_message |
+| **EmailLog** | Email deliverability tracking + composed email history | proposal_fk, template_key, recipient, status, error_message, metadata (JSONField) |
 | **Contact** | Contact form submissions | email, phone_number, subject, message, budget |
 | **PortfolioWork** | Portfolio case studies | title_en/es, slug, cover_image, project_url, content_json_en/es, SEO fields |
 | **BlogPost** | Blog articles | title_en/es, slug, cover_image, excerpt, content_json/html, category, author, SEO fields |
 | **Document** | Generic branded PDF document | uuid, title, slug, status (draft/published/archived), language (es/en), cover_type (generic/none/proposal), content_json, created_at |
+| **ContractTemplate** | Reusable contract template | title, sections_json, parameters_json, created_at |
+| **ProposalDocument** | Links a proposal to a generated contract | proposal_fk, contract_template_fk, title, pdf_file, is_draft, signed_at, contractor_signature |
+| **CompanySettings** | Company-level branding and info used in PDFs | name, logo, address, tax_id, email, phone, website |
 | **UserProfile** | Platform user (extends Django User) | user_fk, role (admin/client), company_name, phone, avatar, onboarding_completed, is_active |
 | **VerificationCode** | OTP codes for login | user_fk, code, expires_at, is_used |
 | **Project** | Client projects in platform | owner_fk, title, description, status (active/completed/archived), created_at |
 | **Requirement** | Kanban board items | project_fk, title, description, status (backlog/in_progress/done), priority, assignee, order |
 | **RequirementComment** | Comments on requirements | requirement_fk, author_fk, text, created_at |
 | **RequirementHistory** | Audit trail for requirements | requirement_fk, field_name, old_value, new_value, changed_by |
+| **BugReport** | Bug reports per project | project_fk, title, description, status, priority, reported_by |
+| **ChangeRequest** | Change requests per project | project_fk, title, description, status, requested_by |
+| **Deliverable** | Project deliverables tracking | project_fk, title, description, status, due_date |
+| **Notification** | In-platform notifications | user_fk, message, type, is_read, created_at |
+| **Payment** | Payment milestones per project | project_fk, title, amount, status, due_date |
+| **DataModelEntity** | Reusable JSON-defined data model schema | name, description, schema_json, created_at |
+| **ProjectDataModelEntity** | Links a data model entity to a project | project_fk, data_model_entity_fk, custom_schema_json |
 
 ---
 
@@ -170,14 +184,18 @@ flowchart TD
     Views["DRF Views (FBV)"] --> PS["ProposalService"]
     Views --> PES["ProposalEmailService"]
     Views --> PPDF["ProposalPdfService"]
+    Views --> CPDF["ContractPdfService"]
     Views --> ETR["EmailTemplateRegistry"]
     Views --> DPS["DocumentPdfService"]
+    Views --> CAS["CollectionAccountService"]
 
     PS -->|CRUD, lifecycle, analytics| Models["Django Models"]
     PES -->|send emails| SMTP["Django Email Backend"]
     PES -->|get content| ETR
     PPDF -->|generate| ReportLab["ReportLab PDF"]
     PPDF -->|shared utils| PU["PdfUtils"]
+    CPDF -->|generate| ReportLab
+    CPDF -->|shared utils| PU
     DPS -->|generate| ReportLab
     DPS -->|shared utils| PU
     DPS -->|parse markdown| MP["MarkdownParser"]
@@ -192,12 +210,18 @@ flowchart TD
 | Service | File Size | Responsibilities |
 |---------|-----------|-----------------|
 | **ProposalService** | 132K | Proposal CRUD, section management, default sections, analytics computation, engagement scoring, dashboard aggregation, CSV export, scorecard |
-| **ProposalEmailService** | 60K | All email sending: proposal sent, reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration |
+| **ProposalEmailService** | 71K | All email sending: proposal sent, reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration, branded + proposal composed emails |
 | **ProposalPdfService** | 72K | PDF generation with ReportLab: all 12 section types rendered to PDF |
-| **EmailTemplateRegistry** | 38K | Centralized registry of all email templates with default content, admin-editable overrides, preview rendering |
-| **PdfUtils** | 36K | Shared PDF rendering utilities (fonts, colors, layout helpers) used by ProposalPdfService and DocumentPdfService |
+| **ContractPdfService** | 10K | Contract PDF generation with contractor signature block, draft mode (no signature), Helvetica font, clickable TOC |
+| **EmailTemplateRegistry** | 44K | Centralized registry of all email templates with default content, admin-editable overrides, preview rendering, branded + proposal composed email entries |
+| **PdfUtils** | 47K | Shared PDF rendering utilities (fonts, colors, layout helpers) used by ProposalPdfService, ContractPdfService, and DocumentPdfService |
 | **DocumentPdfService** | 20K | PDF generation for generic branded Documents with template-based rendering |
 | **MarkdownParser** | 9K | Parses markdown content for Document PDF rendering |
+| **CollectionAccountService** | 6K | Collection account business logic |
+| **CollectionAccountPdfService** | 7K | PDF generation for collection account documents |
+| **TechnicalDocumentPdf** | 17K | PDF generation for technical documents |
+| **TechnicalDocumentFilter** | 3K | Filtering logic for technical document modules |
+| **PlatformOnboardingPdf** | 5K | PDF generation for platform onboarding documents |
 
 ---
 
@@ -276,7 +300,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph Stores["Pinia Stores (Options API) — 16 total"]
+    subgraph Stores["Pinia Stores (Options API) — 18 total"]
         ProposalStore["proposals.js"]
         BlogStore["blog.js"]
         PortfolioStore["portfolio_works.js"]
@@ -293,6 +317,8 @@ flowchart LR
         PlatformDeliverables["platform-deliverables.js"]
         PlatformNotifications["platform-notifications.js"]
         PlatformPayments["platform-payments.js"]
+        PlatformCollectionAccounts["platform-collection-accounts.js"]
+        PlatformDataModel["platform-data-model.js"]
     end
 
     subgraph HTTP["HTTP Service"]
@@ -314,6 +340,8 @@ flowchart LR
     PlatformDeliverables --> PlatformHTTP
     PlatformNotifications --> PlatformHTTP
     PlatformPayments --> PlatformHTTP
+    PlatformCollectionAccounts --> PlatformHTTP
+    PlatformDataModel --> PlatformHTTP
 
     RequestHTTP -->|axios| API["/api/*"]
     PlatformHTTP -->|axios + JWT| API

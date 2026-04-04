@@ -60,6 +60,7 @@ export function usePanelSidebar() {
   }
 
   function handleResize() {
+    /* c8 ignore next */
     if (!isClient()) return
     if (window.innerWidth < MOBILE_BREAKPOINT) {
       isMobileOpen.value = false

@@ -178,4 +178,155 @@ describe('usePlatformChangeRequestsStore', () => {
     mockPost.mockRejectedValueOnce({ response: { data: { detail: 'e' } } })
     expect((await store.convertToRequirement(1, 1)).success).toBe(false)
   })
+
+  describe('error fallback messages', () => {
+    it('fetchChangeRequests uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchChangeRequests(1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar las solicitudes de cambio.')
+    })
+
+    it('fetchChangeRequest uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchChangeRequest(1, 1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar la solicitud de cambio.')
+    })
+
+    it('createChangeRequest uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.createChangeRequest(1, {})
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos crear la solicitud de cambio.')
+    })
+
+    it('fetchAllChangeRequests uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchAllChangeRequests()
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar las solicitudes de cambio.')
+    })
+
+    it('evaluateChangeRequest uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.evaluateChangeRequest(1, 1, {})
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos evaluar la solicitud de cambio.')
+    })
+
+    it('deleteChangeRequest uses fallback when detail is absent', async () => {
+      mockDelete.mockRejectedValueOnce(new Error('network'))
+      const result = await store.deleteChangeRequest(1, 1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos archivar la solicitud de cambio.')
+    })
+
+    it('addComment uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.addComment(1, 1, 'text', false)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos agregar el comentario.')
+    })
+
+    it('convertToRequirement uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.convertToRequirement(1, 1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos convertir la solicitud en requerimiento.')
+    })
+  })
+
+  describe('filteredByStatus', () => {
+    it('returns filtered list for specific status', () => {
+      store.changeRequests = [
+        { id: 1, status: 'pending' },
+        { id: 2, status: 'approved' },
+      ]
+      expect(store.filteredByStatus('pending')).toHaveLength(1)
+      expect(store.filteredByStatus('pending')[0].id).toBe(1)
+    })
+
+    it('returns empty list for null statusFilter', () => {
+      store.changeRequests = [{ id: 1, status: 'pending' }]
+      expect(store.filteredByStatus(null)).toEqual([{ id: 1, status: 'pending' }])
+    })
+  })
+
+  describe('fetchChangeRequests with statusFilter', () => {
+    it('passes status param when statusFilter is provided', async () => {
+      mockGet.mockResolvedValueOnce({ data: [] })
+      await store.fetchChangeRequests(8, 'pending')
+      expect(mockGet).toHaveBeenCalledWith('projects/8/change-requests/?status=pending')
+    })
+  })
+
+  describe('fetchAllChangeRequests with statusFilter', () => {
+    it('passes status param when statusFilter is provided', async () => {
+      mockGet.mockResolvedValueOnce({ data: [] })
+      await store.fetchAllChangeRequests('approved')
+      expect(mockGet).toHaveBeenCalledWith('change-requests/?status=approved')
+    })
+  })
+
+  describe('evaluateChangeRequest conditional branches', () => {
+    it('does not update list entry when change request id is not found', async () => {
+      store.changeRequests = [{ id: 99, status: 'pending' }]
+      mockPost.mockResolvedValueOnce({ data: { id: 10, status: 'approved' } })
+      await store.evaluateChangeRequest(1, 10, {})
+      expect(store.changeRequests[0].status).toBe('pending')
+    })
+
+    it('does not update currentChangeRequest when id does not match', async () => {
+      store.changeRequests = []
+      store.currentChangeRequest = { id: 99, status: 'pending' }
+      mockPost.mockResolvedValueOnce({ data: { id: 10, status: 'approved' } })
+      await store.evaluateChangeRequest(1, 10, {})
+      expect(store.currentChangeRequest.status).toBe('pending')
+    })
+  })
+
+  describe('convertToRequirement conditional branches', () => {
+    it('does not update list entry when change request id is not found', async () => {
+      store.changeRequests = [{ id: 99, status: 'pending' }]
+      mockPost.mockResolvedValueOnce({ data: { id: 5, status: 'converted' } })
+      await store.convertToRequirement(1, 5)
+      expect(store.changeRequests[0].status).toBe('pending')
+    })
+
+    it('does not update currentChangeRequest when id does not match', async () => {
+      store.changeRequests = []
+      store.currentChangeRequest = { id: 99, status: 'pending' }
+      mockPost.mockResolvedValueOnce({ data: { id: 5, status: 'converted' } })
+      await store.convertToRequirement(1, 5)
+      expect(store.currentChangeRequest.status).toBe('pending')
+    })
+
+    it('updates currentChangeRequest when id matches', async () => {
+      store.changeRequests = [{ id: 5, status: 'pending' }]
+      store.currentChangeRequest = { id: 5, status: 'pending' }
+      mockPost.mockResolvedValueOnce({ data: { id: 5, status: 'converted' } })
+      await store.convertToRequirement(1, 5)
+      expect(store.currentChangeRequest.status).toBe('converted')
+    })
+  })
+
+  describe('addComment conditional branches', () => {
+    it('does not append when currentChangeRequest id does not match', async () => {
+      store.currentChangeRequest = { id: 99, comments: [] }
+      mockPost.mockResolvedValueOnce({ data: { id: 20 } })
+      await store.addComment(1, 7, 'note', false)
+      expect(store.currentChangeRequest.comments).toHaveLength(0)
+    })
+  })
+
+  describe('deleteChangeRequest', () => {
+    it('returns data detail as message when present', async () => {
+      store.changeRequests = [{ id: 1 }]
+      mockDelete.mockResolvedValueOnce({ data: { detail: 'Deleted.' } })
+      const result = await store.deleteChangeRequest(2, 1)
+      expect(result.success).toBe(true)
+      expect(result.message).toBe('Deleted.')
+    })
+  })
 })

@@ -301,6 +301,24 @@ describe('usePlatformRequirementsStore', () => {
       expect(store.currentRequirement.comments).toContainEqual(comment)
     })
 
+    it('does not append when currentRequirement id does not match', async () => {
+      store.currentRequirement = { ...SAMPLE_REQ, id: 99, comments: [] }
+      mockPost.mockResolvedValueOnce({ data: { id: 10, content: 'x' } })
+
+      await store.addComment(1, 7, 1, 'x', false)
+
+      expect(store.currentRequirement.comments).toHaveLength(0)
+    })
+
+    it('does not append when currentRequirement has no comments array', async () => {
+      store.currentRequirement = { ...SAMPLE_REQ, id: 1 }
+      mockPost.mockResolvedValueOnce({ data: { id: 10, content: 'x' } })
+
+      const result = await store.addComment(1, 7, 1, 'x', false)
+
+      expect(result.success).toBe(true)
+    })
+
     it('sets error on failure', async () => {
       mockPost.mockRejectedValueOnce({
         response: { data: { detail: 'Error.' } },
@@ -309,6 +327,192 @@ describe('usePlatformRequirementsStore', () => {
       const result = await store.addComment(1, 7, 1, '', false)
 
       expect(result.success).toBe(false)
+    })
+
+    it('uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.addComment(1, 7, 1, 'x', false)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos agregar el comentario.')
+    })
+  })
+
+  describe('bulkUpload', () => {
+    it('pushes new requirements from response', async () => {
+      store.requirements = [SAMPLE_REQ]
+      mockPost.mockResolvedValueOnce({
+        data: { requirements: [{ ...SAMPLE_REQ, id: 10 }] },
+      })
+
+      const result = await store.bulkUpload(1, 7, [{ title: 'New' }])
+
+      expect(result.success).toBe(true)
+      expect(store.requirements).toHaveLength(2)
+    })
+
+    it('does not push when requirements is absent in response', async () => {
+      store.requirements = [SAMPLE_REQ]
+      mockPost.mockResolvedValueOnce({ data: {} })
+
+      const result = await store.bulkUpload(1, 7, [])
+
+      expect(result.success).toBe(true)
+      expect(store.requirements).toHaveLength(1)
+    })
+
+    it('returns failure on error', async () => {
+      mockPost.mockRejectedValueOnce({ response: { data: { detail: 'bad' } } })
+      const result = await store.bulkUpload(1, 7, [])
+      expect(result.success).toBe(false)
+    })
+
+    it('uses fallback message when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.bulkUpload(1, 7, [])
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Error al cargar requerimientos.')
+    })
+  })
+
+  describe('error fallback messages', () => {
+    it('fetchRequirements uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchRequirements(1, 7)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar los requerimientos.')
+    })
+
+    it('fetchRequirement uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchRequirement(1, 7, 1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar el requerimiento.')
+    })
+
+    it('createRequirement uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.createRequirement(1, 7, {})
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos crear el requerimiento.')
+    })
+
+    it('moveRequirement uses fallback when detail is absent', async () => {
+      store.requirements = [{ ...SAMPLE_REQ, id: 1, status: 'todo', order: 0 }]
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.moveRequirement(1, 7, 1, 'done', 0)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos mover el requerimiento.')
+    })
+
+    it('updateRequirement uses fallback when detail is absent', async () => {
+      mockPatch.mockRejectedValueOnce(new Error('network'))
+      const result = await store.updateRequirement(1, 7, 1, {})
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos actualizar el requerimiento.')
+    })
+
+    it('deleteRequirement uses fallback when detail is absent', async () => {
+      mockDelete.mockRejectedValueOnce(new Error('network'))
+      const result = await store.deleteRequirement(1, 7, 1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos eliminar el requerimiento.')
+    })
+  })
+
+  describe('updateRequirement conditional branches', () => {
+    it('does not update list entry when requirement id is not found', async () => {
+      store.requirements = [{ ...SAMPLE_REQ, id: 99, title: 'unchanged' }]
+      mockPatch.mockResolvedValueOnce({ data: { ...SAMPLE_REQ, id: 1, title: 'updated' } })
+
+      await store.updateRequirement(1, 7, 1, { title: 'updated' })
+
+      expect(store.requirements[0].title).toBe('unchanged')
+    })
+
+    it('does not update currentRequirement when id does not match', async () => {
+      store.requirements = []
+      store.currentRequirement = { ...SAMPLE_REQ, id: 99, title: 'unchanged' }
+      mockPatch.mockResolvedValueOnce({ data: { ...SAMPLE_REQ, id: 1, title: 'updated' } })
+
+      await store.updateRequirement(1, 7, 1, { title: 'updated' })
+
+      expect(store.currentRequirement.title).toBe('unchanged')
+    })
+  })
+
+  describe('moveRequirement conditional branches', () => {
+    it('does not update list entry when findIndex returns -1 after success', async () => {
+      store.requirements = [{ ...SAMPLE_REQ, id: 1, status: 'todo', order: 0 }]
+      const movedReq = { ...SAMPLE_REQ, id: 1, status: 'done', order: 0 }
+      mockPost.mockResolvedValueOnce({ data: movedReq })
+
+      await store.moveRequirement(1, 7, 1, 'done', 0)
+
+      expect(store.requirements[0].status).toBe('done')
+    })
+  })
+
+  describe('doneCards sorting with missing updated_at', () => {
+    it('handles requirements without updated_at field', () => {
+      store.requirements = [
+        { ...SAMPLE_REQ, id: 1, status: 'done', updated_at: undefined },
+        { ...SAMPLE_REQ, id: 2, status: 'done', updated_at: '2025-01-01' },
+      ]
+
+      expect(() => store.doneCards).not.toThrow()
+      expect(store.doneCards).toHaveLength(2)
+    })
+
+    it('handles requirements where both lack updated_at', () => {
+      store.requirements = [
+        { ...SAMPLE_REQ, id: 1, status: 'done', updated_at: undefined },
+        { ...SAMPLE_REQ, id: 2, status: 'done', updated_at: undefined },
+      ]
+
+      expect(() => store.doneCards).not.toThrow()
+      expect(store.doneCards).toHaveLength(2)
+    })
+  })
+
+  describe('backlogCards and backlogCount getters', () => {
+    it('backlogCards returns requirements with backlog status sorted by order', () => {
+      store.requirements = [
+        { ...SAMPLE_REQ, id: 1, status: 'backlog', order: 2 },
+        { ...SAMPLE_REQ, id: 2, status: 'todo', order: 0 },
+        { ...SAMPLE_REQ, id: 3, status: 'backlog', order: 0 },
+      ]
+
+      const cards = store.backlogCards
+
+      expect(cards).toHaveLength(2)
+      expect(cards[0].order).toBe(0)
+      expect(cards[1].order).toBe(2)
+    })
+
+    it('backlogCount returns count of backlog requirements', () => {
+      store.requirements = [
+        { ...SAMPLE_REQ, id: 1, status: 'backlog' },
+        { ...SAMPLE_REQ, id: 2, status: 'backlog' },
+        { ...SAMPLE_REQ, id: 3, status: 'todo' },
+      ]
+
+      expect(store.backlogCount).toBe(2)
+    })
+  })
+
+  describe('requirementsBase guard', () => {
+    it('fetchRequirements returns failure when deliverableId is null', async () => {
+      const result = await store.fetchRequirements(1, null)
+
+      expect(result.success).toBe(false)
+      expect(mockGet).not.toHaveBeenCalled()
+    })
+
+    it('fetchRequirement returns failure when deliverableId is null', async () => {
+      const result = await store.fetchRequirement(1, null, 1)
+
+      expect(result.success).toBe(false)
+      expect(mockGet).not.toHaveBeenCalled()
     })
   })
 })

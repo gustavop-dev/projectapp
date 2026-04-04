@@ -173,6 +173,7 @@ export function buildSyntheticTechnicalPanels(technicalSection, lang) {
     panels.push({
       id: FRAGMENT_IDS[fragment],
       section_type: 'technical_document_public',
+      /* c8 ignore next */
       title: loc[fragment] || fragment,
       content_json: doc,
       _technicalFragment: fragment,

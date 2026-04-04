@@ -122,4 +122,17 @@ describe('useAnimatedNumber', () => {
     flushRaf(600);
     expect(animated.value).toBe(0);
   });
+
+  it('uses animated value as from when oldVal is null', async () => {
+    const target = ref(null);
+    const { animated } = useAnimatedNumber(target, 600);
+
+    expect(animated.value).toBe(0);
+
+    target.value = 50;
+    await nextTick();
+
+    flushRaf(600);
+    expect(animated.value).toBe(50);
+  });
 });

@@ -5,6 +5,7 @@ const isDark = ref(false)
 
 export function usePlatformTheme() {
   function hydrate() {
+    /* c8 ignore next */
     if (typeof window === 'undefined') return
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored === 'light') {

@@ -442,6 +442,16 @@
         </form>
       </div>
 
+      <!-- Tab: Enviar correo (proposal email, logged as activity) -->
+      <div v-if="activeTab === 'send-email'" class="max-w-4xl">
+        <ProposalEmailsTab :proposal="proposal" mode="proposal" />
+      </div>
+
+      <!-- Tab: Correos (branded email) -->
+      <div v-if="activeTab === 'emails'" class="max-w-4xl">
+        <ProposalEmailsTab :proposal="proposal" />
+      </div>
+
       <!-- Tab: Documentos -->
       <div v-show="activeTab === 'documents'" class="max-w-4xl">
         <ProposalDocumentsTab
@@ -1067,9 +1077,12 @@ const sectionCompleteness = computed(() => {
   return Math.round(sectionsWithContent.value / enabledSectionsCount.value * 100);
 });
 
-const validTabs = ['general', 'documents', 'sections', 'technical', 'prompt', 'json', 'activity', 'analytics'];
+const validTabs = ['general', 'send-email', 'emails', 'documents', 'sections', 'technical', 'prompt', 'json', 'activity', 'analytics'];
 const activeTab = ref(validTabs.includes(route.query.tab) ? route.query.tab : 'general');
 const technicalSubTab = ref('editor');
+const hasSendEmailTab = computed(() =>
+  ['sent', 'viewed', 'negotiating', 'accepted', 'rejected'].includes(proposal.value?.status),
+);
 const hasDocumentsTab = computed(() =>
   ['negotiating', 'accepted', 'rejected'].includes(proposal.value?.status),
 );
@@ -1078,7 +1091,11 @@ const tabs = computed(() => {
   const base = [
     { id: 'general', label: 'General' },
   ];
+  if (hasSendEmailTab.value) {
+    base.push({ id: 'send-email', label: 'Enviar correo' });
+  }
   if (hasDocumentsTab.value) {
+    base.push({ id: 'emails', label: 'Correos' });
     base.push({ id: 'documents', label: 'Documentos' });
   }
   base.push(
@@ -1806,6 +1823,8 @@ const activityMeta = {
   auto_archived: { icon: '📦', label: 'Auto-archivada', dot: 'bg-gray-200', text: 'text-gray-500' },
   status_change: { icon: '🔄', label: 'Cambio de estado', dot: 'bg-blue-100', text: 'text-blue-600' },
   cond_accepted: { icon: '⚠️', label: 'Aceptación condicional', dot: 'bg-amber-100', text: 'text-amber-600' },
+  req_clicked: { icon: '🔗', label: 'Requerimiento consultado', dot: 'bg-sky-100', text: 'text-sky-600' },
+  email_sent: { icon: '📧', label: 'Correo enviado', dot: 'bg-emerald-100', text: 'text-emerald-600' },
 };
 function activityIcon(type) { return activityMeta[type]?.icon || '•'; }
 function activityLabel(type) { return activityMeta[type]?.label || type; }

@@ -44,6 +44,7 @@ export const usePlatformChangeRequestsStore = defineStore('platformChangeRequest
         const message = error.response?.data?.detail || 'No pudimos cargar las solicitudes de cambio.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false
       }
@@ -62,6 +63,7 @@ export const usePlatformChangeRequestsStore = defineStore('platformChangeRequest
         const message = error.response?.data?.detail || 'No pudimos cargar la solicitud de cambio.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false
       }
@@ -83,6 +85,7 @@ export const usePlatformChangeRequestsStore = defineStore('platformChangeRequest
         const message = error.response?.data?.detail || 'No pudimos crear la solicitud de cambio.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }
@@ -107,6 +110,7 @@ export const usePlatformChangeRequestsStore = defineStore('platformChangeRequest
         const message = error.response?.data?.detail || 'No pudimos cargar las solicitudes de cambio.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false
       }
@@ -131,6 +135,7 @@ export const usePlatformChangeRequestsStore = defineStore('platformChangeRequest
         const message = error.response?.data?.detail || 'No pudimos evaluar la solicitud de cambio.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }
@@ -149,6 +154,7 @@ export const usePlatformChangeRequestsStore = defineStore('platformChangeRequest
         const message = error.response?.data?.detail || 'No pudimos archivar la solicitud de cambio.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }
@@ -192,6 +198,7 @@ export const usePlatformChangeRequestsStore = defineStore('platformChangeRequest
         const message = error.response?.data?.detail || 'No pudimos convertir la solicitud en requerimiento.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }

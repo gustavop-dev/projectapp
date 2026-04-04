@@ -28,6 +28,7 @@ class EmailLog(models.Model):
         default=Status.SENT,
     )
     error_message = models.TextField(blank=True, default='')
+    metadata = models.JSONField(default=dict, blank=True)
     sent_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

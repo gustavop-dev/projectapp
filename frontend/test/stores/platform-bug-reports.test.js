@@ -185,4 +185,117 @@ describe('usePlatformBugReportsStore', () => {
     const result = await store.addComment(1, 1, 'x', true)
     expect(result.success).toBe(false)
   })
+
+  describe('error fallback messages', () => {
+    it('fetchBugReports uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchBugReports(1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar los reportes de bugs.')
+    })
+
+    it('fetchAllBugReports uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchAllBugReports()
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar los reportes de bugs.')
+    })
+
+    it('fetchBugReport uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchBugReport(1, 1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar el reporte de bug.')
+    })
+
+    it('createBugReport uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.createBugReport(1, {})
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos crear el reporte de bug.')
+    })
+
+    it('evaluateBugReport uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.evaluateBugReport(1, 1, {})
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos evaluar el reporte de bug.')
+    })
+
+    it('deleteBugReport uses fallback when detail is absent', async () => {
+      mockDelete.mockRejectedValueOnce(new Error('network'))
+      const result = await store.deleteBugReport(1, 1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos archivar el reporte de bug.')
+    })
+
+    it('addComment uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.addComment(1, 1, 'x', false)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos agregar el comentario.')
+    })
+  })
+
+  describe('fetchAllBugReports with statusFilter', () => {
+    it('appends status query when statusFilter is provided', async () => {
+      mockGet.mockResolvedValueOnce({ data: [] })
+      await store.fetchAllBugReports('reported')
+      expect(mockGet).toHaveBeenCalledWith('bug-reports/?status=reported')
+    })
+  })
+
+  describe('evaluateBugReport conditional branches', () => {
+    it('does not update list when bug report id is not found', async () => {
+      store.bugReports = [{ id: 99, status: 'reported' }]
+      mockPost.mockResolvedValueOnce({ data: { id: 7, status: 'confirmed' } })
+      await store.evaluateBugReport(1, 7, {})
+      expect(store.bugReports[0].status).toBe('reported')
+    })
+
+    it('does not update currentBugReport when id does not match', async () => {
+      store.bugReports = []
+      store.currentBugReport = { id: 99, status: 'reported' }
+      mockPost.mockResolvedValueOnce({ data: { id: 7, status: 'confirmed' } })
+      await store.evaluateBugReport(1, 7, {})
+      expect(store.currentBugReport.status).toBe('reported')
+    })
+  })
+
+  describe('addComment conditional branches', () => {
+    it('does not push when currentBugReport has no comments array', async () => {
+      store.currentBugReport = { id: 5 }
+      mockPost.mockResolvedValueOnce({ data: { id: 99 } })
+      const result = await store.addComment(1, 5, 'hi', false)
+      expect(result.success).toBe(true)
+    })
+  })
+
+  describe('deleteBugReport detail message', () => {
+    it('returns data detail as message when present', async () => {
+      store.bugReports = [{ id: 1 }]
+      mockDelete.mockResolvedValueOnce({ data: { detail: 'Archived.' } })
+      const result = await store.deleteBugReport(1, 1)
+      expect(result.success).toBe(true)
+      expect(result.message).toBe('Archived.')
+    })
+  })
+
+  describe('fetchAllBugReports error', () => {
+    it('sets error from response detail', async () => {
+      mockGet.mockRejectedValueOnce({ response: { data: { detail: 'Bug reports no disponibles.' } } })
+      const result = await store.fetchAllBugReports()
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Bug reports no disponibles.')
+    })
+  })
+
+  describe('fetchBugReport error', () => {
+    it('sets error from response detail', async () => {
+      mockGet.mockRejectedValueOnce({ response: { data: { detail: 'Bug no encontrado.' } } })
+      const result = await store.fetchBugReport(1, 99)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Bug no encontrado.')
+    })
+  })
 })

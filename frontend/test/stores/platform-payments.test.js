@@ -275,4 +275,95 @@ describe('usePlatformPaymentsStore', () => {
     const result = await store.generatePaymentLink(1, 2)
     expect(result.success).toBe(false)
   })
+
+  describe('error fallback messages', () => {
+    it('fetchProposals uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchProposals()
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Error cargando propuestas.')
+    })
+
+    it('fetchSubscriptions uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchSubscriptions()
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar las suscripciones.')
+    })
+
+    it('fetchProjectSubscription uses fallback when non-404 and detail absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchProjectSubscription(1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Error cargando suscripción.')
+    })
+
+    it('fetchProjectPayments uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchProjectPayments(1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Error cargando pagos.')
+    })
+
+    it('updateSubscription uses fallback when detail is absent', async () => {
+      mockPatch.mockRejectedValueOnce(new Error('network'))
+      const result = await store.updateSubscription(1, {})
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Error actualizando suscripción.')
+    })
+
+    it('payWithCard uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.payWithCard(1, 2, {})
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Error procesando el pago con tarjeta.')
+    })
+
+    it('verifyTransaction uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.verifyTransaction(1, 2, 'tx')
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Error verificando transacción.')
+    })
+
+    it('fetchWidgetData uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchWidgetData(1, 2)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Error obteniendo datos de pago.')
+    })
+
+    it('generatePaymentLink uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.generatePaymentLink(1, 2)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Error generando link de pago.')
+    })
+  })
+
+  describe('fetchProjectSubscription edge cases', () => {
+    it('defaults payments to empty array when absent in response', async () => {
+      mockGet.mockResolvedValueOnce({ data: { id: 1 } })
+      const result = await store.fetchProjectSubscription(3)
+      expect(result.success).toBe(true)
+      expect(store.payments).toEqual([])
+    })
+  })
+
+  describe('generatePaymentLink conditional branches', () => {
+    it('does not update list when payment id is not found', async () => {
+      store.payments = [{ id: 99, status: 'pending' }]
+      mockPost.mockResolvedValueOnce({ data: { wompi_payment_link_url: 'https://pay' } })
+      const result = await store.generatePaymentLink(1, 7)
+      expect(result.success).toBe(true)
+      expect(store.payments[0].wompi_payment_link_url).toBeUndefined()
+    })
+  })
+
+  describe('currentPeriodPayment edge cases', () => {
+    it('excludes pending payment without due_date', () => {
+      store.payments = [{ id: 1, status: 'pending', due_date: null }]
+      expect(store.currentPeriodPayment).toBeNull()
+    })
+  })
 })

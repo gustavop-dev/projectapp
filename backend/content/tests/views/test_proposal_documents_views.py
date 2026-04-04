@@ -217,9 +217,10 @@ class TestDownloadDraftContractPdf:
         assert response['Content-Type'] == 'application/pdf'
         mock_wm.assert_called_once()
 
-    def test_returns_404_when_not_generated(self, admin_client, negotiating_proposal):
+    @patch('content.services.contract_pdf_service.generate_contract_pdf', return_value=None)
+    def test_returns_500_when_generation_fails(self, mock_gen, admin_client, negotiating_proposal):
         response = admin_client.get(self._url(negotiating_proposal))
-        assert response.status_code == 404
+        assert response.status_code == 500
 
 
 # ---------------------------------------------------------------------------
@@ -233,7 +234,7 @@ class TestGetCompanySettings:
         url = reverse(self.URL_NAME)
         response = admin_client.get(url)
         assert response.status_code == 200
-        assert response.data['contractor_full_name'] == 'CARLOS MARIO BLANCO'
+        assert response.data['contractor_full_name'] == 'CARLOS MARIO BLANCO PEREZ'
 
     def test_creates_singleton_on_first_access(self, admin_client):
         url = reverse(self.URL_NAME)
@@ -342,3 +343,61 @@ class TestSendDocumentsToClient:
         # Email service gets called with empty attachments → returns 400
         response = admin_client.post(self._url(negotiating_proposal), payload, format='json')
         assert response.status_code == 400  # no attachments generated
+
+
+
+class TestUpdateContractParams:
+    """PATCH /proposals/:id/contract/update/ — update existing contract params."""
+
+    def _url(self, proposal):
+        return f'/api/proposals/{proposal.pk}/contract/update/'
+
+    def _valid_params(self):
+        return {
+            'contract_params': {
+                'contract_source': 'default',
+                'client_full_name': 'Updated Client',
+                'client_cedula': '9876543210',
+                'client_email': 'updated@client.com',
+                'contractor_full_name': 'Contractor',
+                'contractor_cedula': '1037635428',
+                'contractor_email': 'team@projectapp.co',
+                'bank_name': 'Bancolombia',
+                'bank_account_type': 'Ahorros',
+                'bank_account_number': '26292039530',
+                'contract_city': 'Medellín',
+            },
+        }
+
+    @patch('content.views.proposal._generate_and_save_contract_pdf')
+    def test_returns_200_with_valid_params(self, mock_gen, admin_client, negotiating_proposal):
+        """Updating contract params with valid data returns 200."""
+        response = admin_client.patch(
+            self._url(negotiating_proposal), self._valid_params(), format='json',
+        )
+        assert response.status_code == 200
+
+    @patch('content.views.proposal._generate_and_save_contract_pdf')
+    def test_persists_updated_params(self, mock_gen, admin_client, negotiating_proposal):
+        """Updated contract_params are saved to the proposal."""
+        admin_client.patch(
+            self._url(negotiating_proposal), self._valid_params(), format='json',
+        )
+        negotiating_proposal.refresh_from_db()
+        assert negotiating_proposal.contract_params['client_full_name'] == 'Updated Client'
+
+    def test_returns_400_for_missing_required_fields(self, admin_client, negotiating_proposal):
+        """Missing required fields returns 400."""
+        response = admin_client.patch(
+            self._url(negotiating_proposal),
+            {'contract_params': {}},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    def test_returns_401_for_unauthenticated(self, api_client, negotiating_proposal):
+        """Unauthenticated requests are rejected."""
+        response = api_client.patch(
+            self._url(negotiating_proposal), self._valid_params(), format='json',
+        )
+        assert response.status_code == 401

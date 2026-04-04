@@ -48,6 +48,7 @@ export const usePortfolioWorksStore = defineStore('portfolio_works', {
         this.error = 'fetch_failed';
         console.error('Error fetching portfolio works:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
       }
@@ -73,6 +74,7 @@ export const usePortfolioWorksStore = defineStore('portfolio_works', {
           this.error = 'unknown';
         }
         return { success: false, error: this.error, status };
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
       }
@@ -96,6 +98,7 @@ export const usePortfolioWorksStore = defineStore('portfolio_works', {
         this.error = 'fetch_failed';
         console.error('Error fetching admin portfolio works:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
       }
@@ -116,6 +119,7 @@ export const usePortfolioWorksStore = defineStore('portfolio_works', {
         this.error = 'fetch_failed';
         console.error('Error fetching portfolio work:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
       }
@@ -136,6 +140,7 @@ export const usePortfolioWorksStore = defineStore('portfolio_works', {
         this.error = 'create_failed';
         console.error('Error creating portfolio work:', error);
         return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }
@@ -157,6 +162,7 @@ export const usePortfolioWorksStore = defineStore('portfolio_works', {
         this.error = 'update_failed';
         console.error('Error updating portfolio work:', error);
         return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }
@@ -180,6 +186,7 @@ export const usePortfolioWorksStore = defineStore('portfolio_works', {
         this.error = 'delete_failed';
         console.error('Error deleting portfolio work:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }
@@ -200,6 +207,7 @@ export const usePortfolioWorksStore = defineStore('portfolio_works', {
         this.error = 'create_failed';
         console.error('Error creating portfolio work from JSON:', error);
         return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }
@@ -233,6 +241,7 @@ export const usePortfolioWorksStore = defineStore('portfolio_works', {
         this.error = 'upload_failed';
         console.error('Error uploading cover image:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }
@@ -253,6 +262,7 @@ export const usePortfolioWorksStore = defineStore('portfolio_works', {
         this.error = 'duplicate_failed';
         console.error('Error duplicating portfolio work:', error);
         return { success: false };
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
       }

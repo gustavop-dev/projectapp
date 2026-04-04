@@ -77,4 +77,24 @@ describe('useMarkdownPreview', () => {
     const html = parseMarkdown('Hello world')
     expect(html).toContain('md-p')
   })
+
+  it('returns single-row table block as-is when no separator row', () => {
+    // Single row matches table pattern but rows.length < 2 → returned unchanged
+    const md = '| A | B |\n'
+    const html = parseMarkdown(md)
+    // No table element produced since < 2 rows
+    expect(html).not.toContain('<table')
+  })
+
+  it('renders table without separator row as plain body rows', () => {
+    const md = '| A | B |\n| 1 | 2 |\n'
+    const html = parseMarkdown(md)
+    expect(html).toContain('md-table')
+    expect(html).not.toContain('<thead>')
+  })
+
+  it('skips empty blocks in paragraph splitting', () => {
+    const html = parseMarkdown('first\n\n\n\nsecond')
+    expect(html).toContain('md-p')
+  })
 })

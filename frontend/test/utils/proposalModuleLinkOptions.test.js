@@ -95,4 +95,38 @@ describe('buildProposalModuleLinkOptions', () => {
     ]
     expect(buildProposalModuleLinkOptions(sections)).toEqual([])
   })
+
+  it('uses id as label when group title is missing', () => {
+    const sections = [
+      {
+        section_type: 'functional_requirements',
+        content_json: {
+          groups: [{ id: 7, items: ['x'], is_calculator_module: true, price_percent: 0 }],
+        },
+      },
+    ]
+    const opts = buildProposalModuleLinkOptions(sections)
+    expect(opts[0].label).toBe('7')
+  })
+
+  it('falls back to 0 when price_percent is undefined', () => {
+    const sections = [
+      {
+        section_type: 'functional_requirements',
+        content_json: {
+          groups: [{ id: 8, title: 'T', is_calculator_module: true }],
+        },
+      },
+    ]
+    const opts = buildProposalModuleLinkOptions(sections)
+    expect(opts[0].id).toBe('module-8')
+  })
+
+  it('uses module id as label when investment module has no title', () => {
+    const sections = [
+      { section_type: 'investment', content_json: { modules: [{ id: 'inv2' }] } },
+    ]
+    const opts = buildProposalModuleLinkOptions(sections)
+    expect(opts[0].label).toBe('inv2')
+  })
 })

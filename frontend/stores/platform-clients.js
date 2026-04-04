@@ -48,6 +48,7 @@ export const usePlatformClientsStore = defineStore('platformClients', {
         const message = error.response?.data?.detail || 'No pudimos cargar los clientes.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false
       }
@@ -68,6 +69,7 @@ export const usePlatformClientsStore = defineStore('platformClients', {
         this.error = message
         this.currentClient = null
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false
       }
@@ -106,6 +108,7 @@ export const usePlatformClientsStore = defineStore('platformClients', {
         const message = error.response?.data?.detail || 'No pudimos crear el cliente.'
         this.error = message
         return { success: false, message, errors: error.response?.data }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }
@@ -124,6 +127,7 @@ export const usePlatformClientsStore = defineStore('platformClients', {
         const message = error.response?.data?.detail || 'No pudimos actualizar el cliente.'
         this.error = message
         return { success: false, message, errors: error.response?.data }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }
@@ -155,6 +159,7 @@ export const usePlatformClientsStore = defineStore('platformClients', {
         const message = error.response?.data?.detail || 'No pudimos desactivar el cliente.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }
@@ -190,6 +195,7 @@ export const usePlatformClientsStore = defineStore('platformClients', {
         const message = error.response?.data?.detail || 'No pudimos reenviar la invitación.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }

@@ -10,7 +10,7 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from content.models import BusinessProposal, EmailTemplateConfig, ProposalShareLink
+from content.models import BusinessProposal, EmailLog, EmailTemplateConfig, ProposalChangeLog, ProposalShareLink
 from content.services.proposal_email_service import ProposalEmailService
 
 pytestmark = pytest.mark.django_db
@@ -849,6 +849,76 @@ class TestIsTemplateActiveWithConfig:
 # Template-disabled early returns (lines 99-100, 181-182, ... 1454-1455)
 # ---------------------------------------------------------------------------
 
+class TestSendDocumentsToClient:
+    """ProposalEmailService.send_documents_to_client — all code paths."""
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_email_with_multiple_attachments(self, mock_render, mock_email_cls, email_proposal):
+        """Email is sent successfully with each attachment appended."""
+        mock_render.return_value = '<html>Docs</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        attachments = [
+            ('contrato.pdf', b'%PDF-1.4 contract', 'application/pdf'),
+            ('anexo.pdf', b'%PDF-1.4 annex', 'application/pdf'),
+        ]
+        result = ProposalEmailService.send_documents_to_client(
+            email_proposal,
+            attachments=attachments,
+            subject='Documentos de tu proyecto',
+            greeting='Hola Test',
+            body='Adjuntamos los documentos.',
+            footer='Gracias.',
+        )
+
+        assert result is True
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+        assert mock_instance.attach.call_count == 2
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_uses_provided_subject_and_body_fields(self, mock_render, mock_email_cls, email_proposal):
+        """Custom subject, greeting, body, footer are passed to the email constructor."""
+        mock_render.return_value = 'plain text'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        ProposalEmailService.send_documents_to_client(
+            email_proposal,
+            attachments=[],
+            subject='Asunto personalizado',
+            greeting='Querido Cliente',
+            body='Cuerpo del mensaje.',
+            footer='Pie de mensaje.',
+        )
+
+        call_kwargs = mock_email_cls.call_args
+        assert call_kwargs[1]['subject'] == 'Asunto personalizado'
+
+    def test_returns_false_when_no_client_email(self, no_email_proposal):
+        """Returns False immediately when proposal has no client_email."""
+        result = ProposalEmailService.send_documents_to_client(
+            no_email_proposal,
+            attachments=[('doc.pdf', b'%PDF', 'application/pdf')],
+        )
+        assert result is False
+
+    @patch('content.services.proposal_email_service.render_to_string', side_effect=Exception('SMTP failure'))
+    def test_returns_false_on_send_exception(self, mock_render, email_proposal):
+        """Returns False and logs when email sending raises an exception."""
+        result = ProposalEmailService.send_documents_to_client(
+            email_proposal,
+            attachments=[('doc.pdf', b'%PDF', 'application/pdf')],
+            subject='S',
+            greeting='G',
+            body='B',
+            footer='F',
+        )
+        assert result is False
+
+
 class TestTemplateDisabledReturnsEarly:
     """Each send method returns False when its template is disabled via EmailTemplateConfig."""
 
@@ -954,3 +1024,233 @@ class TestTemplateDisabledReturnsEarly:
     def test_send_post_expiration_visit_alert_returns_false_when_disabled(self, email_proposal):
         self._disable_template('proposal_post_expiration_visit')
         assert ProposalEmailService.send_post_expiration_visit_alert(email_proposal) is False
+
+
+# ── User-composed emails (branded & proposal) ──────────────────
+
+class TestSendComposedEmail:
+    """Tests for _send_composed_email shared implementation."""
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_email_with_html_and_text_alternatives(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>Test</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService._send_composed_email(
+            'branded_email', email_proposal, 'test@example.com', 'Subject',
+            'Hola', ['Section 1'],
+        )
+
+        assert result is True
+        mock_instance.attach_alternative.assert_called_once()
+        mock_instance.send.assert_called_once_with(fail_silently=False)
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_logs_email_on_success(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>OK</html>'
+        mock_email_cls.return_value = MagicMock()
+
+        ProposalEmailService._send_composed_email(
+            'branded_email', email_proposal, 'test@example.com', 'Subject',
+            'Hola', ['Sec 1'], footer='Bye',
+        )
+
+        log = EmailLog.objects.get(proposal=email_proposal, template_key='branded_email')
+        assert log.status == 'sent'
+        assert log.metadata['greeting'] == 'Hola'
+        assert log.metadata['sections'] == ['Sec 1']
+        assert log.metadata['footer'] == 'Bye'
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_logs_email_on_failure(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>Fail</html>'
+        mock_instance = MagicMock()
+        mock_instance.send.side_effect = Exception('SMTP down')
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService._send_composed_email(
+            'branded_email', email_proposal, 'test@example.com', 'Subject',
+            'Hi', ['Content'],
+        )
+
+        assert result is False
+        log = EmailLog.objects.get(proposal=email_proposal, template_key='branded_email')
+        assert log.status == 'failed'
+        assert 'SMTP down' in log.error_message
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_renders_templates_from_registry(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>T</html>'
+        mock_email_cls.return_value = MagicMock()
+
+        ProposalEmailService._send_composed_email(
+            'branded_email', email_proposal, 'test@example.com', 'Sub',
+            'Hi', ['Sec'],
+        )
+
+        template_paths = [call[0][0] for call in mock_render.call_args_list]
+        assert 'emails/branded_email.html' in template_paths
+        assert 'emails/branded_email.txt' in template_paths
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_attaches_files_when_provided(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>A</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        attachments = [
+            ('doc.pdf', b'pdfdata', 'application/pdf'),
+            ('img.png', b'pngdata', 'image/png'),
+        ]
+        ProposalEmailService._send_composed_email(
+            'branded_email', email_proposal, 'test@example.com', 'Sub',
+            'Hi', ['Sec'], attachments=attachments,
+        )
+
+        assert mock_instance.attach.call_count == 2
+        mock_instance.attach.assert_any_call('doc.pdf', b'pdfdata', 'application/pdf')
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_skips_attachments_when_none(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>N</html>'
+        mock_instance = MagicMock()
+        mock_email_cls.return_value = mock_instance
+
+        ProposalEmailService._send_composed_email(
+            'branded_email', email_proposal, 'test@example.com', 'Sub',
+            'Hi', ['Sec'], attachments=None,
+        )
+
+        mock_instance.attach.assert_not_called()
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_metadata_includes_attachment_names(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>M</html>'
+        mock_email_cls.return_value = MagicMock()
+
+        ProposalEmailService._send_composed_email(
+            'branded_email', email_proposal, 'test@example.com', 'Sub',
+            'Hi', ['Sec'], attachments=[('file.pdf', b'data', 'application/pdf')],
+        )
+
+        log = EmailLog.objects.get(proposal=email_proposal, template_key='branded_email')
+        assert log.metadata['attachment_names'] == ['file.pdf']
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_returns_false_on_smtp_error(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>E</html>'
+        mock_instance = MagicMock()
+        mock_instance.send.side_effect = ConnectionError('refused')
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService._send_composed_email(
+            'branded_email', email_proposal, 'test@example.com', 'Sub',
+            'Hi', ['Sec'],
+        )
+
+        assert result is False
+
+
+class TestSendBrandedEmail:
+    """Tests for the send_branded_email wrapper."""
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_delegates_with_branded_template_key(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>B</html>'
+        mock_email_cls.return_value = MagicMock()
+
+        result = ProposalEmailService.send_branded_email(
+            email_proposal, 'test@example.com', 'Subject', 'Hi', ['Sec'],
+        )
+
+        assert result is True
+        log = EmailLog.objects.get(proposal=email_proposal)
+        assert log.template_key == 'branded_email'
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_does_not_create_change_log(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>B</html>'
+        mock_email_cls.return_value = MagicMock()
+
+        ProposalEmailService.send_branded_email(
+            email_proposal, 'test@example.com', 'Subject', 'Hi', ['Sec'],
+        )
+
+        assert not ProposalChangeLog.objects.filter(
+            proposal=email_proposal, change_type='email_sent',
+        ).exists()
+
+
+class TestSendProposalEmailMethod:
+    """Tests for the send_proposal_email wrapper with activity logging."""
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_creates_change_log_on_success(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>P</html>'
+        mock_email_cls.return_value = MagicMock()
+
+        ProposalEmailService.send_proposal_email(
+            email_proposal, 'test@example.com', 'Proposal Email', 'Hi', ['Sec'],
+        )
+
+        log = ProposalChangeLog.objects.get(
+            proposal=email_proposal, change_type='email_sent',
+        )
+        assert 'test@example.com' in log.description
+        assert 'Proposal Email' in log.description
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_updates_last_activity_at_on_success(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>P</html>'
+        mock_email_cls.return_value = MagicMock()
+        old_activity = email_proposal.last_activity_at
+
+        ProposalEmailService.send_proposal_email(
+            email_proposal, 'test@example.com', 'Sub', 'Hi', ['Sec'],
+        )
+
+        email_proposal.refresh_from_db()
+        assert email_proposal.last_activity_at != old_activity
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_does_not_create_change_log_on_failure(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>F</html>'
+        mock_instance = MagicMock()
+        mock_instance.send.side_effect = Exception('fail')
+        mock_email_cls.return_value = mock_instance
+
+        ProposalEmailService.send_proposal_email(
+            email_proposal, 'test@example.com', 'Sub', 'Hi', ['Sec'],
+        )
+
+        assert not ProposalChangeLog.objects.filter(
+            proposal=email_proposal, change_type='email_sent',
+        ).exists()
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_change_log_uses_enum_constants(self, mock_render, mock_email_cls, email_proposal):
+        mock_render.return_value = '<html>E</html>'
+        mock_email_cls.return_value = MagicMock()
+
+        ProposalEmailService.send_proposal_email(
+            email_proposal, 'test@example.com', 'Sub', 'Hi', ['Sec'],
+        )
+
+        log = ProposalChangeLog.objects.get(proposal=email_proposal)
+        assert log.change_type == ProposalChangeLog.ChangeType.EMAIL_SENT
+        assert log.actor_type == ProposalChangeLog.ActorType.SELLER

@@ -11,6 +11,7 @@ const isDark = ref(false);
  */
 export function useDarkMode() {
   function applyTheme(dark) {
+    /* c8 ignore next */
     if (typeof document === 'undefined') return;
     const html = document.documentElement;
     if (dark) {

@@ -133,6 +133,49 @@ describe('usePlatformAuthStore', () => {
     })
   })
 
+  describe('getters edge cases', () => {
+    it('displayName returns ProjectApp when user has no name and no email', () => {
+      store.user = { first_name: '', last_name: '', email: '' }
+
+      expect(store.displayName).toBe('ProjectApp')
+    })
+
+    it('userInitials returns single letter when user has only email', () => {
+      store.user = { first_name: '', last_name: '', email: 'admin@test.com' }
+
+      expect(store.userInitials).toBe('A')
+    })
+
+    it('userInitials returns PA when user has no name and no email', () => {
+      store.user = { first_name: '', last_name: '', email: '' }
+
+      expect(store.userInitials).toBe('P')
+    })
+
+    it('needsProfileCompletion returns false when not onboarded', () => {
+      store.isOnboarded = false
+      store.profileCompleted = false
+
+      expect(store.needsProfileCompletion).toBe(false)
+    })
+  })
+
+  describe('hydrate edge cases', () => {
+    it('sets role to empty string when session user has no role field', () => {
+      readPlatformSession.mockReturnValueOnce({
+        accessToken: 'tok',
+        refreshToken: 'ref',
+        user: { is_onboarded: true, profile_completed: false },
+        verificationToken: '',
+        pendingEmail: '',
+      })
+
+      store.hydrate()
+
+      expect(store.role).toBe('')
+    })
+  })
+
   describe('login', () => {
     it('returns error when email or password is empty', async () => {
       const result = await store.login({ email: '', password: '' })
@@ -186,6 +229,29 @@ describe('usePlatformAuthStore', () => {
 
       expect(result.success).toBe(false)
       expect(store.error).toBe('Credenciales incorrectas.')
+    })
+
+    it('attaches recaptcha_token to body when provided', async () => {
+      mockPost.mockResolvedValueOnce({
+        data: { requires_verification: false, tokens: { access: 'a', refresh: 'r' }, user: {} },
+      })
+
+      await store.login({ email: 'a@b.com', password: 'p', recaptcha_token: 'cap-token' })
+
+      expect(mockPost).toHaveBeenCalledWith(
+        'login/',
+        expect.objectContaining({ recaptcha_token: 'cap-token' }),
+        expect.any(Object),
+      )
+    })
+
+    it('uses fallback message when detail is absent in error', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+
+      const result = await store.login({ email: 'a@b.com', password: 'pass' })
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('No pudimos iniciar sesión en este momento.')
     })
 
     it('resets isLoading after completion', async () => {
@@ -242,6 +308,29 @@ describe('usePlatformAuthStore', () => {
       expect(store.accessToken).toBe('new-acc')
     })
 
+    it('uses fallback message when detail is absent in error', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+
+      const result = await store.verify({ code: '123456', newPassword: 'NewPass1!' })
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('No pudimos completar la verificación.')
+    })
+
+    it('treats missing code as empty string', async () => {
+      const result = await store.verify({ newPassword: 'Pass1234' })
+
+      expect(result.success).toBe(false)
+      expect(store.error).toContain('6 dígitos')
+    })
+
+    it('treats missing newPassword as empty string', async () => {
+      const result = await store.verify({ code: '123456' })
+
+      expect(result.success).toBe(false)
+      expect(store.error).toContain('8 caracteres')
+    })
+
     it('sets error on verification failure', async () => {
       mockPost.mockRejectedValueOnce({
         response: { data: { detail: 'Código incorrecto.' } },
@@ -277,6 +366,16 @@ describe('usePlatformAuthStore', () => {
         {},
         expect.objectContaining({ token: 'v-token' }),
       )
+    })
+
+    it('uses fallback message when response has no detail', async () => {
+      store.verificationToken = 'v-token'
+      mockPost.mockResolvedValueOnce({ data: {} })
+
+      const result = await store.resendCode()
+
+      expect(result.success).toBe(true)
+      expect(result.message).toBe('Código reenviado.')
     })
 
     it('sets error on API failure', async () => {
@@ -329,6 +428,28 @@ describe('usePlatformAuthStore', () => {
       expect(store.hasValidatedSession).toBe(true)
     })
 
+    it('sets role to empty string when role absent from response', async () => {
+      store.accessToken = 'tok'
+      mockGet.mockResolvedValueOnce({
+        data: { is_onboarded: true, profile_completed: true, email: 'c@d.com' },
+      })
+
+      const result = await store.fetchMe()
+
+      expect(result.success).toBe(true)
+      expect(store.role).toBe('')
+    })
+
+    it('uses fallback message when detail is absent', async () => {
+      store.accessToken = 'tok'
+      mockGet.mockRejectedValueOnce(new Error('network'))
+
+      const result = await store.fetchMe()
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('No pudimos cargar tu perfil.')
+    })
+
     it('clears session on fetch failure', async () => {
       store.accessToken = 'tok'
       mockGet.mockRejectedValueOnce({
@@ -355,6 +476,17 @@ describe('usePlatformAuthStore', () => {
       expect(store.user.first_name).toBe('Updated')
     })
 
+    it('keeps existing role when response has empty role', async () => {
+      store.role = 'admin'
+      mockPatch.mockResolvedValueOnce({
+        data: { role: '', is_onboarded: true, profile_completed: true },
+      })
+
+      await store.updateProfile({ first_name: 'X' })
+
+      expect(store.role).toBe('admin')
+    })
+
     it('sets error on failure', async () => {
       mockPatch.mockRejectedValueOnce({
         response: { data: { detail: 'Error al actualizar.' } },
@@ -364,6 +496,56 @@ describe('usePlatformAuthStore', () => {
 
       expect(result.success).toBe(false)
       expect(store.error).toBe('Error al actualizar.')
+    })
+
+    it('uses fallback message when detail is absent', async () => {
+      mockPatch.mockRejectedValueOnce(new Error('network'))
+
+      const result = await store.updateProfile({ first_name: 'X' })
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('No pudimos actualizar tu perfil.')
+    })
+
+    it('errors is undefined when error has no response', async () => {
+      mockPatch.mockRejectedValueOnce(new Error('network'))
+
+      const result = await store.updateProfile({})
+
+      expect(result.errors).toBeUndefined()
+    })
+  })
+
+  describe('uploadAvatar', () => {
+    it('updates user on success', async () => {
+      mockRequest.mockResolvedValueOnce({
+        data: { email: 'a@b.com', avatar: '/media/x.png' },
+      })
+
+      const result = await store.uploadAvatar(new File(['x'], 'x.png'))
+
+      expect(result.success).toBe(true)
+      expect(store.user.avatar).toBe('/media/x.png')
+    })
+
+    it('uses fallback message when detail is absent', async () => {
+      mockRequest.mockRejectedValueOnce(new Error('network'))
+
+      const result = await store.uploadAvatar(new File(['x'], 'x.png'))
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('No pudimos actualizar tu avatar.')
+    })
+
+    it('uses error detail from response when present', async () => {
+      mockRequest.mockRejectedValueOnce({
+        response: { data: { detail: 'Archivo muy grande.' } },
+      })
+
+      const result = await store.uploadAvatar(new File(['x'], 'x.png'))
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('Archivo muy grande.')
     })
   })
 
@@ -400,6 +582,34 @@ describe('usePlatformAuthStore', () => {
 
       expect(result.success).toBe(false)
       expect(store.error).toBe('No pudimos completar tu perfil.')
+    })
+
+    it('keeps existing role when response has empty role', async () => {
+      store.role = 'client'
+      mockRequest.mockResolvedValueOnce({
+        data: { role: '', is_onboarded: true, profile_completed: true },
+      })
+
+      await store.completeProfile(new FormData())
+
+      expect(store.role).toBe('client')
+    })
+
+    it('errors is undefined when error has no response', async () => {
+      mockRequest.mockRejectedValueOnce(new Error('network'))
+
+      const result = await store.completeProfile(new FormData())
+
+      expect(result.errors).toBeUndefined()
+    })
+  })
+
+  describe('applyVerificationState', () => {
+    it('pendingEmail defaults to empty string when not provided', () => {
+      store.applyVerificationState('v-token')
+
+      expect(store.pendingEmail).toBe('')
+      expect(store.verificationToken).toBe('v-token')
     })
   })
 
@@ -505,6 +715,18 @@ describe('usePlatformAuthStore', () => {
 
       expect(result.success).toBe(false)
       expect(store.isAuthenticated).toBe(false)
+    })
+
+    it('uses error detail from response when present', async () => {
+      store.refreshToken = 'old-ref'
+      mockRefresh.mockRejectedValueOnce({
+        response: { data: { detail: 'Refresh token expirado.' } },
+      })
+
+      const result = await store.refreshTokenAction()
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Refresh token expirado.')
     })
   })
 })

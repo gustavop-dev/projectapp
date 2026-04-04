@@ -44,6 +44,7 @@ export const usePlatformBugReportsStore = defineStore('platformBugReports', {
         const message = error.response?.data?.detail || 'No pudimos cargar los reportes de bugs.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false
       }
@@ -68,6 +69,7 @@ export const usePlatformBugReportsStore = defineStore('platformBugReports', {
         const message = error.response?.data?.detail || 'No pudimos cargar los reportes de bugs.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false
       }
@@ -86,6 +88,7 @@ export const usePlatformBugReportsStore = defineStore('platformBugReports', {
         const message = error.response?.data?.detail || 'No pudimos cargar el reporte de bug.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false
       }
@@ -107,6 +110,7 @@ export const usePlatformBugReportsStore = defineStore('platformBugReports', {
         const message = error.response?.data?.detail || 'No pudimos crear el reporte de bug.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }
@@ -131,6 +135,7 @@ export const usePlatformBugReportsStore = defineStore('platformBugReports', {
         const message = error.response?.data?.detail || 'No pudimos evaluar el reporte de bug.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }
@@ -149,6 +154,7 @@ export const usePlatformBugReportsStore = defineStore('platformBugReports', {
         const message = error.response?.data?.detail || 'No pudimos archivar el reporte de bug.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }

@@ -36,7 +36,6 @@ from content.services.proposal_pdf_service import (
     _draw_banner_box,
     _draw_bullet_list,
     _draw_footer,
-    _draw_green_bar,
     _draw_line_with_links,
     _draw_paragraphs,
     _draw_pill,
@@ -56,6 +55,7 @@ from content.services.proposal_pdf_service import (
     _safe,
     _strip_emoji,
 )
+from content.services.pdf_utils import _draw_green_bar
 
 pytestmark = pytest.mark.django_db
 
@@ -834,7 +834,6 @@ class TestGenerate:
         assert isinstance(result, bytes)
         assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -852,7 +851,6 @@ class TestGenerate:
         reader = PdfReader(io.BytesIO(pdf_bytes))
         assert len(reader.pages) >= 2
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
     @patch('content.services.proposal_pdf_service.canvas.Canvas')
     def test_returns_none_on_exception(self, mock_canvas_cls, proposal):
@@ -877,7 +875,6 @@ class TestGenerate:
         assert result is not None
         assert isinstance(result, bytes)
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -928,7 +925,6 @@ class TestGenerate:
         latin = pdf_bytes.decode('latin-1', errors='ignore')
         assert marker not in latin
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -966,7 +962,6 @@ class TestGenerate:
         assert result is not None
         assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -991,7 +986,6 @@ class TestGenerate:
 
         assert result is not None
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -1025,7 +1019,6 @@ class TestGenerate:
         assert isinstance(result, bytes)
         assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -1057,7 +1050,6 @@ class TestGenerate:
         assert result is not None
         assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -1095,7 +1087,6 @@ class TestGenerate:
         assert result is not None
         assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -1129,7 +1120,6 @@ class TestGenerate:
         assert isinstance(result, bytes)
         assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -1163,7 +1153,6 @@ class TestGenerate:
         assert isinstance(result, bytes)
         assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -1196,7 +1185,6 @@ class TestGenerate:
         assert isinstance(result, bytes)
         assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
 
 # ── _merge_with_covers tests ─────────────────────────────────
@@ -1212,8 +1200,8 @@ class TestMergeWithCovers:
         c.save()
         return buf.getvalue()
 
-    @patch('content.services.proposal_pdf_service.COVER_PDF')
-    @patch('content.services.proposal_pdf_service.BACK_COVER_PDF')
+    @patch('content.services.pdf_utils.COVER_PDF')
+    @patch('content.services.pdf_utils.BACK_COVER_PDF')
     def test_returns_content_when_no_covers(self, mock_back, mock_cover):
         """Without cover PDFs, merge returns the original content unchanged."""
         mock_cover.exists.return_value = False
@@ -1227,8 +1215,8 @@ class TestMergeWithCovers:
         mock_cover.exists.assert_called()
         mock_back.exists.assert_called()
 
-    @patch('content.services.proposal_pdf_service.BACK_COVER_PDF')
-    @patch('content.services.proposal_pdf_service.COVER_PDF')
+    @patch('content.services.pdf_utils.BACK_COVER_PDF')
+    @patch('content.services.pdf_utils.COVER_PDF')
     def test_adds_cover_when_exists(self, mock_cover, mock_back):
         """When a cover PDF exists, it is prepended to the content pages."""
         cover_bytes = self._make_pdf_bytes(1)
@@ -1249,8 +1237,8 @@ class TestMergeWithCovers:
 
         cover_path.unlink(missing_ok=True)
 
-    @patch('content.services.proposal_pdf_service.BACK_COVER_PDF')
-    @patch('content.services.proposal_pdf_service.COVER_PDF')
+    @patch('content.services.pdf_utils.BACK_COVER_PDF')
+    @patch('content.services.pdf_utils.COVER_PDF')
     def test_handles_corrupt_cover_gracefully(self, mock_cover, mock_back):
         """Corrupt cover PDF is skipped, returning only the content pages."""
         corrupt_path = Path('/tmp/test_corrupt.pdf')
@@ -1280,8 +1268,8 @@ class TestMergeWithCovers:
         path.write_bytes(buf.getvalue())
         return path
 
-    @patch('content.services.proposal_pdf_service.BACK_COVER_PDF')
-    @patch('content.services.proposal_pdf_service.COVER_PDF')
+    @patch('content.services.pdf_utils.BACK_COVER_PDF')
+    @patch('content.services.pdf_utils.COVER_PDF')
     def test_letter_cover_merged_produces_two_pages(self, mock_cover, mock_back):
         """A Letter-size cover merges with 1 content page → 2 pages total."""
         cover_path = self._make_letter_cover_path()
@@ -1297,8 +1285,8 @@ class TestMergeWithCovers:
 
         cover_path.unlink(missing_ok=True)
 
-    @patch('content.services.proposal_pdf_service.BACK_COVER_PDF')
-    @patch('content.services.proposal_pdf_service.COVER_PDF')
+    @patch('content.services.pdf_utils.BACK_COVER_PDF')
+    @patch('content.services.pdf_utils.COVER_PDF')
     def test_letter_cover_scaled_to_a4_dimensions(self, mock_cover, mock_back):
         """scale_to normalises Letter-size cover page to A4 (≈595×842 pt)."""
         cover_path = self._make_letter_cover_path()
@@ -1338,7 +1326,6 @@ class TestGenerateToFile:
         assert out.exists()
         assert out.read_bytes()[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -1356,7 +1343,6 @@ class TestGenerateToFile:
         assert Path(result).exists()
         assert Path(result).read_bytes()[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
         Path(result).unlink(missing_ok=True)
 
     @patch.object(ProposalPdfService, 'generate', return_value=None)
@@ -1659,8 +1645,8 @@ class TestSectionRendererEdgeCases:
 # ── Back cover merge test ────────────────────────────────────
 
 class TestBackCoverMerge(TestMergeWithCovers):
-    @patch('content.services.proposal_pdf_service.COVER_PDF')
-    @patch('content.services.proposal_pdf_service.BACK_COVER_PDF')
+    @patch('content.services.pdf_utils.COVER_PDF')
+    @patch('content.services.pdf_utils.BACK_COVER_PDF')
     def test_adds_back_cover_when_exists(self, mock_back, mock_cover):
         """When a back cover PDF exists, it is appended after content pages."""
         back_bytes = self._make_pdf_bytes(1)
@@ -1680,8 +1666,8 @@ class TestBackCoverMerge(TestMergeWithCovers):
 
         back_path.unlink(missing_ok=True)
 
-    @patch('content.services.proposal_pdf_service.COVER_PDF')
-    @patch('content.services.proposal_pdf_service.BACK_COVER_PDF')
+    @patch('content.services.pdf_utils.COVER_PDF')
+    @patch('content.services.pdf_utils.BACK_COVER_PDF')
     def test_corrupt_back_cover_skipped(self, mock_back, mock_cover):
         """Corrupt back cover PDF is skipped gracefully."""
         corrupt_path = Path('/tmp/test_corrupt_back.pdf')
@@ -1791,7 +1777,6 @@ class TestGenerateWithFRItems:
         assert result is not None
         assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -1829,7 +1814,6 @@ class TestGenerateWithFRItems:
         reader = PdfReader(io.BytesIO(result))
         assert len(reader.pages) >= 2
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
 
 # ── Phase 2a: Helper edge cases ──────────────────────────────
@@ -1866,8 +1850,10 @@ class TestFontFallbackKeyError:
             raise KeyError(name)
 
         monkeypatch.setattr(pm, 'getFont', _always_raise)
+        _font.cache_clear()  # clear cached result from prior tests in suite
         result = _font('regular')
         assert result == 'Helvetica'
+        _font.cache_clear()  # restore fresh state for subsequent tests
         monkeypatch.setattr(pm, 'getFont', original_get)
 
 
@@ -2134,7 +2120,6 @@ class TestGenerateCalculatorModules:
         assert result is not None
         assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -2437,7 +2422,6 @@ class TestCalculatorModuleInvalidPricePercent:
         assert result is not None
         assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()
 
     @patch(
         'content.services.proposal_pdf_service.COVER_PDF',
@@ -2478,4 +2462,3 @@ class TestCalculatorModuleInvalidPricePercent:
         assert result is not None
         assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
-        mock_back.exists.assert_called()

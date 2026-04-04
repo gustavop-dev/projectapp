@@ -29,11 +29,13 @@ from accounts.models import (
     BugReport,
     ChangeRequest,
     ChangeRequestComment,
+    DataModelEntity,
     Deliverable,
     HostingSubscription,
     Notification,
     Payment,
     Project,
+    ProjectDataModelEntity,
     Requirement,
     RequirementComment,
     UserProfile,
@@ -340,6 +342,7 @@ class Command(BaseCommand):
         self._create_seed_notifications(admin_user, client_user, ecommerce_project)
         self._create_seed_comments(ecommerce_project, admin_user, client_user)
         self._create_seed_markdown_documents(admin_user, client_user, ecommerce_project)
+        self._create_data_model_entities(ecommerce_project)
 
     def _extend_subscription_payments(self, project):
         sub = HostingSubscription.objects.filter(project=project).first()
@@ -959,6 +962,74 @@ class Command(BaseCommand):
                 )
 
         self.stdout.write(self.style.SUCCESS(f'  Created {len(bugs)} bug reports for {project.name}'))
+
+    def _create_data_model_entities(self, project):
+        """Seed DataModelEntity records for the documents deliverable (idempotent)."""
+        if DataModelEntity.objects.filter(
+            deliverable__project=project,
+            source_entity_name='Usuario',
+        ).exists():
+            self.stdout.write(f'  DataModelEntity records already seeded for {project.name}')
+            return
+
+        deliverable = Deliverable.objects.filter(
+            project=project,
+            category=Deliverable.CATEGORY_DOCUMENTS,
+        ).first()
+        if not deliverable:
+            self.stdout.write('  No documents deliverable found — skipping DataModelEntity seed')
+            return
+
+        entities = [
+            {
+                'name': 'Usuario',
+                'source_entity_name': 'Usuario',
+                'description': 'Representa a un usuario registrado en la plataforma.',
+                'key_fields': 'id, email, rol',
+                'relationship': '',
+            },
+            {
+                'name': 'Producto',
+                'source_entity_name': 'Producto',
+                'description': 'Artículo disponible en el catálogo del e-commerce.',
+                'key_fields': 'id, sku, nombre, precio',
+                'relationship': 'Pertenece a Categoría',
+            },
+            {
+                'name': 'Pedido',
+                'source_entity_name': 'Pedido',
+                'description': 'Orden de compra creada por un cliente.',
+                'key_fields': 'id, estado, total, fecha',
+                'relationship': 'Pertenece a Usuario, contiene Producto',
+            },
+        ]
+
+        for e_data in entities:
+            DataModelEntity.objects.create(
+                deliverable=deliverable,
+                name=e_data['name'],
+                source_entity_name=e_data['source_entity_name'],
+                description=e_data['description'],
+                key_fields=e_data['key_fields'],
+                relationship=e_data.get('relationship', ''),
+            )
+
+        # Also seed ProjectDataModelEntity rows for the project
+        if not ProjectDataModelEntity.objects.filter(project=project).exists():
+            project_entities = [
+                {'name': 'Usuario', 'key_fields': 'id, email, rol',
+                 'description': 'Usuario registrado', 'relationship': ''},
+                {'name': 'Producto', 'key_fields': 'id, sku, nombre',
+                 'description': 'Artículo del catálogo', 'relationship': 'N:1 con Categoría'},
+                {'name': 'Pedido', 'key_fields': 'id, estado, total',
+                 'description': 'Orden de compra', 'relationship': 'N:1 con Usuario'},
+            ]
+            for pe_data in project_entities:
+                ProjectDataModelEntity.objects.create(project=project, **pe_data)
+
+        self.stdout.write(self.style.SUCCESS(
+            f'  Created {len(entities)} DataModelEntity records for {project.name}'
+        ))
 
     def _create_deliverables(self, project, admin_user):
         marker_title = 'Wireframes — Catálogo y checkout'

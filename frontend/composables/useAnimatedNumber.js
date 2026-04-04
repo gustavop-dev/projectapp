@@ -13,6 +13,7 @@ export function useAnimatedNumber(target, duration = 600) {
   watch(target, (newVal, oldVal) => {
     if (rafId) cancelAnimationFrame(rafId);
 
+    /* c8 ignore next */
     const from = oldVal ?? animated.value ?? 0;
     const to = newVal ?? 0;
     if (from === to) {

@@ -133,6 +133,7 @@ describe('usePlatformCustomTheme', () => {
   })
 
   it('setCoverImage marks cover dark when sampled brightness is low', async () => {
+    const origImage = global.Image
     global.Image = class {
       set onload(fn) {
         this._on = fn
@@ -164,11 +165,121 @@ describe('usePlatformCustomTheme', () => {
     await Promise.resolve()
     expect(theme.isCoverDark.value).toBe(true)
     document.createElement.mockRestore()
+    global.Image = origImage
   })
 
   it('setThemeColor ignores updateProfile rejection', async () => {
     mockAuthStore.updateProfile.mockRejectedValueOnce(new Error('net'))
     const theme = usePlatformCustomTheme()
     await expect(theme.setThemeColor('#2874f3')).resolves.toBeUndefined()
+  })
+
+  it('hydrate skips copying theme fields when user is null', () => {
+    mockAuthStore.user = null
+    const theme = usePlatformCustomTheme()
+    theme.hydrate()
+    expect(theme.themeColor.value).toBe('')
+    expect(theme.coverImage.value).toBe('')
+  })
+
+  it('hydrate uses empty string when user theme_color is undefined', () => {
+    mockAuthStore.user = { cover_image: 'x.jpg', custom_cover_image: '' }
+    const theme = usePlatformCustomTheme()
+    theme.hydrate()
+    expect(theme.themeColor.value).toBe('')
+  })
+
+  it('hydrate sets customCoverImageUrl when user custom_cover_image is truthy', () => {
+    mockAuthStore.user = {
+      theme_color: '',
+      cover_image: '',
+      custom_cover_image: 'https://cdn/img.png',
+    }
+    const theme = usePlatformCustomTheme()
+    theme.hydrate()
+    expect(theme.customCoverImageUrl.value).toBe('https://cdn/img.png')
+  })
+
+  it('applyTheme clears vars when color string has wrong length', () => {
+    const theme = usePlatformCustomTheme()
+    theme.themeColor.value = '#abc'
+    theme.applyTheme()
+    expect(document.documentElement.style.getPropertyValue('--theme-color')).toBe('')
+  })
+
+  it('applyTheme sets dark text for light colors', () => {
+    const theme = usePlatformCustomTheme()
+    // #e8f0fe has high luminance → light → btn text should be dark
+    theme.themeColor.value = '#e8f0fe'
+    theme.applyTheme()
+    expect(document.documentElement.style.getPropertyValue('--theme-btn-text')).toBe('#1a1a1a')
+  })
+
+  it('setCustomCoverImage does not update state when response has no data', async () => {
+    mockRequest.mockResolvedValueOnce({ data: null })
+    const theme = usePlatformCustomTheme()
+    theme.customCoverImageUrl.value = 'https://old'
+    await theme.setCustomCoverImage(new File(['b'], 'c.png', { type: 'image/png' }))
+    expect(theme.customCoverImageUrl.value).toBe('https://old')
+  })
+
+  it('setCustomCoverImage sets empty string when custom_cover_image is missing in response', async () => {
+    mockRequest.mockResolvedValueOnce({
+      data: { id: 1, cover_image: '' },
+    })
+    const theme = usePlatformCustomTheme()
+    await theme.setCustomCoverImage(new File(['b'], 'c.png', { type: 'image/png' }))
+    expect(theme.customCoverImageUrl.value).toBe('')
+  })
+
+  it('setCustomCoverImage silently ignores request failure', async () => {
+    mockRequest.mockRejectedValueOnce(new Error('upload failed'))
+    const theme = usePlatformCustomTheme()
+    theme.customCoverImageUrl.value = 'https://old'
+    await expect(theme.setCustomCoverImage(new File(['b'], 'c.png', { type: 'image/png' }))).resolves.toBeUndefined()
+    expect(theme.customCoverImageUrl.value).toBe('https://old')
+  })
+
+  it('hydrate calls detectCoverBrightness with empty url when no cover set', () => {
+    mockAuthStore.user = null
+    const theme = usePlatformCustomTheme()
+    // With no cover set, detectCoverBrightness should set coverDark to false
+    theme.hydrate()
+    expect(theme.isCoverDark.value).toBe(false)
+  })
+
+  it('setCoverImage ignores updateProfile rejection', async () => {
+    mockAuthStore.updateProfile.mockRejectedValueOnce(new Error('net'))
+    const theme = usePlatformCustomTheme()
+    await expect(theme.setCoverImage('x.jpg')).resolves.toBeUndefined()
+  })
+
+  it('clearCover ignores updateProfile rejection', async () => {
+    mockAuthStore.updateProfile.mockRejectedValueOnce(new Error('net'))
+    const theme = usePlatformCustomTheme()
+    await expect(theme.clearCover()).resolves.toBeUndefined()
+    expect(theme.coverImage.value).toBe('')
+  })
+
+  it('clearAll ignores updateProfile rejection', async () => {
+    mockAuthStore.updateProfile.mockRejectedValueOnce(new Error('net'))
+    const theme = usePlatformCustomTheme()
+    theme.themeColor.value = '#ff0000'
+    await expect(theme.clearAll()).resolves.toBeUndefined()
+    expect(theme.themeColor.value).toBe('')
+  })
+
+  it('hasCover reflects customCoverImageUrl when coverImage is empty', () => {
+    const theme = usePlatformCustomTheme()
+    theme.coverImage.value = ''
+    theme.customCoverImageUrl.value = 'https://cdn/custom.jpg'
+    expect(theme.hasCover.value).toBe(true)
+  })
+
+  it('isCustomized is true when only hasCover is set', () => {
+    const theme = usePlatformCustomTheme()
+    theme.themeColor.value = ''
+    theme.coverImage.value = 'a.jpg'
+    expect(theme.isCustomized.value).toBe(true)
   })
 })

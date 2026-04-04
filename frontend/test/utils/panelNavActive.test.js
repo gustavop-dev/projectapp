@@ -8,6 +8,14 @@ describe('stripLocalePrefix', () => {
   it('leaves unprefixed paths unchanged', () => {
     expect(stripLocalePrefix('/panel')).toBe('/panel');
   });
+
+  it('returns empty string when path is empty', () => {
+    expect(stripLocalePrefix('')).toBe('');
+  });
+
+  it('returns empty string when path is null', () => {
+    expect(stripLocalePrefix(null)).toBe('');
+  });
 });
 
 describe('isPanelNavItemActive', () => {
@@ -33,5 +41,17 @@ describe('isPanelNavItemActive', () => {
         external: true,
       }),
     ).toBe(false);
+  });
+
+  it('treats root routePath as / when path strips to empty', () => {
+    expect(isPanelNavItemActive('/', { href: '/panel' })).toBe(false);
+  });
+
+  it('treats root href as / when href strips to empty', () => {
+    expect(isPanelNavItemActive('/panel', { href: '/' })).toBe(false);
+  });
+
+  it('matches exact path when matchExact is false and paths are equal', () => {
+    expect(isPanelNavItemActive('/panel', { href: '/panel' })).toBe(true);
   });
 });

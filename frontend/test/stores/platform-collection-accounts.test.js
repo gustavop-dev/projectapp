@@ -186,4 +186,76 @@ describe('usePlatformCollectionAccountsStore', () => {
     const result = await store.markCancelled(1)
     expect(result.success).toBe(false)
   })
+
+  describe('error fallback messages', () => {
+    it('fetchList uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchList()
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Could not load collection accounts.')
+    })
+
+    it('fetchByProject uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchByProject(1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Could not load collection accounts for this project.')
+    })
+
+    it('fetchDetail uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchDetail(1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Could not load document.')
+    })
+
+    it('create uses fallback string when response has no data', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.create({})
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('Could not create.')
+    })
+
+    it('create uses detail string when detail is present', async () => {
+      mockPost.mockRejectedValueOnce({ response: { data: { detail: 'Conflict.' } } })
+      const result = await store.create({})
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('Conflict.')
+    })
+
+    it('update uses fallback when detail is absent', async () => {
+      mockPatch.mockRejectedValueOnce(new Error('network'))
+      const result = await store.update(1, {})
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('Could not update.')
+    })
+
+    it('issue uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.issue(1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Could not issue document.')
+    })
+
+    it('markPaid uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.markPaid(1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Could not mark as paid.')
+    })
+
+    it('markCancelled uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.markCancelled(1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Could not cancel.')
+    })
+
+    it('downloadPdf uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.downloadPdf(1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('PDF download failed.')
+    })
+  })
 })

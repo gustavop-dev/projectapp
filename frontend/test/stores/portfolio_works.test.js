@@ -419,6 +419,54 @@ describe('usePortfolioWorksStore', () => {
     });
   });
 
+  describe('error response null branch', () => {
+    it('fetchWork returns unknown error when response has no status', async () => {
+      get_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.fetchWork('slug');
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('unknown');
+      expect(result.status).toBeUndefined();
+    });
+
+    it('createWork errors is undefined when error has no response', async () => {
+      create_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.createWork({});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toBeUndefined();
+    });
+
+    it('updateWork errors is undefined when error has no response', async () => {
+      patch_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.updateWork(1, {});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toBeUndefined();
+    });
+
+    it('createWorkFromJSON errors is undefined when error has no response', async () => {
+      create_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.createWorkFromJSON({});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toBeUndefined();
+    });
+
+    it('deleteWork does not clear currentWork when id does not match', async () => {
+      store.currentWork = { ...mockWork, id: 99 };
+      delete_request.mockResolvedValue({});
+
+      await store.deleteWork(1);
+
+      expect(store.currentWork).toEqual({ ...mockWork, id: 99 });
+    });
+  });
+
   describe('getWorkById getter', () => {
     it('finds work by id', () => {
       store.works = [mockWork, { ...mockWork, id: 2 }];

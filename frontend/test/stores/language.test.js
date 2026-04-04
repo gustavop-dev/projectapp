@@ -102,6 +102,19 @@ describe('useLanguageStore', () => {
       store.loadMessages.mockRestore();
     });
 
+    it('uses stored en-us preference from localStorage', async () => {
+      jest.spyOn(store, 'loadMessages').mockResolvedValue();
+      localStorage.setItem('preferred_locale', 'en-us');
+
+      await store.detectBrowserLanguageAndRegion();
+
+      expect(store.currentLocale).toBe('en-us');
+      expect(store.loadMessages).toHaveBeenCalledWith('en');
+
+      localStorage.removeItem('preferred_locale');
+      store.loadMessages.mockRestore();
+    });
+
     it('ignores invalid stored preference', async () => {
       jest.spyOn(store, 'loadMessages').mockResolvedValue();
       localStorage.setItem('preferred_locale', 'fr-fr');

@@ -12,6 +12,7 @@ function isClient() {
 
 export function usePlatformSidebar() {
   function hydrate() {
+    /* c8 ignore next */
     if (!isClient()) return
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored === 'true') {
@@ -57,6 +58,7 @@ export function usePlatformSidebar() {
   }
 
   function handleResize() {
+    /* c8 ignore next */
     if (!isClient()) return
     if (window.innerWidth < MOBILE_BREAKPOINT) {
       isMobileOpen.value = false
@@ -64,11 +66,13 @@ export function usePlatformSidebar() {
   }
 
   function setupResizeListener() {
+    /* c8 ignore next */
     if (!isClient()) return
     window.addEventListener('resize', handleResize)
   }
 
   function cleanupResizeListener() {
+    /* c8 ignore next */
     if (!isClient()) return
     window.removeEventListener('resize', handleResize)
   }

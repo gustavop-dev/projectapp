@@ -36,6 +36,8 @@ from content.views.proposal import (
     get_default_contract_template,
     list_proposal_documents, upload_proposal_document,
     delete_proposal_document,
+    send_branded_email, get_branded_email_defaults, list_branded_emails,
+    send_proposal_email, get_proposal_email_defaults, list_proposal_emails,
 )
 from content.views.email_templates import (
     email_template_list, email_template_detail,
@@ -115,6 +117,17 @@ urlpatterns = [
     path('proposals/<int:proposal_id>/documents/upload/', upload_proposal_document, name='upload-proposal-document'),
     path('proposals/<int:proposal_id>/documents/send/', send_documents_to_client, name='send-documents-to-client'),
     path('proposals/<int:proposal_id>/documents/<int:doc_id>/delete/', delete_proposal_document, name='delete-proposal-document'),
+
+    # Branded email — admin
+    path('proposals/<int:proposal_id>/branded-email/send/', send_branded_email, name='send-branded-email'),
+    path('proposals/<int:proposal_id>/branded-email/defaults/', get_branded_email_defaults, name='branded-email-defaults'),
+    path('proposals/<int:proposal_id>/branded-email/history/', list_branded_emails, name='list-branded-emails'),
+
+    # Proposal email — admin (logged as activity)
+    path('proposals/<int:proposal_id>/proposal-email/send/', send_proposal_email, name='send-proposal-email'),
+    path('proposals/<int:proposal_id>/proposal-email/defaults/', get_proposal_email_defaults, name='proposal-email-defaults'),
+    path('proposals/<int:proposal_id>/proposal-email/history/', list_proposal_emails, name='list-proposal-emails'),
+
     path('proposals/company-settings/', get_company_settings, name='get-company-settings'),
     path('proposals/contract-template/default/', get_default_contract_template, name='get-default-contract-template'),
 

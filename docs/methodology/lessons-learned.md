@@ -25,7 +25,13 @@ This file captures important patterns, preferences, and project intelligence tha
 ### Service Layer Pattern
 - Business logic lives in `content/services/`, not in views
 - Views are thin FBV wrappers that call service methods
-- Services: `ProposalService`, `ProposalEmailService`, `ProposalPdfService`, `EmailTemplateRegistry`
+- Services: `ProposalService`, `ProposalEmailService`, `ProposalPdfService`, `ContractPdfService`, `EmailTemplateRegistry`, `PdfUtils`, `DocumentPdfService`, `MarkdownParser`, `CollectionAccountService`, `CollectionAccountPdfService`, `TechnicalDocumentPdf`, `TechnicalDocumentFilter`, `PlatformOnboardingPdf`
+
+### PDF Generation Layer
+- `pdf_utils.py` is the shared utility layer — fonts, colors, layout helpers, reusable drawing functions
+- `proposal_pdf_service.py`, `contract_pdf_service.py`, and `document_pdf_service.py` all depend on `PdfUtils`
+- Never duplicate PDF primitives across services — add to `pdf_utils.py` and import from there
+- All PDF services use ReportLab directly (no external PDF library abstraction)
 
 ---
 
@@ -34,7 +40,7 @@ This file captures important patterns, preferences, and project intelligence tha
 ### Backend: Function-Based Views (FBV)
 - **All** DRF views use `@api_view` decorators, not class-based views
 - Never convert to CBV unless explicitly requested
-- Views file for proposals is very large (123K) — be careful with edits
+- Views file for proposals is very large (162K, 4385 lines) — be careful with edits
 
 ### Frontend: Pinia Options API
 - **All** Pinia stores use Options API pattern: `{ state, getters, actions }`
@@ -109,6 +115,15 @@ venv/bin/python <command>
 - All automated email tasks check this before sending
 - Manual sends (admin clicks "Send") bypass the cooldown
 
+### Composed Email Pattern (Branded + Proposal)
+- Shared `_send_composed_email()` method reads templates from registry (not hardcoded paths)
+- `send_branded_email()` — thin wrapper, no side effects beyond email + log
+- `send_proposal_email()` — creates `ProposalChangeLog(EMAIL_SENT)` + updates `last_activity_at`
+- Rate limited: 1 email per minute per template_key per proposal via `EmailLog` query
+- `EmailLog.metadata` JSONField stores greeting, sections, footer, attachment_names for history
+- View layer: shared `_parse_composed_email()` returns `(data, error_response)` tuple; 3 handler helpers (`_send_composed_email_view`, `_get_email_defaults_view`, `_list_emails_view`) serve 6 thin public views
+- Frontend: single `ProposalEmailsTab.vue` with `mode` prop ('branded'/'proposal') + computed `basePath`
+
 ### Automations Pause
 - `automations_paused` flag on `BusinessProposal` stops all automated emails
 - Each Huey task checks this flag early and returns if paused
@@ -129,11 +144,27 @@ venv/bin/python <command>
 
 ### Change Log Types
 - 20+ change types in `ProposalChangeLog.ChangeType`
-- Includes: created, updated, sent, viewed, accepted, rejected, resent, expired, duplicated, commented, negotiating, reengagement, call, meeting, followup, note, calc_confirmed, calc_abandoned, auto_archived, status_change, cond_accepted, calc_followup
+- Includes: created, updated, sent, viewed, accepted, rejected, resent, expired, duplicated, commented, negotiating, reengagement, call, meeting, followup, note, calc_confirmed, calc_abandoned, auto_archived, status_change, cond_accepted, calc_followup, email_sent, req_clicked
 
 ---
 
-## 7. Platform / Accounts App Patterns
+## 7. Contract System Patterns
+
+### Contract PDF Generation
+- `ContractPdfService` generates PDFs via ReportLab using Helvetica font for consistent cross-platform rendering
+- **Draft mode**: `is_draft=True` suppresses the contractor signature block — use for review cycles
+- **Final mode**: includes full contractor signature block with name, date, and signature line
+- Clickable Table of Contents generated at PDF start with anchor links to each section heading
+- Template parameter substitution: `{{client_name}}`, `{{company_name}}`, etc. replaced at render time using `CompanySettings` + proposal data
+
+### Data Model Entity Patterns
+- `DataModelEntity` stores a reusable JSON schema (field definitions, types, constraints) independent of any project
+- `ProjectDataModelEntity` associates an entity with a project and optionally overrides its schema
+- Technical requirements sync: syncs project `Requirement` entries from the linked data model entity's schema fields
+- JSON upload via API endpoint allows bulk creation of entity schemas from external tools
+- Platform UI: `/platform/projects/:id/data-model` tab shows linked entities and allows sync actions
+
+## 8. Platform / Accounts App Patterns
 
 ### Dual Auth Strategy
 - `/panel/` admin uses Django session + CSRF (same as before)
@@ -159,7 +190,7 @@ venv/bin/python <command>
 
 ---
 
-## 8. Testing Insights
+## 9. Testing Insights
 
 ### Backend conftest.py
 - Custom coverage report with Unicode progress bars replaces default pytest-cov output
@@ -196,7 +227,7 @@ venv/bin/python <command>
 
 ---
 
-## 9. Methodology Maintenance
+## 10. Methodology Maintenance
 
 ### Memory Bank Source
 - Methodology rules based on [rules_template](https://github.com/Bhartendu-Kumar/rules_template)

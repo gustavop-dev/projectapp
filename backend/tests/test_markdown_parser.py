@@ -353,3 +353,97 @@ def test_toc_block_appears_at_correct_position_among_other_blocks():
     assert blocks[0]["type"] == "heading"
     assert blocks[1]["type"] == "toc"
     assert blocks[2]["type"] == "section_header"
+
+
+# -- Blockquote edge cases (lines 104, 105, 107) --------------------------------
+
+def test_blockquote_bare_gt_line_is_treated_as_empty_continuation():
+    """Bare '>' line (no trailing space) appends empty string to quote lines."""
+    md = "> First line\n>\n> Third line"
+
+    blocks = markdown_to_blocks(md)
+
+    assert len(blocks) == 1
+    assert blocks[0]["type"] == "blockquote"
+    assert "First line" in blocks[0]["text"]
+    assert "Third line" in blocks[0]["text"]
+
+
+def test_blockquote_terminates_when_non_quote_line_follows():
+    """A line not starting with '>' ends the blockquote block."""
+    md = "> Quoted text\nnormal paragraph"
+
+    blocks = markdown_to_blocks(md)
+
+    assert len(blocks) == 2
+    assert blocks[0]["type"] == "blockquote"
+    assert blocks[1]["type"] == "paragraph"
+
+
+# -- Unordered list continuation text (lines 187-190) --------------------------
+
+def test_unordered_list_continuation_text_is_appended_to_last_item():
+    """Indented non-special text after a list item is merged into its text."""
+    md = "- First item that\n  continues on the next line\n- Second item"
+
+    blocks = markdown_to_blocks(md)
+
+    assert len(blocks) == 1
+    assert blocks[0]["items"][0]["text"] == "First item that continues on the next line"
+    assert blocks[0]["items"][1]["text"] == "Second item"
+
+
+# -- Ordered list nested items (lines 212-215) ---------------------------------
+
+def test_ordered_list_with_nested_unordered_items():
+    """Indented bullet inside an ordered list is appended to parent children."""
+    md = "1. First item\n  - nested bullet\n2. Second item"
+
+    blocks = markdown_to_blocks(md)
+
+    assert len(blocks) == 1
+    assert blocks[0]["type"] == "list"
+    assert blocks[0]["ordered"] is True
+    assert blocks[0]["items"][0]["children"] == ["nested bullet"]
+    assert blocks[0]["items"][1]["text"] == "Second item"
+
+
+# -- Ordered list continuation text (lines 223, 230-233) -----------------------
+
+def test_ordered_list_continuation_text_is_appended_to_last_item():
+    """Indented plain text after an ordered item is merged into its text."""
+    md = "1. First item that\n   continues here\n2. Second item"
+
+    blocks = markdown_to_blocks(md)
+
+    assert len(blocks) == 1
+    assert blocks[0]["items"][0]["text"] == "First item that continues here"
+    assert blocks[0]["items"][1]["text"] == "Second item"
+
+
+# -- Ordered list termination via empty line (line 235) ------------------------
+
+def test_ordered_list_empty_line_terminates_current_list():
+    """Empty line inside the ordered list inner loop triggers break."""
+    md = "1. First\n\n1. Separate second list"
+
+    blocks = markdown_to_blocks(md)
+
+    assert len(blocks) == 2
+    assert blocks[0]["items"][0]["text"] == "First"
+    assert blocks[1]["items"][0]["text"] == "Separate second list"
+
+
+# -- Paragraph break at sub_section pattern (line 274) -------------------------
+
+def test_paragraph_breaks_when_sub_section_pattern_encountered():
+    """Paragraph accumulation stops when a **N.N. Title** pattern is found."""
+    md = "Some introductory text.\n**1.1. Sub Title**"
+
+    blocks = markdown_to_blocks(md)
+
+    assert len(blocks) == 2
+    assert blocks[0]["type"] == "paragraph"
+    assert blocks[0]["text"] == "Some introductory text."
+    assert blocks[1]["type"] == "sub_section"
+    assert blocks[1]["index"] == "1.1"

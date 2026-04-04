@@ -165,4 +165,56 @@ describe('usePanelAdminsStore', () => {
     const result = await store.resendInvite(1)
     expect(result.success).toBe(false)
   })
+
+  it('updateAdmin uses fallback when detail is absent', async () => {
+    patch_request.mockRejectedValueOnce(new Error('network'))
+    const result = await store.updateAdmin(1, {})
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('Error al actualizar administrador.')
+  })
+
+  it('updateAdmin does not update list when admin not found', async () => {
+    store.admins = [{ user_id: 99, name: 'other' }]
+    patch_request.mockResolvedValueOnce({ data: { user_id: 10, name: 'new' } })
+    const result = await store.updateAdmin(10, { name: 'new' })
+    expect(result.success).toBe(true)
+    expect(store.admins[0].name).toBe('other')
+  })
+
+  it('deactivateAdmin does not update list when admin not found', async () => {
+    store.admins = [{ user_id: 99, is_active: true }]
+    delete_request.mockResolvedValueOnce({})
+    const result = await store.deactivateAdmin(5)
+    expect(result.success).toBe(true)
+    expect(store.admins[0].is_active).toBe(true)
+  })
+
+  it('reactivateAdmin does not update list when admin not found', async () => {
+    store.admins = [{ user_id: 99, is_active: false }]
+    patch_request.mockResolvedValueOnce({ data: { user_id: 3, is_active: true } })
+    const result = await store.reactivateAdmin(3)
+    expect(result.success).toBe(true)
+    expect(store.admins[0].is_active).toBe(false)
+  })
+
+  it('resendInvite uses fallback when detail is absent', async () => {
+    create_request.mockRejectedValueOnce(new Error('network'))
+    const result = await store.resendInvite(1)
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('Error al reenviar invitación.')
+  })
+
+  it('deactivateAdmin uses fallback when detail is absent', async () => {
+    delete_request.mockRejectedValueOnce(new Error('network'))
+    const result = await store.deactivateAdmin(1)
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('Error al desactivar administrador.')
+  })
+
+  it('reactivateAdmin uses fallback when detail is absent', async () => {
+    patch_request.mockRejectedValueOnce(new Error('network'))
+    const result = await store.reactivateAdmin(1)
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('Error al reactivar administrador.')
+  })
 })

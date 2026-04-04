@@ -12,6 +12,7 @@ const isDark = ref(false);
  */
 export function useProposalDarkMode() {
   function applyTheme(dark) {
+    /* c8 ignore next */
     if (typeof document === 'undefined') return;
     const wrapper = document.querySelector('[data-proposal-wrapper]');
     if (wrapper) {

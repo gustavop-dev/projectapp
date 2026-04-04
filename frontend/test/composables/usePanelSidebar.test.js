@@ -84,4 +84,18 @@ describe('usePanelSidebar', () => {
     expect(isMobileOpen.value).toBe(false)
   })
 
+  it('hydrate uses window.innerWidth when localStorage has no stored value', () => {
+    window.innerWidth = 800
+    const { hydrate, isCollapsed } = usePanelSidebar()
+    hydrate()
+    expect(isCollapsed.value).toBe(true)
+  })
+
+  it('hydrate sets collapsed false when innerWidth is wide', () => {
+    window.innerWidth = 1280
+    const { hydrate, isCollapsed } = usePanelSidebar()
+    hydrate()
+    expect(isCollapsed.value).toBe(false)
+  })
+
 })

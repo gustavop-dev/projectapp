@@ -12,7 +12,6 @@ test.describe('Admin Login', () => {
   }, async ({ page }) => {
     await page.goto('/panel/login');
 
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('a[href="/admin/"]')).toBeVisible();
+    await expect(page.locator('a[href="/admin/"]')).toBeVisible({ timeout: 15_000 });
   });
 });

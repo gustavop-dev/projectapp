@@ -1619,5 +1619,270 @@ describe('useProposalStore', () => {
 
       expect(result.success).toBe(false);
     });
+
+    it('refreshes currentProposal when id matches', async () => {
+      store.currentProposal = { id: 1, title: 'P' };
+      delete_request.mockResolvedValueOnce({ data: {} });
+      get_request.mockResolvedValueOnce({ data: { id: 1, title: 'Refreshed' } });
+
+      const result = await store.deleteProposalDocument(1, 10);
+
+      expect(result.success).toBe(true);
+      expect(get_request).toHaveBeenCalledWith('proposals/1/detail/');
+    });
+  });
+
+  describe('previewSync', () => {
+    it('returns success with data on resolved request', async () => {
+      const data = { requirements: [{ id: 1 }] };
+      create_request.mockResolvedValueOnce({ data });
+
+      const result = await store.previewSync(5, { items: [] });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+      expect(create_request).toHaveBeenCalledWith(
+        'proposals/sections/5/sync-preview/',
+        { content_json: { items: [] } },
+      );
+    });
+
+    it('returns failure with errors on rejected request', async () => {
+      create_request.mockRejectedValueOnce({ response: { data: { detail: 'bad' } } });
+
+      const result = await store.previewSync(5, {});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual({ detail: 'bad' });
+    });
+  });
+
+  describe('applySync', () => {
+    it('returns success and updates matching section', async () => {
+      store.currentProposal = { id: 1, sections: [{ id: 5, title: 'old' }] };
+      const section = { id: 5, title: 'new' };
+      create_request.mockResolvedValueOnce({ data: { section } });
+
+      const result = await store.applySync(5, { items: [] });
+
+      expect(result.success).toBe(true);
+      expect(store.currentProposal.sections[0].title).toBe('new');
+      expect(store.isUpdating).toBe(false);
+    });
+
+    it('returns success when section not found in list', async () => {
+      store.currentProposal = { id: 1, sections: [{ id: 99, title: 'other' }] };
+      create_request.mockResolvedValueOnce({ data: { section: { id: 5, title: 'new' } } });
+
+      const result = await store.applySync(5, {});
+
+      expect(result.success).toBe(true);
+      expect(store.currentProposal.sections[0].title).toBe('other');
+    });
+
+    it('returns success when currentProposal has no sections', async () => {
+      store.currentProposal = null;
+      create_request.mockResolvedValueOnce({ data: {} });
+
+      const result = await store.applySync(5, {});
+
+      expect(result.success).toBe(true);
+    });
+
+    it('returns failure with errors on rejected request', async () => {
+      create_request.mockRejectedValueOnce({ response: { data: { detail: 'fail' } } });
+
+      const result = await store.applySync(5, {});
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual({ detail: 'fail' });
+      expect(store.isUpdating).toBe(false);
+    });
+  });
+
+  describe('saveContractAndNegotiate', () => {
+    it('returns success and updates currentProposal when id matches', async () => {
+      store.currentProposal = { id: 1, status: 'draft' };
+      const data = { id: 1, status: 'negotiating' };
+      create_request.mockResolvedValueOnce({ data });
+
+      const result = await store.saveContractAndNegotiate(1, { rate: 100 });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+      expect(store.currentProposal).toEqual(data);
+      expect(store.isUpdating).toBe(false);
+    });
+
+    it('updates proposal in list when found', async () => {
+      store.proposals = [{ id: 1, status: 'draft' }];
+      const data = { id: 1, status: 'negotiating' };
+      create_request.mockResolvedValueOnce({ data });
+
+      await store.saveContractAndNegotiate(1, { rate: 100 });
+
+      expect(store.proposals[0].status).toBe('negotiating');
+    });
+
+    it('does not update currentProposal when id differs', async () => {
+      store.currentProposal = { id: 99, status: 'draft' };
+      create_request.mockResolvedValueOnce({ data: { id: 1, status: 'negotiating' } });
+
+      await store.saveContractAndNegotiate(1, {});
+
+      expect(store.currentProposal.id).toBe(99);
+    });
+
+    it('returns failure and sets error on rejected request', async () => {
+      create_request.mockRejectedValueOnce(new Error('fail'));
+
+      const result = await store.saveContractAndNegotiate(1, {});
+
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('contract_save_failed');
+      expect(store.isUpdating).toBe(false);
+    });
+  });
+
+  describe('updateContractParams', () => {
+    it('returns success and updates currentProposal when id matches', async () => {
+      store.currentProposal = { id: 1, status: 'negotiating' };
+      const data = { id: 1, status: 'negotiating', rate: 200 };
+      patch_request.mockResolvedValueOnce({ data });
+
+      const result = await store.updateContractParams(1, { rate: 200 });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+      expect(store.currentProposal).toEqual(data);
+      expect(store.isUpdating).toBe(false);
+    });
+
+    it('does not update currentProposal when id differs', async () => {
+      store.currentProposal = { id: 99 };
+      patch_request.mockResolvedValueOnce({ data: { id: 1, rate: 200 } });
+
+      await store.updateContractParams(1, {});
+
+      expect(store.currentProposal.id).toBe(99);
+    });
+
+    it('returns failure on rejected request', async () => {
+      patch_request.mockRejectedValueOnce(new Error('fail'));
+
+      const result = await store.updateContractParams(1, {});
+
+      expect(result.success).toBe(false);
+      expect(store.isUpdating).toBe(false);
+    });
+  });
+
+  describe('uploadProposalDocument (currentProposal refresh)', () => {
+    it('refreshes currentProposal when id matches', async () => {
+      store.currentProposal = { id: 1, title: 'P' };
+      create_request.mockResolvedValueOnce({ data: { id: 10 } });
+      get_request.mockResolvedValueOnce({ data: { id: 1, title: 'Refreshed' } });
+
+      const result = await store.uploadProposalDocument(1, new FormData());
+
+      expect(result.success).toBe(true);
+      expect(get_request).toHaveBeenCalledWith('proposals/1/detail/');
+    });
+  });
+
+  describe('sendComposedEmail', () => {
+    it('returns success with data on resolved request', async () => {
+      create_request.mockResolvedValueOnce({ data: { sent: true } });
+
+      const result = await store.sendComposedEmail(1, new FormData());
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ sent: true });
+    });
+
+    it('returns failure on rejected request', async () => {
+      create_request.mockRejectedValueOnce(new Error('fail'));
+
+      const result = await store.sendComposedEmail(1, new FormData());
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('fetchEmailDefaults', () => {
+    it('returns success with data on resolved request', async () => {
+      get_request.mockResolvedValueOnce({ data: { subject: 'Hello' } });
+
+      const result = await store.fetchEmailDefaults(1);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ subject: 'Hello' });
+    });
+
+    it('returns failure with empty data on rejected request', async () => {
+      get_request.mockRejectedValueOnce(new Error('fail'));
+
+      const result = await store.fetchEmailDefaults(1);
+
+      expect(result.success).toBe(false);
+      expect(result.data).toEqual({});
+    });
+  });
+
+  describe('fetchEmailHistory', () => {
+    it('returns success with data on resolved request', async () => {
+      get_request.mockResolvedValueOnce({ data: { results: [], total: 0 } });
+
+      const result = await store.fetchEmailHistory(1);
+
+      expect(result.success).toBe(true);
+      expect(get_request).toHaveBeenCalledWith('proposals/1/branded-email/history/?page=1');
+    });
+
+    it('uses provided page parameter', async () => {
+      get_request.mockResolvedValueOnce({ data: { results: [] } });
+
+      await store.fetchEmailHistory(1, 3);
+
+      expect(get_request).toHaveBeenCalledWith('proposals/1/branded-email/history/?page=3');
+    });
+
+    it('returns failure with default data on rejected request', async () => {
+      get_request.mockRejectedValueOnce(new Error('fail'));
+
+      const result = await store.fetchEmailHistory(1);
+
+      expect(result.success).toBe(false);
+      expect(result.data).toEqual({ results: [], total: 0, page: 1, has_next: false });
+    });
+  });
+
+  describe('proposal-email basePath routing', () => {
+    it('sendComposedEmail uses proposal-email path', async () => {
+      create_request.mockResolvedValueOnce({ data: { sent: true } });
+
+      await store.sendComposedEmail(1, new FormData(), 'proposal-email');
+
+      expect(create_request).toHaveBeenCalledWith(
+        'proposals/1/proposal-email/send/',
+        expect.any(FormData),
+      );
+    });
+
+    it('fetchEmailDefaults uses proposal-email path', async () => {
+      get_request.mockResolvedValueOnce({ data: { greeting: 'Hi' } });
+
+      await store.fetchEmailDefaults(1, 'proposal-email');
+
+      expect(get_request).toHaveBeenCalledWith('proposals/1/proposal-email/defaults/');
+    });
+
+    it('fetchEmailHistory uses proposal-email path', async () => {
+      get_request.mockResolvedValueOnce({ data: { results: [] } });
+
+      await store.fetchEmailHistory(1, 1, 'proposal-email');
+
+      expect(get_request).toHaveBeenCalledWith('proposals/1/proposal-email/history/?page=1');
+    });
   });
 });

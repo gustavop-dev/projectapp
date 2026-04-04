@@ -399,13 +399,16 @@ def generated_contract_document(db, negotiating_proposal):
 @pytest.fixture
 def company_settings(db):
     """Pre-configured company settings singleton."""
-    return CompanySettings.objects.create(
+    obj, _ = CompanySettings.objects.update_or_create(
         pk=1,
-        contractor_full_name='CARLOS MARIO BLANCO PEREZ',
-        contractor_cedula='1.037.635.428',
-        contractor_email='team@projectapp.co',
-        bank_name='Bancolombia',
-        bank_account_type='Ahorros',
-        bank_account_number='26292039530',
-        contract_city='Medellín',
+        defaults={
+            'contractor_full_name': 'CARLOS MARIO BLANCO PEREZ',
+            'contractor_cedula': '1.037.635.428',
+            'contractor_email': 'team@projectapp.co',
+            'bank_name': 'Bancolombia',
+            'bank_account_type': 'Ahorros',
+            'bank_account_number': '26292039530',
+            'contract_city': 'Medellín',
+        },
     )
+    return obj

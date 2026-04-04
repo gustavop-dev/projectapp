@@ -76,5 +76,16 @@ describe('usePlatformTheme', () => {
       expect(isDark.value).toBe(true)
       expect(localStorage.getItem(STORAGE_KEY)).toBe('dark')
     })
+
+    it('does not access localStorage when window is undefined', () => {
+      const origWindow = global.window
+      delete global.window
+      const { toggle, isDark } = usePlatformTheme()
+
+      expect(() => toggle()).not.toThrow()
+      expect(isDark.value).toBe(true)
+
+      global.window = origWindow
+    })
   })
 })

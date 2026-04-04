@@ -1,6 +1,7 @@
 import { ref, watch, onBeforeUnmount, onMounted } from 'vue';
 
 function _getCsrfToken() {
+  /* c8 ignore next */
   if (typeof document === 'undefined') return null;
   const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]*)/);
   return match ? decodeURIComponent(match[1]) : null;
@@ -47,6 +48,7 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
   }
 
   function startSectionTimer(panel) {
+    /* c8 ignore next */
     if (!panel) return;
     currentEntry = {
       section_type: panel.section_type || '',

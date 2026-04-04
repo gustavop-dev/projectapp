@@ -2,20 +2,48 @@
 
 ## Current State
 
-ProjectApp is in **production** at projectapp.co. All core features are implemented and deployed. Active development branch: **`generate-pdf-with-template`** — Document System (generic branded PDF). Platform module has been significantly expanded with Bug Reports, Change Requests, Deliverables, Notifications, and Payments modules.
+ProjectApp is in **production** at projectapp.co. All core features are implemented and deployed. Active branch: **`main`**. The Document System PDF (generic branded PDF on branch `generate-pdf-with-template`) is still in progress and not yet merged. Platform module has been significantly expanded with Bug Reports, Change Requests, Deliverables, Notifications, Payments modules, and a new Data Model Entities feature.
 
 ---
 
 ## Recent Focus Areas
 
-1. **Document System (current — branch `generate-pdf-with-template`)** — Generic branded PDF documents:
+1. **Branded + Proposal Composed Email System** (Apr 4, 2026):
+   - Two new email tabs on proposal edit page: "Correos" (branded, for negotiating/accepted/rejected) and "Enviar correo" (proposal, for sent+ statuses)
+   - Shared composer UI with draggable sections (vuedraggable), file attachments, branded preview, paginated history
+   - Backend: `_send_composed_email()` shared service method, `send_branded_email()` + `send_proposal_email()` wrappers; proposal email creates `ProposalChangeLog` with `EMAIL_SENT` change type
+   - 6 new URL patterns: send/defaults/history for each variant (branded-email + proposal-email)
+   - `EmailLog.metadata` JSONField for storing full email content in history
+   - New component: `ProposalEmailsTab.vue` with `mode` prop ('branded'/'proposal')
+   - Store actions: `sendComposedEmail()`, `fetchEmailDefaults()`, `fetchEmailHistory()` with `basePath` parameter
+   - Tests: 14 service + 19 view + 2 registry (backend), 30 component + 3 store (frontend), 4 E2E
+   - 2 new flows in `flow-definitions.json` + `USER_FLOW_MAP.md` (v2.11.0)
+   - Seed data: `create_fake_proposals.py` generates EmailLog entries for negotiating/accepted proposals
+2. **Contract System** — Full contract parameters and proposal document handling (merged to main Apr 2–3, 2026):
+   - New models: `CompanySettings` (contractor_signature ImageField), `ContractTemplate`, `ProposalDocument` — migrations 0061–0068
+   - Service: `contract_pdf_service.py` — full contract PDF generation with template support, contractor signature rendering, draft mode (no signature), Helvetica/Times fonts
+   - PDF enhancements in `pdf_utils.py`: `_apply_toc_links()` (clickable GoTo annotations), `_draw_line_with_links()` (inline justification with bold/italic/link tokens), `_draw_toc_page()`, `lru_cache` on `_font()`
+   - Admin UI: `ContractParamsModal.vue`, `SendDocumentsModal.vue`, `ProposalDocumentsTab.vue`
+   - Email: `proposal_documents_sent` template; enhanced `ProposalEmailService`
+   - E2E: 5 new admin proposal specs (contract download/edit/generate, documents manage/send)
+2. **Data Model Entities** — Platform feature for deliverables and project data models (Apr 3, 2026):
+   - New models: `DataModelEntity`, `ProjectDataModelEntity` in accounts app — migrations 0021–0022
+   - Service: `technical_requirements_sync.py` — sync entities with technical requirements
+   - New page: `/platform/projects/[id]/data-model.vue` — JSON upload, entity list, template download
+   - New store: `platform-data-model.js` — fetchEntities, uploadEntities, fetchTemplate
+   - Tests: `test_data_model_entity.py` (60 cases), `test_data_model_views.py`, `platform-data-model.test.js` (26 cases), `platform-data-model.spec.js` (E2E)
+3. **Platform UI Improvements** (Apr 1, 2026):
+   - Terminology: 'Épica' → 'Módulo' across all platform pages
+   - `useConfirmModal.js` refactored to promise-based API (+34 lines); `useConfirmModal.test.js` added
+   - Dark mode removed from platform login, verify, complete-profile pages; `usePlatformTheme.js` simplified
+4. **Document System (branch `generate-pdf-with-template` — not yet merged)** — Generic branded PDF documents:
    - `Document` model in `content/models/document.py` — uuid, title, slug, status (draft/published/archived), language, cover_type
-   - Services: `document_pdf_service.py` (20K), `markdown_parser.py` (9K), `pdf_utils.py` (36K shared PDF utilities)
+   - Services: `document_pdf_service.py` (20K), `markdown_parser.py` (9K), `pdf_utils.py` (shared PDF utilities)
    - Panel pages: `/panel/documents/` (index, create, edit)
    - Store: `documents.js`
    - New composable: `useMarkdownPreview.js`
    - Backend tests: `test_document_pdf_service.py`, `test_markdown_parser.py` (in `backend/tests/`)
-2. **Platform — Expanded Modules** — Five new Platform feature areas added to accounts app:
+5. **Platform — Expanded Modules** — Five new Platform feature areas added to accounts app:
    - Bug Reports: `platform-bug-reports.js`, `/platform/bugs`, `/platform/projects/[id]/bugs`, `test_bug_reports.py`
    - Change Requests: `platform-change-requests.js`, `/platform/changes`, `/platform/projects/[id]/changes`, `test_change_requests.py`
    - Deliverables: `platform-deliverables.js`, `/platform/deliverables`, `/platform/projects/[id]/deliverables`, `test_deliverables.py`
@@ -63,24 +91,24 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 
 ---
 
-## Verified Codebase Metrics (March 2026 — refreshed)
+## Verified Codebase Metrics (April 2026 — refreshed)
 
 | Metric | Count |
 |--------|-------|
-| Backend test files | 50 (30 content + 17 accounts + 1 projectapp + 2 backend/) |
-| Frontend unit tests | 36 |
-| E2E spec files | 112 |
-| Vue components | 96 |
-| Pages | 54 |
-| Pinia stores | 16 |
-| Composables | 25 |
-| Content model files | 15 (added document.py) |
-| Accounts models file | 1 (models.py with 6+ classes) |
-| Content URL patterns | 81 |
-| Accounts URL patterns | 48 |
-| Email templates | 44 |
-| Management commands | 12 (8 content + 4 accounts) |
-| Content services | 7 (proposal, email, pdf, templates, document_pdf, markdown_parser, pdf_utils) |
+| Backend test files | 74 |
+| Frontend unit tests | 60 |
+| E2E spec files | 121 |
+| Vue components | 107 |
+| Pages | 59 |
+| Pinia stores | 18 |
+| Composables | 29 |
+| Content model files | 24 |
+| Accounts models | 21 |
+| Accounts URL patterns | 65 |
+| Content URL patterns | 99 |
+| Email templates | 48 (24 HTML + 24 TXT) |
+| Content services | 15 |
+| Accounts services | 10 |
 | Quality gate score | 100/100 (0 warnings, 0 info) |
 
 ---
@@ -88,13 +116,15 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 ## Next Steps
 
 - Complete Document System PDF generation (branch `generate-pdf-with-template`): template rendering, preview, download flow
+- Add E2E coverage for Contract System (ContractParamsModal, SendDocumentsModal admin workflows)
+- Add E2E coverage for Platform Data Model page (`/platform/projects/[id]/data-model`)
+- Add backend test coverage for contract/document services (`contract_pdf_service.py`, `technical_document_pdf.py`)
 - Fix 4 failing `usePlatformApi.test.js` tests (`window.location.href` assertion issue in JSDOM)
 - **Deferred E2E:** `platform-verify-onboarding` — requires OTP test infrastructure (mock OTP delivery or test bypass)
 - Add E2E coverage for new Platform modules (bug reports, change requests, deliverables, notifications, payments)
-- Add E2E coverage for Document system (admin panel CRUD + PDF download)
 - Increase backend test coverage (target areas: services edge cases, accounts app edge cases)
 - Increase frontend unit test coverage (target areas: remaining composables, components)
-- Consider splitting large files (proposal views 123K, service 132K, PDF 72K — shared utils already in `pdf_utils.py`)
+- Consider splitting large files (proposal views 162K, proposal service 133K, email service 71K — shared utils already in `pdf_utils.py`)
 - Credential rotation for production secrets exposed in git history
 - Explore API rate limiting for public endpoints
 - Kill rogue `kore_project` Next.js server on port 3000 permanently (respawns from Windsurf terminal)

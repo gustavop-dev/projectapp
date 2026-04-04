@@ -112,6 +112,17 @@ describe('useLocaleNavigation', () => {
 
       expect(mockRouterPush).not.toHaveBeenCalled();
     });
+
+    it('handles localStorage setItem error gracefully', () => {
+      const original = Storage.prototype.setItem;
+      Storage.prototype.setItem = jest.fn(() => { throw new Error('quota'); });
+      const { switchLocale } = useLocaleNavigation();
+
+      expect(() => switchLocale('es-co')).not.toThrow();
+      expect(mockRouterPush).toHaveBeenCalled();
+
+      Storage.prototype.setItem = original;
+    });
   });
 
   describe('getLocaleUrl', () => {

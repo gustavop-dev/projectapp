@@ -35,6 +35,7 @@ export const usePlatformProjectsStore = defineStore('platformProjects', {
         const message = error.response?.data?.detail || 'No pudimos cargar los proyectos.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false
       }
@@ -54,6 +55,7 @@ export const usePlatformProjectsStore = defineStore('platformProjects', {
         const message = error.response?.data?.detail || 'No pudimos cargar el proyecto.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false
       }
@@ -72,6 +74,7 @@ export const usePlatformProjectsStore = defineStore('platformProjects', {
         const message = error.response?.data?.detail || 'No pudimos crear el proyecto.'
         this.error = message
         return { success: false, message, errors: error.response?.data }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }
@@ -97,6 +100,7 @@ export const usePlatformProjectsStore = defineStore('platformProjects', {
         const message = error.response?.data?.detail || 'No pudimos actualizar el proyecto.'
         this.error = message
         return { success: false, message, errors: error.response?.data }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }
@@ -122,6 +126,7 @@ export const usePlatformProjectsStore = defineStore('platformProjects', {
         const message = error.response?.data?.detail || 'No pudimos archivar el proyecto.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }

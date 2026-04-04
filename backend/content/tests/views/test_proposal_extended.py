@@ -733,7 +733,7 @@ class TestEscalationAndHeatRefresh:
             ip_address='10.0.0.1',
         )
 
-        refresh_cached_heat_scores()
+        refresh_cached_heat_scores.call_local()
 
         p.refresh_from_db()
         assert p.cached_heat_score > 0

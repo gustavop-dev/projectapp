@@ -1,6 +1,7 @@
 """Tests for proposal acceptance → platform onboarding (sync + idempotency)."""
 
-from unittest.mock import patch
+from decimal import Decimal
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -8,6 +9,9 @@ from django.utils import timezone
 
 from accounts.models import Deliverable, Project, UserProfile
 from accounts.services.proposal_platform_onboarding import (
+    _acting_user_for_sync,
+    _find_client_user_by_email,
+    ensure_deliverable_for_accepted_proposal,
     handle_proposal_accepted_for_platform,
 )
 from accounts.services.technical_requirements_sync import (
@@ -121,3 +125,126 @@ def test_handle_first_run_sets_platform_onboarding_timestamp(
     )
     proposal_with_deliverable.refresh_from_db()
     assert proposal_with_deliverable.platform_onboarding_completed_at is not None
+
+
+# -- _acting_user_for_sync helpers -------------------------------------------
+
+
+@pytest.mark.django_db
+def test_acting_user_for_sync_returns_staff_user_when_acting_user_is_none(admin_user):
+    """Falls back to staff user when acting_user is None."""
+    result = _acting_user_for_sync(None)
+    assert result is not None
+    assert result.is_staff is True
+
+
+@pytest.mark.django_db
+def test_acting_user_for_sync_returns_provided_user_when_authenticated(admin_user):
+    """Returns the acting_user directly when it is authenticated."""
+    result = _acting_user_for_sync(admin_user)
+    assert result == admin_user
+
+
+# -- _find_client_user_by_email helpers --------------------------------------
+
+
+@pytest.mark.django_db
+def test_find_client_user_by_email_returns_none_for_empty_string():
+    """Empty email string returns None without querying the DB."""
+    result = _find_client_user_by_email('')
+    assert result is None
+
+
+@pytest.mark.django_db
+def test_find_client_user_by_email_returns_none_for_whitespace():
+    """Email consisting only of spaces returns None."""
+    result = _find_client_user_by_email('   ')
+    assert result is None
+
+
+@pytest.mark.django_db
+def test_find_client_user_by_email_returns_matching_user(client_user):
+    """Returns the user when the email matches an existing account."""
+    result = _find_client_user_by_email('client-onb@test.com')
+    assert result is not None
+    assert result.email == 'client-onb@test.com'
+
+
+# -- ensure_deliverable_for_accepted_proposal --------------------------------
+
+
+@pytest.mark.django_db
+def test_ensure_deliverable_returns_existing_deliverable_when_set(proposal_with_deliverable):
+    """Returns the deliverable directly when proposal.deliverable_id is already set."""
+    result = ensure_deliverable_for_accepted_proposal(proposal_with_deliverable, None)
+    assert result == proposal_with_deliverable.deliverable
+
+
+@pytest.mark.django_db
+def test_ensure_deliverable_returns_none_when_no_client_user_exists(admin_user):
+    """Returns None when email is unknown (no matching user)."""
+    proposal = BusinessProposal.objects.create(
+        title='NoBP',
+        client_name='Unknown',
+        client_email='nobody@nowhere.invalid',
+        status=BusinessProposal.Status.ACCEPTED,
+    )
+    result = ensure_deliverable_for_accepted_proposal(proposal, admin_user)
+    assert result is None
+
+
+@pytest.mark.django_db
+def test_ensure_deliverable_returns_none_when_user_is_not_client(admin_user):
+    """Returns None when matched user has a non-CLIENT role."""
+    proposal = BusinessProposal.objects.create(
+        title='AdminBP',
+        client_name='Admin',
+        client_email='admin-onb@test.com',
+        status=BusinessProposal.Status.ACCEPTED,
+    )
+    result = ensure_deliverable_for_accepted_proposal(proposal, admin_user)
+    assert result is None
+
+
+@pytest.mark.django_db
+@patch('accounts.views._extract_proposal_financial_data', return_value=([], []))
+def test_ensure_deliverable_creates_project_and_deliverable_for_client_user(
+    _mock_extract, client_user, admin_user,
+):
+    """Creates project and deliverable when client user is found."""
+    proposal = BusinessProposal.objects.create(
+        title='New Project BP',
+        client_name='Test Client',
+        client_email='client-onb@test.com',
+        total_investment=Decimal('0'),
+        hosting_percent=30,
+        status=BusinessProposal.Status.ACCEPTED,
+    )
+
+    result = ensure_deliverable_for_accepted_proposal(proposal, admin_user)
+
+    assert result is not None
+    assert result.project.client == client_user
+    assert result.project.name == 'New Project BP'
+    proposal.refresh_from_db()
+    assert proposal.deliverable_id == result.id
+
+
+# -- handle_proposal_accepted_for_platform edge cases -----------------------
+
+
+@pytest.mark.django_db
+@patch('content.services.proposal_email_service.ProposalEmailService.send_acceptance_confirmation', return_value=True)
+@patch('accounts.services.proposal_platform_onboarding.sync_technical_requirements_for_deliverable')
+def test_handle_logs_warning_when_sync_fails(_mock_sync, _mock_email, proposal_with_deliverable, admin_user):
+    """Logs a warning but continues when sync_technical_requirements_for_deliverable returns ok=False."""
+    _mock_sync.return_value = {'ok': False, 'error': 'no_technical_section', 'detail': 'No section'}
+    proposal_with_deliverable.platform_onboarding_completed_at = None
+    proposal_with_deliverable.save(update_fields=['platform_onboarding_completed_at'])
+
+    result = handle_proposal_accepted_for_platform(
+        proposal_with_deliverable, source='admin_panel', acting_user=admin_user,
+    )
+
+    assert result['skipped'] is False
+    assert result['sync']['ok'] is False

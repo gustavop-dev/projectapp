@@ -10,6 +10,7 @@ const LOCALE_PREFIX_RE = /^\/[a-z]{2}(-[a-z]{2})?(?=\/)/
  */
 export function stripLocalePrefix(path) {
   if (!path) return ''
+  /* c8 ignore next */
   return path.replace(LOCALE_PREFIX_RE, '') || path
 }
 

@@ -26,6 +26,37 @@ def _client_sample():
     }
 
 
+def _composed_email_base():
+    """Shared config for user-composed email templates (branded & proposal)."""
+    return {
+        'category': 'client',
+        'html_template': 'emails/branded_email.html',
+        'txt_template': 'emails/branded_email.txt',
+        'editable_fields': [
+            {
+                'key': 'greeting',
+                'label': 'Saludo por defecto',
+                'type': 'text',
+                'default': 'Hola {client_name}',
+            },
+            {
+                'key': 'footer',
+                'label': 'Pie de correo por defecto',
+                'type': 'textarea',
+                'default': 'Quedamos atentos a tus comentarios.\nUn abrazo, el equipo de Project App.',
+            },
+        ],
+        'available_variables': ['client_name', 'title'],
+        'sample_context': {
+            **_client_sample(),
+            'greeting': 'Hola {client_name}',
+            'sections': ['Texto de ejemplo para la primera sección.', 'Texto de ejemplo para la segunda sección.'],
+            'footer': 'Quedamos atentos a tus comentarios.\nUn abrazo, el equipo de Project App.',
+            'attachment_names': ['contrato.pdf', 'propuesta.pdf'],
+        },
+    }
+
+
 def _internal_sample():
     """Common sample context for internal notification emails."""
     return {
@@ -1023,6 +1054,20 @@ EMAIL_TEMPLATE_REGISTRY = {
                 },
             ],
         },
+    },
+
+    # -----------------------------------------------------------------------
+    # User-composed emails (branded & proposal) — shared config
+    # -----------------------------------------------------------------------
+    'branded_email': {
+        'name': 'Correo con Branding',
+        'description': 'Correo genérico con branding de la marca, compuesto por el usuario desde la pestaña Correos.',
+        **_composed_email_base(),
+    },
+    'proposal_email': {
+        'name': 'Correo de Propuesta',
+        'description': 'Correo compuesto por el vendedor desde la pestaña Enviar correo. Se registra como actividad de la propuesta.',
+        **_composed_email_base(),
     },
 }
 

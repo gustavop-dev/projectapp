@@ -153,4 +153,37 @@ describe('usePlatformNotificationsStore', () => {
     jest.advanceTimersByTime(2000)
     expect(mockGet.mock.calls.length).toBe(callsAfterStop)
   })
+
+  describe('error fallback messages', () => {
+    it('fetchNotifications uses fallback when detail is absent', async () => {
+      mockGet.mockRejectedValueOnce(new Error('network'))
+      const result = await store.fetchNotifications()
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos cargar las notificaciones.')
+    })
+
+    it('markRead uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.markRead(1)
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Error.')
+    })
+
+    it('markAllRead uses fallback when detail is absent', async () => {
+      mockPost.mockRejectedValueOnce(new Error('network'))
+      const result = await store.markAllRead()
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('Error.')
+    })
+  })
+
+  describe('markRead conditional branches', () => {
+    it('does not update notifications list when notification id is not found', async () => {
+      store.notifications = [{ id: 5, is_read: false }]
+      store.unreadCount = 1
+      mockPost.mockResolvedValueOnce({ data: { id: 999, is_read: true } })
+      await store.markRead(999)
+      expect(store.notifications[0].is_read).toBe(false)
+    })
+  })
 })

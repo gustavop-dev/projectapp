@@ -8,10 +8,15 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from content.demo_technical_document import DEMO_TECHNICAL_DOCUMENT_JSON
+from django.core.files.base import ContentFile
+
 from content.models import (
     BusinessProposal,
+    ContractTemplate,
+    EmailLog,
     ProposalAlert,
     ProposalChangeLog,
+    ProposalDocument,
     ProposalSection,
     ProposalSectionView,
     ProposalShareLink,
@@ -208,6 +213,10 @@ class Command(BaseCommand):
             if status in ('viewed', 'accepted', 'negotiating', 'rejected') and random.random() < 0.6:
                 self._create_seller_activity_logs(proposal, now)
 
+            # --- Generate email history for proposals with email tabs ---
+            if status in ('negotiating', 'accepted'):
+                self._create_email_history(proposal, now)
+
             # Create default sections (groups now stored in content_json)
             default_sections = ProposalService.get_default_sections(language=lang)
             for section_cfg in default_sections:
@@ -229,7 +238,14 @@ class Command(BaseCommand):
                     cfg['content_json'] = deepcopy(DEMO_TECHNICAL_DOCUMENT_JSON)
                 ProposalSection.objects.create(proposal=proposal, **cfg)
 
+            # --- Seed a ProposalDocument for negotiating proposals ---
+            if status == 'negotiating':
+                self._seed_proposal_documents(proposal)
+
             created += 1
+
+        # Ensure a default ContractTemplate exists
+        self._ensure_contract_template()
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -237,6 +253,38 @@ class Command(BaseCommand):
                 f'(statuses: {", ".join(STATUSES)}).'
             )
         )
+
+    def _ensure_contract_template(self):
+        """Create a default ContractTemplate if none exists."""
+        if ContractTemplate.objects.filter(is_default=True).exists():
+            return
+        ContractTemplate.objects.create(
+            name='Contrato Estándar',
+            content_markdown=(
+                '# CONTRATO DE PRESTACIÓN DE SERVICIOS\n\n'
+                'Entre **{client_full_name}** (C.C. {client_cedula}) y '
+                '**{contractor_full_name}** (C.C. {contractor_cedula}).\n\n'
+                '**Correo contratante:** {client_email}\n\n'
+                '**Correo contratista:** {contractor_email}\n\n'
+                '**Ciudad:** {contract_city}\n\n'
+                '**Banco:** {bank_name} — {bank_account_type} {bank_account_number}\n'
+            ),
+            is_default=True,
+        )
+        self.stdout.write(self.style.SUCCESS('  Created default ContractTemplate'))
+
+    def _seed_proposal_documents(self, proposal):
+        """Seed one uploaded and one generated ProposalDocument for a proposal."""
+        if ProposalDocument.objects.filter(proposal=proposal).exists():
+            return
+        # Uploaded document
+        doc = ProposalDocument.objects.create(
+            proposal=proposal,
+            document_type=ProposalDocument.DOC_TYPE_LEGAL_ANNEX,
+            title='Anexo legal de prueba',
+            is_generated=False,
+        )
+        doc.file.save('anexo-legal.pdf', ContentFile(b'%PDF-1.4 fake annex'), save=True)
 
     def _create_engagement_data(self, proposal, now):
         """Generate ViewEvents, SectionViews, ChangeLogs, and ShareLinks."""
@@ -466,3 +514,62 @@ class Command(BaseCommand):
             ProposalChangeLog.objects.filter(pk=log.pk).update(
                 created_at=activity_date,
             )
+
+    def _create_email_history(self, proposal, now):
+        """Generate EmailLog entries for branded and proposal emails."""
+        subjects_branded = [
+            'Información adicional sobre tu proyecto',
+            'Resumen de nuestra conversación',
+            'Documentos adjuntos — Propuesta actualizada',
+        ]
+        subjects_proposal = [
+            f'Propuesta actualizada: {proposal.title}',
+            f'Seguimiento — {proposal.title}',
+        ]
+        ref_date = proposal.sent_at or (now - timedelta(days=10))
+
+        # 1-2 branded emails
+        for j in range(random.randint(1, 2)):
+            log = EmailLog.objects.create(
+                template_key='branded_email',
+                recipient=proposal.client_email or f'{proposal.client_name.split()[0].lower()}@example.com',
+                subject=random.choice(subjects_branded),
+                proposal=proposal,
+                status='sent',
+                metadata={
+                    'greeting': f'Hola {proposal.client_name}',
+                    'sections': [
+                        'Adjunto encontrarás la información que conversamos.',
+                        'Quedamos atentos a cualquier duda.',
+                    ],
+                    'footer': 'Un abrazo, el equipo de Project App.',
+                    'attachment_names': random.choice([[], ['propuesta.pdf'], ['contrato.pdf', 'anexo.pdf']]),
+                },
+            )
+            EmailLog.objects.filter(pk=log.pk).update(
+                sent_at=ref_date + timedelta(days=random.randint(1, 5), hours=random.randint(9, 17)),
+            )
+
+        # 1 proposal email (with change log)
+        log = EmailLog.objects.create(
+            template_key='proposal_email',
+            recipient=proposal.client_email or f'{proposal.client_name.split()[0].lower()}@example.com',
+            subject=random.choice(subjects_proposal),
+            proposal=proposal,
+            status='sent',
+            metadata={
+                'greeting': f'Hola {proposal.client_name}',
+                'sections': ['Te compartimos la propuesta actualizada con los cambios solicitados.'],
+                'footer': 'Quedamos atentos a tus comentarios.\nUn abrazo, el equipo de Project App.',
+                'attachment_names': [],
+            },
+        )
+        email_date = ref_date + timedelta(days=random.randint(2, 6), hours=random.randint(9, 17))
+        EmailLog.objects.filter(pk=log.pk).update(sent_at=email_date)
+        cl = ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type=ProposalChangeLog.ChangeType.EMAIL_SENT,
+            actor_type=ProposalChangeLog.ActorType.SELLER,
+            description=f'Correo enviado a {log.recipient}: {log.subject}',
+        )
+        ProposalChangeLog.objects.filter(pk=cl.pk).update(created_at=email_date)

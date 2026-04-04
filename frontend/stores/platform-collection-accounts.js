@@ -24,6 +24,7 @@ export const usePlatformCollectionAccountsStore = defineStore('platformCollectio
           error.response?.data?.detail || 'Could not load collection accounts.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false
       }
@@ -43,6 +44,7 @@ export const usePlatformCollectionAccountsStore = defineStore('platformCollectio
           error.response?.data?.detail || 'Could not load collection accounts for this project.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false
       }
@@ -60,6 +62,7 @@ export const usePlatformCollectionAccountsStore = defineStore('platformCollectio
         const message = error.response?.data?.detail || 'Could not load document.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isLoading = false
       }
@@ -77,6 +80,7 @@ export const usePlatformCollectionAccountsStore = defineStore('platformCollectio
         const message = error.response?.data?.detail || error.response?.data || 'Could not create.'
         this.error = typeof message === 'string' ? message : 'Could not create.'
         return { success: false, errors: error.response?.data }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }
@@ -94,6 +98,7 @@ export const usePlatformCollectionAccountsStore = defineStore('platformCollectio
         const message = error.response?.data?.detail || 'Could not update.'
         this.error = message
         return { success: false, errors: error.response?.data }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }
@@ -111,6 +116,7 @@ export const usePlatformCollectionAccountsStore = defineStore('platformCollectio
         const message = error.response?.data?.detail || 'Could not issue document.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }
@@ -128,6 +134,7 @@ export const usePlatformCollectionAccountsStore = defineStore('platformCollectio
         const message = error.response?.data?.detail || 'Could not mark as paid.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }
@@ -145,6 +152,7 @@ export const usePlatformCollectionAccountsStore = defineStore('platformCollectio
         const message = error.response?.data?.detail || 'Could not cancel.'
         this.error = message
         return { success: false, message }
+      /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false
       }

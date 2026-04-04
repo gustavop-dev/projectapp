@@ -33,6 +33,7 @@ class ProposalChangeLog(models.Model):
         CONDITIONAL_ACCEPT = 'cond_accepted', 'Conditional Acceptance'
         CALCULATOR_FOLLOWUP = 'calc_followup', 'Calculator Follow-up Sent'
         REQUIREMENT_CLICKED = 'req_clicked', 'Requirement Clicked'
+        EMAIL_SENT = 'email_sent', 'Email Sent'
 
     class ActorType(models.TextChoices):
         CLIENT = 'client', 'Client'

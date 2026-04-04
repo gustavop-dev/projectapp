@@ -164,6 +164,70 @@ test.describe('Platform Data Model — Admin', () => {
     await expect(page.getByText(/no hay modelo de datos/i)).toBeVisible();
     await expect(page.getByText(/sube un JSON/i)).toBeVisible();
   });
+
+  test('copy template button changes label to Copiado after click', {
+    tag: [...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-admin'],
+  }, async ({ page }) => {
+    // Grant clipboard write permission and mock clipboard API
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await setupMocks(page, { user: mockPlatformAdmin });
+    await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+
+    await page.getByRole('button', { name: /copiar plantilla/i }).click();
+
+    await expect(page.getByRole('button', { name: /copiado/i })).toBeVisible();
+  });
+
+  test('download template button triggers template API call', {
+    tag: [...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-admin'],
+  }, async ({ page }) => {
+    await setupMocks(page, { user: mockPlatformAdmin });
+    await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+
+    const templateRequest = page.waitForRequest(
+      (req) => req.url().includes('data-model-entities/template/') && req.method() === 'GET',
+    );
+    await page.getByRole('button', { name: /descargar plantilla/i }).click();
+    await templateRequest;
+    // Download was triggered (no error thrown — page still functional)
+    await expect(page.getByRole('heading', { name: /modelo de datos/i })).toBeVisible();
+  });
+
+  test('shows error message when upload returns server error', {
+    tag: [...PLATFORM_PROJECT_DATA_MODEL, '@role:platform-admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(mockPlatformAdmin);
+      if (apiPath === 'accounts/projects/1/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProject) };
+      }
+      if (apiPath === 'accounts/projects/1/data-model-entities/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      if (apiPath === 'accounts/projects/1/data-model-entities/' && method === 'POST') {
+        return { status: 400, contentType: 'application/json', body: JSON.stringify({ detail: 'Invalid entities data.' }) };
+      }
+      if (apiPath === 'accounts/projects/1/data-model-entities/template/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockTemplate) };
+      }
+      if (apiPath === 'accounts/notifications/unread-count/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ unread_count: 0 }) };
+      }
+      return null;
+    });
+    await setPlatformAuth(page, { user: mockPlatformAdmin });
+    await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+
+    const validJson = JSON.stringify({ entities: [{ name: 'Producto', description: '', keyFields: 'id', relationship: '' }] });
+    await page.getByPlaceholder(/entities/i).fill(validJson);
+    await page.getByRole('button', { name: /subir modelo de datos/i }).click();
+
+    // Error message from the server is surfaced in the UI
+    await expect(page.locator('text=/error|inválido|falló|no se pudo/i').first()).toBeVisible({ timeout: 10_000 });
+  });
 });
 
 // ─── Client role ───────────────────────────────────────────────────────────────

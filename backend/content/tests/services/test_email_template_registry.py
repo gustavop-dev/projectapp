@@ -133,3 +133,24 @@ class TestSubstituteVariables:
         result = substitute_variables(text, context)
 
         assert result == text
+
+
+class TestComposedEmailRegistryEntries:
+    """Verify branded_email and proposal_email registry entries."""
+
+    def test_branded_email_entry_has_required_fields(self):
+        entry = get_template_entry('branded_email')
+        assert entry is not None
+        assert 'html_template' in entry
+        assert 'txt_template' in entry
+        assert 'editable_fields' in entry
+        assert len(entry['editable_fields']) >= 2
+
+    def test_proposal_email_entry_matches_branded_structure(self):
+        branded = get_template_entry('branded_email')
+        proposal = get_template_entry('proposal_email')
+        assert proposal is not None
+        for key in ('html_template', 'txt_template', 'editable_fields',
+                    'available_variables', 'category'):
+            assert branded[key] == proposal[key], f'{key} mismatch'
+        assert branded['name'] != proposal['name']

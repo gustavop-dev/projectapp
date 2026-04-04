@@ -1,6 +1,6 @@
 {
-  "version": "2.10.0",
-  "lastUpdated": "2026-04-03",
+  "version": "2.11.0",
+  "lastUpdated": "2026-04-04",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1159,6 +1159,22 @@
       "roles": ["admin"],
       "priority": "P1",
       "description": "Admin selects documents to send (draft contract, commercial PDF, technical PDF, additional docs via checkboxes), clicks 'Enviar al cliente', edits email subject/greeting/body/footer/document descriptions in SendDocumentsModal, submits to send API. Disabled when no client email or no docs selected.",
+      "expectedSpecs": 1
+    },
+    "admin-send-branded-email": {
+      "name": "Send Branded Email",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin sends a branded email from proposal edit page Correos tab. Composer with draggable sections, file attachments, branded preview, and paginated email history.",
+      "expectedSpecs": 1
+    },
+    "admin-send-proposal-email": {
+      "name": "Send Proposal Email",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin sends a proposal email logged as activity from proposal edit page Enviar correo tab. Same composer UI, each send creates ProposalChangeLog entry.",
       "expectedSpecs": 1
     },
     "platform-project-data-model": {

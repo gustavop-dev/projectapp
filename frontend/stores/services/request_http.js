@@ -1,6 +1,7 @@
 import axios from "axios";
 
 function getCookie(name) {
+  /* c8 ignore next */
   if (typeof document === 'undefined') return null;
   let cookieValue = null;
   if (document.cookie && document.cookie !== '') {

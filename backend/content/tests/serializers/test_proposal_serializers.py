@@ -4,7 +4,10 @@ from freezegun import freeze_time
 
 from content.models import ProposalSection
 from content.serializers.proposal import (
+    ContractParamsSerializer,
+    EmailTemplateConfigSerializer,
     ProposalCreateUpdateSerializer,
+    ProposalDefaultConfigSerializer,
     ProposalDetailSerializer,
     ProposalFromJSONSerializer,
     ProposalListSerializer,
@@ -299,3 +302,131 @@ class TestProposalFromJSONSerializer:
         serializer = ProposalFromJSONSerializer(data=payload)
         assert serializer.is_valid(), serializer.errors
         assert 'technicalDocument' in serializer.validated_data['sections']
+
+
+class TestProposalDetailSerializerDiscountedInvestment:
+    def test_discounted_investment_returns_none_when_no_discount(self, proposal):
+        """get_discounted_investment returns None when discount_percent is 0."""
+        proposal.discount_percent = 0
+        proposal.save()
+        serializer = ProposalDetailSerializer(proposal, context={'is_admin': True})
+        assert serializer.data['discounted_investment'] is None
+
+    def test_discounted_investment_returns_value_when_discount_set(self, proposal):
+        """get_discounted_investment returns discounted value when discount_percent > 0."""
+        from decimal import Decimal
+        proposal.total_investment = Decimal('1000000')
+        proposal.discount_percent = 10
+        proposal.save()
+        serializer = ProposalDetailSerializer(proposal, context={'is_admin': True})
+        assert serializer.data['discounted_investment'] is not None
+
+
+class TestContractParamsSerializerValidation:
+    def test_rejects_custom_source_without_markdown(self):
+        """ContractParamsSerializer rejects contract_source=custom with no custom_contract_markdown."""
+        payload = {
+            'client_cedula': '123456',
+            'contract_source': 'custom',
+            'custom_contract_markdown': '',
+        }
+        serializer = ContractParamsSerializer(data=payload)
+        assert not serializer.is_valid()
+        assert 'custom_contract_markdown' in str(serializer.errors)
+
+    def test_accepts_custom_source_with_markdown(self):
+        """ContractParamsSerializer accepts contract_source=custom when markdown is provided."""
+        payload = {
+            'client_cedula': '123456',
+            'contract_source': 'custom',
+            'custom_contract_markdown': '# Contract\n\nCustom terms here.',
+        }
+        serializer = ContractParamsSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+
+    def test_accepts_default_source_without_markdown(self):
+        """ContractParamsSerializer accepts default contract_source without custom markdown."""
+        payload = {
+            'client_cedula': '123456',
+            'contract_source': 'default',
+        }
+        serializer = ContractParamsSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+
+
+class TestProposalDefaultConfigSerializerValidation:
+    def test_rejects_invalid_language(self):
+        """ProposalDefaultConfigSerializer rejects language values other than es/en."""
+        serializer = ProposalDefaultConfigSerializer(
+            data={'language': 'fr', 'sections_json': []}
+        )
+        assert not serializer.is_valid()
+        assert 'language' in serializer.errors
+
+    def test_rejects_non_list_sections_json(self):
+        """ProposalDefaultConfigSerializer rejects sections_json that is not a list."""
+        serializer = ProposalDefaultConfigSerializer(
+            data={'language': 'es', 'sections_json': {'not': 'a list'}}
+        )
+        assert not serializer.is_valid()
+        assert 'sections_json' in serializer.errors
+
+    def test_rejects_non_dict_section_in_list(self):
+        """ProposalDefaultConfigSerializer rejects sections_json containing non-dict items."""
+        serializer = ProposalDefaultConfigSerializer(
+            data={'language': 'es', 'sections_json': ['string_item']}
+        )
+        assert not serializer.is_valid()
+        assert 'sections_json' in serializer.errors
+
+    def test_rejects_section_missing_required_keys(self):
+        """ProposalDefaultConfigSerializer rejects sections missing required keys."""
+        serializer = ProposalDefaultConfigSerializer(
+            data={'language': 'es', 'sections_json': [{'section_type': 'intro'}]}
+        )
+        assert not serializer.is_valid()
+        assert 'sections_json' in serializer.errors
+
+    def test_accepts_valid_sections_json(self):
+        """ProposalDefaultConfigSerializer accepts a properly structured sections_json."""
+        section = {
+            'section_type': 'executive_summary',
+            'title': 'Executive Summary',
+            'order': 1,
+            'content_json': {},
+        }
+        serializer = ProposalDefaultConfigSerializer(
+            data={'language': 'es', 'sections_json': [section]}
+        )
+        assert serializer.is_valid(), serializer.errors
+
+
+class TestEmailTemplateConfigSerializerValidation:
+    def test_rejects_non_dict_content_overrides(self, db):
+        """EmailTemplateConfigSerializer rejects content_overrides that is not a dict."""
+        from content.models import EmailTemplateConfig
+        config = EmailTemplateConfig.objects.create(
+            template_key='test_key',
+            content_overrides={},
+        )
+        serializer = EmailTemplateConfigSerializer(
+            config,
+            data={'content_overrides': 'not a dict'},
+            partial=True,
+        )
+        assert not serializer.is_valid()
+        assert 'content_overrides' in serializer.errors
+
+    def test_accepts_dict_content_overrides(self, db):
+        """EmailTemplateConfigSerializer accepts valid dict content_overrides."""
+        from content.models import EmailTemplateConfig
+        config = EmailTemplateConfig.objects.create(
+            template_key='test_key2',
+            content_overrides={},
+        )
+        serializer = EmailTemplateConfigSerializer(
+            config,
+            data={'content_overrides': {'subject': 'New Subject'}},
+            partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors

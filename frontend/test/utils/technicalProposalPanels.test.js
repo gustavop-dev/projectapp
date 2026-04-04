@@ -124,6 +124,33 @@ describe('technicalFragmentHasContent', () => {
     const doc = { epics: [{ epicKey: 'k', requirements: [] }] }
     expect(technicalFragmentHasContent('epics', doc)).toBe(true)
   })
+
+  it('detects epic by title field', () => {
+    const doc = { epics: [{ title: 'My Epic', requirements: [] }] }
+    expect(technicalFragmentHasContent('epics', doc)).toBe(true)
+  })
+
+  it('detects epic by description field', () => {
+    const doc = { epics: [{ description: 'Some desc', requirements: [] }] }
+    expect(technicalFragmentHasContent('epics', doc)).toBe(true)
+  })
+
+  it('detects quality testTypes', () => {
+    const doc = { quality: { testTypes: [{ type: 't', validates: 'v', tool: 'x', whenRun: 'w' }] } }
+    expect(technicalFragmentHasContent('quality', doc)).toBe(true)
+  })
+
+  it('returns false for stack row that is a non-object value', () => {
+    expect(technicalFragmentHasContent('stack', { stack: ['not-an-object'] })).toBe(false)
+  })
+
+  it('returns false for epics with null requirements and no header fields', () => {
+    expect(technicalFragmentHasContent('epics', { epics: [{ requirements: null }] })).toBe(false)
+  })
+
+  it('detects integrations notes', () => {
+    expect(technicalFragmentHasContent('integrations', { integrations: { notes: 'some note' } })).toBe(true)
+  })
 })
 
 describe('buildSyntheticTechnicalPanels', () => {
@@ -153,6 +180,12 @@ describe('buildSyntheticTechnicalPanels', () => {
   it('handles missing content_json', () => {
     const panels = buildSyntheticTechnicalPanels({ id: 1 }, 'en')
     expect(panels.some((p) => p._technicalFragment === 'intro')).toBe(true)
+  })
+
+  it('handles null technicalSection gracefully', () => {
+    const panels = buildSyntheticTechnicalPanels(null, 'en')
+    expect(panels.some((p) => p._technicalFragment === 'intro')).toBe(true)
+    expect(panels[0]._sourceTechnicalSectionId).toBeUndefined()
   })
 })
 
