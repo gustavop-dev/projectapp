@@ -15,6 +15,7 @@
             :src="beBoldImage" 
             alt="Unrepeatable design"
             class="w-56 sm:w-80 lg:w-[28rem] h-auto transform hover:scale-105 transition-transform duration-300"
+            loading="lazy"
           />
           
           <!-- Asterisk on top of image -->
@@ -176,7 +177,6 @@ import { ref, onMounted } from 'vue'
 import { useMessages } from '~/composables/useMessages'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { Pagination } from 'swiper/modules'
-import gsap from 'gsap'
 import 'swiper/css'
 import 'swiper/css/pagination'
 
@@ -204,7 +204,10 @@ const iconNotebook = imgNotebook
 const iconPingPong = imgPingPong
 const iconRocket = imgRocket
 
-onMounted(() => {
+onMounted(async () => {
+  if (!import.meta.client) return
+  const gsap = (await import('gsap')).default
+
   if (asterisk.value) {
     gsap.to(asterisk.value, {
       rotation: 360,

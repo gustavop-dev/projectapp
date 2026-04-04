@@ -1,7 +1,22 @@
 <template>
   <footer class="p-3 h-svh" @mousemove="handleMouseMove">
     <div class="relative w-full h-full overflow-hidden">
-      <video ref="mainVideo" class="absolute top-0 left-0 w-full h-full object-cover rounded-xl" autoplay muted loop preload="metadata">
+      <img
+        v-if="!bgVideoActive"
+        :src="videoPosterImg"
+        alt="Video showcasing our web design and development services"
+        class="absolute top-0 left-0 w-full h-full object-cover rounded-xl cursor-pointer"
+        @click="activateBgVideo"
+      />
+      <video
+        v-else
+        ref="mainVideo"
+        class="absolute top-0 left-0 w-full h-full object-cover rounded-xl"
+        autoplay
+        muted
+        loop
+        playsinline
+      >
         <source src="~/assets/videos/presentationPrevPc.mp4" type="video/mp4">
         <p class="sr-only">Video showcasing our web design and development services</p>
       </video>
@@ -179,6 +194,7 @@ import { XMarkIcon } from '@heroicons/vue/24/outline';
 import ArrowUpRightIcon from '@heroicons/vue/20/solid/ArrowUpRightIcon';
 import { useGlobalMessages } from '~/composables/useMessages';
 import { useFreeResources } from '~/composables/useFreeResources';
+import videoPosterImg from '~/assets/images/home/hero/video-poster.jpg';
 
 // Cargar componentes de Lottie de forma convencional
 import { Vue3Lottie } from "vue3-lottie";
@@ -211,6 +227,11 @@ const solutions = computed(() => {
     { name: s.blog || 'Blog', href: '/blog' },
   ];
 });
+
+const bgVideoActive = ref(false);
+const activateBgVideo = () => {
+  bgVideoActive.value = true;
+};
 
 const showModal = ref(false);
 const ball = ref(null);

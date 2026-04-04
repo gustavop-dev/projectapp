@@ -38,8 +38,6 @@ import AnimatedTestimonials from '~/components/ui/AnimatedTestimonials.vue'
 import VideoModal from '~/components/VideoModal.vue'
 import { useMessages } from '~/composables/useMessages'
 
-import portfolioVideo from '~/assets/videos/portfolio/portfolio-showcase.mp4'
-import gmVideo from '~/assets/videos/studyCases/gm-platform-testimonial.webm'
 import videoPoster from '~/assets/images/home/hero/video-poster.jpg'
 import mockupTaptag from '~/assets/images/home/hero/mockup-taptag.png'
 import imgGMPoster from '~/assets/images/studyCases/gm-platform-video-poster.webp'
@@ -50,12 +48,19 @@ const { messages } = useMessages()
 const isVideoOpen = ref(false)
 const currentVideo = ref('')
 
-const openVideoModal = (testimonial) => {
-  const videoMap = {
-    'TapTag': portfolioVideo,
-    'G&M Platform': gmVideo
+const openVideoModal = async (testimonial) => {
+  try {
+    if (testimonial?.name === 'G&M Platform') {
+      const mod = await import('~/assets/videos/studyCases/gm-platform-testimonial.webm')
+      currentVideo.value = mod.default
+    } else {
+      const mod = await import('~/assets/videos/portfolio/portfolio-showcase.mp4')
+      currentVideo.value = mod.default
+    }
+  } catch (e) {
+    console.error('Error loading video:', e)
+    return
   }
-  currentVideo.value = videoMap[testimonial?.name] || portfolioVideo
   isVideoOpen.value = true
 }
 
