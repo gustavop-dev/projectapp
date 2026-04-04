@@ -59,6 +59,11 @@ export default {
       description: "Explore nuestro portafolio de proyectos de desarrollo web incluyendo sitios web personalizados, plataformas de comercio electrónico y aplicaciones web construidas por nuestro equipo experto de desarrolladores y diseñadores.",
       keywords: "Project App., portafolio, proyectos de desarrollo web, sitios web personalizados, aplicaciones web, comercio electrónico, casos de estudio, nuestro trabajo"
     },
+    contact: {
+      title: "Contáctanos - Consultoría Gratuita - Project App.",
+      description: "Ponte en contacto con Project App. para una consultoría gratuita sobre desarrollo de software a medida, diseño web, apps móviles y soluciones digitales. Respuesta en 24 horas.",
+      keywords: "contactar Project App., consultoría gratuita, cotización desarrollo de software, consulta diseño web, contratar desarrolladores, agendar llamada, estimación de proyecto"
+    },
     hosting: {
       title: "Servicios de Hosting para Sitios Web - Project App.",
       description: "Soluciones de hosting de sitios web confiables y seguras diseñadas para aplicaciones web y sitios e-commerce de alto rendimiento, optimizados para velocidad y seguridad.",
@@ -68,6 +73,16 @@ export default {
       title: "Viaje Creativo en Pausa (404) - Project App.",
       description: "Te has aventurado en territorio digital inexplorado. Permítenos guiarte de vuelta a donde nuestra excepcional experiencia en diseño y desarrollo web te espera.",
       keywords: "Project App., 404, diseño web creativo, experiencia digital, desarrollo de sitios web, experiencia de usuario"
+    },
+    termsAndConditions: {
+      title: "Términos y Condiciones - Project App.",
+      description: "Lee los Términos y Condiciones que rigen el uso de los servicios de Project App., incluyendo desarrollo de software a medida, diseño web, apps móviles y hosting.",
+      keywords: "Project App., términos y condiciones, términos de servicio, legal, acuerdo de desarrollo de software, términos del servicio"
+    },
+    privacyPolicy: {
+      title: "Política de Privacidad - Project App.",
+      description: "Conoce cómo Project App. recopila, usa y protege tu información personal. Nuestro compromiso con tu privacidad y seguridad de datos.",
+      keywords: "Project App., política de privacidad, protección de datos, información personal, cookies, GDPR, seguridad de datos"
     }
   };
   

@@ -16,6 +16,8 @@ export default defineI18nLocale(async () => {
     landingApps,
     animations3d,
     notFound,
+    termsAndConditions,
+    privacyPolicy,
   ] = await Promise.all([
     import('~/locales/global/es.js'),
     import('~/locales/home/es.js'),
@@ -33,6 +35,8 @@ export default defineI18nLocale(async () => {
     import('~/locales/landingApps/es.js'),
     import('~/locales/3dAnimations/es.js'),
     import('~/locales/404View/es.js'),
+    import('~/locales/termsAndConditions/es.js'),
+    import('~/locales/privacyPolicy/es.js'),
   ])
 
   return {
@@ -52,5 +56,7 @@ export default defineI18nLocale(async () => {
     landingApps: landingApps.default,
     '3dAnimations': animations3d.default,
     '404View': notFound.default,
+    termsAndConditions: termsAndConditions.default,
+    privacyPolicy: privacyPolicy.default,
   }
 })

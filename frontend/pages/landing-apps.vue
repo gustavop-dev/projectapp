@@ -69,8 +69,24 @@ import StudyCases from '~/components/home/StudyCases.vue'
 import PainPointsApps from '~/components/landing/PainPointsApps.vue'
 import LandingFAQ from '~/components/landing/LandingFAQ.vue'
 import { useMessages } from '~/composables/useMessages'
+import { useServiceJsonLd } from '~/composables/useSeoJsonLd'
 
 useSeoHead('landingApps')
+
+const { locale } = useI18n()
+const isEn = computed(() => locale.value.startsWith('en'))
+
+useServiceJsonLd({
+  name: computed(() => isEn.value
+    ? 'iOS & Android Mobile App Development in 30 Days'
+    : 'Desarrollo de Apps Móviles iOS y Android en 30 Días'
+  ).value,
+  description: computed(() => isEn.value
+    ? 'We create mobile apps people actually use. iOS, Android, or both. UX/UI design + development + store publishing.'
+    : 'Creamos apps móviles que la gente sí usa. iOS, Android o ambas. Diseño UX/UI + desarrollo + publicación en tiendas.'
+  ).value,
+  url: `/${locale.value}/landing-apps`,
+})
 
 const { messages } = useMessages()
 

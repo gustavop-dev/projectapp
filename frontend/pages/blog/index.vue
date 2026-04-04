@@ -312,7 +312,7 @@
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
           <NuxtLink
-            to="/contact"
+            :to="localePath('/contact')"
             class="px-8 sm:px-10 py-4 sm:py-5 rounded-full flex items-center justify-center gap-3 transition-all hover:scale-105 bg-lemon text-esmerald"
           >
             <span class="text-base sm:text-lg font-medium">{{ isEnglish ? 'Contact Us' : 'Contáctanos' }}</span>
@@ -335,35 +335,62 @@ import FooterSection from '~/components/sections/FooterSection.vue';
 import { useBlogStore } from '~/stores/blog';
 import { fadeUp, staggerFadeUp } from '~/animations';
 import { usePageEntrance } from '~/composables/usePageEntrance';
+import { useBlogListJsonLd } from '~/composables/useSeoJsonLd';
 
 usePageEntrance();
 
 const { locale } = useI18n();
+const i18nHead = useLocaleHead({ addSeoAttributes: true });
+const route = useRoute();
 const localePath = useLocalePath();
 const blogStore = useBlogStore();
 const posts = computed(() => blogStore.posts);
 const featured = computed(() => blogStore.featuredPost);
 const isEnglish = computed(() => locale.value.startsWith('en'));
 const blogLang = computed(() => isEnglish.value ? 'en' : 'es');
+const baseUrl = 'https://projectapp.co';
+
+const blogTitle = computed(() => 'Blog — Project App.');
+const blogDescription = computed(() => isEnglish.value
+  ? 'Insights and trends in AI, software development, and digital transformation.'
+  : 'Novedades y tendencias en IA, desarrollo de software y transformación digital.'
+);
 
 useHead({
-  title: computed(() => isEnglish.value ? 'Blog — Project App' : 'Blog — Project App'),
+  title: blogTitle,
   meta: [
-    { name: 'description', content: computed(() => isEnglish.value
-      ? 'Insights and trends in AI, software development, and digital transformation.'
-      : 'Novedades y tendencias en IA, desarrollo de software y transformación digital.'
+    { name: 'description', content: blogDescription },
+    { name: 'keywords', content: computed(() => isEnglish.value
+      ? 'Project App. blog, software development, AI, digital transformation, web design, mobile apps, tech insights'
+      : 'Project App. blog, desarrollo de software, IA, transformación digital, diseño web, apps móviles, tecnología'
     )},
-    { property: 'og:title', content: 'Blog — Project App' },
-    { property: 'og:description', content: computed(() => isEnglish.value
-      ? 'Insights and trends in AI, software development, and digital transformation.'
-      : 'Novedades y tendencias en IA, desarrollo de software y transformación digital.'
-    )},
+    { property: 'og:title', content: blogTitle },
+    { property: 'og:description', content: blogDescription },
     { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: computed(() => `${baseUrl}${route.fullPath}`) },
+    { property: 'og:image', content: `${baseUrl}/img/og-image.webp` },
+    { property: 'og:site_name', content: 'Project App.' },
+    { property: 'og:locale', content: computed(() => locale.value === 'es-co' ? 'es_CO' : 'en_US') },
+    { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:site', content: '@projectappco' },
+    { name: 'twitter:title', content: blogTitle },
+    { name: 'twitter:description', content: blogDescription },
+    { name: 'twitter:image', content: `${baseUrl}/img/og-image.webp` },
   ],
+  htmlAttrs: {
+    lang: i18nHead.value.htmlAttrs?.lang,
+  },
   link: [
-    { rel: 'canonical', href: 'https://projectapp.co/blog' },
+    { rel: 'canonical', href: computed(() => `${baseUrl}${route.fullPath}`) },
+    ...(i18nHead.value.link || []),
   ],
 });
+
+watch(posts, (newPosts) => {
+  if (newPosts && newPosts.length > 0) {
+    useBlogListJsonLd(newPosts, locale.value);
+  }
+}, { immediate: true });
 
 const searchQuery = ref('');
 const selectedCategory = ref('');

@@ -30,6 +30,17 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 6. **Platform E2E test fixes** — Fixed all platform Playwright spec files; removed `defineI18nRoute(false)`, fixed security bug in `platform-auth.js` middleware, replaced `networkidle` with `domcontentloaded`
 7. **E2E coverage audit & remediation** — 112 E2E spec files; Quality gate: **100/100** with **0 warnings**
 8. **CI/CD pipeline** — GitHub Actions with pytest, Jest, Playwright (5 shards), quality gate
+9. **SEO On-Page Optimization** — Comprehensive SEO improvements across main views and blog:
+   - Enhanced `useSeoHead.js` composable: added canonical URL, `og:locale`, `twitter:site`
+   - Created `useSeoJsonLd.js` composable: `useJsonLd`, `useServiceJsonLd`, `useBlogPostJsonLd`, `useBlogListJsonLd`, `useWebPageJsonLd`
+   - Enhanced global JSON-LD in `layouts/default.vue`: Organization + WebSite `@graph` with `@id` references
+   - Added Service + BreadcrumbList JSON-LD to: `index.vue`, `landing-software.vue`, `landing-apps.vue`, `landing-web-design.vue`
+   - Added WebPage JSON-LD to: `about-us.vue` (AboutPage), `contact.vue` (ContactPage), `portfolio-works/index.vue` (CollectionPage)
+   - Fixed `contact.vue`: added missing `useSeoHead('contact')` + router locale meta (en/es)
+   - Fixed `blog/index.vue`: locale-aware canonical, `og:url`, `og:site_name`, `og:locale`, `twitter:card/site`, hreflang, Blog JSON-LD
+   - Fixed `blog/[slug].vue`: locale-aware canonical, `og:url`, `og:site_name`, `og:locale`, `article:author`, `twitter:card/site`, hreflang, BlogPosting JSON-LD
+   - Fixed hardcoded CTA links in blog pages to use `localePath('/contact')`
+10. **Terms & Privacy Pages** — Created localized Terms and Conditions + Privacy Policy views with SEO, routing, and footer links
 
 ---
 

@@ -61,8 +61,24 @@ import PainPoints from '~/components/landing/PainPoints.vue'
 import WhatWeBuild from '~/components/home/WhatWeBuild.vue'
 import LandingFAQ from '~/components/landing/LandingFAQ.vue'
 import { useMessages } from '~/composables/useMessages'
+import { useServiceJsonLd } from '~/composables/useSeoJsonLd'
 
 useSeoHead('landingSoftware')
+
+const { locale } = useI18n()
+const isEn = computed(() => locale.value.startsWith('en'))
+
+useServiceJsonLd({
+  name: computed(() => isEn.value
+    ? 'Custom Software Development'
+    : 'Desarrollo de Software a la Medida'
+  ).value,
+  description: computed(() => isEn.value
+    ? 'We build custom software that transforms your manual processes into intelligent systems. Free diagnosis, weekly sprints, 100% your code.'
+    : 'Desarrollamos software a la medida que transforma tus procesos manuales en sistemas inteligentes. Diagnóstico gratuito, sprints semanales, código 100% tuyo.'
+  ).value,
+  url: `/${locale.value}`,
+})
 
 const { messages } = useMessages()
 

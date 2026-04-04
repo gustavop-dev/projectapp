@@ -13,6 +13,8 @@ const routeToViewKey = {
   'portfolio-works': 'portfolioWorks',
   'contact': 'contact',
   'contact-success': 'contactSuccess',
+  'terms-and-conditions': 'termsAndConditions',
+  'privacy-policy': 'privacyPolicy',
   'slug': 'home',
 };
 

@@ -59,6 +59,11 @@ export default {
       description: "Explore our portfolio of web development projects including custom websites, e-commerce platforms, and web applications built by our expert team of developers and designers.",
       keywords: "Project App., portfolio, web development projects, custom websites, web applications, e-commerce, case studies, our work"
     },
+    contact: {
+      title: "Contact Us - Get a Free Consultation - Project App.",
+      description: "Get in touch with Project App. for a free consultation on custom software development, web design, mobile apps, and digital solutions. Response within 24 hours.",
+      keywords: "contact Project App., free consultation, software development quote, web design inquiry, hire developers, schedule a call, project estimate"
+    },
     hosting: {
       title: "Website Hosting Services - Project App.",
       description: "Reliable and secure website hosting solutions designed for high-performance web applications and e-commerce sites, optimized for speed and security.",
@@ -68,6 +73,16 @@ export default {
       title: "Creative Journey Paused (404) - Project App.",
       description: "You've ventured into uncharted digital territory. Let's guide you back to where our exceptional web design and development expertise awaits.",
       keywords: "Project App., 404, creative web design, digital experience, website development, user journey"
+    },
+    termsAndConditions: {
+      title: "Terms and Conditions - Project App.",
+      description: "Read the Terms and Conditions governing the use of Project App. services, including custom software development, web design, mobile apps, and hosting.",
+      keywords: "Project App., terms and conditions, terms of service, legal, software development agreement, service terms"
+    },
+    privacyPolicy: {
+      title: "Privacy Policy - Project App.",
+      description: "Learn how Project App. collects, uses, and protects your personal information. Our commitment to your privacy and data security.",
+      keywords: "Project App., privacy policy, data protection, personal information, cookies, GDPR, data security"
     }
   };
   

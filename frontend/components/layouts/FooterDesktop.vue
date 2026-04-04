@@ -84,12 +84,26 @@
               </div>
             </div>
           </div>
-        <div class="flex w-full justify-between absolute bottom-0">
+        <div class="flex w-full justify-between items-end absolute bottom-0">
             <h3 
               class="hidden ms-4 mb-4 text-lg font-regular text-white opacity-40 lg:block"
               >
               {{ globalMessages.based_in || 'Website Design Company Based in Colombia, Working Worldwide' }}
             </h3>
+            <div class="hidden lg:flex items-center gap-4 mb-4">
+              <NuxtLink
+                :to="localePath('/terms-and-conditions')"
+                class="text-sm font-regular text-white opacity-40 hover:opacity-70 transition-opacity"
+              >
+                {{ globalMessages.terms_and_conditions || 'Terms and Conditions' }}
+              </NuxtLink>
+              <NuxtLink
+                :to="localePath('/privacy-policy')"
+                class="text-sm font-regular text-white opacity-40 hover:opacity-70 transition-opacity"
+              >
+                {{ globalMessages.privacy_policy || 'Privacy Policy' }}
+              </NuxtLink>
+            </div>
             <h3 class="hidden me-4 mb-4 text-lg font-regular text-white opacity-40 lg:block">
               {{ globalMessages.copyright || '©2026 Project App.' }}
             </h3>

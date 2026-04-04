@@ -56,6 +56,8 @@ export default {
         web_developments: "Nuestro trabajo",
         blog: "Blog",
       },
+      terms_and_conditions: "Términos y Condiciones",
+      privacy_policy: "Política de Privacidad",
     },
   };
   

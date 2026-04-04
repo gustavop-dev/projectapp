@@ -142,7 +142,7 @@
                 }}
               </p>
               <NuxtLink
-                to="/contact"
+                :to="localePath('/contact')"
                 class="px-8 sm:px-10 py-4 sm:py-5 rounded-full inline-flex items-center justify-center gap-3 transition-all hover:scale-105 bg-esmerald text-white"
               >
                 <span class="text-base sm:text-lg font-medium">{{ isEnglish ? 'Contact Us' : 'Contáctanos' }}</span>
@@ -265,6 +265,7 @@ import ReadingProgressBar from '~/components/blog/ReadingProgressBar.vue';
 import { useBlogStore } from '~/stores/blog';
 import { fadeUp } from '~/animations';
 import { usePageEntrance } from '~/composables/usePageEntrance';
+import { useBlogPostJsonLd } from '~/composables/useSeoJsonLd';
 
 usePageEntrance();
 
@@ -326,25 +327,49 @@ const nextPost = computed(() => {
   return blogStore.posts[idx + 1];
 });
 
+const baseUrl = 'https://projectapp.co';
+const i18nHead = useLocaleHead({ addSeoAttributes: true });
+
+const articleTitle = computed(() => {
+  if (!post.value) return 'Blog — Project App.';
+  return post.value.meta_title || `${post.value.title} — Project App.`;
+});
+const articleDescription = computed(() => post.value?.meta_description || post.value?.excerpt || '');
+
 useHead({
-  title: computed(() => {
-    if (!post.value) return 'Blog — Project App';
-    const metaTitle = post.value.meta_title;
-    return metaTitle || `${post.value.title} — Project App`;
-  }),
+  title: articleTitle,
   meta: [
-    { name: 'description', content: computed(() => post.value?.meta_description || post.value?.excerpt || '') },
-    { property: 'og:title', content: computed(() => post.value?.meta_title || post.value?.title || 'Blog — Project App') },
-    { property: 'og:description', content: computed(() => post.value?.meta_description || post.value?.excerpt || '') },
-    { property: 'og:image', content: computed(() => post.value?.cover_image || '') },
-    { property: 'og:type', content: 'article' },
-    { property: 'article:published_time', content: computed(() => post.value?.published_at || '') },
+    { name: 'description', content: articleDescription },
     { name: 'keywords', content: computed(() => post.value?.meta_keywords || '') },
+    { property: 'og:title', content: articleTitle },
+    { property: 'og:description', content: articleDescription },
+    { property: 'og:image', content: computed(() => post.value?.cover_image || `${baseUrl}/img/og-image.webp`) },
+    { property: 'og:type', content: 'article' },
+    { property: 'og:url', content: computed(() => `${baseUrl}${route.fullPath}`) },
+    { property: 'og:site_name', content: 'Project App.' },
+    { property: 'og:locale', content: computed(() => locale.value === 'es-co' ? 'es_CO' : 'en_US') },
+    { property: 'article:published_time', content: computed(() => post.value?.published_at || '') },
+    { property: 'article:author', content: 'Project App.' },
+    { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:site', content: '@projectappco' },
+    { name: 'twitter:title', content: articleTitle },
+    { name: 'twitter:description', content: articleDescription },
+    { name: 'twitter:image', content: computed(() => post.value?.cover_image || `${baseUrl}/img/og-image.webp`) },
   ],
+  htmlAttrs: {
+    lang: i18nHead.value.htmlAttrs?.lang,
+  },
   link: [
-    { rel: 'canonical', href: computed(() => `https://projectapp.co/blog/${route.params.slug}`) },
+    { rel: 'canonical', href: computed(() => `${baseUrl}${route.fullPath}`) },
+    ...(i18nHead.value.link || []),
   ],
 });
+
+watch(post, (newPost) => {
+  if (newPost) {
+    useBlogPostJsonLd(newPost, locale.value);
+  }
+}, { immediate: true });
 
 const CATEGORY_LABELS = {
   technology: { es: 'Tecnología', en: 'Technology' },

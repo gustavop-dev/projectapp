@@ -70,9 +70,25 @@ import MarqueeStrips from '~/components/home/MarqueeStrips.vue'
 import BookCallSection from '~/components/home/BookCallSection.vue'
 import StudyCases from '~/components/home/StudyCases.vue'
 import { useMessages } from '~/composables/useMessages'
+import { useServiceJsonLd } from '~/composables/useSeoJsonLd'
 
 // SEO Head
 useSeoHead('landingWebDesign')
+
+const { locale } = useI18n()
+const isEn = computed(() => locale.value.startsWith('en'))
+
+useServiceJsonLd({
+  name: computed(() => isEn.value
+    ? 'Professional Web Design & Development'
+    : 'Diseño y Desarrollo Web Profesional'
+  ).value,
+  description: computed(() => isEn.value
+    ? 'Professional web design and development company specializing in custom software solutions. Expert website developers creating bespoke websites.'
+    : 'Empresa profesional de diseño y desarrollo web especializada en soluciones de software a medida. Desarrolladores web expertos creando sitios personalizados.'
+  ).value,
+  url: `/${locale.value}/landing-web-design`,
+})
 
 const { messages } = useMessages()
 

@@ -134,6 +134,7 @@ import AnimatedGradient from '~/components/backgrounds/AnimatedGradient.vue';
 import { usePortfolioWorksStore } from '~/stores/portfolio_works';
 import { useMessages } from '~/composables/useMessages';
 import { staggerFadeUp } from '~/animations';
+import { useWebPageJsonLd } from '~/composables/useSeoJsonLd';
 
 useSeoHead('portfolioWorks');
 
@@ -143,6 +144,15 @@ const { messages } = useMessages();
 const portfolioStore = usePortfolioWorksStore();
 const works = computed(() => portfolioStore.works);
 const isEnglish = computed(() => locale.value.startsWith('en'));
+
+useWebPageJsonLd({
+  name: isEnglish.value ? 'Our Work - Web Development Portfolio' : 'Nuestro Trabajo - Portafolio de Desarrollo Web',
+  description: isEnglish.value
+    ? 'Explore our portfolio of web development projects including custom websites, e-commerce platforms, and web applications.'
+    : 'Explore nuestro portafolio de proyectos de desarrollo web incluyendo sitios web personalizados, plataformas de comercio electrónico y aplicaciones web.',
+  url: `/${locale.value}/portfolio-works`,
+  pageType: 'CollectionPage',
+});
 const portfolioLang = computed(() => isEnglish.value ? 'en' : 'es');
 
 const worksGrid = ref(null);

@@ -66,6 +66,20 @@
                 </a>
             </div>
             <div class="ps-4 pb-2">
+              <div class="flex gap-3 mb-2">
+                <NuxtLink
+                  :to="localePath('/terms-and-conditions')"
+                  class="text-xs font-regular text-white opacity-40 hover:opacity-70 transition-opacity"
+                >
+                  {{ globalMessages.terms_and_conditions || 'Terms and Conditions' }}
+                </NuxtLink>
+                <NuxtLink
+                  :to="localePath('/privacy-policy')"
+                  class="text-xs font-regular text-white opacity-40 hover:opacity-70 transition-opacity"
+                >
+                  {{ globalMessages.privacy_policy || 'Privacy Policy' }}
+                </NuxtLink>
+              </div>
               <h3 class="text-xs font-regular text-white opacity-40">
                 {{ globalMessages.based_in || 'Based in Colombia' }}
               </h3>
