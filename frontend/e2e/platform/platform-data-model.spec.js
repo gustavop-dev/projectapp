@@ -76,7 +76,7 @@ test.describe('Platform Data Model — Admin', () => {
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+    await page.getByRole('heading', { name: 'Modelo de datos', exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
 
     await expect(page.getByRole('button', { name: /copiar plantilla/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /descargar plantilla/i })).toBeVisible();
@@ -88,9 +88,9 @@ test.describe('Platform Data Model — Admin', () => {
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+    await page.getByRole('heading', { name: 'Modelo de datos', exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
 
-    await expect(page.getByRole('cell', { name: 'User' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'User', exact: true })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Order' })).toBeVisible();
     await expect(page.getByText('Platform user account')).toBeVisible();
     await expect(page.getByText('has many Orders')).toBeVisible();
@@ -101,7 +101,7 @@ test.describe('Platform Data Model — Admin', () => {
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+    await page.getByRole('heading', { name: 'Modelo de datos', exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
 
     await page.getByPlaceholder(/entities/i).fill('{"wrong": []}');
     await expect(page.getByText(/debe contener una clave.*entities/i)).toBeVisible();
@@ -113,7 +113,7 @@ test.describe('Platform Data Model — Admin', () => {
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+    await page.getByRole('heading', { name: 'Modelo de datos', exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
 
     await page.getByPlaceholder(/entities/i).fill('{not valid json}');
     await expect(page.getByText(/JSON invalido/i)).toBeVisible();
@@ -125,7 +125,7 @@ test.describe('Platform Data Model — Admin', () => {
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+    await page.getByRole('heading', { name: 'Modelo de datos', exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
 
     const validJson = JSON.stringify({ entities: [{ name: 'Product', description: 'A product', keyFields: 'id', relationship: '' }] });
     await page.getByPlaceholder(/entities/i).fill(validJson);
@@ -139,7 +139,7 @@ test.describe('Platform Data Model — Admin', () => {
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+    await page.getByRole('heading', { name: 'Modelo de datos', exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
 
     const validJson = JSON.stringify({ entities: [{ name: 'Product', description: 'A product', keyFields: 'id', relationship: '' }] });
     await page.getByPlaceholder(/entities/i).fill(validJson);
@@ -159,7 +159,7 @@ test.describe('Platform Data Model — Admin', () => {
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformAdmin, entities: [] });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+    await page.getByRole('heading', { name: 'Modelo de datos', exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
 
     await expect(page.getByText(/no hay modelo de datos/i)).toBeVisible();
     await expect(page.getByText(/sube un JSON/i)).toBeVisible();
@@ -172,7 +172,7 @@ test.describe('Platform Data Model — Admin', () => {
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+    await page.getByRole('heading', { name: 'Modelo de datos', exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
 
     await page.getByRole('button', { name: /copiar plantilla/i }).click();
 
@@ -184,7 +184,7 @@ test.describe('Platform Data Model — Admin', () => {
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+    await page.getByRole('heading', { name: 'Modelo de datos', exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
 
     const templateRequest = page.waitForRequest(
       (req) => req.url().includes('data-model-entities/template/') && req.method() === 'GET',
@@ -192,7 +192,7 @@ test.describe('Platform Data Model — Admin', () => {
     await page.getByRole('button', { name: /descargar plantilla/i }).click();
     await templateRequest;
     // Download was triggered (no error thrown — page still functional)
-    await expect(page.getByRole('heading', { name: /modelo de datos/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Modelo de datos', exact: true })).toBeVisible();
   });
 
   test('shows error message when upload returns server error', {
@@ -219,7 +219,7 @@ test.describe('Platform Data Model — Admin', () => {
     });
     await setPlatformAuth(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+    await page.getByRole('heading', { name: 'Modelo de datos', exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
 
     const validJson = JSON.stringify({ entities: [{ name: 'Producto', description: '', keyFields: 'id', relationship: '' }] });
     await page.getByPlaceholder(/entities/i).fill(validJson);
@@ -244,7 +244,7 @@ test.describe('Platform Data Model — Client', () => {
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+    await page.getByRole('heading', { name: 'Modelo de datos', exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
 
     await expect(page.getByRole('button', { name: /subir modelo de datos/i })).not.toBeVisible();
     await expect(page.getByRole('button', { name: /copiar plantilla/i })).not.toBeVisible();
@@ -255,9 +255,9 @@ test.describe('Platform Data Model — Client', () => {
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+    await page.getByRole('heading', { name: 'Modelo de datos', exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
 
-    await expect(page.getByRole('cell', { name: 'User' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'User', exact: true })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Order' })).toBeVisible();
   });
 
@@ -266,7 +266,7 @@ test.describe('Platform Data Model — Client', () => {
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformClient, entities: [] });
     await page.goto('/platform/projects/1/data-model', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('heading', { name: /modelo de datos/i }).waitFor({ state: 'visible', timeout: 30_000 });
+    await page.getByRole('heading', { name: 'Modelo de datos', exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
 
     await expect(page.getByText(/no hay modelo de datos/i)).toBeVisible();
     await expect(page.getByText(/sube un JSON/i)).not.toBeVisible();

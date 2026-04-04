@@ -130,7 +130,7 @@ test.describe('Admin Proposal Documents Send', () => {
     // Modal header
     await expect(page.getByText('Enviar documentos al cliente').nth(1)).toBeVisible();
     // Switch to edit tab (modal opens on preview by default)
-    await page.getByRole('button', { name: /Editar/i }).click();
+    await page.getByRole('button', { name: 'Editar', exact: true }).click();
     // Email form fields
     await expect(page.getByLabel(/Asunto/i)).toBeVisible();
     await expect(page.getByLabel(/Saludo/i)).toBeVisible();
@@ -150,7 +150,7 @@ test.describe('Admin Proposal Documents Send', () => {
     await page.getByRole('button', { name: /Enviar al cliente/i }).click();
 
     // Switch to edit tab (modal opens on preview by default)
-    await page.getByRole('button', { name: /Editar/i }).click();
+    await page.getByRole('button', { name: 'Editar', exact: true }).click();
     const subjectInput = page.getByLabel(/Asunto/i);
     await expect(subjectInput).toHaveValue(/Acme Corp/);
   });
