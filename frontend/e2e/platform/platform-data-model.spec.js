@@ -91,7 +91,7 @@ test.describe('Platform Data Model — Admin', () => {
     await page.getByRole('heading', { name: 'Modelo de datos', exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
 
     await expect(page.getByRole('cell', { name: 'User', exact: true })).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'Order' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Order', exact: true })).toBeVisible();
     await expect(page.getByText('Platform user account')).toBeVisible();
     await expect(page.getByText('has many Orders')).toBeVisible();
   });
@@ -226,7 +226,7 @@ test.describe('Platform Data Model — Admin', () => {
     await page.getByRole('button', { name: /subir modelo de datos/i }).click();
 
     // Error message from the server is surfaced in the UI
-    await expect(page.locator('text=/error|inválido|falló|no se pudo/i').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Invalid entities data|No pudimos subir/i)).toBeVisible({ timeout: 10_000 });
   });
 });
 
@@ -258,7 +258,7 @@ test.describe('Platform Data Model — Client', () => {
     await page.getByRole('heading', { name: 'Modelo de datos', exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
 
     await expect(page.getByRole('cell', { name: 'User', exact: true })).toBeVisible();
-    await expect(page.getByRole('cell', { name: 'Order' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Order', exact: true })).toBeVisible();
   });
 
   test('client sees empty state without admin hint when no entities exist', {

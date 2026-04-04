@@ -95,8 +95,8 @@ test.describe('Admin Proposal Email — Branded', () => {
     await expect(correosTab).toBeVisible({ timeout: 15000 });
     await correosTab.click();
 
-    // Composer should show recipient, subject, and section inputs
-    await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 10000 });
+    // Composer should show header, subject, sections, and add button
+    await expect(page.getByText('Enviar correo con branding')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('input[placeholder*="Asunto"]')).toBeVisible();
     await expect(page.getByText('Secciones del correo')).toBeVisible();
     await expect(page.getByText('Agregar sección')).toBeVisible();
