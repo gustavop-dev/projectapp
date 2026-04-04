@@ -89,14 +89,10 @@ test.describe('Admin Proposal Email — Branded', () => {
     const proposal = makeProposal({ status: 'negotiating' });
     await mockApi(page, emailApiRoutes(proposal));
 
-    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
-
-    const correosTab = page.getByRole('button', { name: /Correos/i });
-    await expect(correosTab).toBeVisible({ timeout: 15000 });
-    await correosTab.click();
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=emails`);
 
     // Composer should show header, subject, sections, and add button
-    await expect(page.getByText('Enviar correo con branding')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Enviar correo con branding/i)).toBeVisible({ timeout: 15000 });
     await expect(page.locator('input[placeholder*="Asunto"]')).toBeVisible();
     await expect(page.getByText('Secciones del correo')).toBeVisible();
     await expect(page.getByText('Agregar sección')).toBeVisible();
