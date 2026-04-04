@@ -96,10 +96,10 @@ test.describe('Admin Proposal Email — Branded', () => {
     await correosTab.click();
 
     // Composer should show recipient, subject, and section inputs
-    await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('input[placeholder*="Asunto"]')).toBeVisible();
-    await expect(page.locator('text=Secciones del correo')).toBeVisible();
-    await expect(page.locator('text=Agregar sección')).toBeVisible();
+    await expect(page.getByPlaceholder(/correo@ejemplo/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder(/Asunto del correo/i)).toBeVisible();
+    await expect(page.getByText('Secciones del correo')).toBeVisible();
+    await expect(page.getByText('Agregar sección')).toBeVisible();
   });
 });
 

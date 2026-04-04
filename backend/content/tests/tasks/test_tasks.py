@@ -1996,4 +1996,5 @@ class TestRefreshCachedHeatScores:
             import content.tasks as tasks_module
             tasks_module.refresh_cached_heat_scores.call_local()
 
+        assert mock_compute.call_count == 0, "Draft proposals should be excluded from heat score refresh"
         mock_compute.assert_not_called()

@@ -161,6 +161,7 @@ class TestDraftMode:
             }
             proposal.pk = 12
             generate_contract_pdf(proposal, draft=True)
+            assert mock_cs.load.call_count == 0, "CompanySettings.load should not be called in draft mode"
             mock_cs.load.assert_not_called()
 
 

@@ -1128,6 +1128,7 @@ class TestSendComposedEmail:
             'Hi', ['Sec'], attachments=None,
         )
 
+        assert mock_instance.attach.call_count == 0, "attach should not be called when attachments is None"
         mock_instance.attach.assert_not_called()
 
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
