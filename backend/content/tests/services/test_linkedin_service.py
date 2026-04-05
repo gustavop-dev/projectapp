@@ -122,9 +122,10 @@ class TestExchangeCodeForToken:
         mock_resp.text = 'invalid_grant'
         mock_post.return_value = mock_resp
 
-        with pytest.raises(ValueError, match='token exchange failed'):
+        with pytest.raises(ValueError, match='token exchange failed') as exc_info:
             linkedin_service.exchange_code_for_token('bad-code')
 
+        assert 'token exchange failed' in str(exc_info.value)
         mock_post.assert_called_once()
 
     @override_settings(**LINKEDIN_SETTINGS)
@@ -272,11 +273,12 @@ class TestPublishBlogToLinkedin:
 
     @patch('content.services.linkedin_service.get_access_token', return_value=None)
     def test_raises_when_not_connected(self, mock_token):
-        with pytest.raises(ValueError, match='not connected'):
+        with pytest.raises(ValueError, match='not connected') as exc_info:
             linkedin_service.publish_blog_to_linkedin(
                 summary='Test', blog_url='https://x.co', title='T',
             )
 
+        assert 'not connected' in str(exc_info.value)
         mock_token.assert_called_once()
 
     @patch('content.services.linkedin_service.requests.post')
