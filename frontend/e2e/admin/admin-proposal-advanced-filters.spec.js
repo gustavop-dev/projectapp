@@ -75,11 +75,19 @@ test.describe('Admin Proposal Advanced Filters & Saved Tabs', () => {
   test('shows Filtros button and toggles filter panel', {
     tag: [...ADMIN_PROPOSAL_ADVANCED_FILTERS, '@role:admin'],
   }, async ({ page }) => {
+    // Capture console errors for debugging
+    const consoleErrors = [];
+    page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+    page.on('pageerror', (err) => { consoleErrors.push(err.message); });
+
     await mockApi(page, buildMockHandler());
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
 
+    // Wait for Vue to hydrate — dynamic proposal data proves Vue is active
+    await expect(page.getByText('Cliente A')).toBeVisible({ timeout: 20_000 });
+
     const filtrosBtn = page.getByRole('button', { name: /Filtros/ });
-    await expect(filtrosBtn).toBeVisible({ timeout: 20_000 });
+    await expect(filtrosBtn).toBeVisible();
 
     // "Borrador" pill only exists inside the filter panel — good unique indicator
     const borradorPill = page.getByRole('button', { name: 'Borrador' });
@@ -87,6 +95,22 @@ test.describe('Admin Proposal Advanced Filters & Saved Tabs', () => {
 
     // Click to open
     await filtrosBtn.click();
+
+    // If panel didn't open, dump diagnostics
+    const panelVisible = await borradorPill.isVisible().catch(() => false);
+    if (!panelVisible) {
+      const html = await page.locator('body').innerHTML();
+      const hasPanel = html.includes('Borrador');
+      const hasOverflow = html.includes('overflow-hidden');
+      console.log(`[DEBUG] Panel has Borrador in DOM: ${hasPanel}`);
+      console.log(`[DEBUG] Console errors: ${JSON.stringify(consoleErrors)}`);
+      console.log(`[DEBUG] isFilterPanelOpen state: ${await page.evaluate(() => {
+        // Try to read Vue internal state
+        const el = document.querySelector('[data-v-inspector]') || document.body;
+        return 'check trace for details';
+      })}`);
+    }
+
     await expect(borradorPill).toBeVisible();
 
     // Click to close
