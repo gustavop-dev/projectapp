@@ -1,9 +1,17 @@
+from unittest.mock import MagicMock, PropertyMock, patch
+
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIRequestFactory
 
 from accounts.models import (
+    BugReport,
+    ChangeRequest,
     Deliverable,
+    DeliverableClientFolder,
+    DeliverableClientUpload,
+    DeliverableFile,
+    DeliverableVersion,
     Project,
     Requirement,
     RequirementComment,
@@ -11,12 +19,23 @@ from accounts.models import (
     UserProfile,
 )
 from accounts.serializers import (
+    BugReportDetailSerializer,
+    BugReportListSerializer,
+    ChangeRequestDetailSerializer,
+    ChangeRequestListSerializer,
     ClientListSerializer,
     CompleteProfileSerializer,
+    CreateAdminSerializer,
+    CreateBugReportSerializer,
     CreateClientSerializer,
     CreateCommentSerializer,
     CreateProjectSerializer,
     CreateRequirementSerializer,
+    DeliverableClientUploadSerializer,
+    DeliverableFileSerializer,
+    DeliverableListSerializer,
+    DeliverableVersionSerializer,
+    EvaluateBugReportSerializer,
     LoginSerializer,
     MoveRequirementSerializer,
     ProjectListSerializer,
@@ -715,3 +734,435 @@ class TestRequirementListSerializerCommentsCount:
         data = RequirementListSerializer(req).data
 
         assert data['comments_count'] == 0
+
+
+# =========================================================================
+# CreateAdminSerializer — duplicate email validation (line 127)
+# =========================================================================
+
+@pytest.mark.django_db
+class TestCreateAdminSerializer:
+    def test_duplicate_email_fails_validation(self):
+        User.objects.create_user(
+            username='addup@test.com', email='addup@test.com', password='pass',
+        )
+        serializer = CreateAdminSerializer(data={
+            'email': 'addup@test.com',
+            'first_name': 'A',
+            'last_name': 'B',
+        })
+
+        assert serializer.is_valid() is False
+        assert 'email' in serializer.errors
+
+    def test_email_normalized_to_lowercase(self):
+        serializer = CreateAdminSerializer(data={
+            'email': '  NEWADMIN@TEST.COM  ',
+            'first_name': 'A',
+            'last_name': 'B',
+        })
+
+        assert serializer.is_valid() is True
+        assert serializer.validated_data['email'] == 'newadmin@test.com'
+
+
+# =========================================================================
+# ClientListSerializer.get_avatar_display_url — relative URL with request (line 173)
+# =========================================================================
+
+@pytest.mark.django_db
+class TestClientListSerializerAvatarUrl:
+    def test_avatar_display_url_builds_absolute_for_relative_url(self):
+        user = User.objects.create_user(
+            username='avtest@test.com', email='avtest@test.com', password='pass',
+        )
+        profile = UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+
+        with patch.object(
+            type(profile), 'avatar_display_url',
+            new_callable=PropertyMock,
+            return_value='/media/avatars/pic.jpg',
+        ):
+            request = factory.get('/')
+            data = ClientListSerializer(profile, context={'request': request}).data
+
+        assert data['avatar_display_url'].startswith('http')
+
+
+# =========================================================================
+# CreateProjectSerializer.validate_proposal_id — already linked (line 272)
+# =========================================================================
+
+@pytest.mark.django_db
+class TestCreateProjectSerializerProposalValidation:
+    def test_proposal_already_linked_to_deliverable_fails(self):
+        from content.models import BusinessProposal
+
+        client = User.objects.create_user(
+            username='pvcli@test.com', email='pvcli@test.com', password='pass',
+        )
+        UserProfile.objects.create(user=client, role=UserProfile.ROLE_CLIENT)
+        project = Project.objects.create(name='Linked', client=client)
+        deliverable = Deliverable.objects.create(
+            project=project, title='D',
+            category=Deliverable.CATEGORY_OTHER,
+            file=None, uploaded_by=client,
+        )
+        proposal = BusinessProposal.objects.create(
+            title='Linked Proposal', client_name='Client',
+            client_email='c@t.com', status='accepted',
+            deliverable=deliverable,
+        )
+
+        serializer = CreateProjectSerializer(data={
+            'name': 'New Project',
+            'client_id': client.id,
+            'proposal_id': proposal.id,
+        })
+
+        assert serializer.is_valid() is False
+        assert 'proposal_id' in serializer.errors
+
+
+# =========================================================================
+# ChangeRequestListSerializer.get_screenshot_url (lines 441-443)
+# ChangeRequestDetailSerializer.get_screenshot_url (lines 479-483)
+# =========================================================================
+
+class TestChangeRequestSerializerScreenshotUrl:
+    def test_list_serializer_returns_http_url_directly(self):
+        mock_obj = MagicMock()
+        mock_obj.screenshot = MagicMock()
+        mock_obj.screenshot.url = 'https://cdn.example.com/shot.png'
+
+        s = ChangeRequestListSerializer()
+        result = s.get_screenshot_url(mock_obj)
+
+        assert result == 'https://cdn.example.com/shot.png'
+
+    def test_list_serializer_returns_none_when_no_screenshot(self):
+        mock_obj = MagicMock()
+        mock_obj.screenshot = None
+
+        s = ChangeRequestListSerializer()
+        result = s.get_screenshot_url(mock_obj)
+
+        assert result is None
+
+    def test_list_serializer_builds_absolute_with_request(self):
+        mock_obj = MagicMock()
+        mock_obj.screenshot = MagicMock()
+        mock_obj.screenshot.url = '/media/shot.png'
+
+        request = factory.get('/')
+        s = ChangeRequestListSerializer(context={'request': request})
+        result = s.get_screenshot_url(mock_obj)
+
+        assert result.startswith('http')
+
+    def test_detail_serializer_returns_http_url_directly(self):
+        mock_obj = MagicMock()
+        mock_obj.screenshot = MagicMock()
+        mock_obj.screenshot.url = 'https://cdn.example.com/shot.png'
+
+        s = ChangeRequestDetailSerializer()
+        result = s.get_screenshot_url(mock_obj)
+
+        assert result == 'https://cdn.example.com/shot.png'
+
+    def test_detail_serializer_returns_none_when_no_screenshot(self):
+        mock_obj = MagicMock()
+        mock_obj.screenshot = None
+
+        s = ChangeRequestDetailSerializer()
+        result = s.get_screenshot_url(mock_obj)
+
+        assert result is None
+
+    def test_detail_serializer_builds_absolute_with_request(self):
+        mock_obj = MagicMock()
+        mock_obj.screenshot = MagicMock()
+        mock_obj.screenshot.url = '/media/shot.png'
+
+        request = factory.get('/')
+        s = ChangeRequestDetailSerializer(context={'request': request})
+        result = s.get_screenshot_url(mock_obj)
+
+        assert result.startswith('http')
+
+
+# =========================================================================
+# BugReportListSerializer.get_screenshot_url (lines 562-566)
+# BugReportDetailSerializer.get_screenshot_url (lines 603-609)
+# =========================================================================
+
+class TestBugReportSerializerScreenshotUrl:
+    def test_list_serializer_returns_http_url_directly(self):
+        mock_obj = MagicMock()
+        mock_obj.screenshot = MagicMock()
+        mock_obj.screenshot.url = 'https://cdn.example.com/bug.png'
+
+        s = BugReportListSerializer()
+        result = s.get_screenshot_url(mock_obj)
+
+        assert result == 'https://cdn.example.com/bug.png'
+
+    def test_list_serializer_returns_none_when_no_screenshot(self):
+        mock_obj = MagicMock()
+        mock_obj.screenshot = None
+
+        s = BugReportListSerializer()
+        result = s.get_screenshot_url(mock_obj)
+
+        assert result is None
+
+    def test_list_serializer_builds_absolute_with_request(self):
+        mock_obj = MagicMock()
+        mock_obj.screenshot = MagicMock()
+        mock_obj.screenshot.url = '/media/bug.png'
+
+        request = factory.get('/')
+        s = BugReportListSerializer(context={'request': request})
+        result = s.get_screenshot_url(mock_obj)
+
+        assert result.startswith('http')
+
+    def test_detail_serializer_returns_http_url_directly(self):
+        mock_obj = MagicMock()
+        mock_obj.screenshot = MagicMock()
+        mock_obj.screenshot.url = 'https://cdn.example.com/bug.png'
+
+        s = BugReportDetailSerializer()
+        result = s.get_screenshot_url(mock_obj)
+
+        assert result == 'https://cdn.example.com/bug.png'
+
+    def test_detail_serializer_returns_none_when_no_screenshot(self):
+        mock_obj = MagicMock()
+        mock_obj.screenshot = None
+
+        s = BugReportDetailSerializer()
+        result = s.get_screenshot_url(mock_obj)
+
+        assert result is None
+
+    def test_detail_serializer_builds_absolute_with_request(self):
+        mock_obj = MagicMock()
+        mock_obj.screenshot = MagicMock()
+        mock_obj.screenshot.url = '/media/bug.png'
+
+        request = factory.get('/')
+        s = BugReportDetailSerializer(context={'request': request})
+        result = s.get_screenshot_url(mock_obj)
+
+        assert result.startswith('http')
+
+
+# =========================================================================
+# CreateBugReportSerializer.validate_deliverable_id — no project context (line 634)
+# =========================================================================
+
+@pytest.mark.django_db
+class TestCreateBugReportSerializerValidation:
+    def test_no_project_context_raises_validation_error(self):
+        serializer = CreateBugReportSerializer(
+            data={'deliverable_id': 1, 'title': 'Bug'},
+            context={},  # no 'project' key
+        )
+
+        assert serializer.is_valid() is False
+        assert 'deliverable_id' in serializer.errors
+
+    def test_deliverable_not_in_project_fails(self):
+        client = User.objects.create_user(
+            username='bugcli@test.com', email='bugcli@test.com', password='pass',
+        )
+        UserProfile.objects.create(user=client, role=UserProfile.ROLE_CLIENT)
+        project = Project.objects.create(name='P', client=client)
+        other_project = Project.objects.create(name='Other', client=client)
+        deliverable = Deliverable.objects.create(
+            project=other_project, title='D',
+            category=Deliverable.CATEGORY_OTHER, file=None, uploaded_by=client,
+        )
+
+        serializer = CreateBugReportSerializer(
+            data={'deliverable_id': deliverable.id, 'title': 'Bug'},
+            context={'project': project},
+        )
+
+        assert serializer.is_valid() is False
+        assert 'deliverable_id' in serializer.errors
+
+
+# =========================================================================
+# EvaluateBugReportSerializer.validate — linked_bug not found (line 653),
+# linked_bug archived (line 655)
+# =========================================================================
+
+@pytest.mark.django_db
+class TestEvaluateBugReportSerializerValidation:
+    @pytest.fixture
+    def deliverable_with_bug(self):
+        client = User.objects.create_user(
+            username='evbug@test.com', email='evbug@test.com', password='pass',
+        )
+        UserProfile.objects.create(user=client, role=UserProfile.ROLE_CLIENT)
+        project = Project.objects.create(name='P', client=client)
+        deliverable = Deliverable.objects.create(
+            project=project, title='D',
+            category=Deliverable.CATEGORY_OTHER, file=None, uploaded_by=client,
+        )
+        bug = BugReport.objects.create(
+            deliverable=deliverable, reported_by=client,
+            title='Main bug', severity=BugReport.SEVERITY_MEDIUM,
+        )
+        return deliverable, bug
+
+    def test_nonexistent_linked_bug_fails(self, deliverable_with_bug):
+        _, bug = deliverable_with_bug
+        serializer = EvaluateBugReportSerializer(
+            data={'status': BugReport.STATUS_REPORTED, 'linked_bug_id': 99999},
+            context={'bug': bug},
+        )
+
+        assert serializer.is_valid() is False
+        assert 'linked_bug_id' in serializer.errors
+
+    def test_archived_linked_bug_fails(self, deliverable_with_bug):
+        deliverable, bug = deliverable_with_bug
+        archived_bug = BugReport.objects.create(
+            deliverable=deliverable, reported_by=bug.reported_by,
+            title='Archived bug', severity=BugReport.SEVERITY_MEDIUM,
+            is_archived=True,
+        )
+        serializer = EvaluateBugReportSerializer(
+            data={'status': BugReport.STATUS_REPORTED, 'linked_bug_id': archived_bug.id},
+            context={'bug': bug},
+        )
+
+        assert serializer.is_valid() is False
+        assert 'linked_bug_id' in serializer.errors
+
+    def test_valid_linked_bug_passes(self, deliverable_with_bug):
+        deliverable, bug = deliverable_with_bug
+        other_bug = BugReport.objects.create(
+            deliverable=deliverable, reported_by=bug.reported_by,
+            title='Other bug', severity=BugReport.SEVERITY_MEDIUM,
+        )
+        serializer = EvaluateBugReportSerializer(
+            data={'status': BugReport.STATUS_REPORTED, 'linked_bug_id': other_bug.id},
+            context={'bug': bug},
+        )
+
+        assert serializer.is_valid() is True
+
+
+# =========================================================================
+# DeliverableVersionSerializer.get_file_url (lines 701, 706)
+# DeliverableListSerializer.get_file_url (lines 733, 738)
+# DeliverableFileSerializer (lines 753-763)
+# DeliverableClientUploadSerializer.get_file_url (lines 784-786)
+# =========================================================================
+
+class TestDeliverableSerializerFileUrls:
+    def test_version_serializer_builds_absolute_url_with_request(self):
+        mock_version = MagicMock()
+        mock_version.file = MagicMock()
+        mock_version.file.url = '/media/versions/file.pdf'
+
+        request = factory.get('/')
+        s = DeliverableVersionSerializer(context={'request': request})
+        result = s.get_file_url(mock_version)
+
+        assert result.startswith('http')
+
+    def test_version_serializer_returns_http_url_directly(self):
+        mock_version = MagicMock()
+        mock_version.file = MagicMock()
+        mock_version.file.url = 'https://cdn.example.com/file.pdf'
+
+        s = DeliverableVersionSerializer()
+        result = s.get_file_url(mock_version)
+
+        assert result == 'https://cdn.example.com/file.pdf'
+
+    def test_version_serializer_returns_none_when_no_file(self):
+        mock_version = MagicMock()
+        mock_version.file = None
+
+        s = DeliverableVersionSerializer()
+        result = s.get_file_url(mock_version)
+
+        assert result is None
+
+    def test_list_serializer_builds_absolute_url_with_request(self):
+        mock_deliverable = MagicMock()
+        mock_deliverable.file = MagicMock()
+        mock_deliverable.file.url = '/media/deliverables/file.pdf'
+
+        request = factory.get('/')
+        s = DeliverableListSerializer(context={'request': request})
+        result = s.get_file_url(mock_deliverable)
+
+        assert result.startswith('http')
+
+    def test_list_serializer_returns_http_url_directly(self):
+        mock_deliverable = MagicMock()
+        mock_deliverable.file = MagicMock()
+        mock_deliverable.file.url = 'https://cdn.example.com/file.pdf'
+
+        s = DeliverableListSerializer()
+        result = s.get_file_url(mock_deliverable)
+
+        assert result == 'https://cdn.example.com/file.pdf'
+
+    def test_file_serializer_returns_none_when_no_file(self):
+        mock_file = MagicMock()
+        mock_file.file = None
+
+        s = DeliverableFileSerializer()
+        result = s.get_file_url(mock_file)
+
+        assert result is None
+
+    def test_file_serializer_builds_absolute_url_with_request(self):
+        mock_file = MagicMock()
+        mock_file.file = MagicMock()
+        mock_file.file.url = '/media/files/attachment.pdf'
+
+        request = factory.get('/')
+        s = DeliverableFileSerializer(context={'request': request})
+        result = s.get_file_url(mock_file)
+
+        assert result.startswith('http')
+
+    def test_file_serializer_get_uploaded_by_name(self):
+        mock_file = MagicMock()
+        mock_file.uploaded_by.first_name = 'Ana'
+        mock_file.uploaded_by.last_name = 'García'
+        mock_file.uploaded_by.email = 'ana@test.com'
+
+        s = DeliverableFileSerializer()
+        result = s.get_uploaded_by_name(mock_file)
+
+        assert result == 'Ana García'
+
+    def test_client_upload_serializer_returns_none_when_no_file(self):
+        mock_upload = MagicMock()
+        mock_upload.file = None
+
+        s = DeliverableClientUploadSerializer()
+        result = s.get_file_url(mock_upload)
+
+        assert result is None
+
+    def test_client_upload_serializer_builds_absolute_url_with_request(self):
+        mock_upload = MagicMock()
+        mock_upload.file = MagicMock()
+        mock_upload.file.url = '/media/uploads/doc.pdf'
+
+        request = factory.get('/')
+        s = DeliverableClientUploadSerializer(context={'request': request})
+        result = s.get_file_url(mock_upload)
+
+        assert result.startswith('http')
