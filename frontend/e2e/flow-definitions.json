@@ -1,6 +1,6 @@
 {
-  "version": "2.11.0",
-  "lastUpdated": "2026-04-04",
+  "version": "2.12.0",
+  "lastUpdated": "2026-04-05",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1183,6 +1183,23 @@
       "roles": ["platform-admin", "platform-client"],
       "priority": "P2",
       "description": "Admin uploads a JSON data model for a project (copy/download template, file upload or paste, validate, submit). Both roles see the entity table (name, description, keyFields, relationship). Empty state and error/retry state.",
+      "expectedSpecs": 1
+    },
+    "admin-blog-linkedin-connect": {
+      "name": "Admin Blog LinkedIn Connect",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin connects LinkedIn account from blog post edit page via OAuth 2.0 popup flow. Popup opens at authorization URL, user authenticates, /auth/linkedin/callback exchanges code via POST /api/linkedin/callback/, popup notifies opener via postMessage, edit page updates to show connected profile.",
+      "expectedSpecs": 1,
+      "knownGaps": ["OAuth popup requires real LinkedIn credentials — E2E should mock the callback URL and API endpoints"]
+    },
+    "admin-blog-linkedin-publish": {
+      "name": "Admin Blog LinkedIn Publish",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin fills LinkedIn summary (ES or EN, ≤1300 chars), selects language, clicks 'Publicar en LinkedIn' → POST /api/blog/admin/:id/publish-linkedin/. Success message renders. Publish button disabled when summary is empty. Last publish timestamp shown after success.",
       "expectedSpecs": 1
     }
   }

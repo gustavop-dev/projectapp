@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.11.0
-> **Last updated:** 2026-04-04
+> **Version:** 2.12.0
+> **Last updated:** 2026-04-05
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -2639,3 +2639,69 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-documents-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-documents-send.spec.js` |
 | `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `admin-send-proposal-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
+
+---
+
+## 11. New Feature Flows (v2.12.0)
+
+> Flows registered during the v2.12.0 audit for the LinkedIn integration (commit `e070c330`). LinkedIn publishing is available on the blog post edit page and requires OAuth connection.
+
+### 11.1 Admin Blog LinkedIn Integration
+
+#### FLOW: `admin-blog-linkedin-connect`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/blog/:id/edit` (LinkedIn fieldset)
+- **API:** `GET /api/linkedin/auth-url/`, `POST /api/linkedin/callback/`, `GET /api/linkedin/status/`
+- **Frontend pages involved:** `/panel/blog/:id/edit`, `/auth/linkedin/callback`
+- **Description:** Admin connects the LinkedIn account to the panel via OAuth 2.0 authorization code flow. The OAuth popup opens, the user authenticates with LinkedIn, and the callback page exchanges the code for encrypted tokens stored server-side.
+- **Steps:**
+  1. Admin opens `/panel/blog/:id/edit`.
+  2. LinkedIn section is shown in the form. Status loads from `GET /api/linkedin/status/`.
+  3. Connection status is **disconnected** → "LinkedIn no conectado." label and "Conectar LinkedIn" button are visible.
+  4. Admin clicks "Conectar LinkedIn" → `GET /api/linkedin/auth-url/` → popup window opens at the LinkedIn authorization URL.
+  5. User authenticates with LinkedIn in the popup.
+  6. LinkedIn redirects to `/auth/linkedin/callback?code=...&state=...`.
+  7. Callback page exchanges code via `POST /api/linkedin/callback/`.
+  8. On success: popup shows "LinkedIn conectado correctamente" and "Puedes cerrar esta ventana." with green checkmark.
+  9. Popup sends `postMessage({ type: 'linkedin-connected', data: connection })` to opener window.
+  10. Opener window updates `linkedinStatus` → "Conectar LinkedIn" button replaced with profile name and language selector.
+- **Branches:**
+  - [Branch A — OAuth error] LinkedIn returns `?error=access_denied` → popup shows error message in red.
+  - [Branch B — No code] Callback page receives no `code` param → error "No se recibió código de autorización."
+  - [Branch C — API error] Backend exchange fails → error displayed in popup.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-blog-linkedin.spec.js`
+
+#### FLOW: `admin-blog-linkedin-publish`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/blog/:id/edit` (LinkedIn fieldset)
+- **API:** `POST /api/blog/admin/:post_id/publish-linkedin/`
+- **Description:** Admin publishes a blog post summary to LinkedIn directly from the edit page. Requires LinkedIn to be connected and a summary text filled for the selected language.
+- **Steps:**
+  1. Admin opens `/panel/blog/:id/edit`.
+  2. LinkedIn status loads — account is **connected**: green dot + profile name shown.
+  3. Admin fills `linkedin_summary_es` (≤1300 chars) or `linkedin_summary_en` textarea with the post summary.
+  4. Admin selects language from dropdown ("Publicar en Español" / "Publish in English").
+  5. Admin clicks "Publicar en LinkedIn" button (disabled if summary is empty or publish in progress).
+  6. API call to `POST /api/blog/admin/:id/publish-linkedin/` with `{ lang }`.
+  7. Success: success message "Publicado en LinkedIn correctamente." renders and auto-hides after 5s.
+  8. "Última publicación:" timestamp renders with date of last publish.
+- **Branches:**
+  - [Branch A — API error] Publish fails → error message renders in red.
+  - [Branch B — Token expired] Backend auto-refreshes token; if refresh token also expired, error is returned.
+  - [Branch C — Empty summary] "Publicar en LinkedIn" button is disabled until summary is filled.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-blog-linkedin.spec.js`
+
+### 11.2 New Flows Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Suggested Spec |
+|---------|--------|------|----------|--------|----------------|
+| `admin-blog-linkedin-connect` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-linkedin.spec.js` |
+| `admin-blog-linkedin-publish` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-linkedin.spec.js` |

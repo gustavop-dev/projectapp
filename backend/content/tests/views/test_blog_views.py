@@ -571,3 +571,126 @@ class TestUploadBlogCoverImage:
         url = reverse('upload-blog-cover-image', kwargs={'post_id': 99999})
         response = admin_client.post(url, {}, format='multipart')
         assert response.status_code == 404
+
+
+class TestAutoPublishToLinkedIn:
+    """Tests for _auto_publish_to_linkedin triggered by create/update blog views."""
+
+    def test_create_published_post_without_summary_skips_linkedin(self, admin_client):
+        """Creating a published post with no linkedin_summary does not call LinkedIn."""
+        from unittest.mock import patch
+
+        with patch('content.services.linkedin_service.publish_blog_to_linkedin') as mock_pub:
+            payload = {
+                'title_es': 'Publicado', 'title_en': 'Published',
+                'excerpt_es': 'E', 'excerpt_en': 'E',
+                'content_es': 'C', 'content_en': 'C',
+                'is_published': True,
+            }
+            response = admin_client.post(reverse('create-blog-post'), payload, format='json')
+
+        assert response.status_code == 201
+        mock_pub.assert_not_called()
+
+    def test_update_post_with_linkedin_id_already_set_skips_publish(self, admin_client, draft_blog_post):
+        """Transitioning draft to published when linkedin_post_id already set skips publish."""
+        from unittest.mock import patch
+
+        draft_blog_post.linkedin_summary_es = 'Resumen LinkedIn.'
+        draft_blog_post.linkedin_post_id = 'urn:li:share:123456'
+        draft_blog_post.save(update_fields=['linkedin_summary_es', 'linkedin_post_id'])
+
+        with patch('content.services.linkedin_service.publish_blog_to_linkedin') as mock_pub:
+            url = reverse('update-blog-post', kwargs={'post_id': draft_blog_post.id})
+            response = admin_client.patch(url, {'is_published': True}, format='json')
+
+        assert response.status_code == 200
+        mock_pub.assert_not_called()
+
+    def test_update_draft_to_published_calls_auto_publish(self, admin_client, draft_blog_post):
+        """Transitioning a draft to published triggers _auto_publish_to_linkedin."""
+        from unittest.mock import patch
+
+        draft_blog_post.linkedin_summary_es = 'Resumen para LinkedIn.'
+        draft_blog_post.save(update_fields=['linkedin_summary_es'])
+
+        with patch('content.services.linkedin_service.publish_blog_to_linkedin') as mock_pub:
+            mock_pub.return_value = {'success': True, 'post_id': 'urn:li:share:789'}
+            url = reverse('update-blog-post', kwargs={'post_id': draft_blog_post.id})
+            response = admin_client.patch(url, {'is_published': True}, format='json')
+
+        assert response.status_code == 200
+        mock_pub.assert_called_once()
+
+    def test_auto_publish_saves_linkedin_post_id_on_success(self, admin_client, draft_blog_post):
+        """When LinkedIn publish succeeds, linkedin_post_id is saved on the post."""
+        from unittest.mock import patch
+
+        draft_blog_post.linkedin_summary_es = 'Resumen.'
+        draft_blog_post.save(update_fields=['linkedin_summary_es'])
+
+        with patch('content.services.linkedin_service.publish_blog_to_linkedin') as mock_pub:
+            mock_pub.return_value = {'success': True, 'post_id': 'urn:li:share:999'}
+            url = reverse('update-blog-post', kwargs={'post_id': draft_blog_post.id})
+            admin_client.patch(url, {'is_published': True}, format='json')
+
+        draft_blog_post.refresh_from_db()
+        assert draft_blog_post.linkedin_post_id == 'urn:li:share:999'
+
+    def test_auto_publish_logs_warning_on_failure(self, admin_client, draft_blog_post):
+        """When LinkedIn publish fails, warning is logged but view still returns 200."""
+        from unittest.mock import patch
+
+        draft_blog_post.linkedin_summary_en = 'LinkedIn summary.'
+        draft_blog_post.save(update_fields=['linkedin_summary_en'])
+
+        with patch('content.services.linkedin_service.publish_blog_to_linkedin') as mock_pub:
+            mock_pub.return_value = {'success': False, 'message': 'Rate limit exceeded'}
+            url = reverse('update-blog-post', kwargs={'post_id': draft_blog_post.id})
+            response = admin_client.patch(url, {'is_published': True}, format='json')
+
+        assert response.status_code == 200
+
+    def test_auto_publish_silences_linkedin_exception(self, admin_client, draft_blog_post):
+        """LinkedIn exceptions are caught silently — view still returns 200."""
+        from unittest.mock import patch
+
+        draft_blog_post.linkedin_summary_es = 'Resumen.'
+        draft_blog_post.save(update_fields=['linkedin_summary_es'])
+
+        with patch('content.services.linkedin_service.publish_blog_to_linkedin') as mock_pub:
+            mock_pub.side_effect = RuntimeError('LinkedIn API down')
+            url = reverse('update-blog-post', kwargs={'post_id': draft_blog_post.id})
+            response = admin_client.patch(url, {'is_published': True}, format='json')
+
+        assert response.status_code == 200
+
+    def test_auto_publish_uses_cover_image_url_field_when_set(self, admin_client, draft_blog_post):
+        """When post has cover_image_url set, it is passed to LinkedIn publish."""
+        from unittest.mock import patch, call
+
+        draft_blog_post.linkedin_summary_es = 'Resumen.'
+        draft_blog_post.cover_image_url = 'https://example.com/image.jpg'
+        draft_blog_post.save(update_fields=['linkedin_summary_es', 'cover_image_url'])
+
+        with patch('content.services.linkedin_service.publish_blog_to_linkedin') as mock_pub:
+            mock_pub.return_value = {'success': True, 'post_id': 'urn:li:share:111'}
+            url = reverse('update-blog-post', kwargs={'post_id': draft_blog_post.id})
+            admin_client.patch(url, {'is_published': True}, format='json')
+
+        mock_pub.assert_called_once()
+        _, kwargs = mock_pub.call_args
+        assert kwargs.get('cover_image_url') == 'https://example.com/image.jpg'
+
+    def test_update_already_published_post_does_not_call_auto_publish(
+        self, admin_client, blog_post,
+    ):
+        """Updating a post that is already published does not call LinkedIn again."""
+        from unittest.mock import patch
+
+        with patch('content.services.linkedin_service.publish_blog_to_linkedin') as mock_pub:
+            url = reverse('update-blog-post', kwargs={'post_id': blog_post.id})
+            response = admin_client.patch(url, {'title_en': 'New title'}, format='json')
+
+        assert response.status_code == 200
+        mock_pub.assert_not_called()

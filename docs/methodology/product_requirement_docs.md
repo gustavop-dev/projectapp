@@ -102,6 +102,7 @@ DRAFT → SENT → VIEWED → ACCEPTED
 - 17 categories (technology, design, AI, marketing, etc.)
 - Admin CRUD with JSON import, duplicate, publish, calendar view
 - Sitemap data endpoint
+- **LinkedIn Publishing** — admin can connect a LinkedIn account via OAuth 2.0 and publish/unpublish blog post summaries (with cover image) directly to LinkedIn from the panel; OAuth tokens stored encrypted via Fernet (`LinkedInToken` singleton model)
 
 ### 3.4 Contact Form
 

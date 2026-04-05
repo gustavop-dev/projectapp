@@ -504,4 +504,121 @@ describe('useBlogStore', () => {
       expect(result.data).toEqual([]);
     });
   });
+
+  // NOTE: LinkedIn actions are mocked at the request layer (get_request/create_request).
+  // No real LinkedIn API calls are made. Do NOT add fixtures that store real tokens
+  // or call linkedin.com — the production LinkedInToken singleton is a real account.
+  describe('LinkedIn actions', () => {
+    it('fetchLinkedInStatus returns connected status on success', async () => {
+      const statusData = { connected: true, profile_name: 'Gustavo', profile_email: 'g@example.com' };
+      get_request.mockResolvedValue({ data: statusData });
+
+      const result = await store.fetchLinkedInStatus();
+
+      expect(get_request).toHaveBeenCalledWith('linkedin/status/');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(statusData);
+    });
+
+    it('fetchLinkedInStatus returns failure on network error', async () => {
+      get_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.fetchLinkedInStatus();
+
+      expect(result.success).toBe(false);
+    });
+
+    it('fetchLinkedInAuthUrl returns authorization URL on success', async () => {
+      const urlData = { authorization_url: 'https://linkedin.com/oauth', state: 'abc123' };
+      get_request.mockResolvedValue({ data: urlData });
+
+      const result = await store.fetchLinkedInAuthUrl();
+
+      expect(get_request).toHaveBeenCalledWith('linkedin/auth-url/');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(urlData);
+    });
+
+    it('fetchLinkedInAuthUrl returns failure on network error', async () => {
+      get_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.fetchLinkedInAuthUrl();
+
+      expect(result.success).toBe(false);
+    });
+
+    it('linkedinCallback sends code and state, returns connection data on success', async () => {
+      const connectionData = { connection: { connected: true, profile_name: 'Gustavo' } };
+      create_request.mockResolvedValue({ data: connectionData });
+
+      const result = await store.linkedinCallback('auth-code-123', 'state-xyz');
+
+      expect(create_request).toHaveBeenCalledWith('linkedin/callback/', { code: 'auth-code-123', state: 'state-xyz' });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(connectionData);
+    });
+
+    it('linkedinCallback returns failure with error message on API error', async () => {
+      create_request.mockRejectedValue({ response: { data: { error: 'Invalid state token.' } } });
+
+      const result = await store.linkedinCallback('bad-code', 'bad-state');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invalid state token.');
+    });
+
+    it('linkedinCallback returns failure without error property on network error', async () => {
+      create_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.linkedinCallback('code', 'state');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('publishToLinkedIn sends POST with postId and lang, returns success', async () => {
+      const responseData = { message: 'Publicado en LinkedIn correctamente.' };
+      create_request.mockResolvedValue({ data: responseData });
+
+      const result = await store.publishToLinkedIn(42, 'en');
+
+      expect(create_request).toHaveBeenCalledWith('blog/admin/42/publish-linkedin/', { lang: 'en' });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(responseData);
+    });
+
+    it('publishToLinkedIn defaults lang to es when not provided', async () => {
+      create_request.mockResolvedValue({ data: {} });
+
+      await store.publishToLinkedIn(7);
+
+      expect(create_request).toHaveBeenCalledWith('blog/admin/7/publish-linkedin/', { lang: 'es' });
+    });
+
+    it('publishToLinkedIn resets isUpdating to false after success', async () => {
+      create_request.mockResolvedValue({ data: {} });
+
+      await store.publishToLinkedIn(1, 'es');
+
+      expect(store.isUpdating).toBe(false);
+    });
+
+    it('publishToLinkedIn returns failure with error string on API error', async () => {
+      create_request.mockRejectedValue({ response: { data: { error: 'LinkedIn token expired.' } } });
+
+      const result = await store.publishToLinkedIn(1, 'es');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('LinkedIn token expired.');
+    });
+
+    it('publishToLinkedIn returns failure with fallback message on network error', async () => {
+      create_request.mockRejectedValue(new Error('network'));
+
+      const result = await store.publishToLinkedIn(1, 'es');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Unknown error');
+    });
+  });
 });

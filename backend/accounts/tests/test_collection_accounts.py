@@ -294,3 +294,348 @@ def test_create_collection_account_returns_400_when_project_id_is_invalid(
 
     assert resp.status_code == 400
     assert 'project_id' in resp.json()
+
+
+@pytest.mark.django_db
+def test_create_collection_account_returns_400_when_neither_project_nor_client_provided(
+    api_client, admin_headers,
+):
+    resp = api_client.post(
+        '/api/accounts/collection-accounts/',
+        {'title': 'No context'},
+        format='json',
+        **admin_headers,
+    )
+
+    assert resp.status_code == 400
+
+
+@pytest.mark.django_db
+def test_admin_list_filters_by_client_user_id_query_param(
+    api_client, admin_headers, client_headers, project, client_user,
+):
+    api_client.post(
+        '/api/accounts/collection-accounts/',
+        {'title': 'For client', 'project_id': project.id},
+        format='json',
+        **admin_headers,
+    )
+    resp = api_client.get(
+        f'/api/accounts/collection-accounts/?client_user_id={client_user.id}',
+        **admin_headers,
+    )
+
+    assert resp.status_code == 200
+    rows = resp.json()
+    assert len(rows) == 1
+    assert rows[0]['title'] == 'For client'
+
+
+@pytest.mark.django_db
+def test_admin_list_filters_by_commercial_status_query_param(
+    api_client, admin_headers, project,
+):
+    api_client.post(
+        '/api/accounts/collection-accounts/',
+        {'title': 'Draft one', 'project_id': project.id},
+        format='json',
+        **admin_headers,
+    )
+    resp = api_client.get(
+        '/api/accounts/collection-accounts/?commercial_status=draft',
+        **admin_headers,
+    )
+
+    assert resp.status_code == 200
+    rows = resp.json()
+    assert len(rows) == 1
+    assert rows[0]['commercial_status'] == 'draft'
+
+
+@pytest.mark.django_db
+def test_admin_get_collection_account_detail_returns_200(
+    api_client, admin_headers, project,
+):
+    create = api_client.post(
+        '/api/accounts/collection-accounts/',
+        {'title': 'Detail test', 'project_id': project.id},
+        format='json',
+        **admin_headers,
+    )
+    aid = create.json()['id']
+
+    resp = api_client.get(
+        f'/api/accounts/collection-accounts/{aid}/',
+        **admin_headers,
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()['id'] == aid
+    assert resp.json()['title'] == 'Detail test'
+
+
+@pytest.mark.django_db
+def test_patch_issued_collection_account_returns_400(
+    api_client, admin_headers, project,
+):
+    create = api_client.post(
+        '/api/accounts/collection-accounts/',
+        {'title': 'Will be issued', 'project_id': project.id},
+        format='json',
+        **admin_headers,
+    )
+    aid = create.json()['id']
+    api_client.post(
+        f'/api/accounts/collection-accounts/{aid}/issue/',
+        format='json',
+        **admin_headers,
+    )
+
+    resp = api_client.patch(
+        f'/api/accounts/collection-accounts/{aid}/',
+        {'title': 'Try to modify issued'},
+        format='json',
+        **admin_headers,
+    )
+
+    assert resp.status_code == 400
+
+
+@pytest.mark.django_db
+def test_admin_cancels_issued_collection_account_returns_200(
+    api_client, admin_headers, project,
+):
+    create = api_client.post(
+        '/api/accounts/collection-accounts/',
+        {'title': 'To cancel', 'project_id': project.id},
+        format='json',
+        **admin_headers,
+    )
+    aid = create.json()['id']
+    api_client.post(
+        f'/api/accounts/collection-accounts/{aid}/issue/',
+        format='json',
+        **admin_headers,
+    )
+
+    resp = api_client.post(
+        f'/api/accounts/collection-accounts/{aid}/mark-cancelled/',
+        format='json',
+        **admin_headers,
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()['commercial_status'] == 'cancelled'
+
+
+@pytest.mark.django_db
+def test_mark_paid_returns_404_for_nonexistent_account(api_client, admin_headers):
+    resp = api_client.post(
+        '/api/accounts/collection-accounts/999999/mark-paid/',
+        format='json',
+        **admin_headers,
+    )
+
+    assert resp.status_code == 404
+
+
+@pytest.mark.django_db
+def test_mark_cancelled_returns_404_for_nonexistent_account(api_client, admin_headers):
+    resp = api_client.post(
+        '/api/accounts/collection-accounts/999999/mark-cancelled/',
+        format='json',
+        **admin_headers,
+    )
+
+    assert resp.status_code == 404
+
+
+@pytest.mark.django_db
+def test_admin_list_collection_accounts_for_project_returns_200(
+    api_client, admin_headers, project,
+):
+    api_client.post(
+        '/api/accounts/collection-accounts/',
+        {'title': 'Project CA', 'project_id': project.id},
+        format='json',
+        **admin_headers,
+    )
+
+    resp = api_client.get(
+        f'/api/accounts/projects/{project.id}/collection-accounts/',
+        **admin_headers,
+    )
+
+    assert resp.status_code == 200
+    rows = resp.json()
+    assert len(rows) == 1
+    assert rows[0]['title'] == 'Project CA'
+
+
+@pytest.mark.django_db
+def test_project_collection_accounts_returns_404_for_nonexistent_project(
+    api_client, admin_headers,
+):
+    resp = api_client.get(
+        '/api/accounts/projects/999999/collection-accounts/',
+        **admin_headers,
+    )
+
+    assert resp.status_code == 404
+
+
+@pytest.mark.django_db
+def test_client_cannot_list_another_clients_project_collection_accounts(
+    api_client, client_headers,
+):
+    from django.contrib.auth import get_user_model
+    from accounts.models import UserProfile
+
+    User = get_user_model()
+    other = User.objects.create_user(
+        username='other@test.com',
+        email='other@test.com',
+        password='pass12345',
+    )
+    UserProfile.objects.create(user=other, role=UserProfile.ROLE_CLIENT, is_onboarded=True)
+    other_project = Project.objects.create(
+        name='Other Project', client=other, status=Project.STATUS_ACTIVE, progress=0,
+    )
+
+    resp = api_client.get(
+        f'/api/accounts/projects/{other_project.id}/collection-accounts/',
+        **client_headers,
+    )
+
+    assert resp.status_code == 403
+
+
+@pytest.mark.django_db
+def test_admin_patch_items_auto_calculates_line_total(
+    api_client, admin_headers, project,
+):
+    create = api_client.post(
+        '/api/accounts/collection-accounts/',
+        {'title': 'Auto calc', 'project_id': project.id},
+        format='json',
+        **admin_headers,
+    )
+    aid = create.json()['id']
+
+    resp = api_client.patch(
+        f'/api/accounts/collection-accounts/{aid}/',
+        {
+            'items': [
+                {
+                    'description': 'Work',
+                    'quantity': '2',
+                    'unit_price': '50000.00',
+                    'discount_amount': '0',
+                    'tax_amount': '0',
+                    # line_total omitted — should be auto-calculated as 2 * 50000 = 100000
+                },
+            ],
+        },
+        format='json',
+        **admin_headers,
+    )
+
+    assert resp.status_code == 200
+    items = resp.json()['items']
+    assert len(items) == 1
+    assert float(items[0]['line_total']) == 100000.0
+
+
+@pytest.mark.django_db
+def test_issue_collection_account_returns_404_for_nonexistent_account(api_client, admin_headers):
+    resp = api_client.post(
+        '/api/accounts/collection-accounts/999999/issue/',
+        format='json',
+        **admin_headers,
+    )
+
+    assert resp.status_code == 404
+
+
+@pytest.mark.django_db
+def test_admin_list_project_collection_accounts_filters_by_deliverable_id(
+    api_client, admin_headers, project,
+):
+    api_client.post(
+        '/api/accounts/collection-accounts/',
+        {'title': 'No deliverable', 'project_id': project.id},
+        format='json',
+        **admin_headers,
+    )
+
+    resp = api_client.get(
+        f'/api/accounts/projects/{project.id}/collection-accounts/?deliverable_id=9999',
+        **admin_headers,
+    )
+
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+@pytest.mark.django_db
+def test_admin_patch_updates_multiple_fields(api_client, admin_headers, project):
+    create = api_client.post(
+        '/api/accounts/collection-accounts/',
+        {'title': 'Original', 'project_id': project.id},
+        format='json',
+        **admin_headers,
+    )
+    aid = create.json()['id']
+
+    resp = api_client.patch(
+        f'/api/accounts/collection-accounts/{aid}/',
+        {
+            'title': 'Updated',
+            'city': 'Bogotá',
+            'notes': 'Some notes',
+            'terms_and_conditions': 'Terms here.',
+            'billing_concept': 'Desarrollo de software',
+            'payment_term_days': 30,
+            'support_reference': 'REF-001',
+        },
+        format='json',
+        **admin_headers,
+    )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data['title'] == 'Updated'
+    assert data['city'] == 'Bogotá'
+    assert data['notes'] == 'Some notes'
+
+
+@pytest.mark.django_db
+def test_admin_patch_with_payment_methods(api_client, admin_headers, project):
+    create = api_client.post(
+        '/api/accounts/collection-accounts/',
+        {'title': 'With payment', 'project_id': project.id},
+        format='json',
+        **admin_headers,
+    )
+    aid = create.json()['id']
+
+    resp = api_client.patch(
+        f'/api/accounts/collection-accounts/{aid}/',
+        {
+            'payment_methods': [
+                {
+                    'bank_name': 'Bancolombia',
+                    'account_type': 'savings',
+                    'account_number': '123456789',
+                    'account_holder_name': 'ProjectApp SAS',
+                    'is_primary': True,
+                },
+            ],
+        },
+        format='json',
+        **admin_headers,
+    )
+
+    assert resp.status_code == 200
+    assert len(resp.json()['payment_methods']) == 1
+    assert resp.json()['payment_methods'][0]['bank_name'] == 'Bancolombia'

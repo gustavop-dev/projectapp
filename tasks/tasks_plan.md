@@ -57,6 +57,7 @@
 | Platform — UI Terminology & UX | ✅ Done | Épica → Módulo rename; `useConfirmModal.js` refactored to promise-based API; dark mode removed from platform login/verify/complete-profile pages |
 | Business Proposal — Branded Email | ✅ Done | "Correos" tab on proposal edit (negotiating/accepted/rejected): draggable sections composer, file attachments, branded preview, paginated history; `_send_composed_email()` shared service; 6 URL patterns; `EmailLog.metadata` JSONField |
 | Business Proposal — Proposal Email | ✅ Done | "Enviar correo" tab on proposal edit (sent+ statuses): same composer UI, each send creates `ProposalChangeLog` with `EMAIL_SENT` change type + updates `last_activity_at`; `ProposalEmailsTab.vue` with `mode` prop |
+| Blog — LinkedIn Publishing | ✅ Done | `LinkedInToken` singleton model with Fernet-encrypted OAuth tokens; `linkedin_service.py` — 3-legged OAuth flow, auto token refresh, publish/unpublish blog post summaries with cover images via LinkedIn Posts API |
 
 ---
 
@@ -75,9 +76,9 @@
 
 | Suite | Location | Approximate Count | Status |
 |-------|----------|-------------------|--------|
-| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 74 test files | Active |
-| Frontend Unit (Jest) | `frontend/test/` | 60 test files | Active |
-| Frontend E2E (Playwright) | `frontend/e2e/` | 121 spec files across admin, auth, blog, layout, proposal, public, platform | Active |
+| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 79 test files | Active |
+| Frontend Unit (Jest) | `frontend/test/` | 57 test files | Active |
+| Frontend E2E (Playwright) | `frontend/e2e/` | 120 spec files across admin, auth, blog, layout, proposal, public, platform | Active |
 | Quality Gate | `scripts/test_quality_gate.py` | 100/100, 0 warnings/info | Active |
 
 ---

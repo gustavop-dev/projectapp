@@ -33,6 +33,7 @@
 | **Profiling** | django-silk (optional) | >=5.0.0 |
 | **Config Management** | python-decouple | >=3.8,<3.9 |
 | **Fake Data** | Faker | 28.4.1 |
+| **Token Encryption** | cryptography (Fernet) | via cryptography | LinkedIn OAuth token encryption |
 
 ---
 

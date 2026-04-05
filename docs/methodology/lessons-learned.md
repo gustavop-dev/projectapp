@@ -25,7 +25,13 @@ This file captures important patterns, preferences, and project intelligence tha
 ### Service Layer Pattern
 - Business logic lives in `content/services/`, not in views
 - Views are thin FBV wrappers that call service methods
-- Services: `ProposalService`, `ProposalEmailService`, `ProposalPdfService`, `ContractPdfService`, `EmailTemplateRegistry`, `PdfUtils`, `DocumentPdfService`, `MarkdownParser`, `CollectionAccountService`, `CollectionAccountPdfService`, `TechnicalDocumentPdf`, `TechnicalDocumentFilter`, `PlatformOnboardingPdf`
+- Services: `ProposalService`, `ProposalEmailService`, `ProposalPdfService`, `ContractPdfService`, `EmailTemplateRegistry`, `PdfUtils`, `DocumentPdfService`, `MarkdownParser`, `CollectionAccountService`, `CollectionAccountPdfService`, `TechnicalDocumentPdf`, `TechnicalDocumentFilter`, `PlatformOnboardingPdf`, `LinkedInService`
+
+### External API Integration Pattern (LinkedIn)
+- External OAuth integrations follow the singleton model + service module pattern
+- `LinkedInToken` (singleton, pk=1) stores Fernet-encrypted access/refresh tokens in the DB; encryption key from `LINKEDIN_ENCRYPTION_KEY` env var
+- `linkedin_service.py` encapsulates the full OAuth flow + API calls — views stay thin
+- Follow this pattern for any future third-party OAuth integration (e.g., Twitter/X, Instagram)
 
 ### PDF Generation Layer
 - `pdf_utils.py` is the shared utility layer — fonts, colors, layout helpers, reusable drawing functions

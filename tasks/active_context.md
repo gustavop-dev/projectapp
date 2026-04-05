@@ -8,7 +8,12 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 
 ## Recent Focus Areas
 
-1. **Branded + Proposal Composed Email System** (Apr 4, 2026):
+1. **LinkedIn Integration for Blog Publishing** (Apr 5, 2026):
+   - `LinkedInToken` singleton model with Fernet-encrypted access/refresh token storage (`linkedin_token.py`)
+   - `linkedin_service.py` — OAuth 2.0 authorization code flow, automatic token refresh, publish/unpublish blog post summaries with cover images via LinkedIn Posts API (`/rest/posts`)
+   - Admin panel UI: connect/disconnect LinkedIn account, publish toggle per blog post
+   - Scopes: `openid profile email w_member_social`; encryption key via `LINKEDIN_ENCRYPTION_KEY` env var
+2. **Branded + Proposal Composed Email System** (Apr 4, 2026):
    - Two new email tabs on proposal edit page: "Correos" (branded, for negotiating/accepted/rejected) and "Enviar correo" (proposal, for sent+ statuses)
    - Shared composer UI with draggable sections (vuedraggable), file attachments, branded preview, paginated history
    - Backend: `_send_composed_email()` shared service method, `send_branded_email()` + `send_proposal_email()` wrappers; proposal email creates `ProposalChangeLog` with `EMAIL_SENT` change type
@@ -91,23 +96,23 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 
 ---
 
-## Verified Codebase Metrics (April 2026 — refreshed)
+## Verified Codebase Metrics (April 5, 2026 — refreshed)
 
 | Metric | Count |
 |--------|-------|
-| Backend test files | 74 |
-| Frontend unit tests | 60 |
-| E2E spec files | 121 |
-| Vue components | 107 |
-| Pages | 59 |
+| Backend test files | 79 |
+| Frontend unit tests | 57 |
+| E2E spec files | 120 |
+| Vue components | 127 |
+| Pages | 63 |
 | Pinia stores | 18 |
-| Composables | 29 |
-| Content model files | 24 |
+| Composables | 30 |
+| Content model files | 26 |
 | Accounts models | 21 |
 | Accounts URL patterns | 65 |
-| Content URL patterns | 99 |
+| Content URL patterns | 103 |
 | Email templates | 48 (24 HTML + 24 TXT) |
-| Content services | 15 |
+| Content services | 16 |
 | Accounts services | 10 |
 | Quality gate score | 100/100 (0 warnings, 0 info) |
 

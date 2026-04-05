@@ -180,3 +180,7 @@ export const ADMIN_PROPOSAL_DOCUMENTS_SEND = ['@flow:admin-proposal-documents-se
 // ── Composed email flows ──
 export const ADMIN_SEND_BRANDED_EMAIL = ['@flow:admin-send-branded-email', '@module:admin', '@priority:P2'];
 export const ADMIN_SEND_PROPOSAL_EMAIL = ['@flow:admin-send-proposal-email', '@module:admin', '@priority:P2'];
+
+// ── v2.12.0 LinkedIn flows ──
+export const ADMIN_BLOG_LINKEDIN_CONNECT = ['@flow:admin-blog-linkedin-connect', '@module:admin', '@priority:P2'];
+export const ADMIN_BLOG_LINKEDIN_PUBLISH = ['@flow:admin-blog-linkedin-publish', '@module:admin', '@priority:P2'];
