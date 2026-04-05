@@ -1,13 +1,5 @@
 <template>
-  <Transition
-    enter-active-class="transition-[opacity,transform] duration-200 ease-out"
-    leave-active-class="transition-[opacity,transform] duration-150 ease-in"
-    enter-from-class="opacity-0 -translate-y-2"
-    enter-to-class="opacity-100 translate-y-0"
-    leave-from-class="opacity-100 translate-y-0"
-    leave-to-class="opacity-0 -translate-y-2"
-  >
-    <div v-if="isOpen" class="mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+  <div v-show="isOpen" class="mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
       <!-- Status pills -->
       <div class="mb-4">
         <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Estado</label>
@@ -264,7 +256,7 @@
         </span>
       </div>
     </div>
-  </Transition>
+  </div>
 </template>
 
 <script setup>
