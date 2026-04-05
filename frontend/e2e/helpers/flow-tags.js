@@ -184,3 +184,8 @@ export const ADMIN_SEND_PROPOSAL_EMAIL = ['@flow:admin-send-proposal-email', '@m
 // ── v2.12.0 LinkedIn flows ──
 export const ADMIN_BLOG_LINKEDIN_CONNECT = ['@flow:admin-blog-linkedin-connect', '@module:admin', '@priority:P2'];
 export const ADMIN_BLOG_LINKEDIN_PUBLISH = ['@flow:admin-blog-linkedin-publish', '@module:admin', '@priority:P2'];
+
+// ── v2.13.0 Advanced filters + legal pages ──
+export const ADMIN_PROPOSAL_ADVANCED_FILTERS = ['@flow:admin-proposal-advanced-filters', '@module:admin', '@priority:P2'];
+export const PUBLIC_PRIVACY_POLICY = ['@flow:public-privacy-policy', '@module:public', '@priority:P4'];
+export const PUBLIC_TERMS_CONDITIONS = ['@flow:public-terms-conditions', '@module:public', '@priority:P4'];

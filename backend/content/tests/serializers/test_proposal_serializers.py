@@ -124,6 +124,32 @@ class TestProposalListSerializerComputedFields:
         assert 'is_expired' in serializer.data
         assert serializer.data['is_expired'] is False
 
+    def test_language_field_present(self, proposal):
+        serializer = ProposalListSerializer(proposal)
+        assert 'language' in serializer.data
+
+    def test_language_field_value(self, proposal):
+        proposal.language = 'en'
+        proposal.save()
+        serializer = ProposalListSerializer(proposal)
+        assert serializer.data['language'] == 'en'
+
+    def test_sent_at_field_present(self, proposal):
+        serializer = ProposalListSerializer(proposal)
+        assert 'sent_at' in serializer.data
+
+    def test_sent_at_field_null_for_draft(self, proposal):
+        serializer = ProposalListSerializer(proposal)
+        assert serializer.data['sent_at'] is None
+
+    def test_sent_at_field_value_for_sent(self, proposal):
+        from django.utils import timezone
+        now = timezone.now()
+        proposal.sent_at = now
+        proposal.save()
+        serializer = ProposalListSerializer(proposal)
+        assert serializer.data['sent_at'] is not None
+
 
 class TestProposalDetailSerializerComputedFields:
     def test_public_url_present(self, proposal):

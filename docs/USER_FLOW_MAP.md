@@ -1,6 +1,6 @@
 # User Flow Map
 
-> **Version:** 2.12.0
+> **Version:** 2.13.0
 > **Last updated:** 2026-04-05
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
@@ -239,6 +239,34 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch B — API error] Error message displays, form remains editable.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/public/public-contact.spec.js`
+
+### FLOW: `public-privacy-policy`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P4
+- **Routes:** `/privacy-policy`
+- **Description:** View the public privacy policy page with localized content (ES/EN).
+- **Steps:**
+  1. User navigates to `/privacy-policy`.
+  2. Page renders with localized privacy policy content.
+  3. SEO meta tags and structured data are present.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/public/public-privacy-policy.spec.js`
+
+### FLOW: `public-terms-conditions`
+
+- **Module:** public
+- **Role:** guest
+- **Priority:** P4
+- **Routes:** `/terms-and-conditions`
+- **Description:** View the public terms and conditions page with localized content (ES/EN).
+- **Steps:**
+  1. User navigates to `/terms-and-conditions`.
+  2. Page renders with localized terms and conditions content.
+  3. SEO meta tags and structured data are present.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/public/public-terms-conditions.spec.js`
 
 ### FLOW: `blog-list`
 
@@ -518,6 +546,30 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   5. Floating "?" button opens the MetricsManual slide-over with searchable metric definitions.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-list.spec.js`
+
+### FLOW: `admin-proposal-advanced-filters`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/`
+- **Description:** Admin uses advanced filter panel with 11 dimensions (status, project type, market type, currency, language, investment range, heat score range, view count range, created date range, last activity date range, active status) and saves filter combinations as named tabs (max 12) with localStorage persistence and URL sync.
+- **Steps:**
+  1. Admin navigates to `/panel/proposals/` and clicks "Filtros" toggle button.
+  2. Filter panel expands with responsive grid of filter controls.
+  3. Admin selects filter values (e.g., status pills, project type dropdown, date range).
+  4. Proposal table updates in real-time (client-side filtering, single-pass).
+  5. Admin clicks "+" tab button → inline input appears → types tab name → clicks "Guardar".
+  6. New named tab appears in tab bar; filters are persisted to localStorage.
+  7. Admin reloads page → saved tabs persist; clicking a tab restores its filters.
+  8. Admin right-clicks tab context menu → "Renombrar" or "Eliminar".
+  9. "Todas" tab resets all filters. "Limpiar filtros" button clears active filters.
+  10. URL updates with `?tab=<tabId>` for deep-linking.
+- **Branches:**
+  - [Branch A — Tab limit] When 12 tabs exist, "+" button is disabled with tooltip.
+  - [Branch B — Mobile] Tab bar collapses to `<select>` dropdown below `md` breakpoint.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-advanced-filters.spec.js`
 
 ### FLOW: `admin-proposal-create`
 
@@ -1716,11 +1768,12 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 
 ### Summary
 
-- **Total flows:** 129
+- **Total flows:** 132
 - **P1 (Critical):** 26
-- **P2 (High):** 79
+- **P2 (High):** 80
 - **P3 (Medium):** 23
-- **Covered (full):** 108 (84%)
+- **P4 (Nice-to-have):** 2
+- **Covered (full):** 111 (84%)
 - **Backend-only:** 10 (8%) — system-triggered alerts and automation covered by backend unit tests
 - **Partial:** 0 (0%)
 - **Missing:** 0 (0%)
@@ -2705,3 +2758,6 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 |---------|--------|------|----------|--------|----------------|
 | `admin-blog-linkedin-connect` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-linkedin.spec.js` |
 | `admin-blog-linkedin-publish` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-linkedin.spec.js` |
+| `admin-proposal-advanced-filters` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-advanced-filters.spec.js` |
+| `public-privacy-policy` | public | guest | P4 | ✅ Covered | `e2e/public/public-privacy-policy.spec.js` |
+| `public-terms-conditions` | public | guest | P4 | ✅ Covered | `e2e/public/public-terms-conditions.spec.js` |

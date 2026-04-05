@@ -83,6 +83,22 @@ SECTION_TYPES = [
     for s in ProposalService.get_hardcoded_defaults(language='es')
 ]
 
+# Sections shown per view mode (mirrors displayPanels logic in proposal/[uuid]/index.vue).
+# Technical mode shows only the technical document panels; commercial modes skip it.
+_TECHNICAL_SECTION_TYPES = [
+    ('technical_document', 'Detalle Técnico'),
+    ('technical_document_public', 'Arquitectura / Stack'),
+]
+_COMMERCIAL_SECTION_TYPES = [
+    (st, title) for st, title in SECTION_TYPES if st != 'technical_document'
+]
+
+# Realistic distribution of view mode selection by clients.
+_VIEW_MODE_POPULATION = ['executive', 'executive', 'executive',
+                          'detailed', 'detailed', 'detailed', 'detailed', 'detailed',
+                          'technical', 'technical']
+_VIEW_MODE_LABELS = {'executive': 'ejecutiva', 'detailed': 'completa', 'technical': 'técnica'}
+
 ALERT_TYPES = [
     'reminder', 'followup', 'call', 'meeting', 'custom',
     'discount_suggestion', 'post_expiration_visit',
@@ -299,18 +315,24 @@ class Command(BaseCommand):
                 hours=random.randint(0, 23),
                 minutes=random.randint(0, 59),
             )
+            view_mode = random.choice(_VIEW_MODE_POPULATION)
             event = ProposalViewEvent.objects.create(
                 proposal=proposal,
                 session_id=uuid.uuid4().hex[:16],
                 ip_address=random.choice(ips),
                 user_agent=random.choice(USER_AGENTS),
+                view_mode=view_mode,
             )
             event.viewed_at = session_time
             ProposalViewEvent.objects.filter(pk=event.pk).update(
                 viewed_at=session_time,
             )
 
-            for sect_type, sect_title in SECTION_TYPES:
+            sections_for_mode = (
+                _TECHNICAL_SECTION_TYPES if view_mode == 'technical'
+                else _COMMERCIAL_SECTION_TYPES
+            )
+            for sect_type, sect_title in sections_for_mode:
                 ProposalSectionView.objects.create(
                     view_event=event,
                     section_type=sect_type,
@@ -319,6 +341,7 @@ class Command(BaseCommand):
                     entered_at=session_time + timedelta(
                         seconds=random.randint(0, 300),
                     ),
+                    view_mode=view_mode,
                 )
 
         # --- ChangeLogs ---
@@ -334,10 +357,12 @@ class Command(BaseCommand):
                 description=f'Proposal sent to {proposal.client_email}.',
             )
         if proposal.first_viewed_at:
+            first_mode = random.choice(_VIEW_MODE_POPULATION)
             ProposalChangeLog.objects.create(
                 proposal=proposal,
                 change_type='viewed',
-                description='Client opened the proposal for the first time.',
+                actor_type='client',
+                description=f'Vista en modo {_VIEW_MODE_LABELS[first_mode]}.',
             )
         if proposal.status == 'accepted':
             ProposalChangeLog.objects.create(

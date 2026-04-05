@@ -174,8 +174,19 @@
       </div>
     </div>
 
-    <!-- Search + Status filter -->
-    <div class="flex flex-col sm:flex-row gap-3 mb-6">
+    <!-- Filter Tabs -->
+    <ProposalFilterTabs
+      :tabs="savedTabs"
+      :active-tab-id="activeTabId"
+      :is-tab-limit-reached="isTabLimitReached"
+      @select="selectTab"
+      @create="handleCreateTab"
+      @rename="renameTab"
+      @delete="deleteTab"
+    />
+
+    <!-- Search + Filter toggle -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-4">
       <div class="relative flex-1 max-w-sm">
         <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -188,20 +199,57 @@
                  dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
         />
       </div>
-      <div class="flex gap-2 flex-wrap">
+      <div class="flex items-center gap-2 flex-wrap">
         <button
-          v-for="opt in statusOptions"
-          :key="opt.value"
-          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border"
-          :class="activeFilter === opt.value
+          type="button"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors border"
+          :class="isFilterPanelOpen
             ? 'bg-emerald-600 text-white border-emerald-600'
-            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:border-gray-500'"
-          @click="filterByStatus(opt.value)"
+            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'"
+          @click="isFilterPanelOpen = !isFilterPanelOpen"
         >
-          {{ opt.label }}
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          Filtros
+          <span
+            v-if="activeFilterCount > 0"
+            class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold"
+            :class="isFilterPanelOpen ? 'bg-white text-emerald-600' : 'bg-emerald-600 text-white'"
+          >
+            {{ activeFilterCount }}
+          </span>
+        </button>
+        <button
+          v-if="activeTabId !== 'all' && hasActiveFilters"
+          type="button"
+          class="px-3 py-2 rounded-xl text-xs font-medium transition-colors border bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700"
+          @click="updateTab(activeTabId)"
+        >
+          Guardar cambios
+        </button>
+        <div class="w-px h-5 bg-gray-200 dark:bg-gray-600 self-center" />
+        <button
+          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border flex items-center gap-1.5"
+          :class="technicalFilter
+            ? 'bg-teal-600 text-white border-teal-600'
+            : 'bg-white text-teal-700 border-teal-200 hover:border-teal-300 dark:bg-gray-800 dark:text-teal-400 dark:border-teal-800 dark:hover:border-teal-600'"
+          @click="toggleTechnicalFilter"
+        >
+          🔬 Det. técnico
+          <span v-if="technicalFilterCount > 0" class="opacity-75">({{ technicalFilterCount }})</span>
         </button>
       </div>
     </div>
+
+    <!-- Filter Panel -->
+    <ProposalFilterPanel
+      :model-value="currentFilters"
+      :is-open="isFilterPanelOpen"
+      :filter-count="activeFilterCount"
+      @update:model-value="Object.assign(currentFilters, $event)"
+      @reset="handleResetFilters"
+    />
 
     <!-- Loading -->
     <div v-if="proposalStore.isLoading" class="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">
@@ -216,7 +264,7 @@
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       </div>
-      <p class="text-gray-500 text-sm">No hay propuestas{{ activeFilter ? ` con estado "${activeFilter}"` : '' }}.</p>
+      <p class="text-gray-500 text-sm">No hay propuestas{{ hasActiveFilters ? ' con los filtros seleccionados' : '' }}.</p>
     </div>
 
     <!-- Batch action bar -->
@@ -358,6 +406,10 @@
                   <div class="flex justify-between gap-3">
                     <span class="text-gray-400">Inversión</span>
                     <span class="font-medium">{{ formatInvestmentTime(p.engagement_summary.investment_time_sec) }}</span>
+                  </div>
+                  <div v-if="p.engagement_summary.technical_viewed" class="flex justify-between gap-3">
+                    <span class="text-teal-400">Det. técnico</span>
+                    <span class="font-medium text-teal-300">{{ formatInvestmentTime(p.engagement_summary.technical_time_sec) }}</span>
                   </div>
                   <div v-if="p.engagement_summary.unique_devices > 1" class="flex justify-between gap-3">
                     <span class="text-gray-400">Dispositivos</span>
@@ -585,13 +637,33 @@ import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import ProposalDashboard from '~/components/BusinessProposal/admin/ProposalDashboard.vue';
 import MetricsManual from '~/components/BusinessProposal/admin/MetricsManual.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { useProposalFilters } from '~/composables/useProposalFilters';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const proposalStore = useProposalStore();
 const proposals = computed(() => proposalStore.proposals);
-const activeFilter = ref('');
+const {
+  currentFilters,
+  savedTabs,
+  activeTabId,
+  isFilterPanelOpen,
+  hasActiveFilters,
+  activeFilterCount,
+  isTabLimitReached,
+  applyFilters,
+  resetFilters,
+  selectTab,
+  saveTab,
+  updateTab,
+  deleteTab,
+  renameTab,
+} = useProposalFilters();
+const technicalFilter = ref(false);
+const technicalFilterCount = computed(() =>
+  proposals.value.filter(p => p.engagement_summary?.technical_viewed === true).length,
+);
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 const actionsModalProposal = ref(null);
 const copiedId = ref(null);
@@ -647,7 +719,7 @@ function handleBulkAction(action) {
       const result = await proposalStore.bulkAction(ids, action);
       if (result.success) {
         selectedIds.value = new Set();
-        proposalStore.fetchProposals(activeFilter.value || undefined);
+        proposalStore.fetchProposals();
       }
       isBulkActing.value = false;
     },
@@ -673,33 +745,29 @@ function toggleSort(key) {
 }
 
 const filteredProposals = computed(() => {
-  let list = [...proposals.value];
-  // Status filter (client-side fallback)
-  if (activeFilter.value) {
-    list = list.filter(p => p.status === activeFilter.value);
-  }
-  // Search
-  if (searchQuery.value.trim()) {
-    const q = searchQuery.value.trim().toLowerCase();
-    list = list.filter(p =>
+  // Single filter pass: advanced filters + technical + search
+  const isTechnical = technicalFilter.value;
+  const q = searchQuery.value.trim().toLowerCase();
+  let list = applyFilters(proposals.value).filter((p) => {
+    if (isTechnical && p.engagement_summary?.technical_viewed !== true) return false;
+    if (q && !(
       (p.title || '').toLowerCase().includes(q) ||
       (p.client_name || '').toLowerCase().includes(q) ||
       (p.client_email || '').toLowerCase().includes(q)
-    );
-  }
+    )) return false;
+    return true;
+  });
   // Sort
+  const sk = sortKey.value;
+  const isNumericSort = sk === 'total_investment';
+  const asc = sortDir.value === 'asc';
   list.sort((a, b) => {
-    let va = a[sortKey.value];
-    let vb = b[sortKey.value];
-    if (sortKey.value === 'total_investment') {
-      va = Number(va) || 0;
-      vb = Number(vb) || 0;
-    } else {
-      va = va || '';
-      vb = vb || '';
-    }
-    if (va < vb) return sortDir.value === 'asc' ? -1 : 1;
-    if (va > vb) return sortDir.value === 'asc' ? 1 : -1;
+    let va = a[sk];
+    let vb = b[sk];
+    if (isNumericSort) { va = Number(va) || 0; vb = Number(vb) || 0; }
+    else { va = va || ''; vb = vb || ''; }
+    if (va < vb) return asc ? -1 : 1;
+    if (va > vb) return asc ? 1 : -1;
     return 0;
   });
   return list;
@@ -857,18 +925,15 @@ function navigateToProposal(id, event) {
   }
 }
 
-const statusOptions = [
-  { value: '', label: 'Todas' },
-  { value: 'draft', label: 'Borrador' },
-  { value: 'sent', label: 'Enviadas' },
-  { value: 'viewed', label: 'Vistas' },
-  { value: 'accepted', label: 'Aceptadas' },
-  { value: 'rejected', label: 'Rechazadas' },
-  { value: 'negotiating', label: 'Negociando' },
-  { value: 'expired', label: 'Expiradas' },
-];
-
-const statusLabelMap = Object.fromEntries(statusOptions.map(o => [o.value, o.label]));
+const statusLabelMap = {
+  draft: 'Borrador',
+  sent: 'Enviadas',
+  viewed: 'Vistas',
+  accepted: 'Aceptadas',
+  rejected: 'Rechazadas',
+  negotiating: 'Negociando',
+  expired: 'Expiradas',
+};
 function statusLabel(s) { return statusLabelMap[s] || s; }
 
 // Contract modal for inline negotiation
@@ -901,7 +966,7 @@ async function handleInlineStatusChange(proposal, newStatus, event) {
       showStatusToast('Estado actualizado correctamente', 'success');
     } else {
       showStatusToast('Error al actualizar el estado', 'error');
-      proposalStore.fetchProposals(activeFilter.value || undefined);
+      proposalStore.fetchProposals();
     }
   } finally {
     updatingStatusId.value = null;
@@ -913,7 +978,7 @@ async function handleContractConfirmFromList(params) {
   if (!contractModalProposal.value) return;
   const result = await proposalStore.saveContractAndNegotiate(contractModalProposal.value.id, params);
   if (result.success) {
-    proposalStore.fetchProposals(activeFilter.value || undefined);
+    proposalStore.fetchProposals();
   }
   contractModalProposal.value = null;
 }
@@ -923,7 +988,7 @@ const alerts = ref([]);
 async function refreshData() {
   isRefreshing.value = true;
   try {
-    await proposalStore.fetchProposals(activeFilter.value || undefined);
+    await proposalStore.fetchProposals();
     const alertResult = await proposalStore.fetchAlerts();
     if (alertResult.success) alerts.value = alertResult.data || [];
   } finally {
@@ -991,9 +1056,19 @@ async function handleDismissAlert(alertId) {
   }
 }
 
-function filterByStatus(status) {
-  activeFilter.value = status;
-  proposalStore.fetchProposals(status || undefined);
+function handleCreateTab(name) {
+  saveTab(name);
+  isFilterPanelOpen.value = true;
+}
+
+function handleResetFilters() {
+  resetFilters();
+  isFilterPanelOpen.value = false;
+}
+
+function toggleTechnicalFilter() {
+  technicalFilter.value = !technicalFilter.value;
+  currentPage.value = 1;
 }
 
 function handleSend(id) {
@@ -1006,7 +1081,7 @@ async function confirmSend() {
   try {
     await proposalStore.sendProposal(sendConfirmId.value);
     sendConfirmId.value = null;
-    proposalStore.fetchProposals(activeFilter.value || undefined);
+    proposalStore.fetchProposals();
   } finally {
     isSending.value = false;
   }
@@ -1020,7 +1095,7 @@ function handleResend(id) {
     confirmText: 'Re-enviar',
     onConfirm: async () => {
       await proposalStore.resendProposal(id);
-      proposalStore.fetchProposals(activeFilter.value || undefined);
+      proposalStore.fetchProposals();
     },
   });
 }
@@ -1127,7 +1202,7 @@ async function confirmQuickLog() {
       description: quickLogMessage.value.trim(),
     });
     quickLogProposal.value = null;
-    proposalStore.fetchProposals(activeFilter.value || undefined);
+    proposalStore.fetchProposals();
   } finally {
     isQuickLogging.value = false;
   }

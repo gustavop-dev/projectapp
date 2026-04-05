@@ -8,7 +8,14 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 
 ## Recent Focus Areas
 
-1. **LinkedIn Integration for Blog Publishing** (Apr 5, 2026):
+1. **Proposal Advanced Filters & Saved Tabs** (Apr 5, 2026):
+   - New composable `useProposalFilters.js` — 11 filter dimensions (status, project type, market type, currency, language, investment range, heat score range, view count range, created date range, last activity date range, active status), saveable named tabs with localStorage persistence, URL sync (`?tab=xxx`), max 12 tabs
+   - New components: `ProposalFilterTabs.vue` (tab bar with +, rename, delete), `ProposalFilterPanel.vue` (collapsible filter panel with responsive grid)
+   - Shared utility: `selectArrowStyle.js` extracted from duplicated SVG constant
+   - Backend: added `language`, `sent_at` to `ProposalListSerializer`; batch engagement summary computation in `list_proposals` view (3 aggregated queries instead of N+1)
+   - Performance: single filter pass, pre-computed date boundaries, `structuredClone`, shallow watcher
+   - Replaced old status pills with filter tabs + "Filtros" toggle button; `statusOptions` array simplified to `statusLabelMap` object
+2. **LinkedIn Integration for Blog Publishing** (Apr 5, 2026):
    - `LinkedInToken` singleton model with Fernet-encrypted access/refresh token storage (`linkedin_token.py`)
    - `linkedin_service.py` — OAuth 2.0 authorization code flow, automatic token refresh, publish/unpublish blog post summaries with cover images via LinkedIn Posts API (`/rest/posts`)
    - Admin panel UI: connect/disconnect LinkedIn account, publish toggle per blog post
@@ -100,13 +107,13 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 
 | Metric | Count |
 |--------|-------|
-| Backend test files | 79 |
-| Frontend unit tests | 57 |
-| E2E spec files | 120 |
-| Vue components | 127 |
-| Pages | 63 |
+| Backend test files | 83 |
+| Frontend unit tests | 60 |
+| E2E spec files | 125 |
+| Vue components | 111 |
+| Pages | 62 |
 | Pinia stores | 18 |
-| Composables | 30 |
+| Composables | 31 |
 | Content model files | 26 |
 | Accounts models | 21 |
 | Accounts URL patterns | 65 |
@@ -121,6 +128,7 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 ## Next Steps
 
 - Complete Document System PDF generation (branch `generate-pdf-with-template`): template rendering, preview, download flow
+- Add unit tests for `useProposalFilters.js` composable and `ProposalFilterPanel.vue` / `ProposalFilterTabs.vue` components
 - Add E2E coverage for Contract System (ContractParamsModal, SendDocumentsModal admin workflows)
 - Add E2E coverage for Platform Data Model page (`/platform/projects/[id]/data-model`)
 - Add backend test coverage for contract/document services (`contract_pdf_service.py`, `technical_document_pdf.py`)

@@ -42,6 +42,14 @@ TECHNICAL_DOCUMENT_TRACKING_TYPES = frozenset({
     'technical_document_public',
 })
 
+# Sections that signal commercial intent — used to detect skipped key content.
+_KEY_PROPOSAL_SECTIONS = frozenset({
+    'investment', 'timeline', 'functional_requirements', 'final_note',
+})
+
+# Spanish labels for the three client-selectable view modes.
+VIEW_MODE_LABELS = {'executive': 'ejecutiva', 'detailed': 'completa', 'technical': 'técnica'}
+
 
 def _dashboard_top_dropoff_allowlist():
     """Section types used for global top_dropoff KPI (excludes technical doc)."""
@@ -311,8 +319,6 @@ def list_proposals(request):
 
     # Use pre-computed cached_heat_score from the model instead of
     # computing on-the-fly (avoids N+1 queries on every list load).
-    # Engagement summaries are set to None here; the frontend can
-    # fetch them on-demand via the analytics endpoint when needed.
     for item in data:
         if item['status'] == 'accepted':
             item['heat_score'] = 10
@@ -321,6 +327,88 @@ def list_proposals(request):
         else:
             item['heat_score'] = 0
         item['engagement_summary'] = None
+
+    # Batch-compute engagement summaries for active sent/viewed proposals
+    # using 3 aggregated queries instead of N*5 individual queries.
+    active_ids = [
+        item['id'] for item in data
+        if item['status'] in ('sent', 'viewed') and item['is_active'] and item.get('heat_score', 0) > 0
+    ]
+    if active_ids:
+        from django.db.models import Count, Q, Sum
+        now = timezone.now()
+
+        # Single query: investment + technical time aggregated together via conditional Sum.
+        section_agg = {
+            pid: (inv_t or 0, tech_t or 0)
+            for pid, inv_t, tech_t in ProposalSectionView.objects
+            .filter(view_event__proposal_id__in=active_ids)
+            .values('view_event__proposal_id')
+            .annotate(
+                inv_t=Sum('time_spent_seconds', filter=Q(section_type='investment')),
+                tech_t=Sum(
+                    'time_spent_seconds',
+                    filter=Q(section_type__in=TECHNICAL_DOCUMENT_TRACKING_TYPES),
+                ),
+            )
+            .values_list('view_event__proposal_id', 'inv_t', 'tech_t')
+        }
+        unique_ips_map = dict(
+            ProposalViewEvent.objects
+            .filter(proposal_id__in=active_ids)
+            .exclude(ip_address__isnull=True).exclude(ip_address='')
+            .values('proposal_id')
+            .annotate(cnt=Count('ip_address', distinct=True))
+            .values_list('proposal_id', 'cnt')
+        )
+        # Only fetch rows for key sections — avoids loading unrelated section data.
+        viewed_sections: dict[int, set] = {}
+        for pid, stype in ProposalSectionView.objects.filter(
+            view_event__proposal_id__in=active_ids,
+            section_type__in=_KEY_PROPOSAL_SECTIONS,
+        ).values_list('view_event__proposal_id', 'section_type').distinct():
+            viewed_sections.setdefault(pid, set()).add(stype)
+
+        summaries_map = {}
+        for pid in active_ids:
+            inv_t, tech_t = section_agg.get(pid, (0, 0))
+            uniq = unique_ips_map.get(pid, 0)
+            skipped = [s for s in _KEY_PROPOSAL_SECTIONS if s not in viewed_sections.get(pid, set())]
+            summaries_map[pid] = {
+                'investment_time_sec': round(inv_t),
+                'technical_time_sec': round(tech_t),
+                'technical_viewed': tech_t >= 5,
+                'unique_devices': uniq,
+                'skipped_sections': skipped,
+            }
+
+        for item in data:
+            pid = item['id']
+            if pid not in summaries_map:
+                continue
+            s = summaries_map[pid]
+            last_activity = item.get('last_activity_at')
+            last_activity_str = None
+            if last_activity:
+                try:
+                    la_dt = (
+                        last_activity if hasattr(last_activity, 'tzinfo')
+                        else parse_datetime(last_activity)
+                    )
+                    if la_dt:
+                        delta = now - la_dt
+                        if delta.days == 0:
+                            hours = delta.seconds // 3600
+                            last_activity_str = f"hace {hours}h" if hours > 0 else "hace menos de 1h"
+                        else:
+                            last_activity_str = f"hace {delta.days}d"
+                except Exception:
+                    pass
+            item['engagement_summary'] = {
+                'views': item.get('view_count', 0),
+                'last_activity': last_activity_str,
+                **s,
+            }
 
     return Response(data, status=status.HTTP_200_OK)
 
@@ -1695,6 +1783,14 @@ def track_proposal_engagement(request, proposal_uuid):
         view_event.view_mode = view_mode
         view_event.save(update_fields=['view_mode'])
 
+    if _created and view_mode in VIEW_MODE_LABELS:
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type='viewed',
+            actor_type='client',
+            description=f'Vista en modo {VIEW_MODE_LABELS[view_mode]}.',
+        )
+
     # --- Stakeholder detection ---
     # If this is a new session from a different IP than previous sessions,
     # it may indicate a secondary decision-maker is reviewing the proposal.
@@ -2164,8 +2260,7 @@ def _compute_heat_score_with_summary(proposal_id, now=None):
         .values_list('section_type', flat=True)
         .distinct()
     )
-    key_sections = {'investment', 'timeline', 'functional_requirements', 'final_note'}
-    skipped = [s for s in key_sections if s not in viewed_types]
+    skipped = [s for s in _KEY_PROPOSAL_SECTIONS if s not in viewed_types]
 
     engagement_summary = {
         'views': p['view_count'],

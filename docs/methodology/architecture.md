@@ -347,7 +347,31 @@ flowchart LR
     PlatformHTTP -->|axios + JWT| API
 ```
 
-### 6.3 Proposal Client View Architecture
+### 6.3 Proposal Admin List — Filters & Tabs
+
+```mermaid
+flowchart TD
+    ProposalsList["pages/panel/proposals/index.vue"]
+    ProposalsList --> ProposalStore["proposals.js (Pinia)"]
+    ProposalsList --> useProposalFilters["useProposalFilters.js"]
+
+    useProposalFilters --> FilterState["reactive currentFilters (11 dimensions)"]
+    useProposalFilters --> TabState["savedTabs (localStorage + URL sync)"]
+    useProposalFilters --> ApplyFilters["applyFilters() — single-pass client-side"]
+
+    ProposalsList --> FilterTabs["ProposalFilterTabs.vue"]
+    FilterTabs --> TabBar["Tab bar: Todas + saved tabs + '+' button"]
+    FilterTabs --> TabActions["Rename / Delete context menu"]
+
+    ProposalsList --> FilterPanel["ProposalFilterPanel.vue"]
+    FilterPanel --> StatusPills["Status multi-select pills"]
+    FilterPanel --> Dropdowns["Project type / Market type dropdowns"]
+    FilterPanel --> Ranges["Investment / Heat score / View count ranges"]
+    FilterPanel --> Dates["Created / Last activity date ranges"]
+    FilterPanel --> Toggles["Currency / Language / Active status toggles"]
+```
+
+### 6.4 Proposal Client View Architecture
 
 ```mermaid
 flowchart TD
