@@ -3,7 +3,7 @@
 Covers: OAuth auth URL, callback with state validation, connection status,
 and rate-limited publish endpoint.
 """
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as dt_tz
 from unittest.mock import patch
 
 import pytest
@@ -16,7 +16,7 @@ from content.models import BlogPost
 
 pytestmark = pytest.mark.django_db
 
-FROZEN_NOW = timezone.datetime(2026, 4, 4, 12, 0, 0, tzinfo=timezone.utc)
+FROZEN_NOW = datetime(2026, 4, 4, 12, 0, 0, tzinfo=dt_tz.utc)
 
 
 @pytest.fixture

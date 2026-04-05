@@ -3,12 +3,11 @@
 Covers: token exchange, encrypted storage, auto-refresh, publish,
 connection status, and encryption round-trip.
 """
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as dt_tz
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.test import override_settings
-from django.utils import timezone
 from freezegun import freeze_time
 
 from content.models import LinkedInToken
@@ -16,16 +15,13 @@ from content.services import linkedin_service
 
 pytestmark = pytest.mark.django_db
 
-FROZEN_NOW = timezone.datetime(2026, 4, 4, 12, 0, 0, tzinfo=timezone.utc)
-
-# A valid Fernet key for tests (generated once, safe to embed in tests)
-TEST_FERNET_KEY = 'dGVzdGtleTEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNA=='
+FROZEN_NOW = datetime(2026, 4, 4, 12, 0, 0, tzinfo=dt_tz.utc)
 
 LINKEDIN_SETTINGS = {
     'LINKEDIN_CLIENT_ID': 'test-client-id',
     'LINKEDIN_CLIENT_SECRET': 'test-client-secret',
     'LINKEDIN_REDIRECT_URI': 'https://example.com/callback',
-    'LINKEDIN_ENCRYPTION_KEY': '',  # will be overridden per test
+    'LINKEDIN_ENCRYPTION_KEY': '',
 }
 
 
@@ -58,7 +54,7 @@ def token_with_refresh(fernet_key):
         token = LinkedInToken.load()
         token.set_access_token('expired-access-token')
         token.set_refresh_token('valid-refresh-token')
-        token.expires_at = FROZEN_NOW - timedelta(hours=1)  # expired
+        token.expires_at = FROZEN_NOW - timedelta(hours=1)
         token.refresh_token_expires_at = FROZEN_NOW + timedelta(days=30)
         token.obtained_at = FROZEN_NOW - timedelta(days=30)
         token.member_sub = 'abc123'
@@ -90,6 +86,8 @@ class TestExchangeCodeForToken:
             result = linkedin_service.exchange_code_for_token('auth-code-123')
 
             assert result['access_token'] == 'new-access-token'
+            mock_post.assert_called_once()
+            mock_cache.assert_called_once()
             token = LinkedInToken.load()
             assert token.get_access_token() == 'new-access-token'
             assert token.get_refresh_token() == 'new-refresh-token'
@@ -97,7 +95,8 @@ class TestExchangeCodeForToken:
 
     @override_settings(**LINKEDIN_SETTINGS)
     @patch('content.services.linkedin_service.requests.post')
-    def test_computes_expires_at_from_response(self, mock_post, fernet_key):
+    @patch('content.services.linkedin_service._cache_profile_info')
+    def test_computes_expires_at_from_response(self, mock_cache, mock_post, fernet_key):
         with override_settings(LINKEDIN_ENCRYPTION_KEY=fernet_key):
             mock_resp = MagicMock()
             mock_resp.status_code = 200
@@ -107,12 +106,11 @@ class TestExchangeCodeForToken:
             }
             mock_post.return_value = mock_resp
 
-            with patch('content.services.linkedin_service._cache_profile_info'):
-                linkedin_service.exchange_code_for_token('code')
+            linkedin_service.exchange_code_for_token('code')
 
+            mock_post.assert_called_once()
             token = LinkedInToken.load()
             assert token.expires_at is not None
-            # expires_at should be ~1 hour from now
             delta = token.expires_at - token.obtained_at
             assert 3590 < delta.total_seconds() < 3610
 
@@ -126,6 +124,8 @@ class TestExchangeCodeForToken:
 
         with pytest.raises(ValueError, match='token exchange failed'):
             linkedin_service.exchange_code_for_token('bad-code')
+
+        mock_post.assert_called_once()
 
     @override_settings(**LINKEDIN_SETTINGS)
     @patch('content.services.linkedin_service.requests.post')
@@ -142,6 +142,7 @@ class TestExchangeCodeForToken:
 
             linkedin_service.exchange_code_for_token('code')
 
+            mock_post.assert_called_once()
             token = LinkedInToken.load()
             assert token.get_access_token() == 'access-only'
             assert token.get_refresh_token() is None
@@ -180,6 +181,7 @@ class TestGetAccessToken:
             result = linkedin_service.get_access_token()
             assert result == 'refreshed-access-token'
 
+            mock_post.assert_called_once()
             token = LinkedInToken.load()
             assert token.get_access_token() == 'refreshed-access-token'
 
@@ -221,6 +223,7 @@ class TestRefreshAccessToken:
 
             result = linkedin_service._refresh_access_token()
             assert result == 'new-from-refresh'
+            mock_post.assert_called_once()
 
     @freeze_time(FROZEN_NOW)
     @override_settings(**LINKEDIN_SETTINGS)
@@ -235,6 +238,7 @@ class TestRefreshAccessToken:
             result = linkedin_service._refresh_access_token()
             assert result is None
 
+            mock_post.assert_called_once()
             token = LinkedInToken.load()
             assert token.get_access_token() is None
 
@@ -264,6 +268,7 @@ class TestPublishBlogToLinkedin:
 
         assert result['success'] is True
         assert result['post_id'] == 'urn:li:share:123456'
+        mock_post.assert_called_once()
 
     @patch('content.services.linkedin_service.get_access_token', return_value=None)
     def test_raises_when_not_connected(self, mock_token):
@@ -271,6 +276,8 @@ class TestPublishBlogToLinkedin:
             linkedin_service.publish_blog_to_linkedin(
                 summary='Test', blog_url='https://x.co', title='T',
             )
+
+        mock_token.assert_called_once()
 
     @patch('content.services.linkedin_service.requests.post')
     @patch('content.services.linkedin_service.get_member_urn', return_value='urn:li:person:abc')
@@ -286,6 +293,7 @@ class TestPublishBlogToLinkedin:
             summary='Test', blog_url='https://x.co', title='T',
         )
         assert result['success'] is False
+        mock_post.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -313,13 +321,13 @@ class TestGetConnectionStatus:
             token = LinkedInToken.load()
             token.set_access_token('some-token')
             token.expires_at = FROZEN_NOW + timedelta(days=30)
-            # profile_name is empty → triggers API call
             token.profile_name = ''
             token.save()
 
             result = linkedin_service.get_connection_status()
             assert result['connected'] is False
 
+            mock_fetch.assert_called_once()
             token.refresh_from_db()
             assert token.get_access_token() is None
 
