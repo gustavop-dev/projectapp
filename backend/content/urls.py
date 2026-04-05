@@ -50,6 +50,10 @@ from content.views.blog import (
     retrieve_admin_blog_post, update_blog_post, delete_blog_post,
     duplicate_blog_post, upload_blog_cover_image, blog_calendar,
 )
+from content.views.linkedin import (
+    linkedin_auth_url, linkedin_callback, linkedin_status,
+    publish_to_linkedin,
+)
 from content.views.document import (
     list_documents, create_document, create_document_from_markdown,
     upload_document_markdown, retrieve_document, update_document,
@@ -155,6 +159,12 @@ urlpatterns = [
     path('blog/admin/<int:post_id>/duplicate/', duplicate_blog_post, name='duplicate-blog-post'),
     path('blog/admin/<int:post_id>/upload-cover/', upload_blog_cover_image, name='upload-blog-cover-image'),
     path('blog/admin/calendar/', blog_calendar, name='blog-calendar'),
+    path('blog/admin/<int:post_id>/publish-linkedin/', publish_to_linkedin, name='publish-to-linkedin'),
+
+    # LinkedIn OAuth
+    path('linkedin/auth-url/', linkedin_auth_url, name='linkedin-auth-url'),
+    path('linkedin/callback/', linkedin_callback, name='linkedin-callback'),
+    path('linkedin/status/', linkedin_status, name='linkedin-status'),
 
     # Blog — public
     path('blog/', list_blog_posts, name='list-blog-posts'),

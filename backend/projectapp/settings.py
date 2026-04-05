@@ -227,6 +227,32 @@ WOMPI_API_URL = config('WOMPI_API_URL', default='https://sandbox.wompi.co/v1')
 RECAPTCHA_SECRET_KEY = config('RECAPTCHA_SECRET_KEY', default='')
 
 # ==============================================================================
+# LINKEDIN — OAuth 2.0 (blog post sharing)
+# ==============================================================================
+
+LINKEDIN_CLIENT_ID = config('LINKEDIN_CLIENT_ID', default='')
+LINKEDIN_CLIENT_SECRET = config('LINKEDIN_CLIENT_SECRET', default='')
+LINKEDIN_REDIRECT_URI = config(
+    'LINKEDIN_REDIRECT_URI',
+    default='https://projectapp.co/auth/linkedin/callback',
+)
+LINKEDIN_ENCRYPTION_KEY = config('LINKEDIN_ENCRYPTION_KEY', default='')
+
+# ==============================================================================
+# CACHE — Redis (db 1; Huey uses db 5)
+# ==============================================================================
+
+_CACHE_REDIS_URL = config('CACHE_REDIS_URL', default='')
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': _CACHE_REDIS_URL,
+    } if _CACHE_REDIS_URL else {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    },
+}
+
+# ==============================================================================
 # HUEY — task queue
 # ==============================================================================
 
