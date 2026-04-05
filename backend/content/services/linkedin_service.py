@@ -393,6 +393,9 @@ def publish_blog_to_linkedin(
         if not image_urn:
             logger.warning('Image upload failed, publishing article without thumbnail.')
 
+    # Ensure newlines are real characters (not escaped \\n literals)
+    summary = summary.replace('\\n', '\n')
+
     # Build the post payload (LinkedIn Posts API v2026-03)
     article = {
         'source': blog_url,

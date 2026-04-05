@@ -1185,14 +1185,6 @@
       "description": "Admin uploads a JSON data model for a project (copy/download template, file upload or paste, validate, submit). Both roles see the entity table (name, description, keyFields, relationship). Empty state and error/retry state.",
       "expectedSpecs": 1
     },
-    "admin-proposal-advanced-filters": {
-      "name": "Admin Proposal Advanced Filters & Saved Tabs",
-      "module": "admin",
-      "roles": ["admin"],
-      "priority": "P2",
-      "description": "Admin uses advanced filter panel (11 dimensions: status, project type, market type, currency, language, investment range, heat score range, view count range, created date range, last activity date range, active status) on proposals list. Admin saves filter combinations as named tabs (max 12), renames/deletes tabs. Tabs persist in localStorage and sync to URL query param (?tab=xxx). 'Todas' tab resets all filters.",
-      "expectedSpecs": 1
-    },
     "public-privacy-policy": {
       "name": "Privacy Policy Page",
       "module": "public",

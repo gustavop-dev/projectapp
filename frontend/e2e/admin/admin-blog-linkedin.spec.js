@@ -214,7 +214,7 @@ test.describe('Admin Blog LinkedIn — Connect', () => {
       window.postMessage({ type: 'linkedin-connected', data: status }, '*');
     }, connectedStatus);
 
-    await expect(page.getByText('Gustavo Pérez')).toBeVisible();
+    await expect(page.getByText('Gustavo Pérez', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: /Publicar en LinkedIn/ })).toBeVisible();
   });
 });
@@ -235,7 +235,7 @@ test.describe('Admin Blog LinkedIn — Publish', () => {
     await page.goto('/panel/blog/1/edit');
     await waitForLinkedInSection(page);
 
-    await expect(page.getByText('Gustavo Pérez')).toBeVisible();
+    await expect(page.getByText('Gustavo Pérez', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: /Publicar en LinkedIn/ })).toBeVisible();
   });
 
