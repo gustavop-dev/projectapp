@@ -1028,47 +1028,58 @@ def duplicate_proposal(request, proposal_id):
     Duplicate a proposal: creates a deep copy with all its sections.
     The copy is reset to draft status with a clean lifecycle.
     """
-    import copy as _copy
+    from django.db import transaction as _tx
     proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
 
-    new_proposal = BusinessProposal.objects.create(
-        title=f'{proposal.title} (copia)',
-        client_name=proposal.client_name,
-        client_email=proposal.client_email,
-        slug='',
-        language=proposal.language,
-        total_investment=proposal.total_investment,
-        currency=proposal.currency,
-        status=BusinessProposal.Status.DRAFT,
-        expires_at=proposal.expires_at,
-        reminder_days=proposal.reminder_days,
-        urgency_reminder_days=proposal.urgency_reminder_days,
-        discount_percent=proposal.discount_percent,
-        is_active=True,
-        view_count=0,
-        first_viewed_at=None,
-        sent_at=None,
-        reminder_sent_at=None,
-        urgency_email_sent_at=None,
-    )
-
-    for section in proposal.sections.all().order_by('order'):
-        ProposalSection.objects.create(
-            proposal=new_proposal,
-            section_type=section.section_type,
-            title=section.title,
-            order=section.order,
-            is_enabled=section.is_enabled,
-            is_wide_panel=section.is_wide_panel,
-            content_json=_copy.deepcopy(section.content_json),
+    with _tx.atomic():
+        new_proposal = BusinessProposal.objects.create(
+            title=f'{proposal.title.removesuffix(" (copia)")} (copia)',
+            client_name=proposal.client_name,
+            client_email=proposal.client_email,
+            client_phone=proposal.client_phone,
+            slug='',
+            language=proposal.language,
+            total_investment=proposal.total_investment,
+            currency=proposal.currency,
+            hosting_percent=proposal.hosting_percent,
+            hosting_discount_semiannual=proposal.hosting_discount_semiannual,
+            hosting_discount_quarterly=proposal.hosting_discount_quarterly,
+            project_type=proposal.project_type,
+            market_type=proposal.market_type,
+            project_type_custom=proposal.project_type_custom,
+            market_type_custom=proposal.market_type_custom,
+            selected_modules=copy.deepcopy(proposal.selected_modules),
+            contract_params=copy.deepcopy(proposal.contract_params),
+            status=BusinessProposal.Status.DRAFT,
+            expires_at=proposal.expires_at,
+            reminder_days=proposal.reminder_days,
+            urgency_reminder_days=proposal.urgency_reminder_days,
+            discount_percent=proposal.discount_percent,
+            is_active=True,
+            view_count=0,
+            first_viewed_at=None,
+            sent_at=None,
+            reminder_sent_at=None,
+            urgency_email_sent_at=None,
         )
 
-    ProposalChangeLog.objects.create(
-        proposal=new_proposal,
-        change_type='duplicated',
-        actor_type='seller',
-        description=f'Duplicated from proposal "{proposal.title}" (ID {proposal.id}).',
-    )
+        for section in proposal.sections.all().order_by('order'):
+            ProposalSection.objects.create(
+                proposal=new_proposal,
+                section_type=section.section_type,
+                title=section.title,
+                order=section.order,
+                is_enabled=section.is_enabled,
+                is_wide_panel=section.is_wide_panel,
+                content_json=copy.deepcopy(section.content_json),
+            )
+
+        ProposalChangeLog.objects.create(
+            proposal=new_proposal,
+            change_type='duplicated',
+            actor_type='seller',
+            description=f'Duplicated from proposal "{proposal.title}" (ID {proposal.id}).',
+        )
 
     detail = ProposalDetailSerializer(
         new_proposal, context={'request': request, 'is_admin': True}

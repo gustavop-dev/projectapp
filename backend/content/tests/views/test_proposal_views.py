@@ -1331,6 +1331,46 @@ class TestDuplicateProposal:
             proposal=new, change_type='duplicated'
         ).exists()
 
+    def test_copies_general_fields(self, admin_client, db):
+        original = BusinessProposal.objects.create(
+            title='Original Proposal',
+            client_name='Client',
+            client_email='client@example.com',
+            client_phone='+573001234567',
+            language='es',
+            total_investment=Decimal('10000.00'),
+            currency='COP',
+            hosting_percent=25,
+            hosting_discount_semiannual=15,
+            hosting_discount_quarterly=8,
+            project_type='ecommerce',
+            market_type='b2c',
+            project_type_custom='Custom type',
+            market_type_custom='Custom market',
+            selected_modules=['module-payments', 'module-reservations'],
+            contract_params={'party_name': 'Acme', 'cedula': '123456'},
+            status='draft',
+        )
+        admin_client.post(self._url(original.id))
+        new = BusinessProposal.objects.exclude(pk=original.id).first()
+        assert new.client_phone == original.client_phone
+        assert new.hosting_percent == original.hosting_percent
+        assert new.hosting_discount_semiannual == original.hosting_discount_semiannual
+        assert new.hosting_discount_quarterly == original.hosting_discount_quarterly
+        assert new.project_type == original.project_type
+        assert new.market_type == original.market_type
+        assert new.project_type_custom == original.project_type_custom
+        assert new.market_type_custom == original.market_type_custom
+        assert new.selected_modules == original.selected_modules
+        assert new.contract_params == original.contract_params
+
+    def test_duplicate_of_duplicate_does_not_stack_copia_suffix(self, admin_client, proposal):
+        admin_client.post(self._url(proposal.id))
+        first_copy = BusinessProposal.objects.exclude(pk=proposal.id).first()
+        admin_client.post(self._url(first_copy.id))
+        second_copy = BusinessProposal.objects.exclude(pk__in=[proposal.id, first_copy.id]).first()
+        assert second_copy.title == f'{proposal.title} (copia)'
+
     def test_returns_401_for_unauthenticated(self, api_client, proposal):
         response = api_client.post(self._url(proposal.id))
         assert response.status_code in (401, 403)
