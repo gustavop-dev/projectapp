@@ -428,6 +428,9 @@ async function handleJsonSubmit() {
     meta_keywords_en: p.meta_keywords_en || '',
     cover_image_credit: p.cover_image_credit || '',
     cover_image_credit_url: p.cover_image_credit_url || '',
+    linkedin_summary_es: p.linkedin_summary_es || '',
+    linkedin_summary_en: p.linkedin_summary_en || '',
+    author: p.author || 'projectapp-team',
   };
 
   if (jsonPublishMode.value === 'now') {
