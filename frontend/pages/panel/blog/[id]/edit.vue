@@ -153,6 +153,60 @@
           </div>
         </fieldset>
 
+        <!-- LinkedIn Summary -->
+        <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
+          <legend class="text-sm font-medium text-gray-700 px-2">LinkedIn</legend>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Resumen LinkedIn (ES)</label>
+              <textarea v-model="form.linkedin_summary_es" rows="4" maxlength="1300" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Resumen para publicar en LinkedIn (max ~1300 caracteres)" />
+              <p class="text-xs text-gray-400 mt-1">{{ form.linkedin_summary_es.length }} / 1300</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">LinkedIn Summary (EN)</label>
+              <textarea v-model="form.linkedin_summary_en" rows="4" maxlength="1300" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Summary for LinkedIn post (max ~1300 chars)" />
+              <p class="text-xs text-gray-400 mt-1">{{ form.linkedin_summary_en.length }} / 1300</p>
+            </div>
+          </div>
+
+          <!-- LinkedIn publish action -->
+          <div class="border-t border-gray-100 pt-4 mt-2">
+            <div v-if="!linkedinStatus.connected" class="flex items-center gap-3">
+              <span class="text-sm text-gray-500">LinkedIn no conectado.</span>
+              <button type="button" class="px-4 py-2 bg-[#0A66C2] text-white text-sm rounded-lg hover:bg-[#004182] transition-colors inline-flex items-center gap-2" @click="connectLinkedIn">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                Conectar LinkedIn
+              </button>
+            </div>
+            <div v-else class="space-y-3">
+              <div class="flex items-center gap-2 text-sm text-gray-600">
+                <span class="w-2 h-2 rounded-full bg-emerald-500" />
+                Conectado como <strong>{{ linkedinStatus.profile_name }}</strong>
+              </div>
+              <div class="flex items-center gap-3">
+                <select v-model="linkedinLang" class="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                  <option value="es">Publicar en Español</option>
+                  <option value="en">Publish in English</option>
+                </select>
+                <button
+                  type="button"
+                  :disabled="isPublishingLinkedIn || !(linkedinLang === 'es' ? form.linkedin_summary_es : form.linkedin_summary_en)"
+                  class="px-4 py-2 bg-[#0A66C2] text-white text-sm rounded-lg hover:bg-[#004182] transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                  @click="publishToLinkedIn"
+                >
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                  {{ isPublishingLinkedIn ? 'Publicando...' : 'Publicar en LinkedIn' }}
+                </button>
+              </div>
+              <p v-if="post?.linkedin_published_at" class="text-xs text-gray-400">
+                Última publicación: {{ new Date(post.linkedin_published_at).toLocaleString() }}
+              </p>
+              <p v-if="linkedinMsg" class="text-sm text-emerald-600">{{ linkedinMsg }}</p>
+              <p v-if="linkedinError" class="text-sm text-red-500">{{ linkedinError }}</p>
+            </div>
+          </div>
+        </fieldset>
+
         <!-- Cover image -->
         <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
           <legend class="text-sm font-medium text-gray-700 px-2">Imagen de portada</legend>
@@ -395,21 +449,48 @@ const form = reactive({
   meta_keywords_en: '',
   cover_image_credit: '',
   cover_image_credit_url: '',
+  linkedin_summary_es: '',
+  linkedin_summary_en: '',
 });
+
+// LinkedIn state
+const linkedinStatus = ref({ connected: false });
+const linkedinLang = ref('es');
+const linkedinMsg = ref('');
+const linkedinError = ref('');
+const isPublishingLinkedIn = ref(false);
 
 onMounted(async () => {
   windowWidth.value = window.innerWidth;
   window.addEventListener('resize', handleResize);
+  window.addEventListener('message', handleLinkedInMessage);
   blogStore.fetchCategories();
 
-  const result = await blogStore.fetchAdminPost(route.params.id);
+  const [result, liStatus] = await Promise.all([
+    blogStore.fetchAdminPost(route.params.id),
+    blogStore.fetchLinkedInStatus(),
+  ]);
   if (result.success && result.data) {
     populateForm(result.data);
+  }
+  if (liStatus.success) {
+    linkedinStatus.value = liStatus.data;
   }
   loaded.value = true;
 });
 
-onUnmounted(() => { window.removeEventListener('resize', handleResize); });
+function handleLinkedInMessage(event) {
+  if (event.data?.type === 'linkedin-connected') {
+    linkedinStatus.value = event.data.data || { connected: true };
+    linkedinMsg.value = 'LinkedIn conectado correctamente.';
+    setTimeout(() => { linkedinMsg.value = ''; }, 5000);
+  }
+}
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
+  window.removeEventListener('message', handleLinkedInMessage);
+});
 
 function jsonToStr(val) {
   if (!val || (typeof val === 'object' && Object.keys(val).length === 0)) return '';
@@ -450,6 +531,8 @@ function populateForm(data) {
   form.meta_keywords_en = data.meta_keywords_en || '';
   form.cover_image_credit = data.cover_image_credit || '';
   form.cover_image_credit_url = data.cover_image_credit_url || '';
+  form.linkedin_summary_es = data.linkedin_summary_es || '';
+  form.linkedin_summary_en = data.linkedin_summary_en || '';
 
   if (data.is_published) {
     publishMode.value = 'now';
@@ -501,6 +584,29 @@ function removeSource(idx) {
   form.sources.splice(idx, 1);
 }
 
+async function connectLinkedIn() {
+  const result = await blogStore.fetchLinkedInAuthUrl();
+  if (result.success && result.data?.authorization_url) {
+    window.open(result.data.authorization_url, '_blank', 'width=600,height=700');
+  }
+}
+
+async function publishToLinkedIn() {
+  linkedinMsg.value = '';
+  linkedinError.value = '';
+  isPublishingLinkedIn.value = true;
+
+  const result = await blogStore.publishToLinkedIn(route.params.id, linkedinLang.value);
+  isPublishingLinkedIn.value = false;
+
+  if (result.success) {
+    linkedinMsg.value = result.data?.message || 'Publicado en LinkedIn correctamente.';
+    setTimeout(() => { linkedinMsg.value = ''; }, 5000);
+  } else {
+    linkedinError.value = result.error || 'Error al publicar en LinkedIn.';
+  }
+}
+
 async function handleSubmit() {
   errorMsg.value = '';
   successMsg.value = '';
@@ -528,6 +634,8 @@ async function handleSubmit() {
     meta_keywords_en: form.meta_keywords_en,
     cover_image_credit: form.cover_image_credit,
     cover_image_credit_url: form.cover_image_credit_url,
+    linkedin_summary_es: form.linkedin_summary_es,
+    linkedin_summary_en: form.linkedin_summary_en,
   };
 
   if (publishMode.value === 'now') {

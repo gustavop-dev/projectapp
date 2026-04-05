@@ -131,6 +131,23 @@ class BlogPost(models.Model):
         help_text='Comma-separated SEO keywords in English.',
     )
 
+    linkedin_summary_es = models.TextField(
+        blank=True, default='',
+        help_text='Resumen para publicar en LinkedIn (español). Máximo ~1300 caracteres.',
+    )
+    linkedin_summary_en = models.TextField(
+        blank=True, default='',
+        help_text='Summary for LinkedIn post (English). Max ~1300 characters.',
+    )
+    linkedin_post_id = models.CharField(
+        max_length=255, blank=True, default='',
+        help_text='LinkedIn post URN after successful publication.',
+    )
+    linkedin_published_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text='Timestamp of last successful LinkedIn publication.',
+    )
+
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
 

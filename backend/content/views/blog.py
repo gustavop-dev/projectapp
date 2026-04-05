@@ -311,6 +311,8 @@ def create_blog_post_from_json(request):
         meta_keywords_en=data.get('meta_keywords_en', ''),
         cover_image_credit=data.get('cover_image_credit', ''),
         cover_image_credit_url=data.get('cover_image_credit_url', ''),
+        linkedin_summary_es=data.get('linkedin_summary_es', ''),
+        linkedin_summary_en=data.get('linkedin_summary_en', ''),
     )
 
     detail = BlogPostAdminDetailSerializer(post)
@@ -348,6 +350,8 @@ def get_blog_json_template(request):
         'meta_description_en': '',
         'meta_keywords_es': '',
         'meta_keywords_en': '',
+        'linkedin_summary_es': 'Resumen para LinkedIn en español (máx. ~1300 caracteres).',
+        'linkedin_summary_en': 'LinkedIn summary in English (max ~1300 chars).',
         '_available_categories': AVAILABLE_CATEGORIES,
     }
     return Response(template, status=status.HTTP_200_OK)

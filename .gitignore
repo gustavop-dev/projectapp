@@ -1,8 +1,10 @@
 # Environment files (secrets)
 *.env
+*.env.local
 !*.env.example
 backend/.env
 .env
+backend/.linkedin_token.json
 
 # Database
 db.sqlite3

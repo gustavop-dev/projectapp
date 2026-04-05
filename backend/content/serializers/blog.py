@@ -157,6 +157,8 @@ class BlogPostAdminDetailSerializer(serializers.ModelSerializer):
             'meta_title_es', 'meta_title_en',
             'meta_description_es', 'meta_description_en',
             'meta_keywords_es', 'meta_keywords_en',
+            'linkedin_summary_es', 'linkedin_summary_en',
+            'linkedin_post_id', 'linkedin_published_at',
             'is_published', 'published_at',
             'created_at', 'updated_at',
         )
@@ -184,6 +186,7 @@ class BlogPostCreateUpdateSerializer(serializers.ModelSerializer):
             'meta_title_es', 'meta_title_en',
             'meta_description_es', 'meta_description_en',
             'meta_keywords_es', 'meta_keywords_en',
+            'linkedin_summary_es', 'linkedin_summary_en',
             'is_published', 'published_at',
         )
         extra_kwargs = {
@@ -202,6 +205,8 @@ class BlogPostCreateUpdateSerializer(serializers.ModelSerializer):
             'meta_description_en': {'required': False},
             'meta_keywords_es': {'required': False},
             'meta_keywords_en': {'required': False},
+            'linkedin_summary_es': {'required': False},
+            'linkedin_summary_en': {'required': False},
             'cover_image_credit': {'required': False},
             'cover_image_credit_url': {'required': False},
             'author': {'required': False},
@@ -393,6 +398,8 @@ class BlogPostFromJSONSerializer(serializers.Serializer):
     meta_keywords_en = serializers.CharField(max_length=500, required=False, default='', allow_blank=True)
     cover_image_credit = serializers.CharField(max_length=255, required=False, default='', allow_blank=True)
     cover_image_credit_url = serializers.CharField(required=False, default='', allow_blank=True)
+    linkedin_summary_es = serializers.CharField(required=False, default='', allow_blank=True)
+    linkedin_summary_en = serializers.CharField(required=False, default='', allow_blank=True)
 
     def validate_content_json_es(self, value):
         return _validate_content_json(value)
