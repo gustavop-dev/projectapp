@@ -5,6 +5,7 @@ from xml.sax.saxutils import escape as xml_escape
 
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django.utils import timezone as tz
 from django.utils.dateparse import parse_date
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes, permission_classes
@@ -24,8 +25,61 @@ from content.serializers.blog import (
     BLOG_JSON_TEMPLATE,
 )
 
+logger = logging.getLogger(__name__)
 
 BASE_URL = 'https://projectapp.co'
+BLOG_PUBLIC_BASE = f'{BASE_URL}/blog'
+
+
+def _auto_publish_to_linkedin(post):
+    """
+    Publish a blog post to LinkedIn if conditions are met:
+    - Post is published (is_published=True)
+    - Has a linkedin_summary (es or en)
+    - Has not been published to LinkedIn yet (no linkedin_post_id)
+
+    Runs silently — logs errors but never raises.
+    """
+    if not post.is_published:
+        return
+    if post.linkedin_post_id:
+        return
+
+    summary = post.linkedin_summary_es or post.linkedin_summary_en
+    if not summary:
+        return
+
+    lang = 'es' if post.linkedin_summary_es else 'en'
+    title = post.title_es if lang == 'es' else post.title_en
+
+    # Get cover image URL
+    cover_image_url = ''
+    if post.cover_image_url:
+        cover_image_url = post.cover_image_url
+    elif post.cover_image:
+        cover_image_url = f'{BASE_URL}{post.cover_image.url}'
+
+    blog_url = f'{BLOG_PUBLIC_BASE}/{post.slug}'
+
+    try:
+        from content.services.linkedin_service import publish_blog_to_linkedin
+
+        result = publish_blog_to_linkedin(
+            summary=summary,
+            blog_url=blog_url,
+            title=title,
+            cover_image_url=cover_image_url,
+            description=post.excerpt_es if lang == 'es' else post.excerpt_en,
+        )
+        if result['success']:
+            post.linkedin_post_id = result['post_id']
+            post.linkedin_published_at = tz.now()
+            post.save(update_fields=['linkedin_post_id', 'linkedin_published_at'])
+            logger.info('Auto-published blog "%s" to LinkedIn: %s', post.slug, result['post_id'])
+        else:
+            logger.warning('LinkedIn auto-publish failed for "%s": %s', post.slug, result['message'])
+    except Exception:
+        logger.exception('LinkedIn auto-publish error for blog "%s"', post.slug)
 
 STATIC_SITEMAP_PAGES = [
     ('/en-us', '/es-co', 'weekly', '1.0'),
@@ -230,6 +284,7 @@ def create_blog_post(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     post = serializer.save()
+    _auto_publish_to_linkedin(post)
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_201_CREATED)
 
@@ -253,6 +308,7 @@ def update_blog_post(request, post_id):
     Update a blog post's fields.
     """
     post = get_object_or_404(BlogPost, pk=post_id)
+    was_published = post.is_published
     serializer = BlogPostCreateUpdateSerializer(
         post, data=request.data, partial=True
     )
@@ -260,6 +316,9 @@ def update_blog_post(request, post_id):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     serializer.save()
+    # Auto-publish to LinkedIn when post transitions to published
+    if post.is_published and not was_published:
+        _auto_publish_to_linkedin(post)
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_200_OK)
 
@@ -315,6 +374,7 @@ def create_blog_post_from_json(request):
         linkedin_summary_en=data.get('linkedin_summary_en', ''),
     )
 
+    _auto_publish_to_linkedin(post)
     detail = BlogPostAdminDetailSerializer(post)
     return Response(detail.data, status=status.HTTP_201_CREATED)
 

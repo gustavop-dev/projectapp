@@ -13,6 +13,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from content.models import BlogPost
+from content.serializers.blog import BLOG_JSON_TEMPLATE
 
 pytestmark = pytest.mark.django_db
 
@@ -197,3 +198,44 @@ class TestPublishToLinkedin:
         response = admin_client.post(url, {'lang': 'es'}, format='json')
         assert response.status_code == 200
         assert response.data['success'] is True
+
+
+# ---------------------------------------------------------------------------
+# TestAutoPublishOnBlogCreate
+# ---------------------------------------------------------------------------
+
+class TestAutoPublishOnBlogCreate:
+
+    @patch('content.views.blog._auto_publish_to_linkedin')
+    def test_calls_auto_publish_when_created_published_with_summary(self, mock_auto, admin_client):
+        payload = {
+            'title_es': 'Auto post',
+            'title_en': 'Auto post EN',
+            'excerpt_es': 'Extracto.',
+            'excerpt_en': 'Excerpt.',
+            'content_json_es': BLOG_JSON_TEMPLATE,
+            'is_published': True,
+            'linkedin_summary_es': 'Resumen para LinkedIn.',
+        }
+        response = admin_client.post(
+            reverse('create-blog-post-from-json'), payload, format='json',
+        )
+        assert response.status_code == 201
+        mock_auto.assert_called_once()
+
+    @patch('content.views.blog._auto_publish_to_linkedin')
+    def test_calls_auto_publish_for_draft_but_returns_early(self, mock_auto, admin_client):
+        payload = {
+            'title_es': 'Draft post',
+            'title_en': 'Draft EN',
+            'excerpt_es': 'Extracto.',
+            'excerpt_en': 'Excerpt.',
+            'content_json_es': BLOG_JSON_TEMPLATE,
+            'is_published': False,
+            'linkedin_summary_es': 'Resumen.',
+        }
+        response = admin_client.post(
+            reverse('create-blog-post-from-json'), payload, format='json',
+        )
+        assert response.status_code == 201
+        mock_auto.assert_called_once()

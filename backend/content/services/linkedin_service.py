@@ -5,11 +5,13 @@ Handles:
 - OAuth 2.0 authorization code flow (3-legged)
 - Encrypted token storage via LinkedInToken singleton model
 - Automatic token refresh when access token expires
+- Image upload via LinkedIn Images API
 - Publishing blog post summaries with cover images to LinkedIn
 
 LinkedIn API docs:
   - Auth: https://learn.microsoft.com/en-us/linkedin/shared/authentication/authorization-code-flow
-  - Posts: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api
+  - Posts: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api?view=li-lms-2026-03
+  - Images: https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/images-api?view=li-lms-2026-03
 """
 
 import logging
@@ -30,12 +32,23 @@ LINKEDIN_AUTH_URL = 'https://www.linkedin.com/oauth/v2/authorization'
 LINKEDIN_TOKEN_URL = 'https://www.linkedin.com/oauth/v2/accessToken'
 LINKEDIN_USERINFO_URL = 'https://api.linkedin.com/v2/userinfo'
 LINKEDIN_POSTS_URL = 'https://api.linkedin.com/rest/posts'
+LINKEDIN_IMAGES_URL = 'https://api.linkedin.com/rest/images'
 
 LINKEDIN_SCOPES = 'openid profile email w_member_social'
-LINKEDIN_API_VERSION = '202401'
+LINKEDIN_API_VERSION = '202603'
 
 # LinkedIn refresh tokens last 60 days
 _REFRESH_TOKEN_LIFETIME_DAYS = 60
+
+
+def _api_headers(access_token: str, content_type: str = 'application/json') -> dict:
+    """Standard headers for LinkedIn REST API calls."""
+    return {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': content_type,
+        'X-Restli-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': LINKEDIN_API_VERSION,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -115,7 +128,6 @@ def _refresh_access_token() -> str | None:
     token.set_access_token(data['access_token'])
     token.expires_at = now + timedelta(seconds=data.get('expires_in', 5_184_000))
     token.obtained_at = now
-    # LinkedIn does not rotate refresh tokens on refresh
     token.save()
 
     logger.info('LinkedIn access token refreshed — new expiry %s.', token.expires_at)
@@ -262,6 +274,81 @@ def get_member_urn() -> str | None:
 
 
 # ---------------------------------------------------------------------------
+# Image upload (LinkedIn Images API)
+# ---------------------------------------------------------------------------
+
+def _upload_image_to_linkedin(image_url: str) -> str | None:
+    """
+    Download an image from a URL and upload it to LinkedIn.
+
+    Flow:
+    1. Download image bytes from the given URL (e.g., Unsplash)
+    2. Initialize upload via LinkedIn Images API
+    3. Upload binary to the provided upload URL
+    4. Return the image URN (urn:li:image:XXX)
+
+    Returns the image URN string on success, None on failure.
+    """
+    access_token = get_access_token()
+    if not access_token:
+        logger.error('Cannot upload image — not connected to LinkedIn.')
+        return None
+
+    member_urn = get_member_urn()
+    if not member_urn:
+        logger.error('Cannot upload image — no member URN.')
+        return None
+
+    # Step 1: Download image from URL
+    try:
+        img_resp = requests.get(image_url, timeout=30, stream=True)
+        img_resp.raise_for_status()
+        image_bytes = img_resp.content
+        content_type = img_resp.headers.get('Content-Type', 'image/jpeg')
+    except requests.RequestException as exc:
+        logger.error('Failed to download image from %s: %s', image_url, exc)
+        return None
+
+    # Step 2: Initialize upload with LinkedIn
+    init_resp = requests.post(
+        f'{LINKEDIN_IMAGES_URL}?action=initializeUpload',
+        json={'initializeUploadRequest': {'owner': member_urn}},
+        headers=_api_headers(access_token),
+        timeout=15,
+    )
+
+    if init_resp.status_code != 200:
+        logger.error('LinkedIn image init failed: %s %s', init_resp.status_code, init_resp.text)
+        return None
+
+    init_data = init_resp.json().get('value', {})
+    upload_url = init_data.get('uploadUrl')
+    image_urn = init_data.get('image')
+
+    if not upload_url or not image_urn:
+        logger.error('LinkedIn image init response missing uploadUrl or image URN.')
+        return None
+
+    # Step 3: Upload binary image
+    upload_resp = requests.put(
+        upload_url,
+        data=image_bytes,
+        headers={
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': content_type,
+        },
+        timeout=60,
+    )
+
+    if upload_resp.status_code not in (200, 201):
+        logger.error('LinkedIn image upload failed: %s %s', upload_resp.status_code, upload_resp.text)
+        return None
+
+    logger.info('Image uploaded to LinkedIn: %s', image_urn)
+    return image_urn
+
+
+# ---------------------------------------------------------------------------
 # Publishing
 # ---------------------------------------------------------------------------
 
@@ -270,15 +357,17 @@ def publish_blog_to_linkedin(
     blog_url: str,
     title: str,
     cover_image_url: str = '',
+    description: str = '',
 ) -> dict:
     """
-    Publish a blog post summary to LinkedIn as a link share.
+    Publish a blog post summary to LinkedIn as an article share.
 
     Args:
-        summary: The text content for the LinkedIn post.
+        summary: The text content for the LinkedIn post (commentary).
         blog_url: Full URL to the blog post on projectapp.co.
         title: Title of the blog post (used in the article preview).
-        cover_image_url: URL of the cover image for the article thumbnail.
+        cover_image_url: URL of the cover image (downloaded and uploaded to LinkedIn).
+        description: Short description for the article preview.
 
     Returns:
         dict with 'success', 'post_id' (LinkedIn URN), and 'message'.
@@ -297,7 +386,23 @@ def publish_blog_to_linkedin(
     if not summary:
         raise ValueError('Summary text is required for LinkedIn post.')
 
-    # Build the post payload (LinkedIn Posts API v2)
+    # Upload cover image to LinkedIn if available
+    image_urn = None
+    if cover_image_url:
+        image_urn = _upload_image_to_linkedin(cover_image_url)
+        if not image_urn:
+            logger.warning('Image upload failed, publishing article without thumbnail.')
+
+    # Build the post payload (LinkedIn Posts API v2026-03)
+    article = {
+        'source': blog_url,
+        'title': title,
+    }
+    if description:
+        article['description'] = description
+    if image_urn:
+        article['thumbnail'] = image_urn
+
     post_data = {
         'author': member_urn,
         'commentary': summary,
@@ -308,30 +413,16 @@ def publish_blog_to_linkedin(
             'thirdPartyDistributionChannels': [],
         },
         'content': {
-            'article': {
-                'source': blog_url,
-                'title': title,
-            },
+            'article': article,
         },
         'lifecycleState': 'PUBLISHED',
         'isReshareDisabledByAuthor': False,
     }
 
-    # Add thumbnail if cover image is available
-    if cover_image_url:
-        post_data['content']['article']['thumbnail'] = cover_image_url
-
-    headers = {
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json',
-        'X-Restli-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': LINKEDIN_API_VERSION,
-    }
-
     resp = requests.post(
         LINKEDIN_POSTS_URL,
         json=post_data,
-        headers=headers,
+        headers=_api_headers(access_token),
         timeout=15,
     )
 
