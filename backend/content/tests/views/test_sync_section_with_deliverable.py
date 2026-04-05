@@ -87,12 +87,13 @@ class TestPreviewSyncSectionWithProject:
             'accounts.services.technical_requirements_sync.compute_sync_diff'
         ) as mock_diff:
             mock_diff.return_value = {'added': [], 'removed': [], 'unchanged': []}
-            admin_client.post(
+            resp = admin_client.post(
                 self._url(technical_section_with_deliverable),
                 {'content_json': {'epics': []}},
                 format='json',
             )
 
+        assert resp.status_code == 200
         mock_diff.assert_called_once()
 
     def test_returns_401_for_unauthenticated(self, api_client, technical_section_with_deliverable):
