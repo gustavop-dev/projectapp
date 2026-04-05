@@ -312,7 +312,9 @@ class TestDuplicateDocument:
         assert response.status_code == 201
         data = response.json()
         assert '(copia)' in data['title']
-        assert data['document_type'] is not None
+        # document_type is not in the serializer response, verify via DB
+        duplicate = Document.objects.get(pk=data['id'])
+        assert duplicate.document_type is not None
 
 
 # ── download_document_pdf ──
