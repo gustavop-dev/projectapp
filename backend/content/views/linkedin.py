@@ -165,12 +165,15 @@ def publish_to_linkedin(request, post_id):
     elif post.cover_image:
         cover_image_url = f'https://projectapp.co{post.cover_image.url}'
 
+    description = post.excerpt_es if lang == 'es' else post.excerpt_en
+
     try:
         result = publish_blog_to_linkedin(
             summary=summary,
             blog_url=blog_url,
             title=title,
             cover_image_url=cover_image_url,
+            description=description,
         )
     except ValueError as exc:
         return Response(

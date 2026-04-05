@@ -251,10 +251,11 @@ class TestRefreshAccessToken:
 class TestPublishBlogToLinkedin:
 
     @freeze_time(FROZEN_NOW)
+    @patch('content.services.linkedin_service._upload_image_to_linkedin', return_value='urn:li:image:C4E10test')
     @patch('content.services.linkedin_service.requests.post')
     @patch('content.services.linkedin_service.get_member_urn', return_value='urn:li:person:abc')
     @patch('content.services.linkedin_service.get_access_token', return_value='valid-token')
-    def test_successful_publish_returns_post_id(self, mock_token, mock_urn, mock_post):
+    def test_successful_publish_returns_post_id(self, mock_token, mock_urn, mock_post, mock_upload):
         mock_resp = MagicMock()
         mock_resp.status_code = 201
         mock_resp.headers = {'x-restli-id': 'urn:li:share:123456'}
@@ -264,12 +265,16 @@ class TestPublishBlogToLinkedin:
             summary='Test summary',
             blog_url='https://projectapp.co/blog/test',
             title='Test Post',
-            cover_image_url='https://example.com/img.jpg',
+            cover_image_url='https://images.unsplash.com/photo-test',
         )
 
         assert result['success'] is True
         assert result['post_id'] == 'urn:li:share:123456'
+        mock_upload.assert_called_once_with('https://images.unsplash.com/photo-test')
         mock_post.assert_called_once()
+        # Verify the thumbnail is the image URN, not the raw URL
+        call_payload = mock_post.call_args[1]['json']
+        assert call_payload['content']['article']['thumbnail'] == 'urn:li:image:C4E10test'
 
     @patch('content.services.linkedin_service.get_access_token', return_value=None)
     def test_raises_when_not_connected(self, mock_token):
