@@ -1,0 +1,93 @@
+<template>
+  <div ref="containerRef" class="relative">
+    <button
+      type="button"
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border whitespace-nowrap"
+      :class="isActive
+        ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
+        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'"
+      @click="isOpen = !isOpen"
+    >
+      <span v-if="icon" class="text-sm leading-none">{{ icon }}</span>
+      {{ label }}
+      <span
+        v-if="isActive"
+        class="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold bg-white text-emerald-600"
+      >✓</span>
+      <svg class="w-3 h-3 ml-0.5 opacity-60" :class="{ 'rotate-180': isOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
+
+    <Transition name="dropdown-fade">
+      <div
+        v-if="isOpen"
+        class="absolute top-full left-0 mt-1 z-50 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-3"
+      >
+        <p class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+          {{ label }}<span v-if="unit" class="ml-1 normal-case font-normal">({{ unit }})</span>
+        </p>
+        <div class="flex items-center gap-2">
+          <input
+            :value="minValue"
+            :type="type"
+            :placeholder="minPlaceholder"
+            class="w-full px-2.5 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
+            @change="$emit('update:minValue', parseValue($event.target.value))"
+          />
+          <span class="text-gray-400 text-xs shrink-0">—</span>
+          <input
+            :value="maxValue"
+            :type="type"
+            :placeholder="maxPlaceholder"
+            class="w-full px-2.5 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
+            @change="$emit('update:maxValue', parseValue($event.target.value))"
+          />
+        </div>
+        <div v-if="isActive" class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+          <button
+            type="button"
+            class="text-xs text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+            @click="clearRange"
+          >
+            Limpiar
+          </button>
+        </div>
+      </div>
+    </Transition>
+  </div>
+</template>
+
+<script setup>
+import { computed, ref } from 'vue';
+import { onClickOutside } from '@vueuse/core';
+
+const props = defineProps({
+  label: { type: String, required: true },
+  type: { type: String, default: 'number' },
+  minValue: { type: [Number, String], default: null },
+  maxValue: { type: [Number, String], default: null },
+  minPlaceholder: { type: String, default: 'Mín' },
+  maxPlaceholder: { type: String, default: 'Máx' },
+  unit: { type: String, default: null },
+  icon: { type: String, default: null },
+});
+
+const emit = defineEmits(['update:minValue', 'update:maxValue']);
+
+const isOpen = ref(false);
+const containerRef = ref(null);
+const isActive = computed(() => props.minValue != null || props.maxValue != null);
+
+onClickOutside(containerRef, () => { isOpen.value = false; });
+
+function parseValue(val) {
+  if (val === '' || val == null) return null;
+  return props.type === 'number' ? Number(val) : val;
+}
+
+function clearRange() {
+  emit('update:minValue', null);
+  emit('update:maxValue', null);
+}
+</script>

@@ -1,265 +1,167 @@
 <template>
-  <div v-show="isOpen" class="mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-      <!-- Status pills -->
-      <div class="mb-4">
-        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Estado</label>
-        <div class="flex flex-wrap gap-2">
-          <button
-            v-for="opt in statusOptions"
-            :key="opt.value"
-            type="button"
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border"
-            :class="modelValue.statuses.includes(opt.value)
-              ? 'bg-emerald-600 text-white border-emerald-600'
-              : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'"
-            @click="toggleArrayFilter('statuses', opt.value)"
-          >
-            {{ opt.label }}
-          </button>
-        </div>
-      </div>
+  <div v-show="isOpen" class="mb-4">
+    <div class="flex flex-wrap gap-2 items-center p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+      <FilterDropdown
+        label="Estado"
+        :options="statusOptions"
+        :model-value="modelValue.statuses"
+        @update:model-value="emit('update:modelValue', { ...modelValue, statuses: $event })"
+      />
+      <FilterDropdown
+        label="Tipo de proyecto"
+        :options="projectTypeOptions"
+        :model-value="modelValue.projectTypes"
+        @update:model-value="emit('update:modelValue', { ...modelValue, projectTypes: $event })"
+      />
+      <FilterDropdown
+        label="Mercado"
+        :options="marketTypeOptions"
+        :model-value="modelValue.marketTypes"
+        @update:model-value="emit('update:modelValue', { ...modelValue, marketTypes: $event })"
+      />
+      <FilterDropdown
+        label="Moneda"
+        :options="currencyOptions"
+        :model-value="modelValue.currencies"
+        @update:model-value="emit('update:modelValue', { ...modelValue, currencies: $event })"
+      />
+      <FilterDropdown
+        label="Idioma"
+        :options="languageOptions"
+        :model-value="modelValue.languages"
+        @update:model-value="emit('update:modelValue', { ...modelValue, languages: $event })"
+      />
 
-      <!-- Grid filters -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-4">
-        <!-- Project Type -->
-        <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Tipo de proyecto</label>
-          <select
-            :value="modelValue.projectTypes.length === 1 ? modelValue.projectTypes[0] : ''"
-            class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
-            @change="toggleMultiSelect('projectTypes', $event.target.value)"
-          >
-            <option value="">Todos</option>
-            <option v-for="opt in projectTypeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-          </select>
-          <div v-if="modelValue.projectTypes.length > 1" class="mt-1 flex flex-wrap gap-1">
-            <span
-              v-for="pt in modelValue.projectTypes"
-              :key="pt"
-              class="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-full"
-            >
-              {{ projectTypeLabelMap[pt] || pt }}
-              <button type="button" class="hover:text-red-500" @click="removeFromArray('projectTypes', pt)">&times;</button>
-            </span>
-          </div>
-        </div>
+      <div class="w-px h-5 bg-gray-200 dark:bg-gray-600 self-center mx-0.5" />
 
-        <!-- Market Type -->
-        <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Tipo de mercado</label>
-          <select
-            :value="modelValue.marketTypes.length === 1 ? modelValue.marketTypes[0] : ''"
-            class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
-            @change="toggleMultiSelect('marketTypes', $event.target.value)"
-          >
-            <option value="">Todos</option>
-            <option v-for="opt in marketTypeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-          </select>
-          <div v-if="modelValue.marketTypes.length > 1" class="mt-1 flex flex-wrap gap-1">
-            <span
-              v-for="mt in modelValue.marketTypes"
-              :key="mt"
-              class="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-full"
-            >
-              {{ marketTypeLabelMap[mt] || mt }}
-              <button type="button" class="hover:text-red-500" @click="removeFromArray('marketTypes', mt)">&times;</button>
-            </span>
-          </div>
-        </div>
+      <FilterRangeDropdown
+        label="Inversión"
+        type="number"
+        :min-value="modelValue.investmentMin"
+        :max-value="modelValue.investmentMax"
+        @update:min-value="emit('update:modelValue', { ...modelValue, investmentMin: $event })"
+        @update:max-value="emit('update:modelValue', { ...modelValue, investmentMax: $event })"
+      />
+      <FilterRangeDropdown
+        label="Heat Score"
+        type="number"
+        unit="/ 10"
+        min-placeholder="0"
+        max-placeholder="10"
+        :min-value="modelValue.heatScoreMin"
+        :max-value="modelValue.heatScoreMax"
+        @update:min-value="emit('update:modelValue', { ...modelValue, heatScoreMin: $event })"
+        @update:max-value="emit('update:modelValue', { ...modelValue, heatScoreMax: $event })"
+      />
+      <FilterRangeDropdown
+        label="Vistas"
+        type="number"
+        :min-value="modelValue.viewCountMin"
+        :max-value="modelValue.viewCountMax"
+        @update:min-value="emit('update:modelValue', { ...modelValue, viewCountMin: $event })"
+        @update:max-value="emit('update:modelValue', { ...modelValue, viewCountMax: $event })"
+      />
 
-        <!-- Currency -->
-        <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Moneda</label>
-          <div class="flex gap-2">
-            <button
-              v-for="cur in ['COP', 'USD']"
-              :key="cur"
-              type="button"
-              class="px-3 py-2 rounded-lg text-xs font-medium transition-colors border flex-1"
-              :class="modelValue.currencies.includes(cur)
-                ? 'bg-emerald-600 text-white border-emerald-600'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-300'"
-              @click="toggleArrayFilter('currencies', cur)"
-            >
-              {{ cur }}
-            </button>
-          </div>
-        </div>
+      <div class="w-px h-5 bg-gray-200 dark:bg-gray-600 self-center mx-0.5" />
 
-        <!-- Language -->
-        <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Idioma</label>
-          <div class="flex gap-2">
-            <button
-              v-for="lang in [{value: 'es', label: 'ES'}, {value: 'en', label: 'EN'}]"
-              :key="lang.value"
-              type="button"
-              class="px-3 py-2 rounded-lg text-xs font-medium transition-colors border flex-1"
-              :class="modelValue.languages.includes(lang.value)
-                ? 'bg-emerald-600 text-white border-emerald-600'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-300'"
-              @click="toggleArrayFilter('languages', lang.value)"
-            >
-              {{ lang.label }}
-            </button>
-          </div>
-        </div>
+      <FilterRangeDropdown
+        label="Creación"
+        type="date"
+        min-placeholder="Desde"
+        max-placeholder="Hasta"
+        :min-value="modelValue.createdAfter"
+        :max-value="modelValue.createdBefore"
+        @update:min-value="emit('update:modelValue', { ...modelValue, createdAfter: $event })"
+        @update:max-value="emit('update:modelValue', { ...modelValue, createdBefore: $event })"
+      />
+      <FilterRangeDropdown
+        label="Actividad"
+        type="date"
+        min-placeholder="Desde"
+        max-placeholder="Hasta"
+        :min-value="modelValue.lastActivityAfter"
+        :max-value="modelValue.lastActivityBefore"
+        @update:min-value="emit('update:modelValue', { ...modelValue, lastActivityAfter: $event })"
+        @update:max-value="emit('update:modelValue', { ...modelValue, lastActivityBefore: $event })"
+      />
 
-        <!-- Investment range -->
-        <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Inversión</label>
-          <div class="flex items-center gap-2">
-            <input
-              :value="modelValue.investmentMin"
-              type="number"
-              placeholder="Mín"
-              min="0"
-              class="w-full px-2.5 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
-              @change="updateNumeric('investmentMin', $event.target.value)"
-            />
-            <span class="text-gray-400 text-xs">—</span>
-            <input
-              :value="modelValue.investmentMax"
-              type="number"
-              placeholder="Máx"
-              min="0"
-              class="w-full px-2.5 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
-              @change="updateNumeric('investmentMax', $event.target.value)"
-            />
-          </div>
-        </div>
+      <div class="w-px h-5 bg-gray-200 dark:bg-gray-600 self-center mx-0.5" />
 
-        <!-- Heat Score range -->
-        <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Heat Score</label>
-          <div class="flex items-center gap-2">
-            <input
-              :value="modelValue.heatScoreMin"
-              type="number"
-              placeholder="Mín"
-              min="0"
-              max="10"
-              class="w-full px-2.5 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
-              @change="updateNumeric('heatScoreMin', $event.target.value)"
-            />
-            <span class="text-gray-400 text-xs">—</span>
-            <input
-              :value="modelValue.heatScoreMax"
-              type="number"
-              placeholder="Máx"
-              min="0"
-              max="10"
-              class="w-full px-2.5 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
-              @change="updateNumeric('heatScoreMax', $event.target.value)"
-            />
-          </div>
-        </div>
+      <FilterDropdown
+        label="Activo"
+        :options="activeStatusOptions"
+        :model-value="modelValue.isActive !== 'all' ? [modelValue.isActive] : []"
+        @update:model-value="emit('update:modelValue', { ...modelValue, isActive: $event.length ? $event[$event.length - 1] : 'all' })"
+      />
 
-        <!-- View Count range -->
-        <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Vistas</label>
-          <div class="flex items-center gap-2">
-            <input
-              :value="modelValue.viewCountMin"
-              type="number"
-              placeholder="Mín"
-              min="0"
-              class="w-full px-2.5 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
-              @change="updateNumeric('viewCountMin', $event.target.value)"
-            />
-            <span class="text-gray-400 text-xs">—</span>
-            <input
-              :value="modelValue.viewCountMax"
-              type="number"
-              placeholder="Máx"
-              min="0"
-              class="w-full px-2.5 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
-              @change="updateNumeric('viewCountMax', $event.target.value)"
-            />
-          </div>
-        </div>
-
-        <!-- Active status -->
-        <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Estado activo</label>
-          <div class="flex gap-2">
-            <button
-              v-for="opt in [{value: 'all', label: 'Todos'}, {value: 'active', label: 'Activas'}, {value: 'inactive', label: 'Inactivas'}]"
-              :key="opt.value"
-              type="button"
-              class="px-3 py-2 rounded-lg text-xs font-medium transition-colors border flex-1"
-              :class="modelValue.isActive === opt.value
-                ? 'bg-emerald-600 text-white border-emerald-600'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-300'"
-              @click="updateField('isActive', opt.value)"
-            >
-              {{ opt.label }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Date ranges -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-        <!-- Created date range -->
-        <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Fecha de creación</label>
-          <div class="flex items-center gap-2">
-            <input
-              :value="modelValue.createdAfter"
-              type="date"
-              class="w-full px-2.5 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
-              @input="updateField('createdAfter', $event.target.value || null)"
-            />
-            <span class="text-gray-400 text-xs shrink-0">a</span>
-            <input
-              :value="modelValue.createdBefore"
-              type="date"
-              class="w-full px-2.5 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
-              @input="updateField('createdBefore', $event.target.value || null)"
-            />
-          </div>
-        </div>
-
-        <!-- Last activity date range -->
-        <div>
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Última actividad</label>
-          <div class="flex items-center gap-2">
-            <input
-              :value="modelValue.lastActivityAfter"
-              type="date"
-              class="w-full px-2.5 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
-              @input="updateField('lastActivityAfter', $event.target.value || null)"
-            />
-            <span class="text-gray-400 text-xs shrink-0">a</span>
-            <input
-              :value="modelValue.lastActivityBefore"
-              type="date"
-              class="w-full px-2.5 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
-              @input="updateField('lastActivityBefore', $event.target.value || null)"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- Footer -->
-      <div class="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
+      <div ref="engagementRef" class="relative">
         <button
           type="button"
-          class="text-sm text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors font-medium"
-          @click="$emit('reset')"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border whitespace-nowrap"
+          :class="modelValue.technicalViewed
+            ? 'bg-teal-600 text-white border-teal-600 hover:bg-teal-700'
+            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'"
+          @click="engagementOpen = !engagementOpen"
         >
-          Limpiar filtros
+          🔬 Engagement
+          <span
+            v-if="modelValue.technicalViewed"
+            class="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold bg-white text-teal-600"
+          >1</span>
+          <svg class="w-3 h-3 ml-0.5 opacity-60" :class="{ 'rotate-180': engagementOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+          </svg>
         </button>
-        <span v-if="filterCount > 0" class="text-xs text-gray-400 dark:text-gray-500">
-          {{ filterCount }} filtro{{ filterCount !== 1 ? 's' : '' }} activo{{ filterCount !== 1 ? 's' : '' }}
-        </span>
+        <Transition name="dropdown-fade">
+          <div
+            v-if="engagementOpen"
+            class="absolute top-full left-0 mt-1 z-50 w-60 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg py-2"
+          >
+            <label class="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+              <input
+                type="checkbox"
+                :checked="modelValue.technicalViewed"
+                class="w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 accent-teal-600"
+                @change="emit('update:modelValue', { ...modelValue, technicalViewed: $event.target.checked })"
+              />
+              <span>Solo det. técnico visto</span>
+            </label>
+          </div>
+        </Transition>
       </div>
+
+      <div class="flex-1" />
+      <button
+        v-if="filterCount > 0"
+        type="button"
+        class="text-xs text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors font-medium ml-auto whitespace-nowrap"
+        @click="$emit('reset')"
+      >
+        Limpiar todo
+      </button>
+    </div>
+
+    <div v-if="activeChips.length > 0" class="flex flex-wrap gap-1.5 mt-2 px-1">
+      <span
+        v-for="chip in activeChips"
+        :key="chip.key"
+        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700"
+      >
+        {{ chip.label }}
+        <button
+          type="button"
+          class="ml-0.5 hover:text-red-500 dark:hover:text-red-400 leading-none"
+          @click="clearChip(chip.key)"
+        >&times;</button>
+      </span>
     </div>
   </div>
 </template>
 
 <script setup>
+import { computed, ref } from 'vue';
+import { onClickOutside } from '@vueuse/core';
+
 const props = defineProps({
   modelValue: { type: Object, required: true },
   isOpen: { type: Boolean, default: false },
@@ -267,6 +169,10 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue', 'reset']);
+
+const engagementRef = ref(null);
+const engagementOpen = ref(false);
+onClickOutside(engagementRef, () => { engagementOpen.value = false; });
 
 const statusOptions = [
   { value: 'draft', label: 'Borrador' },
@@ -333,43 +239,101 @@ const marketTypeOptions = [
   { value: 'other', label: 'Otro' },
 ];
 
+const currencyOptions = [
+  { value: 'COP', label: 'COP' },
+  { value: 'USD', label: 'USD' },
+];
+
+const languageOptions = [
+  { value: 'es', label: 'Español' },
+  { value: 'en', label: 'English' },
+];
+
+const activeStatusOptions = [
+  { value: 'active', label: 'Activas' },
+  { value: 'inactive', label: 'Inactivas' },
+];
+
 const projectTypeLabelMap = Object.fromEntries(projectTypeOptions.map((o) => [o.value, o.label]));
 const marketTypeLabelMap = Object.fromEntries(marketTypeOptions.map((o) => [o.value, o.label]));
+const statusLabelMap = Object.fromEntries(statusOptions.map((o) => [o.value, o.label]));
 
-function emitUpdate(partial) {
-  emit('update:modelValue', { ...props.modelValue, ...partial });
+function formatRange(min, max, unit = '') {
+  const u = unit ? ` ${unit}` : '';
+  if (min != null && max != null) return `${min}–${max}${u}`;
+  if (min != null) return `≥ ${min}${u}`;
+  if (max != null) return `≤ ${max}${u}`;
+  return '';
 }
 
-function toggleArrayFilter(field, value) {
-  const arr = [...props.modelValue[field]];
-  const idx = arr.indexOf(value);
-  if (idx >= 0) arr.splice(idx, 1);
-  else arr.push(value);
-  emitUpdate({ [field]: arr });
+function formatDateRange(after, before) {
+  if (after && before) return `${after} → ${before}`;
+  if (after) return `desde ${after}`;
+  if (before) return `hasta ${before}`;
+  return '';
 }
 
-function removeFromArray(field, value) {
-  emitUpdate({ [field]: props.modelValue[field].filter((v) => v !== value) });
-}
+const activeChips = computed(() => {
+  const chips = [];
+  const mv = props.modelValue;
 
-function toggleMultiSelect(field, value) {
-  if (!value) {
-    emitUpdate({ [field]: [] });
-  } else {
-    const arr = [...props.modelValue[field]];
-    const idx = arr.indexOf(value);
-    if (idx >= 0) arr.splice(idx, 1);
-    else arr.push(value);
-    emitUpdate({ [field]: arr });
-  }
-}
+  if (mv.statuses?.length)
+    chips.push({ key: 'statuses', label: `Estado: ${mv.statuses.map((s) => statusLabelMap[s] || s).join(', ')}` });
 
-function updateNumeric(field, value) {
-  const parsed = value === '' ? null : Number(value);
-  emitUpdate({ [field]: parsed });
-}
+  if (mv.projectTypes?.length)
+    chips.push({ key: 'projectTypes', label: `Tipo: ${mv.projectTypes.map((t) => projectTypeLabelMap[t] || t).join(', ')}` });
 
-function updateField(field, value) {
-  emitUpdate({ [field]: value });
+  if (mv.marketTypes?.length)
+    chips.push({ key: 'marketTypes', label: `Mercado: ${mv.marketTypes.map((t) => marketTypeLabelMap[t] || t).join(', ')}` });
+
+  if (mv.currencies?.length)
+    chips.push({ key: 'currencies', label: `Moneda: ${mv.currencies.join(', ')}` });
+
+  if (mv.languages?.length)
+    chips.push({ key: 'languages', label: `Idioma: ${mv.languages.join(', ').toUpperCase()}` });
+
+  const inv = formatRange(mv.investmentMin, mv.investmentMax);
+  if (inv) chips.push({ key: 'investment', label: `Inversión: ${inv}` });
+
+  const hs = formatRange(mv.heatScoreMin, mv.heatScoreMax, '/ 10');
+  if (hs) chips.push({ key: 'heatScore', label: `Heat Score: ${hs}` });
+
+  const vc = formatRange(mv.viewCountMin, mv.viewCountMax);
+  if (vc) chips.push({ key: 'viewCount', label: `Vistas: ${vc}` });
+
+  const cr = formatDateRange(mv.createdAfter, mv.createdBefore);
+  if (cr) chips.push({ key: 'createdRange', label: `Creación: ${cr}` });
+
+  const ar = formatDateRange(mv.lastActivityAfter, mv.lastActivityBefore);
+  if (ar) chips.push({ key: 'activityRange', label: `Actividad: ${ar}` });
+
+  if (mv.isActive !== 'all')
+    chips.push({ key: 'isActive', label: mv.isActive === 'active' ? 'Solo activas' : 'Solo inactivas' });
+
+  if (mv.technicalViewed)
+    chips.push({ key: 'technicalViewed', label: 'Det. técnico visto' });
+
+  return chips;
+});
+
+const CHIP_RESET = {
+  statuses:       (mv) => { mv.statuses = []; },
+  projectTypes:   (mv) => { mv.projectTypes = []; },
+  marketTypes:    (mv) => { mv.marketTypes = []; },
+  currencies:     (mv) => { mv.currencies = []; },
+  languages:      (mv) => { mv.languages = []; },
+  investment:     (mv) => { mv.investmentMin = null; mv.investmentMax = null; },
+  heatScore:      (mv) => { mv.heatScoreMin = null; mv.heatScoreMax = null; },
+  viewCount:      (mv) => { mv.viewCountMin = null; mv.viewCountMax = null; },
+  createdRange:   (mv) => { mv.createdAfter = null; mv.createdBefore = null; },
+  activityRange:  (mv) => { mv.lastActivityAfter = null; mv.lastActivityBefore = null; },
+  isActive:       (mv) => { mv.isActive = 'all'; },
+  technicalViewed:(mv) => { mv.technicalViewed = false; },
+};
+
+function clearChip(key) {
+  const mv = { ...props.modelValue };
+  CHIP_RESET[key]?.(mv);
+  emit('update:modelValue', mv);
 }
 </script>

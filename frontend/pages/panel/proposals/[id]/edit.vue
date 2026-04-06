@@ -84,12 +84,27 @@
                 /proposal/{{ proposal.uuid }}
               </a>
             </p>
-            <p v-for="(link, i) in proposalModeLinks" :key="link.mode" :class="i === 0 ? 'mt-1' : 'mt-0.5'">
-              <span class="text-gray-400 text-[11px]">{{ link.label }} — </span>
-              <a :href="'/proposal/' + proposal.uuid + '?mode=' + link.mode" target="_blank" class="text-emerald-600 hover:underline text-[11px] break-all">
-                /proposal/{{ proposal.uuid }}?mode={{ link.mode }}
-              </a>
-            </p>
+            <div v-for="link in proposalModeLinks" :key="link.mode" class="mt-2">
+              <div class="flex items-center gap-1">
+                <span class="text-gray-400 text-xs">{{ link.labelUrl }}</span>
+                <button type="button"
+                  :title="copiedMode === link.mode ? 'Copiado!' : 'Copiar URL'"
+                  @click="copyModeUrl(link.mode)"
+                  class="text-gray-400 hover:text-emerald-600 transition-colors">
+                  <svg v-if="copiedMode !== link.mode" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </button>
+              </div>
+              <p class="mt-0.5">
+                <a :href="'/proposal/' + proposal.uuid + '?mode=' + link.mode" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
+                  /proposal/{{ proposal.uuid }}?mode={{ link.mode }}
+                </a>
+              </p>
+            </div>
           </div>
           <div>
             <span class="text-gray-400 text-xs">Vistas</span>
@@ -1023,8 +1038,8 @@ const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useCo
 const proposal = computed(() => proposalStore.currentProposal);
 
 const proposalModeLinks = [
-  { label: 'Propuesta completa', mode: 'detailed' },
-  { label: 'Detalle técnico', mode: 'technical' },
+  { label: 'Propuesta completa', labelUrl: 'URL propuesta completa', mode: 'detailed' },
+  { label: 'Detalle técnico', labelUrl: 'URL detalle técnico', mode: 'technical' },
 ];
 
 const copied = ref(false);
@@ -1033,6 +1048,15 @@ function copyUrl() {
   navigator.clipboard.writeText(url).then(() => {
     copied.value = true;
     setTimeout(() => { copied.value = false; }, 2000);
+  });
+}
+
+const copiedMode = ref(null);
+function copyModeUrl(mode) {
+  const url = `${window.location.origin}/proposal/${proposal.value?.uuid}?mode=${mode}`;
+  navigator.clipboard.writeText(url).then(() => {
+    copiedMode.value = mode;
+    setTimeout(() => { copiedMode.value = null; }, 2000);
   });
 }
 const allSections = computed(() =>

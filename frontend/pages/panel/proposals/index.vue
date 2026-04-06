@@ -228,17 +228,6 @@
         >
           Guardar cambios
         </button>
-        <div class="w-px h-5 bg-gray-200 dark:bg-gray-600 self-center" />
-        <button
-          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border flex items-center gap-1.5"
-          :class="technicalFilter
-            ? 'bg-teal-600 text-white border-teal-600'
-            : 'bg-white text-teal-700 border-teal-200 hover:border-teal-300 dark:bg-gray-800 dark:text-teal-400 dark:border-teal-800 dark:hover:border-teal-600'"
-          @click="toggleTechnicalFilter"
-        >
-          🔬 Det. técnico
-          <span v-if="technicalFilterCount > 0" class="opacity-75">({{ technicalFilterCount }})</span>
-        </button>
       </div>
     </div>
 
@@ -661,10 +650,6 @@ const {
   deleteTab,
   renameTab,
 } = useProposalFilters();
-const technicalFilter = ref(false);
-const technicalFilterCount = computed(() =>
-  proposals.value.filter(p => p.engagement_summary?.technical_viewed === true).length,
-);
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 const actionsModalProposal = ref(null);
 const copiedId = ref(null);
@@ -746,11 +731,8 @@ function toggleSort(key) {
 }
 
 const filteredProposals = computed(() => {
-  // Single filter pass: advanced filters + technical + search
-  const isTechnical = technicalFilter.value;
   const q = searchQuery.value.trim().toLowerCase();
   let list = applyFilters(proposals.value).filter((p) => {
-    if (isTechnical && p.engagement_summary?.technical_viewed !== true) return false;
     if (q && !(
       (p.title || '').toLowerCase().includes(q) ||
       (p.client_name || '').toLowerCase().includes(q) ||
@@ -1069,11 +1051,6 @@ function handleCreateTab(name) {
 function handleResetFilters() {
   resetFilters();
   isFilterPanelOpen.value = false;
-}
-
-function toggleTechnicalFilter() {
-  technicalFilter.value = !technicalFilter.value;
-  currentPage.value = 1;
 }
 
 function handleSend(id) {

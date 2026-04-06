@@ -20,10 +20,11 @@ const DEFAULT_FILTERS = Object.freeze({
   lastActivityAfter: null,
   lastActivityBefore: null,
   isActive: 'all',
+  technicalViewed: false,
 });
 
 function freshFilters() {
-  return { ...DEFAULT_FILTERS, statuses: [], projectTypes: [], marketTypes: [], currencies: [], languages: [] };
+  return structuredClone(DEFAULT_FILTERS);
 }
 
 function loadTabs() {
@@ -106,6 +107,7 @@ export function useProposalFilters() {
     if (currentFilters.createdAfter || currentFilters.createdBefore) count++;
     if (currentFilters.lastActivityAfter || currentFilters.lastActivityBefore) count++;
     if (currentFilters.isActive !== 'all') count++;
+    if (currentFilters.technicalViewed) count++;
     return count;
   });
 
@@ -158,6 +160,8 @@ export function useProposalFilters() {
 
       if (currentFilters.isActive === 'active' && !p.is_active) return false;
       if (currentFilters.isActive === 'inactive' && p.is_active) return false;
+
+      if (currentFilters.technicalViewed && p.engagement_summary?.technical_viewed !== true) return false;
 
       return true;
     });
