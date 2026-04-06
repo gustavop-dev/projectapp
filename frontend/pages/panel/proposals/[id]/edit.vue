@@ -1877,6 +1877,13 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function fmtDate(val) {
+  if (!val) return '(vacío)';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return escapeHtml(val);
+  return escapeHtml(d.toLocaleString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
+}
+
 function formatActivityDescription(log) {
   const desc = log.description || '';
 
@@ -1924,13 +1931,14 @@ function formatActivityDescription(log) {
   if (log.change_type === 'updated' && log.field_name) {
     const fieldLabel = FIELD_LABELS_MAP[log.field_name] || log.field_name;
     const isCurrency = log.field_name === 'total_investment';
+    const isDate = ['expires_at', 'followup_scheduled_at'].includes(log.field_name);
     const fmtCurrency = (val) => {
       const num = parseFloat(val);
       if (isNaN(num)) return escapeHtml(val || '(vacío)');
       return `<strong>$${num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</strong>`;
     };
-    const oldDisplay = isCurrency ? fmtCurrency(log.old_value) : escapeHtml(log.old_value || '(vacío)');
-    const newDisplay = isCurrency ? fmtCurrency(log.new_value) : `<strong>${escapeHtml(log.new_value || '(vacío)')}</strong>`;
+    const oldDisplay = isCurrency ? fmtCurrency(log.old_value) : isDate ? fmtDate(log.old_value) : escapeHtml(log.old_value || '(vacío)');
+    const newDisplay = isCurrency ? fmtCurrency(log.new_value) : isDate ? `<strong>${fmtDate(log.new_value)}</strong>` : `<strong>${escapeHtml(log.new_value || '(vacío)')}</strong>`;
     return `<strong>${escapeHtml(fieldLabel)}</strong>: ${oldDisplay} → ${newDisplay}`;
   }
 

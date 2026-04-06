@@ -2,7 +2,7 @@
   <div ref="containerRef" class="relative">
     <button
       type="button"
-      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border whitespace-nowrap"
+      class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors border whitespace-nowrap focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
       :class="isActive
         ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
         : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'"

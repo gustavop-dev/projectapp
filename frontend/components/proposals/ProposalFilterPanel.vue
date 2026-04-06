@@ -1,147 +1,156 @@
 <template>
   <div v-show="isOpen" class="mb-4">
-    <div class="flex flex-wrap gap-2 items-center p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
-      <ProposalFilterDropdown
-        label="Estado"
-        :options="statusOptions"
-        :model-value="modelValue.statuses"
-        @update:model-value="emit('update:modelValue', { ...modelValue, statuses: $event })"
-      />
-      <ProposalFilterDropdown
-        label="Tipo de proyecto"
-        :options="projectTypeOptions"
-        :model-value="modelValue.projectTypes"
-        @update:model-value="emit('update:modelValue', { ...modelValue, projectTypes: $event })"
-      />
-      <ProposalFilterDropdown
-        label="Mercado"
-        :options="marketTypeOptions"
-        :model-value="modelValue.marketTypes"
-        @update:model-value="emit('update:modelValue', { ...modelValue, marketTypes: $event })"
-      />
-      <ProposalFilterDropdown
-        label="Moneda"
-        :options="currencyOptions"
-        :model-value="modelValue.currencies"
-        @update:model-value="emit('update:modelValue', { ...modelValue, currencies: $event })"
-      />
-      <ProposalFilterDropdown
-        label="Idioma"
-        :options="languageOptions"
-        :model-value="modelValue.languages"
-        @update:model-value="emit('update:modelValue', { ...modelValue, languages: $event })"
-      />
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl divide-y divide-gray-100 dark:divide-gray-700/60">
 
-      <div class="w-px h-5 bg-gray-200 dark:bg-gray-600 self-center mx-0.5" />
-
-      <ProposalFilterRangeDropdown
-        label="Inversión"
-        type="number"
-        :min-value="modelValue.investmentMin"
-        :max-value="modelValue.investmentMax"
-        @update:min-value="emit('update:modelValue', { ...modelValue, investmentMin: $event })"
-        @update:max-value="emit('update:modelValue', { ...modelValue, investmentMax: $event })"
-      />
-      <ProposalFilterRangeDropdown
-        label="Heat Score"
-        type="number"
-        unit="/ 10"
-        min-placeholder="0"
-        max-placeholder="10"
-        :min-value="modelValue.heatScoreMin"
-        :max-value="modelValue.heatScoreMax"
-        @update:min-value="emit('update:modelValue', { ...modelValue, heatScoreMin: $event })"
-        @update:max-value="emit('update:modelValue', { ...modelValue, heatScoreMax: $event })"
-      />
-      <ProposalFilterRangeDropdown
-        label="Vistas"
-        type="number"
-        :min-value="modelValue.viewCountMin"
-        :max-value="modelValue.viewCountMax"
-        @update:min-value="emit('update:modelValue', { ...modelValue, viewCountMin: $event })"
-        @update:max-value="emit('update:modelValue', { ...modelValue, viewCountMax: $event })"
-      />
-
-      <div class="w-px h-5 bg-gray-200 dark:bg-gray-600 self-center mx-0.5" />
-
-      <ProposalFilterRangeDropdown
-        label="Creación"
-        type="date"
-        min-placeholder="Desde"
-        max-placeholder="Hasta"
-        :min-value="modelValue.createdAfter"
-        :max-value="modelValue.createdBefore"
-        @update:min-value="emit('update:modelValue', { ...modelValue, createdAfter: $event })"
-        @update:max-value="emit('update:modelValue', { ...modelValue, createdBefore: $event })"
-      />
-      <ProposalFilterRangeDropdown
-        label="Actividad"
-        type="date"
-        min-placeholder="Desde"
-        max-placeholder="Hasta"
-        :min-value="modelValue.lastActivityAfter"
-        :max-value="modelValue.lastActivityBefore"
-        @update:min-value="emit('update:modelValue', { ...modelValue, lastActivityAfter: $event })"
-        @update:max-value="emit('update:modelValue', { ...modelValue, lastActivityBefore: $event })"
-      />
-
-      <div class="w-px h-5 bg-gray-200 dark:bg-gray-600 self-center mx-0.5" />
-
-      <ProposalFilterDropdown
-        label="Activo"
-        :options="activeStatusOptions"
-        :model-value="modelValue.isActive !== 'all' ? [modelValue.isActive] : []"
-        @update:model-value="emit('update:modelValue', { ...modelValue, isActive: $event.length ? $event[$event.length - 1] : 'all' })"
-      />
-
-      <div ref="engagementRef" class="relative">
-        <button
-          type="button"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border whitespace-nowrap"
-          :class="modelValue.technicalViewed
-            ? 'bg-teal-600 text-white border-teal-600 hover:bg-teal-700'
-            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'"
-          @click="engagementOpen = !engagementOpen"
-        >
-          🔬 Engagement
-          <span
-            v-if="modelValue.technicalViewed"
-            class="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold bg-white text-teal-600"
-          >1</span>
-          <svg class="w-3 h-3 ml-0.5 opacity-60" :class="{ 'rotate-180': engagementOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-        <Transition name="dropdown-fade">
-          <div
-            v-if="engagementOpen"
-            class="absolute top-full left-0 mt-1 z-50 w-60 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg py-2"
-          >
-            <label class="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
-              <input
-                type="checkbox"
-                :checked="modelValue.technicalViewed"
-                class="w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 accent-teal-600"
-                @change="emit('update:modelValue', { ...modelValue, technicalViewed: $event.target.checked })"
-              />
-              <span>Solo det. técnico visto</span>
-            </label>
-          </div>
-        </Transition>
+      <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 w-[5.5rem] shrink-0">Clasificación</span>
+        <ProposalFilterDropdown
+          label="Estado"
+          :options="statusOptions"
+          :model-value="modelValue.statuses"
+          @update:model-value="emit('update:modelValue', { ...modelValue, statuses: $event })"
+        />
+        <ProposalFilterDropdown
+          label="Tipo de proyecto"
+          :options="projectTypeOptions"
+          :model-value="modelValue.projectTypes"
+          @update:model-value="emit('update:modelValue', { ...modelValue, projectTypes: $event })"
+        />
+        <ProposalFilterDropdown
+          label="Mercado"
+          :options="marketTypeOptions"
+          :model-value="modelValue.marketTypes"
+          @update:model-value="emit('update:modelValue', { ...modelValue, marketTypes: $event })"
+        />
       </div>
 
-      <div class="flex-1" />
-      <button
-        v-if="filterCount > 0"
-        type="button"
-        class="text-xs text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors font-medium ml-auto whitespace-nowrap"
-        @click="$emit('reset')"
-      >
-        Limpiar todo
-      </button>
+      <!-- Valores -->
+      <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 w-[5.5rem] shrink-0">Valores</span>
+        <ProposalFilterDropdown
+          label="Moneda"
+          :options="currencyOptions"
+          :model-value="modelValue.currencies"
+          @update:model-value="emit('update:modelValue', { ...modelValue, currencies: $event })"
+        />
+        <ProposalFilterDropdown
+          label="Idioma"
+          :options="languageOptions"
+          :model-value="modelValue.languages"
+          @update:model-value="emit('update:modelValue', { ...modelValue, languages: $event })"
+        />
+        <ProposalFilterRangeDropdown
+          label="Inversión"
+          type="number"
+          :min-value="modelValue.investmentMin"
+          :max-value="modelValue.investmentMax"
+          @update:min-value="emit('update:modelValue', { ...modelValue, investmentMin: $event })"
+          @update:max-value="emit('update:modelValue', { ...modelValue, investmentMax: $event })"
+        />
+        <ProposalFilterRangeDropdown
+          label="Heat Score"
+          type="number"
+          unit="/ 10"
+          min-placeholder="0"
+          max-placeholder="10"
+          :min-value="modelValue.heatScoreMin"
+          :max-value="modelValue.heatScoreMax"
+          @update:min-value="emit('update:modelValue', { ...modelValue, heatScoreMin: $event })"
+          @update:max-value="emit('update:modelValue', { ...modelValue, heatScoreMax: $event })"
+        />
+        <ProposalFilterRangeDropdown
+          label="Vistas"
+          type="number"
+          :min-value="modelValue.viewCountMin"
+          :max-value="modelValue.viewCountMax"
+          @update:min-value="emit('update:modelValue', { ...modelValue, viewCountMin: $event })"
+          @update:max-value="emit('update:modelValue', { ...modelValue, viewCountMax: $event })"
+        />
+      </div>
+
+      <!-- Fechas -->
+      <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 w-[5.5rem] shrink-0">Fechas</span>
+        <ProposalFilterRangeDropdown
+          label="Creación"
+          type="date"
+          min-placeholder="Desde"
+          max-placeholder="Hasta"
+          :min-value="modelValue.createdAfter"
+          :max-value="modelValue.createdBefore"
+          @update:min-value="emit('update:modelValue', { ...modelValue, createdAfter: $event })"
+          @update:max-value="emit('update:modelValue', { ...modelValue, createdBefore: $event })"
+        />
+        <ProposalFilterRangeDropdown
+          label="Actividad"
+          type="date"
+          min-placeholder="Desde"
+          max-placeholder="Hasta"
+          :min-value="modelValue.lastActivityAfter"
+          :max-value="modelValue.lastActivityBefore"
+          @update:min-value="emit('update:modelValue', { ...modelValue, lastActivityAfter: $event })"
+          @update:max-value="emit('update:modelValue', { ...modelValue, lastActivityBefore: $event })"
+        />
+      </div>
+
+      <!-- Otros + Limpiar todo -->
+      <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 w-[5.5rem] shrink-0">Otros</span>
+        <ProposalFilterDropdown
+          label="Activo"
+          :options="activeStatusOptions"
+          :model-value="modelValue.isActive !== 'all' ? [modelValue.isActive] : []"
+          @update:model-value="emit('update:modelValue', { ...modelValue, isActive: $event.length ? $event[$event.length - 1] : 'all' })"
+        />
+        <div ref="engagementRef" class="relative">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors border whitespace-nowrap focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+            :class="modelValue.technicalViewed
+              ? 'bg-teal-600 text-white border-teal-600 hover:bg-teal-700'
+              : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'"
+            @click="engagementOpen = !engagementOpen"
+          >
+            🔬 Engagement
+            <span
+              v-if="modelValue.technicalViewed"
+              class="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold bg-white text-teal-600"
+            >1</span>
+            <svg class="w-3 h-3 ml-0.5 opacity-60" :class="{ 'rotate-180': engagementOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <Transition name="dropdown-fade">
+            <div
+              v-if="engagementOpen"
+              class="absolute top-full left-0 mt-1 z-50 w-60 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg py-2"
+            >
+              <label class="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  :checked="modelValue.technicalViewed"
+                  class="w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 accent-teal-600"
+                  @change="emit('update:modelValue', { ...modelValue, technicalViewed: $event.target.checked })"
+                />
+                <span>Solo det. técnico visto</span>
+              </label>
+            </div>
+          </Transition>
+        </div>
+        <div class="flex-1" />
+        <button
+          v-if="filterCount > 0"
+          type="button"
+          class="text-xs text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors font-medium whitespace-nowrap"
+          @click="emit('reset')"
+        >
+          Limpiar todo
+        </button>
+      </div>
     </div>
 
-    <div v-if="activeChips.length > 0" class="flex flex-wrap gap-1.5 mt-2 px-1">
+    <div v-if="activeChips.length > 0" class="flex flex-wrap items-center gap-1.5 mt-2 px-1">
+      <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mr-0.5">Activos:</span>
       <span
         v-for="chip in activeChips"
         :key="chip.key"

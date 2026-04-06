@@ -185,15 +185,56 @@
         <div class="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
           <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Funnel de navegación</h3>
           <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Porcentaje de sesiones que alcanzaron cada sección</p>
+          <div class="flex gap-1 mt-3">
+            <button
+              :class="['px-3 py-1 text-xs font-medium rounded-md transition-colors',
+                funnelTab === 'exec_detail'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']"
+              @click="funnelTab = 'exec_detail'"
+            >Executive & Detallado</button>
+            <button
+              :class="['px-3 py-1 text-xs font-medium rounded-md transition-colors',
+                funnelTab === 'technical'
+                  ? 'bg-teal-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']"
+              @click="funnelTab = 'technical'"
+            >Técnico</button>
+          </div>
         </div>
-        <div class="px-4 sm:px-6 py-4 space-y-3">
-          <div v-for="(step, idx) in analytics.funnel" :key="step.section_type" class="flex items-center gap-3">
+        <!-- Tab: Executive & Detallado -->
+        <div v-show="funnelTab === 'exec_detail'" class="px-4 sm:px-6 py-4 space-y-3">
+          <div v-for="(step, idx) in funnelExecDetail" :key="step.section_type" class="flex items-center gap-3">
             <span class="text-xs text-gray-400 dark:text-gray-500 w-5 text-right">{{ idx + 1 }}</span>
             <div class="flex-1">
               <div class="flex items-center justify-between mb-1">
                 <span class="text-sm text-gray-700 font-medium truncate">{{ step.section_title }}</span>
-                <span v-if="step.section_type === 'technical_document'" class="text-[10px] px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 font-medium flex-shrink-0">panel + vista pública</span>
-                <span v-else-if="step.in_executive_mode === false" class="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-500 font-medium flex-shrink-0">solo detallado</span>
+                <div class="flex items-center gap-2">
+                  <span v-if="step.in_executive_mode === false" class="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-500 font-medium flex-shrink-0">solo detallado</span>
+                  <span class="text-xs text-gray-500">{{ step.reached_count }} sesiones</span>
+                  <span v-if="step.drop_off_percent > 0" class="text-xs text-red-500 font-medium">
+                    -{{ step.drop_off_percent }}%
+                  </span>
+                </div>
+              </div>
+              <div class="w-full bg-gray-100 rounded-full h-2">
+                <div
+                  class="h-2 rounded-full transition-all"
+                  :class="funnelBarColor(step.drop_off_percent)"
+                  :style="{ width: funnelBarWidth(step) + '%' }"
+                />
+              </div>
+            </div>
+          </div>
+          <p v-if="!funnelExecDetail.length" class="text-xs text-gray-400 dark:text-gray-500 italic">Sin datos para este modo.</p>
+        </div>
+        <!-- Tab: Técnico -->
+        <div v-show="funnelTab === 'technical'" class="px-4 sm:px-6 py-4 space-y-3">
+          <div v-for="(step, idx) in funnelTechnical" :key="step.section_type" class="flex items-center gap-3">
+            <span class="text-xs text-gray-400 dark:text-gray-500 w-5 text-right">{{ idx + 1 }}</span>
+            <div class="flex-1">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-sm text-gray-700 font-medium truncate">{{ step.section_title }}</span>
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-gray-500">{{ step.reached_count }} sesiones</span>
                   <span v-if="step.drop_off_percent > 0" class="text-xs text-red-500 font-medium">
@@ -210,6 +251,7 @@
               </div>
             </div>
           </div>
+          <p v-if="!funnelTechnical.length" class="text-xs text-gray-400 dark:text-gray-500 italic">Sin datos técnicos.</p>
         </div>
       </div>
 
@@ -481,7 +523,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 
 const props = defineProps({
@@ -492,6 +534,7 @@ const props = defineProps({
 const proposalStore = useProposalStore();
 const loading = ref(true);
 const analytics = ref(null);
+const funnelTab = ref<'exec_detail' | 'technical'>('exec_detail');
 
 const suggestions = computed(() => {
   if (!analytics.value) return [];
@@ -544,6 +587,18 @@ const hasDeviceData = computed(() => {
   const d = analytics.value?.device_breakdown;
   return d && (d.desktop || d.mobile || d.tablet);
 });
+
+const funnelSplit = computed(() => {
+  const funnel = analytics.value?.funnel || [];
+  const execDetail: any[] = [];
+  const technical: any[] = [];
+  for (const s of funnel) {
+    (s.section_type === 'technical_document' ? technical : execDetail).push(s);
+  }
+  return { execDetail, technical };
+});
+const funnelExecDetail = computed(() => funnelSplit.value.execDetail);
+const funnelTechnical = computed(() => funnelSplit.value.technical);
 
 const sortedSections = computed(() => {
   if (!analytics.value?.sections?.length) return [];
@@ -800,8 +855,15 @@ function formatTimelineDescription(event) {
   if (event.change_type === 'updated' && event.field_name) {
     const fieldLabel = FIELD_LABELS[event.field_name] || event.field_name;
     const isCurrency = ['total_investment'].includes(event.field_name);
-    const oldDisplay = isCurrency ? formatCurrencyValue(event.old_value) : escapeHtml(event.old_value || '(vacío)');
-    const newDisplay = isCurrency ? formatCurrencyValue(event.new_value) : `<strong>${escapeHtml(event.new_value || '(vacío)')}</strong>`;
+    const isDate = ['expires_at', 'followup_scheduled_at'].includes(event.field_name);
+    const fmtDate = (val) => {
+      if (!val) return '(vacío)';
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return escapeHtml(val);
+      return escapeHtml(d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
+    };
+    const oldDisplay = isCurrency ? formatCurrencyValue(event.old_value) : isDate ? fmtDate(event.old_value) : escapeHtml(event.old_value || '(vacío)');
+    const newDisplay = isCurrency ? formatCurrencyValue(event.new_value) : isDate ? `<strong>${fmtDate(event.new_value)}</strong>` : `<strong>${escapeHtml(event.new_value || '(vacío)')}</strong>`;
     return `<strong>${escapeHtml(fieldLabel)}</strong>: ${oldDisplay} → ${newDisplay}`;
   }
 
