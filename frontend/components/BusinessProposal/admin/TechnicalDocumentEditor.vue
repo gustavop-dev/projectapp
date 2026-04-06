@@ -43,7 +43,7 @@
       <h3 class="text-sm font-semibold text-gray-800">Propósito</h3>
       <textarea
         v-model="doc.purpose"
-        rows="3"
+        v-auto-resize
         class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
         placeholder="Una frase sobre qué cubre este documento..."
       />
@@ -68,7 +68,7 @@
     <!-- Arquitectura -->
     <section class="space-y-3">
       <h3 class="text-sm font-semibold text-gray-800">Arquitectura</h3>
-      <textarea v-model="doc.architecture.summary" rows="4" class="w-full px-3 py-2 border rounded-xl text-sm" placeholder="Resumen de capas y comunicación..." />
+      <textarea v-model="doc.architecture.summary" v-auto-resize class="w-full px-3 py-2 border rounded-xl text-sm" placeholder="Resumen de capas y comunicación..." />
       <div class="flex items-center justify-between">
         <span class="text-xs text-gray-500">Patrones por componente</span>
         <button type="button" class="text-xs text-emerald-600 hover:underline" @click="addPatternRow">+ Fila</button>
@@ -84,7 +84,7 @@
       <p class="text-xs text-gray-500">Diagramas / anexo (opcional)</p>
       <textarea
         v-model="doc.architecture.diagramNote"
-        rows="2"
+        v-auto-resize
         class="w-full px-3 py-2 border rounded-xl text-sm"
         placeholder="Nota breve si hay diagrama en anexo o URL externa..."
       />
@@ -93,11 +93,11 @@
     <!-- Modelo de datos -->
     <section class="space-y-3">
       <h3 class="text-sm font-semibold text-gray-800">Modelo de datos</h3>
-      <textarea v-model="doc.dataModel.summary" rows="3" class="w-full px-3 py-2 border rounded-xl text-sm" placeholder="Resumen..." />
+      <textarea v-model="doc.dataModel.summary" v-auto-resize class="w-full px-3 py-2 border rounded-xl text-sm" placeholder="Resumen..." />
       <p class="text-xs text-gray-500">Relaciones entre entidades (texto)</p>
       <textarea
         v-model="doc.dataModel.relationships"
-        rows="2"
+        v-auto-resize
         class="w-full px-3 py-2 border rounded-xl text-sm"
         placeholder="Ej. Usuario tiene muchos Pedidos..."
       />
@@ -122,7 +122,7 @@
       </p>
       <textarea
         v-model="doc.growthReadiness.summary"
-        rows="4"
+        v-auto-resize
         class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
         placeholder="Resumen: enfoque de crecimiento sin rediseño completo, supuestos y límites..."
       />
@@ -162,7 +162,7 @@
           </div>
           <button type="button" class="text-xs text-red-600" @click="doc.epics.splice(ei, 1)">Eliminar módulo</button>
         </div>
-        <textarea v-model="epic.description" rows="2" class="w-full px-2 py-1.5 border rounded-lg text-sm" placeholder="Descripción del módulo" />
+        <textarea v-model="epic.description" v-auto-resize class="w-full px-2 py-1.5 border rounded-lg text-sm" placeholder="Descripción del módulo" />
         <div v-if="moduleLinkOptions.length" class="space-y-1">
           <p class="text-[11px] text-gray-500">Mostrar este módulo solo si el cliente incluye (modo técnico / PDF técnico):</p>
           <div class="flex flex-wrap gap-x-3 gap-y-1">
@@ -202,9 +202,9 @@
                 <option value="low">Baja</option>
               </select>
             </div>
-            <textarea v-model="req.description" rows="2" class="w-full px-2 py-1 border rounded text-xs" placeholder="Descripción" />
-            <textarea v-model="req.configuration" rows="2" class="w-full px-2 py-1 border rounded text-xs" placeholder="Configuración (roles, permisos...)" />
-            <textarea v-model="req.usageFlow" rows="2" class="w-full px-2 py-1 border rounded text-xs" placeholder="Flujo de uso (ej. Login → Dashboard → ...)" />
+            <textarea v-model="req.description" v-auto-resize class="w-full px-2 py-1 border rounded text-xs" placeholder="Descripción" />
+            <textarea v-model="req.configuration" v-auto-resize class="w-full px-2 py-1 border rounded text-xs" placeholder="Configuración (roles, permisos...)" />
+            <textarea v-model="req.usageFlow" v-auto-resize class="w-full px-2 py-1 border rounded text-xs" placeholder="Flujo de uso (ej. Login → Dashboard → ...)" />
             <div v-if="moduleLinkOptions.length" class="space-y-1 pt-1">
               <p class="text-[10px] text-gray-500">Vincular a módulo opcional (vacío = alcance base, siempre visible):</p>
               <div class="flex flex-wrap gap-x-2 gap-y-1">
@@ -234,7 +234,7 @@
       <h3 class="text-sm font-semibold text-gray-800">API y endpoints (resumen)</h3>
       <textarea
         v-model="doc.apiSummary"
-        rows="3"
+        v-auto-resize
         class="w-full px-3 py-2 border rounded-xl text-sm"
         placeholder="Resumen de la API sin enumerar cada ruta..."
       />
@@ -278,7 +278,7 @@
       <p class="text-xs text-gray-500 pt-2">Notas técnicas (viñetas, una por línea)</p>
       <textarea
         v-model="doc.integrations.notes"
-        rows="4"
+        v-auto-resize
         class="w-full px-3 py-2 border rounded-xl text-sm font-mono text-xs"
         placeholder="Línea por línea..."
       />
@@ -289,7 +289,7 @@
       <h3 class="text-sm font-semibold text-gray-800">Ambientes (opcional)</h3>
       <textarea
         v-model="doc.environmentsNote"
-        rows="2"
+        v-auto-resize
         class="w-full px-3 py-2 border rounded-xl text-sm"
         placeholder="Nota general sobre ambientes si no usas tabla..."
       />
@@ -349,7 +349,7 @@
       <h3 class="text-sm font-semibold text-gray-800">Backups</h3>
       <textarea
         v-model="doc.backupsNote"
-        rows="3"
+        v-auto-resize
         class="w-full px-3 py-2 border rounded-xl text-sm"
         placeholder="Hosting propio vs según proveedor del cliente..."
       />
@@ -386,7 +386,7 @@
       <p class="text-xs text-gray-500">Flujos críticos de aceptación (texto; no duplicar módulos)</p>
       <textarea
         v-model="doc.quality.criticalFlowsNote"
-        rows="2"
+        v-auto-resize
         class="w-full px-3 py-2 border rounded-xl text-sm"
         placeholder="Alineación con requerimientos priorizados..."
       />
@@ -426,6 +426,25 @@
 <script setup>
 import { reactive, ref, watch } from 'vue';
 import { createGenericTechnicalEpicStub } from '~/utils/technicalModuleStub';
+
+const vAutoResize = {
+  mounted(el) {
+    el.style.overflow = 'hidden';
+    el._autoResizeHandler = () => {
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    };
+    el.addEventListener('input', el._autoResizeHandler);
+    el._autoResizeHandler();
+  },
+  updated(el) {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  },
+  beforeUnmount(el) {
+    el.removeEventListener('input', el._autoResizeHandler);
+  },
+};
 
 const props = defineProps({
   section: { type: Object, required: true },

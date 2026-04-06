@@ -148,7 +148,7 @@
                     <tr>
                       <th class="px-4 py-3 font-medium">{{ language === 'en' ? 'Requirement' : 'Requerimiento' }}</th>
                       <th class="px-4 py-3 font-medium w-28">{{ language === 'en' ? 'Priority' : 'Prioridad' }}</th>
-                      <th class="px-4 py-3 font-medium w-36">{{ language === 'en' ? 'Summary' : 'Resumen' }}</th>
+                      <th class="px-4 py-3 font-medium w-52">{{ language === 'en' ? 'Summary' : 'Resumen' }}</th>
                       <th class="px-4 py-3 font-medium w-32 text-right">{{ language === 'en' ? 'Detail' : 'Detalle' }}</th>
                     </tr>
                   </thead>
@@ -169,7 +169,7 @@
                         >{{ priorityLabel(req.priority) }}</span>
                         <span v-else class="text-esmerald/35">—</span>
                       </td>
-                      <td class="px-4 py-3 text-esmerald/65 font-light align-top text-xs leading-relaxed max-w-xs">
+                      <td class="px-4 py-3 text-esmerald/65 font-light align-top text-xs leading-relaxed">
                         {{ snippetText(req.description) }}
                       </td>
                       <td class="px-4 py-3 align-top text-right">

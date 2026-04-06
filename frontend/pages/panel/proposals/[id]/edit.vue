@@ -84,6 +84,12 @@
                 /proposal/{{ proposal.uuid }}
               </a>
             </p>
+            <p v-for="(link, i) in proposalModeLinks" :key="link.mode" :class="i === 0 ? 'mt-1' : 'mt-0.5'">
+              <span class="text-gray-400 text-[11px]">{{ link.label }} — </span>
+              <a :href="'/proposal/' + proposal.uuid + '?mode=' + link.mode" target="_blank" class="text-emerald-600 hover:underline text-[11px] break-all">
+                /proposal/{{ proposal.uuid }}?mode={{ link.mode }}
+              </a>
+            </p>
           </div>
           <div>
             <span class="text-gray-400 text-xs">Vistas</span>
@@ -95,37 +101,25 @@
               {{ proposal.sent_at ? new Date(proposal.sent_at).toLocaleString() : '—' }}
             </p>
           </div>
-          <div>
-            <span class="text-gray-400 text-xs">{{ hasDocumentsTab ? 'Vista previa' : 'PDFs / Vista previa' }}</span>
+          <div v-if="!hasDocumentsTab">
+            <span class="text-gray-400 text-xs">PDFs</span>
             <div class="flex items-center gap-3 mt-0.5 flex-wrap">
-              <template v-if="!hasDocumentsTab">
-                <a :href="'/api/proposals/' + proposal.uuid + '/pdf/'"
-                   target="_blank"
-                   class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Propuesta comercial
-                </a>
-                <span class="text-gray-300 text-xs">|</span>
-                <a :href="'/api/proposals/' + proposal.uuid + '/pdf/?doc=technical'"
-                   target="_blank"
-                   class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Detalle técnico
-                </a>
-                <span class="text-gray-300 text-xs">|</span>
-              </template>
-              <a :href="'/proposal/' + proposal.uuid + '?preview=1'"
+              <a :href="'/api/proposals/' + proposal.uuid + '/pdf/'"
                  target="_blank"
-                 class="inline-flex items-center gap-1.5 text-gray-500 hover:text-emerald-600 text-xs font-medium transition-colors">
+                 class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Vista previa
+                Propuesta comercial
+              </a>
+              <span class="text-gray-300 text-xs">|</span>
+              <a :href="'/api/proposals/' + proposal.uuid + '/pdf/?doc=technical'"
+                 target="_blank"
+                 class="inline-flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 text-xs font-medium transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Detalle técnico
               </a>
             </div>
           </div>
@@ -1028,6 +1022,11 @@ const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useCo
 
 const proposal = computed(() => proposalStore.currentProposal);
 
+const proposalModeLinks = [
+  { label: 'Propuesta completa', mode: 'detailed' },
+  { label: 'Detalle técnico', mode: 'technical' },
+];
+
 const copied = ref(false);
 function copyUrl() {
   const url = `${window.location.origin}/proposal/${proposal.value?.uuid}`;
@@ -1475,6 +1474,11 @@ function toggleSection(id) {
   expandedSections.value = new Set(expandedSections.value);
 }
 
+function collapseSection(id) {
+  expandedSections.value.delete(id);
+  expandedSections.value = new Set(expandedSections.value);
+}
+
 async function toggleEnabled(section) {
   await proposalStore.updateSection(section.id, { is_enabled: !section.is_enabled });
 }
@@ -1496,6 +1500,7 @@ async function handleSaveSection({ sectionId, payload }) {
       updateMsg.value = r.success
         ? { type: 'success', text: 'Sección técnica guardada.' }
         : { type: 'error', text: 'Error al guardar.' };
+      if (r.success) collapseSection(sectionId);
       return;
     }
     syncPreviewData.value = previewResult.data;
@@ -1504,7 +1509,8 @@ async function handleSaveSection({ sectionId, payload }) {
     return;
   }
 
-  await proposalStore.updateSection(sectionId, payload);
+  const r = await proposalStore.updateSection(sectionId, payload);
+  if (r.success) collapseSection(sectionId);
 }
 
 async function handleSyncConfirm() {
@@ -1518,6 +1524,7 @@ async function handleSyncConfirm() {
   updateMsg.value = result.success
     ? { type: 'success', text: 'Sección técnica guardada y proyecto sincronizado.' }
     : { type: 'error', text: 'Error al aplicar la sincronización.' };
+  if (result.success) collapseSection(sectionId);
 }
 
 function handleSyncCancel() {
