@@ -9,6 +9,7 @@ export default {
         blog: "Blog",
       },
       contact_us: "Contacto",
+      sign_in: "Iniciar Sesión",
     },
     preloader: {
       right_text: "Donde la creatividad\nse encuentra con el código",
@@ -58,6 +59,7 @@ export default {
       },
       terms_and_conditions: "Términos y Condiciones",
       privacy_policy: "Política de Privacidad",
+      sign_in: "Iniciar Sesión",
     },
   };
   

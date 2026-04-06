@@ -8,7 +8,8 @@ export default {
         web_developments: "Our work",
         blog: "Blog",
       },
-      contact_us: "Contact"
+      contact_us: "Contact",
+      sign_in: "Sign In",
     },
     preloader: {
       right_text: "Where code\nmeets creativity",
@@ -58,6 +59,7 @@ export default {
       },
       terms_and_conditions: "Terms and Conditions",
       privacy_policy: "Privacy Policy",
+      sign_in: "Sign In",
     },
   };
   

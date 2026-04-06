@@ -1,21 +1,13 @@
 <template>
   <footer class="relative p-3 h-svh">
       <div class="relative w-full h-full overflow-hidden">
-          <img
-            v-if="!bgVideoActive"
-            :src="videoPosterImg"
-            alt="Video showcasing our web design and development services"
-            class="absolute top-0 left-0 w-full h-full object-cover rounded-xl cursor-pointer"
-            @click="bgVideoActive = true"
-          />
           <video
-            v-else
             ref="mainVideo"
             class="absolute top-0 left-0 w-full h-full object-cover rounded-xl"
-            autoplay
             muted
             loop
             playsinline
+            preload="auto"
           >
             <source src="~/assets/videos/presentationMobile.mp4" type="video/mp4">
             <p class="sr-only">Video showcasing our web design and development services</p>
@@ -71,7 +63,7 @@
                   <span>{{ globalMessages.whatsapp || 'WhatsApp' }}</span>
                   <ArrowUpRightIcon class="w-4 inline ml-1"></ArrowUpRightIcon>
                 </a>
-                <a 
+                <a
                   @click.prevent="showModalEmail = true"
                   href="#"
                   class="block text-sm cursor-pointer font-regular text-white py-0.5"
@@ -79,6 +71,12 @@
                 >
                   {{ globalMessages.email_address || 'team@projectapp.co' }}
                 </a>
+                <NuxtLink
+                  to="/es-co/platform"
+                  class="inline-block mt-2 px-4 py-1.5 rounded-full text-xs font-medium bg-white text-esmerald hover:bg-white/80 transition-colors"
+                >
+                  {{ globalMessages.sign_in || 'Sign In' }}
+                </NuxtLink>
             </div>
             <div class="ps-4 pb-2">
               <div class="flex gap-3 mb-2">
@@ -111,13 +109,11 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import ArrowUpRightIcon from '@heroicons/vue/20/solid/ArrowUpRightIcon';
 import { useGlobalMessages } from '~/composables/useMessages';
 import { useFreeResources } from '~/composables/useFreeResources';
-import videoPosterImg from '~/assets/images/home/hero/video-poster.jpg';
 
 const localePath = useLocalePath();
 const { globalMessages } = useGlobalMessages('footer');
 
 // Estado reactivo
-const bgVideoActive = ref(false);
 const showModalEmail = ref(false);
 const solutions = computed(() => [
   { name: globalMessages.value?.solutions?.software || 'Custom Software', href: '/' },
@@ -127,15 +123,35 @@ const solutions = computed(() => [
 ]);
 
 const mainVideo = ref(null);
+let videoObserver = null;
+
+// Lazy-load: play video only when footer is visible
+onMounted(() => {
+  if (typeof window === 'undefined' || !mainVideo.value) return;
+
+  videoObserver = new IntersectionObserver(
+    ([entry]) => {
+      if (entry.isIntersecting) {
+        mainVideo.value?.play();
+      } else {
+        mainVideo.value?.pause();
+      }
+    },
+    { threshold: 0.1 }
+  );
+  videoObserver.observe(mainVideo.value);
+});
 
 // Limpiar recursos cuando el componente se desmonta
 const { freeMediaResources } = useFreeResources({
   videos: [mainVideo],
 });
 
-// Limpiar recursos correctamente
 onUnmounted(() => {
   if (typeof window !== 'undefined') {
+    if (videoObserver) {
+      videoObserver.disconnect();
+    }
     freeMediaResources();
   }
 });
