@@ -12,6 +12,7 @@ Shared PDF utilities (fonts, colours, drawing helpers) live in
 
 import io
 import logging
+import math
 import os
 import re
 import tempfile
@@ -687,22 +688,22 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
 
     total = _safe(data, 'totalDuration')
     if total:
-        # Duration badge — width adapts to content
+        # Duration badge — width adapts to content, capped at CONTENT_W
         total_str = _strip_emoji(total)
         label_str = 'Duración Total Estimada'
         value_w = c.stringWidth(total_str, _font('bold'), 11)
         label_w = c.stringWidth(label_str, _font('regular'), 8)
-        badge_w = max(160, int(max(value_w, label_w)) + 24)
+        badge_w = min(CONTENT_W, max(200, math.ceil(max(value_w, label_w)) + 40))
         badge_h = 28
         c.setFillColor(BONE)
         c.roundRect(MARGIN_L, y - badge_h + 4, badge_w, badge_h,
                     4, fill=1, stroke=0)
         c.setFont(_font('regular'), 8)
         c.setFillColor(GRAY_500)
-        c.drawString(MARGIN_L + 10, y - 6, label_str)
+        c.drawString(MARGIN_L + 12, y - 6, label_str)
         c.setFont(_font('bold'), 11)
         c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L + 10, y - 19, total_str)
+        c.drawString(MARGIN_L + 12, y - 19, total_str)
         y -= badge_h + 12
 
     phases = _safe(data, 'phases', [])

@@ -227,7 +227,7 @@
 }
 
 /* ============================
-   Dropdown fade transition — shared by FilterDropdown, FilterRangeDropdown, inline dropdowns
+   Dropdown fade transition — shared by ProposalFilterDropdown, ProposalFilterRangeDropdown, inline dropdowns
    ============================ */
 .dropdown-fade-enter-active,
 .dropdown-fade-leave-active {

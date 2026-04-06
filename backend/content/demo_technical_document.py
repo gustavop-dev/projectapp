@@ -31,8 +31,13 @@ def _build_demo_technical_document_json():
         },
         {
             'layer': 'Datos',
-            'technology': 'MySQL 8, Redis',
-            'rationale': 'Transacciones ACID para pedidos; caché de sesión y colas.',
+            'technology': 'MySQL 8',
+            'rationale': 'Transacciones ACID para pedidos y catálogo; esquema relacional alineado con el modelo de negocio.',
+        },
+        {
+            'layer': 'Tareas y colas',
+            'technology': 'Huey',
+            'rationale': 'Tareas asíncronas y cronjobs (emails, recordatorios, sincronizaciones) con ejecución diferida y reintentos.',
         },
         {
             'layer': 'Infra',
@@ -96,7 +101,7 @@ def _build_demo_technical_document_json():
             {
                 'dimension': 'Tráfico y frontend',
                 'preparation': 'SSR y assets estáticos cacheables; CDN preparado para el mismo origen.',
-                'evolution': 'Aumentar workers Gunicorn y cache Redis; escalar VPS o pasar a balanceador cuando supere ~5k visitas/día sostenidas.',
+                'evolution': 'Aumentar workers Gunicorn; escalar VPS o pasar a balanceador cuando supere ~5k visitas/día sostenidas.',
             },
             {
                 'dimension': 'Datos y pedidos',
