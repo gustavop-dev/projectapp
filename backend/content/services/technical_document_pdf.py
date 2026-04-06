@@ -6,20 +6,27 @@ Commercial proposal PDF excludes this section; ?doc=technical uses this module.
 
 import io
 import logging
+import textwrap
 
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
 from content.services.pdf_utils import (
+    BONE,
+    CONTENT_W,
     COVER_PDF,
     COVER_TECHNICAL_PDF,
     ESMERALD,
+    ESMERALD_80,
+    ESMERALD_DARK,
     ESMERALD_LIGHT,
     GRAY_500,
+    LEMON,
     MARGIN_L,
     MARGIN_T,
     PAGE_H,
     PAGE_W,
+    WHITE,
     _apply_toc_links,
     _check_y,
     _draw_bullet_list,
@@ -27,6 +34,7 @@ from content.services.pdf_utils import (
     _draw_footer,
     _draw_header_bar,
     _draw_paragraphs,
+    _draw_pill,
     _draw_section_header,
     _draw_separator,
     _draw_subtitle,
@@ -236,28 +244,108 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                 if desc:
                     y = _draw_paragraphs(c, y, [desc], ps=ps)
 
-                for q in reqs:
-                    pr = _safe(q, 'priority') or ''
-                    pr_suffix = f' [{pr}]' if pr else ''
-                    qt = (_safe(q, 'title') or 'Requerimiento') + pr_suffix
-                    y = _check_y(c, y, ps, need=50)
-                    c.setFont(_font('bold'), 10)
-                    c.setFillColor(ESMERALD)
-                    c.drawString(MARGIN_L + 12, y, _strip_emoji(qt)[:90])
-                    y -= 16
+                # ── Requirements table — one row per requirement ──────
+                if reqs:
+                    num_col_w = 28
+                    name_col_w = int((CONTENT_W - num_col_w) * 0.36)
+                    desc_col_w = CONTENT_W - num_col_w - name_col_w
+                    name_chars = int(name_col_w / 5.0) - 1
+                    desc_chars = int(desc_col_w / 4.5) - 1
 
-                    details = []
-                    for key, label in (
-                        ('description', ''),
-                        ('configuration', '**Config:** '),
-                        ('usageFlow', '**Flujo:** '),
-                    ):
-                        txt = (_safe(q, key) or '').strip()
-                        if txt:
-                            details.append(f'{label}{txt}')
-                    if details:
-                        y = _draw_bullet_list(c, y, details, x=MARGIN_L + 12, ps=ps)
-                y -= 8
+                    # Table header
+                    hdr_h = 22
+                    y = _check_y(c, y, ps, need=hdr_h + 32)
+                    hdr_bottom = y - hdr_h
+                    c.setFillColor(ESMERALD_DARK)
+                    c.rect(MARGIN_L, hdr_bottom, CONTENT_W, hdr_h, fill=1, stroke=0)
+                    hdr_text_y = hdr_bottom + (hdr_h - 8) / 2
+                    c.setFont(_font('bold'), 8)
+                    c.setFillColor(WHITE)
+                    c.drawCentredString(MARGIN_L + num_col_w / 2, hdr_text_y, '#')
+                    c.drawString(MARGIN_L + num_col_w + 6, hdr_text_y, 'Requerimiento')
+                    c.drawString(MARGIN_L + num_col_w + name_col_w + 6, hdr_text_y, 'Descripción')
+                    y = hdr_bottom
+
+                    for qi, q in enumerate(reqs):
+                        pr = _safe(q, 'priority') or ''
+                        qt = _strip_emoji(_safe(q, 'title') or 'Requerimiento')
+                        q_desc = (_safe(q, 'description') or '').strip()
+                        q_conf = (_safe(q, 'configuration') or '').strip()
+                        q_flow = (_safe(q, 'usageFlow') or '').strip()
+
+                        name_lines = textwrap.wrap(qt, width=name_chars) or [qt]
+                        all_desc_lines = []  # list of (text, bold_prefix | None)
+                        if q_desc:
+                            for line in textwrap.wrap(q_desc, width=desc_chars) or [q_desc]:
+                                all_desc_lines.append((line, None))
+                        if q_conf:
+                            conf_lines = textwrap.wrap(f'Config: {q_conf}', width=desc_chars) or [f'Config: {q_conf}']
+                            for i, line in enumerate(conf_lines):
+                                all_desc_lines.append((line, 'Config:' if i == 0 else None))
+                        if q_flow:
+                            flow_lines = textwrap.wrap(f'Flujo: {q_flow}', width=desc_chars) or [f'Flujo: {q_flow}']
+                            for i, line in enumerate(flow_lines):
+                                all_desc_lines.append((line, 'Flujo:' if i == 0 else None))
+
+                        line_h = 11
+                        n_lines = max(len(name_lines), len(all_desc_lines) if all_desc_lines else 1)
+                        row_h = n_lines * line_h + 14
+                        row_h = max(row_h, 28)
+
+                        y = _check_y(c, y, ps, need=row_h)
+                        row_bottom = y - row_h
+
+                        # Row background (alternating)
+                        c.setFillColor(ESMERALD_LIGHT if qi % 2 == 0 else WHITE)
+                        c.rect(MARGIN_L, row_bottom, CONTENT_W, row_h, fill=1, stroke=0)
+
+                        # LEMON left accent bar
+                        c.setFillColor(LEMON)
+                        c.rect(MARGIN_L, row_bottom, 3, row_h, fill=1, stroke=0)
+
+                        # Row number (vertically centred)
+                        c.setFont(_font('bold'), 8)
+                        c.setFillColor(ESMERALD_80)
+                        c.drawCentredString(
+                            MARGIN_L + num_col_w / 2,
+                            row_bottom + (row_h - 8) / 2,
+                            str(qi + 1).zfill(2),
+                        )
+
+                        # Requirement title (top-aligned, bold)
+                        text_y = y - 9
+                        c.setFont(_font('bold'), 9)
+                        c.setFillColor(ESMERALD)
+                        for nl in name_lines:
+                            c.drawString(MARGIN_L + num_col_w + 6, text_y, nl)
+                            text_y -= line_h
+                        if pr:
+                            _draw_pill(
+                                c, MARGIN_L + num_col_w + 6, text_y + 2, pr,
+                                bg_color=BONE, text_color=ESMERALD,
+                                font_size=6, padding_h=4, padding_v=2,
+                            )
+
+                        # Description + config + flow (top-aligned, regular; labels bold)
+                        if all_desc_lines:
+                            text_y = y - 9
+                            c.setFillColor(ESMERALD_80)
+                            dx = MARGIN_L + num_col_w + name_col_w + 6
+                            for dl, bold_prefix in all_desc_lines:
+                                if bold_prefix:
+                                    prefix_str = bold_prefix + ' '
+                                    prefix_w = c.stringWidth(prefix_str, _font('bold'), 8)
+                                    c.setFont(_font('bold'), 8)
+                                    c.drawString(dx, text_y, prefix_str)
+                                    c.setFont(_font('regular'), 8)
+                                    c.drawString(dx + prefix_w, text_y, dl[len(bold_prefix):].strip())
+                                else:
+                                    c.setFont(_font('regular'), 8)
+                                    c.drawString(dx, text_y, dl)
+                                text_y -= line_h
+
+                        y = row_bottom
+                    y -= 8
 
         # ── 7. API ────────────────────────────────────────────
         api_sum = (data.get('apiSummary') or '').strip()

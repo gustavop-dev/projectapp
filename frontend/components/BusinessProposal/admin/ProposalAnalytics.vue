@@ -652,7 +652,7 @@ function formatTime(seconds) {
 function formatDate(isoStr) {
   if (!isoStr) return '—';
   return new Date(isoStr).toLocaleString('es-CO', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
+    day: 'numeric', month: 'long', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });
 }

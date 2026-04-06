@@ -113,7 +113,7 @@
           <div>
             <span class="text-gray-400 text-xs">Enviada</span>
             <p class="text-gray-700 mt-0.5">
-              {{ proposal.sent_at ? new Date(proposal.sent_at).toLocaleString() : '—' }}
+              {{ proposal.sent_at ? new Date(proposal.sent_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : '—' }}
             </p>
           </div>
           <div v-if="!hasDocumentsTab">
@@ -2010,6 +2010,6 @@ function formatActivityDescription(log) {
 function formatLogDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 </script>

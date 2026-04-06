@@ -273,7 +273,7 @@ const hasSelectedDocs = computed(() =>
 function formatDate(isoString) {
   if (!isoString) return '';
   return new Date(isoString).toLocaleDateString('es-CO', {
-    day: 'numeric', month: 'short', year: 'numeric',
+    day: 'numeric', month: 'long', year: 'numeric',
   });
 }
 

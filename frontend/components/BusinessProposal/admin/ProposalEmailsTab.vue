@@ -474,7 +474,7 @@ function statusLabel(s) {
 function formatDate(isoString) {
   if (!isoString) return '';
   return new Date(isoString).toLocaleDateString('es-CO', {
-    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 }
 

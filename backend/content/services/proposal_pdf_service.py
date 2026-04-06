@@ -599,80 +599,91 @@ def _render_requirement_group_page(c, grp, ps=None, y=None,
         y = _draw_paragraphs(c, y, [desc], ps=ps)
         y -= 6
 
-    # Render items as 2-column cards
+    # Render items as a full-width table — one row per requirement
     if not items:
         return y
 
-    col_gap = 12
-    row_gap = 14
-    card_w = (CONTENT_W - col_gap) / 2
-    card_chars = int(card_w / (8 * 0.48)) - 4
+    # Table column widths
+    num_col_w = 28
+    name_col_w = int((CONTENT_W - num_col_w) * 0.36)
+    desc_col_w = CONTENT_W - num_col_w - name_col_w
 
-    def _card_height(itm):
-        d = _strip_emoji(_safe(itm, 'description'))
-        dl = textwrap.wrap(d, width=card_chars) if d else []
-        return 14 + 14 + len(dl) * 11 + 10
+    # Approximate chars that fit per column
+    name_chars = int(name_col_w / 5.0) - 1
+    desc_chars = int(desc_col_w / 4.5) - 1
 
-    # Process items in pairs (rows)
     row_y = y
-    idx = 0
-    while idx < len(items):
-        left_item = items[idx]
-        right_item = items[idx + 1] if idx + 1 < len(items) else None
 
-        left_h = _card_height(left_item)
-        right_h = _card_height(right_item) if right_item else 0
-        max_h = max(left_h, right_h)
+    # ── Table header ──────────────────────────────────────────
+    hdr_h = 22
+    if ps:
+        row_y = _check_y(c, row_y, ps, need=hdr_h + 32)
+    hdr_bottom = row_y - hdr_h
+    c.setFillColor(ESMERALD_DARK)
+    c.rect(MARGIN_L, hdr_bottom, CONTENT_W, hdr_h, fill=1, stroke=0)
+    hdr_text_y = hdr_bottom + (hdr_h - 8) / 2
+    c.setFont(_font('bold'), 8)
+    c.setFillColor(WHITE)
+    c.drawCentredString(MARGIN_L + num_col_w / 2, hdr_text_y, '#')
+    c.drawString(MARGIN_L + num_col_w + 6, hdr_text_y, 'Requerimiento')
+    c.drawString(MARGIN_L + num_col_w + name_col_w + 6, hdr_text_y, 'Descripción')
+    row_y = hdr_bottom
 
-        # Page check once per row
+    # ── Item rows ─────────────────────────────────────────────
+    for idx, item in enumerate(items):
+        name = _strip_emoji(_safe(item, 'name') or '')
+        item_desc = _strip_emoji(_safe(item, 'description') or '')
+        name_lines = textwrap.wrap(name, width=name_chars) or [name]
+        desc_lines = textwrap.wrap(item_desc, width=desc_chars) if item_desc else []
+
+        line_h = 11
+        n_lines = max(len(name_lines), len(desc_lines) if desc_lines else 1)
+        row_h = n_lines * line_h + 14
+        row_h = max(row_h, 28)
+
+        # Page break check
         if ps:
-            row_y = _check_y(c, row_y, ps, need=max_h + 10)
-        y = row_y
+            row_y = _check_y(c, row_y, ps, need=row_h)
 
-        for ci, item in enumerate(
-            [left_item, right_item] if right_item else [left_item]
-        ):
-            name = _strip_emoji(_safe(item, 'name'))
-            item_desc = _strip_emoji(_safe(item, 'description'))
-            desc_lines = (
-                textwrap.wrap(item_desc, width=card_chars)
-                if item_desc else []
-            )
-            card_h = 14 + 14 + len(desc_lines) * 11 + 10
+        row_bottom = row_y - row_h
 
-            card_x = MARGIN_L + ci * (card_w + col_gap)
+        # Row background (alternating)
+        c.setFillColor(ESMERALD_LIGHT if idx % 2 == 0 else WHITE)
+        c.rect(MARGIN_L, row_bottom, CONTENT_W, row_h, fill=1, stroke=0)
 
-            # Card background
-            c.setFillColor(ESMERALD_LIGHT)
-            c.roundRect(card_x, row_y - card_h + 8, card_w, card_h,
-                        6, fill=1, stroke=0)
+        # LEMON left accent bar
+        c.setFillColor(LEMON)
+        c.rect(MARGIN_L, row_bottom, 3, row_h, fill=1, stroke=0)
 
-            # Subtle left accent bar
-            c.setFillColor(LEMON)
-            c.roundRect(card_x, row_y - card_h + 8, 3, card_h, 1,
-                        fill=1, stroke=0)
+        # Row number (vertically centred)
+        c.setFont(_font('bold'), 8)
+        c.setFillColor(ESMERALD_80)
+        c.drawCentredString(
+            MARGIN_L + num_col_w / 2,
+            row_bottom + (row_h - 8) / 2,
+            str(idx + 1).zfill(2),
+        )
 
-            # Item name
-            inner_x = card_x + 12
-            text_y = row_y - 6
-            c.setFont(_font('bold'), 9)
-            c.setFillColor(ESMERALD)
-            c.drawString(inner_x, text_y, name)
-            text_y -= 14
+        # Item name (top-aligned, bold)
+        text_y = row_y - 9
+        c.setFont(_font('bold'), 9)
+        c.setFillColor(ESMERALD)
+        for nl in name_lines:
+            c.drawString(MARGIN_L + num_col_w + 6, text_y, nl)
+            text_y -= line_h
 
-            # Item description
-            if desc_lines:
-                c.setFont(_font('regular'), 8)
-                c.setFillColor(ESMERALD_80)
-                for dl in desc_lines:
-                    c.drawString(inner_x, text_y, dl)
-                    text_y -= 11
+        # Item description (top-aligned, regular)
+        if desc_lines:
+            text_y = row_y - 9
+            c.setFont(_font('regular'), 8)
+            c.setFillColor(ESMERALD_80)
+            for dl in desc_lines:
+                c.drawString(MARGIN_L + num_col_w + name_col_w + 6, text_y, dl)
+                text_y -= line_h
 
-        row_y = row_y - max_h - row_gap + 8
-        y = row_y
-        idx += 2 if right_item else 1
+        row_y = row_bottom
 
-    return y
+    return row_y - 4
 
 
 def _render_timeline(c, data, _proposal, ps=None, y=None):
