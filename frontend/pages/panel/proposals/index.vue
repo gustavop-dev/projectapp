@@ -626,6 +626,9 @@
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import ProposalDashboard from '~/components/BusinessProposal/admin/ProposalDashboard.vue';
 import MetricsManual from '~/components/BusinessProposal/admin/MetricsManual.vue';
+import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
+import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
+import ProposalFilterPanel from '~/components/proposals/ProposalFilterPanel.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useProposalFilters } from '~/composables/useProposalFilters';
 

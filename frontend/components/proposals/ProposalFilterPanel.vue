@@ -161,6 +161,8 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { onClickOutside } from '@vueuse/core';
+import ProposalFilterDropdown from '~/components/proposals/ProposalFilterDropdown.vue';
+import ProposalFilterRangeDropdown from '~/components/proposals/ProposalFilterRangeDropdown.vue';
 
 const props = defineProps({
   modelValue: { type: Object, required: true },

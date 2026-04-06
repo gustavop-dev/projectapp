@@ -716,8 +716,17 @@
             </div>
           </div>
 
+          <!-- Legacy format warning -->
+          <LegacyFormatWarning
+            v-if="jsonImportParsed && !jsonImportError"
+            :issues="jsonImportLegacyIssues"
+            :field-labels="LEGACY_FIELD_LABELS"
+            action-label="Descarga la versión corregida y úsala para actualizar la propuesta:"
+            @download="downloadMigratedProposalJson(jsonImportParsed)"
+          />
+
           <!-- Apply button -->
-          <div v-if="jsonImportParsed && !jsonImportError" class="mt-4 flex flex-wrap items-center gap-3">
+          <div v-if="jsonImportParsed && !jsonImportError && !jsonImportLegacyIssues.length" class="mt-4 flex flex-wrap items-center gap-3">
             <button
               type="button"
               :disabled="proposalStore.isUpdating"
@@ -1027,6 +1036,8 @@ import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
 import { buildProposalModuleLinkOptions } from '~/utils/proposalModuleLinkOptions';
+import { detectLegacyTechnicalFormat, downloadMigratedProposalJson, LEGACY_FIELD_LABELS } from '~/utils/proposalJsonMigration';
+import LegacyFormatWarning from '~/components/panel/LegacyFormatWarning.vue';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -1599,6 +1610,7 @@ const jsonImportParsed = ref(null);
 const jsonImportError = ref('');
 const jsonImportFileName = ref('');
 const jsonImportMsg = ref(null);
+const jsonImportLegacyIssues = ref([]);
 
 const exportJsonString = computed(() => {
   if (!exportJsonData.value) return '';
@@ -1657,6 +1669,7 @@ function parseImportJson() {
   jsonImportError.value = '';
   jsonImportParsed.value = null;
   jsonImportMsg.value = null;
+  jsonImportLegacyIssues.value = [];
 
   const raw = jsonImportRaw.value.trim();
   if (!raw) return;
@@ -1678,6 +1691,8 @@ function parseImportJson() {
     jsonImportError.value = 'El JSON debe incluir "general" con "clientName".';
     return;
   }
+
+  jsonImportLegacyIssues.value = detectLegacyTechnicalFormat(parsed).issues;
 
   jsonImportParsed.value = parsed;
 }
@@ -1744,6 +1759,7 @@ function handleApplyImportJson() {
         jsonImportRaw.value = '';
         jsonImportParsed.value = null;
         jsonImportFileName.value = '';
+        jsonImportLegacyIssues.value = [];
 
         // Sync local form with updated proposal
         if (proposal.value) {

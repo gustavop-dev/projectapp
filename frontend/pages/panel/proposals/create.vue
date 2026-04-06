@@ -13,16 +13,6 @@
         type="button"
         :class="[
           'flex-1 px-4 py-2 text-sm rounded-lg transition-all',
-          mode === 'manual' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'
-        ]"
-        @click="mode = 'manual'"
-      >
-        Manual
-      </button>
-      <button
-        type="button"
-        :class="[
-          'flex-1 px-4 py-2 text-sm rounded-lg transition-all',
           mode === 'json' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'
         ]"
         @click="mode = 'json'"
@@ -38,6 +28,16 @@
         @click="mode = 'prompt'"
       >
         Prompt IA
+      </button>
+      <button
+        type="button"
+        :class="[
+          'flex-1 px-4 py-2 text-sm rounded-lg transition-all',
+          mode === 'manual' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'
+        ]"
+        @click="mode = 'manual'"
+      >
+        Manual
       </button>
     </div>
 
@@ -455,10 +455,17 @@
             <span v-if="jsonPreview.investment"><span class="text-gray-500">Inversión:</span> <span class="font-medium text-gray-900">{{ jsonPreview.investment }}</span></span>
           </div>
         </div>
+
+        <LegacyFormatWarning
+          v-if="jsonParsed && !jsonError"
+          :issues="legacyFormatIssues"
+          :field-labels="LEGACY_FIELD_LABELS"
+          @download="downloadMigratedProposalJson(jsonParsed)"
+        />
       </div>
 
       <!-- Metadata form -->
-      <form v-if="jsonParsed && !jsonError" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6" @submit.prevent="handleJsonSubmit">
+      <form v-if="jsonParsed && !jsonError && !legacyFormatIssues.length" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6" @submit.prevent="handleJsonSubmit">
         <h3 class="text-sm font-medium text-gray-900 mb-4">Datos de la propuesta</h3>
         <div class="space-y-4">
           <!-- Title -->
@@ -869,6 +876,8 @@ import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import { get_request } from '~/stores/services/request_http';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
+import { detectLegacyTechnicalFormat, downloadMigratedProposalJson, LEGACY_FIELD_LABELS } from '~/utils/proposalJsonMigration';
+import LegacyFormatWarning from '~/components/panel/LegacyFormatWarning.vue';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -876,7 +885,7 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const router = useRouter();
 const proposalStore = useProposalStore();
 const errorMsg = ref('');
-const mode = ref('manual');
+const mode = ref('json');
 const createdProposal = ref(null);
 const showPostCreateModal = ref(false);
 
@@ -1066,6 +1075,7 @@ const jsonWarnings = ref([]);
 const uploadedFileName = ref('');
 const isDownloading = ref(false);
 const templateCopied = ref(false);
+const legacyFormatIssues = ref([]);
 
 const jsonForm = reactive({
   title: '',
@@ -1101,6 +1111,7 @@ const jsonPreview = computed(() => {
 function parseJson() {
   jsonError.value = '';
   jsonParsed.value = null;
+  legacyFormatIssues.value = [];
 
   const raw = jsonRaw.value.trim();
   if (!raw) return;
@@ -1122,6 +1133,8 @@ function parseJson() {
     jsonError.value = 'El JSON debe incluir "general" con "clientName".';
     return;
   }
+
+  legacyFormatIssues.value = detectLegacyTechnicalFormat(parsed).issues;
 
   jsonParsed.value = parsed;
 

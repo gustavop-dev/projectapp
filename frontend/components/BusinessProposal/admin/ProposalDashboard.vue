@@ -292,7 +292,7 @@ import { computed, ref, watch, onBeforeUnmount } from 'vue';
 const AUTO_REFRESH_MS = 60_000;
 
 const proposalStore = useProposalStore();
-const isOpen = ref(true);
+const isOpen = ref(false);
 const loading = ref(false);
 const refreshing = ref(false);
 const data = ref(null);
