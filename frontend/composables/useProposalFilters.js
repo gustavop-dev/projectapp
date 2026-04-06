@@ -92,6 +92,17 @@ export function useProposalFilters() {
   // Shallow watch — all mutations already replace the array reference
   watch(savedTabs, (val) => persistTabs(val));
 
+  // Persist manual filter edits back to the active tab (updateTab guards against no-op writes)
+  watch(
+    currentFilters,
+    () => {
+      if (activeTabId.value !== 'all') {
+        updateTab(activeTabId.value);
+      }
+    },
+    { deep: true },
+  );
+
   const isTabLimitReached = computed(() => savedTabs.value.length >= MAX_TABS);
 
   const activeFilterCount = computed(() => {
@@ -203,9 +214,12 @@ export function useProposalFilters() {
   function updateTab(tabId) {
     const idx = savedTabs.value.findIndex((t) => t.id === tabId);
     if (idx === -1) return;
+    const newFilters = cloneFilters(currentFilters);
+    // Skip write when filters haven't changed (e.g. watch fires on tab load via selectTab)
+    if (JSON.stringify(newFilters) === JSON.stringify(savedTabs.value[idx].filters)) return;
     savedTabs.value = spliceTab(savedTabs.value, idx, {
       ...savedTabs.value[idx],
-      filters: cloneFilters(currentFilters),
+      filters: newFilters,
       updatedAt: new Date().toISOString(),
     });
   }

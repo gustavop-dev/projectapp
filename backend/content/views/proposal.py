@@ -50,6 +50,29 @@ _KEY_PROPOSAL_SECTIONS = frozenset({
 # Spanish labels for the three client-selectable view modes.
 VIEW_MODE_LABELS = {'executive': 'ejecutiva', 'detailed': 'completa', 'technical': 'técnica'}
 
+# Ordered fragments of the technical document panel, matching frontend utils/technicalProposalPanels.js
+_TECHNICAL_FRAGMENT_ORDER = [
+    'intro', 'stack', 'architecture', 'dataModel', 'growthReadiness',
+    'epics', 'api', 'integrations', 'environments', 'security',
+    'performance', 'backups', 'quality', 'decisions',
+]
+_TECHNICAL_FRAGMENT_TITLES = {
+    'intro': 'Detalle técnico',
+    'stack': 'Stack tecnológico',
+    'architecture': 'Arquitectura',
+    'dataModel': 'Modelo de datos',
+    'growthReadiness': 'Preparación para el crecimiento',
+    'epics': 'Módulos del producto',
+    'api': 'API y endpoints',
+    'integrations': 'Integraciones',
+    'environments': 'Ambientes',
+    'security': 'Seguridad',
+    'performance': 'Rendimiento y prácticas',
+    'backups': 'Backups',
+    'quality': 'Calidad y pruebas',
+    'decisions': 'Decisiones técnicas',
+}
+
 
 def _dashboard_top_dropoff_allowlist():
     """Section types used for global top_dropoff KPI (excludes technical doc)."""
@@ -1845,6 +1868,7 @@ def track_proposal_engagement(request, proposal_uuid):
 
         time_spent = float(section_data.get('time_spent_seconds', 0))
         section_title = section_data.get('section_title', '')[:255]
+        subsection_key = section_data.get('subsection_key', '')[:50]
 
         existing = ProposalSectionView.objects.filter(
             view_event=view_event,
@@ -1855,13 +1879,15 @@ def track_proposal_engagement(request, proposal_uuid):
         if existing:
             existing.time_spent_seconds = time_spent
             existing.section_title = section_title
+            existing.subsection_key = subsection_key
             existing.view_mode = view_mode
-            existing.save(update_fields=['time_spent_seconds', 'section_title', 'view_mode'])
+            existing.save(update_fields=['time_spent_seconds', 'section_title', 'subsection_key', 'view_mode'])
         else:
             ProposalSectionView.objects.create(
                 view_event=view_event,
                 section_type=section_type,
                 section_title=section_title,
+                subsection_key=subsection_key,
                 time_spent_seconds=time_spent,
                 entered_at=entered_at,
                 view_mode=view_mode,
@@ -2739,6 +2765,38 @@ def retrieve_proposal_analytics(request, proposal_id):
             'drop_off_percent': drop_off,
             'in_executive_mode': section_type in EXECUTIVE_SECTION_TYPES,
         })
+
+    # --- Funnel técnico granular (tab técnico en analytics) ---
+    tech_reached_map = {
+        row['subsection_key']: row['reached_count']
+        for row in (
+            ProposalSectionView.objects
+            .filter(
+                view_event__proposal=proposal,
+                section_type='technical_document_public',
+                subsection_key__in=_TECHNICAL_FRAGMENT_ORDER,
+            )
+            .values('subsection_key')
+            .annotate(reached_count=Count('view_event__session_id', distinct=True))
+        )
+    }
+    prev_tech_reached = technical_sessions_reached
+    for fragment_key in _TECHNICAL_FRAGMENT_ORDER:
+        tech_reached = tech_reached_map.get(fragment_key, 0)
+        if tech_reached == 0:
+            continue
+        tech_drop_off = round(
+            (1 - tech_reached / prev_tech_reached) * 100, 1
+        ) if prev_tech_reached > 0 else 0
+        funnel_data.append({
+            'section_type': 'technical_document_public',
+            'section_title': _TECHNICAL_FRAGMENT_TITLES[fragment_key],
+            'subsection_key': fragment_key,
+            'reached_count': tech_reached,
+            'drop_off_percent': tech_drop_off,
+            'in_executive_mode': False,
+        })
+        prev_tech_reached = tech_reached
 
     # --- Comparison with global averages ---
     all_proposals = BusinessProposal.objects.all()

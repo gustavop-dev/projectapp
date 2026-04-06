@@ -230,7 +230,7 @@
         </div>
         <!-- Tab: Técnico -->
         <div v-show="funnelTab === 'technical'" class="px-4 sm:px-6 py-4 space-y-3">
-          <div v-for="(step, idx) in funnelTechnical" :key="step.section_type" class="flex items-center gap-3">
+          <div v-for="(step, idx) in funnelTechnical" :key="step.subsection_key || step.section_title" class="flex items-center gap-3">
             <span class="text-xs text-gray-400 dark:text-gray-500 w-5 text-right">{{ idx + 1 }}</span>
             <div class="flex-1">
               <div class="flex items-center justify-between mb-1">
@@ -593,7 +593,7 @@ const funnelSplit = computed(() => {
   const execDetail: any[] = [];
   const technical: any[] = [];
   for (const s of funnel) {
-    (s.section_type === 'technical_document' ? technical : execDetail).push(s);
+    (s.section_type === 'technical_document_public' ? technical : execDetail).push(s);
   }
   return { execDetail, technical };
 });

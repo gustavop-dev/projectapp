@@ -16,6 +16,12 @@ class ProposalSectionView(models.Model):
     )
     section_type = models.CharField(max_length=50)
     section_title = models.CharField(max_length=255, blank=True, default='')
+    subsection_key = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text='Fragment key for technical document subsections (e.g. "stack", "architecture").',
+    )
     time_spent_seconds = models.FloatField(
         default=0,
         help_text='Seconds the client spent viewing this section.',

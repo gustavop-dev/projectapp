@@ -22,26 +22,27 @@
     <Transition name="dropdown-fade">
       <div
         v-if="isOpen"
-        class="absolute top-full left-0 mt-1 z-50 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-3"
+        class="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-3"
+        :class="type === 'date' ? 'w-64' : 'w-56'"
       >
         <p class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
           {{ label }}<span v-if="unit" class="ml-1 normal-case font-normal">({{ unit }})</span>
         </p>
-        <div class="flex items-center gap-2">
+        <div :class="type === 'date' ? 'flex flex-col gap-2' : 'flex items-center gap-2'">
           <input
             :value="minValue"
             :type="type"
             :placeholder="minPlaceholder"
             class="w-full px-2.5 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
-            @change="$emit('update:minValue', parseValue($event.target.value))"
+            @change="emit('update:minValue', parseValue($event.target.value))"
           />
-          <span class="text-gray-400 text-xs shrink-0">—</span>
+          <span v-if="type !== 'date'" class="text-gray-400 text-xs shrink-0">—</span>
           <input
             :value="maxValue"
             :type="type"
             :placeholder="maxPlaceholder"
             class="w-full px-2.5 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg text-xs bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 outline-none focus:ring-1 focus:ring-emerald-500"
-            @change="$emit('update:maxValue', parseValue($event.target.value))"
+            @change="emit('update:maxValue', parseValue($event.target.value))"
           />
         </div>
         <div v-if="isActive" class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">

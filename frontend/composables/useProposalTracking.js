@@ -53,6 +53,7 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
     currentEntry = {
       section_type: panel.section_type || '',
       section_title: panel.title || '',
+      subsection_key: panel._technicalFragment || '',
       entered_at: new Date().toISOString(),
       _startTime: performance.now(),
     };
@@ -64,6 +65,7 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
     sectionLog.value.push({
       section_type: currentEntry.section_type,
       section_title: currentEntry.section_title,
+      subsection_key: currentEntry.subsection_key,
       entered_at: currentEntry.entered_at,
       time_spent_seconds: Math.round(elapsed * 10) / 10,
     });
@@ -84,6 +86,7 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
           {
             section_type: currentEntry.section_type,
             section_title: currentEntry.section_title,
+            subsection_key: currentEntry.subsection_key,
             entered_at: currentEntry.entered_at,
             time_spent_seconds: Math.round(elapsed * 10) / 10,
           },
