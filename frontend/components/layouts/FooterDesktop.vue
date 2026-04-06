@@ -1,21 +1,13 @@
 <template>
   <footer class="p-3 h-svh" @mousemove="handleMouseMove">
     <div class="relative w-full h-full overflow-hidden">
-      <img
-        v-if="!bgVideoActive"
-        :src="videoPosterImg"
-        alt="Video showcasing our web design and development services"
-        class="absolute top-0 left-0 w-full h-full object-cover rounded-xl cursor-pointer"
-        @click="activateBgVideo"
-      />
       <video
-        v-else
         ref="mainVideo"
         class="absolute top-0 left-0 w-full h-full object-cover rounded-xl"
-        autoplay
         muted
         loop
         playsinline
+        preload="auto"
       >
         <source src="~/assets/videos/presentationPrevPc.mp4" type="video/mp4">
         <p class="sr-only">Video showcasing our web design and development services</p>
@@ -84,11 +76,11 @@
                   <ArrowUpRightIcon class="w-5 inline arrow-icon"></ArrowUpRightIcon>
                   <span class="sr-only">Opens in a new window</span>
                 </a>
-                <a 
+                <a
                   @click.prevent="showModalEmail = true"
                   href="#"
                   class="flex cursor-pointer font-regular text-white text-lg relative group"
-                  @mouseover="hoverMenu($event, true)" 
+                  @mouseover="hoverMenu($event, true)"
                   @mouseleave="hoverMenu($event, false)"
                   aria-label="Email our web design team"
                   >
@@ -96,6 +88,12 @@
                   <div class="absolute left-0 bottom-0 h-0.5 w-0 bg-white transition-all duration-300 group-hover:w-full"></div>
                   <span class="sr-only">Open contact form</span>
                 </a>
+                <NuxtLink
+                  to="/es-co/platform"
+                  class="inline-block mt-3 px-5 py-2 rounded-full text-sm font-medium bg-white text-esmerald hover:bg-white/80 transition-colors"
+                >
+                  {{ globalMessages.sign_in || 'Sign In' }}
+                </NuxtLink>
               </div>
             </div>
           </div>
@@ -194,7 +192,6 @@ import { XMarkIcon } from '@heroicons/vue/24/outline';
 import ArrowUpRightIcon from '@heroicons/vue/20/solid/ArrowUpRightIcon';
 import { useGlobalMessages } from '~/composables/useMessages';
 import { useFreeResources } from '~/composables/useFreeResources';
-import videoPosterImg from '~/assets/images/home/hero/video-poster.jpg';
 
 // Cargar componentes de Lottie de forma convencional
 import { Vue3Lottie } from "vue3-lottie";
@@ -227,11 +224,6 @@ const solutions = computed(() => {
     { name: s.blog || 'Blog', href: '/blog' },
   ];
 });
-
-const bgVideoActive = ref(false);
-const activateBgVideo = () => {
-  bgVideoActive.value = true;
-};
 
 const showModal = ref(false);
 const ball = ref(null);
@@ -335,11 +327,28 @@ const hoverMenu = (event, isHover) => {
   }
 };
 
+let videoObserver = null;
+
 // Hook de ciclo de vida que se ejecuta cuando el componente está montado
 onMounted(() => {
   // Verificar que window esté definido
   if (typeof window === 'undefined') return;
-  
+
+  // Lazy-load: play background video only when footer is visible
+  if (mainVideo.value) {
+    videoObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          mainVideo.value?.play();
+        } else {
+          mainVideo.value?.pause();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    videoObserver.observe(mainVideo.value);
+  }
+
   // Iniciar la actualización de la posición de la bola
   animationFrameId = requestAnimationFrame(updateBallPosition);
 
@@ -385,10 +394,15 @@ onMounted(() => {
 onUnmounted(() => {
   // Verificar que window esté definido
   if (typeof window === 'undefined') return;
-  
+
   // Detener las actualizaciones de la posición de la bola
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
+  }
+
+  // Limpiar IntersectionObserver
+  if (videoObserver) {
+    videoObserver.disconnect();
   }
 });
 

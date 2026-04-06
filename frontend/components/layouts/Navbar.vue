@@ -45,6 +45,14 @@
     >
       {{ isEnglish ? 'EN' : 'ES' }}
     </button>
+
+    <!-- Sign In -->
+    <NuxtLink
+      to="/es-co/platform"
+      class="px-5 py-2.5 rounded-full text-sm font-medium bg-esmerald text-white hover:bg-esmerald/90 transition-colors ml-1 whitespace-nowrap"
+    >
+      {{ globalMessages.sign_in || 'Sign In' }}
+    </NuxtLink>
   </nav>
 
   <!--Navbar Mobile — Fixed glassmorphism bar -->
@@ -65,6 +73,12 @@
       >
         {{ isEnglish ? 'EN' : 'ES' }}
       </button>
+      <NuxtLink
+        to="/es-co/platform"
+        class="px-3 py-1.5 rounded-full text-xs font-medium bg-esmerald text-white hover:bg-esmerald/90 transition-colors whitespace-nowrap"
+      >
+        {{ globalMessages.sign_in || 'Sign In' }}
+      </NuxtLink>
       <button
         @click="openMenuMobile"
         class="w-10 h-10 rounded-full bg-esmerald flex items-center justify-center"
@@ -147,6 +161,7 @@
             <a href="https://instagram.com/projectapp.co" target="_blank" rel="noopener noreferrer" class="hover:text-esmerald transition-colors">Instagram</a>
             <a href="https://facebook.com/projectapp.co" target="_blank" rel="noopener noreferrer" class="hover:text-esmerald transition-colors">Facebook</a>
             <button @click="toggleLanguage" class="hover:text-esmerald transition-colors uppercase">{{ isEnglish ? 'ES' : 'EN' }}</button>
+            <NuxtLink to="/es-co/platform" class="hover:text-esmerald transition-colors" @click="closeMenu">{{ globalMessages.sign_in || 'Sign In' }}</NuxtLink>
           </div>
         </div>
       </div>
@@ -159,37 +174,18 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { gsap } from 'gsap';
-import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue';
 import { XMarkIcon } from '@heroicons/vue/24/outline';
-import SocialLinks from '~/components/utils/SocialLinks.vue';
-import ButtonWhitArrow from '~/components/utils/ButtonWithArrow.vue';
 import { useGlobalMessages } from '~/composables/useMessages';
-import { useLanguageStore } from '~/stores/language';
 import Email from '~/components/layouts/Email.vue';
 
 const localePath = useLocalePath();
 const { locale } = useI18n();
 const { globalMessages } = useGlobalMessages('navbar');
 
-// Language store
-const languageStore = useLanguageStore();
-
 // Derived from i18n locale (SSR-safe, unlike store)
 const isEnglish = computed(() => locale.value.startsWith('en'));
 
-/**
- * Toggle between English and Spanish
- */
-const switchLocalePath = useSwitchLocalePath();
-const toggleLanguage = () => {
-  const targetLocale = isEnglish.value ? 'es-co' : 'en-us';
-  const path = switchLocalePath(targetLocale);
-  if (path) {
-    navigateTo(path);
-  }
-};
-
-// Props 
+// Props
 defineProps({
   theme: {
     type: String,
@@ -202,6 +198,22 @@ const background = ref(null);
 const menuBox = ref(null);
 const showModalEmail = ref(false);
 const showMenu = ref(false);
+
+/**
+ * Toggle between English and Spanish
+ */
+const switchLocalePath = useSwitchLocalePath();
+const toggleLanguage = () => {
+  const targetLocale = isEnglish.value ? 'es-co' : 'en-us';
+  const path = switchLocalePath(targetLocale);
+  if (path) {
+    // Close mobile menu immediately to avoid blank screen during navigation
+    if (showMenu.value) {
+      showMenu.value = false;
+    }
+    navigateTo(path);
+  }
+};
 
 // Desktop navbar — sliding lemon pill
 const route = useRoute();
