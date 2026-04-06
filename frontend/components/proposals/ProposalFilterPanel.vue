@@ -1,31 +1,31 @@
 <template>
   <div v-show="isOpen" class="mb-4">
     <div class="flex flex-wrap gap-2 items-center p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
-      <FilterDropdown
+      <ProposalFilterDropdown
         label="Estado"
         :options="statusOptions"
         :model-value="modelValue.statuses"
         @update:model-value="emit('update:modelValue', { ...modelValue, statuses: $event })"
       />
-      <FilterDropdown
+      <ProposalFilterDropdown
         label="Tipo de proyecto"
         :options="projectTypeOptions"
         :model-value="modelValue.projectTypes"
         @update:model-value="emit('update:modelValue', { ...modelValue, projectTypes: $event })"
       />
-      <FilterDropdown
+      <ProposalFilterDropdown
         label="Mercado"
         :options="marketTypeOptions"
         :model-value="modelValue.marketTypes"
         @update:model-value="emit('update:modelValue', { ...modelValue, marketTypes: $event })"
       />
-      <FilterDropdown
+      <ProposalFilterDropdown
         label="Moneda"
         :options="currencyOptions"
         :model-value="modelValue.currencies"
         @update:model-value="emit('update:modelValue', { ...modelValue, currencies: $event })"
       />
-      <FilterDropdown
+      <ProposalFilterDropdown
         label="Idioma"
         :options="languageOptions"
         :model-value="modelValue.languages"
@@ -34,7 +34,7 @@
 
       <div class="w-px h-5 bg-gray-200 dark:bg-gray-600 self-center mx-0.5" />
 
-      <FilterRangeDropdown
+      <ProposalFilterRangeDropdown
         label="Inversión"
         type="number"
         :min-value="modelValue.investmentMin"
@@ -42,7 +42,7 @@
         @update:min-value="emit('update:modelValue', { ...modelValue, investmentMin: $event })"
         @update:max-value="emit('update:modelValue', { ...modelValue, investmentMax: $event })"
       />
-      <FilterRangeDropdown
+      <ProposalFilterRangeDropdown
         label="Heat Score"
         type="number"
         unit="/ 10"
@@ -53,7 +53,7 @@
         @update:min-value="emit('update:modelValue', { ...modelValue, heatScoreMin: $event })"
         @update:max-value="emit('update:modelValue', { ...modelValue, heatScoreMax: $event })"
       />
-      <FilterRangeDropdown
+      <ProposalFilterRangeDropdown
         label="Vistas"
         type="number"
         :min-value="modelValue.viewCountMin"
@@ -64,7 +64,7 @@
 
       <div class="w-px h-5 bg-gray-200 dark:bg-gray-600 self-center mx-0.5" />
 
-      <FilterRangeDropdown
+      <ProposalFilterRangeDropdown
         label="Creación"
         type="date"
         min-placeholder="Desde"
@@ -74,7 +74,7 @@
         @update:min-value="emit('update:modelValue', { ...modelValue, createdAfter: $event })"
         @update:max-value="emit('update:modelValue', { ...modelValue, createdBefore: $event })"
       />
-      <FilterRangeDropdown
+      <ProposalFilterRangeDropdown
         label="Actividad"
         type="date"
         min-placeholder="Desde"
@@ -87,7 +87,7 @@
 
       <div class="w-px h-5 bg-gray-200 dark:bg-gray-600 self-center mx-0.5" />
 
-      <FilterDropdown
+      <ProposalFilterDropdown
         label="Activo"
         :options="activeStatusOptions"
         :model-value="modelValue.isActive !== 'all' ? [modelValue.isActive] : []"
