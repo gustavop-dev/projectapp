@@ -7,7 +7,17 @@
         <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
-        <h3 class="text-sm font-semibold text-gray-800">{{ mode === 'proposal' ? 'Enviar correo de propuesta' : 'Enviar correo con branding' }}</h3>
+        <h3 class="text-sm font-semibold text-gray-800">{{ activeMode === 'proposal' ? 'Correo de propuesta' : 'Correo con branding' }}</h3>
+      </div>
+
+      <!-- Mode switcher -->
+      <div class="flex gap-2 mb-4">
+        <button type="button" :class="modeButtonClass('proposal')" @click="activeMode = 'proposal'">
+          Propuesta
+        </button>
+        <button type="button" :class="modeButtonClass('branded')" @click="activeMode = 'branded'">
+          Branding
+        </button>
       </div>
 
       <!-- Sub-tab switcher -->
@@ -288,16 +298,23 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import draggable from 'vuedraggable';
 
 const props = defineProps({
   proposal: { type: Object, required: true },
-  mode: { type: String, default: 'branded', validator: v => ['branded', 'proposal'].includes(v) },
 });
 
+const activeMode = ref('proposal');
+
+function modeButtonClass(mode) {
+  return activeMode.value === mode
+    ? 'px-3 py-1 text-xs font-semibold bg-emerald-600 text-white rounded-full'
+    : 'px-3 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors';
+}
+
 const basePath = computed(() =>
-  props.mode === 'proposal' ? 'proposal-email' : 'branded-email',
+  activeMode.value === 'proposal' ? 'proposal-email' : 'branded-email',
 );
 
 const proposalStore = useProposalStore();
@@ -474,6 +491,11 @@ async function loadDefaults() {
     }
   }
 }
+
+watch(activeMode, async () => {
+  resetForm();
+  await Promise.all([loadDefaults(), loadHistory()]);
+});
 
 onMounted(() => {
   Promise.all([loadDefaults(), loadHistory()]);

@@ -687,18 +687,22 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
 
     total = _safe(data, 'totalDuration')
     if total:
-        # Duration badge
-        badge_w = 200
+        # Duration badge — width adapts to content
+        total_str = _strip_emoji(total)
+        label_str = 'Duración Total Estimada'
+        value_w = c.stringWidth(total_str, _font('bold'), 11)
+        label_w = c.stringWidth(label_str, _font('regular'), 8)
+        badge_w = max(160, int(max(value_w, label_w)) + 24)
         badge_h = 28
         c.setFillColor(BONE)
         c.roundRect(MARGIN_L, y - badge_h + 4, badge_w, badge_h,
                     4, fill=1, stroke=0)
         c.setFont(_font('regular'), 8)
         c.setFillColor(GRAY_500)
-        c.drawString(MARGIN_L + 10, y - 6, 'Duración Total Estimada')
+        c.drawString(MARGIN_L + 10, y - 6, label_str)
         c.setFont(_font('bold'), 11)
         c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L + 10, y - 19, _strip_emoji(total))
+        c.drawString(MARGIN_L + 10, y - 19, total_str)
         y -= badge_h + 12
 
     phases = _safe(data, 'phases', [])

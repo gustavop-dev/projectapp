@@ -249,8 +249,8 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                     details = []
                     for key, label in (
                         ('description', ''),
-                        ('configuration', 'Config: '),
-                        ('usageFlow', 'Flujo: '),
+                        ('configuration', '**Config:** '),
+                        ('usageFlow', '**Flujo:** '),
                     ):
                         txt = (_safe(q, key) or '').strip()
                         if txt:

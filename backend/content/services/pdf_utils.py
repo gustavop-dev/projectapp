@@ -223,6 +223,30 @@ def _replace_urls_with_placeholders(text):
     return result, links
 
 
+_MD_MARKER_RE = re.compile(r'\*{1,3}|~~|`')
+
+
+def _md_wrap(text, chars_per_line):
+    """Like textwrap.wrap but ignores markdown markers when measuring length.
+
+    Prevents **bold** or *italic* markers from being split across lines,
+    which would cause _tokenize_inline to emit literal asterisks.
+    """
+    words = text.split(' ')
+    lines, cur, cur_len = [], [], 0
+    for word in words:
+        word_len = len(_MD_MARKER_RE.sub('', word))
+        if cur and cur_len + 1 + word_len > chars_per_line:
+            lines.append(' '.join(cur))
+            cur, cur_len = [word], word_len
+        else:
+            cur.append(word)
+            cur_len = (cur_len + 1 + word_len) if cur_len else word_len
+    if cur:
+        lines.append(' '.join(cur))
+    return lines or [text]
+
+
 # Compiled once at module level — used by _tokenize_inline
 _INLINE_RE = re.compile(
     r'(?P<bold_italic>\*{3}(?P<bi_text>.+?)\*{3})'
@@ -514,7 +538,7 @@ def _draw_paragraphs(c, y, paragraphs, max_width=None, font_size=10,
         if not para:
             continue
         clean, _links = _replace_urls_with_placeholders(_strip_emoji(str(para)))
-        lines = textwrap.wrap(clean, width=chars_per_line)
+        lines = _md_wrap(clean, chars_per_line)
         if ps and len(lines) > 1 and y < MARGIN_B + leading * 2:
             y = _new_page(c, ps)
         for i, line in enumerate(lines):
@@ -553,7 +577,7 @@ def _draw_bullet_list(c, y, items, x=None, max_width=None,
             children  = []
 
         clean = _strip_emoji(item_text)
-        lines = textwrap.wrap(clean, width=chars_per_line - 4) or [clean]
+        lines = _md_wrap(clean, chars_per_line - 4)
         if ps and len(lines) > 1 and y < MARGIN_B + leading * 2:
             y = _new_page(c, ps)
         for i, line in enumerate(lines):

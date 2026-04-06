@@ -50,6 +50,7 @@ logger = logging.getLogger(__name__)
 
 # Placeholder default values when a param is missing
 _PLACEHOLDER_BLANK = '_______________'
+_PLACEHOLDER_DRAFT = 'XXX-XXX-XXX'
 
 # Helvetica for contract body — clean sans-serif, similar to Arial
 _CONTRACT_BODY_FONT = 'Helvetica'
@@ -58,19 +59,20 @@ _CONTRACT_BODY_SIZE = 11
 _CONTRACT_BODY_LEADING = 15
 
 
-def _build_params(raw_params: dict) -> dict:
+def _build_params(raw_params: dict, draft: bool = False) -> dict:
     """Build a substitution dict with sensible defaults for missing values."""
+    blank = _PLACEHOLDER_DRAFT if draft else _PLACEHOLDER_BLANK
     return {
-        'contractor_full_name': raw_params.get('contractor_full_name', _PLACEHOLDER_BLANK),
-        'contractor_cedula': raw_params.get('contractor_cedula', _PLACEHOLDER_BLANK),
-        'contractor_email': raw_params.get('contractor_email', _PLACEHOLDER_BLANK),
-        'bank_name': raw_params.get('bank_name', _PLACEHOLDER_BLANK),
+        'contractor_full_name': raw_params.get('contractor_full_name', blank),
+        'contractor_cedula': raw_params.get('contractor_cedula', blank),
+        'contractor_email': raw_params.get('contractor_email', blank),
+        'bank_name': raw_params.get('bank_name', blank),
         'bank_account_type': raw_params.get('bank_account_type', 'Ahorros'),
-        'bank_account_number': raw_params.get('bank_account_number', _PLACEHOLDER_BLANK),
+        'bank_account_number': raw_params.get('bank_account_number', blank),
         'contract_city': raw_params.get('contract_city', 'Medellín'),
-        'client_full_name': raw_params.get('client_full_name', _PLACEHOLDER_BLANK),
-        'client_cedula': raw_params.get('client_cedula', _PLACEHOLDER_BLANK),
-        'client_email': raw_params.get('client_email', _PLACEHOLDER_BLANK),
+        'client_full_name': raw_params.get('client_full_name', blank),
+        'client_cedula': raw_params.get('client_cedula', blank),
+        'client_email': raw_params.get('client_email', blank),
         'contract_date': raw_params.get('contract_date', ''),
     }
 
@@ -287,7 +289,7 @@ def generate_contract_pdf(proposal, draft=False) -> bytes | None:
     try:
         raw_params = getattr(proposal, 'contract_params', None) or {}
         source = raw_params.get('contract_source', 'default')
-        params = _build_params(raw_params)
+        params = _build_params(raw_params, draft=draft)
 
         sig_path = None
         if not draft:

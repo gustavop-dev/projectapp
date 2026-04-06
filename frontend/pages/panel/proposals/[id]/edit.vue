@@ -390,13 +390,13 @@
 
           <div class="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
             <button type="submit" :disabled="proposalStore.isUpdating"
-              class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
+              class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 hover:shadow-lg hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50">
               {{ proposalStore.isUpdating ? 'Guardando...' : 'Guardar Cambios' }}
             </button>
             <button
               v-if="proposal.status === 'draft' && proposal.client_email"
               type="button"
-              class="px-5 sm:px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
+              class="px-5 sm:px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-all shadow-md shadow-blue-100 hover:shadow-lg hover:shadow-blue-200 active:scale-[0.98]"
               @click="handleSend"
             >
               Enviar al Cliente
@@ -404,7 +404,7 @@
             <button
               v-else-if="['sent', 'viewed'].includes(proposal.status) && proposal.client_email"
               type="button"
-              class="px-5 sm:px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm"
+              class="px-5 sm:px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-all shadow-md shadow-blue-100 hover:shadow-lg hover:shadow-blue-200 active:scale-[0.98]"
               @click="handleResend"
             >
               Re-enviar al Cliente
@@ -413,7 +413,7 @@
             <button
               v-if="(proposal.available_transitions || []).includes('negotiating')"
               type="button"
-              class="px-5 sm:px-6 py-2.5 bg-amber-500 text-white rounded-xl font-medium text-sm hover:bg-amber-600 transition-colors shadow-sm"
+              class="px-5 sm:px-6 py-2.5 bg-amber-500 text-white rounded-xl font-medium text-sm hover:bg-amber-600 transition-all shadow-md shadow-amber-100 hover:shadow-lg hover:shadow-amber-200 active:scale-[0.98]"
               @click="openContractModal(false)"
             >
               Pasar a Negociación
@@ -421,7 +421,7 @@
             <button
               v-if="(proposal.available_transitions || []).includes('accepted')"
               type="button"
-              class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm"
+              class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 hover:shadow-lg hover:shadow-emerald-200 active:scale-[0.98]"
               @click="handleStatusChange('accepted')"
             >
               Aprobar
@@ -429,25 +429,20 @@
             <button
               v-if="(proposal.available_transitions || []).includes('rejected')"
               type="button"
-              class="px-4 py-2.5 bg-red-50 text-red-600 rounded-xl font-medium text-sm hover:bg-red-100 transition-colors"
+              class="px-4 py-2.5 bg-red-100 text-red-700 border border-red-200 rounded-xl font-medium text-sm hover:bg-red-200 hover:border-red-300 transition-all shadow-sm hover:shadow-md hover:shadow-red-100 active:scale-[0.98]"
               @click="handleStatusChange('rejected')"
             >
               Rechazar
             </button>
             <a :href="'/proposal/' + proposal.uuid + '?preview=1'" target="_blank"
-              class="text-sm text-gray-500 hover:text-emerald-600 transition-colors">
+              class="inline-flex items-center gap-1 text-sm text-gray-500 px-4 py-2.5 border border-gray-200 rounded-xl hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 transition-all active:scale-[0.98]">
               Preview →
             </a>
           </div>
         </form>
       </div>
 
-      <!-- Tab: Enviar correo (proposal email, logged as activity) -->
-      <div v-if="activeTab === 'send-email'" class="max-w-4xl">
-        <ProposalEmailsTab :proposal="proposal" mode="proposal" />
-      </div>
-
-      <!-- Tab: Correos (branded email) -->
+      <!-- Tab: Correos -->
       <div v-if="activeTab === 'emails'" class="max-w-4xl">
         <ProposalEmailsTab :proposal="proposal" />
       </div>
@@ -1077,7 +1072,7 @@ const sectionCompleteness = computed(() => {
   return Math.round(sectionsWithContent.value / enabledSectionsCount.value * 100);
 });
 
-const validTabs = ['general', 'send-email', 'emails', 'documents', 'sections', 'technical', 'prompt', 'json', 'activity', 'analytics'];
+const validTabs = ['general', 'emails', 'documents', 'sections', 'technical', 'prompt', 'json', 'activity', 'analytics'];
 const activeTab = ref(validTabs.includes(route.query.tab) ? route.query.tab : 'general');
 const technicalSubTab = ref('editor');
 const hasSendEmailTab = computed(() =>
@@ -1092,10 +1087,9 @@ const tabs = computed(() => {
     { id: 'general', label: 'General' },
   ];
   if (hasSendEmailTab.value) {
-    base.push({ id: 'send-email', label: 'Enviar correo' });
+    base.push({ id: 'emails', label: 'Correos' });
   }
   if (hasDocumentsTab.value) {
-    base.push({ id: 'emails', label: 'Correos' });
     base.push({ id: 'documents', label: 'Documentos' });
   }
   base.push(

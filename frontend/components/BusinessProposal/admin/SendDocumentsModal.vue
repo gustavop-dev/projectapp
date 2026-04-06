@@ -64,6 +64,12 @@
                   <div style="padding:32px 32px 20px;">
                     <div style="margin:0;color:#1f2937;font-size:20px;font-weight:600;white-space:pre-wrap;">{{ emailForm.greeting }}</div>
                     <div style="margin:14px 0 0;color:#4b5563;font-size:15px;line-height:1.6;white-space:pre-wrap;">{{ emailForm.body }}</div>
+                    <div v-if="showProposalUrl" style="margin:16px 0 0;">
+                      <a :href="proposal.public_url" target="_blank"
+                        style="display:inline-block;background-color:#059669;color:#ffffff;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;letter-spacing:0.01em;">
+                        Ver propuesta en línea →
+                      </a>
+                    </div>
                   </div>
 
                   <!-- Documents list card -->
@@ -183,7 +189,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 const DEFAULT_DESCRIPTIONS = {
   draft_contract: 'Contrato de desarrollo de software formalizado para el proyecto.',
@@ -240,6 +246,11 @@ function buildDescriptions() {
   }
   return descriptions;
 }
+
+const showProposalUrl = computed(() =>
+  (props.selectedMainDocs.includes('commercial') || props.selectedMainDocs.includes('technical'))
+  && !!props.proposal.public_url,
+);
 
 watch(() => props.visible, (val) => {
   if (val) {

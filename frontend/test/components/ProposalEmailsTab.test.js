@@ -8,22 +8,22 @@
  * rather than mounting Vue components.
  */
 
-// ── basePath logic (mirrors computed in component) ──────────────────────────
+// ── basePath logic (mirrors computed in component, driven by activeMode) ────
 
-function basePath(mode) {
-  return mode === 'proposal' ? 'proposal-email' : 'branded-email';
+function basePath(activeMode) {
+  return activeMode === 'proposal' ? 'proposal-email' : 'branded-email';
 }
 
 describe('basePath', () => {
-  it('returns proposal-email for proposal mode', () => {
+  it('returns proposal-email when activeMode is proposal', () => {
     expect(basePath('proposal')).toBe('proposal-email');
   });
 
-  it('returns branded-email for branded mode', () => {
+  it('returns branded-email when activeMode is branded', () => {
     expect(basePath('branded')).toBe('branded-email');
   });
 
-  it('returns branded-email for unknown mode', () => {
+  it('returns branded-email for unknown activeMode', () => {
     expect(basePath('something')).toBe('branded-email');
   });
 });

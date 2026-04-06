@@ -339,7 +339,8 @@
             </td>
             <td class="px-4 py-4 text-xs text-gray-400 tabular-nums">#{{ p.id }}</td>
             <td class="px-6 py-4">
-              <div class="text-sm text-gray-600 dark:text-gray-300">{{ p.client_name }}</div>
+              <div class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ p.client_name }}</div>
+              <div v-if="p.title" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">{{ p.title }}</div>
               <div v-if="p.client_phone" class="text-[10px] text-gray-400">📱 {{ p.client_phone }}</div>
             </td>
             <td class="px-6 py-4">
