@@ -185,19 +185,19 @@
         <div class="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
           <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Funnel de navegación</h3>
           <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Porcentaje de sesiones que alcanzaron cada sección</p>
-          <div class="flex gap-1 mt-3">
+          <div class="inline-flex mt-3 rounded-lg p-0.5 bg-gray-100 dark:bg-gray-700/60">
             <button
-              :class="['px-3 py-1 text-xs font-medium rounded-md transition-colors',
+              :class="['px-3 py-1 text-xs font-medium rounded-md transition-all',
                 funnelTab === 'exec_detail'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']"
+                  ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-300 shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']"
               @click="funnelTab = 'exec_detail'"
             >Executive & Detallado</button>
             <button
-              :class="['px-3 py-1 text-xs font-medium rounded-md transition-colors',
+              :class="['px-3 py-1 text-xs font-medium rounded-md transition-all',
                 funnelTab === 'technical'
-                  ? 'bg-teal-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']"
+                  ? 'bg-white dark:bg-gray-600 text-teal-600 dark:text-teal-300 shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']"
               @click="funnelTab = 'technical'"
             >Técnico</button>
           </div>
