@@ -7,16 +7,36 @@
         <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
-        <h3 class="text-sm font-semibold text-gray-800">{{ activeMode === 'proposal' ? 'Correo de propuesta' : 'Correo con branding' }}</h3>
+        <h3 class="text-sm font-semibold text-gray-800">{{ activeMode === 'proposal' ? 'Correo de seguimiento' : 'Correo general' }}</h3>
       </div>
 
       <!-- Mode switcher -->
-      <div class="flex gap-2 mb-4">
-        <button type="button" :class="modeButtonClass('proposal')" @click="activeMode = 'proposal'">
-          Propuesta
+      <div class="inline-flex items-center bg-gray-100 rounded-full p-0.5 mb-4 gap-0.5">
+        <button type="button"
+          :class="activeMode === 'proposal'
+            ? 'bg-emerald-600 text-white shadow-sm'
+            : 'text-gray-500 hover:text-gray-700'"
+          class="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200"
+          @click="activeMode = 'proposal'">
+          Seguimiento
+          <span
+            title="Registra el envío como actividad de la propuesta y actualiza la fecha de seguimiento del vendedor."
+            class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border text-[9px] font-bold cursor-help leading-none"
+            :class="activeMode === 'proposal' ? 'border-white/50 text-white/80' : 'border-gray-400 text-gray-400'"
+          >?</span>
         </button>
-        <button type="button" :class="modeButtonClass('branded')" @click="activeMode = 'branded'">
-          Branding
+        <button type="button"
+          :class="activeMode === 'branded'
+            ? 'bg-emerald-600 text-white shadow-sm'
+            : 'text-gray-500 hover:text-gray-700'"
+          class="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200"
+          @click="activeMode = 'branded'">
+          General
+          <span
+            title="Envío de marca genérico. No registra actividad ni afecta el seguimiento de la propuesta."
+            class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border text-[9px] font-bold cursor-help leading-none"
+            :class="activeMode === 'branded' ? 'border-white/50 text-white/80' : 'border-gray-400 text-gray-400'"
+          >?</span>
         </button>
       </div>
 

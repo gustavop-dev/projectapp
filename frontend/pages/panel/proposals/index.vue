@@ -200,7 +200,7 @@
         />
       </div>
       <div class="flex items-center gap-2 flex-wrap">
-        <FilterToggleButton :open="isFilterPanelOpen" :count="activeFilterCount" @click="toggleFilterPanel" />
+        <UiFilterToggleButton :open="isFilterPanelOpen" :count="activeFilterCount" @click="toggleFilterPanel" />
       </div>
     </div>
 

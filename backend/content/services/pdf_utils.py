@@ -278,6 +278,28 @@ def _md_wrap(text, chars_per_line):
                 continue
         i += 1
 
+    # Second pass: re-enforce width limit after bold-span rebalancing.
+    # Moving words between lines can make the receiving line exceed
+    # chars_per_line, causing text to overflow into sidebar regions.
+    j = 0
+    while j < len(lines):
+        vis_len = len(_MD_MARKER_RE.sub('', lines[j]))
+        if vis_len > chars_per_line:
+            words = lines[j].split(' ')
+            best = 0
+            acc = 0
+            for wi, w in enumerate(words):
+                wl = len(_MD_MARKER_RE.sub('', w))
+                acc = (acc + 1 + wl) if acc else wl
+                if acc <= chars_per_line:
+                    prefix = ' '.join(words[:wi + 1])
+                    if len(_DOUBLE_STAR.findall(prefix)) % 2 == 0:
+                        best = wi + 1
+            if 0 < best < len(words):
+                lines[j] = ' '.join(words[:best])
+                lines.insert(j + 1, ' '.join(words[best:]))
+        j += 1
+
     return lines or [text]
 
 

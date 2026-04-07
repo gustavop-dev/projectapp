@@ -27,7 +27,7 @@
         class="w-full sm:max-w-xs px-4 py-2.5 border border-gray-200 rounded-xl text-sm
                focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
       />
-      <FilterToggleButton :open="isFilterPanelOpen" :count="activeFilterCount" @click="toggleFilterPanel" />
+      <UiFilterToggleButton :open="isFilterPanelOpen" :count="activeFilterCount" @click="toggleFilterPanel" />
     </div>
 
     <!-- Filter panel -->
