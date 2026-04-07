@@ -3431,10 +3431,14 @@ def list_clients(request):
         )
     )
 
-    # Group by client key (email preferred, else name)
+    # Group by (email, name) compound key so two companies sharing the same
+    # contact email are kept as separate client entries.
     clients: dict = {}
     for p in proposals_qs:
-        key = (p['client_email'] or '').strip().lower() or p['client_name'].strip().lower()
+        key = (
+            (p['client_email'] or '').strip().lower(),
+            p['client_name'].strip().lower(),
+        )
         if key not in clients:
             clients[key] = {
                 'client_name': p['client_name'],
@@ -3444,11 +3448,12 @@ def list_clients(request):
         clients[key]['proposals'].append(p)
 
     result = []
-    for _key, client in clients.items():
+    for key, client in clients.items():
         props = client['proposals']
         statuses = [p['status'] for p in props]
         last = props[0]
         result.append({
+            'client_key': f"{key[0]}|{key[1]}",
             'client_name': client['client_name'],
             'client_email': client['client_email'],
             'total_proposals': len(props),
@@ -4233,10 +4238,10 @@ def send_documents_to_client(request, proposal_id):
     attachments = []
 
     if 'draft_contract' in doc_keys:
-        contract_doc = _get_contract_doc(proposal)
-        if contract_doc and contract_doc.file:
-            with contract_doc.file.open('rb') as f:
-                draft_bytes = add_watermark_to_pdf(f.read())
+        from content.services.contract_pdf_service import generate_contract_pdf
+        contract_bytes = generate_contract_pdf(proposal, draft=True)
+        if contract_bytes:
+            draft_bytes = add_watermark_to_pdf(contract_bytes)
             attachments.append((
                 safe_pdf_filename('Borrador_Contrato', client_title, date_str),
                 draft_bytes,

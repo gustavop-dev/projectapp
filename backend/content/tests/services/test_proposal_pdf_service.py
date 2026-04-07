@@ -803,6 +803,19 @@ class TestCleanInlineBold:
         """Text without bold markers passes through unchanged."""
         assert _clean_inline_bold('No bold here') == 'No bold here'
 
+    def test_removes_italic_markers(self):
+        """Single-asterisk italic markers are stripped."""
+        assert _clean_inline_bold('Use *italic* text') == 'Use italic text'
+
+    def test_removes_bold_italic_markers(self):
+        """Triple-asterisk bold-italic markers are stripped."""
+        assert _clean_inline_bold('Use ***bold-italic*** text') == 'Use bold-italic text'
+
+    def test_removes_mixed_markers(self):
+        """Bold, italic, and bold-italic markers all stripped in one pass."""
+        result = _clean_inline_bold('***A*** **B** *C* plain')
+        assert result == 'A B C plain'
+
 
 class TestSectionRenderersMap:
     def test_contains_all_12_section_types(self):

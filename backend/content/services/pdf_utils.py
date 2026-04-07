@@ -802,8 +802,12 @@ def _parse_markdown_lines(raw):
 
 
 def _clean_inline_bold(text):
-    """Strip **bold** markers from inline text for PDF rendering."""
-    return re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+    """Strip ***bold-italic***, **bold**, and *italic* markers for direct PDF rendering."""
+    # Longest patterns first — triple must be removed before double/single to avoid partial matches
+    text = re.sub(r'\*\*\*(.+?)\*\*\*', r'\1', text)
+    text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+    text = re.sub(r'\*(.+?)\*', r'\1', text)
+    return text
 
 
 # ─────────────────────────────────────────────────────────────

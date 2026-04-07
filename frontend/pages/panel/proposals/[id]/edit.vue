@@ -452,7 +452,7 @@
       </div>
 
       <!-- Tab: Correos -->
-      <div v-if="activeTab === 'emails'" class="max-w-4xl">
+      <div v-show="activeTab === 'emails'" class="max-w-4xl">
         <ProposalEmailsTab :proposal="proposal" />
       </div>
 

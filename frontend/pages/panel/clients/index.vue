@@ -32,7 +32,7 @@
     <div v-else class="space-y-3">
       <div
         v-for="client in filteredClients"
-        :key="client.client_email || client.client_name"
+        :key="client.client_key"
         class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
       >
         <!-- Client row header -->
@@ -72,7 +72,7 @@
             <!-- Expand chevron -->
             <svg
               class="w-4 h-4 text-gray-400 transition-transform flex-shrink-0"
-              :class="{ 'rotate-180': expandedClients.has(client.client_email || client.client_name) }"
+              :class="{ 'rotate-180': expandedClients.has(client.client_key) }"
               fill="none" stroke="currentColor" viewBox="0 0 24 24"
             >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -82,7 +82,7 @@
 
         <!-- Expanded: proposals list -->
         <div
-          v-if="expandedClients.has(client.client_email || client.client_name)"
+          v-if="expandedClients.has(client.client_key)"
           class="border-t border-gray-100"
         >
           <div class="overflow-x-auto">
@@ -174,7 +174,7 @@ onMounted(async () => {
 });
 
 function toggleClient(client) {
-  const key = client.client_email || client.client_name;
+  const key = client.client_key;
   if (expandedClients.value.has(key)) {
     expandedClients.value.delete(key);
   } else {
