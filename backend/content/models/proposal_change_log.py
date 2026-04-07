@@ -34,6 +34,7 @@ class ProposalChangeLog(models.Model):
         CALCULATOR_FOLLOWUP = 'calc_followup', 'Calculator Follow-up Sent'
         REQUIREMENT_CLICKED = 'req_clicked', 'Requirement Clicked'
         EMAIL_SENT = 'email_sent', 'Email Sent'
+        SELLER_INACTIVITY_ESCALATION = 'seller_inactivity_escalation', 'Seller Inactivity Escalation'
 
     class ActorType(models.TextChoices):
         CLIENT = 'client', 'Client'
@@ -46,7 +47,7 @@ class ProposalChangeLog(models.Model):
         related_name='change_logs',
     )
     change_type = models.CharField(
-        max_length=20,
+        max_length=30,
         choices=ChangeType.choices,
     )
     field_name = models.CharField(max_length=100, blank=True, default='')

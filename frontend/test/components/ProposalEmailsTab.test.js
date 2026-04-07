@@ -249,3 +249,30 @@ describe('defaultGreeting', () => {
     expect(defaultGreeting(null)).toBe('Hola');
   });
 });
+
+
+// ── Regression: edit.vue must explicitly import ProposalEmailsTab ───────────
+// Without this import, Nuxt resolves the component dynamically and renders nothing.
+// See: fix-correos-tab-empty-12c950
+
+const fs = require('fs');
+const path = require('path');
+
+describe('edit.vue ProposalEmailsTab import', () => {
+  const editVuePath = path.resolve(__dirname, '../../pages/panel/proposals/[id]/edit.vue');
+  let editVueContent;
+
+  beforeAll(() => {
+    editVueContent = fs.readFileSync(editVuePath, 'utf-8');
+  });
+
+  it('contains explicit import of ProposalEmailsTab', () => {
+    expect(editVueContent).toContain(
+      "import ProposalEmailsTab from '~/components/BusinessProposal/admin/ProposalEmailsTab.vue'",
+    );
+  });
+
+  it('uses ProposalEmailsTab in the template', () => {
+    expect(editVueContent).toContain('<ProposalEmailsTab');
+  });
+});

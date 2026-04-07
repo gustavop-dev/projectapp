@@ -1030,6 +1030,7 @@ import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/Technic
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
 import ProposalDocumentsTab from '~/components/BusinessProposal/admin/ProposalDocumentsTab.vue';
+import ProposalEmailsTab from '~/components/BusinessProposal/admin/ProposalEmailsTab.vue';
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';

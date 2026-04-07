@@ -326,17 +326,25 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
                                 font_size=6, padding_h=4, padding_v=2,
                             )
 
-                        # Description + config + flow (top-aligned; config/flujo lines fully bold)
+                        # Description + config + flow (top-aligned; config/flujo prefix bold only)
                         if all_desc_lines:
                             text_y = y - 9
                             c.setFillColor(ESMERALD_80)
                             dx = MARGIN_L + num_col_w + name_col_w + 6
                             for dl, bold_prefix in all_desc_lines:
-                                if bold_prefix:
+                                if bold_prefix and dl.startswith(bold_prefix):
                                     c.setFont(_font('bold'), 8)
+                                    c.setFillColor(ESMERALD_80)
+                                    c.drawString(dx, text_y, bold_prefix)
+                                    prefix_w = c.stringWidth(bold_prefix, _font('bold'), 8)
+                                    remainder = dl[len(bold_prefix):]
+                                    if remainder:
+                                        c.setFont(_font('regular'), 8)
+                                        c.drawString(dx + prefix_w, text_y, remainder)
                                 else:
                                     c.setFont(_font('regular'), 8)
-                                c.drawString(dx, text_y, dl)
+                                    c.setFillColor(ESMERALD_80)
+                                    c.drawString(dx, text_y, dl)
                                 text_y -= line_h
 
                         y = row_bottom

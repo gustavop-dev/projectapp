@@ -471,3 +471,179 @@ class TestDrawingHelpers:
         c.save()
 
         assert buf.getvalue()
+
+
+# ── _md_wrap bold-span integrity ──────────────────────────────
+
+class TestMdWrap:
+    def test_keeps_bold_span_on_same_line(self):
+        """A single **bold block** must not be split across lines."""
+        from content.services.pdf_utils import _md_wrap
+
+        text = (
+            'Arturo, esta propuesta se enfoca en el '
+            '**corazón financiero de Circular Bank**: '
+            'la wallet digital que convierte cada kilo.'
+        )
+        lines = _md_wrap(text, 55)
+
+        for i, line in enumerate(lines):
+            count = line.count('**')
+            assert count % 2 == 0, (
+                f'Line {i} has unbalanced ** markers: "{line}"'
+            )
+
+    def test_handles_multiple_bold_spans(self):
+        """Two **spans** in the same text both stay paired."""
+        from content.services.pdf_utils import _md_wrap
+
+        text = (
+            'El proceso será **colaborativo**: cada pantalla pasará por '
+            '**revisiones conjuntas** para que la experiencia sea clara.'
+        )
+        lines = _md_wrap(text, 55)
+
+        for i, line in enumerate(lines):
+            count = line.count('**')
+            assert count % 2 == 0, (
+                f'Line {i} has unbalanced ** markers: "{line}"'
+            )
+
+    def test_handles_bold_at_end_of_text(self):
+        """A **bold span** at the very end of the text stays paired."""
+        from content.services.pdf_utils import _md_wrap
+
+        text = (
+            'Cada pantalla será una co-creación, donde Arturo validará '
+            'que la experiencia refleje la misión de **convertir residuos en valor**.'
+        )
+        lines = _md_wrap(text, 55)
+
+        for i, line in enumerate(lines):
+            count = line.count('**')
+            assert count % 2 == 0, (
+                f'Line {i} has unbalanced ** markers: "{line}"'
+            )
+
+    def test_no_bold_wraps_normally(self):
+        """Text without markdown wraps like standard textwrap."""
+        import textwrap
+        from content.services.pdf_utils import _md_wrap
+
+        text = 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor.'
+        md_lines = _md_wrap(text, 40)
+        tw_lines = textwrap.wrap(text, width=40)
+
+        assert md_lines == tw_lines
+
+    def test_empty_input_returns_list(self):
+        """Empty string returns a single-element list."""
+        from content.services.pdf_utils import _md_wrap
+
+        result = _md_wrap('', 50)
+
+        assert result == ['']
+
+
+# ── _tokenize_inline ──────────────────────────────────────────
+
+class TestTokenizeInline:
+    def test_parses_bold_token(self):
+        """**text** produces a bold token."""
+        from content.services.pdf_utils import _tokenize_inline
+
+        tokens = _tokenize_inline('Hello **world** end')
+
+        bold_tokens = [t for t in tokens if t['type'] == 'bold']
+        assert len(bold_tokens) == 1
+        assert bold_tokens[0]['text'] == 'world'
+
+    def test_parses_mixed_tokens(self):
+        """Plain + bold + plain produces three tokens in order."""
+        from content.services.pdf_utils import _tokenize_inline
+
+        tokens = _tokenize_inline('before **mid** after')
+
+        assert len(tokens) == 3
+        assert tokens[0]['type'] == 'text'
+        assert tokens[1]['type'] == 'bold'
+        assert tokens[2]['type'] == 'text'
+
+    def test_no_markers_returns_single_text(self):
+        """Text without markdown markers returns a single text token."""
+        from content.services.pdf_utils import _tokenize_inline
+
+        tokens = _tokenize_inline('plain text here')
+
+        assert len(tokens) == 1
+        assert tokens[0]['type'] == 'text'
+        assert tokens[0]['text'] == 'plain text here'
+
+
+# ── _clean_inline_bold ────────────────────────────────────────
+
+class TestCleanInlineBold:
+    def test_strips_double_stars(self):
+        """**bold** markers are removed, leaving inner text."""
+        from content.services.pdf_utils import _clean_inline_bold
+
+        assert _clean_inline_bold('Hello **world** end') == 'Hello world end'
+
+    def test_strips_triple_stars(self):
+        """***bold-italic*** markers are removed."""
+        from content.services.pdf_utils import _clean_inline_bold
+
+        assert _clean_inline_bold('A ***bi*** Z') == 'A bi Z'
+
+
+# ── Integration: drawing functions with bold markdown ─────────
+
+class TestBoldMarkdownIntegration:
+    def setup_method(self):
+        from content.services.pdf_utils import _register_fonts
+        _register_fonts()
+
+    def test_draw_paragraphs_with_bold_text_renders(self):
+        """_draw_paragraphs with **bold** text produces valid PDF without error."""
+        from content.services.pdf_utils import _draw_paragraphs
+
+        c, buf = _make_canvas()
+        text = (
+            'Esta propuesta se enfoca en el **corazón financiero de Circular Bank**: '
+            'la wallet digital que convierte cada kilo de residuo gestionado en '
+            '**valor visible, trazable y retirable**.'
+        )
+        new_y = _draw_paragraphs(c, y=700, paragraphs=[text])
+        c.save()
+
+        assert new_y < 700
+        assert buf.getvalue()
+
+    def test_draw_table_with_bold_cell_renders(self):
+        """_draw_table with **bold** in a cell renders without error."""
+        from content.services.pdf_utils import _draw_table
+
+        c, buf = _make_canvas()
+        new_y = _draw_table(
+            c, y=700,
+            headers=['Feature', 'Description'],
+            rows=[['Wallet', 'El **corazón financiero** del proyecto con integración completa']],
+        )
+        c.save()
+
+        assert new_y < 700
+        assert buf.getvalue()
+
+    def test_draw_blockquote_with_bold_text_renders(self):
+        """_draw_blockquote with **bold** text renders without error."""
+        from content.services.pdf_utils import _draw_blockquote
+
+        c, buf = _make_canvas()
+        new_y = _draw_blockquote(
+            c, y=700,
+            text='La wallet es el **corazón financiero** de la plataforma.',
+        )
+        c.save()
+
+        assert new_y < 700
+        assert buf.getvalue()

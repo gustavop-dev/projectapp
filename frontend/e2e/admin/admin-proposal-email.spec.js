@@ -82,11 +82,7 @@ test.describe('Admin Proposal Email — Branded', () => {
     await expect(correosTab).toBeVisible({ timeout: 15000 });
   });
 
-  // TODO: ProposalEmailsTab component fails to mount in CI (vuedraggable chunk issue).
-  // The component never renders — confirmed via v-if, v-show, ?tab=emails, and
-  // waitForResponse on branded-email/defaults/ (onMounted API call never fires).
-  // Pre-existing issue from main: original test matched wrong element (hidden general tab input).
-  test.skip('branded email composer renders sections editor', {
+  test('branded email composer renders sections editor', {
     tag: [...ADMIN_SEND_BRANDED_EMAIL, '@role:admin'],
   }, async ({ page }) => {
     test.setTimeout(60_000);
@@ -122,8 +118,8 @@ test.describe('Admin Proposal Email — Proposal Mode', () => {
 
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
 
-    const sendEmailTab = page.getByRole('button', { name: /Enviar correo/i });
-    await expect(sendEmailTab).toBeVisible({ timeout: 15000 });
+    const correosTab = page.getByRole('button', { name: /Correos/i });
+    await expect(correosTab).toBeVisible({ timeout: 15000 });
   });
 
   test('proposal email tab is not visible for draft proposal', {
@@ -138,7 +134,7 @@ test.describe('Admin Proposal Email — Proposal Mode', () => {
     // Wait for the page to load by checking another element is visible
     await expect(page.locator('main')).toBeVisible({ timeout: 15000 });
 
-    const sendEmailTab = page.getByRole('button', { name: /Enviar correo/i });
-    await expect(sendEmailTab).toHaveCount(0);
+    const correosTab = page.getByRole('button', { name: /Correos/i });
+    await expect(correosTab).toHaveCount(0);
   });
 });

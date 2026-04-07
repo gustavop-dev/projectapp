@@ -313,7 +313,7 @@ def escalate_seller_inactivity():
 
         already_escalated = ProposalChangeLog.objects.filter(
             proposal=p,
-            change_type='seller_inactivity_escalation',
+            change_type=ProposalChangeLog.ChangeType.SELLER_INACTIVITY_ESCALATION,
         ).exists()
         if already_escalated:
             continue
@@ -323,7 +323,7 @@ def escalate_seller_inactivity():
             ProposalEmailService.send_seller_inactivity_escalation(p, days)
             ProposalChangeLog.objects.create(
                 proposal=p,
-                change_type='seller_inactivity_escalation',
+                change_type=ProposalChangeLog.ChangeType.SELLER_INACTIVITY_ESCALATION,
                 actor_type='system',
                 description=f'Seller inactivity escalation sent after {days} days.',
             )

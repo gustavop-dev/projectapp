@@ -244,6 +244,40 @@ def _md_wrap(text, chars_per_line):
             cur_len = (cur_len + 1 + word_len) if cur_len else word_len
     if cur:
         lines.append(' '.join(cur))
+    if not lines:
+        return [text]
+
+    # Post-process: fix bold spans split across lines.
+    # If a line has an odd number of ** markers, the bold span was split.
+    # Pull words from the next line (or push to it) to keep pairs together.
+    _DOUBLE_STAR = re.compile(r'\*{2}')
+    i = 0
+    while i < len(lines) - 1:
+        count = len(_DOUBLE_STAR.findall(lines[i]))
+        if count % 2 != 0:
+            # Odd ** count → an open bold span was split.
+            # Strategy: push the last word(s) containing the opening **
+            # from this line to the next line to reunite the pair.
+            src_words = lines[i].split(' ')
+            dst_words = lines[i + 1].split(' ')
+            # Find the rightmost word that opens a bold span (has **)
+            moved = []
+            while src_words:
+                w = src_words.pop()
+                moved.insert(0, w)
+                new_count = len(_DOUBLE_STAR.findall(' '.join(src_words)))
+                if new_count % 2 == 0:
+                    break
+            if src_words:
+                lines[i] = ' '.join(src_words)
+                lines[i + 1] = ' '.join(moved + dst_words)
+            else:
+                # All words moved → merge into next line, remove empty line
+                lines[i + 1] = ' '.join(moved + dst_words)
+                lines.pop(i)
+                continue
+        i += 1
+
     return lines or [text]
 
 
@@ -608,7 +642,7 @@ def _draw_bullet_list(c, y, items, x=None, max_width=None,
             child_chars = int((max_width - 18) / (font_size * 0.48))
             for child in children:
                 child_clean = _strip_emoji(str(child))
-                child_lines = textwrap.wrap(child_clean, width=child_chars - 4) or [child_clean]
+                child_lines = _md_wrap(child_clean, child_chars - 4)
                 for ci, cline in enumerate(child_lines):
                     if ps:
                         y = _check_y(c, y, ps)
@@ -872,7 +906,7 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None):
         for cell in row:
             clean = _strip_emoji(str(cell))
             chars = int((col_w - 2 * cell_pad_h) / (data_font_size * 0.48))
-            lines = textwrap.wrap(clean, width=max(chars, 10))
+            lines = _md_wrap(clean, max(chars, 10))
             max_lines = max(max_lines, len(lines) if lines else 1)
         row_h = max_lines * leading + 2 * cell_pad_v
 
@@ -896,7 +930,7 @@ def _draw_table(c, y, headers, rows, ps=None, max_width=None):
             cx = x_start + ci * col_w + cell_pad_h
             clean = _strip_emoji(str(cell))
             chars = int((col_w - 2 * cell_pad_h) / (data_font_size * 0.48))
-            lines = textwrap.wrap(clean, width=max(chars, 10)) or ['']
+            lines = _md_wrap(clean, max(chars, 10))
             ty = y - cell_pad_v - data_font_size + 2
             fn = _font('regular')
             for line in lines:
@@ -920,7 +954,7 @@ def _draw_blockquote(c, y, text, ps=None):
     accent_w = 3
     avail_w = CONTENT_W - 2 * pad - accent_w
     chars = int(avail_w / (font_size * 0.48))
-    lines = textwrap.wrap(clean, width=max(chars, 20))
+    lines = _md_wrap(clean, max(chars, 20))
     if not lines:
         lines = ['']
 
@@ -984,20 +1018,10 @@ def _draw_callout_box(c, y, text, style='note', ps=None):
 
     # Wrap text to calculate height
     text_w = CONTENT_W - bar_w - pad_x * 2
+    chars = max(int(text_w / (font_size * 0.48)), 20)
     wrapped_lines = []
     for raw_line in (text or '').split('\n'):
-        words = raw_line.split()
-        current = ''
-        for word in words:
-            test = (current + ' ' + word).strip()
-            if c.stringWidth(_strip_emoji(test), _font('regular'), font_size) <= text_w:
-                current = test
-            else:
-                if current:
-                    wrapped_lines.append(current)
-                current = word
-        if current:
-            wrapped_lines.append(current)
+        wrapped_lines.extend(_md_wrap(raw_line.strip(), chars) if raw_line.strip() else [''])
     if not wrapped_lines:
         wrapped_lines = ['']
 

@@ -705,7 +705,7 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
         value_w = c.stringWidth(total_str, _font('bold'), 11)
         label_w = c.stringWidth(label_str, _font('regular'), 8)
         badge_w = min(CONTENT_W, max(200, math.ceil(max(value_w, label_w)) + 40))
-        badge_h = 28
+        badge_h = 36
 
         # Truncate value text if it would overflow badge's inner width
         inner_w = badge_w - 24  # 12px left padding + 12px right guard
@@ -719,16 +719,27 @@ def _render_timeline(c, data, _proposal, ps=None, y=None):
                 else:
                     hi = mid - 1
             total_str = stripped[:lo] + '...'
+        # Truncate label too if it overflows
+        if label_w > inner_w:
+            lbl_stripped = label_str.rstrip()
+            lo, hi = 0, len(lbl_stripped)
+            while lo < hi:
+                mid = (lo + hi + 1) // 2
+                if c.stringWidth(lbl_stripped[:mid] + '...', _font('regular'), 8) <= inner_w:
+                    lo = mid
+                else:
+                    hi = mid - 1
+            label_str = lbl_stripped[:lo] + '...'
 
         c.setFillColor(BONE)
         c.roundRect(MARGIN_L, y - badge_h + 4, badge_w, badge_h,
                     4, fill=1, stroke=0)
         c.setFont(_font('regular'), 8)
         c.setFillColor(GRAY_500)
-        c.drawString(MARGIN_L + 12, y - 6, label_str)
+        c.drawString(MARGIN_L + 12, y - 8, label_str)
         c.setFont(_font('bold'), 11)
         c.setFillColor(ESMERALD)
-        c.drawString(MARGIN_L + 12, y - 19, total_str)
+        c.drawString(MARGIN_L + 12, y - 23, total_str)
         y -= badge_h + 12
 
     phases = _safe(data, 'phases', [])
