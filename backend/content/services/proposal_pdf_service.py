@@ -217,28 +217,42 @@ def _render_context_diagnostic(c, data, _proposal, ps=None, y=None):
 
     if issues:
         sb_h = _sidebar_box_height(issues)
-        left_h = _estimate_text_height(_safe(data, 'paragraphs', []), TEXT_AREA_W)
+        paragraphs = _safe(data, 'paragraphs', [])
+        para_h = _estimate_text_height(paragraphs, TEXT_AREA_W)
         opp = _safe(data, 'opportunity')
+        opp_title = _safe(data, 'opportunityTitle')
+        full_left_h = para_h
         if opp:
-            left_h += 30 + _estimate_text_height([opp], TEXT_AREA_W)
-        need = max(sb_h, left_h) + 20
-        has_room = (content_top - MARGIN_B) > need
-        if has_room:
+            full_left_h += 30 + _estimate_text_height([opp], TEXT_AREA_W)
+        avail = content_top - MARGIN_B
+
+        # Tier 1: full two-column (paragraphs + opportunity alongside sidebar)
+        full_need = max(sb_h, full_left_h) + 20
+        # Tier 2: partial two-column (paragraphs alongside sidebar,
+        #         opportunity rendered below at full width)
+        partial_need = max(sb_h, para_h) + 20
+
+        if avail > full_need:
             text_w = TEXT_AREA_W
-            y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []),
-                                 max_width=text_w, ps=ps)
-            opp_title = _safe(data, 'opportunityTitle')
-            opp = _safe(data, 'opportunity')
+            y = _draw_paragraphs(c, y, paragraphs, max_width=text_w, ps=ps)
             if opp:
                 y -= 6
                 y = _draw_subtitle(c, y, opp_title or 'La oportunidad', ps=ps)
                 y = _draw_paragraphs(c, y, [opp], max_width=text_w, ps=ps)
             sb = _draw_sidebar_box(c, content_top, issues_title, issues)
             y = min(y, sb - 8)
+        elif avail > partial_need:
+            text_w = TEXT_AREA_W
+            y = _draw_paragraphs(c, y, paragraphs, max_width=text_w, ps=ps)
+            sb = _draw_sidebar_box(c, content_top, issues_title, issues)
+            y = min(y, sb - 8)
+            if opp:
+                y -= 6
+                y = _draw_subtitle(c, y, opp_title or 'La oportunidad', ps=ps)
+                y = _draw_paragraphs(c, y, [opp], ps=ps)
         else:
-            y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []), ps=ps)
-            opp_title = _safe(data, 'opportunityTitle')
-            opp = _safe(data, 'opportunity')
+            # Tier 3: linear fallback — everything full-width
+            y = _draw_paragraphs(c, y, paragraphs, ps=ps)
             if opp:
                 y -= 6
                 y = _draw_subtitle(c, y, opp_title or 'La oportunidad', ps=ps)
@@ -345,25 +359,40 @@ def _render_creative_support(c, data, _proposal, ps=None, y=None):
 
     if includes:
         sb_h = _sidebar_box_height(includes)
-        left_h = _estimate_text_height(_safe(data, 'paragraphs', []), TEXT_AREA_W)
+        paragraphs = _safe(data, 'paragraphs', [])
+        para_h = _estimate_text_height(paragraphs, TEXT_AREA_W)
         closing = _safe(data, 'closing')
+        full_left_h = para_h
         if closing:
-            left_h += _estimate_text_height([closing], TEXT_AREA_W)
-        need = max(sb_h, left_h) + 20
-        has_room = (content_top - MARGIN_B) > need
-        if has_room:
-            y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []),
+            full_left_h += _estimate_text_height([closing], TEXT_AREA_W)
+        avail = content_top - MARGIN_B
+
+        # Tier 1: full two-column (paragraphs + closing alongside sidebar)
+        full_need = max(sb_h, full_left_h) + 20
+        # Tier 2: partial two-column (paragraphs alongside sidebar,
+        #         closing rendered below at full width)
+        partial_need = max(sb_h, para_h) + 20
+
+        if avail > full_need:
+            y = _draw_paragraphs(c, y, paragraphs,
                                  max_width=TEXT_AREA_W, ps=ps)
-            closing = _safe(data, 'closing')
             if closing:
                 y -= 6
                 y = _draw_paragraphs(c, y, [closing], max_width=TEXT_AREA_W,
                                      ps=ps)
             sb = _draw_sidebar_box(c, content_top, inc_title, includes)
             y = min(y, sb - 8)
+        elif avail > partial_need:
+            y = _draw_paragraphs(c, y, paragraphs,
+                                 max_width=TEXT_AREA_W, ps=ps)
+            sb = _draw_sidebar_box(c, content_top, inc_title, includes)
+            y = min(y, sb - 8)
+            if closing:
+                y -= 6
+                y = _draw_paragraphs(c, y, [closing], ps=ps)
         else:
-            y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []), ps=ps)
-            closing = _safe(data, 'closing')
+            # Tier 3: linear fallback — everything full-width
+            y = _draw_paragraphs(c, y, paragraphs, ps=ps)
             if closing:
                 y -= 6
                 y = _draw_paragraphs(c, y, [closing], ps=ps)
