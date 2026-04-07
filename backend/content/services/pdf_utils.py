@@ -249,18 +249,43 @@ def _md_wrap(text, chars_per_line):
 
     # Post-process: fix bold spans split across lines.
     # If a line has an odd number of ** markers, the bold span was split.
-    # Pull words from the next line (or push to it) to keep pairs together.
+    # Strategy: try PULLING the closing ** from the next line first (keeps
+    # the current line full); fall back to PUSHING the opening ** to the
+    # next line when pulling would exceed chars_per_line.
     _DOUBLE_STAR = re.compile(r'\*{2}')
     i = 0
     while i < len(lines) - 1:
         count = len(_DOUBLE_STAR.findall(lines[i]))
         if count % 2 != 0:
-            # Odd ** count → an open bold span was split.
-            # Strategy: push the last word(s) containing the opening **
-            # from this line to the next line to reunite the pair.
+            # ── Try PULL first: pull words from next line until balanced ──
+            dst_words = lines[i + 1].split(' ')
+            pulled = 0
+            pull_ok = False
+            for dw_idx in range(len(dst_words)):
+                candidate = lines[i] + ' ' + ' '.join(dst_words[:dw_idx + 1])
+                cand_vis = len(_MD_MARKER_RE.sub('', candidate))
+                if cand_vis > chars_per_line:
+                    break  # would exceed width
+                cand_count = len(_DOUBLE_STAR.findall(candidate))
+                pulled = dw_idx + 1
+                if cand_count % 2 == 0:
+                    pull_ok = True
+                    break
+
+            if pull_ok and pulled > 0:
+                lines[i] = lines[i] + ' ' + ' '.join(dst_words[:pulled])
+                remaining = dst_words[pulled:]
+                if remaining:
+                    lines[i + 1] = ' '.join(remaining)
+                else:
+                    lines.pop(i + 1)
+                    continue
+                i += 1
+                continue
+
+            # ── Fall back to PUSH: move opening ** words to next line ──
             src_words = lines[i].split(' ')
             dst_words = lines[i + 1].split(' ')
-            # Find the rightmost word that opens a bold span (has **)
             moved = []
             while src_words:
                 w = src_words.pop()
@@ -297,7 +322,18 @@ def _md_wrap(text, chars_per_line):
                         best = wi + 1
             if 0 < best < len(words):
                 lines[j] = ' '.join(words[:best])
-                lines.insert(j + 1, ' '.join(words[best:]))
+                overflow = ' '.join(words[best:])
+                # Try to merge short overflow with next line if combined fits
+                if j + 1 < len(lines):
+                    candidate = overflow + ' ' + lines[j + 1]
+                    cand_vis = len(_MD_MARKER_RE.sub('', candidate))
+                    cand_stars = len(_DOUBLE_STAR.findall(candidate))
+                    if cand_vis <= chars_per_line and cand_stars % 2 == 0:
+                        lines[j + 1] = candidate
+                    else:
+                        lines.insert(j + 1, overflow)
+                else:
+                    lines.insert(j + 1, overflow)
         j += 1
 
     return lines or [text]
@@ -611,6 +647,20 @@ def _draw_paragraphs(c, y, paragraphs, max_width=None, font_size=10,
             y -= leading
         y -= 5
     return y
+
+
+def _estimate_text_height(paragraphs, max_width=None, font_size=10, leading=15):
+    """Pre-estimate vertical height for wrapped paragraphs without drawing."""
+    if max_width is None:
+        max_width = CONTENT_W
+    chars = int(max_width / (font_size * 0.48))
+    total = 0
+    for para in (paragraphs or []):
+        if not para:
+            continue
+        clean, _links = _replace_urls_with_placeholders(_strip_emoji(str(para)))
+        total += len(_md_wrap(clean, chars)) * leading + 5
+    return total
 
 
 def _draw_bullet_list(c, y, items, x=None, max_width=None,

@@ -74,6 +74,7 @@ from content.services.pdf_utils import (  # noqa: F401 — re-exported
     _draw_footer,
     _draw_section_header,
     _draw_paragraphs,
+    _estimate_text_height,
     _draw_bullet_list,
     _sidebar_box_height,
     _draw_sidebar_box,
@@ -186,7 +187,9 @@ def _render_executive_summary(c, data, _proposal, ps=None, y=None):
 
     if highlights:
         sb_h = _sidebar_box_height(highlights)
-        has_room = (content_top - MARGIN_B) > max(200, sb_h + 20)
+        text_h = _estimate_text_height(paragraphs, TEXT_AREA_W)
+        need = max(sb_h, text_h) + 20
+        has_room = (content_top - MARGIN_B) > need
         if has_room:
             y = _draw_paragraphs(c, y, paragraphs, max_width=TEXT_AREA_W, ps=ps)
             sb = _draw_sidebar_box(c, content_top, hl_title, highlights)
@@ -214,7 +217,12 @@ def _render_context_diagnostic(c, data, _proposal, ps=None, y=None):
 
     if issues:
         sb_h = _sidebar_box_height(issues)
-        has_room = (content_top - MARGIN_B) > max(200, sb_h + 20)
+        left_h = _estimate_text_height(_safe(data, 'paragraphs', []), TEXT_AREA_W)
+        opp = _safe(data, 'opportunity')
+        if opp:
+            left_h += 30 + _estimate_text_height([opp], TEXT_AREA_W)
+        need = max(sb_h, left_h) + 20
+        has_room = (content_top - MARGIN_B) > need
         if has_room:
             text_w = TEXT_AREA_W
             y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []),
@@ -336,7 +344,13 @@ def _render_creative_support(c, data, _proposal, ps=None, y=None):
     content_top = y
 
     if includes:
-        has_room = (content_top - MARGIN_B) > 200
+        sb_h = _sidebar_box_height(includes)
+        left_h = _estimate_text_height(_safe(data, 'paragraphs', []), TEXT_AREA_W)
+        closing = _safe(data, 'closing')
+        if closing:
+            left_h += _estimate_text_height([closing], TEXT_AREA_W)
+        need = max(sb_h, left_h) + 20
+        has_room = (content_top - MARGIN_B) > need
         if has_room:
             y = _draw_paragraphs(c, y, _safe(data, 'paragraphs', []),
                                  max_width=TEXT_AREA_W, ps=ps)
