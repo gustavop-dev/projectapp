@@ -665,7 +665,7 @@ def _draw_sidebar_box(c, y_start, title, items, sidebar_x=None,
     c.setFillColor(ESMERALD_80)
     chars = int(sw / 5.2)
     for item in (items or []):
-        text = _strip_emoji(str(item))
+        text = _clean_inline_bold(_strip_emoji(str(item)))
         lines = textwrap.wrap(text, width=chars)
         for j, line in enumerate(lines):
             prefix = '\u2022  ' if j == 0 else '    '
@@ -682,7 +682,7 @@ def _draw_subtitle(c, y, text, color=ESMERALD, ps=None):
         y = _check_y(c, y, ps, need=24)
     c.setFont(_font('bold'), 12)
     c.setFillColor(color)
-    c.drawString(MARGIN_L, y, _strip_emoji(str(text)))
+    c.drawString(MARGIN_L, y, _clean_inline_bold(_strip_emoji(str(text))))
     return y - 18
 
 

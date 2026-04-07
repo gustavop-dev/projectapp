@@ -27,20 +27,7 @@
         class="w-full sm:max-w-xs px-4 py-2.5 border border-gray-200 rounded-xl text-sm
                focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
       />
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap"
-        :class="hasActiveFilters
-          ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
-          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'"
-        @click="toggleFilterPanel"
-      >
-        Filtros
-        <span
-          v-if="activeFilterCount > 0"
-          class="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold bg-white text-emerald-600"
-        >{{ activeFilterCount }}</span>
-      </button>
+      <FilterToggleButton :open="isFilterPanelOpen" :count="activeFilterCount" @click="toggleFilterPanel" />
     </div>
 
     <!-- Filter panel -->
