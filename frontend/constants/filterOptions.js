@@ -1,0 +1,68 @@
+export const proposalStatusOptions = [
+  { value: 'draft', label: 'Borrador' },
+  { value: 'sent', label: 'Enviadas' },
+  { value: 'viewed', label: 'Vistas' },
+  { value: 'accepted', label: 'Aceptadas' },
+  { value: 'rejected', label: 'Rechazadas' },
+  { value: 'negotiating', label: 'Negociando' },
+  { value: 'expired', label: 'Expiradas' },
+];
+
+export const projectTypeOptions = [
+  { value: 'website', label: 'Sitio Web' },
+  { value: 'ecommerce', label: 'E-commerce' },
+  { value: 'webapp', label: 'Aplicación Web' },
+  { value: 'landing', label: 'Landing Page' },
+  { value: 'redesign', label: 'Rediseño' },
+  { value: 'mobile_app', label: 'App Móvil' },
+  { value: 'branding', label: 'Branding' },
+  { value: 'cms', label: 'Sistema CMS' },
+  { value: 'portal', label: 'Portal / Intranet' },
+  { value: 'api_integration', label: 'Integración de APIs' },
+  { value: 'marketplace', label: 'Marketplace' },
+  { value: 'erp', label: 'Sistema ERP' },
+  { value: 'booking', label: 'Sistema de Reservas' },
+  { value: 'dashboard', label: 'Dashboard / Reportes' },
+  { value: 'crm', label: 'Sistema CRM' },
+  { value: 'saas', label: 'SaaS / Plataforma' },
+  { value: 'chatbot', label: 'Chatbot / IA' },
+  { value: 'ai_tool', label: 'Herramienta con IA' },
+  { value: 'automation', label: 'Automatización' },
+  { value: 'data_analytics', label: 'Analítica de Datos' },
+  { value: 'plugin_extension', label: 'Plugin / Extensión' },
+  { value: 'other', label: 'Otro' },
+];
+
+export const marketTypeOptions = [
+  { value: 'b2b', label: 'B2B' },
+  { value: 'b2c', label: 'B2C' },
+  { value: 'saas', label: 'SaaS' },
+  { value: 'retail', label: 'Retail' },
+  { value: 'services', label: 'Servicios profesionales' },
+  { value: 'health', label: 'Salud' },
+  { value: 'education', label: 'Educación' },
+  { value: 'real_estate', label: 'Inmobiliaria' },
+  { value: 'fintech', label: 'Fintech' },
+  { value: 'restaurant', label: 'Restaurantes' },
+  { value: 'tourism', label: 'Turismo' },
+  { value: 'logistics', label: 'Logística' },
+  { value: 'sports', label: 'Deportes' },
+  { value: 'legal', label: 'Servicios Legales' },
+  { value: 'construction', label: 'Construcción' },
+  { value: 'media', label: 'Medios' },
+  { value: 'ngo', label: 'ONG / Sector Público' },
+  { value: 'agriculture', label: 'Agro' },
+  { value: 'tech', label: 'Tecnología' },
+  { value: 'consulting', label: 'Consultoría' },
+  { value: 'automotive', label: 'Automotriz' },
+  { value: 'fashion', label: 'Moda' },
+  { value: 'beauty', label: 'Belleza' },
+  { value: 'manufacturing', label: 'Manufactura' },
+  { value: 'energy', label: 'Energía' },
+  { value: 'gaming', label: 'Gaming' },
+  { value: 'other', label: 'Otro' },
+];
+
+export const proposalStatusLabelMap = Object.fromEntries(proposalStatusOptions.map((o) => [o.value, o.label]));
+export const projectTypeLabelMap = Object.fromEntries(projectTypeOptions.map((o) => [o.value, o.label]));
+export const marketTypeLabelMap = Object.fromEntries(marketTypeOptions.map((o) => [o.value, o.label]));

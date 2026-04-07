@@ -7,8 +7,19 @@
       </div>
     </div>
 
-    <!-- Search -->
-    <div class="mb-5">
+    <!-- Saved filter tabs -->
+    <ProposalFilterTabs
+      :tabs="savedTabs"
+      :active-tab-id="activeTabId"
+      :is-tab-limit-reached="isTabLimitReached"
+      @select="selectTab"
+      @create="handleCreateTab"
+      @rename="renameTab"
+      @delete="deleteTab"
+    />
+
+    <!-- Search + Filter toggle -->
+    <div class="flex items-center gap-2 mb-5">
       <input
         v-model="search"
         type="text"
@@ -16,7 +27,30 @@
         class="w-full sm:max-w-xs px-4 py-2.5 border border-gray-200 rounded-xl text-sm
                focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
       />
+      <button
+        type="button"
+        class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap"
+        :class="hasActiveFilters
+          ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
+          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'"
+        @click="toggleFilterPanel"
+      >
+        Filtros
+        <span
+          v-if="activeFilterCount > 0"
+          class="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold bg-white text-emerald-600"
+        >{{ activeFilterCount }}</span>
+      </button>
     </div>
+
+    <!-- Filter panel -->
+    <ClientFilterPanel
+      :model-value="currentFilters"
+      :is-open="isFilterPanelOpen"
+      :filter-count="activeFilterCount"
+      @update:model-value="Object.assign(currentFilters, $event)"
+      @reset="handleResetFilters"
+    />
 
     <!-- Loading -->
     <div v-if="loading" class="text-center py-16 text-gray-400 text-sm">
@@ -25,7 +59,7 @@
 
     <!-- Empty -->
     <div v-else-if="filteredClients.length === 0" class="text-center py-16 text-gray-400 text-sm">
-      {{ search ? 'No se encontraron clientes con ese término.' : 'No hay clientes aún.' }}
+      {{ search || hasActiveFilters ? 'No se encontraron clientes con ese criterio.' : 'No hay clientes aún.' }}
     </div>
 
     <!-- Client list -->
@@ -144,6 +178,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useClientFilters } from '~/composables/useClientFilters';
+import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
+import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -155,11 +192,27 @@ const loading = ref(true);
 const search = ref('');
 const expandedClients = ref(new Set());
 
+const {
+  currentFilters,
+  savedTabs,
+  activeTabId,
+  isFilterPanelOpen,
+  hasActiveFilters,
+  activeFilterCount,
+  isTabLimitReached,
+  applyFilters,
+  resetFilters,
+  selectTab,
+  saveTab,
+  deleteTab,
+  renameTab,
+} = useClientFilters();
+
 const filteredClients = computed(() => {
-  if (!search.value.trim()) return clients.value;
-  const q = search.value.toLowerCase();
-  return clients.value.filter(
+  const q = search.value.trim().toLowerCase();
+  return applyFilters(clients.value).filter(
     (c) =>
+      !q ||
       c.client_name.toLowerCase().includes(q) ||
       c.client_email.toLowerCase().includes(q),
   );
@@ -172,6 +225,20 @@ onMounted(async () => {
   }
   loading.value = false;
 });
+
+function toggleFilterPanel() {
+  isFilterPanelOpen.value = !isFilterPanelOpen.value;
+}
+
+function handleCreateTab(name) {
+  saveTab(name);
+  isFilterPanelOpen.value = true;
+}
+
+function handleResetFilters() {
+  resetFilters();
+  isFilterPanelOpen.value = false;
+}
 
 function toggleClient(client) {
   const key = client.client_key;

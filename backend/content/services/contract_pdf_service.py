@@ -60,8 +60,28 @@ _CONTRACT_BODY_LEADING = 15
 
 
 def _build_params(raw_params: dict, draft: bool = False) -> dict:
-    """Build a substitution dict with sensible defaults for missing values."""
-    blank = _PLACEHOLDER_DRAFT if draft else _PLACEHOLDER_BLANK
+    """Build a substitution dict with sensible defaults for missing values.
+
+    When draft=True all fields are replaced with XXX-XXX-XXX regardless of
+    what is stored in contract_params, so no sensitive data is exposed in
+    draft PDFs sent or downloaded for client review.
+    """
+    if draft:
+        blank = _PLACEHOLDER_DRAFT
+        return {
+            'contractor_full_name': blank,
+            'contractor_cedula': blank,
+            'contractor_email': blank,
+            'bank_name': blank,
+            'bank_account_type': blank,
+            'bank_account_number': blank,
+            'contract_city': blank,
+            'client_full_name': blank,
+            'client_cedula': blank,
+            'client_email': blank,
+            'contract_date': blank,
+        }
+    blank = _PLACEHOLDER_BLANK
     return {
         'contractor_full_name': raw_params.get('contractor_full_name', blank),
         'contractor_cedula': raw_params.get('contractor_cedula', blank),

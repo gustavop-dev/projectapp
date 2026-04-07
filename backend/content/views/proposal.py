@@ -3425,6 +3425,7 @@ def list_clients(request):
         .values(
             'id', 'uuid', 'title', 'client_name', 'client_email',
             'status', 'total_investment', 'currency',
+            'project_type', 'market_type',
             'sent_at', 'created_at', 'responded_at',
             'rejection_reason', 'rejection_comment',
             'view_count', 'expires_at',
@@ -3468,6 +3469,8 @@ def list_clients(request):
                     'uuid': str(p['uuid']),
                     'title': p['title'],
                     'status': p['status'],
+                    'project_type': p['project_type'] or '',
+                    'market_type': p['market_type'] or '',
                     'total_investment': str(p['total_investment']),
                     'currency': p['currency'],
                     'view_count': p['view_count'],
