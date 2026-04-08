@@ -188,3 +188,8 @@ export const ADMIN_BLOG_LINKEDIN_PUBLISH = ['@flow:admin-blog-linkedin-publish',
 // ── v2.13.0 Legal pages ──
 export const PUBLIC_PRIVACY_POLICY = ['@flow:public-privacy-policy', '@module:public', '@priority:P4'];
 export const PUBLIC_TERMS_CONDITIONS = ['@flow:public-terms-conditions', '@module:public', '@priority:P4'];
+
+// ── v2.14.0 Audit flows ──
+export const ADMIN_STANDALONE_EMAIL_COMPOSER = ['@flow:admin-standalone-email-composer', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_ADVANCED_FILTERS = ['@flow:admin-proposal-advanced-filters', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH = ['@flow:admin-proposal-dashboard-auto-refresh', '@module:admin', '@priority:P3'];

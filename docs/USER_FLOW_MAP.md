@@ -568,8 +568,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Tab limit] When 12 tabs exist, "+" button is disabled with tooltip.
   - [Branch B — Mobile] Tab bar collapses to `<select>` dropdown below `md` breakpoint.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-proposal-advanced-filters.spec.js`
+- **Coverage:** ❌ Missing
+- **E2E Spec:** (spec not yet created)
 
 ### FLOW: `admin-proposal-create`
 
@@ -2679,6 +2679,28 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-email.spec.js`
 
+#### FLOW: `admin-standalone-email-composer`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/emails`
+- **Description:** Admin composes and sends branded emails from the standalone Emails page (not tied to any proposal). Draggable sections, file attachments, branded preview, and paginated email history. Uses dedicated standalone endpoints distinct from proposal-scoped email flows.
+- **Steps:**
+  1. Admin navigates to `/panel/emails` via sidebar navigation.
+  2. Composer loads with defaults from `GET /api/emails/defaults/`.
+  3. Admin fills recipient email, subject, greeting, draggable body sections, and footer.
+  4. Optionally attaches files.
+  5. Admin previews email in branded template preview tab.
+  6. Admin clicks "Enviar" → `POST /api/emails/send/`.
+  7. Success message renders; email history updates.
+  8. Admin views paginated email history from `GET /api/emails/history/`.
+- **Branches:**
+  - [Branch A — Empty recipient] Send button disabled when recipient email is empty.
+  - [Branch B — File limits] Attachment validation enforces type and size limits.
+- **Coverage:** ❌ Missing
+- **E2E Spec:** (spec not yet created)
+
 ---
 
 ### 10.4 New Flows Coverage Index
@@ -2692,6 +2714,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-documents-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-documents-send.spec.js` |
 | `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `admin-send-proposal-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
+| `admin-standalone-email-composer` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-standalone-email-composer.spec.js` |
 
 ---
 
@@ -2758,6 +2781,6 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 |---------|--------|------|----------|--------|----------------|
 | `admin-blog-linkedin-connect` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-linkedin.spec.js` |
 | `admin-blog-linkedin-publish` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-linkedin.spec.js` |
-| `admin-proposal-advanced-filters` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-advanced-filters.spec.js` |
+| `admin-proposal-advanced-filters` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-proposal-advanced-filters.spec.js` |
 | `public-privacy-policy` | public | guest | P4 | ✅ Covered | `e2e/public/public-privacy-policy.spec.js` |
 | `public-terms-conditions` | public | guest | P4 | ✅ Covered | `e2e/public/public-terms-conditions.spec.js` |

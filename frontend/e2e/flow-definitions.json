@@ -1,6 +1,6 @@
 {
-  "version": "2.13.0",
-  "lastUpdated": "2026-04-05",
+  "version": "2.14.0",
+  "lastUpdated": "2026-04-08",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1216,6 +1216,22 @@
       "roles": ["admin"],
       "priority": "P2",
       "description": "Admin fills LinkedIn summary (ES or EN, ≤1300 chars), selects language, clicks 'Publicar en LinkedIn' → POST /api/blog/admin/:id/publish-linkedin/. Success message renders. Publish button disabled when summary is empty. Last publish timestamp shown after success.",
+      "expectedSpecs": 1
+    },
+    "admin-standalone-email-composer": {
+      "name": "Admin Standalone Email Composer",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin composes and sends branded emails from /panel/emails (not tied to a proposal). Draggable sections, file attachments, branded preview, paginated email history. Uses standalone endpoints: emails/send/, emails/defaults/, emails/history/.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-advanced-filters": {
+      "name": "Admin Proposal Advanced Filters",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Filter proposals using custom saved tabs, status/type/market dropdowns, date range, and text search. Tab bar with add/rename/delete, URL deep-linking via ?tab=<tabId>.",
       "expectedSpecs": 1
     }
   }

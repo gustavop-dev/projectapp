@@ -7,6 +7,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
+import { ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH } from '../helpers/flow-tags.js';
 
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
 
@@ -35,7 +36,7 @@ test.describe('Admin Proposal Dashboard Auto-Refresh', () => {
   });
 
   test('dashboard toggle shows KPI cards with metrics', {
-    tag: ['@flow:admin-proposal-dashboard-auto-refresh', '@module:admin', '@priority:P3', '@role:admin'],
+    tag: [...ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -56,7 +57,7 @@ test.describe('Admin Proposal Dashboard Auto-Refresh', () => {
   });
 
   test('clicking "Actualizar" refreshes dashboard data', {
-    tag: ['@flow:admin-proposal-dashboard-auto-refresh', '@module:admin', '@priority:P3', '@role:admin'],
+    tag: [...ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH, '@role:admin'],
   }, async ({ page }) => {
     let dashboardCalls = 0;
 
