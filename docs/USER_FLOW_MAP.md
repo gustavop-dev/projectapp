@@ -568,8 +568,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Tab limit] When 12 tabs exist, "+" button is disabled with tooltip.
   - [Branch B — Mobile] Tab bar collapses to `<select>` dropdown below `md` breakpoint.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** (spec not yet created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-advanced-filters.spec.js`
 
 ### FLOW: `admin-proposal-create`
 
@@ -2698,8 +2698,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Empty recipient] Send button disabled when recipient email is empty.
   - [Branch B — File limits] Attachment validation enforces type and size limits.
-- **Coverage:** ❌ Missing
-- **E2E Spec:** (spec not yet created)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-standalone-email-composer.spec.js`
 
 ---
 
@@ -2714,7 +2714,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-documents-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-documents-send.spec.js` |
 | `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `admin-send-proposal-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
-| `admin-standalone-email-composer` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-standalone-email-composer.spec.js` |
+| `admin-standalone-email-composer` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-standalone-email-composer.spec.js` |
 
 ---
 
@@ -2781,6 +2781,6 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 |---------|--------|------|----------|--------|----------------|
 | `admin-blog-linkedin-connect` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-linkedin.spec.js` |
 | `admin-blog-linkedin-publish` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-linkedin.spec.js` |
-| `admin-proposal-advanced-filters` | admin | admin | P2 | ❌ Missing | `e2e/admin/admin-proposal-advanced-filters.spec.js` |
+| `admin-proposal-advanced-filters` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-advanced-filters.spec.js` |
 | `public-privacy-policy` | public | guest | P4 | ✅ Covered | `e2e/public/public-privacy-policy.spec.js` |
 | `public-terms-conditions` | public | guest | P4 | ✅ Covered | `e2e/public/public-terms-conditions.spec.js` |
