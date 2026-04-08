@@ -178,7 +178,7 @@ function setupUnifiedDeliverablesMocks(page, { user, deliverables = mockDelivera
     if (apiPath === 'accounts/projects/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProject, mockProject2]) };
     }
-    if (apiPath.match(/^accounts\/deliverables\//) && method === 'GET') {
+    if (apiPath.startsWith('accounts/deliverables/') && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(deliverables) };
     }
     if (apiPath === 'accounts/notifications/unread-count/' && method === 'GET') {
