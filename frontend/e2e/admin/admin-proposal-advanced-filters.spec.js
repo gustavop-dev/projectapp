@@ -77,11 +77,13 @@ test.describe('Admin Proposal Advanced Filters', () => {
     const filterButton = page.getByRole('button', { name: 'Filtros', exact: true });
     await expect(filterButton).toBeVisible();
 
+    // Open filter panel
     await filterButton.click();
     await expect(page.getByText('Clasificación')).toBeVisible();
     await expect(page.getByText('Valores', { exact: true })).toBeVisible();
     await expect(page.getByText('Fechas')).toBeVisible();
 
+    // Close filter panel
     await filterButton.click();
     await expect(page.getByText('Clasificación')).not.toBeVisible();
   });
@@ -93,13 +95,27 @@ test.describe('Admin Proposal Advanced Filters', () => {
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: 'Propuestas' })).toBeVisible({ timeout: 20_000 });
 
+    // Open filters
     await page.getByRole('button', { name: 'Filtros', exact: true }).click();
     await expect(page.getByText('Clasificación')).toBeVisible();
 
+    // Filter dropdowns visible
     await expect(page.getByRole('button', { name: /estado/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /tipo de proyecto/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /mercado/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /moneda/i })).toBeVisible();
+  });
+
+  test('all proposals visible before any filter is applied', {
+    tag: [...ADMIN_PROPOSAL_ADVANCED_FILTERS, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildMockHandler());
+    await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Propuestas' })).toBeVisible({ timeout: 20_000 });
+
+    await expect(page.getByText('Alpha Corp')).toBeVisible();
+    await expect(page.getByText('Beta Inc')).toBeVisible();
+    await expect(page.getByText('Gamma LLC')).toBeVisible();
   });
 
   test('Todas tab is active by default and shows all proposals', {
@@ -113,6 +129,15 @@ test.describe('Admin Proposal Advanced Filters', () => {
     await expect(page.getByText('Alpha Corp')).toBeVisible();
     await expect(page.getByText('Beta Inc')).toBeVisible();
     await expect(page.getByText('Gamma LLC')).toBeVisible();
+  });
+
+  test('renders proposals table with all 3 mock proposals', {
+    tag: [...ADMIN_PROPOSAL_ADVANCED_FILTERS, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildMockHandler());
+    await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Propuestas' })).toBeVisible({ timeout: 20_000 });
+
     await expect(page.getByText('Propuesta E-commerce')).toBeVisible();
     await expect(page.getByText('Propuesta SaaS')).toBeVisible();
     await expect(page.getByText('Propuesta Web App')).toBeVisible();

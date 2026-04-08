@@ -139,7 +139,7 @@ function setupUnifiedBugsMocks(page, { user, bugs = mockBugsCrossProject }) {
     if (apiPath === 'accounts/projects/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProject, mockProject2]) };
     }
-    if (apiPath.startsWith('accounts/bug-reports/') && method === 'GET') {
+    if (apiPath.match(/^accounts\/bug-reports\//) && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(bugs) };
     }
     if (apiPath === 'accounts/notifications/unread-count/' && method === 'GET') {
