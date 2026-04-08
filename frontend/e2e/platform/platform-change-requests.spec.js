@@ -137,7 +137,7 @@ function setupUnifiedChangesMocks(page, { user, crs = mockCRsCrossProject }) {
     if (apiPath === 'accounts/projects/' && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProject, mockProject2]) };
     }
-    if (apiPath.startsWith('accounts/change-requests/') && method === 'GET') {
+    if (apiPath.match(/^accounts\/change-requests\//) && method === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(crs) };
     }
     if (apiPath === 'accounts/notifications/unread-count/' && method === 'GET') {
