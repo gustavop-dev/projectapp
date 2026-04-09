@@ -4,9 +4,8 @@
 
 ### Codex Runtime Surfaces
 - **Primary instructions**: `AGENTS.md` (root scope) + `backend/AGENTS.md` + `frontend/AGENTS.md`
-- **Codex skills plugin**: `plugins/projectapp-codex/skills/`
-- **Plugin registration (repo-local)**: `.agents/plugins/marketplace.json`
-- **Plugin manifest**: `plugins/projectapp-codex/.codex-plugin/plugin.json`
+- **Skills (canonical)**: `.agents/skills/<skill>/SKILL.md` + `agents/openai.yaml`
+- **Project config**: `.codex/config.toml`
 
 - **Name**: ProjectApp
 - **Domain**: `projectapp.co` / `www.projectapp.co`
@@ -339,7 +338,7 @@ flowchart TD
     Root --> Docs[docs/]
     Root --> Tasks[tasks/]
     Root --> Scripts[scripts/]
-    Root --> CodexSkills[plugins/projectapp-codex/skills/]
+    Root --> AgentSkills[.agents/skills/]
     Root --> GitHub[.github/workflows/]
 
     Backend --> BContent[content/ — Django app]
@@ -357,7 +356,7 @@ flowchart TD
     Tasks --> ActiveCtx[active_context.md]
     Tasks --> TasksPlan[tasks_plan.md]
 
-    CodexSkills --> SkillSet[plan, implement, debug, deploy, git-commit, etc.]
+    AgentSkills --> SkillSet[plan, implement, debug, deploy-and-check, git-commit, etc.]
 ```
 
 ---

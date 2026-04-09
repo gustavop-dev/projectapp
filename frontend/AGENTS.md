@@ -7,6 +7,8 @@ You are an expert in TypeScript, Node.js, NuxtJS, Vue 3, Shadcn Vue, Radix Vue, 
 ### Code Style and Structure
 - Write concise, technical TypeScript code with accurate examples.
 - Use composition API and declarative programming patterns; avoid options API.
+
+> **ProjectApp override**: Pinia stores in this project use the Options API pattern (`state`, `getters`, `actions`). Do NOT convert to Composition API (`setup()`) style unless explicitly asked.
 - Prefer iteration and modularization over code duplication.
 - Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError).
 - Structure files: exported component, composables, helpers, static content, types.

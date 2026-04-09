@@ -70,9 +70,9 @@ ProjectApp uses a Codex-first methodology and automation stack:
   - `AGENTS.md`
   - `backend/AGENTS.md`
   - `frontend/AGENTS.md`
-- Repo-local plugin registry: `.agents/plugins/marketplace.json`
-- Plugin manifest: `plugins/projectapp-codex/.codex-plugin/plugin.json`
-- Skills runtime: `plugins/projectapp-codex/skills/*`
+- Native repo skills: `.agents/skills/*`
+- Project config: `.codex/config.toml`
+- Compatibility surfaces: `CLAUDE.md`, `backend/CLAUDE.md`, `frontend/CLAUDE.md`, `.claude/`, `.windsurf/`
 
 Main references:
 

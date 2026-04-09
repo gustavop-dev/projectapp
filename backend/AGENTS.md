@@ -13,6 +13,8 @@ You are an expert in Python, Django, and scalable web application development.
 
 ### Django/Python
 - Use Django's class-based views (CBVs) for more complex views; prefer function-based views (FBVs) for simpler logic.
+
+> **ProjectApp override**: ALL DRF views in this project are function-based views with `@api_view` decorator. Never use CBVs/APIView unless explicitly requested.
 - Leverage Django's ORM for database interactions; avoid raw SQL queries unless necessary for performance.
 - Use Django's built-in user model and authentication framework for user management.
 - Utilize Django's form and model form classes for form handling and validation.
@@ -86,6 +88,8 @@ api/
 
 ### Views and API Design
 - Use Class-Based Views: Leverage Django's CBVs with DRF's APIViews (unless project convention is FBV)
+
+> **ProjectApp override**: ALL DRF views in this project are function-based views with `@api_view` decorator. Never use CBVs/APIView unless explicitly requested.
 - RESTful Design: Follow RESTful principles strictly with proper HTTP methods and status codes
 - Keep Views Light: Focus views on request handling; keep business logic in models, managers, and services
 - Consistent Response Format: Use unified response structure for both success and error cases
