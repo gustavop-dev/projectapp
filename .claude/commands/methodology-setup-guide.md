@@ -17,5 +17,6 @@ Claude compatibility remains available through:
 If you change a recurring workflow, update the native Codex skill first and mirror it into `.claude/` only when Claude users still need it.
 
 Canonical docs:
-- `docs/codex-ecosystem-methodology-guide.md`
-- `docs/codex-setup.md`
+- `docs/CODEX_METHODOLOGY_GUIDE.md`
+- `docs/CODEX_SETUP.md`
+- `docs/CODEX_MIGRATION_MAP.md`

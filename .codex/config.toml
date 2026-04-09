@@ -1,7 +1,7 @@
 # Project-scoped Codex defaults for ProjectApp.
 # Keep this file small and stable.
 
-approval_policy = "full-auto"
+approval_policy = "never"
 sandbox_mode = "workspace-write"
 model = "gpt-5.4"
 model_reasoning_effort = "high"

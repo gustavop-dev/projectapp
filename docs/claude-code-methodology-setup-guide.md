@@ -27,4 +27,4 @@ If a reusable workflow changes:
 - Codex canonical diagnosis workflow: `debug`
 - Legacy alias still tolerated: `debugme`
 
-For active Codex usage, use `docs/codex-ecosystem-methodology-guide.md` and `docs/codex-setup.md`.
+For active Codex usage, see `docs/CODEX_METHODOLOGY_GUIDE.md`, `docs/CODEX_SETUP.md`, and `docs/CODEX_MIGRATION_MAP.md`.

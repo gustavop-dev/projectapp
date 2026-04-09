@@ -10,7 +10,7 @@ Custom Software Development Company — full-stack web application with a dynami
 | **Frontend** | Nuxt 3, Pinia (Options API), TailwindCSS, GSAP |
 | **Task Queue** | Huey + Redis |
 | **Email** | SMTP via GoDaddy (`team@projectapp.co`) |
-| **Auth** | Django session + CSRF tokens (no JWT) |
+| **Auth** | Django session + CSRF (`/panel/`), JWT via SimpleJWT (`/platform/`) |
 | **Deployment** | Gunicorn + Nginx, systemd services |
 
 ---
@@ -28,8 +28,8 @@ cd projectapp
 
 ```bash
 cd backend
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 python3 manage.py migrate
 python3 manage.py createsuperuser
@@ -39,6 +39,7 @@ python3 manage.py create_fake_data 5
 ### 3. Start the backend server
 
 ```bash
+source .venv/bin/activate
 python3 manage.py runserver
 ```
 
@@ -76,8 +77,9 @@ ProjectApp uses a Codex-first methodology and automation stack:
 
 Main references:
 
-- Full guide: `docs/codex-ecosystem-methodology-guide.md`
-- Quickstart: `docs/codex-setup.md`
+- Methodology guide: `docs/CODEX_METHODOLOGY_GUIDE.md`
+- Setup & activation: `docs/CODEX_SETUP.md`
+- Migration history: `docs/CODEX_MIGRATION_MAP.md`
 
 Workflow naming policy:
 

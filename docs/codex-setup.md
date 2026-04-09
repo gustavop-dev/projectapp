@@ -1,6 +1,6 @@
 # Codex Setup For ProjectApp
 
-Full guide: `docs/codex-ecosystem-methodology-guide.md`
+Full guide: `docs/CODEX_METHODOLOGY_GUIDE.md`
 
 ## Runtime Surfaces
 - Always-on instructions:

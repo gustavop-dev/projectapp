@@ -67,11 +67,12 @@ npm run dev                             # http://localhost:3000
   - `AGENTS.md`
   - `backend/AGENTS.md`
   - `frontend/AGENTS.md`
-- Plugin registry: `.agents/plugins/marketplace.json`
-- Plugin manifest: `plugins/projectapp-codex/.codex-plugin/plugin.json`
-- Skills runtime: `plugins/projectapp-codex/skills/*`
-- Canonical guide: `docs/codex-ecosystem-methodology-guide.md`
-- Quickstart: `docs/codex-setup.md`
+- Native repo skills: `.agents/skills/*`
+- Project config: `.codex/config.toml`
+- Methodology guide: `docs/CODEX_METHODOLOGY_GUIDE.md`
+- Setup & activation: `docs/CODEX_SETUP.md`
+- Migration history: `docs/CODEX_MIGRATION_MAP.md`
+- Compatibility surfaces: `CLAUDE.md`, `backend/CLAUDE.md`, `frontend/CLAUDE.md`, `.claude/`, `.windsurf/`
 - Naming policy: `debug` is canonical; `debugme` remains as legacy alias
 
 ### Task Queue (for async features)
@@ -164,7 +165,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 ### Backend Patterns
 
 - **Function-based views** (`@api_view`) — all DRF views are FBV, not class-based
-- **Service layer** — business logic in `content/services/` (ProposalService, ProposalEmailService, ProposalPdfService, ProposalStageTracker, ContractPdfService, EmailTemplateRegistry, PdfUtils, DocumentPdfService, MarkdownParser, CollectionAccountService, CollectionAccountPdfService, TechnicalDocumentPdf, TechnicalDocumentFilter, PlatformOnboardingPdf). Services are class-based with `@classmethod` static methods (matching `ProposalEmailService`).
+- **Service layer** — business logic in `content/services/` (ProposalService, ProposalEmailService, ProposalPdfService, ProposalStageTracker, ContractPdfService, EmailTemplateRegistry, PdfUtils, DocumentPdfService, MarkdownParser, CollectionAccountService, CollectionAccountPdfService, TechnicalDocumentPdf, TechnicalDocumentFilter, PlatformOnboardingPdf) and in `accounts/services/` (`onboarding`, `proposal_client_service`). Services are class-based with `@classmethod` static methods (matching `ProposalEmailService`), or function modules for stateless flows. `proposal_client_service` is the silent variant of `accounts/services/onboarding.create_client` — same User+UserProfile shape but **never sends invitation emails**, so the proposal admin panel can create/reuse clients without triggering platform onboarding.
 - **Model layer** — thin models with properties (`is_expired`, `days_remaining`, `public_url`)
 - **Huey tasks** — async operations: reminders, expiration, engagement-based emails, project-stage deadline scans
 - **Custom admin site** — `content/admin.py` with custom `AdminSite` class
