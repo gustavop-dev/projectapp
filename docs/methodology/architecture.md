@@ -143,7 +143,7 @@ erDiagram
 
 | Model | Purpose | Key Fields |
 |-------|---------|------------|
-| **BusinessProposal** | Core proposal entity | uuid, title, client_name, client_email, status, total_investment, currency, language, expires_at, view_count, cached_heat_score |
+| **BusinessProposal** | Core proposal entity | uuid, title, **client (FK→accounts.UserProfile, PROTECT)**, client_name (snapshot), client_email (snapshot), client_phone (snapshot), status, total_investment, currency, language, expires_at, view_count, cached_heat_score. Snapshots are write-through, kept in sync via `proposal_client_service.sync_snapshot()`. |
 | **ProposalSection** | Individual section within a proposal | proposal_fk, section_type (12 types), title, order, is_enabled, content_json, is_wide_panel |
 | **ProposalRequirementGroup** | Functional requirements group | proposal_fk, group_id, title, description, order |
 | **ProposalRequirementItem** | Individual requirement item | group_fk, name, description, icon |
@@ -519,12 +519,13 @@ flowchart LR
 ### Proposal Creation → Client View → Close
 
 1. Admin creates proposal via `/panel/proposals/create` (or JSON import)
-2. 12 sections auto-generated with default content per language
-3. Admin edits sections via `/panel/proposals/{id}/edit`
-4. Admin clicks "Send" → email sent to client + admin notification + reminders scheduled
-5. Client opens unique link `/proposal/{uuid}`
-6. Frontend loads GSAP horizontal-scroll experience with all enabled sections
-7. Engagement tracked: view events, section time, session ID
-8. Automated emails triggered based on behavior (reminder, urgency, abandonment, etc.)
-9. Client responds: accept / reject (with reason) / negotiate / comment
-10. Admin monitors via dashboard, alerts, analytics, scorecard
+2. Admin selects an existing client from `<ClientAutocomplete>` (or types a new one). Backend resolves the client via `proposal_client_service.get_or_create_client_for_proposal()` — case-insensitive dedup by `User.email`, never hijacks admin accounts. Empty emails get a placeholder `cliente_<id>@temp.example.com` (RFC 2606 reserved TLD) generated via two-step save, which automatically pauses every email automation for that proposal until a real address is entered.
+3. 12 sections auto-generated with default content per language
+4. Admin edits sections via `/panel/proposals/{id}/edit` (client picker also available there; can be swapped or its profile updated via the propagate-changes checkbox which cascades the snapshot to every other linked proposal)
+5. Admin clicks "Send" → email sent to client + admin notification + reminders scheduled (skipped silently if client email is a placeholder)
+6. Client opens unique link `/proposal/{uuid}`
+7. Frontend loads GSAP horizontal-scroll experience with all enabled sections
+8. Engagement tracked: view events, section time, session ID
+9. Automated emails triggered based on behavior (reminder, urgency, abandonment, etc.) — every client-facing send checks `_is_unsendable_client_email()` first, so placeholder accounts never receive mail
+10. Client responds: accept / reject (with reason) / negotiate / comment. Acceptance fires `ProposalEmailService.send_acceptance_confirmation()` to the client (this branch was added 2026-04-09 — see ERR-007).
+11. Admin monitors via dashboard, alerts, analytics, scorecard. Orphan clients (zero proposals, zero projects) can be cleaned up from `/panel/clients` Huérfanos tab.

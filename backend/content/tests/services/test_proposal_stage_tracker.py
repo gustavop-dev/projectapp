@@ -280,3 +280,88 @@ class TestProcessStageOverdue:
             change_type='stage_overdue_sent',
         )
         assert log.actor_type == 'system'
+
+
+# ──────────────────────────────────────────────────────────────────────
+# maybe_reset_warning_on_date_change — view-triggered reset helper
+# ──────────────────────────────────────────────────────────────────────
+
+@freeze_time(FROZEN)
+class TestMaybeResetWarningOnDateChange:
+    """
+    The admin can extend `end_date` after the first 70% warning fired.
+    When the new dates put elapsed% below 70%, `warning_sent_at` is
+    cleared so the daily task can fire again at the new threshold.
+    """
+
+    def test_returns_false_when_warning_never_sent(self, accepted_proposal):
+        stage = _make_stage(
+            accepted_proposal,
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 4, 30),
+        )
+        assert ProposalStageTracker.maybe_reset_warning_on_date_change(stage) is False
+        stage.refresh_from_db()
+        assert stage.warning_sent_at is None
+
+    def test_returns_false_when_dates_missing(self, accepted_proposal):
+        stage = _make_stage(
+            accepted_proposal,
+            warning_sent_at=timezone.now() - timedelta(days=1),
+        )
+        assert ProposalStageTracker.maybe_reset_warning_on_date_change(stage) is False
+        stage.refresh_from_db()
+        assert stage.warning_sent_at is not None
+
+    def test_returns_false_when_invalid_range(self, accepted_proposal):
+        stage = _make_stage(
+            accepted_proposal,
+            start_date=date(2026, 4, 20),
+            end_date=date(2026, 4, 10),
+            warning_sent_at=timezone.now() - timedelta(days=1),
+        )
+        assert ProposalStageTracker.maybe_reset_warning_on_date_change(stage) is False
+        stage.refresh_from_db()
+        assert stage.warning_sent_at is not None
+
+    def test_returns_false_when_elapsed_still_above_threshold(self, accepted_proposal):
+        # start=Apr 1, end=Apr 11, today=Apr 9 → 8/10 = 80% elapsed
+        # Admin barely tweaked end_date — elapsed% still ≥ 70.
+        warning_ts = timezone.now() - timedelta(days=1)
+        stage = _make_stage(
+            accepted_proposal,
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 4, 11),
+            warning_sent_at=warning_ts,
+        )
+        assert ProposalStageTracker.maybe_reset_warning_on_date_change(stage) is False
+        stage.refresh_from_db()
+        assert stage.warning_sent_at == warning_ts
+
+    def test_returns_true_and_clears_warning_when_end_date_extended(self, accepted_proposal):
+        # Original timeline had fired the warning. Admin extends end_date
+        # from Apr 11 to May 30: elapsed = Apr 9 - Apr 1 = 8 days,
+        # total = 59 days → 13.5% elapsed (well below 70%).
+        stage = _make_stage(
+            accepted_proposal,
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 5, 30),
+            warning_sent_at=timezone.now() - timedelta(days=1),
+        )
+        assert ProposalStageTracker.maybe_reset_warning_on_date_change(stage) is True
+        stage.refresh_from_db()
+        assert stage.warning_sent_at is None
+
+    def test_reset_does_not_clear_last_overdue_reminder_at(self, accepted_proposal):
+        overdue_ts = timezone.now() - timedelta(days=2)
+        stage = _make_stage(
+            accepted_proposal,
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 5, 30),
+            warning_sent_at=timezone.now() - timedelta(days=1),
+            last_overdue_reminder_at=overdue_ts,
+        )
+        ProposalStageTracker.maybe_reset_warning_on_date_change(stage)
+        stage.refresh_from_db()
+        assert stage.warning_sent_at is None
+        assert stage.last_overdue_reminder_at == overdue_ts

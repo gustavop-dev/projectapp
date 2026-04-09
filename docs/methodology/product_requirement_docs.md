@@ -81,9 +81,9 @@ DRAFT → SENT → VIEWED → ACCEPTED
 
 - **Dashboard** (`/panel/`): total proposals, status counts, heat scores, recent proposals, alerts
 - **Proposals list** (`/panel/proposals/`): table with title, client, status badge, investment, expiry, views, bulk actions
-- **Create** (`/panel/proposals/create`): form with all metadata + JSON import option
+- **Create** (`/panel/proposals/create`): form with all metadata + JSON import option. Client identity is selected via `<ClientAutocomplete>` (searchable dropdown over `accounts.UserProfile` with `role='client'`); typing a brand-new name + email auto-creates a real `UserProfile` row, and an empty email gets a placeholder `cliente_<id>@temp.example.com` that pauses every email automation for that proposal.
 - **Edit** (`/panel/proposals/{id}/edit`): Tabs depending on proposal status:
-  - **General** — metadata + send button
+  - **General** — metadata + same `<ClientAutocomplete>` picker + write-through snapshot fields + propagate-changes-to-profile checkbox + send button
   - **Correos** (sent+ statuses) — branded email composer
   - **Documentos** (negotiating/accepted/rejected) — contracts + uploaded annexes
   - **Cronograma** (accepted/finished) — project stage scheduling (design + development dates, mark-as-completed, status badges)
@@ -92,7 +92,7 @@ DRAFT → SENT → VIEWED → ACCEPTED
 - **Defaults** (`/panel/proposals/defaults`): manage default section templates per language
 - **Email templates** (`/panel/proposals/email-templates`): view/edit/preview/reset email content
 - **Email deliverability** (`/panel/proposals/email-deliverability`): dashboard tracking email send/delivery/bounce rates
-- **Clients list** (`/panel/clients/`): unique clients extracted from proposals
+- **Clients list** (`/panel/clients/`): real `UserProfile` (role=client) entities. Tabs (Todos / Activos / Huérfanos), live search, "+ Nuevo cliente" modal for standalone creation (no invitation email sent — that path is reserved for the platform onboarding flow). Orphan clients (zero proposals + zero platform projects) are deletable via a trash icon gated through `requestConfirm`. Each row expands lazily to load the client's full proposal history. Replaced the legacy "synthetic clients grouped by `(name, email)`" implementation on 2026-04-09.
 
 #### Project Schedule Tracking (Cronograma)
 
@@ -101,7 +101,7 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - **Two stages per accepted proposal**: `design` and `development`. Empty rows are auto-created when the proposal becomes `accepted` via the platform onboarding flow.
 - **Per-stage fields**: `start_date`, `end_date`, `completed_at`, `warning_sent_at`, `last_overdue_reminder_at`. The model lives at `backend/content/models/proposal_project_stage.py`.
 - **Manual date entry**: Admins fill in `start_date` and `end_date` from the new "Cronograma" tab in the proposal edit page (`frontend/components/BusinessProposal/admin/ProjectScheduleEditor.vue`). We do NOT auto-derive dates from the free-text `timeline` section.
-- **70%-elapsed warning email**: The daily Huey task `notify_proposal_stage_deadlines` (08:30 Bogotá) sends a warning email when ≥70% of `(end_date - start_date)` has elapsed. Sent at most once per stage (gated by `warning_sent_at`).
+- **70%-elapsed warning email**: The daily Huey task `notify_proposal_stage_deadlines` (08:30 Bogotá) sends a warning email when ≥70% of `(end_date - start_date)` has elapsed. Gated per stage by `warning_sent_at`. **Re-fires after date extension**: when the admin updates `end_date` (or `start_date`) and the new timeline drops elapsed% back below 70%, `update_project_stage` calls `ProposalStageTracker.maybe_reset_warning_on_date_change` to clear `warning_sent_at`; the daily task then fires again once the new 70% mark is crossed.
 - **Overdue reminders**: When `today > end_date`, sends a reminder email immediately and then repeats every 3 days until the admin marks the stage as completed (gated by `last_overdue_reminder_at`).
 - **Mark as completed**: A button per stage in the Cronograma tab. Sets `completed_at = now()` and clears the alert timestamps. Silences all future emails for that stage.
 - **Time format**: Both warning and overdue messages format remaining/overdue time as `"hoy"`, `"1 día"`, `"6 días"`, `"1 semana"`, `"1 semana 5 días"`, `"2 semanas"` (semanas if ≥7 days, días if less, mixed when needed). Logic in `ProposalStageTracker.format_remaining_time` (Python) and `useStageStatus.formatRemainingTime` (JS, kept in sync via parallel test cases).
@@ -259,4 +259,4 @@ Building on the base Platform (auth, projects, kanban), these modules extend cli
 9. Share links track independent view counts from main proposal views
 10. Change logs record full audit trail of proposal lifecycle events
 11. **Project stage notifications**: Stage rows are admin-managed (not auto-derived from JSON timeline). Warning fires once at 70% elapsed; overdue alert fires immediately when `today > end_date` and repeats every 3 days until `completed_at` is set. All day-level arithmetic uses Bogotá time (`today_bogota()` from `content/utils.py`). Internal team recipients live in `NOTIFICATION_EMAIL` CSV.
-12. **Proposal client identity** (in-progress branch): `BusinessProposal.client` is a FK to `accounts.UserProfile` (real client entity). Legacy denormalized fields `client_name`/`client_email`/`client_phone` are kept as write-through snapshots, synced via `proposal_client_service.sync_snapshot()`.
+12. **Proposal client identity**: `BusinessProposal.client` is a FK to `accounts.UserProfile` filtered to `role='client'` (`on_delete=PROTECT`). Legacy denormalized fields `client_name` / `client_email` / `client_phone` are kept as write-through snapshots, synced via `proposal_client_service.sync_snapshot()` after every FK assignment. Empty client emails get a placeholder `cliente_<profile_id>@temp.example.com` (RFC 2606 reserved TLD) generated via two-step save. Clients with placeholder emails are excluded from **all 13 client-facing email methods** in `ProposalEmailService` and from the 4 huey reminder/urgency/abandonment tasks via `_is_unsendable_client_email(email)`. Two candidate-selection querysets (`abandonment_candidates`, `interest_candidates`) also exclude placeholders directly via `.exclude(client_email__iendswith=UserProfile.PLACEHOLDER_EMAIL_DOMAIN)`. Shipped 2026-04-09.

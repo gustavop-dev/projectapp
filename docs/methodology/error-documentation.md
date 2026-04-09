@@ -89,3 +89,16 @@ This file tracks known errors, their context, and resolutions. When a reusable f
   - `frontend/stores/proposals.js:_mergeProjectStage`
   - `frontend/components/BusinessProposal/admin/ProjectScheduleEditor.vue`
 - **Lesson**: When updating nested arrays in a Pinia store consumed by Vue components, mutate by index — do not spread + reassign the parent object. See `lessons-learned.md` § Pinia Reactivity for the rule.
+
+### [ERR-007] respond_to_proposal omitía send_acceptance_confirmation
+- **Date**: 2026-04-09
+- **Context**: The public endpoint `POST /api/proposals/<uuid>/respond/` with `action='accepted'` was not sending the acceptance confirmation email to the client, even though the docstring of `respond_to_proposal` explicitly promised it. Pre-existing test `TestRespondReengagement.test_acceptance_sends_confirmation_email` was already in the working tree but was failing — this surfaced when running the full proposal test slice during Phase A of the real-client-entity feature.
+- **Root Cause**: `backend/content/views/proposal.py:respond_to_proposal` had branches for `action == 'rejected'` (sends `send_rejection_thank_you` + schedules re-engagement) and `action == 'negotiating'` (sends `send_negotiation_notification` + `send_negotiation_confirmation`), but **no branch for `accepted`**. The view always called `send_response_notification` (internal team alert) regardless of action, but the client-facing acceptance confirmation was never wired in.
+- **Resolution**: Added the missing branch:
+  ```python
+  elif action == 'accepted':
+      ProposalEmailService.send_acceptance_confirmation(proposal)
+  ```
+  Right after the existing `negotiating` branch in `respond_to_proposal`. Verified by re-running the failing test plus the full `TestRespondReengagement` class (4/4 green).
+- **Files Affected**: `backend/content/views/proposal.py:respond_to_proposal`
+- **Lesson**: When a docstring describes a side effect, write a test that asserts the side effect AND wire the side effect into the code. Tests-and-docstring drift is the most common silent regression source.

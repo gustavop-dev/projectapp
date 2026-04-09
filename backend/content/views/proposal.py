@@ -5162,6 +5162,8 @@ def update_project_stage(request, proposal_id, stage_key):
     serializer.is_valid(raise_exception=True)
     serializer.save()
 
+    ProposalStageTracker.maybe_reset_warning_on_date_change(stage)
+
     ProposalChangeLog.objects.create(
         proposal=proposal,
         change_type=ProposalChangeLog.ChangeType.UPDATED,

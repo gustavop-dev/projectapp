@@ -196,3 +196,10 @@ export const ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH = ['@flow:admin-proposal-dash
 
 // ── Project schedule (Cronograma) ──
 export const ADMIN_PROPOSAL_PROJECT_SCHEDULE = ['@flow:admin-proposal-project-schedule', '@module:admin', '@priority:P1'];
+
+// ── Real client entity (proposal mini-CRM) ──
+export const ADMIN_CLIENT_CREATE_STANDALONE = ['@flow:admin-client-create-standalone', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENT_DELETE_ORPHAN = ['@flow:admin-client-delete-orphan', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENT_DELETE_PROTECTED = ['@flow:admin-client-delete-protected', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_CLIENT_AUTOCOMPLETE = ['@flow:admin-proposal-client-autocomplete', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_CLIENT_NO_EMAIL = ['@flow:admin-proposal-client-no-email', '@module:admin', '@priority:P2'];

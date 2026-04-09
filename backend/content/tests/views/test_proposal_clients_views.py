@@ -296,3 +296,94 @@ class TestProposalCreateWithClientId:
         assert response.status_code == 201
         proposal = BusinessProposal.objects.get(pk=response.data['id'])
         assert proposal.client.is_email_placeholder is True
+
+
+# ---------------------------------------------------------------------------
+# Edge cases — proposal/client lifecycle interactions
+# ---------------------------------------------------------------------------
+
+class TestProposalUpdatePropagatesClientChanges:
+    def test_propagate_client_updates_cascades_to_other_proposals(
+        self, admin_client, real_client_with_proposal,
+    ):
+        # Add a second proposal to the same client so we can verify cascade.
+        BusinessProposal.objects.create(
+            title='Sibling proposal',
+            client=real_client_with_proposal,
+            client_name='Activa Mendoza',
+            client_email='activa@gmail.com',
+            total_investment=2000,
+        )
+        original = real_client_with_proposal.proposals.first()
+
+        response = admin_client.patch(
+            reverse('update-proposal', args=[original.pk]),
+            {
+                'client_phone': '+57 311 0000',
+                'propagate_client_updates': True,
+            },
+            format='json',
+        )
+        assert response.status_code == 200
+
+        sibling = BusinessProposal.objects.exclude(pk=original.pk).get(
+            client=real_client_with_proposal,
+        )
+        assert sibling.client_phone == '+57 311 0000'
+
+    def test_inline_client_update_without_propagate_does_not_cascade(
+        self, admin_client, real_client_with_proposal,
+    ):
+        # Capture the original (fixture) proposal id before creating the sibling.
+        original_pk = real_client_with_proposal.proposals.values_list('pk', flat=True).first()
+        sibling = BusinessProposal.objects.create(
+            title='Sibling no-cascade',
+            client=real_client_with_proposal,
+            client_name='Activa Mendoza',
+            client_email='activa@gmail.com',
+            client_phone='untouched',
+            total_investment=3000,
+        )
+
+        admin_client.patch(
+            reverse('update-proposal', args=[original_pk]),
+            {'client_phone': '+57 999 8888'},
+            format='json',
+        )
+
+        # Sibling stays at 'untouched' because propagate flag was not set.
+        sibling.refresh_from_db()
+        assert sibling.client_phone == 'untouched'
+
+
+class TestOrphanFlagTransitionsAfterProposalDelete:
+    def test_client_becomes_orphan_after_last_proposal_is_deleted(
+        self, admin_client, real_client_with_proposal,
+    ):
+        # First confirm: client is NOT orphan while it has a proposal.
+        list_response = admin_client.get(
+            reverse('list-proposal-clients'), {'orphans': 'false'},
+        )
+        ids = [c['id'] for c in list_response.data]
+        assert real_client_with_proposal.pk in ids
+
+        # Delete the only proposal.
+        proposal = real_client_with_proposal.proposals.first()
+        proposal.delete()
+
+        # Client should now appear in the orphans filter.
+        list_response = admin_client.get(
+            reverse('list-proposal-clients'), {'orphans': 'true'},
+        )
+        ids = [c['id'] for c in list_response.data]
+        assert real_client_with_proposal.pk in ids
+
+    def test_orphan_can_be_deleted_after_last_proposal_removal(
+        self, admin_client, real_client_with_proposal,
+    ):
+        proposal = real_client_with_proposal.proposals.first()
+        proposal.delete()
+        response = admin_client.delete(
+            reverse('delete-proposal-client', args=[real_client_with_proposal.pk]),
+        )
+        assert response.status_code == 204

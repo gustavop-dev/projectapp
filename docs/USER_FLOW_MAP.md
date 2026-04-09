@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.13.0
-> **Last updated:** 2026-04-05
+> **Version:** 2.14.0
+> **Last updated:** 2026-04-09
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -636,6 +636,46 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-create.spec.js`
 
+### FLOW: `admin-proposal-client-autocomplete`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/proposals/create` (Manual tab), `/panel/proposals/:id/edit`
+- **API:** `GET /api/proposals/client-profiles/search/?q=<term>`
+- **Description:** Client picker autocomplete in the proposal create/edit form. Admin types a search term; backend returns matching clients (by name, email, or company) from the mini-CRM. Selecting a client auto-fills the snapshot fields (name, email, phone, company). When no match is found, a "Crear nuevo" button sets the typed value as a brand-new client name without triggering another search.
+- **Steps:**
+  1. Admin navigates to `/panel/proposals/create` and activates the Manual tab (or opens `/panel/proposals/:id/edit`).
+  2. The autocomplete input (`[data-testid="client-autocomplete-input"]`) is visible.
+  3. Admin types 2+ characters → `GET /api/proposals/client-profiles/search/?q=...` fires (debounced).
+  4. Matching results render as a dropdown (`[data-testid="client-autocomplete-option-:id"]`) showing name, email, company, and total proposals count.
+  5. Admin clicks a result → `#create-client-name`, `#create-client-email`, phone and company snapshot fields auto-populate.
+- **Branches:**
+  - [Branch A — No match] Dropdown shows "Crear nuevo" button (`[data-testid="client-autocomplete-create-new"]`) → clicking it sets the typed value as the client name and clears the dropdown.
+  - [Branch B — Placeholder client] When the selected client has `is_email_placeholder=true`, the email field remains empty and the placeholder hint is shown (see `admin-proposal-client-no-email`).
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-client-autocomplete.spec.js`
+
+### FLOW: `admin-proposal-client-no-email`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/create` (Manual tab)
+- **API:** `POST /api/proposals/` (omitted `client_email`)
+- **Description:** Admin creates a proposal without providing a client email. The backend generates a placeholder email (`cliente_<id>@temp.example.com`), flags the client as `is_email_placeholder=true`, and pauses all automations for that client (e.g., reminder / overdue stage notifications). A hint banner informs the admin that email-based automations will be paused until the email is filled in.
+- **Steps:**
+  1. Admin navigates to `/panel/proposals/create` (Manual tab).
+  2. Admin fills `#create-client-name` and leaves `#create-client-email` blank.
+  3. Placeholder hint text (e.g., "email temporal" / "automatizaciones pausadas") renders near the email input.
+  4. Admin submits the form → `POST /api/proposals/` with `client_email=""`.
+  5. Backend creates the proposal and a placeholder client profile with `automations_paused=true`.
+  6. Admin is redirected to `/panel/proposals/:id/edit`; the client snapshot shows the placeholder email.
+- **Branches:**
+  - [Branch A — Fill email later] Admin edits the client email from the proposal edit page later → the placeholder flag clears and automations resume (handled by `admin-mini-crm-clients` or proposal edit).
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-client-autocomplete.spec.js`
+
 ### FLOW: `admin-proposal-edit`
 
 - **Module:** admin
@@ -910,15 +950,71 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/clients/`
-- **Description:** View a Mini-CRM client list grouped by client email, with proposal history, statistics, and search functionality.
+- **Description:** View a Mini-CRM client list with tab filtering (Todos/Activos/Huérfanos), search, expand client to see linked proposals, and empty state.
 - **Steps:**
   1. Admin navigates to `/panel/clients/`.
-  2. Client list loads from `GET /api/proposals/clients/`.
-  3. Clients render with stats (total, accepted, rejected, pending proposals).
-  4. Admin searches clients by name or email.
-  5. Admin expands a client row to view individual proposals.
+  2. Client list loads from `GET /api/proposals/client-profiles/`.
+  3. Clients render with name, email, proposal count, and orphan/placeholder badges.
+  4. Admin uses tab buttons (Todos/Activos/Huérfanos) to filter — sends `?orphans=true/false`.
+  5. Admin searches clients by name, email, or company.
+  6. Admin expands a client row to view individual proposals (lazy-loaded via `GET /api/proposals/client-profiles/:id/`).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-mini-crm-clients.spec.js`
+- **Backend Tests:** `content/tests/views/test_proposal_clients_views.py`
+
+### FLOW: `admin-client-create-standalone`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/clients/`
+- **Description:** Create a new client profile standalone (without a proposal) from the clients page via the "+ Nuevo cliente" modal. Email is optional — if omitted the backend generates a placeholder `cliente_<id>@temp.example.com` and the client shows a placeholder badge.
+- **Steps:**
+  1. Admin clicks "+ Nuevo cliente" button (data-testid: `clients-new-button`).
+  2. Modal opens with name, email, phone, company fields.
+  3. Admin fills the form (email is optional).
+  4. Admin clicks "Crear cliente" (data-testid: `clients-new-submit`).
+  5. API call to `POST /api/proposals/client-profiles/create/` — backend calls `proposal_client_service.get_or_create_client_for_proposal`.
+  6. New client appears at the top of the list (store prepends it).
+- **Branches:**
+  - [Branch A — With email] Client created with real email, no badge.
+  - [Branch B — Without email] Backend generates `cliente_<id>@temp.example.com`; client row shows 📧 placeholder badge.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-mini-crm-clients.spec.js`
+- **Backend Tests:** `content/tests/views/test_proposal_clients_views.py::TestCreateProposalClient`
+
+### FLOW: `admin-client-delete-orphan`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/clients/`
+- **Description:** Delete an orphan client (zero proposals + zero platform projects) via the trash icon that appears only on orphan rows. A confirm modal prevents accidental deletion.
+- **Steps:**
+  1. Admin navigates to `/panel/clients/` (or switches to Huérfanos tab).
+  2. Orphan client rows show a trash icon (data-testid: `client-delete-<id>`).
+  3. Admin clicks the trash icon.
+  4. ConfirmModal appears with warning text.
+  5. Admin confirms → `DELETE /api/proposals/client-profiles/:id/delete/`.
+  6. Client row is removed from the list (store filters it out client-side).
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-mini-crm-clients.spec.js`
+- **Backend Tests:** `content/tests/views/test_proposal_clients_views.py::TestDeleteProposalClient`, `content/tests/views/test_proposal_clients_views.py::TestOrphanFlagTransitionsAfterProposalDelete`
+
+### FLOW: `admin-client-delete-protected`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/clients/`
+- **Description:** Active clients (those with linked proposals or platform projects) do NOT show the delete trash icon. The backend also enforces this with a 400 + `client_has_proposals` / `client_has_projects` error code if the API is called directly.
+- **Steps:**
+  1. Admin navigates to `/panel/clients/`.
+  2. Clients with `is_orphan: false` render WITHOUT a trash icon.
+  3. Attempting DELETE via API returns `400 { error: 'client_has_proposals', count: N }`.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-mini-crm-clients.spec.js`
+- **Backend Tests:** `content/tests/views/test_proposal_clients_views.py::TestDeleteProposalClient::test_delete_with_proposals_returns_400_with_error_code`
 
 ### FLOW: `admin-proposal-send`
 
@@ -1676,6 +1772,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-list` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
 | `admin-proposal-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
 | `admin-proposal-create-from-json` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
+| `admin-proposal-client-autocomplete` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-client-autocomplete.spec.js` |
+| `admin-proposal-client-no-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-client-autocomplete.spec.js` |
 | `admin-proposal-edit` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-edit.spec.js` |
 | `admin-proposal-section-edit-form` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-section-form.spec.js` |
 | `admin-proposal-section-edit-paste` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-section-paste.spec.js` |
@@ -1688,6 +1786,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-analytics` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-analytics.spec.js` |
 | `admin-proposal-dashboard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-dashboard.spec.js` |
 | `admin-mini-crm-clients` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
+| `admin-client-create-standalone` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
+| `admin-client-delete-orphan` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
+| `admin-client-delete-protected` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-proposal-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-send.spec.js` |
 | `admin-blog-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-list.spec.js` |
 | `admin-blog-calendar` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-blog-calendar.spec.js` |
@@ -2805,3 +2906,71 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `public-privacy-policy` | public | guest | P4 | ✅ Covered | `e2e/public/public-privacy-policy.spec.js` |
 | `public-terms-conditions` | public | guest | P4 | ✅ Covered | `e2e/public/public-terms-conditions.spec.js` |
 | `admin-proposal-project-schedule` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-project-schedule.spec.js` |
+
+---
+
+## 12. New Feature Flows (v2.15.0)
+
+> Flows registered during the v2.15.0 audit for the Real Client Entity feature (shipped 2026-04-09). Covers the two client-write flows discovered during the e2e-user-flows-check audit that were not yet registered: editing an existing client profile with propagation, and re-assigning the client on an existing proposal.
+
+### 12.1 Admin Client Profile Update
+
+#### FLOW: `admin-client-update-profile`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/clients/:id/edit`
+- **API:** `PATCH /api/proposals/client-profiles/:id/` with optional `propagate_client_updates=true`
+- **Frontend pages involved:** `/panel/clients/:id/edit`
+- **Description:** Admin edits an existing client's profile (name, email, company, phone) and optionally propagates the changes to the snapshot fields on all linked proposals. If propagate is checked, `proposal_client_service.update_client_profile()` runs a bulk update on all `BusinessProposal` rows linked to that client.
+- **Steps:**
+  1. Admin opens `/panel/clients/` → locates a client → clicks the edit icon.
+  2. Edit page loads with current name, email, company, phone pre-filled.
+  3. Admin modifies one or more fields (e.g., corrects a typo in the email).
+  4. "Propagar cambios a propuestas vinculadas" checkbox is visible (default unchecked).
+  5. Admin checks the propagate checkbox.
+  6. Admin clicks "Guardar cambios".
+  7. `PATCH /api/proposals/client-profiles/:id/` is called with `propagate_client_updates: true`.
+  8. Backend updates the `UserProfile` + bulk-updates `client_name`/`client_email`/`client_phone` on all linked proposals.
+  9. Success toast renders; admin is redirected back to `/panel/clients/`.
+- **Branches:**
+  - [Branch A — Without propagate] Admin unchecks the propagate option → only the `UserProfile` is updated; existing proposal snapshots keep old values.
+  - [Branch B — Email becomes placeholder domain] If the new email ends with `@temp.example.com`, the placeholder badge re-appears on linked proposals.
+  - [Branch C — Validation error] Empty name or malformed email → form shows inline error; no PATCH is made.
+- **Coverage:** ❌ Not covered — spec to be written
+- **Suggested Spec:** `e2e/admin/admin-client-update-profile.spec.js`
+
+### 12.2 Admin Proposal Re-assign Client
+
+#### FLOW: `admin-proposal-update-client`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/:id/edit`
+- **API:** `PATCH /api/proposals/:id/` with `client_id` (new client)
+- **Frontend pages involved:** `/panel/proposals/:id/edit`
+- **Description:** Admin changes the client linked to an existing draft or active proposal. Uses the same `ClientAutocomplete.vue` component as the create flow. On save, the backend re-assigns `BusinessProposal.client` FK and syncs snapshot fields to the newly selected client's data.
+- **Steps:**
+  1. Admin opens `/panel/proposals/:id/edit`.
+  2. Client autocomplete input shows the current client name.
+  3. Admin clears the input and types a different client name to search.
+  4. Dropdown shows matching results; admin selects a different client.
+  5. Snapshot fields (`client_name`, `client_email`, `client_phone`) update immediately in the form.
+  6. Admin clicks "Guardar propuesta".
+  7. `PATCH /api/proposals/:id/` is sent with the new `client_id`.
+  8. Backend calls `proposal_client_service.sync_snapshot(proposal)` after FK update.
+  9. Success toast renders; snapshot fields now reflect the new client.
+- **Branches:**
+  - [Branch A — New client has placeholder email] Autocomplete badge shows "Sin email real"; proposal automations are paused for this client until a real email is provided.
+  - [Branch B — Client cleared without selection] Autocomplete input left empty → proposal save fails validation (client is required for existing proposals).
+- **Coverage:** ❌ Not covered — spec to be written
+- **Suggested Spec:** `e2e/admin/admin-proposal-update-client.spec.js`
+
+### 12.3 New Flows Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Suggested Spec |
+|---------|--------|------|----------|--------|----------------|
+| `admin-client-update-profile` | admin | admin | P2 | ❌ Not covered | `e2e/admin/admin-client-update-profile.spec.js` |
+| `admin-proposal-update-client` | admin | admin | P2 | ❌ Not covered | `e2e/admin/admin-proposal-update-client.spec.js` |

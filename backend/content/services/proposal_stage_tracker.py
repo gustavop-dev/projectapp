@@ -14,8 +14,12 @@ Design decisions
   `_BOGOTA_TZ` from `content.utils`.
 - Edge cases (missing dates, start>end, future start, zero-day stage)
   are guarded by silent skips (or one warning log for data errors).
-- Editing `end_date` after a warning was sent does NOT re-fire the warning.
-  Admins ajust dates frequently mid-project; we don't want spam.
+- Editing `start_date` / `end_date` after a warning was sent re-fires the
+  warning **only if** the new dates put the elapsed percentage back below
+  the 70% threshold. This is handled by `maybe_reset_warning_on_date_change`,
+  called from the `update_project_stage` view. Shortening the stage does
+  nothing (elapsed% stays high); extending it clears `warning_sent_at` so
+  the daily task can fire again once the new 70% mark is crossed.
 - Per-stage dedup is handled by the `warning_sent_at` and
   `last_overdue_reminder_at` timestamp fields on `ProposalProjectStage`.
 """
@@ -72,6 +76,52 @@ class ProposalStageTracker:
             defaults={'order': order_map.get(stage_key, 0)},
         )
         return stage
+
+    @classmethod
+    def maybe_reset_warning_on_date_change(cls, stage):
+        """
+        Reset ``warning_sent_at`` to ``None`` when the current stage dates
+        put the elapsed percentage back below ``WARNING_THRESHOLD_PCT``.
+
+        Called by ``update_project_stage`` after the admin saves new dates.
+        If an admin extends ``end_date`` (or pushes ``start_date`` forward)
+        far enough that elapsed% drops under 70%, the next run of the daily
+        periodic task will be allowed to re-fire the 70% warning when the
+        new threshold is crossed again.
+
+        Returns True when the timestamp was reset, False otherwise.
+        """
+        if stage.warning_sent_at is None:
+            return False
+        if stage.completed_at is not None:
+            return False
+        if stage.start_date is None or stage.end_date is None:
+            return False
+        if stage.start_date > stage.end_date:
+            return False
+
+        total_days = (stage.end_date - stage.start_date).days
+        if total_days < cls.MIN_DURATION_DAYS_FOR_WARNING:
+            return False
+
+        elapsed_pct = cls._compute_elapsed_pct(stage, today_bogota(), total_days)
+        if elapsed_pct < cls.WARNING_THRESHOLD_PCT:
+            stage.warning_sent_at = None
+            stage.save(update_fields=['warning_sent_at', 'updated_at'])
+            return True
+
+        return False
+
+    @classmethod
+    def _compute_elapsed_pct(cls, stage, today, total_days):
+        """
+        Elapsed percentage from ``start_date`` to ``today`` vs. total duration.
+
+        Caller must have validated dates and ensured ``total_days`` is ≥
+        ``MIN_DURATION_DAYS_FOR_WARNING`` (avoids ZeroDivisionError).
+        """
+        elapsed_days = max(0, (today - stage.start_date).days)
+        return (elapsed_days / total_days) * 100
 
     # ------------------------------------------------------------------
     # Public formatting helper — used by both this tracker AND the email
@@ -214,9 +264,7 @@ class ProposalStageTracker:
         if total_days < cls.MIN_DURATION_DAYS_FOR_WARNING:
             return 'skip:before_threshold'
 
-        elapsed_days = (today - stage.start_date).days
-        elapsed_pct = (elapsed_days / total_days) * 100
-
+        elapsed_pct = cls._compute_elapsed_pct(stage, today, total_days)
         if elapsed_pct < cls.WARNING_THRESHOLD_PCT:
             return 'skip:before_threshold'
 

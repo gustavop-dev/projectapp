@@ -3,7 +3,7 @@
 Covers: public retrieve/respond/pdf, admin CRUD, section update,
 bulk reorder, auth check, permission checks, edge cases.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from datetime import timezone as dt_tz
 from decimal import Decimal
 from unittest.mock import patch
@@ -4020,6 +4020,58 @@ class TestUpdateProjectStage:
             description__contains='Cronograma',
         ).first()
         assert log is not None
+
+    @freeze_time('2026-04-09 12:00:00')
+    def test_clears_warning_sent_at_when_end_date_extended_below_threshold(
+        self, admin_client, accepted_proposal,
+    ):
+        """
+        When the admin extends end_date far enough that elapsed% drops
+        below 70%, warning_sent_at is cleared so the daily tracker can
+        re-fire the warning at the new threshold.
+        """
+        from content.models import ProposalProjectStage
+
+        stage = ProposalProjectStage.objects.create(
+            proposal=accepted_proposal, stage_key='design', order=0,
+            start_date='2026-04-01', end_date='2026-04-11',
+            warning_sent_at=timezone.now() - timedelta(days=1),
+        )
+        url = f'/api/proposals/{accepted_proposal.id}/stages/design/'
+        response = admin_client.put(
+            url, {'end_date': '2026-05-30'}, format='json',
+        )
+
+        assert response.status_code == 200
+        stage.refresh_from_db()
+        assert str(stage.end_date) == '2026-05-30'
+        assert stage.warning_sent_at is None
+
+    @freeze_time('2026-04-09 12:00:00')
+    def test_preserves_warning_sent_at_when_elapsed_still_above_threshold(
+        self, admin_client, accepted_proposal,
+    ):
+        """
+        Minor tweaks to end_date that leave elapsed% ≥ 70 must not clear
+        the warning timestamp (avoids spam on small corrections).
+        """
+        from content.models import ProposalProjectStage
+
+        warning_ts = timezone.now() - timedelta(days=1)
+        stage = ProposalProjectStage.objects.create(
+            proposal=accepted_proposal, stage_key='design', order=0,
+            start_date='2026-04-01', end_date='2026-04-11',
+            warning_sent_at=warning_ts,
+        )
+        url = f'/api/proposals/{accepted_proposal.id}/stages/design/'
+        response = admin_client.put(
+            url, {'end_date': '2026-04-12'}, format='json',
+        )
+
+        assert response.status_code == 200
+        stage.refresh_from_db()
+        assert str(stage.end_date) == '2026-04-12'
+        assert stage.warning_sent_at == warning_ts
 
 
 class TestCompleteProjectStage:

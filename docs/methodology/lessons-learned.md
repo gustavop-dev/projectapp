@@ -408,3 +408,44 @@ Don't forget to `prefetch_related('project_stages')` in the admin queryset, othe
 - After significant changes to test infrastructure or counts
 - When file counts drift by >10% from documented values
 - After methodology rule updates from upstream template
+
+---
+
+## Real-Entity FK + Write-Through Snapshot Pattern
+
+When upgrading a denormalized field set into a real foreign key (e.g., `BusinessProposal.client` → `accounts.UserProfile`), keep the original snapshot columns and treat them as a frozen audit trail. **Do not drop them in the same PR** — the rewrite would touch every email/PDF/log path that reads `proposal.client_name` and bloat the diff dangerously, AND it would lose the ability to know what the client was *called at the time of send* if the profile is later edited.
+
+**Pattern applied in this repo (`backend/accounts/services/proposal_client_service.py`)**:
+
+1. **FK with `on_delete=PROTECT`** — accidental client deletion can never cascade and lose proposal history. Combined with the orphan-only delete guard in the service (zero proposals + zero projects), there is no path that loses data.
+
+2. **Snapshot fields kept** — `client_name`, `client_email`, `client_phone` stay on `BusinessProposal` and are synced via `proposal_client_service.sync_snapshot(proposal)` after every FK assignment. Email sends, PDFs, and audit logs read from the snapshot; the FK is the source of truth for *current* identity.
+
+3. **Single resolver in the service**, called from both serializer overrides AND raw view code so the JSON-flow path and the form path share one implementation. `ProposalCreateUpdateSerializer.create()`/`update()` and `create_proposal_from_json()`/`update_proposal_from_json()` all route through `get_or_create_client_for_proposal()`.
+
+4. **Cascade updates via bulk update** — `update_client_profile()` cascades changes to all linked proposals via a single `BusinessProposal.objects.filter(client=profile).update(...)`. Bumping `updated_at=timezone.now()` manually is mandatory because `.update()` bypasses `auto_now`.
+
+5. **Service is the silent twin of an existing service** — `proposal_client_service` mirrors `accounts/services/onboarding.create_client` but **never sends invitation emails**. This lets the proposal admin panel create / reuse client rows without triggering platform onboarding, which is reserved for the proposal-acceptance flow.
+
+### Placeholder Email Skip Pattern (linked technique)
+
+When a feature lets users create rows quickly without committing real contact details (typical for sales test/draft flows), use a **canonical placeholder domain** to mark unsendable rows so automations skip them silently:
+
+1. **Single canonical constant** — `UserProfile.PLACEHOLDER_EMAIL_DOMAIN = '@temp.example.com'` (RFC 2606 reserved TLD, never resolves to a real recipient). Imported by `proposal_client_service`, `proposal_email_service`, and `tasks.py` — never duplicated as a literal string. Migrations may keep their own frozen copy because migration code is supposed to be self-contained.
+
+2. **Two-step save for id-embedded placeholders** — to generate `cliente_<profile_id>@temp.example.com` you have to know the id, which only exists after save. Solution: save with a temp uuid-based username/email first, then rewrite both fields with the real id and save again. See `_create_placeholder_profile()` in `proposal_client_service.py`.
+
+3. **Single helper in the email service** — `_is_unsendable_client_email(email)` returns `True` for empty strings and any address ending in `UserProfile.PLACEHOLDER_EMAIL_DOMAIN`. Every client-facing send method (currently 13 in `ProposalEmailService`) calls this helper as its first guard. Huey tasks import the same helper so the gate is applied consistently across sync and async paths.
+
+4. **Querysets that select candidates exclude placeholders directly** — `BusinessProposal.objects.filter(...).exclude(client_email__iendswith=UserProfile.PLACEHOLDER_EMAIL_DOMAIN)` instead of iterating then skipping. Avoids wasted DB rows in cron task scans.
+
+5. **A model property `is_email_placeholder`** — exposed to the frontend via the serializer so the UI can render a "placeholder, automations paused" badge inline.
+
+**Why this matters**: vendors creating test/draft proposals at speed never accidentally email real recipients (because the address is a reserved TLD), AND multiple placeholder rows never collapse into a single dedup'd row (because each placeholder is keyed on a unique profile id). The model also exposes `is_email_placeholder` so the UI can warn the user that they need to enter a real email before automations resume.
+
+**Reference implementation**:
+- `backend/accounts/models.py` — `PLACEHOLDER_EMAIL_DOMAIN` constant + `is_email_placeholder` property on `UserProfile`
+- `backend/accounts/services/proposal_client_service.py` — get-or-create + 2-step placeholder save + cascade update
+- `backend/content/services/proposal_email_service.py` — `_is_unsendable_client_email` helper + 13 client-facing methods gated
+- `backend/content/tasks.py` — 4 huey task gates + 2 candidate-queryset excludes
+- `backend/content/migrations/0079_add_business_proposal_client_fk.py` + `0080_backfill_proposal_clients.py` — schema + dedup backfill

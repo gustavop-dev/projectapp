@@ -10,6 +10,7 @@ from django.utils import timezone
 from content.demo_technical_document import DEMO_TECHNICAL_DOCUMENT_JSON
 from django.core.files.base import ContentFile
 
+from accounts.services import proposal_client_service
 from content.models import (
     BusinessProposal,
     ContractTemplate,
@@ -17,12 +18,14 @@ from content.models import (
     ProposalAlert,
     ProposalChangeLog,
     ProposalDocument,
+    ProposalProjectStage,
     ProposalSection,
     ProposalSectionView,
     ProposalShareLink,
     ProposalViewEvent,
 )
 from content.services.proposal_service import ProposalService
+from content.services.proposal_stage_tracker import ProposalStageTracker
 
 # Pool of realistic client data for random selection
 CLIENT_NAMES = [
@@ -37,6 +40,15 @@ CLIENT_PHONES = [
     '+573001234567', '+573109876543', '+573205551234', '+573154443322',
     '+573187776655', '+14155551234', '+573001112233', '+573209998877',
     '', '', '',  # some without phone
+]
+
+CLIENT_COMPANIES = [
+    'Acme Corp', 'Globex Industries', 'Initech Solutions',
+    'Umbrella Group', 'Stark Enterprises', 'Wayne Industries',
+    'Soylent Foods', 'Hooli', 'Pied Piper', 'Aperture Science',
+    'Tierra Viva S.A.S.', 'Constructora del Norte',
+    'Clínica San Rafael', 'Logística Andina',
+    '', '', '',  # some without company
 ]
 
 PROJECT_TYPE_CHOICES = ['website', 'ecommerce', 'webapp', 'landing', 'redesign', 'other']
@@ -205,6 +217,24 @@ class Command(BaseCommand):
                 data['view_count'] = random.randint(0, 3)
                 data['expires_at'] = now - timedelta(days=random.randint(1, 10))
                 data['last_activity_at'] = data.get('first_viewed_at') or data['sent_at']
+            elif status == 'finished':
+                # finished = accepted, then aged through the execution phase
+                data['sent_at'] = now - timedelta(days=random.randint(45, 90))
+                data['first_viewed_at'] = now - timedelta(days=random.randint(40, 80))
+                data['view_count'] = random.randint(5, 20)
+                data['responded_at'] = now - timedelta(days=random.randint(35, 70))
+                data['last_activity_at'] = data['responded_at']
+
+            # Resolve/create the canonical client profile so the new client FK
+            # on BusinessProposal is populated. get_or_create_client_for_proposal
+            # reuses existing profiles by email (case-insensitive), so repeated
+            # CLIENT_NAMES share a single UserProfile — mirroring production.
+            data['client'] = proposal_client_service.get_or_create_client_for_proposal(
+                name=client_name,
+                email=data['client_email'],
+                phone=data.get('client_phone', ''),
+                company=random.choice(CLIENT_COMPANIES),
+            )
 
             proposal = BusinessProposal.objects.create(**data)
             self.stdout.write(
@@ -232,6 +262,10 @@ class Command(BaseCommand):
             # --- Generate email history for proposals with email tabs ---
             if status in ('negotiating', 'accepted'):
                 self._create_email_history(proposal, now)
+
+            # --- Seed project stage rows for accepted/finished proposals ---
+            if status in ('accepted', 'finished'):
+                self._create_project_stages(proposal, now, status)
 
             # Create default sections (groups now stored in content_json)
             default_sections = ProposalService.get_default_sections(language=lang)
@@ -539,6 +573,119 @@ class Command(BaseCommand):
             ProposalChangeLog.objects.filter(pk=log.pk).update(
                 created_at=activity_date,
             )
+
+    def _create_project_stages(self, proposal, now, status):
+        """
+        Seed two `ProposalProjectStage` rows (design + development) with
+        realistic scenario distribution so the admin Cronograma tab has
+        meaningful data in development.
+
+        Scenarios (picked via weighted random):
+        - `unscheduled` (15%) — admin hasn't filled dates yet
+        - `design_early` (15%) — design in progress, <70% elapsed
+        - `design_warning` (10%) — design ≥70% elapsed, warning email sent
+        - `design_overdue` (10%) — design past `end_date`, first overdue alert sent
+        - `dev_in_progress` (20%) — design completed, dev mid-window
+        - `dev_overdue` (10%) — design completed, dev past end (multi-reminder)
+        - `both_done` (20%) — both marked completed
+
+        `finished` proposals always get the `both_done` scenario since they
+        represent a fully closed project lifecycle.
+        """
+        # Delegate to the canonical catalog so rows match production.
+        design = ProposalStageTracker.get_or_create_stage(proposal, 'design')
+        development = ProposalStageTracker.get_or_create_stage(proposal, 'development')
+
+        if status == 'finished':
+            scenario = 'both_done'
+        else:
+            scenarios = [
+                ('unscheduled', 15),
+                ('design_early', 15),
+                ('design_warning', 10),
+                ('design_overdue', 10),
+                ('dev_in_progress', 20),
+                ('dev_overdue', 10),
+                ('both_done', 20),
+            ]
+            choices, weights = zip(*scenarios)
+            scenario = random.choices(choices, weights=weights)[0]
+
+        today = now.date()
+        design_duration_days = random.randint(7, 21)
+        dev_duration_days = random.randint(14, 42)
+
+        if scenario == 'unscheduled':
+            # Both rows exist but no dates — exercises the "pending" UI state.
+            return
+
+        if scenario == 'design_early':
+            # ~30% of design duration elapsed, no warning yet.
+            elapsed = max(1, int(design_duration_days * 0.3))
+            design.start_date = today - timedelta(days=elapsed)
+            design.end_date = design.start_date + timedelta(days=design_duration_days)
+            design.save(update_fields=['start_date', 'end_date', 'updated_at'])
+            return
+
+        if scenario == 'design_warning':
+            # 80% elapsed, warning sent 1 day ago.
+            elapsed = max(2, int(design_duration_days * 0.8))
+            design.start_date = today - timedelta(days=elapsed)
+            design.end_date = design.start_date + timedelta(days=design_duration_days)
+            design.warning_sent_at = now - timedelta(days=1)
+            design.save(update_fields=[
+                'start_date', 'end_date', 'warning_sent_at', 'updated_at',
+            ])
+            return
+
+        if scenario == 'design_overdue':
+            # Ended 3 days ago, first overdue reminder sent today.
+            design.start_date = today - timedelta(days=design_duration_days + 3)
+            design.end_date = today - timedelta(days=3)
+            design.warning_sent_at = now - timedelta(days=5)
+            design.last_overdue_reminder_at = now
+            design.save(update_fields=[
+                'start_date', 'end_date', 'warning_sent_at',
+                'last_overdue_reminder_at', 'updated_at',
+            ])
+            return
+
+        # --- scenarios where design is completed and dev is the current stage ---
+        design.start_date = today - timedelta(days=design_duration_days + 5)
+        design.end_date = today - timedelta(days=5)
+        design.completed_at = now - timedelta(days=4)
+        design.save(update_fields=[
+            'start_date', 'end_date', 'completed_at', 'updated_at',
+        ])
+
+        if scenario == 'dev_in_progress':
+            # Dev started 5 days ago, mid-window.
+            development.start_date = today - timedelta(days=5)
+            development.end_date = development.start_date + timedelta(days=dev_duration_days)
+            development.save(update_fields=[
+                'start_date', 'end_date', 'updated_at',
+            ])
+            return
+
+        if scenario == 'dev_overdue':
+            # Dev ended 8 days ago, multiple overdue reminders sent.
+            development.start_date = today - timedelta(days=dev_duration_days + 8)
+            development.end_date = today - timedelta(days=8)
+            development.warning_sent_at = now - timedelta(days=11)
+            development.last_overdue_reminder_at = now - timedelta(days=2)
+            development.save(update_fields=[
+                'start_date', 'end_date', 'warning_sent_at',
+                'last_overdue_reminder_at', 'updated_at',
+            ])
+            return
+
+        # scenario == 'both_done'
+        development.start_date = today - timedelta(days=dev_duration_days + 1)
+        development.end_date = today - timedelta(days=1)
+        development.completed_at = now
+        development.save(update_fields=[
+            'start_date', 'end_date', 'completed_at', 'updated_at',
+        ])
 
     def _create_email_history(self, proposal, now):
         """Generate EmailLog entries for branded and proposal emails."""
