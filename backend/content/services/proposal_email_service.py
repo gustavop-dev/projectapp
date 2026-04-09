@@ -5,6 +5,8 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from content.utils import format_bogota_date, format_cop_email
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,6 +24,37 @@ class ProposalEmailService:
         return cls.FROM_EMAIL or getattr(
             settings, 'DEFAULT_FROM_EMAIL', 'team@projectapp.co'
         )
+
+    @classmethod
+    def _get_notification_recipients(cls):
+        """
+        Return internal notification recipients.
+
+        Supports:
+        - NOTIFICATION_EMAIL (single email or comma-separated emails)
+        - NOTIFICATION_EMAILS (list/tuple/set or comma-separated string)
+        """
+        recipients = []
+
+        def _append(value):
+            if not value:
+                return
+            if isinstance(value, (list, tuple, set)):
+                for item in value:
+                    _append(item)
+                return
+            for part in str(value).split(','):
+                email = part.strip()
+                if email and email not in recipients:
+                    recipients.append(email)
+
+        _append(getattr(settings, 'NOTIFICATION_EMAILS', None))
+        _append(getattr(settings, 'NOTIFICATION_EMAIL', None))
+
+        if not recipients:
+            recipients.append('team@projectapp.co')
+
+        return recipients
 
     @classmethod
     def _log_email(cls, template_key, recipient, subject='', proposal=None,
@@ -127,7 +160,7 @@ class ProposalEmailService:
             'proposal_url': proposal.public_url,
             'days_remaining': proposal.days_remaining,
             'expires_at': proposal.expires_at,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
             'title': proposal.title,
         }
@@ -212,7 +245,7 @@ class ProposalEmailService:
             'proposal_url': proposal.public_url,
             'days_remaining': proposal.days_remaining,
             'expires_at': proposal.expires_at,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
             'title': proposal.title,
         }
@@ -305,7 +338,7 @@ class ProposalEmailService:
             'proposal_url': proposal.public_url,
             'days_remaining': proposal.days_remaining,
             'expires_at': proposal.expires_at,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
             'title': proposal.title,
         }
@@ -317,7 +350,7 @@ class ProposalEmailService:
             )
             discounted = proposal.total_investment * discount_factor
             context.update({
-                'discounted_investment': discounted,
+                'discounted_investment': format_cop_email(discounted),
                 'discount_percent': proposal.discount_percent,
             })
             html_template = 'emails/proposal_urgency.html'
@@ -387,7 +420,7 @@ class ProposalEmailService:
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
             'title': proposal.title,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
             'action': action,
             'action_label': (
@@ -417,15 +450,11 @@ class ProposalEmailService:
                 f'{proposal.client_name}'
             ))
 
-            notification_email = getattr(
-                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
-            )
-
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=text_content,
                 from_email=cls._get_from_email(),
-                to=[notification_email],
+                to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
@@ -470,7 +499,7 @@ class ProposalEmailService:
             'client_name': proposal.client_name,
             'proposal_url': proposal.public_url,
             'title': proposal.title,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
             'platform_login_url': platform_login_url,
             'project_name': project_name,
@@ -677,7 +706,7 @@ class ProposalEmailService:
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
             'title': proposal.title,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
             'proposal_uuid': str(proposal.uuid),
             'viewed_at': proposal.first_viewed_at or timezone.now(),
@@ -700,15 +729,11 @@ class ProposalEmailService:
                 f'{proposal.client_name}'
             ))
 
-            notification_email = getattr(
-                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
-            )
-
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=text_content,
                 from_email=cls._get_from_email(),
-                to=[notification_email],
+                to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
@@ -741,7 +766,7 @@ class ProposalEmailService:
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
             'title': proposal.title,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
             'comment': comment,
             'proposal_uuid': str(proposal.uuid),
@@ -763,15 +788,11 @@ class ProposalEmailService:
                 f'{proposal.client_name}'
             ))
 
-            notification_email = getattr(
-                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
-            )
-
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=text_content,
                 from_email=cls._get_from_email(),
-                to=[notification_email],
+                to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
@@ -809,14 +830,16 @@ class ProposalEmailService:
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
             'title': proposal.title,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
         }
         if has_discount:
             discount_factor = (
                 Decimal(100 - proposal.discount_percent) / Decimal(100)
             )
-            context['discounted_investment'] = proposal.total_investment * discount_factor
+            context['discounted_investment'] = format_cop_email(
+                proposal.total_investment * discount_factor
+            )
             context['discount_percent'] = proposal.discount_percent
 
         resolved = cls._resolve_content('proposal_reengagement', context)
@@ -875,7 +898,7 @@ class ProposalEmailService:
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
             'title': proposal.title,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
             'visit_count': visit_count,
             'top_section': top_section_display,
@@ -899,15 +922,11 @@ class ProposalEmailService:
                 f'{visit_count} veces'
             ))
 
-            notification_email = getattr(
-                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
-            )
-
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=text_content,
                 from_email=cls._get_from_email(),
-                to=[notification_email],
+                to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
@@ -1022,7 +1041,7 @@ class ProposalEmailService:
             'client_name': proposal.client_name,
             'proposal_url': proposal.public_url,
             'title': proposal.title,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
             'time_on_investment': time_display,
         }
@@ -1112,15 +1131,11 @@ class ProposalEmailService:
                 f'"{proposal.title}"'
             ))
 
-            notification_email = getattr(
-                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
-            )
-
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=text_content,
                 from_email=cls._get_from_email(),
-                to=[notification_email],
+                to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
@@ -1209,7 +1224,7 @@ class ProposalEmailService:
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
             'title': proposal.title,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
             'proposal_uuid': str(proposal.uuid),
             'known_ips_count': known_ips_count,
@@ -1231,15 +1246,11 @@ class ProposalEmailService:
                 f'{proposal.client_name}'
             ))
 
-            notification_email = getattr(
-                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
-            )
-
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=text_content,
                 from_email=cls._get_from_email(),
-                to=[notification_email],
+                to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
@@ -1283,7 +1294,7 @@ class ProposalEmailService:
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
             'title': proposal.title,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
             'days_inactive': days_inactive,
             'edit_url': edit_url,
@@ -1307,15 +1318,11 @@ class ProposalEmailService:
                 f'{proposal.client_name} — {proposal.title}'
             ))
 
-            notification_email = getattr(
-                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
-            )
-
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=text_content,
                 from_email=cls._get_from_email(),
-                to=[notification_email],
+                to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
@@ -1352,7 +1359,7 @@ class ProposalEmailService:
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
             'title': proposal.title,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
             'comment': comment,
             'edit_url': edit_url,
@@ -1375,15 +1382,11 @@ class ProposalEmailService:
                 f'ajustar la propuesta "{proposal.title}"'
             ))
 
-            notification_email = getattr(
-                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
-            )
-
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=text_content,
                 from_email=cls._get_from_email(),
-                to=[notification_email],
+                to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
@@ -1418,7 +1421,7 @@ class ProposalEmailService:
             'client_name': proposal.client_name,
             'proposal_url': proposal.public_url,
             'title': proposal.title,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
         }
 
@@ -1492,7 +1495,7 @@ class ProposalEmailService:
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
             'title': proposal.title,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
             'edit_url': edit_url,
             'proposal_uuid': str(proposal.uuid),
@@ -1515,15 +1518,11 @@ class ProposalEmailService:
                 f'propuesta rechazada "{proposal.title}" ({days_since}d después)'
             ))
 
-            notification_email = getattr(
-                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
-            )
-
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=text_content,
                 from_email=cls._get_from_email(),
-                to=[notification_email],
+                to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
@@ -1576,15 +1575,11 @@ class ProposalEmailService:
                 f'{digest_data["total_active"]} propuestas activas'
             ))
 
-            notification_email = getattr(
-                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
-            )
-
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=text_content,
                 from_email=cls._get_from_email(),
-                to=[notification_email],
+                to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
@@ -1615,7 +1610,7 @@ class ProposalEmailService:
             'client_name': proposal.client_name,
             'proposal_title': proposal.title,
             'title': proposal.title,
-            'total_investment': proposal.total_investment,
+            'total_investment': format_cop_email(proposal.total_investment),
             'currency': proposal.currency,
             'edit_url': edit_url,
             'proposal_uuid': str(proposal.uuid),
@@ -1637,15 +1632,11 @@ class ProposalEmailService:
                 f'"{proposal.title}" — ¡Alto interés!'
             ))
 
-            notification_email = getattr(
-                settings, 'NOTIFICATION_EMAIL', 'team@projectapp.co'
-            )
-
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=text_content,
                 from_email=cls._get_from_email(),
-                to=[notification_email],
+                to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
             email.send(fail_silently=False)
@@ -1681,7 +1672,7 @@ class ProposalEmailService:
                 'title': p.title,
                 'url': p.public_url,
                 'status': p.get_status_display(),
-                'created_at': p.created_at.strftime('%d/%m/%Y') if p.created_at else '',
+                'created_at': format_bogota_date(p.created_at) if p.created_at else '',
             })
 
         client_name = proposals[0].client_name or ''
@@ -1916,7 +1907,7 @@ class ProposalEmailService:
             )
             logger.info(
                 'Sent %s for proposal %s to %s',
-                template_key, proposal.pk, recipient_email,
+                template_key, proposal.pk if proposal else 'standalone', recipient_email,
             )
             return True
 
@@ -1928,7 +1919,7 @@ class ProposalEmailService:
                 metadata=log_metadata,
             )
             logger.exception(
-                'Failed to send %s for proposal %s', template_key, proposal.pk,
+                'Failed to send %s for proposal %s', template_key, proposal.pk if proposal else 'standalone',
             )
             return False
 
@@ -1940,6 +1931,17 @@ class ProposalEmailService:
         """Send a user-composed branded email (generic, no activity logging)."""
         return cls._send_composed_email(
             'branded_email', proposal, recipient_email, subject,
+            greeting, sections, footer, attachments,
+        )
+
+    @classmethod
+    def send_standalone_branded_email(
+        cls, recipient_email, subject, greeting,
+        sections, footer='', attachments=None,
+    ):
+        """Send a standalone branded email not tied to any proposal."""
+        return cls._send_composed_email(
+            'branded_email', None, recipient_email, subject,
             greeting, sections, footer, attachments,
         )
 

@@ -8,9 +8,13 @@ Each entry defines:
 - html_template: Path to the Django HTML template (None for plain-text only).
 - txt_template: Path to the Django plain-text template (None for plain-text only).
 - editable_fields: List of dicts defining admin-editable text blocks.
+
+Note: sample_context values for monetary fields use format_cop_email()
+so previews always match the live email formatting.
 - available_variables: List of variable names the admin can use in text.
 - sample_context: Dict of sample values for preview rendering.
 """
+from content.utils import format_cop_email
 
 
 def _client_sample():
@@ -21,7 +25,7 @@ def _client_sample():
         'proposal_url': 'https://projectapp.co/proposal/abc-123/',
         'days_remaining': 12,
         'expires_at': '2026-04-15',
-        'total_investment': '15,000,000',
+        'total_investment': format_cop_email(15000000),
         'currency': 'COP',
     }
 
@@ -63,7 +67,7 @@ def _internal_sample():
         'client_name': 'Carlos Rodríguez',
         'title': 'Plataforma E-commerce Premium',
         'proposal_title': 'Plataforma E-commerce Premium',
-        'total_investment': '15,000,000',
+        'total_investment': format_cop_email(15000000),
         'currency': 'COP',
         'proposal_uuid': 'abc-123-def-456',
     }
@@ -208,7 +212,7 @@ EMAIL_TEMPLATE_REGISTRY = {
         'sample_context': {
             **_client_sample(),
             'discount_percent': 15,
-            'discounted_investment': '12,750,000',
+            'discounted_investment': format_cop_email(12750000),
         },
     },
 
@@ -408,10 +412,10 @@ EMAIL_TEMPLATE_REGISTRY = {
             'client_name': 'Carlos Rodríguez',
             'title': 'Plataforma E-commerce Premium',
             'proposal_title': 'Plataforma E-commerce Premium',
-            'total_investment': '15,000,000',
+            'total_investment': format_cop_email(15000000),
             'currency': 'COP',
             'discount_percent': 10,
-            'discounted_investment': '13,500,000',
+            'discounted_investment': format_cop_email(13500000),
         },
     },
 
