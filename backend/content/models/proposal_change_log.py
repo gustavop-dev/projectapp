@@ -35,6 +35,7 @@ class ProposalChangeLog(models.Model):
         REQUIREMENT_CLICKED = 'req_clicked', 'Requirement Clicked'
         EMAIL_SENT = 'email_sent', 'Email Sent'
         SELLER_INACTIVITY_ESCALATION = 'seller_inactivity_escalation', 'Seller Inactivity Escalation'
+        PLATFORM_LAUNCH = 'platform_launch', 'Platform Launch'
 
     class ActorType(models.TextChoices):
         CLIENT = 'client', 'Client'

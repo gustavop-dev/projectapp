@@ -24,7 +24,7 @@ from content.views.proposal import (
     create_share_link, retrieve_shared_proposal, schedule_followup,
     list_clients, log_activity, proposal_alerts,
     create_proposal_alert, dismiss_proposal_alert,
-    update_proposal_status, proposal_scorecard,
+    update_proposal_status, launch_to_platform, proposal_scorecard,
     proposal_defaults, reset_proposal_defaults,
     email_deliverability_dashboard,
     request_magic_link,
@@ -53,6 +53,9 @@ from content.views.blog import (
 from content.views.linkedin import (
     linkedin_auth_url, linkedin_callback, linkedin_status,
     publish_to_linkedin,
+)
+from content.views.standalone_email import (
+    send_standalone_email, get_standalone_email_defaults, list_standalone_emails,
 )
 from content.views.document import (
     list_documents, create_document, create_document_from_markdown,
@@ -95,6 +98,7 @@ urlpatterns = [
     path('proposals/<int:proposal_id>/resend/', resend_proposal, name='resend-proposal'),
     path('proposals/<int:proposal_id>/toggle-active/', toggle_proposal_active, name='toggle-proposal-active'),
     path('proposals/<int:proposal_id>/update-status/', update_proposal_status, name='update-proposal-status'),
+    path('proposals/<int:proposal_id>/launch-to-platform/', launch_to_platform, name='launch-to-platform'),
     path('proposals/<int:proposal_id>/scorecard/', proposal_scorecard, name='proposal-scorecard'),
     path('proposals/<int:proposal_id>/reorder-sections/', bulk_reorder_sections, name='reorder-sections'),
     path('proposals/<int:proposal_id>/analytics/', retrieve_proposal_analytics, name='proposal-analytics'),
@@ -170,6 +174,11 @@ urlpatterns = [
     path('blog/', list_blog_posts, name='list-blog-posts'),
     path('blog/sitemap-data/', blog_sitemap_data, name='blog-sitemap-data'),
     path('blog/<slug:slug>/', retrieve_blog_post, name='retrieve-blog-post'),
+
+    # ── Standalone emails (generic branded, not proposal-tied) ────
+    path('emails/send/', send_standalone_email, name='send-standalone-email'),
+    path('emails/defaults/', get_standalone_email_defaults, name='standalone-email-defaults'),
+    path('emails/history/', list_standalone_emails, name='list-standalone-emails'),
 
     # ── Documents ──────────────────────────────────────────────────
     path('documents/', list_documents, name='list-documents'),

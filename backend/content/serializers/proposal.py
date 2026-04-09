@@ -10,6 +10,16 @@ from content.models import (
     ProposalShareLink,
     ProposalDefaultConfig,
 )
+from content.utils import validate_email_domain_mx
+
+
+def _validate_client_email_mx(value):
+    """Shared field validator: reject emails whose domain has no MX/A records."""
+    if value and not validate_email_domain_mx(value):
+        raise serializers.ValidationError(
+            'El dominio de este correo no puede recibir emails (sin registros MX).'
+        )
+    return value
 
 
 class ProposalRequirementItemSerializer(serializers.ModelSerializer):
@@ -122,6 +132,8 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
             'days_remaining', 'is_expired', 'public_url',
             'discounted_investment', 'selected_modules',
             'contract_params', 'available_transitions', 'proposal_documents',
+            'platform_onboarding_completed_at',
+            'platform_onboarding_status',
         )
 
     def get_sections(self, obj):
@@ -251,6 +263,9 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
             'project_type_custom', 'market_type_custom',
         )
 
+    def validate_client_email(self, value):
+        return _validate_client_email_mx(value)
+
     def validate_expires_at(self, value):
         """Ensure expiration date is in the future when provided."""
         if value is not None:
@@ -348,6 +363,9 @@ class ProposalFromJSONSerializer(serializers.Serializer):
     discount_percent = serializers.IntegerField(required=False, default=0)
     sections = serializers.DictField(child=serializers.DictField(), required=True)
 
+    def validate_client_email(self, value):
+        return _validate_client_email_mx(value)
+
     def validate_expires_at(self, value):
         if value is not None:
             from django.utils import timezone
@@ -412,7 +430,14 @@ class ProposalDefaultConfigSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProposalDefaultConfig
-        fields = ('id', 'language', 'sections_json', 'created_at', 'updated_at')
+        fields = (
+            'id',
+            'language',
+            'sections_json',
+            'expiration_days',
+            'created_at',
+            'updated_at',
+        )
         read_only_fields = ('id', 'created_at', 'updated_at')
 
     def validate_language(self, value):
@@ -438,6 +463,13 @@ class ProposalDefaultConfigSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     f'Section at index {i} is missing keys: {missing}'
                 )
+        return value
+
+    def validate_expiration_days(self, value):
+        if value < 1 or value > 365:
+            raise serializers.ValidationError(
+                'expiration_days must be between 1 and 365.'
+            )
         return value
 
 

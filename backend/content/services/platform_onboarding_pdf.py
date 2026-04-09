@@ -23,7 +23,6 @@ from content.services.pdf_utils import (
     _draw_paragraphs,
     _font,
     _register_fonts,
-    _safe,
     _strip_emoji,
 )
 
@@ -63,7 +62,7 @@ def generate_platform_onboarding_pdf(
         c.setFont(_font('light'), 26)
         c.setFillColor(ESMERALD)
         title = _strip_emoji('Guía de uso — Plataforma cliente')
-        c.drawString(MARGIN_L, y, _safe(title[:80]))
+        c.drawString(MARGIN_L, y, title[:80])
         y -= 36
 
         c.setFont(_font('regular'), 11)
@@ -125,7 +124,7 @@ def generate_platform_onboarding_pdf(
                 new_page()
             c.setFont(_font('bold'), 13)
             c.setFillColor(ESMERALD)
-            c.drawString(MARGIN_L, y, _safe(_strip_emoji(heading)))
+            c.drawString(MARGIN_L, y, _strip_emoji(heading))
             y -= 22
             c.setFont(_font('regular'), 10)
             c.setFillColor(GRAY_500)

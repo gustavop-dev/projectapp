@@ -220,6 +220,22 @@ class BusinessProposal(models.Model):
         help_text='Set when acceptance onboarding (sync + welcome email) completed; prevents duplicate runs.',
     )
 
+    ONBOARDING_PENDING = 'pending'
+    ONBOARDING_COMPLETED = 'completed'
+    ONBOARDING_FAILED = 'failed'
+    ONBOARDING_STATUS_CHOICES = [
+        (ONBOARDING_PENDING, 'Pending'),
+        (ONBOARDING_COMPLETED, 'Completed'),
+        (ONBOARDING_FAILED, 'Failed'),
+    ]
+    platform_onboarding_status = models.CharField(
+        max_length=20,
+        choices=ONBOARDING_STATUS_CHOICES,
+        null=True,
+        blank=True,
+        help_text='Tracks async onboarding: pending (in progress), completed, failed.',
+    )
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
