@@ -93,7 +93,7 @@ flowchart TD
     URLRouter -->|/api/health/| HealthCheck
     URLRouter -->|/admin/| DjangoAdmin
 
-    URLRouter -->|/api/*| ContentURLs["content.urls (103 patterns)"]
+    URLRouter -->|/api/*| ContentURLs["content.urls (107 patterns)"]
     URLRouter -->|/api/auth/*<br>/api/platform/*| AccountsURLs["accounts.urls (65 patterns)"]
     URLRouter -->|/sitemap.xml| Sitemap
     URLRouter -->|/*| ServeNuxt["serve_nuxt (catch-all)"]
@@ -267,6 +267,8 @@ flowchart TD
         DocumentsAdmin["/panel/documents"]
         DocumentCreate["/panel/documents/create"]
         DocumentEdit["/panel/documents/:id/edit"]
+        EmailsPage["/panel/emails"]
+        ViewsPage["/panel/views"]
     end
 
     subgraph Platform["Platform Pages (JWT Auth)"]
@@ -289,6 +291,11 @@ flowchart TD
         PlatformDeliverables["/platform/deliverables"]
         PlatformNotifications["/platform/notifications"]
         PlatformPayments["/platform/payments"]
+        PlatformCollectionAccountsPage["/platform/collection-accounts"]
+        PlatformCollectionAccountDetail["/platform/collection-accounts/:id"]
+        PlatformProjectCollectionAccounts["/platform/projects/:id/collection-accounts"]
+        PlatformProjectDataModel["/platform/projects/:id/data-model"]
+        PlatformDeliverableDetail["/platform/projects/:id/deliverables/:did"]
         PlatformProfilePage["/platform/profile"]
     end
 
@@ -300,7 +307,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph Stores["Pinia Stores (Options API) — 18 total"]
+    subgraph Stores["Pinia Stores (Options API) — 19 total"]
         ProposalStore["proposals.js"]
         BlogStore["blog.js"]
         PortfolioStore["portfolio_works.js"]
@@ -319,6 +326,7 @@ flowchart LR
         PlatformPayments["platform-payments.js"]
         PlatformCollectionAccounts["platform-collection-accounts.js"]
         PlatformDataModel["platform-data-model.js"]
+        EmailsStore["emails.js"]
     end
 
     subgraph HTTP["HTTP Service"]
@@ -342,6 +350,7 @@ flowchart LR
     PlatformPayments --> PlatformHTTP
     PlatformCollectionAccounts --> PlatformHTTP
     PlatformDataModel --> PlatformHTTP
+    EmailsStore --> RequestHTTP
 
     RequestHTTP -->|axios| API["/api/*"]
     PlatformHTTP -->|axios + JWT| API

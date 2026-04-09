@@ -233,7 +233,17 @@ venv/bin/python <command>
 
 ---
 
-## 10. Methodology Maintenance
+## 10. Cross-Language Shared Logic
+
+### Technical Fragment Content Check (Python ↔ JavaScript)
+- `_technical_fragment_has_content()` in `backend/content/views/proposal.py` and `technicalFragmentHasContent()` in `frontend/utils/technicalProposalPanels.js` implement the **same logic** in two languages
+- Both determine whether a technical document fragment has real content based on the `content_json` structure
+- **If the technical document schema changes** (new fragments, renamed keys, new fields), **both files must be updated together**
+- The Python version is used by the analytics funnel to decide which fragments to show; the JS version is used by the client-facing proposal viewer to decide which panels to render
+
+---
+
+## 11. Methodology Maintenance
 
 ### Memory Bank Source
 - Methodology rules based on [rules_template](https://github.com/Bhartendu-Kumar/rules_template)

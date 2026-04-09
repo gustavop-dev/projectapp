@@ -32,6 +32,7 @@
 | Internationalization (i18n) | ✅ Done | EN/ES with prefix routing, lazy loading, geo-detection |
 | Admin Auth Middleware | ✅ Done | Session/CSRF check, redirect to Django admin login |
 | CI/CD Pipeline | ✅ Done | GitHub Actions: pytest, Jest, Playwright (5 shards), quality gate |
+| Codex Ecosystem Methodology | ✅ Done | Codex-first runtime documented and implemented: `AGENTS.md` hierarchy, repo-local plugin (`.agents/plugins/marketplace.json` + `plugins/projectapp-codex/.codex-plugin/plugin.json`), canonical guide + quickstart, legacy compatibility notes |
 | Deployment (Production) | ✅ Done | Gunicorn + Nginx + systemd, documented in deployment-guide.md |
 | WhatsApp Notifications | ✅ Done | CallMeBot API integration |
 | Database Backups | ✅ Done | django-dbbackup with rotation |
@@ -77,9 +78,9 @@
 
 | Suite | Location | Approximate Count | Status |
 |-------|----------|-------------------|--------|
-| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 83 test files | Active |
-| Frontend Unit (Jest) | `frontend/test/` | 60 test files | Active |
-| Frontend E2E (Playwright) | `frontend/e2e/` | 125 spec files across admin, auth, blog, layout, proposal, public, platform | Active |
+| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 87 test files | Active |
+| Frontend Unit (Jest) | `frontend/test/` | 70 test files | Active |
+| Frontend E2E (Playwright) | `frontend/e2e/` | 126 spec files across admin, auth, blog, layout, proposal, public, platform | Active |
 | Quality Gate | `scripts/test_quality_gate.py` | 100/100, 0 warnings/info | Active |
 
 ---
@@ -95,6 +96,8 @@
 | Active Context | `tasks/active_context.md` | ✅ Initialized |
 | Error Documentation | `docs/methodology/error-documentation.md` | ✅ Initialized |
 | Lessons Learned | `docs/methodology/lessons-learned.md` | ✅ Initialized |
+| Codex Ecosystem Methodology Guide | `docs/codex-ecosystem-methodology-guide.md` | ✅ Complete |
+| Codex Setup Quickstart | `docs/codex-setup.md` | ✅ Complete |
 | Deployment Guide | `docs/deployment-guide.md` | ✅ Complete |
 | Testing Quality Standards | `docs/testing-quality-standards.md` | ✅ Complete |
 | User Flow Map | `docs/USER_FLOW_MAP.md` | ✅ Complete |
@@ -114,3 +117,4 @@
 4. **Caching layer** — Redis available but no application-level caching implemented
 5. **WebSocket notifications** — real-time alerts instead of polling
 6. **Multi-tenant support** — currently single-company; could generalize for SaaS
+7. **Codex docs drift guard** — add a lightweight check ensuring skill inventory and sensitive-skill policy stay in sync with Codex methodology docs

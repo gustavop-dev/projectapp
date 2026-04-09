@@ -62,6 +62,35 @@ python3 manage.py delete_fake_data
 
 ---
 
+## Codex Ecosystem
+
+ProjectApp uses a Codex-first methodology and automation stack:
+
+- Always-on runtime instructions:
+  - `AGENTS.md`
+  - `backend/AGENTS.md`
+  - `frontend/AGENTS.md`
+- Repo-local plugin registry: `.agents/plugins/marketplace.json`
+- Plugin manifest: `plugins/projectapp-codex/.codex-plugin/plugin.json`
+- Skills runtime: `plugins/projectapp-codex/skills/*`
+
+Main references:
+
+- Full guide: `docs/codex-ecosystem-methodology-guide.md`
+- Quickstart: `docs/codex-setup.md`
+
+Workflow naming policy:
+
+- Canonical debug workflow: `$debug`
+- Legacy alias kept for compatibility: `debugme`
+
+Sensitive operational skills are manual-only (`deploy-and-check`, `git-commit`, `git-sync`, `blog-ai-weekly`) and use dual safeguards:
+
+- `disable-model-invocation: true` in `SKILL.md`
+- `policy.allow_implicit_invocation: false` in `agents/openai.yaml`
+
+---
+
 ## Project Structure
 
 ```
@@ -187,19 +216,15 @@ DRAFT → SENT → VIEWED → ACCEPTED
 
 ## Deployment
 
-See [docs/deployment-guide.md](docs/deployment-guide.md) for full production deployment instructions.
+See [docs/deployment-guide.md](docs/deployment-guide.md) for initial setup and full documentation.
 
-Quick deploy:
+Quick deploy (on server):
 ```bash
-git push origin main
-# On server:
-cd /home/ryzepeck/webapps/projectapp && git pull origin main
-cd backend && source venv/bin/activate
-DJANGO_SETTINGS_MODULE=projectapp.settings_prod python manage.py migrate
-cd ../frontend && npm ci && npm run build:django
-cd ../backend && DJANGO_SETTINGS_MODULE=projectapp.settings_prod python manage.py collectstatic --noinput
-sudo systemctl restart projectapp && sudo systemctl restart projectapp-huey
+cd /home/ryzepeck/webapps/projectapp
+./scripts/deploy.sh
 ```
+
+Options: `--sync-configs` (sync systemd/nginx), `--skip-frontend`, `--dry-run`, `--yes`.
 
 ---
 

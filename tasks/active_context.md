@@ -2,11 +2,18 @@
 
 ## Current State
 
-ProjectApp is in **production** at projectapp.co. All core features are implemented and deployed. Active branch: **`main`**. The Document System PDF (generic branded PDF on branch `generate-pdf-with-template`) is still in progress and not yet merged. Platform module has been significantly expanded with Bug Reports, Change Requests, Deliverables, Notifications, Payments modules, and a new Data Model Entities feature.
+ProjectApp is in **production** at projectapp.co. All core features are implemented and deployed. Active branch: **`main`**. Codex-first methodology is now documented and operational via `AGENTS.md` + repo-local plugin skills (`plugins/projectapp-codex`). The Document System PDF (generic branded PDF on branch `generate-pdf-with-template`) is still in progress and not yet merged. Platform module has been significantly expanded with Bug Reports, Change Requests, Deliverables, Notifications, Payments modules, and a new Data Model Entities feature.
 
 ---
 
 ## Recent Focus Areas
+
+- **Codex Ecosystem Methodology Rollout** (Apr 8, 2026):
+  - Added canonical Codex guide: `docs/codex-ecosystem-methodology-guide.md`
+  - Converted `docs/codex-setup.md` into quickstart and linked from runtime docs
+  - Standardized naming policy: `debug` is canonical, `debugme` remains legacy alias
+  - Marked Claude methodology docs as legacy reference, pointing to Codex docs
+  - Synced technical and task memory docs with Codex runtime surfaces
 
 1. **Proposal Advanced Filters & Saved Tabs** (Apr 5, 2026):
    - New composable `useProposalFilters.js` — 11 filter dimensions (status, project type, market type, currency, language, investment range, heat score range, view count range, created date range, last activity date range, active status), saveable named tabs with localStorage persistence, URL sync (`?tab=xxx`), max 12 tabs
@@ -103,23 +110,23 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 
 ---
 
-## Verified Codebase Metrics (April 5, 2026 — refreshed)
+## Verified Codebase Metrics (April 8, 2026 — refreshed)
 
 | Metric | Count |
 |--------|-------|
-| Backend test files | 83 |
-| Frontend unit tests | 60 |
-| E2E spec files | 125 |
-| Vue components | 111 |
-| Pages | 62 |
-| Pinia stores | 18 |
-| Composables | 31 |
-| Content model files | 26 |
+| Backend test files | 87 |
+| Frontend unit tests | 70 |
+| E2E spec files | 126 |
+| Vue components | 118 |
+| Pages | 64 |
+| Pinia stores | 19 |
+| Composables | 33 |
+| Content model files | 25 (+1 accounts models.py) |
 | Accounts models | 21 |
 | Accounts URL patterns | 65 |
-| Content URL patterns | 103 |
+| Content URL patterns | 107 |
 | Email templates | 48 (24 HTML + 24 TXT) |
-| Content services | 16 |
+| Content services | 18 |
 | Accounts services | 10 |
 | Quality gate score | 100/100 (0 warnings, 0 info) |
 
@@ -128,6 +135,7 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 ## Next Steps
 
 - Complete Document System PDF generation (branch `generate-pdf-with-template`): template rendering, preview, download flow
+- Keep Codex docs and plugin skill inventory synchronized when adding/renaming skills (canonical `debug`, legacy aliases preserved)
 - Add unit tests for `useProposalFilters.js` composable and `ProposalFilterPanel.vue` / `ProposalFilterTabs.vue` components
 - Add E2E coverage for Contract System (ContractParamsModal, SendDocumentsModal admin workflows)
 - Add E2E coverage for Platform Data Model page (`/platform/projects/[id]/data-model`)

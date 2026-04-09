@@ -1,6 +1,12 @@
-# ProjectApp — Claude Code Configuration
+# ProjectApp — Codex AGENTS Configuration
 
 ## Project Identity
+
+### Codex Runtime Surfaces
+- **Primary instructions**: `AGENTS.md` (root scope) + `backend/AGENTS.md` + `frontend/AGENTS.md`
+- **Codex skills plugin**: `plugins/projectapp-codex/skills/`
+- **Plugin registration (repo-local)**: `.agents/plugins/marketplace.json`
+- **Plugin manifest**: `plugins/projectapp-codex/.codex-plugin/plugin.json`
 
 - **Name**: ProjectApp
 - **Domain**: `projectapp.co` / `www.projectapp.co`
@@ -333,7 +339,7 @@ flowchart TD
     Root --> Docs[docs/]
     Root --> Tasks[tasks/]
     Root --> Scripts[scripts/]
-    Root --> Claude[.claude/skills/]
+    Root --> CodexSkills[plugins/projectapp-codex/skills/]
     Root --> GitHub[.github/workflows/]
 
     Backend --> BContent[content/ — Django app]
@@ -351,7 +357,7 @@ flowchart TD
     Tasks --> ActiveCtx[active_context.md]
     Tasks --> TasksPlan[tasks_plan.md]
 
-    Claude --> CSkills[plan, implement, debug, deploy, git-commit, etc.]
+    CodexSkills --> SkillSet[plan, implement, debug, deploy, git-commit, etc.]
 ```
 
 ---
@@ -362,7 +368,7 @@ flowchart TD
 
 - **Never run the full test suite** — always specify files
 - **Maximum per execution**: 20 tests per batch, 3 commands per cycle
-- **Backend**: Activate venv first (typical: `source .venv/bin/activate` from repo root, or `source ../.venv/bin/activate` from `backend/`), then `pytest path/to/test_file.py -v` with cwd `backend/` — see `backend/CLAUDE.md`
+- **Backend**: Activate venv first (typical: `source .venv/bin/activate` from repo root, or `source ../.venv/bin/activate` from `backend/`), then `pytest path/to/test_file.py -v` with cwd `backend/` — see `backend/AGENTS.md`
 - **Frontend unit**: `npm test -- path/to/file.spec.ts`
 - **E2E**: max 2 files per `npx playwright test` invocation
 - Use `E2E_REUSE_SERVER=1` when dev server is already running
@@ -444,9 +450,6 @@ cd backend && <command>
 1. Frontend: `npm run build:django` → generates `backend/static/frontend/`
 2. Backend: `python manage.py collectstatic` → copies to `backend/staticfiles/`
 3. Restart: `sudo systemctl restart projectapp && sudo systemctl restart projectapp-huey`
-
-All steps automated via `./scripts/deploy.sh` (run `--help` for options).
-Server configs (systemd/nginx) live in `scripts/systemd/` and `scripts/nginx/` — sync with `./scripts/sync-configs.sh`.
 
 #### Django Serves Nuxt Pages
 - The `serve_nuxt` catch-all view in `projectapp/views.py` serves pre-rendered Nuxt pages

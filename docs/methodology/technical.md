@@ -61,6 +61,19 @@ npm install
 npm run dev                             # http://localhost:3000
 ```
 
+### Codex Runtime Surfaces (ProjectApp)
+
+- Always-on instructions:
+  - `AGENTS.md`
+  - `backend/AGENTS.md`
+  - `frontend/AGENTS.md`
+- Plugin registry: `.agents/plugins/marketplace.json`
+- Plugin manifest: `plugins/projectapp-codex/.codex-plugin/plugin.json`
+- Skills runtime: `plugins/projectapp-codex/skills/*`
+- Canonical guide: `docs/codex-ecosystem-methodology-guide.md`
+- Quickstart: `docs/codex-setup.md`
+- Naming policy: `debug` is canonical; `debugme` remains as legacy alias
+
 ### Task Queue (for async features)
 
 ```bash
@@ -160,8 +173,8 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 ### Frontend Patterns
 
 - **Pinia Options API** — all stores use Options API (state, getters, actions), not Composition API
-- **Composables** — 29 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, etc.)
-- **Component architecture** — 107 Vue components total; 34 BusinessProposal components (12 section types + admin + overlays + utilities)
+- **Composables** — 33 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, `useProposalFilters`, `useClientFilters`, `useSeoJsonLd`, `useIncludeArchivedQuery`, etc.)
+- **Component architecture** — 118 Vue components total; 34 BusinessProposal components (12 section types + admin + overlays + utilities)
 - **GSAP animations** — horizontal scroll with ScrollTrigger for proposal client view, reveal animations for marketing pages
 - **Layouts** — `default.vue` (public pages with navbar), `admin.vue` (admin panel with sidebar), `platform.vue` (platform with sidebar + theme)
 - **Middleware** — `admin-auth.js` route guard for `/panel/**` routes, `platform-auth.js` route guard for `/platform/**` routes
@@ -232,35 +245,35 @@ projectapp/
 │   │   ├── models.py            # 21 models (UserProfile, VerificationCode, Project, Requirement, RequirementComment, RequirementHistory, BugReport, BugComment, ChangeRequest, ChangeRequestComment, Deliverable, DeliverableVersion, DeliverableFile, DeliverableClientFolder, DeliverableClientUpload, DataModelEntity, ProjectDataModelEntity, Notification, HostingSubscription, Payment, PaymentHistory)
 │   │   ├── services/            # 10 services (image_utils, onboarding, tokens, verification, archive, notifications, payment_history, proposal_platform_onboarding, technical_requirements_sync, wompi)
 │   │   ├── management/commands/ # 4 commands (create_platform_admin, seed_demo_clients, seed_platform_data, seed_mihuella)
-│   │   ├── tests/               # 24 test files
+│   │   ├── tests/               # 27 test files
 │   │   └── urls.py              # 65 URL patterns
 │   ├── content/                 # Main Django app
-│   │   ├── models/              # 24 model files (proposal, blog, portfolio, contact, document, email, contract, etc.)
+│   │   ├── models/              # 25 model files (proposal, blog, portfolio, contact, document, email, contract, etc.)
 │   │   ├── serializers/         # DRF serializers (proposal, blog, portfolio, contact)
 │   │   ├── views/               # FBV views (proposal 162K, blog 18K, portfolio 9K, email_templates 8K, document 10K, contact 2K)
-│   │   ├── services/            # 15 service files (proposal 133K, email 71K, pdf 72K, templates 44K, pdf_utils 47K, contract_pdf 12K, document_pdf 19K, markdown_parser 9K, collection_account*, technical_document*, platform_onboarding_pdf)
+│   │   ├── services/            # 18 service files (proposal 134K, email 71K, pdf 76K, templates 44K, pdf_utils 52K, contract_pdf 12K, document_pdf 19K, markdown_parser 9K, linkedin 16K, collection_account*, technical_document*, platform_onboarding_pdf)
 │   │   ├── tasks.py             # Huey async tasks
 │   │   ├── templates/emails/    # 48 email templates (24 HTML + 24 TXT)
 │   │   ├── management/commands/ # 8 management commands
-│   │   ├── tests/               # 46 test files (models, serializers, views, services, tasks, utils)
-│   │   └── urls.py              # 99 URL patterns
+│   │   ├── tests/               # 57 test files (models, serializers, views, services, tasks, utils)
+│   │   └── urls.py              # 107 URL patterns
 │   ├── projectapp/              # Django project (settings, urls, wsgi, views, 1 test file)
 │   ├── tests/                   # Root-level tests (test_document_pdf_service.py, test_markdown_parser.py)
 │   ├── static/                  # Static files (Nuxt build output in prod)
 │   └── media/                   # User uploads
 ├── frontend/
-│   ├── pages/                   # Nuxt file-based routing (52 pages)
+│   ├── pages/                   # Nuxt file-based routing (64 pages)
 │   │   ├── panel/               # Admin pages (proposals, blog, portfolio, clients, documents, admins)
 │   │   ├── platform/            # Platform pages (dashboard, board, projects, kanban, bugs, changes, deliverables, notifications, payments, clients, collection-accounts, profile, data-model)
 │   │   ├── blog/                # Blog listing + detail
 │   │   ├── portfolio-works/     # Portfolio listing + detail
 │   │   └── proposal/            # Client proposal view
-│   ├── components/              # Vue components (107 files)
+│   ├── components/              # Vue components (118 files)
 │   │   └── BusinessProposal/    # 34 proposal components (12 sections + admin tabs + overlays + utilities)
-│   ├── stores/                  # 18 Pinia stores (proposals, blog, portfolio_works, contacts, language, documents, panel_admins, platform-auth, platform-clients, platform-projects, platform-requirements, platform-bug-reports, platform-change-requests, platform-deliverables, platform-notifications, platform-payments, platform-collection-accounts, platform-data-model)
-│   ├── composables/             # 29 composables
-│   ├── e2e/                     # Playwright E2E tests (121 spec files)
-│   ├── test/                    # Jest unit tests (60 test files)
+│   ├── stores/                  # 19 Pinia stores (proposals, blog, portfolio_works, contacts, language, documents, emails, panel_admins, platform-auth, platform-clients, platform-projects, platform-requirements, platform-bug-reports, platform-change-requests, platform-deliverables, platform-notifications, platform-payments, platform-collection-accounts, platform-data-model)
+│   ├── composables/             # 33 composables
+│   ├── e2e/                     # Playwright E2E tests (126 spec files)
+│   ├── test/                    # Jest unit tests (70 test files)
 │   ├── layouts/                 # default.vue, admin.vue, platform.vue
 │   ├── middleware/              # admin-auth.js, platform-auth.js
 │   ├── plugins/                 # 4 plugins (gsap, geo-locale, language-sync, cal-booking)

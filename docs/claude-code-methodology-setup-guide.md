@@ -2,6 +2,10 @@
 
 Guía para implementar el sistema de Memory Bank en Claude Code (migrado desde Windsurf).
 
+> Legacy reference for Claude/Windsurf compatibility.
+> Codex canonical guide: `docs/codex-ecosystem-methodology-guide.md`
+> Codex quickstart: `docs/codex-setup.md`
+
 ---
 
 ## ¿Qué es el Memory Bank?
