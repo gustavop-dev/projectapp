@@ -142,6 +142,7 @@ class TestProposalListSerializerComputedFields:
         serializer = ProposalListSerializer(proposal)
         assert serializer.data['sent_at'] is None
 
+    @freeze_time('2026-04-01 12:00:00')
     def test_sent_at_field_value_for_sent(self, proposal):
         from django.utils import timezone
         now = timezone.now()

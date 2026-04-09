@@ -14,11 +14,13 @@ const authCheck = { status: 200, contentType: 'application/json', body: JSON.str
 const mockProposals = [
   { id: 1, uuid: 'aaa', title: 'Propuesta Alpha', client_name: 'Carlos', client_email: 'c@t.com', status: 'sent', total_investment: 5000, currency: 'COP', view_count: 0, is_active: true },
   { id: 2, uuid: 'bbb', title: 'Propuesta Beta', client_name: 'Ana', client_email: 'a@t.com', status: 'draft', total_investment: 3000, currency: 'USD', view_count: 2, is_active: true },
+  { id: 3, uuid: 'ccc', title: 'Propuesta Gamma', client_name: 'Pedro', client_email: 'p@t.com', status: 'accepted', total_investment: 9000, currency: 'USD', view_count: 5, is_active: true },
 ];
 
 const mockAlerts = [
   { id: 1, client_name: 'Carlos', title: 'Propuesta Alpha', alert_type: 'not_viewed', message: 'No ha sido vista en 3 días' },
   { id: 2, client_name: 'Ana', title: 'Propuesta Beta', alert_type: 'manual_reminder', message: 'Llamar para seguimiento', manual_alert_id: 10 },
+  { id: 3, client_name: 'Pedro', title: 'Propuesta Gamma', alert_type: 'manual_followup', message: 'No debería mostrarse porque está aceptada', manual_alert_id: 11 },
 ];
 
 const dashboardData = { total_proposals: 2, conversion_rate: 0, avg_time_to_first_view: null, avg_time_to_response: null, status_distribution: {}, top_rejection_reasons: [], monthly_trends: [], avg_value_by_status: {} };
@@ -58,7 +60,15 @@ function setupMock(page, { alerts = mockAlerts, proposals = mockProposals } = {}
   });
 }
 
+async function gotoProposalPanel(page) {
+  await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('h1').filter({ hasText: /^Propuestas$/ }).first()).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText('Propuestas que necesitan atención')).toBeVisible({ timeout: 30000 });
+}
+
 test.describe('Admin Proposal Manual Alerts', () => {
+  test.describe.configure({ timeout: 60_000 });
+
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, {
       token: 'e2e-admin-token',
@@ -70,20 +80,19 @@ test.describe('Admin Proposal Manual Alerts', () => {
     tag: [...ADMIN_PROPOSAL_MANUAL_ALERTS, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
+    await gotoProposalPanel(page);
 
     await expect(page.getByText('Propuestas que necesitan atención')).toBeVisible();
     await expect(page.getByText('No ha sido vista en 3 días')).toBeVisible();
     await expect(page.getByText('Llamar para seguimiento')).toBeVisible();
+    await expect(page.getByText('No debería mostrarse porque está aceptada')).not.toBeVisible();
   });
 
   test('clicking "+ Crear recordatorio" toggles the alert creation form', {
     tag: [...ADMIN_PROPOSAL_MANUAL_ALERTS, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
+    await gotoProposalPanel(page);
 
     const formToggle = page.getByText('+ Crear recordatorio');
     await expect(formToggle).toBeVisible();
@@ -102,8 +111,7 @@ test.describe('Admin Proposal Manual Alerts', () => {
     tag: [...ADMIN_PROPOSAL_MANUAL_ALERTS, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
+    await gotoProposalPanel(page);
 
     await page.getByText('+ Crear recordatorio').click();
 
@@ -111,21 +119,30 @@ test.describe('Admin Proposal Manual Alerts', () => {
     await page.locator('select').filter({ hasText: 'Seleccionar...' }).selectOption('1');
     await page.getByPlaceholder('Ej: Llamar al cliente para seguimiento...').fill('Revisar cotización pendiente');
 
-    await page.getByRole('button', { name: 'Crear' }).click();
+    await Promise.all([
+      page.waitForResponse(r => r.url().includes('proposals/alerts/create/') && r.request().method() === 'POST'),
+      page.getByRole('button', { name: 'Crear' }).click(),
+    ]);
 
-    // After create, the form closes and a fresh alerts fetch happens
-    await expect(page.getByText('Revisar cotización pendiente')).toBeVisible({ timeout: 10000 });
+    // Alerts are grouped by client; for same-client alerts the UI may collapse into a grouped summary.
+    await expect(
+      page.getByText(/Revisar cotización pendiente|2 alertas en 1 propuesta\(s\)\./)
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test('dismiss button removes a manual alert from the list', {
     tag: [...ADMIN_PROPOSAL_MANUAL_ALERTS, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
-    await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
+    await gotoProposalPanel(page);
 
-    // Manual alert has dismiss button (✕)
-    const dismissBtn = page.getByTitle('Descartar');
+    // Dismiss the specific manual alert under test.
+    const dismissBtn = page
+      .getByText('Llamar para seguimiento')
+      .first()
+      .locator('xpath=ancestor::div[contains(@class,"bg-white")][1]')
+      .locator('button[title="Descartar"]')
+      .first();
     await expect(dismissBtn).toBeVisible();
 
     const [response] = await Promise.all([

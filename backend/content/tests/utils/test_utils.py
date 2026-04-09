@@ -5,7 +5,39 @@ happy paths, missing config, API errors, email errors.
 """
 from unittest.mock import MagicMock, patch
 
-from content.utils import send_email_notification, send_whatsapp_notification
+from decimal import Decimal
+
+import pytest
+
+from content.utils import (
+    format_cop_email,
+    send_email_notification,
+    send_whatsapp_notification,
+)
+
+
+class TestFormatCopEmail:
+    @pytest.mark.parametrize('value, expected', [
+        (1490000, "1'490.000"),
+        (15000000, "15'000.000"),
+        (123456, '123.456'),
+        (5000, '5.000'),
+        (500, '500'),
+        (0, '0'),
+        (Decimal('1490000.00'), "1'490.000"),
+        (Decimal('15000000'), "15'000.000"),
+        ('1490000', "1'490.000"),
+        ('15,000,000', "15'000.000"),
+        (1234567890, "1'234'567.890"),
+        (-1490000, "-1'490.000"),
+        (None, ''),
+        (99, '99'),
+    ])
+    def test_format_cop_email(self, value, expected):
+        assert format_cop_email(value) == expected
+
+    def test_non_numeric_returns_as_is(self):
+        assert format_cop_email('N/A') == 'N/A'
 
 
 class TestSendWhatsappNotification:

@@ -177,8 +177,7 @@ test.describe('Admin Proposal Documents Send', () => {
     await page.getByRole('button', { name: /Enviar al cliente/i }).click();
     await page.getByRole('button', { name: /Enviar documentos$/i }).click();
 
-    await page.waitForTimeout(500);
-    expect(sendCalled).toBe(true);
+    await expect(() => expect(sendCalled).toBe(true)).toPass({ timeout: 5000 });
   });
 
   test('no client email shows warning and disables send button', {

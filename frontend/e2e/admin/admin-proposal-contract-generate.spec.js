@@ -182,8 +182,6 @@ test.describe('Admin Proposal Contract Generate', () => {
     await dateInput.fill('2026-04-15');
 
     await page.getByRole('button', { name: /Generar contrato y negociar/i }).click();
-    // Allow API to be called
-    await page.waitForTimeout(500);
-    expect(apiCalled).toBe(true);
+    await expect(() => expect(apiCalled).toBe(true)).toPass({ timeout: 5000 });
   });
 });

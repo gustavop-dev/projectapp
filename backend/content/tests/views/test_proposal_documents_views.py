@@ -4,13 +4,13 @@ Covers: save_contract_and_negotiate, upload/delete/list proposal documents,
 download contract PDFs, company settings, default contract template,
 send documents to client.
 """
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from content.models import BusinessProposal, ProposalChangeLog, ProposalDocument
+from content.models import ProposalChangeLog
 
 pytestmark = pytest.mark.django_db
 

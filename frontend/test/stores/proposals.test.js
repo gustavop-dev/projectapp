@@ -35,6 +35,7 @@ describe('useProposalStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     store = useProposalStore();
+    store._clearExpirationCache();
     jest.clearAllMocks();
     jest.restoreAllMocks();
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -1186,6 +1187,21 @@ describe('useProposalStore', () => {
       expect(result.success).toBe(true);
     });
 
+    it('dismisses computed alert with payload', async () => {
+      patch_request.mockResolvedValue({});
+
+      const result = await store.dismissAlert(17, {
+        computed_alert_type: 'not_viewed',
+        ref_date: '2026-03-10T12:00:00+00:00',
+      });
+
+      expect(patch_request).toHaveBeenCalledWith('proposals/alerts/17/dismiss/', {
+        computed_alert_type: 'not_viewed',
+        ref_date: '2026-03-10T12:00:00+00:00',
+      });
+      expect(result.success).toBe(true);
+    });
+
     it('returns success false on error', async () => {
       patch_request.mockRejectedValue(new Error('fail'));
 
@@ -1297,6 +1313,57 @@ describe('useProposalStore', () => {
     });
   });
 
+  describe('fetchExpirationDays', () => {
+    it('returns expiration_days from API on cache miss', async () => {
+      get_request.mockResolvedValue({ data: { expiration_days: 30 } });
+
+      const days = await store.fetchExpirationDays('en');
+
+      expect(get_request).toHaveBeenCalledWith('proposals/defaults/?lang=en');
+      expect(days).toBe(30);
+    });
+
+    it('returns cached value on subsequent calls', async () => {
+      get_request.mockResolvedValue({ data: { expiration_days: 14 } });
+
+      await store.fetchExpirationDays('es');
+      get_request.mockClear();
+      const days = await store.fetchExpirationDays('es');
+
+      expect(get_request).not.toHaveBeenCalled();
+      expect(days).toBe(14);
+    });
+
+    it('caches per language independently', async () => {
+      get_request
+        .mockResolvedValueOnce({ data: { expiration_days: 21 } })
+        .mockResolvedValueOnce({ data: { expiration_days: 30 } });
+
+      const esDay = await store.fetchExpirationDays('es');
+      const enDay = await store.fetchExpirationDays('en');
+
+      expect(esDay).toBe(21);
+      expect(enDay).toBe(30);
+      expect(get_request).toHaveBeenCalledTimes(2);
+    });
+
+    it('returns null on API failure', async () => {
+      get_request.mockRejectedValue(new Error('network'));
+
+      const days = await store.fetchExpirationDays('es');
+
+      expect(days).toBeNull();
+    });
+
+    it('returns null when expiration_days is missing', async () => {
+      get_request.mockResolvedValue({ data: {} });
+
+      const days = await store.fetchExpirationDays('es');
+
+      expect(days).toBeNull();
+    });
+  });
+
   describe('saveProposalDefaults', () => {
     it('saves defaults and returns data', async () => {
       const data = { id: 1, language: 'es' };
@@ -1313,6 +1380,24 @@ describe('useProposalStore', () => {
       expect(result.data).toEqual(data);
     });
 
+    it('saves general defaults without sections_json when only expiration_days is provided', async () => {
+      const data = { id: 1, language: 'es', expiration_days: 21 };
+      put_request.mockResolvedValue({ data });
+
+      const result = await store.saveProposalDefaults(
+        'es',
+        null,
+        { expiration_days: 21 },
+      );
+
+      expect(put_request).toHaveBeenCalledWith('proposals/defaults/', {
+        language: 'es',
+        expiration_days: 21,
+      });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+    });
+
     it('sets error on failure', async () => {
       put_request.mockRejectedValue({
         response: { data: { sections_json: ['Required'] } },
@@ -1323,6 +1408,20 @@ describe('useProposalStore', () => {
       expect(result.success).toBe(false);
       expect(store.error).toBe('save_defaults_failed');
       expect(result.errors).toEqual({ sections_json: ['Required'] });
+    });
+
+    it('invalidates expiration cache for the saved language', async () => {
+      get_request.mockResolvedValue({ data: { expiration_days: 21 } });
+      await store.fetchExpirationDays('es');
+
+      put_request.mockResolvedValue({ data: { id: 1 } });
+      await store.saveProposalDefaults('es', null, { expiration_days: 30 });
+
+      get_request.mockResolvedValue({ data: { expiration_days: 30 } });
+      const days = await store.fetchExpirationDays('es');
+
+      expect(days).toBe(30);
+      expect(get_request).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -1353,6 +1452,20 @@ describe('useProposalStore', () => {
 
       expect(result.success).toBe(false);
       expect(store.error).toBe('reset_defaults_failed');
+    });
+
+    it('invalidates expiration cache for the reset language', async () => {
+      get_request.mockResolvedValue({ data: { expiration_days: 30 } });
+      await store.fetchExpirationDays('en');
+
+      create_request.mockResolvedValue({ data: { expiration_days: 21 } });
+      await store.resetProposalDefaults('en');
+
+      get_request.mockResolvedValue({ data: { expiration_days: 21 } });
+      const days = await store.fetchExpirationDays('en');
+
+      expect(days).toBe(21);
+      expect(get_request).toHaveBeenCalledTimes(2);
     });
   });
 

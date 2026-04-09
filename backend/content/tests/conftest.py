@@ -4,6 +4,7 @@ Provides reusable fixtures for API clients, model instances,
 and authenticated users following the project testing standards.
 """
 from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -27,6 +28,15 @@ from content.models import (
 )
 
 User = get_user_model()
+
+
+# ── Global mocks ──
+
+@pytest.fixture(autouse=True)
+def _skip_mx_validation():
+    """Bypass DNS MX lookups in all tests — test domains have no real records."""
+    with patch('content.utils.check_domain_mx', return_value=True):
+        yield
 
 
 # ── API Clients ──
@@ -298,6 +308,29 @@ def negotiating_proposal(db):
         responded_at=now - timezone.timedelta(days=1),
         last_activity_at=now - timezone.timedelta(days=1),
         expires_at=now + timezone.timedelta(days=12),
+        project_type='webapp',
+        market_type='b2b',
+    )
+
+
+@pytest.fixture
+def accepted_proposal(db):
+    """A proposal that has been accepted."""
+    now = timezone.now()
+    return BusinessProposal.objects.create(
+        title='Accepted Project',
+        client_name='Accepted Client',
+        client_email='accepted@client.com',
+        language='es',
+        total_investment=Decimal('20000.00'),
+        currency='COP',
+        status='accepted',
+        sent_at=now - timezone.timedelta(days=10),
+        first_viewed_at=now - timezone.timedelta(days=7),
+        view_count=8,
+        responded_at=now - timezone.timedelta(days=2),
+        last_activity_at=now - timezone.timedelta(days=2),
+        expires_at=now + timezone.timedelta(days=10),
         project_type='webapp',
         market_type='b2b',
     )

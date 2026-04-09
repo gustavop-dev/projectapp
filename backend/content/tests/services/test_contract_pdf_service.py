@@ -1,7 +1,8 @@
 """Tests for contract_pdf_service: parameter building, placeholder substitution, PDF generation."""
 import logging
 import re
-from unittest.mock import patch, MagicMock
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
@@ -62,16 +63,17 @@ class TestSubstitutePlaceholders:
 class TestGenerateContractPdf:
     @patch('content.services.contract_pdf_service._register_fonts')
     def test_returns_bytes_for_default_source(self, mock_fonts, contract_template):
-        proposal = MagicMock()
-        proposal.contract_params = {
-            'contract_source': 'default',
-            'client_full_name': 'Test Client',
-            'client_cedula': '123456',
-            'contractor_full_name': 'Contractor',
-            'contractor_cedula': '654321',
-            'contract_date': '2026-04-02',
-        }
-        proposal.pk = 1
+        proposal = SimpleNamespace(
+            contract_params={
+                'contract_source': 'default',
+                'client_full_name': 'Test Client',
+                'client_cedula': '123456',
+                'contractor_full_name': 'Contractor',
+                'contractor_cedula': '654321',
+                'contract_date': '2026-04-02',
+            },
+            pk=1,
+        )
         result = generate_contract_pdf(proposal)
         assert result is not None
         assert isinstance(result, bytes)
@@ -79,12 +81,13 @@ class TestGenerateContractPdf:
 
     @patch('content.services.contract_pdf_service._register_fonts')
     def test_returns_bytes_for_custom_source(self, mock_fonts):
-        proposal = MagicMock()
-        proposal.contract_params = {
-            'contract_source': 'custom',
-            'custom_contract_markdown': '# Custom Contract\n\nThis is a custom contract.',
-        }
-        proposal.pk = 2
+        proposal = SimpleNamespace(
+            contract_params={
+                'contract_source': 'custom',
+                'custom_contract_markdown': '# Custom Contract\n\nThis is a custom contract.',
+            },
+            pk=2,
+        )
         result = generate_contract_pdf(proposal)
         assert result is not None
         assert isinstance(result, bytes)
@@ -92,19 +95,21 @@ class TestGenerateContractPdf:
     def test_returns_none_when_no_default_template(self, db):
         from content.models import ContractTemplate
         ContractTemplate.objects.all().update(is_default=False)
-        proposal = MagicMock()
-        proposal.contract_params = {'contract_source': 'default'}
-        proposal.pk = 3
+        proposal = SimpleNamespace(
+            contract_params={'contract_source': 'default'},
+            pk=3,
+        )
         result = generate_contract_pdf(proposal)
         assert result is None
 
     def test_returns_none_when_custom_markdown_empty(self):
-        proposal = MagicMock()
-        proposal.contract_params = {
-            'contract_source': 'custom',
-            'custom_contract_markdown': '',
-        }
-        proposal.pk = 4
+        proposal = SimpleNamespace(
+            contract_params={
+                'contract_source': 'custom',
+                'custom_contract_markdown': '',
+            },
+            pk=4,
+        )
         result = generate_contract_pdf(proposal)
         assert result is None
 
@@ -116,15 +121,16 @@ class TestDraftMode:
     @patch('content.services.contract_pdf_service._register_fonts')
     def test_draft_returns_bytes(self, mock_fonts, mock_sig, contract_template):
         """Draft mode produces valid PDF bytes."""
-        proposal = MagicMock()
-        proposal.contract_params = {
-            'contract_source': 'default',
-            'client_full_name': 'Test Client',
-            'client_cedula': '123456',
-            'contractor_full_name': 'Contractor',
-            'contractor_cedula': '654321',
-        }
-        proposal.pk = 10
+        proposal = SimpleNamespace(
+            contract_params={
+                'contract_source': 'default',
+                'client_full_name': 'Test Client',
+                'client_cedula': '123456',
+                'contractor_full_name': 'Contractor',
+                'contractor_cedula': '654321',
+            },
+            pk=10,
+        )
         result = generate_contract_pdf(proposal, draft=True)
         assert result is not None
         assert isinstance(result, bytes)
@@ -133,17 +139,18 @@ class TestDraftMode:
     @patch('content.services.contract_pdf_service._register_fonts')
     def test_draft_passes_none_as_signature_path(self, mock_fonts, mock_sig, contract_template):
         """Draft mode calls _draw_signature_block with signature_path=None (no image)."""
-        proposal = MagicMock()
-        proposal.contract_params = {
-            'contract_source': 'default',
-            'client_full_name': 'Test Client',
-            'client_cedula': '123456',
-            'contractor_full_name': 'Contractor',
-            'contractor_cedula': '654321',
-        }
-        proposal.pk = 11
+        proposal = SimpleNamespace(
+            contract_params={
+                'contract_source': 'default',
+                'client_full_name': 'Test Client',
+                'client_cedula': '123456',
+                'contractor_full_name': 'Contractor',
+                'contractor_cedula': '654321',
+            },
+            pk=11,
+        )
         generate_contract_pdf(proposal, draft=True)
-        assert mock_sig.called
+        assert mock_sig.call_count == 1
         _, call_kwargs = mock_sig.call_args
         assert call_kwargs.get('signature_path') is None
 
@@ -151,15 +158,16 @@ class TestDraftMode:
     def test_draft_does_not_load_company_settings(self, mock_fonts, contract_template):
         """Draft mode never queries CompanySettings for the signature path."""
         with patch('content.models.CompanySettings') as mock_cs:
-            proposal = MagicMock()
-            proposal.contract_params = {
-                'contract_source': 'default',
-                'client_full_name': 'C',
-                'client_cedula': '1',
-                'contractor_full_name': 'X',
-                'contractor_cedula': '2',
-            }
-            proposal.pk = 12
+            proposal = SimpleNamespace(
+                contract_params={
+                    'contract_source': 'default',
+                    'client_full_name': 'C',
+                    'client_cedula': '1',
+                    'contractor_full_name': 'X',
+                    'contractor_cedula': '2',
+                },
+                pk=12,
+            )
             generate_contract_pdf(proposal, draft=True)
             assert mock_cs.load.call_count == 0, "CompanySettings.load should not be called in draft mode"
             mock_cs.load.assert_not_called()
@@ -174,46 +182,48 @@ class TestSignatureRendering:
         sig_file = tmp_path / 'sig.png'
         sig_file.write_bytes(b'fake_image')
 
-        mock_company = MagicMock()
-        mock_company.contractor_signature.path = str(sig_file)
+        company = SimpleNamespace(
+            contractor_signature=SimpleNamespace(path=str(sig_file)),
+        )
 
         with patch('content.services.contract_pdf_service._draw_signature_block') as mock_sig, \
              patch('content.models.CompanySettings') as mock_cs:
-            mock_cs.load.return_value = mock_company
-            proposal = MagicMock()
-            proposal.contract_params = {
-                'contract_source': 'default',
-                'client_full_name': 'Client',
-                'client_cedula': '111',
-                'contractor_full_name': 'Contractor',
-                'contractor_cedula': '222',
-            }
-            proposal.pk = 20
+            mock_cs.load.return_value = company
+            proposal = SimpleNamespace(
+                contract_params={
+                    'contract_source': 'default',
+                    'client_full_name': 'Client',
+                    'client_cedula': '111',
+                    'contractor_full_name': 'Contractor',
+                    'contractor_cedula': '222',
+                },
+                pk=20,
+            )
             generate_contract_pdf(proposal, draft=False)
-            assert mock_sig.called
+            assert mock_sig.call_count == 1
             _, call_kwargs = mock_sig.call_args
             assert call_kwargs.get('signature_path') == str(sig_file)
 
     @patch('content.services.contract_pdf_service._register_fonts')
     def test_final_passes_none_when_no_signature_set(self, mock_fonts, contract_template):
         """Final PDF passes signature_path=None when company has no contractor_signature."""
-        mock_company = MagicMock()
-        mock_company.contractor_signature = None
+        company = SimpleNamespace(contractor_signature=None)
 
         with patch('content.services.contract_pdf_service._draw_signature_block') as mock_sig, \
              patch('content.models.CompanySettings') as mock_cs:
-            mock_cs.load.return_value = mock_company
-            proposal = MagicMock()
-            proposal.contract_params = {
-                'contract_source': 'default',
-                'client_full_name': 'Client',
-                'client_cedula': '111',
-                'contractor_full_name': 'Contractor',
-                'contractor_cedula': '222',
-            }
-            proposal.pk = 21
+            mock_cs.load.return_value = company
+            proposal = SimpleNamespace(
+                contract_params={
+                    'contract_source': 'default',
+                    'client_full_name': 'Client',
+                    'client_cedula': '111',
+                    'contractor_full_name': 'Contractor',
+                    'contractor_cedula': '222',
+                },
+                pk=21,
+            )
             generate_contract_pdf(proposal, draft=False)
-            assert mock_sig.called
+            assert mock_sig.call_count == 1
             _, call_kwargs = mock_sig.call_args
             assert call_kwargs.get('signature_path') is None
 
@@ -240,31 +250,33 @@ class TestContractSpecialChars:
     @patch('content.services.contract_pdf_service._register_fonts')
     def test_accented_names_do_not_raise(self, mock_fonts, contract_template):
         """Colombian names with tildes and accents render without error."""
-        proposal = MagicMock()
-        proposal.contract_params = {
-            'contract_source': 'default',
-            'client_full_name': 'Julián Andrés Ñoño García',
-            'client_cedula': '1234567890',
-            'contractor_full_name': 'María José Peñaloza Ruíz',
-            'contractor_cedula': '9876543210',
-        }
-        proposal.pk = 30
+        proposal = SimpleNamespace(
+            contract_params={
+                'contract_source': 'default',
+                'client_full_name': 'Julián Andrés Ñoño García',
+                'client_cedula': '1234567890',
+                'contractor_full_name': 'María José Peñaloza Ruíz',
+                'contractor_cedula': '9876543210',
+            },
+            pk=30,
+        )
         result = generate_contract_pdf(proposal)
         assert result is not None
 
     @patch('content.services.contract_pdf_service._register_fonts')
     def test_long_bank_account_number_does_not_raise(self, mock_fonts, contract_template):
         """Very long bank account numbers render without overflow errors."""
-        proposal = MagicMock()
-        proposal.contract_params = {
-            'contract_source': 'default',
-            'client_full_name': 'Client',
-            'client_cedula': '1',
-            'contractor_full_name': 'Contractor',
-            'contractor_cedula': '2',
-            'bank_account_number': '9' * 30,  # unusually long account number
-        }
-        proposal.pk = 31
+        proposal = SimpleNamespace(
+            contract_params={
+                'contract_source': 'default',
+                'client_full_name': 'Client',
+                'client_cedula': '1',
+                'contractor_full_name': 'Contractor',
+                'contractor_cedula': '2',
+                'bank_account_number': '9' * 30,  # unusually long account number
+            },
+            pk=31,
+        )
         result = generate_contract_pdf(proposal)
         assert result is not None
 

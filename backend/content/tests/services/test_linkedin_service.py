@@ -3,7 +3,8 @@
 Covers: token exchange, encrypted storage, auto-refresh, publish,
 connection status, and encryption round-trip.
 """
-from datetime import datetime, timedelta, timezone as dt_tz
+from datetime import datetime, timedelta
+from datetime import timezone as dt_tz
 from unittest.mock import MagicMock, patch
 
 import pytest

@@ -5,8 +5,9 @@ assert observable outputs (bytes, PDF header).  No external I/O is
 mocked beyond the cover-page PDFs (which require disk files and are
 not present in the test environment).
 """
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from content.models import Document
 
@@ -36,8 +37,15 @@ def _with_blocks(blocks):
 # -- generate() basic ---------------------------------------------------------
 
 class TestDocumentPdfServiceGenerate:
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_returns_pdf_bytes_for_simple_paragraph(self, _merge):
+    @pytest.fixture(autouse=True)
+    def _bypass_merge(self):
+        with patch(
+            'content.services.document_pdf_service.DocumentPdfService._merge_with_covers',
+            side_effect=lambda b, **kw: b,
+        ):
+            yield
+
+    def test_generate_returns_pdf_bytes_for_simple_paragraph(self):
         """generate() returns PDF bytes when document has paragraph blocks."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -49,8 +57,7 @@ class TestDocumentPdfServiceGenerate:
         assert isinstance(result, bytes)
         assert result[:4] == b'%PDF'
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_returns_none_when_no_blocks(self, _merge):
+    def test_generate_returns_none_when_no_blocks(self):
         """generate() returns None when content_json has no blocks."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -59,8 +66,7 @@ class TestDocumentPdfServiceGenerate:
 
         assert result is None
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_returns_none_when_content_json_empty(self, _merge):
+    def test_generate_returns_none_when_content_json_empty(self):
         """generate() returns None when content_json is an empty dict."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -69,8 +75,8 @@ class TestDocumentPdfServiceGenerate:
 
         assert result is None
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_renders_heading_block(self, _merge):
+
+    def test_generate_renders_heading_block(self):
         """generate() handles heading blocks of all levels without error."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -83,8 +89,8 @@ class TestDocumentPdfServiceGenerate:
 
         assert isinstance(result, bytes)
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_renders_list_block_unordered(self, _merge):
+
+    def test_generate_renders_list_block_unordered(self):
         """generate() renders unordered list blocks without error."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -98,8 +104,8 @@ class TestDocumentPdfServiceGenerate:
 
         assert isinstance(result, bytes)
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_renders_list_block_ordered(self, _merge):
+
+    def test_generate_renders_list_block_ordered(self):
         """generate() renders ordered list blocks without error."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -113,8 +119,8 @@ class TestDocumentPdfServiceGenerate:
 
         assert isinstance(result, bytes)
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_renders_table_block(self, _merge):
+
+    def test_generate_renders_table_block(self):
         """generate() renders table blocks without error."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -126,8 +132,8 @@ class TestDocumentPdfServiceGenerate:
 
         assert isinstance(result, bytes)
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_renders_code_block(self, _merge):
+
+    def test_generate_renders_code_block(self):
         """generate() renders fenced code blocks without error."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -138,8 +144,8 @@ class TestDocumentPdfServiceGenerate:
 
         assert isinstance(result, bytes)
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_renders_blockquote_block(self, _merge):
+
+    def test_generate_renders_blockquote_block(self):
         """generate() renders blockquote blocks without error."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -150,8 +156,8 @@ class TestDocumentPdfServiceGenerate:
 
         assert isinstance(result, bytes)
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_renders_separator_block(self, _merge):
+
+    def test_generate_renders_separator_block(self):
         """generate() renders separator blocks without error."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -164,8 +170,8 @@ class TestDocumentPdfServiceGenerate:
 
         assert isinstance(result, bytes)
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_renders_callout_note_block(self, _merge):
+
+    def test_generate_renders_callout_note_block(self):
         """generate() renders callout note blocks without error."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -176,8 +182,8 @@ class TestDocumentPdfServiceGenerate:
 
         assert isinstance(result, bytes)
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_renders_section_header_block(self, _merge):
+
+    def test_generate_renders_section_header_block(self):
         """generate() renders section_header blocks without error."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -189,8 +195,8 @@ class TestDocumentPdfServiceGenerate:
 
         assert isinstance(result, bytes)
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_renders_sub_section_block(self, _merge):
+
+    def test_generate_renders_sub_section_block(self):
         """generate() renders sub_section blocks without error."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -202,8 +208,8 @@ class TestDocumentPdfServiceGenerate:
 
         assert isinstance(result, bytes)
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_skips_unknown_block_types_gracefully(self, _merge):
+
+    def test_generate_skips_unknown_block_types_gracefully(self):
         """generate() skips unknown block types without raising an exception."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -215,8 +221,8 @@ class TestDocumentPdfServiceGenerate:
 
         assert isinstance(result, bytes)
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_with_include_subportada_renders_title_page(self, _merge):
+
+    def test_generate_with_include_subportada_renders_title_page(self):
         """generate() renders a title page when include_subportada=True."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -231,8 +237,8 @@ class TestDocumentPdfServiceGenerate:
         assert isinstance(result, bytes)
         assert result[:4] == b'%PDF'
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_with_toc_block_renders_table_of_contents(self, _merge):
+
+    def test_generate_with_toc_block_renders_table_of_contents(self):
         """generate() renders a TOC page when blocks include a [toc] block."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -248,21 +254,24 @@ class TestDocumentPdfServiceGenerate:
         assert isinstance(result, bytes)
         assert result[:4] == b'%PDF'
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_returns_none_on_unexpected_exception(self, _merge):
+
+    def test_generate_returns_none_on_unexpected_exception(self):
         """generate() returns None when an unexpected exception is raised."""
         from content.services.document_pdf_service import DocumentPdfService
 
-        _merge.side_effect = RuntimeError('unexpected')
         doc = _document(content_json=_with_blocks([
             {'type': 'paragraph', 'text': 'Some text.'},
         ]))
-        result = DocumentPdfService.generate(doc)
+        with patch(
+            'content.services.document_pdf_service.DocumentPdfService._merge_with_covers',
+            side_effect=RuntimeError('unexpected'),
+        ):
+            result = DocumentPdfService.generate(doc)
 
         assert result is None
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_toc_not_first_block_flushes_previous_page(self, _merge):
+
+    def test_generate_toc_not_first_block_flushes_previous_page(self):
         """generate() flushes the current page before the TOC when toc is not the first block."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -277,8 +286,8 @@ class TestDocumentPdfServiceGenerate:
         assert isinstance(result, bytes)
         assert result[:4] == b'%PDF'
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_toc_with_heading_blocks_creates_toc_entries(self, _merge):
+
+    def test_generate_toc_with_heading_blocks_creates_toc_entries(self):
         """generate() creates TOC entries for h1/h2 headings when TOC is present."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -293,8 +302,8 @@ class TestDocumentPdfServiceGenerate:
 
         assert isinstance(result, bytes)
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_title_page_with_subtitle_in_meta(self, _merge):
+
+    def test_generate_title_page_with_subtitle_in_meta(self):
         """generate() renders the subtitle label on the title page when meta has subtitle."""
         from content.services.document_pdf_service import DocumentPdfService
 
@@ -309,8 +318,8 @@ class TestDocumentPdfServiceGenerate:
 
         assert isinstance(result, bytes)
 
-    @patch('content.services.document_pdf_service.DocumentPdfService._merge_with_covers', side_effect=lambda b, **kw: b)
-    def test_generate_renders_mixed_block_types(self, _merge):
+
+    def test_generate_renders_mixed_block_types(self):
         """generate() renders all block types in a single document without error."""
         from content.services.document_pdf_service import DocumentPdfService
 

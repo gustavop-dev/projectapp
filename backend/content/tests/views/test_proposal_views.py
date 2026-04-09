@@ -296,6 +296,118 @@ class TestAdminListProposals:
         assert len(response.data) == 1
         assert response.data[0]['status'] == 'sent'
 
+    def test_includes_effective_total_with_selected_calculator_modules(self, admin_client, db):
+        proposal = BusinessProposal.objects.create(
+            title='With module',
+            client_name='Client',
+            status='sent',
+            total_investment=1000,
+            selected_modules=['module-extra'],
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='FR',
+            order=1,
+            content_json={
+                'groups': [],
+                'additionalModules': [
+                    {
+                        'id': 'extra',
+                        'is_calculator_module': True,
+                        'price_percent': 40,
+                    },
+                ],
+            },
+        )
+
+        response = admin_client.get(reverse('list-proposals'))
+        assert response.status_code == 200
+        item = next(i for i in response.data if i['id'] == proposal.id)
+        assert item['effective_total_investment'] == '1400.00'
+
+    def test_effective_total_falls_back_to_fr_selected_modules(self, admin_client, db):
+        """When selected_modules is empty, use modules marked selected/default_selected in FR content."""
+        proposal = BusinessProposal.objects.create(
+            title='FR default selected',
+            client_name='Fallback',
+            status='sent',
+            total_investment=1000,
+            selected_modules=[],
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='FR',
+            order=1,
+            content_json={
+                'groups': [],
+                'additionalModules': [
+                    {
+                        'id': 'i18n',
+                        'is_calculator_module': True,
+                        'price_percent': 15,
+                        'selected': True,
+                        'default_selected': True,
+                    },
+                    {
+                        'id': 'pwa',
+                        'is_calculator_module': True,
+                        'price_percent': 40,
+                        'selected': False,
+                        'default_selected': False,
+                    },
+                ],
+            },
+        )
+
+        response = admin_client.get(reverse('list-proposals'))
+        assert response.status_code == 200
+        item = next(i for i in response.data if i['id'] == proposal.id)
+        # Only i18n (15%) should be included: 1000 + 150 = 1150
+        assert item['effective_total_investment'] == '1150.00'
+
+    def test_effective_total_explicit_selection_overrides_fr_defaults(self, admin_client, db):
+        """When selected_modules is populated, FR selected/default_selected is ignored."""
+        proposal = BusinessProposal.objects.create(
+            title='Explicit override',
+            client_name='Override',
+            status='sent',
+            total_investment=1000,
+            selected_modules=['module-pwa'],
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='FR',
+            order=1,
+            content_json={
+                'groups': [],
+                'additionalModules': [
+                    {
+                        'id': 'i18n',
+                        'is_calculator_module': True,
+                        'price_percent': 15,
+                        'selected': True,
+                        'default_selected': True,
+                    },
+                    {
+                        'id': 'pwa',
+                        'is_calculator_module': True,
+                        'price_percent': 40,
+                        'selected': False,
+                        'default_selected': False,
+                    },
+                ],
+            },
+        )
+
+        response = admin_client.get(reverse('list-proposals'))
+        assert response.status_code == 200
+        item = next(i for i in response.data if i['id'] == proposal.id)
+        # Only pwa (40%) via explicit selection: 1000 + 400 = 1400
+        assert item['effective_total_investment'] == '1400.00'
+
 
 class TestAdminRetrieveProposal:
     def test_returns_200_for_admin(self, admin_client, proposal):
@@ -1178,6 +1290,73 @@ class TestTrackProposalEngagement:
     def _url(self, uuid):
         return reverse('track-proposal-engagement', kwargs={'proposal_uuid': uuid})
 
+    def test_creates_view_activity_log_for_client_visit(self, api_client, sent_proposal):
+        payload = {
+            'session_id': 'sess-view-1',
+            'view_mode': 'executive',
+            'sections': [
+                {'section_type': 'greeting', 'time_spent_seconds': 4},
+            ],
+        }
+        response = api_client.post(self._url(sent_proposal.uuid), payload, format='json')
+
+        assert response.status_code == 200
+        logs = ProposalChangeLog.objects.filter(
+            proposal=sent_proposal,
+            change_type='viewed',
+            actor_type='client',
+        )
+        assert logs.count() == 1
+        assert logs.first().description == 'Vista en modo ejecutiva.'
+
+    @freeze_time('2026-03-01 10:00:00')
+    def test_deduplicates_view_activity_within_three_hours(
+        self, api_client, sent_proposal,
+    ):
+        url = self._url(sent_proposal.uuid)
+        payload = {
+            'view_mode': 'detailed',
+            'sections': [{'section_type': 'greeting', 'time_spent_seconds': 4}],
+        }
+
+        api_client.post(url, {'session_id': 'sess-view-1', **payload}, format='json')
+        with freeze_time('2026-03-01 12:59:59'):
+            api_client.post(
+                url,
+                {'session_id': 'sess-view-2', **payload},
+                format='json',
+            )
+
+        assert ProposalChangeLog.objects.filter(
+            proposal=sent_proposal,
+            change_type='viewed',
+            actor_type='client',
+        ).count() == 1
+
+    @freeze_time('2026-03-01 10:00:00')
+    def test_creates_new_view_activity_after_three_hours(
+        self, api_client, sent_proposal,
+    ):
+        url = self._url(sent_proposal.uuid)
+        payload = {
+            'view_mode': 'technical',
+            'sections': [{'section_type': 'greeting', 'time_spent_seconds': 4}],
+        }
+
+        api_client.post(url, {'session_id': 'sess-view-1', **payload}, format='json')
+        with freeze_time('2026-03-01 13:00:00'):
+            api_client.post(
+                url,
+                {'session_id': 'sess-view-2', **payload},
+                format='json',
+            )
+
+        assert ProposalChangeLog.objects.filter(
+            proposal=sent_proposal,
+            change_type='viewed',
+            actor_type='client',
+        ).count() == 2
+
     def test_records_section_views_returns_200(self, api_client, sent_proposal):
         """Valid engagement payload creates view event and section view records."""
         payload = {
@@ -1264,6 +1443,31 @@ class TestTrackProposalEngagement:
         mock_alert.assert_called_once()
         assert mock_alert.call_args[0][0].pk == sent_proposal.pk
 
+    def test_skips_tracking_for_draft_proposal(self, api_client, proposal):
+        """Draft proposals return 200 with 'skipped' and create no view events."""
+        payload = {
+            'session_id': 'sess-draft-1',
+            'sections': [{'section_type': 'greeting', 'time_spent_seconds': 4}],
+        }
+        response = api_client.post(self._url(proposal.uuid), payload, format='json')
+
+        assert response.status_code == 200
+        assert response.data['status'] == 'skipped'
+        assert ProposalViewEvent.objects.filter(proposal=proposal).count() == 0
+
+    def test_skips_tracking_for_staff_user(self, api_client, admin_user, sent_proposal):
+        """Authenticated staff users (via Django session) are not tracked."""
+        api_client.login(username='admin_test', password='testpass123')
+        payload = {
+            'session_id': 'sess-staff-1',
+            'sections': [{'section_type': 'greeting', 'time_spent_seconds': 4}],
+        }
+        response = api_client.post(self._url(sent_proposal.uuid), payload, format='json')
+
+        assert response.status_code == 200
+        assert response.data['status'] == 'skipped'
+        assert ProposalViewEvent.objects.filter(proposal=sent_proposal).count() == 0
+
 
 # ---------------------------------------------------------------------------
 # Comment on proposal
@@ -1331,8 +1535,9 @@ class TestDuplicateProposal:
             proposal=new, change_type='duplicated'
         ).exists()
 
-    def test_copies_general_fields(self, admin_client, db):
-        original = BusinessProposal.objects.create(
+    @pytest.fixture
+    def original_proposal(self, db):
+        return BusinessProposal.objects.create(
             title='Original Proposal',
             client_name='Client',
             client_email='client@example.com',
@@ -1351,18 +1556,24 @@ class TestDuplicateProposal:
             contract_params={'party_name': 'Acme', 'cedula': '123456'},
             status='draft',
         )
-        admin_client.post(self._url(original.id))
-        new = BusinessProposal.objects.exclude(pk=original.id).first()
-        assert new.client_phone == original.client_phone
-        assert new.hosting_percent == original.hosting_percent
-        assert new.hosting_discount_semiannual == original.hosting_discount_semiannual
-        assert new.hosting_discount_quarterly == original.hosting_discount_quarterly
-        assert new.project_type == original.project_type
-        assert new.market_type == original.market_type
-        assert new.project_type_custom == original.project_type_custom
-        assert new.market_type_custom == original.market_type_custom
-        assert new.selected_modules == original.selected_modules
-        assert new.contract_params == original.contract_params
+
+    def test_copies_hosting_and_contact_fields(self, admin_client, original_proposal):
+        admin_client.post(self._url(original_proposal.id))
+        new = BusinessProposal.objects.exclude(pk=original_proposal.id).first()
+        assert new.client_phone == original_proposal.client_phone
+        assert new.hosting_percent == original_proposal.hosting_percent
+        assert new.hosting_discount_semiannual == original_proposal.hosting_discount_semiannual
+        assert new.hosting_discount_quarterly == original_proposal.hosting_discount_quarterly
+        assert new.contract_params == original_proposal.contract_params
+
+    def test_copies_project_type_and_modules_fields(self, admin_client, original_proposal):
+        admin_client.post(self._url(original_proposal.id))
+        new = BusinessProposal.objects.exclude(pk=original_proposal.id).first()
+        assert new.project_type == original_proposal.project_type
+        assert new.market_type == original_proposal.market_type
+        assert new.project_type_custom == original_proposal.project_type_custom
+        assert new.market_type_custom == original_proposal.market_type_custom
+        assert new.selected_modules == original_proposal.selected_modules
 
     def test_duplicate_of_duplicate_does_not_stack_copia_suffix(self, admin_client, proposal):
         admin_client.post(self._url(proposal.id))
@@ -1660,6 +1871,71 @@ class TestProposalDashboardExtended:
         assert response.data['discount_close_rate'] == 100.0
         assert response.data['no_discount_close_rate'] == 0.0
 
+    def test_avg_accepted_value_uses_effective_total_with_added_modules(self, admin_client, db):
+        with_module = BusinessProposal.objects.create(
+            title='Accepted + module',
+            client_name='A',
+            status='accepted',
+            total_investment=1000,
+            selected_modules=['module-extra'],
+        )
+        ProposalSection.objects.create(
+            proposal=with_module,
+            section_type='functional_requirements',
+            title='FR',
+            order=1,
+            content_json={
+                'groups': [],
+                'additionalModules': [
+                    {
+                        'id': 'extra',
+                        'is_calculator_module': True,
+                        'price_percent': 40,
+                    },
+                ],
+            },
+        )
+        BusinessProposal.objects.create(
+            title='Accepted base',
+            client_name='B',
+            status='accepted',
+            total_investment=1000,
+        )
+
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        assert response.data['avg_value_by_status']['accepted'] == 1200.0
+
+    def test_pipeline_value_uses_effective_total_with_modules(self, admin_client, db):
+        proposal = BusinessProposal.objects.create(
+            title='Pipeline module',
+            client_name='C',
+            status='sent',
+            is_active=True,
+            total_investment=1000,
+            selected_modules=['module-extra'],
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='FR',
+            order=1,
+            content_json={
+                'groups': [],
+                'additionalModules': [
+                    {
+                        'id': 'extra',
+                        'is_calculator_module': True,
+                        'price_percent': 50,
+                    },
+                ],
+            },
+        )
+
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        assert response.data['pipeline_value'] == 1500.0
+
     @freeze_time('2026-03-01 12:00:00')
     def test_returns_top_dropoff_section(self, admin_client, sent_proposal):
         """Dashboard returns top_dropoff_section when tracking data exists."""
@@ -1757,6 +2033,53 @@ class TestListClients:
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['client_name'] == 'No Email Client'
+
+    def test_merges_proposals_with_blank_email_into_email_group(self, admin_client, db):
+        """Proposals with blank email merge into the email group for the same client name."""
+        BusinessProposal.objects.create(
+            title='P1', client_name='Juan Ingrid', client_email='juan@test.com',
+            total_investment=1000,
+        )
+        BusinessProposal.objects.create(
+            title='P2', client_name='Juan Ingrid', client_email='',
+            total_investment=2000,
+        )
+        response = admin_client.get(reverse('list-clients'))
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['total_proposals'] == 2
+        assert response.data[0]['client_email'] == 'juan@test.com'
+
+    def test_different_emails_same_name_creates_separate_groups(self, admin_client, db):
+        """Same client name with different emails produces separate groups."""
+        BusinessProposal.objects.create(
+            title='P1', client_name='Maria Garcia', client_email='maria@company-a.com',
+            total_investment=1000,
+        )
+        BusinessProposal.objects.create(
+            title='P2', client_name='Maria Garcia', client_email='maria@company-b.com',
+            total_investment=2000,
+        )
+        response = admin_client.get(reverse('list-clients'))
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert all(c['total_proposals'] == 1 for c in response.data)
+
+    def test_blank_email_proposals_grouped_by_name(self, admin_client, db):
+        """Multiple proposals without email are grouped by client name."""
+        BusinessProposal.objects.create(
+            title='P1', client_name='No Email Client', client_email='',
+            total_investment=1000,
+        )
+        BusinessProposal.objects.create(
+            title='P2', client_name='No Email Client', client_email='',
+            total_investment=2000,
+        )
+        response = admin_client.get(reverse('list-clients'))
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['total_proposals'] == 2
+        assert response.data[0]['client_email'] == ''
 
 
 # ---------------------------------------------------------------------------
@@ -1932,6 +2255,53 @@ class TestRetrieveProposalAnalyticsExtended:
         assert greeting_step['in_executive_mode'] is True
         assert about_step is not None
         assert about_step['in_executive_mode'] is False
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_technical_funnel_includes_unvisited_fragments(self, admin_client, sent_proposal):
+        """Technical funnel shows all fragments with content, even unvisited ones."""
+        ProposalSection.objects.get_or_create(
+            proposal=sent_proposal,
+            section_type='technical_document',
+            defaults={
+                'title': 'Doc técnico',
+                'order': 99,
+                'is_enabled': True,
+                'content_json': {
+                    'stack': [{'layer': 'Frontend', 'technology': 'Vue', 'rationale': 'SPA'}],
+                    'security': [{'aspect': 'Auth', 'implementation': 'JWT'}],
+                },
+            },
+        )
+        # Create one view event for the 'stack' fragment only
+        event = ProposalViewEvent.objects.create(
+            proposal=sent_proposal, session_id='sess-tech-frag',
+            view_mode='technical',
+        )
+        ProposalSectionView.objects.create(
+            view_event=event,
+            section_type='technical_document_public',
+            subsection_key='stack',
+            section_title='Stack tecnológico',
+            time_spent_seconds=20,
+            entered_at=timezone.now(),
+            view_mode='technical',
+        )
+        response = admin_client.get(self._url(sent_proposal.id))
+        assert response.status_code == 200
+        tech_funnel = [
+            s for s in response.data['funnel']
+            if s['section_type'] == 'technical_document_public'
+        ]
+        tech_keys = {s['subsection_key'] for s in tech_funnel}
+        # 'intro' always has content, plus 'stack' and 'security' from content_json
+        assert {'intro', 'stack', 'security'}.issubset(tech_keys)
+        # 'stack' was visited → reached_count > 0
+        stack_step = next(s for s in tech_funnel if s['subsection_key'] == 'stack')
+        assert stack_step['reached_count'] == 1
+        # 'security' was NOT visited → reached_count == 0
+        security_step = next(s for s in tech_funnel if s['subsection_key'] == 'security')
+        assert security_step['reached_count'] == 0
+        assert security_step['drop_off_percent'] == 100.0
 
 
 # ---------------------------------------------------------------------------
@@ -2764,16 +3134,21 @@ class TestProposalAlerts:
 
     @freeze_time('2026-03-10 12:00:00')
     def test_returns_zombie_sent_stale_alert(self, admin_client, db):
-        """Sent >10 days, no views triggers zombie_sent_stale alert."""
-        BusinessProposal.objects.create(
+        """Sent >10 days, no views, with seller activity → zombie_sent_stale (not zombie)."""
+        p = BusinessProposal.objects.create(
             title='ZombieSent', client_name='ZS', status='sent',
             total_investment=1000, view_count=0,
             sent_at=timezone.now() - timezone.timedelta(days=11),
+        )
+        # Seller activity prevents zombie alert, but zombie_sent_stale still fires
+        ProposalChangeLog.objects.create(
+            proposal=p, change_type='note', description='check-in',
         )
         response = admin_client.get(self._url())
         assert response.status_code == 200
         alert_types = [a['alert_type'] for a in response.data]
         assert 'zombie_sent_stale' in alert_types
+        assert 'zombie' not in alert_types
 
     @freeze_time('2026-03-10 12:00:00')
     def test_returns_late_return_alert(self, admin_client, db):
@@ -2816,6 +3191,34 @@ class TestProposalAlerts:
         assert response.status_code == 200
         alert_types = [a['alert_type'] for a in response.data]
         assert any('manual_' in at for at in alert_types)
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_hides_persistently_dismissed_computed_alert(self, admin_client, db):
+        """Computed alerts with persisted dismissal marker are not returned."""
+        from content.models import ProposalAlert
+        p = BusinessProposal.objects.create(
+            title='Stale Hidden',
+            client_name='SH',
+            status='sent',
+            total_investment=1000,
+            sent_at=timezone.now() - timezone.timedelta(days=10),
+            reminder_days=5,
+        )
+        ref_date = p.sent_at.isoformat()
+        ProposalAlert.objects.create(
+            proposal=p,
+            alert_type='custom',
+            message=f'__computed_dismissed__:{p.id}-not_viewed-{ref_date}',
+            alert_date=timezone.now(),
+            is_dismissed=True,
+        )
+        response = admin_client.get(self._url())
+        assert response.status_code == 200
+        stale_alerts = [
+            a for a in response.data
+            if a.get('id') == p.id and a.get('alert_type') == 'not_viewed'
+        ]
+        assert stale_alerts == []
 
     def test_returns_empty_alerts_list(self, admin_client, db):
         """Returns empty list when no alerts are needed."""
@@ -2869,6 +3272,31 @@ class TestDismissProposalAlert:
         url = reverse('dismiss-proposal-alert', kwargs={'alert_id': 99999})
         response = admin_client.patch(url)
         assert response.status_code == 404
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_dismisses_computed_alert_returns_200(self, admin_client, proposal):
+        """Dismissing computed alert stores a persistent dismissal marker."""
+        from content.models import ProposalAlert
+        ref_date = '2026-03-01T08:00:00+00:00'
+        url = reverse('dismiss-proposal-alert', kwargs={'alert_id': proposal.id})
+        response = admin_client.patch(url, {
+            'computed_alert_type': 'not_viewed',
+            'ref_date': ref_date,
+        }, format='json')
+        assert response.status_code == 200
+        marker = f'__computed_dismissed__:{proposal.id}-not_viewed-{ref_date}'
+        assert ProposalAlert.objects.filter(
+            proposal=proposal, is_dismissed=True, message=marker,
+        ).exists()
+
+    def test_returns_400_for_invalid_computed_alert_type(self, admin_client, proposal):
+        """Invalid computed alert type returns 400."""
+        url = reverse('dismiss-proposal-alert', kwargs={'alert_id': proposal.id})
+        response = admin_client.patch(url, {
+            'computed_alert_type': 'invalid_type',
+            'ref_date': '2026-03-01T08:00:00+00:00',
+        }, format='json')
+        assert response.status_code == 400
 
 
 # ---------------------------------------------------------------------------

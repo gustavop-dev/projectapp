@@ -22,6 +22,7 @@ from content.models import (
     ProposalRequirementItem,
     ProposalSection,
 )
+from content.services.pdf_utils import _draw_green_bar
 from content.services.proposal_pdf_service import (
     CONTENT_W,
     ESMERALD,
@@ -55,7 +56,6 @@ from content.services.proposal_pdf_service import (
     _safe,
     _strip_emoji,
 )
-from content.services.pdf_utils import _draw_green_bar
 
 pytestmark = pytest.mark.django_db
 

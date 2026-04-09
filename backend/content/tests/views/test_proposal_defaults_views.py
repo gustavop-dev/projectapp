@@ -38,19 +38,21 @@ class TestGetProposalDefaults:
         data = response.json()
         assert data['language'] == 'es'
         assert data['id'] is None
+        assert data['expiration_days'] == 21
         assert isinstance(data['sections_json'], list)
         assert len(data['sections_json']) > 0
         assert data['sections_json'][0]['section_type'] == 'greeting'
 
     def test_returns_db_config_when_exists(self, admin_client):
         ProposalDefaultConfig.objects.create(
-            language='es', sections_json=SAMPLE_SECTIONS,
+            language='es', sections_json=SAMPLE_SECTIONS, expiration_days=28,
         )
         url = reverse('proposal-defaults')
         response = admin_client.get(url, {'lang': 'es'})
         assert response.status_code == 200
         data = response.json()
         assert data['id'] is not None
+        assert data['expiration_days'] == 28
         assert len(data['sections_json']) == 2
         assert data['sections_json'][0]['section_type'] == 'greeting'
 
@@ -88,25 +90,31 @@ class TestGetProposalDefaults:
 class TestPutProposalDefaults:
     def test_creates_new_config(self, admin_client):
         url = reverse('proposal-defaults')
-        payload = {'language': 'es', 'sections_json': SAMPLE_SECTIONS}
+        payload = {
+            'language': 'es',
+            'sections_json': SAMPLE_SECTIONS,
+            'expiration_days': 21,
+        }
         response = admin_client.put(url, payload, format='json')
         assert response.status_code == 200
         data = response.json()
         assert data['id'] is not None
         assert data['language'] == 'es'
+        assert data['expiration_days'] == 21
         assert len(data['sections_json']) == 2
         assert ProposalDefaultConfig.objects.filter(language='es').exists()
 
     def test_updates_existing_config(self, admin_client):
         ProposalDefaultConfig.objects.create(
-            language='es', sections_json=SAMPLE_SECTIONS,
+            language='es', sections_json=SAMPLE_SECTIONS, expiration_days=21,
         )
         url = reverse('proposal-defaults')
         updated = [SAMPLE_SECTIONS[0]]
-        payload = {'language': 'es', 'sections_json': updated}
+        payload = {'language': 'es', 'sections_json': updated, 'expiration_days': 14}
         response = admin_client.put(url, payload, format='json')
         assert response.status_code == 200
         assert len(response.json()['sections_json']) == 1
+        assert response.json()['expiration_days'] == 14
         assert ProposalDefaultConfig.objects.filter(language='es').count() == 1
 
     def test_validates_sections_json_must_be_list(self, admin_client):
@@ -127,6 +135,16 @@ class TestPutProposalDefaults:
     def test_validates_language_choices(self, admin_client):
         url = reverse('proposal-defaults')
         payload = {'language': 'fr', 'sections_json': SAMPLE_SECTIONS}
+        response = admin_client.put(url, payload, format='json')
+        assert response.status_code == 400
+
+    def test_validates_expiration_days_range(self, admin_client):
+        url = reverse('proposal-defaults')
+        payload = {
+            'language': 'es',
+            'sections_json': SAMPLE_SECTIONS,
+            'expiration_days': 0,
+        }
         response = admin_client.put(url, payload, format='json')
         assert response.status_code == 400
 

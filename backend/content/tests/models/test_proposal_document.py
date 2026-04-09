@@ -9,7 +9,7 @@ pytestmark = pytest.mark.django_db
 class TestProposalDocumentCreation:
     def test_str_includes_type_and_title(self, proposal_document):
         result = str(proposal_document)
-        assert result  # should not be empty
+        assert 'Legal annex' in result
 
     def test_default_document_type_is_other(self, negotiating_proposal):
         doc = ProposalDocument.objects.create(
