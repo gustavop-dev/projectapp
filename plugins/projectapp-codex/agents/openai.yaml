@@ -1,0 +1,4 @@
+interface:
+  display_name: "ProjectApp Codex"
+  short_description: "ProjectApp repo workflows and execution patterns"
+  default_prompt: "Use ProjectApp Codex workflows to plan, implement, test, debug, and deploy in this repository."

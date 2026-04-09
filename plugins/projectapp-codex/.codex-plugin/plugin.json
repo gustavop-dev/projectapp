@@ -1,0 +1,44 @@
+{
+  "name": "projectapp-codex",
+  "version": "0.1.0",
+  "description": "ProjectApp Codex automation bundle with migrated methodology, testing, deploy, and git workflows.",
+  "author": {
+    "name": "ProjectApp",
+    "email": "team@projectapp.co",
+    "url": "https://projectapp.co"
+  },
+  "homepage": "https://projectapp.co",
+  "repository": "https://github.com/gustavop-dev/projectapp",
+  "license": "Proprietary",
+  "keywords": [
+    "projectapp",
+    "codex",
+    "django",
+    "nuxt",
+    "workflows",
+    "testing"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "ProjectApp Codex",
+    "shortDescription": "ProjectApp workflows, rules, and automation for Codex",
+    "longDescription": "Repo-local Codex plugin that ports the existing Claude/Windsurf methodology, testing, E2E, debug, deploy, and git workflows used by ProjectApp.",
+    "developerName": "ProjectApp",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://projectapp.co",
+    "privacyPolicyURL": "https://projectapp.co/privacy-policy",
+    "termsOfServiceURL": "https://projectapp.co/terms-and-conditions",
+    "defaultPrompt": [
+      "Use $plan to design a change before coding.",
+      "Use $implement to build and validate the requested change.",
+      "Use $debug for read-only diagnosis of errors."
+    ],
+    "brandColor": "#0F172A",
+    "screenshots": []
+  }
+}
