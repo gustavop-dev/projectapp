@@ -32,7 +32,7 @@
 | Internationalization (i18n) | ✅ Done | EN/ES with prefix routing, lazy loading, geo-detection |
 | Admin Auth Middleware | ✅ Done | Session/CSRF check, redirect to Django admin login |
 | CI/CD Pipeline | ✅ Done | GitHub Actions: pytest, Jest, Playwright (5 shards), quality gate |
-| Codex Ecosystem Methodology | ✅ Done | Codex-first runtime documented and implemented: `AGENTS.md` hierarchy, repo-local plugin (`.agents/plugins/marketplace.json` + `plugins/projectapp-codex/.codex-plugin/plugin.json`), canonical guide + quickstart, legacy compatibility notes |
+| Codex Ecosystem Methodology | ✅ Done | Codex-first runtime documented and implemented: `AGENTS.md` hierarchy, native repo skills in `.agents/skills/`, project config in `.codex/config.toml`, canonical guide + quickstart, legacy compatibility notes |
 | Deployment (Production) | ✅ Done | Gunicorn + Nginx + systemd, documented in deployment-guide.md |
 | WhatsApp Notifications | ✅ Done | CallMeBot API integration |
 | Database Backups | ✅ Done | django-dbbackup with rotation |
@@ -62,7 +62,7 @@
 | Business Proposal — Advanced Filters & Saved Tabs | ✅ Done | `useProposalFilters.js` composable (11 filter dimensions, saved tabs with localStorage, URL sync); `ProposalFilterTabs.vue` (tab bar with +, rename, delete); `ProposalFilterPanel.vue` (collapsible filter grid); single-pass client-side filtering; max 12 tabs; `selectArrowStyle.js` shared utility |
 | Business Proposal — Project Schedule Tracking (Cronograma) | ✅ Done | `ProposalProjectStage` child model (design + development with `start_date`/`end_date`/`completed_at`/`warning_sent_at`/`last_overdue_reminder_at`); `ProposalStageTracker` service with `STAGE_DEFINITIONS`, `ensure_stages`, `get_or_create_stage`, `format_remaining_time`, `process(proposal)`; daily Huey task `notify_proposal_stage_deadlines` (08:30 Bogotá); 70%-elapsed warning + every-3-days overdue reminders; admin Cronograma tab (`ProjectScheduleEditor.vue` + `useStageStatus.js`); 2 PUT/POST endpoints; onboarding auto-creates rows; 2 internal email templates; 51 backend tests + 49 frontend unit tests + 6 E2E |
 | Backend — Bogotá date helpers | ✅ Done | `now_bogota()`, `today_bogota()`, `to_bogota_date(dt)` in `content/utils.py`; `format_bogota_date()` accepts both `date` and `datetime` instances |
-| Business Proposal — Real client profiles | 🚧 In progress | `BusinessProposal.client` FK to `accounts.UserProfile` (migrations 0079 + 0080 backfill); `proposal_client_service.py`, `serializers/proposal_clients.py`, `views/proposal_clients.py`; `proposalClients.js` store; `ClientAutocomplete.vue` component; replaces legacy grouped clients list. Untracked in `feat/platform-launch-and-email-improvements` working tree, pending commit |
+| Business Proposal — Real client profiles | ✅ Done | `BusinessProposal.client` FK to `accounts.UserProfile` (PROTECT, `limit_choices_to={'role':'client'}`) with migrations `0079` (schema) + `0080` (backfill dedups by normalized email, two-step placeholder generation). New `accounts/services/proposal_client_service.py` (silent variant of `onboarding.create_client` — get-or-create, update + cascade snapshots, delete-orphan with 3 guards, sync_snapshot, generate_placeholder_email, build_client_display_name). 6 FBV endpoints under `proposals/client-profiles/*` (`views/proposal_clients.py`). `ProposalListSerializer`/`ProposalDetailSerializer` expose nested `client`; `ProposalCreateUpdateSerializer` accepts `client_id`/`client_company`/`propagate_client_updates`. Email automations: `_is_unsendable_client_email` helper + `UserProfile.PLACEHOLDER_EMAIL_DOMAIN` constant + `is_email_placeholder` property gate **13 client-facing email methods** + 4 huey tasks + 2 candidate querysets. N+1 fixes via `select_related('client__user')` in 4 views. Bug fix: `respond_to_proposal` now sends `send_acceptance_confirmation` for `action='accepted'`. Frontend: `proposalClients.js` Pinia store (Options API + AbortController search), `ClientAutocomplete.vue` (debounce 200ms, keyboard nav, click-outside via VueUse, placeholder badge), `/panel/clients/` rewrite with tabs (Todos/Activos/Huérfanos) + new-client modal + trash icon for orphans, `[id]/edit.vue` and `create.vue` use `<ClientAutocomplete>` + snapshot fields + propagate checkbox. Tests: 15 service + 19 view + 10 placeholder-skip backend + 25 store frontend = **69 new tests**, zero regression. Shipped 2026-04-09. |
 
 ---
 
@@ -75,7 +75,6 @@
 | Large service files | Medium | `proposal_service.py` (133K), `proposal_pdf_service.py` (72K), `proposal_email_service.py` (~73K after stage methods), `pdf_utils.py` (47K) — shared utils extracted but could split further |
 | Large view file | Medium | `views/proposal.py` (~5230 lines after stage endpoints) — could benefit from splitting into submodules |
 | Single Django app for content | Low | All proposal/blog/portfolio/contact models in `content` app; consider splitting if scope grows |
-| `proposal_clients` ecosystem uncommitted | Medium | New views/serializers/store/component exist in working tree but haven't been committed; methodology docs only mention them as "in progress" |
 
 ---
 
@@ -101,8 +100,9 @@
 | Active Context | `tasks/active_context.md` | ✅ Initialized |
 | Error Documentation | `docs/methodology/error-documentation.md` | ✅ Initialized |
 | Lessons Learned | `docs/methodology/lessons-learned.md` | ✅ Initialized |
-| Codex Ecosystem Methodology Guide | `docs/codex-ecosystem-methodology-guide.md` | ✅ Complete |
-| Codex Setup Quickstart | `docs/codex-setup.md` | ✅ Complete |
+| Codex Methodology Guide | `docs/CODEX_METHODOLOGY_GUIDE.md` | ✅ Complete |
+| Codex Setup Quickstart | `docs/CODEX_SETUP.md` | ✅ Complete |
+| Codex Migration Map | `docs/CODEX_MIGRATION_MAP.md` | ✅ Complete |
 | Deployment Guide | `docs/deployment-guide.md` | ✅ Complete |
 | Testing Quality Standards | `docs/testing-quality-standards.md` | ✅ Complete |
 | User Flow Map | `docs/USER_FLOW_MAP.md` | ✅ Complete |
@@ -122,4 +122,4 @@
 4. **Caching layer** — Redis available but no application-level caching implemented
 5. **WebSocket notifications** — real-time alerts instead of polling
 6. **Multi-tenant support** — currently single-company; could generalize for SaaS
-7. **Codex docs drift guard** — add a lightweight check ensuring skill inventory and sensitive-skill policy stay in sync with Codex methodology docs
+7. **Codex docs drift guard** — add a lightweight check ensuring native skill inventory and sensitive-skill policy stay in sync with Codex methodology docs
