@@ -1,7 +1,117 @@
+import logging
 import requests
 import urllib.parse
+from functools import lru_cache
+from zoneinfo import ZoneInfo
+
+import dns.resolver
 from django.conf import settings
 from django.core.mail import send_mail
+from django.utils import timezone as dj_timezone
+
+logger = logging.getLogger(__name__)
+
+_BOGOTA_TZ = ZoneInfo('America/Bogota')
+
+_SPANISH_MONTHS = {
+    1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
+    5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',
+    9: 'septiembre', 10: 'octubre', 11: 'noviembre', 12: 'diciembre',
+}
+
+
+_dns_resolver = dns.resolver.Resolver()
+_dns_resolver.lifetime = 2.0
+
+
+@lru_cache(maxsize=256)
+def check_domain_mx(domain):
+    """Return True if *domain* has MX (non-null) or A records.
+
+    Detects RFC 7505 null MX (exchange=".") as invalid.
+    Fails open on timeout so a slow nameserver doesn't block the caller.
+    """
+    try:
+        mx_records = _dns_resolver.resolve(domain, 'MX')
+        for rdata in mx_records:
+            if str(rdata.exchange).rstrip('.') == '':
+                return False
+        return True
+    except dns.exception.Timeout:
+        return True
+    except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN,
+            dns.resolver.NoNameservers):
+        pass
+    try:
+        _dns_resolver.resolve(domain, 'A')
+        return True
+    except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN,
+            dns.resolver.NoNameservers, dns.exception.Timeout):
+        pass
+    return False
+
+
+def validate_email_domain_mx(email):
+    """Return True if the email domain can receive mail (has MX or A records).
+
+    Returns True on empty/blank input so optional fields pass through.
+    """
+    if not email or '@' not in email:
+        return True
+    domain = email.rsplit('@', 1)[1].lower().strip()
+    if not domain:
+        return True
+    try:
+        return check_domain_mx(domain)
+    except Exception:
+        logger.warning('DNS lookup failed for domain %s, allowing email', domain)
+        return True
+
+
+def format_cop_email(value):
+    """Format a number for COP email display: 1'490.000
+
+    Uses dot as thousands separator and apostrophe as millions separator.
+    Truncates to integer (COP values have no meaningful cents).
+    Examples: 1490000 → "1'490.000", 123456 → "123.456", 5000 → "5.000"
+    """
+    if value is None:
+        return ''
+    try:
+        cleaned = str(value).replace(',', '')
+        num = int(float(cleaned))
+    except (TypeError, ValueError):
+        return str(value)
+    if num < 0:
+        return f'-{format_cop_email(-num)}'
+    formatted = f'{num:,}'
+    groups = formatted.split(',')
+    if len(groups) <= 2:
+        return '.'.join(groups)
+    return "'".join(groups[:-1]) + f'.{groups[-1]}'
+
+
+def format_bogota_date(dt) -> str:
+    """Return '8 de abril, 2026' in Bogotá timezone (America/Bogota)."""
+    if not dt:
+        return ''
+    if dj_timezone.is_naive(dt):
+        dt = dj_timezone.make_aware(dt)
+    bogota = dt.astimezone(_BOGOTA_TZ)
+    return f'{bogota.day} de {_SPANISH_MONTHS[bogota.month]}, {bogota.year}'
+
+
+def format_bogota_datetime(dt) -> str:
+    """Return '8 de abril, 2026 — 14:30' in Bogotá timezone (America/Bogota)."""
+    if not dt:
+        return ''
+    if dj_timezone.is_naive(dt):
+        dt = dj_timezone.make_aware(dt)
+    bogota = dt.astimezone(_BOGOTA_TZ)
+    return (
+        f'{bogota.day} de {_SPANISH_MONTHS[bogota.month]}, {bogota.year}'
+        f' — {bogota.strftime("%H:%M")}'
+    )
 
 def send_whatsapp_notification(message, phone=None):
     """
