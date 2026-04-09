@@ -1,3 +1,4 @@
+{% load date_filters %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -67,7 +68,7 @@
                       </tr>
                       <tr>
                         <td style="padding:8px 0;color:#6b7280;font-size:14px;">Abierta a las:</td>
-                        <td style="padding:8px 0;color:#059669;font-size:14px;font-weight:700;">{{ viewed_at|date:"d/m/Y H:i" }}</td>
+                        <td style="padding:8px 0;color:#059669;font-size:14px;font-weight:700;">{{ viewed_at|bogota_datetime }}</td>
                       </tr>
                     </table>
                   </td>

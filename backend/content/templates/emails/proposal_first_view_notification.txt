@@ -1,3 +1,4 @@
+{% load date_filters %}
 👁️ PROPUESTA ABIERTA — {{ proposal_title }}
 
 {{ client_name }} acaba de abrir la propuesta por primera vez.
@@ -7,7 +8,7 @@ Detalles:
 - Propuesta: {{ proposal_title }}
 - Cliente: {{ client_name }}
 - Inversión: ${{ total_investment }} {{ currency }}
-- Abierta a las: {{ viewed_at|date:"d/m/Y H:i" }}
+- Abierta a las: {{ viewed_at|bogota_datetime }}
 
 💡 Tip: Los mejores resultados de cierre ocurren cuando contactas
 al cliente dentro de los primeros 5 minutos después de que abre la propuesta.

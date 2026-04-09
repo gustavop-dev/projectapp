@@ -1,3 +1,4 @@
+{% load date_filters %}
 📊 PIPELINE DIARIO — {{ date }}
 {{ total_active }} propuestas activas
 
@@ -12,7 +13,7 @@
 {% endfor %}
 
 🔥 EXPIRAN EN ≤5 DÍAS ({{ expiring_soon|length }}):
-{% for p in expiring_soon %}- {{ p.client_name }} — {{ p.title }} (expira {{ p.expires_at|date:"d M" }})
+{% for p in expiring_soon %}- {{ p.client_name }} — {{ p.title }} (expira {{ p.expires_at|bogota_date }})
 {% empty %}No hay propuestas por expirar.
 {% endfor %}
 
