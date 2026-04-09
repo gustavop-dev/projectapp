@@ -178,7 +178,9 @@ test.describe('Admin Proposal Contract Generate', () => {
     await page.getByPlaceholder(/Pega o escribe tu contrato/i).fill('# Mi contrato\n\nContenido del contrato.');
 
     // Fill contract date
-    const dateInput = page.locator('input[type="date"]');
+    const dateInput = page
+      .getByRole('group', { name: 'Datos del contrato' })
+      .locator('input[type="date"]');
     await dateInput.fill('2026-04-15');
 
     await page.getByRole('button', { name: /Generar contrato y negociar/i }).click();

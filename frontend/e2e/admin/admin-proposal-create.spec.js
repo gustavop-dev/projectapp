@@ -46,8 +46,8 @@ test.describe('Admin Proposal Create', () => {
     await expect(page.getByRole('button', { name: 'Manual' })).toBeVisible();
     // JSON tab is active by default — textarea is rendered
     await expect(page.getByPlaceholder(/general/)).toBeVisible();
-    // Manual mode form is not rendered (the manual "Nombre del cliente" label is unique to the manual form)
-    await expect(page.getByLabel('Nombre del cliente')).not.toBeVisible();
+    // Manual mode form is not rendered
+    await expect(page.locator('#create-client-name')).not.toBeVisible();
   });
 
   test('fills manual form and submits, verifying API payload', {
@@ -72,8 +72,8 @@ test.describe('Admin Proposal Create', () => {
 
     // Fill required fields
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
-    await page.getByLabel('Nombre del cliente').fill('Carlos López');
-    await page.getByLabel('Email del cliente').fill('carlos@test.com');
+    await page.locator('#create-client-name').fill('Carlos López');
+    await page.locator('#create-client-email').fill('carlos@test.com');
 
     // Submit form — wait for the API response
     const [response] = await Promise.all([
@@ -127,8 +127,8 @@ test.describe('Admin Proposal Create', () => {
     await page.getByRole('button', { name: 'Manual' }).click();
 
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
-    await page.getByLabel('Nombre del cliente').fill('Carlos López');
-    await page.getByLabel('Email del cliente').fill('carlos@test.com');
+    await page.locator('#create-client-name').fill('Carlos López');
+    await page.locator('#create-client-email').fill('carlos@test.com');
 
     // Submit and wait for API response
     const [response] = await Promise.all([
@@ -310,8 +310,8 @@ test.describe('Admin Proposal Create & Send', () => {
 
     // Fill required fields for direct send
     await page.getByLabel('Título').fill('Propuesta Directa');
-    await page.getByLabel('Nombre del cliente').fill('Ana Test');
-    await page.getByLabel('Email del cliente').fill('ana@test.com');
+    await page.locator('#create-client-name').fill('Ana Test');
+    await page.locator('#create-client-email').fill('ana@test.com');
     await page.getByPlaceholder('3500000').fill('5000000');
 
     // Button should now be visible
@@ -343,8 +343,8 @@ test.describe('Admin Proposal Create & Send', () => {
     await page.getByRole('button', { name: 'Manual' }).click();
 
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
-    await page.getByLabel('Nombre del cliente').fill('Carlos López');
-    await page.getByLabel('Email del cliente').fill('carlos@test.com');
+    await page.locator('#create-client-name').fill('Carlos López');
+    await page.locator('#create-client-email').fill('carlos@test.com');
     await page.getByPlaceholder('3500000').fill('15000000');
 
     await page.getByRole('button', { name: /Crear y Enviar/i }).click();
@@ -383,8 +383,8 @@ test.describe('Admin Proposal Create Preview', () => {
     await page.getByRole('button', { name: 'Manual' }).click();
 
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
-    await page.getByLabel('Nombre del cliente').fill('Carlos López');
-    await page.getByLabel('Email del cliente').fill('carlos@test.com');
+    await page.locator('#create-client-name').fill('Carlos López');
+    await page.locator('#create-client-email').fill('carlos@test.com');
 
     const [response] = await Promise.all([
       page.waitForResponse(r => r.url().includes('proposals/create/')),
@@ -417,8 +417,8 @@ test.describe('Admin Proposal Create Preview', () => {
     await page.getByRole('button', { name: 'Manual' }).click();
 
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
-    await page.getByLabel('Nombre del cliente').fill('Carlos López');
-    await page.getByLabel('Email del cliente').fill('carlos@test.com');
+    await page.locator('#create-client-name').fill('Carlos López');
+    await page.locator('#create-client-email').fill('carlos@test.com');
     await page.getByPlaceholder('3500000').fill('15000000');
 
     const [response] = await Promise.all([
