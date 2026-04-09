@@ -65,7 +65,7 @@ export function buildFormFromJson(json, type, proposalData) {
           _pasteMode: g._editMode === 'paste', _pasteText: g.rawText || '', _collapsed: true,
         })),
         additionalModules: (j.additionalModules || []).map(m => ({
-          icon: m.icon || '', title: m.title || '', description: m.description || '',
+          id: m.id || `module_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, icon: m.icon || '', title: m.title || '', description: m.description || '',
           is_visible: m.is_visible !== undefined ? m.is_visible : true,
           selected: m.selected ?? (m.default_selected ?? false),
           is_calculator_module: m.is_calculator_module || false,

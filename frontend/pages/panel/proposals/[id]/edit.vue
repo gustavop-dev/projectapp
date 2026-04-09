@@ -116,6 +116,12 @@
               {{ proposal.sent_at ? new Date(proposal.sent_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : '—' }}
             </p>
           </div>
+          <div v-if="proposal.platform_onboarding_completed_at">
+            <span class="text-gray-400 text-xs">Plataforma lanzada</span>
+            <p class="text-gray-700 mt-0.5 text-xs">
+              {{ new Date(proposal.platform_onboarding_completed_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
+            </p>
+          </div>
           <div v-if="!hasDocumentsTab">
             <span class="text-gray-400 text-xs">PDFs</span>
             <div class="flex items-center gap-3 mt-0.5 flex-wrap">
@@ -141,7 +147,15 @@
           <div class="sm:col-span-2">
             <div class="flex items-start gap-6 flex-wrap">
               <div>
-                <span class="text-gray-400 text-xs">Estado activo</span>
+                <div class="flex items-center gap-1">
+                  <span class="text-gray-400 text-xs">Estado activo</span>
+                  <UiTooltip position="right">
+                    <template #trigger>
+                      <QuestionMarkCircleIcon class="w-3 h-3 text-gray-300 hover:text-gray-500 transition-colors" />
+                    </template>
+                    {{ tt.activeStatus }}
+                  </UiTooltip>
+                </div>
                 <div class="flex items-center gap-2 mt-1">
                   <button
                     type="button"
@@ -160,7 +174,15 @@
                 </div>
               </div>
               <div>
-                <span class="text-gray-400 text-xs">Automatizaciones</span>
+                <div class="flex items-center gap-1">
+                  <span class="text-gray-400 text-xs">Automatizaciones</span>
+                  <UiTooltip position="right">
+                    <template #trigger>
+                      <QuestionMarkCircleIcon class="w-3 h-3 text-gray-300 hover:text-gray-500 transition-colors" />
+                    </template>
+                    {{ tt.automations }}
+                  </UiTooltip>
+                </div>
                 <div class="flex items-center gap-2 mt-1">
                   <button
                     type="button"
@@ -184,7 +206,8 @@
         </div>
 
         <!-- Editable form -->
-        <form class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-8 space-y-6" @submit.prevent="handleUpdate">
+        <form class="bg-white rounded-xl shadow-sm border border-gray-100" @submit.prevent="handleUpdate">
+          <div class="p-4 sm:p-8 space-y-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Título</label>
             <input v-model="form.title" type="text" required
@@ -308,8 +331,48 @@
               </select>
             </div>
           </div>
+          <div v-if="investmentSection" class="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+            <label class="block text-sm font-medium text-emerald-900 mb-2">Porcentajes de pago (sección Inversión)</label>
+            <div v-if="investmentPaymentPercentages.length" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label
+                v-for="(_, idx) in investmentPaymentPercentages"
+                :key="`payment-percent-${idx}`"
+                class="block"
+              >
+                <span class="block text-xs text-emerald-700 mb-1">Pago {{ idx + 1 }}</span>
+                <div class="flex items-center gap-2">
+                  <input
+                    v-model.number="investmentPaymentPercentages[idx]"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    class="w-full px-3 py-2 border border-emerald-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
+                    @blur="normalizeGeneralPaymentPercentage(idx)"
+                  />
+                  <span class="text-sm text-emerald-700">%</span>
+                </div>
+                <span
+                  v-if="form.total_investment > 0 && investmentPaymentPercentages[idx] > 0"
+                  class="block text-xs text-emerald-600 mt-1 font-medium"
+                >
+                  {{ paymentAmounts[idx] }}
+                </span>
+              </label>
+            </div>
+            <p v-else class="text-xs text-emerald-700">No se detectaron porcentajes en “Secciones → Inversión → Opciones de pago”.</p>
+            <p class="text-xs text-emerald-700 mt-2">Se sincroniza con los porcentajes definidos en “Secciones → Inversión → Opciones de pago”.</p>
+          </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Hosting (% de inversión total)</label>
+            <div class="flex items-center gap-1.5 mb-1">
+              <label class="block text-sm font-medium text-gray-700">Hosting (% de inversión total)</label>
+              <UiTooltip position="right">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                </template>
+                {{ tt.hostingPercent }}
+              </UiTooltip>
+            </div>
             <div class="flex items-center gap-3">
               <input v-model.number="form.hosting_percent" type="number" min="0" max="100"
                 class="w-32 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
@@ -368,7 +431,15 @@
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de expiración</label>
+            <div class="flex items-center gap-1.5 mb-1">
+              <label class="block text-sm font-medium text-gray-700">Fecha de expiración</label>
+              <UiTooltip position="right">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                </template>
+                {{ tt.expirationDate }}
+              </UiTooltip>
+            </div>
             <input v-model="form.expires_at" type="datetime-local"
               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
           </div>
@@ -387,7 +458,15 @@
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Descuento (%)</label>
+            <div class="flex items-center gap-1.5 mb-1">
+              <label class="block text-sm font-medium text-gray-700">Descuento (%)</label>
+              <UiTooltip position="right">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                </template>
+                {{ tt.discount }}
+              </UiTooltip>
+            </div>
             <input v-model.number="form.discount_percent" type="number" min="0" max="100"
               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             <p class="text-xs text-gray-400 mt-1">0 = sin descuento en email de urgencia.</p>
@@ -396,57 +475,85 @@
           <div v-if="updateMsg" class="text-sm px-4 py-3 rounded-xl" :class="updateMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'">
             {{ updateMsg.text }}
           </div>
+          </div>
 
-          <div class="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
-            <button type="submit" :disabled="proposalStore.isUpdating"
-              class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 hover:shadow-lg hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50">
-              {{ proposalStore.isUpdating ? 'Guardando...' : 'Guardar Cambios' }}
-            </button>
-            <button
-              v-if="proposal.status === 'draft' && proposal.client_email"
-              type="button"
-              class="px-5 sm:px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-all shadow-md shadow-blue-100 hover:shadow-lg hover:shadow-blue-200 active:scale-[0.98]"
-              @click="handleSend"
-            >
-              Enviar al Cliente
-            </button>
-            <button
-              v-else-if="['sent', 'viewed'].includes(proposal.status) && proposal.client_email"
-              type="button"
-              class="px-5 sm:px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-all shadow-md shadow-blue-100 hover:shadow-lg hover:shadow-blue-200 active:scale-[0.98]"
-              @click="handleResend"
-            >
-              Re-enviar al Cliente
-            </button>
-            <!-- Status transition buttons -->
-            <button
-              v-if="(proposal.available_transitions || []).includes('negotiating')"
-              type="button"
-              class="px-5 sm:px-6 py-2.5 bg-amber-500 text-white rounded-xl font-medium text-sm hover:bg-amber-600 transition-all shadow-md shadow-amber-100 hover:shadow-lg hover:shadow-amber-200 active:scale-[0.98]"
-              @click="openContractModal(false)"
-            >
-              Pasar a Negociación
-            </button>
-            <button
-              v-if="(proposal.available_transitions || []).includes('accepted')"
-              type="button"
-              class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 hover:shadow-lg hover:shadow-emerald-200 active:scale-[0.98]"
-              @click="handleStatusChange('accepted')"
-            >
-              Aprobar
-            </button>
-            <button
-              v-if="(proposal.available_transitions || []).includes('rejected')"
-              type="button"
-              class="px-4 py-2.5 bg-red-100 text-red-700 border border-red-200 rounded-xl font-medium text-sm hover:bg-red-200 hover:border-red-300 transition-all shadow-sm hover:shadow-md hover:shadow-red-100 active:scale-[0.98]"
-              @click="handleStatusChange('rejected')"
-            >
-              Rechazar
-            </button>
-            <a :href="'/proposal/' + proposal.uuid + '?preview=1'" target="_blank"
-              class="inline-flex items-center gap-1 text-sm text-gray-500 px-4 py-2.5 border border-gray-200 rounded-xl hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 transition-all active:scale-[0.98]">
-              Preview →
-            </a>
+          <!-- Sticky action bar -->
+          <div class="sticky bottom-0 rounded-b-xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-t border-gray-100 dark:border-gray-700 px-4 sm:px-5 py-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 pr-14 sm:pr-0">
+              <button type="submit" :disabled="proposalStore.isUpdating"
+                class="px-4 sm:px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-100 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50">
+                {{ proposalStore.isUpdating ? 'Guardando...' : 'Guardar Cambios' }}
+              </button>
+
+              <div v-if="proposal.client_email || (proposal.available_transitions || []).length || proposal.status === 'accepted'"
+                   class="hidden sm:block w-px h-6 bg-gray-200 dark:bg-gray-600"></div>
+
+              <button
+                v-if="proposal.status === 'draft' && proposal.client_email"
+                type="button"
+                class="px-4 sm:px-5 py-2 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-all shadow-sm active:scale-[0.98]"
+                @click="handleSend"
+              >
+                Enviar al Cliente
+              </button>
+              <button
+                v-else-if="['sent', 'viewed'].includes(proposal.status) && proposal.client_email"
+                type="button"
+                class="px-4 sm:px-5 py-2 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-all shadow-sm active:scale-[0.98]"
+                @click="handleResend"
+              >
+                Re-enviar al Cliente
+              </button>
+
+              <button
+                v-if="(proposal.available_transitions || []).includes('negotiating')"
+                type="button"
+                class="px-4 sm:px-5 py-2 bg-amber-500 text-white rounded-xl font-medium text-sm hover:bg-amber-600 transition-all shadow-sm active:scale-[0.98]"
+                @click="openContractModal(false)"
+              >
+                <span class="sm:hidden">Negociación</span>
+                <span class="hidden sm:inline">Pasar a Negociación</span>
+              </button>
+
+              <button
+                v-if="(proposal.available_transitions || []).includes('accepted')"
+                type="button"
+                class="px-4 sm:px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-sm active:scale-[0.98]"
+                @click="handleStatusChange('accepted')"
+              >
+                Aprobar
+              </button>
+
+              <button
+                v-if="proposal.status === 'accepted'"
+                type="button"
+                :disabled="isLaunching || proposal.platform_onboarding_status === 'pending'"
+                class="px-4 sm:px-5 py-2 rounded-xl font-medium text-sm transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
+                :class="proposal.platform_onboarding_completed_at
+                  ? 'bg-amber-500 text-white hover:bg-amber-600'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700'"
+                @click="handleLaunchToPlatform"
+              >
+                {{ (isLaunching || proposal.platform_onboarding_status === 'pending') ? 'Lanzando...' : (proposal.platform_onboarding_completed_at ? 'Re-lanzar' : 'Lanzar') }}
+                <span class="hidden sm:inline"> a Plataforma</span>
+              </button>
+
+              <div class="flex-1 min-w-0"></div>
+
+              <button
+                v-if="(proposal.available_transitions || []).includes('rejected')"
+                type="button"
+                class="px-3 sm:px-4 py-2 bg-red-100 text-red-700 border border-red-200 rounded-xl font-medium text-sm hover:bg-red-200 hover:border-red-300 transition-all shadow-sm active:scale-[0.98]"
+                @click="handleStatusChange('rejected')"
+              >
+                Rechazar
+              </button>
+
+              <a :href="'/proposal/' + proposal.uuid + '?preview=1'" target="_blank"
+                class="inline-flex items-center gap-1 text-sm text-gray-500 px-3 py-2 border border-gray-200 rounded-xl hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 transition-all active:scale-[0.98]">
+                Preview <span class="hidden sm:inline">→</span>
+              </a>
+            </div>
           </div>
         </form>
       </div>
@@ -754,7 +861,15 @@
       <div v-show="activeTab === 'activity'">
         <!-- Log activity form -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
-          <h3 class="text-sm font-semibold text-gray-700 mb-3">Registrar actividad</h3>
+          <div class="flex items-center gap-1.5 mb-3">
+            <h3 class="text-sm font-semibold text-gray-700">Registrar actividad</h3>
+            <UiTooltip position="right">
+              <template #trigger>
+                <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+              </template>
+              {{ tt.logActivity }}
+            </UiTooltip>
+          </div>
           <div class="flex flex-col sm:flex-row gap-3">
             <select v-model="activityForm.change_type" class="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-1 focus:ring-emerald-500 outline-none sm:w-40">
               <option value="call">📞 Llamada</option>
@@ -771,7 +886,15 @@
 
         <!-- Timeline -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <h3 class="text-sm font-semibold text-gray-700 mb-4">Historial de actividad</h3>
+          <div class="flex items-center gap-1.5 mb-4">
+            <h3 class="text-sm font-semibold text-gray-700">Historial de actividad</h3>
+            <UiTooltip position="right">
+              <template #trigger>
+                <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+              </template>
+              {{ tt.activityHistory }}
+            </UiTooltip>
+          </div>
           <div v-if="!changeLogs.length" class="text-center py-8 text-sm text-gray-400">Sin actividad registrada.</div>
           <div v-else class="relative pl-6 space-y-0">
             <div class="absolute left-[9px] top-2 bottom-2 w-px bg-gray-200" />
@@ -871,7 +994,15 @@
         <!-- F10: Section completeness indicator -->
         <div v-if="allSections.length" class="mb-4 bg-white rounded-xl shadow-sm border border-gray-100 px-5 py-4">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Completitud de secciones</span>
+            <div class="flex items-center gap-1">
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Completitud de secciones</span>
+              <UiTooltip position="right">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                </template>
+                {{ tt.sectionCompleteness }}
+              </UiTooltip>
+            </div>
             <span class="text-sm font-bold" :class="sectionCompleteness >= 80 ? 'text-emerald-600' : sectionCompleteness >= 50 ? 'text-amber-600' : 'text-red-500'">
               {{ sectionCompleteness }}%
             </span>
@@ -1024,7 +1155,8 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
 import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
@@ -1041,6 +1173,7 @@ import { detectLegacyTechnicalFormat, downloadMigratedProposalJson, LEGACY_FIELD
 import LegacyFormatWarning from '~/components/panel/LegacyFormatWarning.vue';
 
 const localePath = useLocalePath();
+const { proposalEdit: tt } = useTooltipTexts();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const route = useRoute();
@@ -1081,6 +1214,10 @@ const commercialSections = computed(() =>
 
 const technicalSection = computed(() =>
   allSections.value.find(s => s.section_type === 'technical_document') || null
+);
+
+const investmentSection = computed(() =>
+  allSections.value.find(s => s.section_type === 'investment') || null
 );
 
 const technicalModuleLinkOptions = computed(() =>
@@ -1164,6 +1301,68 @@ async function handleStatusChange(newStatus) {
   const result = await proposalStore.updateProposalStatus(proposal.value.id, newStatus);
   if (result.success) {
     proposal.value = result.data;
+  }
+}
+
+let cancelOnboardingPoll = null;
+
+async function handleLaunchToPlatform() {
+  const alreadyOnboarded = !!proposal.value.platform_onboarding_completed_at;
+
+  if (alreadyOnboarded) {
+    const confirmed = await requestConfirm({
+      title: 'Re-lanzar a Plataforma',
+      message: 'El proyecto, entregables, requerimientos y archivos existentes serán eliminados y recreados desde cero. ¿Deseas continuar?',
+      variant: 'danger',
+      confirmText: 'Re-lanzar',
+      cancelText: 'Cancelar',
+    });
+    if (!confirmed) return;
+  }
+
+  isLaunching.value = true;
+  const result = await proposalStore.launchToPlatform(proposal.value.id, alreadyOnboarded);
+  if (!result.success) {
+    isLaunching.value = false;
+    updateMsg.value = {
+      type: 'error',
+      text: result.errors?.error || 'Error al lanzar a la plataforma.',
+    };
+    return;
+  }
+
+  proposal.value = result.data;
+
+  if (result.data.platform_onboarding_status === 'pending') {
+    updateMsg.value = { type: 'success', text: 'Onboarding en progreso...' };
+    cancelOnboardingPoll = proposalStore.pollOnboardingStatus(
+      proposal.value.id,
+      (updated) => {
+        proposal.value = updated;
+        isLaunching.value = false;
+        cancelOnboardingPoll = null;
+        if (updated.platform_onboarding_status === 'completed') {
+          updateMsg.value = {
+            type: 'success',
+            text: alreadyOnboarded ? 'Plataforma re-lanzada exitosamente.' : 'Propuesta lanzada a la plataforma.',
+          };
+        } else {
+          updateMsg.value = {
+            type: 'error',
+            text: 'El onboarding falló. Revisa los logs del servidor.',
+          };
+        }
+      },
+    );
+  } else {
+    isLaunching.value = false;
+    const succeeded = result.data.platform_onboarding_status === 'completed';
+    updateMsg.value = {
+      type: succeeded ? 'success' : 'error',
+      text: succeeded
+        ? (alreadyOnboarded ? 'Plataforma re-lanzada exitosamente.' : 'Propuesta lanzada a la plataforma.')
+        : 'El onboarding falló. Revisa los logs del servidor.',
+    };
   }
 }
 
@@ -1289,10 +1488,12 @@ async function handleApplyTechnicalJson() {
 const isRefreshing = ref(false);
 const expandedSections = ref(new Set());
 const updateMsg = ref(null);
+const isLaunching = ref(false);
 const syncPreviewVisible = ref(false);
 const syncPreviewData = ref(null);
 const syncApplying = ref(false);
 const pendingSyncPayload = ref(null);
+const investmentPaymentPercentages = ref([]);
 
 const form = reactive({
   title: '',
@@ -1315,6 +1516,116 @@ const form = reactive({
   discount_percent: 0,
   automations_paused: false,
 });
+
+function parseSectionContentJson(section) {
+  if (!section?.content_json) return {};
+  if (typeof section.content_json === 'string') {
+    try {
+      return JSON.parse(section.content_json);
+    } catch {
+      return {};
+    }
+  }
+  return section.content_json;
+}
+
+function parsePercentFromLabel(label) {
+  if (!label) return null;
+  const match = String(label).match(/(\d+(?:[.,]\d+)?)\s*%/);
+  if (!match) return null;
+  const parsed = Number(match[1].replace(',', '.'));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizePercent(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  const clamped = Math.min(100, Math.max(0, numeric));
+  return Math.round(clamped * 100) / 100;
+}
+
+function formatPercent(value) {
+  const normalized = normalizePercent(value);
+  if (Number.isInteger(normalized)) return String(normalized);
+  return normalized.toFixed(2).replace(/\.?0+$/, '');
+}
+
+function extractInvestmentPercentages(contentJson) {
+  const paymentOptions = Array.isArray(contentJson?.paymentOptions) ? contentJson.paymentOptions : [];
+  return paymentOptions
+    .map(opt => parsePercentFromLabel(opt?.label))
+    .filter(percent => percent != null)
+    .map(percent => normalizePercent(percent));
+}
+
+function replaceOrPrefixPercent(label, percent, index) {
+  const percentText = `${formatPercent(percent)}%`;
+  const base = String(label || '').trim();
+  if (!base) return `${percentText} pago ${index + 1}`;
+  if (/(\d+(?:[.,]\d+)?)\s*%/.test(base)) {
+    return base.replace(/(\d+(?:[.,]\d+)?)\s*%/, percentText);
+  }
+  return `${percentText} ${base}`;
+}
+
+function buildPaymentDescription(percent) {
+  const total = Number(form.total_investment) || 0;
+  const amount = Math.round(total * normalizePercent(percent) / 100);
+  return `$${amount.toLocaleString('es-CO')} ${form.currency || 'COP'}`;
+}
+
+const paymentAmounts = computed(() =>
+  investmentPaymentPercentages.value.map(pct => buildPaymentDescription(pct))
+);
+
+function normalizeGeneralPaymentPercentage(index) {
+  const current = investmentPaymentPercentages.value[index];
+  investmentPaymentPercentages.value[index] = normalizePercent(current);
+}
+
+watch(
+  () => parseSectionContentJson(investmentSection.value)?.paymentOptions,
+  (paymentOptions) => {
+    investmentPaymentPercentages.value = extractInvestmentPercentages({ paymentOptions });
+  },
+  { immediate: true, deep: true },
+);
+
+async function syncInvestmentPercentagesFromGeneral() {
+  const section = investmentSection.value;
+  if (!section?.id) return { success: true, skipped: true };
+
+  const contentJson = parseSectionContentJson(section);
+  const paymentOptions = Array.isArray(contentJson.paymentOptions) ? contentJson.paymentOptions : [];
+  if (!paymentOptions.length || !investmentPaymentPercentages.value.length) {
+    return { success: true, skipped: true };
+  }
+
+  let editablePercentIdx = 0;
+  const nextPaymentOptions = paymentOptions.map((option, idx) => {
+    if (parsePercentFromLabel(option?.label) == null) return option;
+    const percent = investmentPaymentPercentages.value[editablePercentIdx];
+    editablePercentIdx += 1;
+    if (percent == null) return option;
+    const normalized = normalizePercent(percent);
+    return {
+      ...option,
+      label: replaceOrPrefixPercent(option?.label, normalized, idx),
+      description: buildPaymentDescription(normalized),
+    };
+  });
+
+  const changed = JSON.stringify(paymentOptions) !== JSON.stringify(nextPaymentOptions);
+  if (!changed) return { success: true, skipped: true };
+
+  const result = await proposalStore.updateSection(section.id, {
+    content_json: {
+      ...contentJson,
+      paymentOptions: nextPaymentOptions,
+    },
+  });
+  return result.success ? { success: true } : { success: false };
+}
 
 onMounted(async () => {
   const id = route.params.id;
@@ -1382,6 +1693,10 @@ async function refreshData() {
   }
 }
 
+onBeforeUnmount(() => {
+  if (cancelOnboardingPoll) cancelOnboardingPoll();
+});
+
 async function toggleAutomationsPaused() {
   form.automations_paused = !form.automations_paused;
   const result = await proposalStore.updateProposal(proposal.value.id, {
@@ -1405,7 +1720,12 @@ async function handleUpdate() {
   }
   const result = await proposalStore.updateProposal(proposal.value.id, payload);
   if (result.success) {
-    updateMsg.value = { type: 'success', text: 'Propuesta actualizada.' };
+    const syncResult = await syncInvestmentPercentagesFromGeneral();
+    if (syncResult.success) {
+      updateMsg.value = { type: 'success', text: 'Propuesta actualizada.' };
+    } else {
+      updateMsg.value = { type: 'error', text: 'Se actualizó la propuesta, pero falló la sincronización de porcentajes de inversión.' };
+    }
   } else {
     const errors = result.errors;
     updateMsg.value = {

@@ -67,7 +67,7 @@
           v-for="alert in zombieAlerts"
           :key="`zombie-${alert.id}-${alert.alert_type}`"
           class="flex items-center justify-between bg-gray-700/50 rounded-lg px-4 py-2.5 border border-gray-600 cursor-pointer hover:border-gray-500 transition-colors"
-          @click="router.push(localePath(`/panel/proposals/${alert.id}/edit`))"
+          @click="navigateToProposal(alert.id, $event)"
         >
           <div class="flex items-center gap-3">
             <span class="text-sm">{{ alert.alert_type === 'zombie_draft' ? '📝💀' : alert.alert_type === 'zombie_sent_stale' ? '📤💀' : '💀' }}</span>
@@ -84,14 +84,15 @@
     <!-- Alerts panel -->
     <div v-if="activeAlerts.length || showAlertForm" class="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 dark:bg-amber-900/20 dark:border-amber-700">
       <div class="flex items-center justify-between mb-3">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 cursor-pointer" @click="attentionExpanded = !attentionExpanded">
           <span class="text-lg">⚠️</span>
-          <h3 class="text-sm font-semibold text-amber-800 dark:text-amber-300">Propuestas que necesitan atención ({{ activeAlerts.length }})</h3>
+          <h3 class="text-sm font-semibold text-amber-800 dark:text-amber-300">Propuestas que necesitan atención ({{ groupedActiveAlerts.length }})</h3>
+          <span class="text-xs text-amber-700 dark:text-amber-400">{{ attentionExpanded ? '▲' : '▼' }}</span>
         </div>
         <button
           type="button"
           class="text-xs text-amber-700 font-medium hover:text-amber-900 transition-colors"
-          @click="showAlertForm = !showAlertForm"
+          @click.stop="toggleAlertForm"
         >
           {{ showAlertForm ? 'Cancelar' : '+ Crear recordatorio' }}
         </button>
@@ -139,37 +140,59 @@
         <p v-if="alertError" class="text-xs text-red-500">{{ alertError }}</p>
       </div>
 
-      <div class="space-y-2">
-        <div
-          v-for="alert in activeAlerts"
-          :key="`${alert.id}-${alert.alert_type}-${alert.manual_alert_id || ''}`"
-          class="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border cursor-pointer transition-colors dark:bg-gray-800"
-          :class="alertBorderClass(alert.priority)"
-          @click="router.push(localePath(`/panel/proposals/${alert.id}/edit`))"
-        >
-          <div class="flex items-center gap-3">
-            <span class="text-sm">{{ alertIcon(alert.alert_type) }}</span>
-            <div>
-              <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ alert.client_name }}</span>
-              <span class="text-xs text-gray-400 ml-2">{{ alert.title }}</span>
-              <span v-if="alert.priority === 'critical'" class="ml-2 px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">urgente</span>
-            </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="text-right">
-              <span class="text-xs font-medium block" :class="alert.priority === 'critical' ? 'text-red-600 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'">{{ alert.message }}</span>
-              <span v-if="alert.ref_date || alert.alert_date" class="text-[10px] text-gray-400 dark:text-gray-500">
-                {{ formatAlertDate(alert.ref_date || alert.alert_date) }}
+      <div v-if="attentionExpanded" class="space-y-2">
+        <div v-for="group in groupedActiveAlerts" :key="group.key">
+          <!-- Group header row -->
+          <div
+            class="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border cursor-pointer transition-colors dark:bg-gray-800"
+            :class="alertBorderClass(group.priority)"
+            @click="openAlertGroup(group, $event)"
+          >
+            <div class="flex items-center gap-3 min-w-0">
+              <span v-if="group.isMulti" class="text-[10px] text-gray-400 dark:text-gray-500 w-3 shrink-0">
+                {{ expandedAlertGroups.has(group.key) ? '▼' : '▶' }}
               </span>
+              <span class="text-sm">{{ group.icon }}</span>
+              <div class="min-w-0">
+                <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ group.client_name }}</span>
+                <span class="text-xs text-gray-400 ml-2">{{ group.subtitle }}</span>
+                <span v-if="group.priority === 'critical'" class="ml-2 px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">urgente</span>
+                <span v-if="group.alerts.length > 1" class="ml-2 px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                  {{ group.alerts.length }} alertas
+                </span>
+              </div>
             </div>
-            <button
-              v-if="alert.manual_alert_id"
-              type="button"
-              class="text-xs text-gray-400 hover:text-red-500 transition-colors"
-              title="Descartar"
-              @click.stop="handleDismissAlert(alert.manual_alert_id)"
-            >✕</button>
+            <div class="flex items-center gap-3">
+              <div class="text-right">
+                <span class="text-xs font-medium block" :class="group.priority === 'critical' ? 'text-red-600 dark:text-red-400' : 'text-amber-700 dark:text-amber-400'">{{ group.message }}</span>
+                <span v-if="group.refDate" class="text-[10px] text-gray-400 dark:text-gray-500">
+                  {{ formatAlertDate(group.refDate) }}
+                </span>
+              </div>
+              <button
+                type="button"
+                class="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                title="Descartar"
+                @click.stop="handleDismissAlertGroup(group)"
+              >✕</button>
+            </div>
           </div>
+
+          <!-- Sub-items for expanded multi-proposal groups -->
+          <Transition
+            enter-active-class="transition-[opacity,transform,max-height] duration-200 ease-out"
+            leave-active-class="transition-[opacity,transform,max-height] duration-150 ease-in"
+            enter-from-class="opacity-0 -translate-y-1 max-h-0"
+            enter-to-class="opacity-100 translate-y-0 max-h-[1000px]"
+            leave-from-class="opacity-100 translate-y-0 max-h-[1000px]"
+            leave-to-class="opacity-0 -translate-y-1 max-h-0"
+          >
+            <PanelAlertGroupSubItems
+              v-if="group.isMulti && expandedAlertGroups.has(group.key)"
+              :proposals="group.proposals"
+              @select="openProposalFromAlert"
+            />
+          </Transition>
         </div>
       </div>
     </div>
@@ -332,7 +355,7 @@
               </span>
             </td>
             <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 tabular-nums">
-              ${{ Number(p.total_investment).toLocaleString() }} {{ p.currency }}
+              ${{ effectiveInvestmentTotal(p).toLocaleString() }} {{ p.currency }}
             </td>
             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
               <template v-if="isInactive(p)">
@@ -648,6 +671,9 @@ const sortDir = ref('desc');
 const currentPage = ref(1);
 const pageSize = 15;
 const zombieExpanded = ref(false);
+const attentionExpanded = ref(true);
+const dismissedComputedAlertKeys = ref(new Set());
+const expandedAlertGroups = ref(new Set());
 const selectedIds = ref(new Set());
 const isBulkActing = ref(false);
 const isRefreshing = ref(false);
@@ -688,12 +714,89 @@ function handleBulkAction(action) {
 }
 
 const ZOMBIE_TYPES = ['zombie', 'zombie_draft', 'zombie_sent_stale'];
+const proposalStatusById = computed(() => {
+  const map = new Map();
+  for (const proposal of proposals.value) {
+    map.set(proposal.id, proposal.status);
+  }
+  return map;
+});
 const zombieAlerts = computed(() =>
   alerts.value.filter(a => ZOMBIE_TYPES.includes(a.alert_type))
 );
 const activeAlerts = computed(() =>
-  alerts.value.filter(a => !ZOMBIE_TYPES.includes(a.alert_type))
+  alerts.value.filter((a) => {
+    if (ZOMBIE_TYPES.includes(a.alert_type)) return false;
+    if (proposalStatusById.value.get(a.id) === 'accepted') return false;
+    if (!a.manual_alert_id && dismissedComputedAlertKeys.value.has(getComputedAlertKey(a))) return false;
+    return true;
+  })
 );
+const PRIORITY_WEIGHT = { critical: 3, high: 2, normal: 1 };
+const groupedActiveAlerts = computed(() => {
+  const grouped = new Map();
+  for (const alert of activeAlerts.value) {
+    const groupKey = getClientGroupKey(alert);
+    if (!grouped.has(groupKey)) {
+      grouped.set(groupKey, {
+        key: groupKey,
+        client_name: alert.client_name || 'Sin cliente',
+        alerts: [],
+      });
+    }
+    grouped.get(groupKey).alerts.push(alert);
+  }
+
+  return Array.from(grouped.values()).map((group) => {
+    const priority = group.alerts.reduce(
+      (best, alert) => ((PRIORITY_WEIGHT[alert.priority] || 0) > (PRIORITY_WEIGHT[best] || 0) ? alert.priority : best),
+      'normal',
+    );
+    const primaryAlert = group.alerts[0];
+
+    const proposalsMap = new Map();
+    for (const alert of group.alerts) {
+      if (alert.id == null) continue;
+      if (!proposalsMap.has(alert.id)) {
+        proposalsMap.set(alert.id, { id: alert.id, title: alert.title || 'Sin título', alerts: [] });
+      }
+      proposalsMap.get(alert.id).alerts.push({ ...alert, icon: alertIcon(alert.alert_type) });
+    }
+    const proposals = Array.from(proposalsMap.values());
+
+    const proposalTitles = proposals.map(p => p.title).filter(t => t !== 'Sin título');
+    const MAX_SUBTITLE_TITLES = 3;
+    const subtitle = proposalTitles.length === 0
+      ? 'Sin título'
+      : proposalTitles.length <= MAX_SUBTITLE_TITLES
+        ? proposalTitles.join(', ')
+        : `${proposalTitles.slice(0, MAX_SUBTITLE_TITLES).join(', ')} +${proposalTitles.length - MAX_SUBTITLE_TITLES}`;
+
+    return {
+      ...group,
+      icon: alertIcon(primaryAlert.alert_type),
+      subtitle,
+      priority,
+      proposals,
+      isMulti: proposals.length > 1,
+      firstProposalId: primaryAlert.id,
+      message: group.alerts.length > 1
+        ? `${group.alerts.length} alertas en ${proposals.length || group.alerts.length} propuesta(s).`
+        : primaryAlert.message,
+      refDate: resolveAlertDate(primaryAlert),
+    };
+  });
+});
+
+function getComputedAlertKey(alert) {
+  return `${alert.id}-${alert.alert_type}-${resolveAlertDate(alert)}`;
+}
+
+function getClientGroupKey(alert) {
+  const normalizedName = (alert.client_name || '').trim().toLowerCase();
+  if (normalizedName) return `client:${normalizedName}`;
+  return `proposal:${alert.id}`;
+}
 
 function toggleSort(key) {
   if (sortKey.value === key) {
@@ -703,6 +806,11 @@ function toggleSort(key) {
     sortDir.value = 'desc';
   }
   currentPage.value = 1;
+}
+
+function effectiveInvestmentTotal(proposal) {
+  const val = proposal?.effective_total_investment;
+  return Number(val != null && val !== '' ? val : proposal?.total_investment) || 0;
 }
 
 const filteredProposals = computed(() => {
@@ -722,7 +830,10 @@ const filteredProposals = computed(() => {
   list.sort((a, b) => {
     let va = a[sk];
     let vb = b[sk];
-    if (isNumericSort) { va = Number(va) || 0; vb = Number(vb) || 0; }
+    if (isNumericSort) {
+      va = effectiveInvestmentTotal(a);
+      vb = effectiveInvestmentTotal(b);
+    }
     else { va = va || ''; vb = vb || ''; }
     if (va < vb) return asc ? -1 : 1;
     if (va > vb) return asc ? 1 : -1;
@@ -964,17 +1075,21 @@ onUnmounted(() => {
   if (toastTimer) clearTimeout(toastTimer);
 });
 
+const ALERT_ICON_MAP = {
+  not_viewed: '👁️‍🗨️', not_responded: '⏳', expiring_soon: '🔥',
+  manual_reminder: '🔔', manual_followup: '📩', manual_call: '📞',
+  manual_meeting: '🤝', manual_custom: '📝',
+  seller_inactive: '🏷️', zombie: '💀', late_return: '🔄',
+  manual_discount_suggestion: '💰', discount_suggestion: '💰',
+  manual_post_expiration_visit: '🔥🕰️', post_expiration_visit: '🔥🕰️',
+  manual_engagement_decay: '📉', engagement_decay: '📉',
+};
 function alertIcon(type) {
-  const map = {
-    not_viewed: '👁️‍🗨️', not_responded: '⏳', expiring_soon: '🔥',
-    manual_reminder: '🔔', manual_followup: '📩', manual_call: '📞',
-    manual_meeting: '🤝', manual_custom: '📝',
-    seller_inactive: '🏷️', zombie: '💀', late_return: '🔄',
-    manual_discount_suggestion: '💰', discount_suggestion: '💰',
-    manual_post_expiration_visit: '🔥🕰️', post_expiration_visit: '🔥🕰️',
-    manual_engagement_decay: '📉', engagement_decay: '📉',
-  };
-  return map[type] || '⚠️';
+  return ALERT_ICON_MAP[type] || '⚠️';
+}
+
+function resolveAlertDate(alert) {
+  return alert.ref_date || alert.alert_date || '';
 }
 
 function alertBorderClass(priority) {
@@ -1007,10 +1122,64 @@ async function handleCreateAlert() {
   }
 }
 
-async function handleDismissAlert(alertId) {
-  const result = await proposalStore.dismissAlert(alertId);
-  if (result.success) {
-    alerts.value = alerts.value.filter(a => a.manual_alert_id !== alertId);
+function toggleAlertForm() {
+  showAlertForm.value = !showAlertForm.value;
+  if (showAlertForm.value) attentionExpanded.value = true;
+}
+
+function toggleAlertGroupExpansion(groupKey) {
+  const next = new Set(expandedAlertGroups.value);
+  if (next.has(groupKey)) next.delete(groupKey);
+  else next.add(groupKey);
+  expandedAlertGroups.value = next;
+}
+
+function openAlertGroup(group, event) {
+  if (group.isMulti) {
+    toggleAlertGroupExpansion(group.key);
+    return;
+  }
+  openProposalFromAlert(group.firstProposalId, event);
+}
+
+function openProposalFromAlert(proposalId, event) {
+  if (!proposalId) return;
+  navigateToProposal(proposalId, event);
+}
+
+async function handleDismissAlertGroup(group) {
+  if (!group?.alerts?.length) return;
+
+  const manualIds = [...new Set(group.alerts.map(a => a.manual_alert_id).filter(Boolean))];
+  const computedAlertsByKey = new Map();
+  for (const alert of group.alerts) {
+    if (alert.manual_alert_id) continue;
+    computedAlertsByKey.set(getComputedAlertKey(alert), alert);
+  }
+  const computedAlerts = [...computedAlertsByKey.values()];
+
+  const [manualResults, computedResults] = await Promise.all([
+    Promise.allSettled(manualIds.map(id => proposalStore.dismissAlert(id))),
+    Promise.allSettled(computedAlerts.map(alert =>
+      proposalStore.dismissAlert(alert.id, {
+        computed_alert_type: alert.alert_type,
+        ref_date: resolveAlertDate(alert),
+      })
+    )),
+  ]);
+
+  const dismissedIds = manualIds.filter((_, idx) => manualResults[idx]?.status === 'fulfilled' && manualResults[idx].value?.success);
+  if (dismissedIds.length) {
+    alerts.value = alerts.value.filter(a => !dismissedIds.includes(a.manual_alert_id));
+  }
+
+  const computedKeys = computedAlerts
+    .filter((_, idx) => computedResults[idx]?.status === 'fulfilled' && computedResults[idx].value?.success)
+    .map(getComputedAlertKey);
+  if (computedKeys.length) {
+    const next = new Set(dismissedComputedAlertKeys.value);
+    computedKeys.forEach(k => next.add(k));
+    dismissedComputedAlertKeys.value = next;
   }
 }
 

@@ -746,7 +746,7 @@
           </div>
         </div>
         <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-          @click="form.additionalModules.push({ icon: '🧩', title: '', description: '', items: [], _pasteMode: false, _pasteText: '', _collapsed: false, is_calculator_module: false, selected: false })">
+          @click="form.additionalModules.push({ id: `module_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, icon: '🧩', title: '', description: '', is_visible: true, selected: false, is_calculator_module: false, default_selected: false, price_percent: null, is_invite: false, invite_note: '', items: [], _pasteMode: false, _pasteText: '', _collapsed: false })">
           + Agregar módulo adicional
         </button>
       </div>

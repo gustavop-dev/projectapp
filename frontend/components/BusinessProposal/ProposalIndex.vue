@@ -87,9 +87,10 @@
         </li>
       </ul>
 
-      <!-- Executive mode: switch to full proposal -->
-      <div v-if="viewMode === 'executive'" class="mt-4 px-2">
+      <!-- Switch view mode -->
+      <div class="mt-4 px-2 space-y-2">
         <button
+          v-if="viewMode === 'executive'"
           data-testid="switch-to-detailed-btn"
           class="sidebar-switch-detailed-btn w-full flex items-center gap-2 px-3 py-2.5 bg-esmerald text-lemon rounded-xl text-sm font-medium
                  hover:bg-esmerald/90 transition-colors shadow-sm"
@@ -99,6 +100,17 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
           <span class="leading-tight">{{ language === 'en' ? 'View Full Proposal' : 'Ver Propuesta Completa' }}</span>
+        </button>
+        <button
+          data-testid="back-to-gateway-btn"
+          class="w-full flex items-center gap-2 px-3 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium
+                 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+          @click="$emit('backToGateway'); isOpen = false"
+        >
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+          </svg>
+          <span class="leading-tight">{{ language === 'en' ? 'Change view' : 'Cambiar vista' }}</span>
         </button>
       </div>
     </nav>
@@ -131,7 +143,7 @@ defineProps({
   },
 });
 
-const emit = defineEmits(['navigate', 'update:open', 'switchToDetailed']);
+const emit = defineEmits(['navigate', 'update:open', 'switchToDetailed', 'backToGateway']);
 
 const isOpen = ref(false);
 

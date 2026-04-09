@@ -42,30 +42,70 @@
               <p class="text-3xl font-light text-gray-900 dark:text-gray-100 mt-1">{{ data.total_proposals }}</p>
             </div>
             <div class="bg-white rounded-xl border border-emerald-100 shadow-sm p-4 dark:bg-gray-800 dark:border-emerald-800">
-              <p class="text-xs text-emerald-600 uppercase tracking-wider">Tasa conversión</p>
+              <div class="flex items-center gap-1">
+                <p class="text-xs text-emerald-600 uppercase tracking-wider">Tasa conversión</p>
+                <UiTooltip position="bottom">
+                  <template #trigger>
+                    <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-emerald-300 hover:text-emerald-500 transition-colors" />
+                  </template>
+                  {{ tt.conversionRate }}
+                </UiTooltip>
+              </div>
               <p class="text-3xl font-light text-emerald-700 mt-1">{{ data.conversion_rate }}%</p>
             </div>
             <div class="bg-white rounded-xl border border-blue-100 shadow-sm p-4 dark:bg-gray-800 dark:border-blue-800">
-              <p class="text-xs text-blue-600 uppercase tracking-wider">Tasa revisita</p>
+              <div class="flex items-center gap-1">
+                <p class="text-xs text-blue-600 uppercase tracking-wider">Tasa revisita</p>
+                <UiTooltip position="bottom">
+                  <template #trigger>
+                    <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-blue-300 hover:text-blue-500 transition-colors" />
+                  </template>
+                  {{ tt.revisitRate }}
+                </UiTooltip>
+              </div>
               <p class="text-2xl font-light text-blue-700 mt-1">
                 {{ data.pct_revisit != null ? data.pct_revisit + '%' : '—' }}
               </p>
               <p class="text-[10px] text-gray-400 mt-0.5">Clientes que volvieron</p>
             </div>
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
-              <p class="text-xs text-gray-400 uppercase tracking-wider">Avg tiempo 1ra vista</p>
+              <div class="flex items-center gap-1">
+                <p class="text-xs text-gray-400 uppercase tracking-wider">Avg tiempo 1ra vista</p>
+                <UiTooltip position="bottom">
+                  <template #trigger>
+                    <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-gray-500 transition-colors" />
+                  </template>
+                  {{ tt.avgTimeToFirstView }}
+                </UiTooltip>
+              </div>
               <p class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-1">
                 {{ data.avg_time_to_first_view_hours != null ? data.avg_time_to_first_view_hours + 'h' : '—' }}
               </p>
             </div>
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
-              <p class="text-xs text-gray-400 uppercase tracking-wider">Avg tiempo respuesta</p>
+              <div class="flex items-center gap-1">
+                <p class="text-xs text-gray-400 uppercase tracking-wider">Avg tiempo respuesta</p>
+                <UiTooltip position="bottom">
+                  <template #trigger>
+                    <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-gray-500 transition-colors" />
+                  </template>
+                  {{ tt.avgTimeToResponse }}
+                </UiTooltip>
+              </div>
               <p class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-1">
                 {{ data.avg_time_to_response_hours != null ? data.avg_time_to_response_hours + 'h' : '—' }}
               </p>
             </div>
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
-              <p class="text-xs text-gray-400 uppercase tracking-wider">Avg valor aceptadas</p>
+              <div class="flex items-center gap-1">
+                <p class="text-xs text-gray-400 uppercase tracking-wider">Avg valor aceptadas</p>
+                <UiTooltip position="bottom">
+                  <template #trigger>
+                    <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-300 hover:text-gray-500 transition-colors" />
+                  </template>
+                  {{ tt.avgAcceptedValue }}
+                </UiTooltip>
+              </div>
               <p class="text-xl font-light text-gray-900 dark:text-gray-100 mt-1">
                 ${{ formatNumber(data.avg_value_by_status?.accepted || 0) }}
               </p>
@@ -76,7 +116,15 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <!-- Status distribution -->
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Distribución por estado</h3>
+              <div class="flex items-center gap-1.5 mb-3">
+                <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Distribución por estado</h3>
+                <UiTooltip position="right">
+                  <template #trigger>
+                    <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                  </template>
+                  {{ tt.statusDistribution }}
+                </UiTooltip>
+              </div>
               <div class="space-y-2">
                 <div v-for="(count, statusKey) in data.by_status" :key="statusKey" class="flex items-center gap-3">
                   <span class="text-xs w-16 text-gray-500 dark:text-gray-400 capitalize">{{ statusKey }}</span>
@@ -94,7 +142,15 @@
 
             <!-- Top rejection reasons -->
             <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Top motivos de rechazo</h3>
+              <div class="flex items-center gap-1.5 mb-3">
+                <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Top motivos de rechazo</h3>
+                <UiTooltip position="right">
+                  <template #trigger>
+                    <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                  </template>
+                  {{ tt.topRejectionReasons }}
+                </UiTooltip>
+              </div>
               <div v-if="data.top_rejection_reasons?.length" class="space-y-2">
                 <div v-for="reason in data.top_rejection_reasons" :key="reason.rejection_reason" class="flex items-center gap-3">
                   <span class="text-xs text-gray-600 dark:text-gray-300 flex-1 truncate">{{ reason.rejection_reason }}</span>
@@ -113,7 +169,15 @@
 
           <!-- Monthly trend -->
           <div v-if="data.monthly_trend?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
-            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Tendencia mensual (últimos 6 meses)</h3>
+            <div class="flex items-center gap-1.5 mb-3">
+              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Tendencia mensual (últimos 6 meses)</h3>
+              <UiTooltip position="right">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                </template>
+                {{ tt.monthlyTrend }}
+              </UiTooltip>
+            </div>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
@@ -140,7 +204,15 @@
 
           <!-- Avg value by status -->
           <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
-            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Valor promedio por estado</h3>
+            <div class="flex items-center gap-1.5 mb-3">
+              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Valor promedio por estado</h3>
+              <UiTooltip position="right">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                </template>
+                {{ tt.avgValueByStatus }}
+              </UiTooltip>
+            </div>
             <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <div v-for="(val, key) in data.avg_value_by_status" :key="key" class="text-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700">
                 <p class="text-xs text-gray-400 uppercase capitalize">{{ key }}</p>
@@ -152,7 +224,15 @@
           <!-- Win rate by project type + market type -->
           <div v-if="data.win_rate_by_project_type?.length || data.win_rate_by_market_type?.length" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div v-if="data.win_rate_by_project_type?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Win rate por tipo de proyecto</h3>
+              <div class="flex items-center gap-1.5 mb-3">
+                <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Win rate por tipo de proyecto</h3>
+                <UiTooltip position="right">
+                  <template #trigger>
+                    <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                  </template>
+                  {{ tt.winRateByProjectType }}
+                </UiTooltip>
+              </div>
               <div class="space-y-2">
                 <div v-for="item in data.win_rate_by_project_type" :key="item.type" class="flex items-center gap-3">
                   <span class="text-xs w-20 text-gray-500 dark:text-gray-400 capitalize truncate">{{ projectTypeLabel(item.type) }}</span>
@@ -168,7 +248,15 @@
               </div>
             </div>
             <div v-if="data.win_rate_by_market_type?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Win rate por tipo de mercado</h3>
+              <div class="flex items-center gap-1.5 mb-3">
+                <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Win rate por tipo de mercado</h3>
+                <UiTooltip position="right">
+                  <template #trigger>
+                    <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                  </template>
+                  {{ tt.winRateByMarketType }}
+                </UiTooltip>
+              </div>
               <div class="space-y-2">
                 <div v-for="item in data.win_rate_by_market_type" :key="item.type" class="flex items-center gap-3">
                   <span class="text-xs w-20 text-gray-500 dark:text-gray-400 capitalize truncate">{{ marketTypeLabel(item.type) }}</span>
@@ -190,7 +278,15 @@
             v-if="data.win_rate_by_view_mode && Object.keys(data.win_rate_by_view_mode).length"
             class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700"
           >
-            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">Win rate por modo de vista</h3>
+            <div class="flex items-center gap-1.5 mb-1">
+              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Win rate por modo de vista</h3>
+              <UiTooltip position="right">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                </template>
+                {{ tt.winRateByViewMode }}
+              </UiTooltip>
+            </div>
             <p class="text-xs text-gray-400 mb-3">
               Por propuesta cerrada se toma el modo con más eventos de tracking (ejecutiva, completa o técnica).
             </p>
@@ -220,7 +316,15 @@
 
           <!-- Win rate by combination -->
           <div v-if="data.win_rate_by_combination?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
-            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Mejor combinación proyecto × mercado</h3>
+            <div class="flex items-center gap-1.5 mb-3">
+              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Mejor combinación proyecto × mercado</h3>
+              <UiTooltip position="right">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                </template>
+                {{ tt.bestCombination }}
+              </UiTooltip>
+            </div>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
@@ -245,7 +349,15 @@
           <!-- Engagement / Value insight + Calculator metrics -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div v-if="data.engagement_value_insight" class="bg-white rounded-xl border border-emerald-100 shadow-sm p-4 dark:bg-gray-800 dark:border-emerald-800">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Engagement vs Valor de cierre</h3>
+              <div class="flex items-center gap-1.5 mb-2">
+                <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Engagement vs Valor de cierre</h3>
+                <UiTooltip position="right">
+                  <template #trigger>
+                    <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                  </template>
+                  {{ tt.engagementVsValue }}
+                </UiTooltip>
+              </div>
               <div class="space-y-1.5">
                 <div class="flex justify-between text-xs">
                   <span class="text-gray-500">Alto engagement ({{ data.engagement_value_insight.high_count }})</span>
@@ -262,7 +374,15 @@
             </div>
 
             <div v-if="data.calc_abandonment_rate != null" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Calculadora</h3>
+              <div class="flex items-center gap-1.5 mb-2">
+                <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Calculadora</h3>
+                <UiTooltip position="right">
+                  <template #trigger>
+                    <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                  </template>
+                  {{ tt.calculator }}
+                </UiTooltip>
+              </div>
               <div class="flex items-baseline gap-2">
                 <span class="text-2xl font-light" :class="data.calc_abandonment_rate > 50 ? 'text-red-600' : 'text-gray-900'">{{ data.calc_abandonment_rate }}%</span>
                 <span class="text-xs text-gray-400">abandono</span>
@@ -271,7 +391,15 @@
             </div>
 
             <div v-if="data.top_dropped_modules?.length" class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 dark:bg-gray-800 dark:border-gray-700">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Módulos más descartados</h3>
+              <div class="flex items-center gap-1.5 mb-2">
+                <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">Módulos más descartados</h3>
+                <UiTooltip position="right">
+                  <template #trigger>
+                    <QuestionMarkCircleIcon class="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" />
+                  </template>
+                  {{ tt.droppedModules }}
+                </UiTooltip>
+              </div>
               <div class="space-y-1">
                 <div v-for="mod in data.top_dropped_modules.slice(0, 5)" :key="mod.module_id" class="flex items-center justify-between text-xs">
                   <span class="text-gray-600 truncate">{{ mod.module_id }}</span>
@@ -288,6 +416,9 @@
 
 <script setup>
 import { computed, ref, watch, onBeforeUnmount } from 'vue';
+import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline';
+
+const { dashboard: tt } = useTooltipTexts();
 
 const AUTO_REFRESH_MS = 60_000;
 

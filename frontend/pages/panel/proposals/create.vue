@@ -871,7 +871,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted } from 'vue';
+import { reactive, ref, computed, onMounted, watch } from 'vue';
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import { get_request } from '~/stores/services/request_http';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
@@ -962,17 +962,46 @@ function handleResetCreateTechnicalPrompt() {
   createTechnicalPromptIsEditing.value = false;
 }
 
-onMounted(() => {
+onMounted(async () => {
   loadCreateCommercialPrompt();
   loadCreateTechnicalPrompt();
+  await loadExpirationDefaults(form.language);
 });
+
+watch(
+  [() => form.language, () => jsonForm.language],
+  ([langA, langB], [prevA, prevB]) => {
+    const changed = langA !== prevA ? langA : langB !== prevB ? langB : null;
+    if (changed) loadExpirationDefaults(changed);
+  },
+);
 
 // -------------------------------------------------------------------------
 // Shared helpers
 // -------------------------------------------------------------------------
-const defaultExpiry = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000);
+const DEFAULT_EXPIRATION_DAYS = 21;
+const defaultExpirationDays = ref(DEFAULT_EXPIRATION_DAYS);
 const pad = (n) => String(n).padStart(2, '0');
-const defaultExpiryStr = `${defaultExpiry.getFullYear()}-${pad(defaultExpiry.getMonth() + 1)}-${pad(defaultExpiry.getDate())}T${pad(defaultExpiry.getHours())}:${pad(defaultExpiry.getMinutes())}`;
+
+function buildDefaultExpiryStr(days = defaultExpirationDays.value) {
+  const safeDays = Number.isInteger(days) && days > 0 ? days : DEFAULT_EXPIRATION_DAYS;
+  const expiry = new Date(Date.now() + safeDays * 24 * 60 * 60 * 1000);
+  return `${expiry.getFullYear()}-${pad(expiry.getMonth() + 1)}-${pad(expiry.getDate())}T${pad(expiry.getHours())}:${pad(expiry.getMinutes())}`;
+}
+
+const defaultExpiryStr = buildDefaultExpiryStr();
+
+// Updates both form.expires_at and jsonForm.expires_at regardless of active mode.
+// This cross-mode sync is intentional: only one mode is visible at a time, and
+// keeping both in sync avoids stale expiration dates when the user switches modes.
+async function loadExpirationDefaults(lang = 'es') {
+  const days = await proposalStore.fetchExpirationDays(lang);
+  if (!Number.isInteger(days) || days < 1) return;
+  defaultExpirationDays.value = days;
+  const expiryStr = buildDefaultExpiryStr(days);
+  form.expires_at = expiryStr;
+  jsonForm.expires_at = expiryStr;
+}
 
 function parseInvestmentString(str) {
   if (!str) return 0;
