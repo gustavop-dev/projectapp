@@ -1848,6 +1848,20 @@ class TestProposalDashboardExtended:
         assert response.status_code == 200
         assert response.data['conversion_rate'] == 50.0
 
+    def test_finished_proposals_count_as_won_in_conversion_rate(self, admin_client, db):
+        """A finished proposal is treated as a won deal alongside accepted ones."""
+        BusinessProposal.objects.create(
+            title='Finished', client_name='F', status='finished',
+            total_investment=1000,
+        )
+        BusinessProposal.objects.create(
+            title='Rejected', client_name='R', status='rejected',
+            total_investment=1000,
+        )
+        response = admin_client.get(reverse('proposal-dashboard'))
+        assert response.status_code == 200
+        assert response.data['conversion_rate'] == 50.0
+
     @freeze_time('2026-03-01 12:00:00')
     def test_returns_monthly_trend(self, admin_client, sent_proposal):
         """Dashboard includes monthly_trend array."""
@@ -2081,6 +2095,24 @@ class TestListClients:
         assert response.data[0]['total_proposals'] == 2
         assert response.data[0]['client_email'] == ''
 
+    def test_same_email_different_names_creates_separate_groups(self, admin_client, db):
+        """Two clients sharing the same email stay separated by name."""
+        BusinessProposal.objects.create(
+            title='P1', client_name='Acme Corp', client_email='shared@example.com',
+            total_investment=1000,
+        )
+        BusinessProposal.objects.create(
+            title='P2', client_name='Beta Inc', client_email='shared@example.com',
+            total_investment=2000,
+        )
+        response = admin_client.get(reverse('list-clients'))
+        assert response.status_code == 200
+        titles_by_name = {
+            c['client_name']: [p['title'] for p in c['proposals']]
+            for c in response.data
+        }
+        assert titles_by_name == {'Acme Corp': ['P1'], 'Beta Inc': ['P2']}
+
 
 # ---------------------------------------------------------------------------
 # Analytics: funnel + comparison (extended)
@@ -2191,6 +2223,44 @@ class TestRetrieveProposalAnalyticsExtended:
         assert len(exec_sections) >= 1
         greeting = next(s for s in exec_sections if s['section_type'] == 'greeting')
         assert greeting['section_title'] == '👋 Saludo ejecutivo'
+
+    @freeze_time('2026-03-01 12:00:00')
+    def test_by_view_mode_splits_technical_fragments_by_subsection_key(self, admin_client, sent_proposal):
+        """Technical document fragments stay split per subsection in by_view_mode."""
+        event = ProposalViewEvent.objects.create(
+            proposal=sent_proposal, session_id='s-tech',
+            view_mode='technical',
+        )
+        for sub_key, title, secs in [
+            ('intro', 'Detalle técnico', 10),
+            ('stack', 'Stack tecnológico', 20),
+            ('architecture', 'Arquitectura', 30),
+        ]:
+            ProposalSectionView.objects.create(
+                view_event=event,
+                section_type='technical_document_public',
+                subsection_key=sub_key,
+                section_title=title,
+                time_spent_seconds=secs,
+                entered_at=timezone.now(),
+                view_mode='technical',
+            )
+        response = admin_client.get(self._url(sent_proposal.id))
+        assert response.status_code == 200
+        tech_sections = response.data['by_view_mode']['technical']['sections']
+        tech_doc_rows = [
+            s for s in tech_sections
+            if s['section_type'] == 'technical_document_public'
+        ]
+        assert len(tech_doc_rows) == 3
+        titles_by_key = {s['subsection_key']: s['section_title'] for s in tech_doc_rows}
+        assert titles_by_key == {
+            'intro': 'Detalle técnico',
+            'stack': 'Stack tecnológico',
+            'architecture': 'Arquitectura',
+        }
+        time_by_key = {s['subsection_key']: s['total_time_seconds'] for s in tech_doc_rows}
+        assert time_by_key == {'intro': 10.0, 'stack': 20.0, 'architecture': 30.0}
 
     @freeze_time('2026-03-01 12:00:00')
     def test_technical_public_tracking_counts_as_technical_document(self, admin_client, sent_proposal):
@@ -3856,3 +3926,186 @@ class TestComputeHeatScoreEdgeCases:
         from content.views.proposal import _compute_heat_score_for_proposal
         score = _compute_heat_score_for_proposal(99999, now=timezone.now())
         assert score == 1
+
+
+# ───────────────────────────────────────────────────────────────────────
+# Project schedule (Cronograma) endpoints
+# ───────────────────────────────────────────────────────────────────────
+
+class TestUpdateProjectStage:
+    def test_creates_row_when_missing_and_persists_dates(
+        self, admin_client, accepted_proposal,
+    ):
+        from content.models import ProposalProjectStage
+
+        url = f'/api/proposals/{accepted_proposal.id}/stages/design/'
+        response = admin_client.put(
+            url,
+            {'start_date': '2026-04-01', 'end_date': '2026-04-15'},
+            format='json',
+        )
+
+        assert response.status_code == 200
+        stage = ProposalProjectStage.objects.get(
+            proposal=accepted_proposal, stage_key='design',
+        )
+        assert str(stage.start_date) == '2026-04-01'
+        assert str(stage.end_date) == '2026-04-15'
+
+    def test_updates_existing_row(self, admin_client, accepted_proposal):
+        from content.models import ProposalProjectStage
+
+        ProposalProjectStage.objects.create(
+            proposal=accepted_proposal, stage_key='development', order=1,
+            start_date='2026-04-01', end_date='2026-04-10',
+        )
+        url = f'/api/proposals/{accepted_proposal.id}/stages/development/'
+        response = admin_client.put(
+            url, {'end_date': '2026-04-20'}, format='json',
+        )
+
+        assert response.status_code == 200
+        stage = ProposalProjectStage.objects.get(
+            proposal=accepted_proposal, stage_key='development',
+        )
+        assert str(stage.end_date) == '2026-04-20'
+
+    def test_rejects_start_after_end(self, admin_client, accepted_proposal):
+        url = f'/api/proposals/{accepted_proposal.id}/stages/design/'
+        response = admin_client.put(
+            url,
+            {'start_date': '2026-05-15', 'end_date': '2026-05-01'},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    def test_rejects_unknown_stage_key(self, admin_client, accepted_proposal):
+        url = f'/api/proposals/{accepted_proposal.id}/stages/qa/'
+        response = admin_client.put(
+            url,
+            {'start_date': '2026-04-01', 'end_date': '2026-04-10'},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    def test_returns_404_for_unknown_proposal(self, admin_client):
+        response = admin_client.put(
+            '/api/proposals/99999/stages/design/',
+            {'start_date': '2026-04-01', 'end_date': '2026-04-10'},
+            format='json',
+        )
+        assert response.status_code == 404
+
+    def test_requires_authentication(self, api_client, accepted_proposal):
+        response = api_client.put(
+            f'/api/proposals/{accepted_proposal.id}/stages/design/',
+            {'start_date': '2026-04-01', 'end_date': '2026-04-10'},
+            format='json',
+        )
+        assert response.status_code in (401, 403)
+
+    def test_creates_changelog_entry_on_update(
+        self, admin_client, accepted_proposal,
+    ):
+        url = f'/api/proposals/{accepted_proposal.id}/stages/design/'
+        admin_client.put(
+            url,
+            {'start_date': '2026-04-01', 'end_date': '2026-04-10'},
+            format='json',
+        )
+
+        log = ProposalChangeLog.objects.filter(
+            proposal=accepted_proposal,
+            change_type='updated',
+            description__contains='Cronograma',
+        ).first()
+        assert log is not None
+
+
+class TestCompleteProjectStage:
+    @freeze_time('2026-04-15 12:00:00')
+    def test_sets_completed_at_to_now(self, admin_client, accepted_proposal):
+        from content.models import ProposalProjectStage
+
+        ProposalProjectStage.objects.create(
+            proposal=accepted_proposal, stage_key='design', order=0,
+            start_date='2026-04-01', end_date='2026-04-10',
+        )
+
+        url = f'/api/proposals/{accepted_proposal.id}/stages/design/complete/'
+        response = admin_client.post(url)
+
+        assert response.status_code == 200
+        stage = ProposalProjectStage.objects.get(
+            proposal=accepted_proposal, stage_key='design',
+        )
+        assert stage.completed_at is not None
+
+    def test_clears_alert_timestamps(self, admin_client, accepted_proposal):
+        from content.models import ProposalProjectStage
+
+        ProposalProjectStage.objects.create(
+            proposal=accepted_proposal, stage_key='design', order=0,
+            start_date='2026-04-01', end_date='2026-04-10',
+            warning_sent_at=timezone.now(),
+            last_overdue_reminder_at=timezone.now(),
+        )
+
+        admin_client.post(
+            f'/api/proposals/{accepted_proposal.id}/stages/design/complete/'
+        )
+
+        stage = ProposalProjectStage.objects.get(
+            proposal=accepted_proposal, stage_key='design',
+        )
+        assert stage.warning_sent_at is None
+        assert stage.last_overdue_reminder_at is None
+
+    def test_creates_stage_completed_changelog(
+        self, admin_client, accepted_proposal,
+    ):
+        from content.models import ProposalProjectStage
+
+        ProposalProjectStage.objects.create(
+            proposal=accepted_proposal, stage_key='design', order=0,
+        )
+        admin_client.post(
+            f'/api/proposals/{accepted_proposal.id}/stages/design/complete/'
+        )
+
+        log = ProposalChangeLog.objects.get(
+            proposal=accepted_proposal,
+            change_type='stage_completed',
+        )
+        assert log.actor_type == 'seller'
+
+    def test_rejects_unknown_stage_key(self, admin_client, accepted_proposal):
+        response = admin_client.post(
+            f'/api/proposals/{accepted_proposal.id}/stages/qa/complete/'
+        )
+        assert response.status_code == 400
+
+    def test_requires_authentication(self, api_client, accepted_proposal):
+        response = api_client.post(
+            f'/api/proposals/{accepted_proposal.id}/stages/design/complete/'
+        )
+        assert response.status_code in (401, 403)
+
+    def test_creates_row_lazily_when_missing(
+        self, admin_client, accepted_proposal,
+    ):
+        from content.models import ProposalProjectStage
+
+        # No stage row exists
+        assert not ProposalProjectStage.objects.filter(
+            proposal=accepted_proposal, stage_key='design',
+        ).exists()
+
+        admin_client.post(
+            f'/api/proposals/{accepted_proposal.id}/stages/design/complete/'
+        )
+
+        stage = ProposalProjectStage.objects.get(
+            proposal=accepted_proposal, stage_key='design',
+        )
+        assert stage.completed_at is not None

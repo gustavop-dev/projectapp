@@ -310,6 +310,55 @@ EMAIL_TEMPLATE_REGISTRY = {
         },
     },
 
+    'proposal_finished_client': {
+        'name': 'Cierre de Proyecto',
+        'description': 'Se envía al cliente cuando su proyecto se marca como finalizado.',
+        'category': 'client',
+        'html_template': 'emails/proposal_finished_client.html',
+        'txt_template': 'emails/proposal_finished_client.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': '\U0001f3af {client_name}, tu proyecto ha sido finalizado — Project App',
+            },
+            {
+                'key': 'greeting',
+                'label': 'Saludo',
+                'type': 'text',
+                'default': '\u00a1Lo logramos, {client_name}! \U0001f3af',
+            },
+            {
+                'key': 'body',
+                'label': 'Cuerpo del mensaje',
+                'type': 'textarea',
+                'default': (
+                    'Queremos confirmarte que el proyecto correspondiente a la propuesta '
+                    '{title} ha sido finalizado exitosamente. Gracias por tu confianza y '
+                    'por permitirnos acompa\u00f1arte en este proceso. Toda la documentaci\u00f3n '
+                    'y los entregables permanecen disponibles en tu espacio de la plataforma.'
+                ),
+            },
+            {
+                'key': 'cta_text',
+                'label': 'Texto del bot\u00f3n',
+                'type': 'text',
+                'default': '\U0001f4c2 Ir a la plataforma',
+            },
+        ],
+        'available_variables': [
+            'client_name', 'title', 'project_name', 'deliverable_title',
+            'platform_login_url',
+        ],
+        'sample_context': {
+            **_client_sample(),
+            'platform_login_url': 'https://projectapp.co/platform/login',
+            'project_name': 'Proyecto demo',
+            'deliverable_title': 'Propuesta comercial',
+        },
+    },
+
     'proposal_rejected_client': {
         'name': 'Agradecimiento por Rechazo',
         'description': 'Se envía al cliente cuando rechaza la propuesta.',
@@ -1057,6 +1106,104 @@ EMAIL_TEMPLATE_REGISTRY = {
                     'description': 'Propuesta comercial con el alcance, inversión y condiciones del proyecto.',
                 },
             ],
+        },
+    },
+
+    # -----------------------------------------------------------------------
+    # Project-stage tracking — internal team notifications
+    # Sent by the daily Huey task `notify_proposal_stage_deadlines` based on
+    # ProposalProjectStage rows (start/end dates set per stage from the
+    # admin Cronograma tab).
+    # -----------------------------------------------------------------------
+    'proposal_stage_warning_notification': {
+        'name': 'Aviso 70% Etapa de Proyecto',
+        'description': (
+            'Se envía al equipo cuando una etapa del cronograma del proyecto '
+            '(diseño o desarrollo) ha transcurrido el 70% de su tiempo planeado. '
+            'Sirve como aviso temprano para evitar que la etapa se cuelgue.'
+        ),
+        'category': 'internal',
+        'html_template': 'emails/proposal_stage_warning_notification.html',
+        'txt_template': 'emails/proposal_stage_warning_notification.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': (
+                    '\u26a0\ufe0f Etapa {stage_label} cerca de vencer — '
+                    '{client_name} ({proposal_title})'
+                ),
+            },
+            {
+                'key': 'intro',
+                'label': 'Texto principal',
+                'type': 'textarea',
+                'default': (
+                    'La etapa de {stage_label} para {client_name} '
+                    '({proposal_title}) terminará en {time_remaining_human}. '
+                    'Verifica si vamos en tiempo o si hay riesgo de retraso.'
+                ),
+            },
+        ],
+        'available_variables': [
+            'client_name', 'proposal_title', 'stage_label',
+            'time_remaining_human', 'start_date_human', 'end_date_human',
+            'edit_url',
+        ],
+        'sample_context': {
+            **_internal_sample(),
+            'stage_label': 'Diseño',
+            'time_remaining_human': '1 semana 2 días',
+            'start_date_human': '1 de abril, 2026',
+            'end_date_human': '15 de abril, 2026',
+            'edit_url': 'https://projectapp.co/panel/proposals/42/edit?tab=schedule',
+        },
+    },
+
+    'proposal_stage_overdue_notification': {
+        'name': 'Etapa de Proyecto Vencida',
+        'description': (
+            'Se envía al equipo cuando una etapa del cronograma ya pasó su '
+            'fecha fin. Se reenvía como recordatorio cada 3 días mientras '
+            'la etapa no se marque como completada en el panel.'
+        ),
+        'category': 'internal',
+        'html_template': 'emails/proposal_stage_overdue_notification.html',
+        'txt_template': 'emails/proposal_stage_overdue_notification.txt',
+        'editable_fields': [
+            {
+                'key': 'subject',
+                'label': 'Asunto del correo',
+                'type': 'text',
+                'default': (
+                    '\U0001f534 Etapa {stage_label} VENCIDA — '
+                    '{client_name} ({proposal_title})'
+                ),
+            },
+            {
+                'key': 'intro',
+                'label': 'Texto principal',
+                'type': 'textarea',
+                'default': (
+                    'La etapa de {stage_label} para {client_name} '
+                    '({proposal_title}) debió haber terminado hace '
+                    '{time_overdue_human}. Marca la etapa como completada '
+                    'en el panel para silenciar este recordatorio.'
+                ),
+            },
+        ],
+        'available_variables': [
+            'client_name', 'proposal_title', 'stage_label',
+            'time_overdue_human', 'days_overdue', 'end_date_human', 'edit_url',
+        ],
+        'sample_context': {
+            **_internal_sample(),
+            'stage_label': 'Desarrollo',
+            'time_overdue_human': '3 días',
+            'days_overdue': 3,
+            'end_date_human': '6 de abril, 2026',
+            'edit_url': 'https://projectapp.co/panel/proposals/42/edit?tab=schedule',
         },
     },
 

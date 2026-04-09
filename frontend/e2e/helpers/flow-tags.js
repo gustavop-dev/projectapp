@@ -193,3 +193,6 @@ export const PUBLIC_TERMS_CONDITIONS = ['@flow:public-terms-conditions', '@modul
 export const ADMIN_STANDALONE_EMAIL_COMPOSER = ['@flow:admin-standalone-email-composer', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_ADVANCED_FILTERS = ['@flow:admin-proposal-advanced-filters', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH = ['@flow:admin-proposal-dashboard-auto-refresh', '@module:admin', '@priority:P3'];
+
+// ── Project schedule (Cronograma) ──
+export const ADMIN_PROPOSAL_PROJECT_SCHEDULE = ['@flow:admin-proposal-project-schedule', '@module:admin', '@priority:P1'];

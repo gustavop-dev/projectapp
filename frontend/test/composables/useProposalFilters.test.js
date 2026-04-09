@@ -92,12 +92,13 @@ describe('useProposalFilters', () => {
       { status: 'draft', project_type: 'web', market_type: 'b2b', currency: 'COP', language: 'es', total_investment: '1000', heat_score: 5, view_count: 1, created_at: '2026-01-01', last_activity_at: '2026-01-01', is_active: true },
       { status: 'sent', project_type: 'app', market_type: 'b2c', currency: 'USD', language: 'en', total_investment: '5000', heat_score: 8, view_count: 10, created_at: '2026-02-01', last_activity_at: '2026-02-01', is_active: true },
       { status: 'viewed', project_type: 'web', market_type: 'b2b', currency: 'COP', language: 'es', total_investment: '10000', heat_score: 3, view_count: 20, created_at: '2026-03-01', last_activity_at: '2026-03-01', is_active: false },
+      { status: 'finished', project_type: 'web', market_type: 'b2b', currency: 'COP', language: 'es', total_investment: '15000', heat_score: 10, view_count: 30, created_at: '2026-03-15', last_activity_at: '2026-03-15', is_active: true },
     ];
 
     it('returns all proposals when no filters active', () => {
       const { applyFilters } = useProposalFilters();
 
-      expect(applyFilters(proposals)).toHaveLength(3);
+      expect(applyFilters(proposals)).toHaveLength(4);
     });
 
     it('filters by single status', () => {
@@ -113,6 +114,14 @@ describe('useProposalFilters', () => {
       currentFilters.statuses = ['draft', 'sent'];
 
       expect(applyFilters(proposals)).toHaveLength(2);
+    });
+
+    it('filters by finished status independently from accepted', () => {
+      const { currentFilters, applyFilters } = useProposalFilters();
+      currentFilters.statuses = ['finished'];
+
+      expect(applyFilters(proposals)).toHaveLength(1);
+      expect(applyFilters(proposals)[0].status).toBe('finished');
     });
   });
 

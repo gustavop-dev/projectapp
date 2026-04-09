@@ -1,0 +1,19 @@
+🔴 ETAPA DE {{ stage_label|upper }} VENCIDA — {{ proposal_title }}
+
+{{ intro }}
+
+Detalles:
+- Cliente: {{ client_name }}
+- Propuesta: {{ proposal_title }}
+- Etapa: {{ stage_label }}
+- Fin planeado: {{ end_date_human }}
+- Vencida hace: {{ time_overdue_human }}
+
+Te seguiremos enviando este recordatorio cada 3 días hasta que marques
+la etapa como completada en el panel.
+
+Ver el cronograma en el panel:
+{{ edit_url }}
+
+---
+Notificación automática — ProjectApp.co

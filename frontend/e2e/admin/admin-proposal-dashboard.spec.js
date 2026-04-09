@@ -55,6 +55,9 @@ test.describe('Admin Proposal Dashboard', () => {
     await setupMock(page);
     await page.goto('/panel/proposals');
 
+    // Dashboard is collapsed by default — open it to expose KPI cards
+    await page.getByRole('button', { name: /Mostrar Dashboard KPI/ }).click();
+
     await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('12')).toBeVisible();
     await expect(page.getByText('25%')).toBeVisible();
@@ -67,12 +70,16 @@ test.describe('Admin Proposal Dashboard', () => {
     await setupMock(page);
     await page.goto('/panel/proposals');
 
+    // Dashboard is collapsed by default — open it
+    await page.getByRole('button', { name: /Mostrar Dashboard KPI/ }).click();
+
     await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 15000 });
-    const distSection = page.locator('text=Distribución por estado').locator('..');
-    await expect(distSection).toBeVisible();
-    await expect(distSection.getByText('draft').first()).toBeVisible();
-    await expect(distSection.getByText('sent').first()).toBeVisible();
-    await expect(distSection.getByText('accepted').first()).toBeVisible();
+    // Status distribution heading and bar labels are visible
+    await expect(page.getByRole('heading', { name: 'Distribución por estado' })).toBeVisible();
+    // Status labels appear in the status distribution rows (also under "Valor promedio" — first match is the distribution one)
+    await expect(page.getByText('draft', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('sent', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('accepted', { exact: true }).first()).toBeVisible();
   });
 
   test('displays top rejection reasons', {
@@ -81,6 +88,9 @@ test.describe('Admin Proposal Dashboard', () => {
     await setupMock(page);
     await page.goto('/panel/proposals');
 
+    // Dashboard is collapsed by default — open it
+    await page.getByRole('button', { name: /Mostrar Dashboard KPI/ }).click();
+
     // Wait for KPI cards to render first to confirm dashboard data loaded
     await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('Top motivos de rechazo')).toBeVisible();
@@ -88,24 +98,22 @@ test.describe('Admin Proposal Dashboard', () => {
     await expect(page.getByText('Sin presupuesto')).toBeVisible();
   });
 
-  test('toggle button hides and shows dashboard', {
+  test('toggle button shows and hides dashboard', {
     tag: [...ADMIN_PROPOSAL_DASHBOARD, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
 
-    await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 15000 });
-
-    // Hide dashboard
-    const hideBtn = page.getByText('Ocultar Dashboard');
-    await hideBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await hideBtn.click();
+    // Dashboard is collapsed by default — KPIs should not be visible initially
+    await expect(page.getByText('Mostrar Dashboard KPI')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('Total propuestas')).not.toBeVisible();
 
     // Show dashboard
-    const showBtn = page.getByText('Mostrar Dashboard KPI');
-    await showBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await showBtn.click();
+    await page.getByText('Mostrar Dashboard KPI').click();
     await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 10000 });
+
+    // Hide dashboard
+    await page.getByText('Ocultar Dashboard').click();
+    await expect(page.getByText('Total propuestas')).not.toBeVisible();
   });
 });

@@ -1292,3 +1292,178 @@ class TestSendProposalEmailMethod:
         log = ProposalChangeLog.objects.get(proposal=email_proposal)
         assert log.change_type == ProposalChangeLog.ChangeType.EMAIL_SENT
         assert log.actor_type == ProposalChangeLog.ActorType.SELLER
+
+
+# ---------------------------------------------------------------------------
+# Project-stage notifications (internal team)
+# ---------------------------------------------------------------------------
+
+from datetime import date  # noqa: E402
+
+from content.models import ProposalProjectStage  # noqa: E402
+
+
+@pytest.fixture
+def stage_proposal(db):
+    """A proposal in `accepted` status with stage rows attached."""
+    proposal = BusinessProposal.objects.create(
+        title='Stage Test Proposal',
+        client_name='Stage Client',
+        client_email='stageclient@test.com',
+        language='es',
+        total_investment=Decimal('15000000'),
+        currency='COP',
+        status='accepted',
+        expires_at=timezone.now() + timezone.timedelta(days=10),
+    )
+    return proposal
+
+
+@pytest.fixture
+def design_stage(db, stage_proposal):
+    return ProposalProjectStage.objects.create(
+        proposal=stage_proposal,
+        stage_key='design',
+        order=0,
+        start_date=date(2026, 4, 1),
+        end_date=date(2026, 4, 11),
+    )
+
+
+class TestSendStageWarning:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_returns_true_on_successful_send(
+        self, mock_render, mock_email_cls, stage_proposal, design_stage,
+    ):
+        mock_render.return_value = '<html>warn</html>'
+        mock_email_cls.return_value = _stub_email()
+
+        result = ProposalEmailService.send_stage_warning(
+            stage_proposal, design_stage, days_remaining=2,
+        )
+
+        assert result is True
+        mock_email_cls.return_value.send.assert_called_once()
+
+    @override_settings(NOTIFICATION_EMAIL='team@projectapp.co,carlos18bp@gmail.com')
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_uses_notification_recipients_from_settings(
+        self, mock_render, mock_email_cls, stage_proposal, design_stage,
+    ):
+        mock_render.return_value = '<html>warn</html>'
+        mock_email_cls.return_value = _stub_email()
+
+        ProposalEmailService.send_stage_warning(
+            stage_proposal, design_stage, days_remaining=2,
+        )
+
+        call_kwargs = mock_email_cls.call_args[1]
+        assert call_kwargs['to'] == [
+            'team@projectapp.co',
+            'carlos18bp@gmail.com',
+        ]
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_subject_contains_stage_label_and_client(
+        self, mock_render, mock_email_cls, stage_proposal, design_stage,
+    ):
+        mock_render.return_value = '<html>warn</html>'
+        mock_email_cls.return_value = _stub_email()
+
+        ProposalEmailService.send_stage_warning(
+            stage_proposal, design_stage, days_remaining=2,
+        )
+
+        subject = mock_email_cls.call_args[1]['subject']
+        assert 'Diseño' in subject
+        assert stage_proposal.client_name in subject
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_attaches_html_alternative(
+        self, mock_render, mock_email_cls, stage_proposal, design_stage,
+    ):
+        mock_render.return_value = '<html>warn</html>'
+        mock_instance = _stub_email()
+        mock_email_cls.return_value = mock_instance
+
+        ProposalEmailService.send_stage_warning(
+            stage_proposal, design_stage, days_remaining=2,
+        )
+
+        mock_instance.attach_alternative.assert_called_once()
+        args = mock_instance.attach_alternative.call_args.args
+        assert args[1] == 'text/html'
+
+    def test_returns_false_when_template_disabled(
+        self, stage_proposal, design_stage,
+    ):
+        EmailTemplateConfig.objects.create(
+            template_key='proposal_stage_warning_notification',
+            is_active=False,
+        )
+        result = ProposalEmailService.send_stage_warning(
+            stage_proposal, design_stage, days_remaining=2,
+        )
+        assert result is False
+
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_returns_false_on_exception(
+        self, mock_render, stage_proposal, design_stage,
+    ):
+        mock_render.side_effect = Exception('boom')
+        result = ProposalEmailService.send_stage_warning(
+            stage_proposal, design_stage, days_remaining=2,
+        )
+        assert result is False
+
+
+class TestSendStageOverdue:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_subject_contains_vencida_marker(
+        self, mock_render, mock_email_cls, stage_proposal, design_stage,
+    ):
+        mock_render.return_value = '<html>overdue</html>'
+        mock_email_cls.return_value = _stub_email()
+
+        ProposalEmailService.send_stage_overdue(
+            stage_proposal, design_stage, days_overdue=3,
+        )
+
+        subject = mock_email_cls.call_args[1]['subject']
+        assert 'VENCIDA' in subject
+        assert 'Diseño' in subject
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_text_body_includes_overdue_humanized_label(
+        self, mock_render, mock_email_cls, stage_proposal, design_stage,
+    ):
+        mock_render.return_value = '<html>overdue</html>'
+        mock_email_cls.return_value = _stub_email()
+
+        ProposalEmailService.send_stage_overdue(
+            stage_proposal, design_stage, days_overdue=8,
+        )
+
+        # The shared helper builds the context dict and passes it to
+        # render_to_string. Inspect the second positional arg of the first call.
+        first_call_context = mock_render.call_args_list[0].args[1]
+        assert first_call_context['days_overdue'] == 8
+        assert first_call_context['time_overdue_human'] == '1 semana 1 día'
+
+    def test_returns_false_when_template_disabled(
+        self, stage_proposal, design_stage,
+    ):
+        EmailTemplateConfig.objects.create(
+            template_key='proposal_stage_overdue_notification',
+            is_active=False,
+        )
+        result = ProposalEmailService.send_stage_overdue(
+            stage_proposal, design_stage, days_overdue=3,
+        )
+        assert result is False

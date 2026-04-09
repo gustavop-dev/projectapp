@@ -71,12 +71,8 @@
                 :title="copied ? 'Copiado!' : 'Copiar URL'"
                 @click="copyUrl"
                 class="text-gray-400 hover:text-emerald-600 transition-colors">
-                <svg v-if="!copied" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
+                <DocumentDuplicateIcon v-if="!copied" class="w-3.5 h-3.5" />
+                <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
               </button>
             </div>
             <p class="mt-0.5">
@@ -91,12 +87,8 @@
                   :title="copiedMode === link.mode ? 'Copiado!' : 'Copiar URL'"
                   @click="copyModeUrl(link.mode)"
                   class="text-gray-400 hover:text-emerald-600 transition-colors">
-                  <svg v-if="copiedMode !== link.mode" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
+                  <DocumentDuplicateIcon v-if="copiedMode !== link.mode" class="w-3.5 h-3.5" />
+                  <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
                 </button>
               </div>
               <p class="mt-0.5">
@@ -213,20 +205,66 @@
             <input v-model="form.title" type="text" required
               class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del cliente</label>
-            <input v-model="form.client_name" type="text" required
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Email del cliente</label>
-            <input v-model="form.client_email" type="email"
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono / WhatsApp</label>
-            <input v-model="form.client_phone" type="tel" placeholder="+57 300 123 4567"
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+          <!-- Client picker (autocomplete + snapshot fields) -->
+          <div class="space-y-4 border border-gray-100 rounded-xl p-4 bg-gray-50/30">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+              <ClientAutocomplete
+                v-model="form.client_id"
+                :initial-label="form.client_name"
+                @select="onClientSelected"
+                @create-new="onCreateInlineClient"
+              />
+              <p class="text-xs text-gray-400 mt-1">
+                Busca un cliente existente o escribe uno nuevo. Si no eliges email, se generará uno temporal y las automatizaciones quedarán pausadas.
+              </p>
+            </div>
+
+            <!-- Placeholder warning badge -->
+            <div
+              v-if="proposal?.client?.is_email_placeholder"
+              class="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100"
+            >
+              <span class="text-amber-700 text-xs font-medium">
+                📧 Email pendiente — las automatizaciones de correo están pausadas para este cliente.
+              </span>
+            </div>
+
+            <!-- Snapshot fields (still editable, but clearly subordinated) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Nombre snapshot</label>
+                <input v-model="form.client_name" type="text" required
+                  class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Email snapshot</label>
+                <input v-model="form.client_email" type="email"
+                  class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Teléfono / WhatsApp</label>
+                <input v-model="form.client_phone" type="tel" placeholder="+57 300 123 4567"
+                  class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Empresa</label>
+                <input v-model="form.client_company" type="text" placeholder="Acme Inc."
+                  class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              </div>
+            </div>
+
+            <!-- Propagate-to-profile checkbox -->
+            <label class="flex items-start gap-2 cursor-pointer">
+              <input
+                v-model="form.propagate_client_updates"
+                type="checkbox"
+                class="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span class="text-xs text-gray-600">
+                Actualizar el perfil del cliente con estos cambios (también se reflejarán en sus otras propuestas).
+              </span>
+            </label>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -538,6 +576,15 @@
                 <span class="hidden sm:inline"> a Plataforma</span>
               </button>
 
+              <button
+                v-if="(proposal.available_transitions || []).includes('finished')"
+                type="button"
+                class="px-4 sm:px-5 py-2 bg-violet-600 text-white rounded-xl font-medium text-sm hover:bg-violet-700 transition-all shadow-sm active:scale-[0.98]"
+                @click="handleMarkAsFinished"
+              >
+                Marcar como finalizada
+              </button>
+
               <div class="flex-1 min-w-0"></div>
 
               <button
@@ -574,6 +621,11 @@
         />
       </div>
 
+      <!-- Tab: Cronograma -->
+      <div v-show="activeTab === 'schedule'" class="max-w-4xl">
+        <ProjectScheduleEditor v-if="proposal" :proposal="proposal" />
+      </div>
+
       <!-- Tab: Prompt Proposal -->
       <div v-show="activeTab === 'prompt'" class="max-w-4xl">
         <PromptSubTabsPanel v-model="promptSubTab">
@@ -590,7 +642,7 @@
                 class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
                 @click="startEditPrompt"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                <PencilIcon class="w-4 h-4" />
                 Editar
               </button>
               <button
@@ -598,7 +650,7 @@
                 class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
                 @click="handleCopyPrompt"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                <DocumentDuplicateIcon class="w-4 h-4" />
                 {{ promptCopied ? '¡Copiado!' : 'Copiar' }}
               </button>
               <button
@@ -606,7 +658,7 @@
                 class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
                 @click="promptDownload"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <ArrowDownTrayIcon class="w-4 h-4" />
                 Descargar .md
               </button>
               <button
@@ -666,6 +718,7 @@
                 class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
                 @click="startEditTechnicalPrompt"
               >
+                <PencilIcon class="w-4 h-4" />
                 Editar
               </button>
               <button
@@ -673,6 +726,7 @@
                 class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
                 @click="handleCopyTechnicalPrompt"
               >
+                <DocumentDuplicateIcon class="w-4 h-4" />
                 {{ technicalPromptCopied ? '¡Copiado!' : 'Copiar' }}
               </button>
               <button
@@ -680,6 +734,7 @@
                 class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
                 @click="technicalPromptDownload"
               >
+                <ArrowDownTrayIcon class="w-4 h-4" />
                 Descargar .md
               </button>
               <button
@@ -753,7 +808,7 @@
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                 @click="copyExportJson"
               >
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                <DocumentDuplicateIcon class="w-3.5 h-3.5" />
                 {{ jsonCopied ? '¡Copiado!' : 'Copiar' }}
               </button>
               <button
@@ -761,7 +816,7 @@
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                 @click="downloadExportJson"
               >
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <ArrowDownTrayIcon class="w-3.5 h-3.5" />
                 Descargar
               </button>
             </div>
@@ -1156,15 +1211,23 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
-import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline';
+import {
+  QuestionMarkCircleIcon,
+  PencilIcon,
+  DocumentDuplicateIcon,
+  ArrowDownTrayIcon,
+  CheckIcon,
+} from '@heroicons/vue/24/outline';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
 import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
 import ProposalDocumentsTab from '~/components/BusinessProposal/admin/ProposalDocumentsTab.vue';
 import ProposalEmailsTab from '~/components/BusinessProposal/admin/ProposalEmailsTab.vue';
+import ProjectScheduleEditor from '~/components/BusinessProposal/admin/ProjectScheduleEditor.vue';
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
+import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
@@ -1244,7 +1307,7 @@ const sectionCompleteness = computed(() => {
   return Math.round(sectionsWithContent.value / enabledSectionsCount.value * 100);
 });
 
-const validTabs = ['general', 'emails', 'documents', 'sections', 'technical', 'prompt', 'json', 'activity', 'analytics'];
+const validTabs = ['general', 'emails', 'documents', 'schedule', 'sections', 'technical', 'prompt', 'json', 'activity', 'analytics'];
 const activeTab = ref(validTabs.includes(route.query.tab) ? route.query.tab : 'general');
 const technicalSubTab = ref('editor');
 const hasSendEmailTab = computed(() =>
@@ -1252,6 +1315,9 @@ const hasSendEmailTab = computed(() =>
 );
 const hasDocumentsTab = computed(() =>
   ['negotiating', 'accepted', 'rejected'].includes(proposal.value?.status),
+);
+const hasScheduleTab = computed(() =>
+  ['accepted', 'finished'].includes(proposal.value?.status),
 );
 
 const tabs = computed(() => {
@@ -1263,6 +1329,9 @@ const tabs = computed(() => {
   }
   if (hasDocumentsTab.value) {
     base.push({ id: 'documents', label: 'Documentos' });
+  }
+  if (hasScheduleTab.value) {
+    base.push({ id: 'schedule', label: 'Cronograma' });
   }
   base.push(
     { id: 'sections', label: 'Secciones' },
@@ -1302,6 +1371,18 @@ async function handleStatusChange(newStatus) {
   if (result.success) {
     proposal.value = result.data;
   }
+}
+
+async function handleMarkAsFinished() {
+  const confirmed = await requestConfirm({
+    title: 'Marcar como finalizada',
+    message: 'El proyecto pasará al estado Finalizada y se notificará al cliente por correo. ¿Deseas continuar?',
+    variant: 'primary',
+    confirmText: 'Marcar como finalizada',
+    cancelText: 'Cancelar',
+  });
+  if (!confirmed) return;
+  await handleStatusChange('finished');
 }
 
 let cancelOnboardingPoll = null;
@@ -1497,9 +1578,12 @@ const investmentPaymentPercentages = ref([]);
 
 const form = reactive({
   title: '',
+  client_id: null,
   client_name: '',
   client_email: '',
   client_phone: '',
+  client_company: '',
+  propagate_client_updates: false,
   project_type: '',
   market_type: '',
   project_type_custom: '',
@@ -1516,6 +1600,23 @@ const form = reactive({
   discount_percent: 0,
   automations_paused: false,
 });
+
+function onClientSelected(client) {
+  if (!client) return;
+  form.client_id = client.id;
+  form.client_name = client.name || form.client_name;
+  // Empty input is friendlier than a fake placeholder address; the badge already signals it.
+  form.client_email = client.is_email_placeholder ? '' : client.email || '';
+  form.client_phone = client.phone || form.client_phone;
+  form.client_company = client.company || form.client_company;
+}
+
+function onCreateInlineClient(typedName) {
+  form.client_id = null;
+  if (typedName) {
+    form.client_name = typedName;
+  }
+}
 
 function parseSectionContentJson(section) {
   if (!section?.content_json) return {};
@@ -1627,67 +1728,49 @@ async function syncInvestmentPercentagesFromGeneral() {
   return result.success ? { success: true } : { success: false };
 }
 
+function hydrateFormFromProposal() {
+  if (!proposal.value) return;
+  Object.assign(form, {
+    title: proposal.value.title,
+    client_id: proposal.value.client?.id ?? null,
+    client_name: proposal.value.client_name,
+    client_email: proposal.value.client_email || '',
+    client_phone: proposal.value.client_phone || '',
+    client_company: proposal.value.client?.company || '',
+    propagate_client_updates: false,
+    project_type: proposal.value.project_type || '',
+    market_type: proposal.value.market_type || '',
+    project_type_custom: proposal.value.project_type_custom || '',
+    market_type_custom: proposal.value.market_type_custom || '',
+    language: proposal.value.language || 'es',
+    total_investment: Number(proposal.value.total_investment),
+    currency: proposal.value.currency,
+    hosting_percent: proposal.value.hosting_percent ?? 30,
+    hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
+    hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
+    expires_at: proposal.value.expires_at
+      ? proposal.value.expires_at.slice(0, 16)
+      : '',
+    reminder_days: proposal.value.reminder_days,
+    urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
+    discount_percent: proposal.value.discount_percent ?? 0,
+    automations_paused: proposal.value.automations_paused ?? false,
+  });
+}
+
 onMounted(async () => {
   const id = route.params.id;
   await proposalStore.fetchProposal(id);
   loadSavedPrompt();
   loadTechnicalPrompt();
-  if (proposal.value) {
-    Object.assign(form, {
-      title: proposal.value.title,
-      client_name: proposal.value.client_name,
-      client_email: proposal.value.client_email || '',
-      client_phone: proposal.value.client_phone || '',
-      project_type: proposal.value.project_type || '',
-      market_type: proposal.value.market_type || '',
-      project_type_custom: proposal.value.project_type_custom || '',
-      market_type_custom: proposal.value.market_type_custom || '',
-      language: proposal.value.language || 'es',
-      total_investment: Number(proposal.value.total_investment),
-      currency: proposal.value.currency,
-      hosting_percent: proposal.value.hosting_percent ?? 30,
-      hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
-      hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
-      expires_at: proposal.value.expires_at
-        ? proposal.value.expires_at.slice(0, 16)
-        : '',
-      reminder_days: proposal.value.reminder_days,
-      urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
-      discount_percent: proposal.value.discount_percent ?? 0,
-      automations_paused: proposal.value.automations_paused ?? false,
-    });
-  }
+  hydrateFormFromProposal();
 });
 
 async function refreshData() {
   isRefreshing.value = true;
   try {
     await proposalStore.fetchProposal(route.params.id);
-    if (proposal.value) {
-      Object.assign(form, {
-        title: proposal.value.title,
-        client_name: proposal.value.client_name,
-        client_email: proposal.value.client_email || '',
-        client_phone: proposal.value.client_phone || '',
-        project_type: proposal.value.project_type || '',
-        market_type: proposal.value.market_type || '',
-        project_type_custom: proposal.value.project_type_custom || '',
-        market_type_custom: proposal.value.market_type_custom || '',
-        language: proposal.value.language || 'es',
-        total_investment: Number(proposal.value.total_investment),
-        currency: proposal.value.currency,
-        hosting_percent: proposal.value.hosting_percent ?? 30,
-        hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
-        hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
-        expires_at: proposal.value.expires_at
-          ? proposal.value.expires_at.slice(0, 16)
-          : '',
-        reminder_days: proposal.value.reminder_days,
-        urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
-        discount_percent: proposal.value.discount_percent ?? 0,
-        automations_paused: proposal.value.automations_paused ?? false,
-      });
-    }
+    hydrateFormFromProposal();
   } finally {
     isRefreshing.value = false;
   }

@@ -1233,6 +1233,14 @@
       "priority": "P2",
       "description": "Filter proposals using custom saved tabs, status/type/market dropdowns, date range, and text search. Tab bar with add/rename/delete, URL deep-linking via ?tab=<tabId>.",
       "expectedSpecs": 1
+    },
+    "admin-proposal-project-schedule": {
+      "name": "Admin Proposal Project Schedule (Cronograma)",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Admin sets per-stage start/end dates (design, development) for an accepted proposal in the Cronograma tab, sees proportional status badges, and marks stages as completed to silence deadline alerts.",
+      "expectedSpecs": 1
     }
   }
 }

@@ -47,10 +47,11 @@ test.describe('Admin Proposal Dashboard Auto-Refresh', () => {
     });
 
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
-    // Dashboard is open by default — KPI cards should render with data
-    await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 10000 });
+    // Dashboard is collapsed by default — open it to expose KPI cards
+    await page.getByRole('button', { name: /Mostrar Dashboard KPI/ }).click();
+
+    await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('12')).toBeVisible();
     await expect(page.getByText('Tasa conversión')).toBeVisible();
     await expect(page.getByText('42%')).toBeVisible();
@@ -76,10 +77,10 @@ test.describe('Admin Proposal Dashboard Auto-Refresh', () => {
     });
 
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
-    // Dashboard is open by default
-    await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 10000 });
+    // Dashboard is collapsed by default — open it
+    await page.getByRole('button', { name: /Mostrar Dashboard KPI/ }).click();
+    await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 15000 });
 
     // Click refresh
     await page.getByRole('button', { name: 'Actualizar', exact: true }).click();

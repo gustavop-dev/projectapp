@@ -309,7 +309,7 @@
             </th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vistas</th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">
-              <UiTooltip position="bottom" backgroundColor="bg-gray-900" width="max-w-[220px]">
+              <UiTooltip position="bottom" backgroundColor="bg-gray-900" width="max-w-[220px]" minWidth="min-w-0">
                 <template #trigger><span class="cursor-help">🔥</span></template>
                 <p class="text-xs">Heat Score (1-10): indicador rápido de "temperatura" de engagement del cliente con la propuesta.</p>
               </UiTooltip>
@@ -374,7 +374,7 @@
             </td>
             <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 tabular-nums">{{ p.view_count }}</td>
             <td class="px-6 py-4 text-center">
-              <UiTooltip v-if="p.heat_score > 0 && p.engagement_summary" position="left" backgroundColor="bg-gray-900" width="max-w-[260px]">
+              <UiTooltip v-if="p.heat_score > 0 && p.engagement_summary" position="left" backgroundColor="bg-gray-900" width="max-w-[260px]" minWidth="min-w-0">
                 <template #trigger>
                   <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white cursor-help" :class="heatScoreColor(p.heat_score)">
                     {{ p.heat_score }}
@@ -999,6 +999,7 @@ const statusLabelMap = {
   sent: 'Enviadas',
   viewed: 'Vistas',
   accepted: 'Aceptadas',
+  finished: 'Finalizadas',
   rejected: 'Rechazadas',
   negotiating: 'Negociando',
   expired: 'Expiradas',
@@ -1268,6 +1269,7 @@ function statusClass(status) {
     sent: 'bg-blue-50 text-blue-700',
     viewed: 'bg-green-50 text-green-700',
     accepted: 'bg-emerald-50 text-emerald-700',
+    finished: 'bg-violet-50 text-violet-700',
     rejected: 'bg-red-50 text-red-700',
     negotiating: 'bg-amber-50 text-amber-700',
     expired: 'bg-yellow-50 text-yellow-700',

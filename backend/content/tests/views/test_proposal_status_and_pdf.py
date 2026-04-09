@@ -66,6 +66,68 @@ class TestUpdateProposalStatusAccepted:
         assert resp.status_code == 401
 
 
+class TestUpdateProposalStatusFinished:
+    """Tests for transitioning an accepted proposal to the finished state."""
+
+    def _url(self, proposal):
+        return reverse('update-proposal-status', kwargs={'proposal_id': proposal.id})
+
+    def test_finished_transition_from_accepted_succeeds(self, admin_client, accepted_proposal):
+        with patch(
+            'content.services.proposal_email_service.ProposalEmailService.send_finished_confirmation'
+        ):
+            resp = admin_client.patch(
+                self._url(accepted_proposal), {'status': 'finished'}, format='json'
+            )
+
+        assert resp.status_code == 200
+        accepted_proposal.refresh_from_db()
+        assert accepted_proposal.status == 'finished'
+
+    def test_finished_transition_creates_changelog(self, admin_client, accepted_proposal):
+        with patch(
+            'content.services.proposal_email_service.ProposalEmailService.send_finished_confirmation'
+        ):
+            admin_client.patch(
+                self._url(accepted_proposal), {'status': 'finished'}, format='json'
+            )
+
+        assert ProposalChangeLog.objects.filter(
+            proposal=accepted_proposal,
+            change_type='status_change',
+            old_value='accepted',
+            new_value='finished',
+        ).exists()
+
+    def test_finished_transition_triggers_finished_email(self, admin_client, accepted_proposal):
+        with patch(
+            'content.services.proposal_email_service.ProposalEmailService.send_finished_confirmation'
+        ) as mock_send:
+            admin_client.patch(
+                self._url(accepted_proposal), {'status': 'finished'}, format='json'
+            )
+
+        mock_send.assert_called_once()
+        called_with = mock_send.call_args[0][0]
+        assert called_with.id == accepted_proposal.id
+
+    def test_finished_transition_from_sent_returns_400(self, admin_client, sent_proposal):
+        resp = admin_client.patch(
+            self._url(sent_proposal), {'status': 'finished'}, format='json'
+        )
+
+        assert resp.status_code == 400
+        assert 'Cannot transition' in resp.json()['error']
+
+    def test_finished_transition_from_negotiating_returns_400(self, admin_client, negotiating_proposal):
+        resp = admin_client.patch(
+            self._url(negotiating_proposal), {'status': 'finished'}, format='json'
+        )
+
+        assert resp.status_code == 400
+        assert 'Cannot transition' in resp.json()['error']
+
+
 class TestLaunchToPlatform:
     """Tests for the launch_to_platform view.
 

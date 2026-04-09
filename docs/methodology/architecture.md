@@ -93,7 +93,7 @@ flowchart TD
     URLRouter -->|/api/health/| HealthCheck
     URLRouter -->|/admin/| DjangoAdmin
 
-    URLRouter -->|/api/*| ContentURLs["content.urls (107 patterns)"]
+    URLRouter -->|/api/*| ContentURLs["content.urls (115 patterns)"]
     URLRouter -->|/api/auth/*<br>/api/platform/*| AccountsURLs["accounts.urls (65 patterns)"]
     URLRouter -->|/sitemap.xml| Sitemap
     URLRouter -->|/*| ServeNuxt["serve_nuxt (catch-all)"]
@@ -124,6 +124,7 @@ erDiagram
     BusinessProposal ||--o{ EmailLog : "has email logs"
     BusinessProposal ||--o{ ProposalRequirementGroup : "has requirement groups"
     BusinessProposal ||--o{ ProposalDocument : "has contract documents"
+    BusinessProposal ||--o{ ProposalProjectStage : "has execution stages"
     ProposalRequirementGroup ||--o{ ProposalRequirementItem : "has items"
     ProposalViewEvent ||--o{ ProposalSectionView : "has section views"
     Document }o--o{ UserProfile : "created by (optional)"
@@ -152,6 +153,7 @@ erDiagram
 | **ProposalChangeLog** | Full audit trail | proposal_fk, change_type (20 types), field_name, old_value, new_value |
 | **ProposalShareLink** | Multi-stakeholder sharing | proposal_fk, uuid, shared_by_name, recipient_name, view_count |
 | **ProposalDefaultConfig** | Default section templates per language | language (unique), sections_json |
+| **ProposalProjectStage** | Internal project execution tracking (Cronograma) — internal-only, gated by `is_admin` in serializer | proposal_fk, stage_key (`design`/`development`), order, start_date, end_date, completed_at, warning_sent_at, last_overdue_reminder_at |
 | **EmailTemplateConfig** | Admin-editable email content | template_key (unique), content_overrides, is_active |
 | **EmailLog** | Email deliverability tracking + composed email history | proposal_fk, template_key, recipient, status, error_message, metadata (JSONField) |
 | **Contact** | Contact form submissions | email, phone_number, subject, message, budget |
@@ -188,10 +190,13 @@ flowchart TD
     Views --> ETR["EmailTemplateRegistry"]
     Views --> DPS["DocumentPdfService"]
     Views --> CAS["CollectionAccountService"]
+    Views --> PST["ProposalStageTracker"]
 
     PS -->|CRUD, lifecycle, analytics| Models["Django Models"]
     PES -->|send emails| SMTP["Django Email Backend"]
     PES -->|get content| ETR
+    PST -->|get_or_create_stage / ensure_stages| Models
+    PST -->|send_stage_warning / send_stage_overdue| PES
     PPDF -->|generate| ReportLab["ReportLab PDF"]
     PPDF -->|shared utils| PU["PdfUtils"]
     CPDF -->|generate| ReportLab
@@ -202,6 +207,7 @@ flowchart TD
     ETR -->|read overrides| ETC["EmailTemplateConfig model"]
 
     HueyTasks["Huey Tasks"] --> PES
+    HueyTasks --> PST
     HueyTasks --> Models
 ```
 
@@ -210,7 +216,8 @@ flowchart TD
 | Service | File Size | Responsibilities |
 |---------|-----------|-----------------|
 | **ProposalService** | 132K | Proposal CRUD, section management, default sections, analytics computation, engagement scoring, dashboard aggregation, CSV export, scorecard |
-| **ProposalEmailService** | 71K | All email sending: proposal sent, reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration, branded + proposal composed emails |
+| **ProposalEmailService** | ~73K | All email sending: proposal sent, reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration, branded + proposal composed emails, stage warning + stage overdue (via shared `_send_stage_notification` helper) |
+| **ProposalStageTracker** | ~9K | Day-by-day decision logic for project-stage email notifications. Holds the canonical `STAGE_DEFINITIONS` catalog (`design`, `development`), `ensure_stages` / `get_or_create_stage` helpers, `format_remaining_time(days)` (`"hoy"`, `"1 día"`, `"1 semana 5 días"`), and `process(proposal)` decision tree (70%-elapsed warning + every-3-days overdue reminders). |
 | **ProposalPdfService** | 72K | PDF generation with ReportLab: all 12 section types rendered to PDF |
 | **ContractPdfService** | 10K | Contract PDF generation with contractor signature block, draft mode (no signature), Helvetica font, clickable TOC |
 | **EmailTemplateRegistry** | 44K | Centralized registry of all email templates with default content, admin-editable overrides, preview rendering, branded + proposal composed email entries |
@@ -251,7 +258,7 @@ flowchart TD
         PanelLogin["/panel/login"]
         ProposalsList["/panel/proposals"]
         ProposalCreate["/panel/proposals/create"]
-        ProposalEdit["/panel/proposals/:id/edit"]
+        ProposalEdit["/panel/proposals/:id/edit (tabs: General, Correos, Documentos, Cronograma, Secciones, Det. técnico, Prompt, JSON, Actividad, Analytics)"]
         ProposalDefaults["/panel/proposals/defaults"]
         EmailTemplates["/panel/proposals/email-templates"]
         EmailDeliverability["/panel/proposals/email-deliverability"]
@@ -307,8 +314,9 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph Stores["Pinia Stores (Options API) — 19 total"]
+    subgraph Stores["Pinia Stores (Options API) — 20 total"]
         ProposalStore["proposals.js"]
+        ProposalClientsStore["proposalClients.js"]
         BlogStore["blog.js"]
         PortfolioStore["portfolio_works.js"]
         ContactStore["contacts.js"]
@@ -440,6 +448,7 @@ flowchart TD
         SendCalcFollowup["send_calculator_followup"]
         RefreshHeatScores["refresh_all_heat_scores (periodic)"]
         AutoArchive["auto_archive_stale_proposals (periodic)"]
+        StageDeadlines["notify_proposal_stage_deadlines (periodic — daily 13:30 UTC = 08:30 Bogotá)"]
     end
 
     SendAction -->|schedule delay| SendReminder
@@ -447,6 +456,7 @@ flowchart TD
     DailyCron --> ExpireStale
     DailyCron --> RefreshHeatScores
     DailyCron --> AutoArchive
+    DailyCron --> StageDeadlines
     TrackEndpoint -->|conditional| SendAbandon
     TrackEndpoint -->|conditional| SendRevisit
     TrackEndpoint -->|conditional| SendInvestment
@@ -454,6 +464,7 @@ flowchart TD
     TrackEndpoint -->|conditional| SendPostExpiry
     TrackEndpoint -->|conditional| SendEngagementDecay
     TrackEndpoint -->|conditional| SendCalcFollowup
+    StageDeadlines -->|via ProposalStageTracker.process| HueyTasksOut["send_stage_warning / send_stage_overdue (internal team)"]
 ```
 
 ---

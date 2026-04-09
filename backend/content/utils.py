@@ -1,6 +1,7 @@
 import logging
 import requests
 import urllib.parse
+from datetime import date, datetime
 from functools import lru_cache
 from zoneinfo import ZoneInfo
 
@@ -12,6 +13,25 @@ from django.utils import timezone as dj_timezone
 logger = logging.getLogger(__name__)
 
 _BOGOTA_TZ = ZoneInfo('America/Bogota')
+
+
+def now_bogota() -> datetime:
+    """Return the current `datetime` in America/Bogota (UTC-5, no DST)."""
+    return dj_timezone.now().astimezone(_BOGOTA_TZ)
+
+
+def today_bogota() -> date:
+    """Return today's calendar date in America/Bogota."""
+    return now_bogota().date()
+
+
+def to_bogota_date(dt) -> date | None:
+    """Convert a datetime to its Bogotá calendar date, or None if falsy."""
+    if not dt:
+        return None
+    if dj_timezone.is_naive(dt):
+        dt = dj_timezone.make_aware(dt)
+    return dt.astimezone(_BOGOTA_TZ).date()
 
 _SPANISH_MONTHS = {
     1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
@@ -92,13 +112,20 @@ def format_cop_email(value):
 
 
 def format_bogota_date(dt) -> str:
-    """Return '8 de abril, 2026' in Bogotá timezone (America/Bogota)."""
+    """Return '8 de abril, 2026' in Bogotá timezone (America/Bogota).
+
+    Accepts both datetime and date instances. Plain date instances are
+    formatted directly (no timezone conversion needed).
+    """
     if not dt:
         return ''
-    if dj_timezone.is_naive(dt):
-        dt = dj_timezone.make_aware(dt)
-    bogota = dt.astimezone(_BOGOTA_TZ)
-    return f'{bogota.day} de {_SPANISH_MONTHS[bogota.month]}, {bogota.year}'
+    if isinstance(dt, datetime):
+        if dj_timezone.is_naive(dt):
+            dt = dj_timezone.make_aware(dt)
+        dt = dt.astimezone(_BOGOTA_TZ)
+    elif not isinstance(dt, date):
+        return ''
+    return f'{dt.day} de {_SPANISH_MONTHS[dt.month]}, {dt.year}'
 
 
 def format_bogota_datetime(dt) -> str:

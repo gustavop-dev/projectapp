@@ -110,6 +110,20 @@ class TestSendProposalReminderTask:
 
         assert mock_send.call_count == 0
 
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_reminder')
+    def test_skips_when_status_is_finished(self, mock_send):
+        proposal = BusinessProposal.objects.create(
+            title='Finished',
+            client_name='Client',
+            client_email='client@test.com',
+            status='finished',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_proposal_reminder.call_local(proposal.id)
+
+        assert mock_send.call_count == 0
+
 
 class TestSendUrgencyReminderTask:
     @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email',
@@ -288,6 +302,22 @@ class TestExpireStaleProposalsTask:
 
         proposal.refresh_from_db()
         assert proposal.status == 'sent'
+
+    @freeze_time('2026-03-10 10:00:00')
+    def test_does_not_expire_finished_proposals(self):
+        """Finished proposals must never be auto-expired even if their date passed."""
+        proposal = BusinessProposal.objects.create(
+            title='Finished Project',
+            client_name='Client',
+            status='finished',
+            expires_at=timezone.now() - timezone.timedelta(days=1),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.expire_stale_proposals.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.status == 'finished'
 
 
 class TestSendRejectionReengagementTask:
@@ -1201,7 +1231,7 @@ class TestSendDailyPipelineDigestTask:
 
         mock_send.assert_called_once()
         digest = mock_send.call_args[0][0]
-        assert digest['date'] == '2026-03-10'
+        assert digest['date'] == '10 de marzo, 2026'
         assert digest['total_active'] >= 1
         assert len(digest['viewed_yesterday']) == 1
         assert digest['viewed_yesterday'][0]['client_name'] == 'Client'
@@ -1998,3 +2028,110 @@ class TestRefreshCachedHeatScores:
 
         assert mock_compute.call_count == 0, "Draft proposals should be excluded from heat score refresh"
         mock_compute.assert_not_called()
+
+
+class TestNotifyProposalStageDeadlines:
+    @patch(
+        'content.services.proposal_stage_tracker.ProposalStageTracker.process',
+    )
+    def test_calls_tracker_for_proposals_with_active_stages(self, mock_process):
+        """A proposal with at least one stage having dates and no completion is processed."""
+        from content.models import ProposalProjectStage
+        from datetime import date
+
+        proposal = BusinessProposal.objects.create(
+            title='With Active Stage', client_name='C',
+            client_email='c@x.com', status='accepted',
+        )
+        ProposalProjectStage.objects.create(
+            proposal=proposal, stage_key='design', order=0,
+            start_date=date(2026, 4, 1), end_date=date(2026, 4, 10),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.notify_proposal_stage_deadlines.call_local()
+
+        assert mock_process.call_count == 1
+        assert mock_process.call_args.args[0].pk == proposal.pk
+
+    @patch(
+        'content.services.proposal_stage_tracker.ProposalStageTracker.process',
+    )
+    def test_skips_paused_automations(self, mock_process):
+        from content.models import ProposalProjectStage
+        from datetime import date
+
+        proposal = BusinessProposal.objects.create(
+            title='Paused', client_name='C',
+            status='accepted', automations_paused=True,
+        )
+        ProposalProjectStage.objects.create(
+            proposal=proposal, stage_key='design', order=0,
+            start_date=date(2026, 4, 1), end_date=date(2026, 4, 10),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.notify_proposal_stage_deadlines.call_local()
+
+        mock_process.assert_not_called()
+
+    @patch(
+        'content.services.proposal_stage_tracker.ProposalStageTracker.process',
+    )
+    def test_skips_inactive_proposals(self, mock_process):
+        from content.models import ProposalProjectStage
+        from datetime import date
+
+        proposal = BusinessProposal.objects.create(
+            title='Inactive', client_name='C',
+            status='accepted', is_active=False,
+        )
+        ProposalProjectStage.objects.create(
+            proposal=proposal, stage_key='design', order=0,
+            start_date=date(2026, 4, 1), end_date=date(2026, 4, 10),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.notify_proposal_stage_deadlines.call_local()
+
+        mock_process.assert_not_called()
+
+    @patch(
+        'content.services.proposal_stage_tracker.ProposalStageTracker.process',
+    )
+    def test_skips_proposals_with_only_completed_stages(self, mock_process):
+        from content.models import ProposalProjectStage
+        from datetime import date
+
+        proposal = BusinessProposal.objects.create(
+            title='Done', client_name='C', status='accepted',
+        )
+        ProposalProjectStage.objects.create(
+            proposal=proposal, stage_key='design', order=0,
+            start_date=date(2026, 4, 1), end_date=date(2026, 4, 10),
+            completed_at=timezone.now(),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.notify_proposal_stage_deadlines.call_local()
+
+        mock_process.assert_not_called()
+
+    @patch(
+        'content.services.proposal_stage_tracker.ProposalStageTracker.process',
+    )
+    def test_skips_proposals_with_unscheduled_stages_only(self, mock_process):
+        from content.models import ProposalProjectStage
+
+        proposal = BusinessProposal.objects.create(
+            title='Empty', client_name='C', status='accepted',
+        )
+        ProposalProjectStage.objects.create(
+            proposal=proposal, stage_key='design', order=0,
+            # no dates
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.notify_proposal_stage_deadlines.call_local()
+
+        mock_process.assert_not_called()

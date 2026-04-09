@@ -72,8 +72,8 @@ test.describe('Proposal Summary Cards', () => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);
 
-    // Gateway should show — pick detailed view
-    await page.getByText('Propuesta Completa').click();
+    // Gateway should show — pick detailed view (use heading to avoid matching description paragraph)
+    await page.getByRole('heading', { name: 'Propuesta Completa' }).click();
 
     // Navigate to summary section (second section)
     const nextBtn = page.getByTestId('nav-next');

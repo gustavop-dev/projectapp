@@ -1247,5 +1247,75 @@ export const useProposalStore = defineStore('proposals', {
         return { success: false, data: { results: [], total: 0, page: 1, has_next: false } };
       }
     },
+
+    // -----------------------------------------------------------------
+    // Project schedule (Cronograma)
+    // -----------------------------------------------------------------
+
+    /**
+     * updateProjectStage: PUT start_date / end_date for a stage.
+     * On success, replaces the matching stage in
+     * `currentProposal.project_stages` so the UI reflects the new dates.
+     * @param {number} proposalId
+     * @param {string} stageKey - 'design' | 'development'
+     * @param {{ start_date?: string, end_date?: string }} dates
+     * @returns {Promise<{ success: boolean, data?: object, error?: object }>}
+     */
+    async updateProjectStage(proposalId, stageKey, dates) {
+      try {
+        const response = await put_request(
+          `proposals/${proposalId}/stages/${stageKey}/`,
+          dates,
+        );
+        this._mergeProjectStage(proposalId, response.data);
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error updating project stage:', error);
+        return { success: false, error: error?.response?.data || null };
+      }
+    },
+
+    /**
+     * completeProjectStage: POST to mark a stage as completed.
+     * @param {number} proposalId
+     * @param {string} stageKey - 'design' | 'development'
+     * @returns {Promise<{ success: boolean, data?: object }>}
+     */
+    async completeProjectStage(proposalId, stageKey) {
+      try {
+        const response = await create_request(
+          `proposals/${proposalId}/stages/${stageKey}/complete/`,
+          {},
+        );
+        this._mergeProjectStage(proposalId, response.data);
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error completing project stage:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * Replace (or insert) a stage in `currentProposal.project_stages`,
+     * mutating the array in place. Matches the existing pattern used by
+     * updateSection / applySync / reorderSections in this same store.
+     *
+     * @param {number} proposalId
+     * @param {object} stage
+     */
+    _mergeProjectStage(proposalId, stage) {
+      if (!this.currentProposal || this.currentProposal.id !== proposalId) return;
+      if (!Array.isArray(this.currentProposal.project_stages)) {
+        this.currentProposal.project_stages = [];
+      }
+      const idx = this.currentProposal.project_stages.findIndex(
+        (s) => s.stage_key === stage.stage_key,
+      );
+      if (idx !== -1) {
+        this.currentProposal.project_stages[idx] = stage;
+      } else {
+        this.currentProposal.project_stages.push(stage);
+      }
+    },
   },
 });

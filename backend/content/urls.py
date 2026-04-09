@@ -38,6 +38,7 @@ from content.views.proposal import (
     delete_proposal_document,
     send_branded_email, get_branded_email_defaults, list_branded_emails,
     send_proposal_email, get_proposal_email_defaults, list_proposal_emails,
+    update_project_stage, complete_project_stage,
 )
 from content.views.email_templates import (
     email_template_list, email_template_detail,
@@ -61,6 +62,10 @@ from content.views.document import (
     list_documents, create_document, create_document_from_markdown,
     upload_document_markdown, retrieve_document, update_document,
     delete_document, duplicate_document, download_document_pdf,
+)
+from content.views.proposal_clients import (
+    list_proposal_clients, search_proposal_clients, retrieve_proposal_client,
+    create_proposal_client, update_proposal_client, delete_proposal_client,
 )
 
 urlpatterns = [
@@ -105,6 +110,14 @@ urlpatterns = [
     path('proposals/<int:proposal_id>/analytics/csv/', export_proposal_analytics_csv, name='proposal-analytics-csv'),
     path('proposals/dashboard/', proposal_dashboard, name='proposal-dashboard'),
     path('proposals/clients/', list_clients, name='list-clients'),
+
+    # Proposals — client profiles (real UserProfile entities, replaces grouped list_clients)
+    path('proposals/client-profiles/', list_proposal_clients, name='list-proposal-clients'),
+    path('proposals/client-profiles/search/', search_proposal_clients, name='search-proposal-clients'),
+    path('proposals/client-profiles/create/', create_proposal_client, name='create-proposal-client'),
+    path('proposals/client-profiles/<int:client_id>/', retrieve_proposal_client, name='retrieve-proposal-client'),
+    path('proposals/client-profiles/<int:client_id>/update/', update_proposal_client, name='update-proposal-client'),
+    path('proposals/client-profiles/<int:client_id>/delete/', delete_proposal_client, name='delete-proposal-client'),
     path('proposals/alerts/', proposal_alerts, name='proposal-alerts'),
     path('proposals/alerts/create/', create_proposal_alert, name='create-proposal-alert'),
     path('proposals/alerts/<int:alert_id>/dismiss/', dismiss_proposal_alert, name='dismiss-proposal-alert'),
@@ -135,6 +148,10 @@ urlpatterns = [
     path('proposals/<int:proposal_id>/proposal-email/send/', send_proposal_email, name='send-proposal-email'),
     path('proposals/<int:proposal_id>/proposal-email/defaults/', get_proposal_email_defaults, name='proposal-email-defaults'),
     path('proposals/<int:proposal_id>/proposal-email/history/', list_proposal_emails, name='list-proposal-emails'),
+
+    # Project schedule (Cronograma admin tab)
+    path('proposals/<int:proposal_id>/stages/<str:stage_key>/', update_project_stage, name='update-project-stage'),
+    path('proposals/<int:proposal_id>/stages/<str:stage_key>/complete/', complete_project_stage, name='complete-project-stage'),
 
     path('proposals/company-settings/', get_company_settings, name='get-company-settings'),
     path('proposals/contract-template/default/', get_default_contract_template, name='get-default-contract-template'),

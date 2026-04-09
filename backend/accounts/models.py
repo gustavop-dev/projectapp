@@ -21,6 +21,8 @@ class UserProfile(models.Model):
         (ROLE_CLIENT, 'Client'),
     ]
 
+    PLACEHOLDER_EMAIL_DOMAIN = '@temp.example.com'
+
     GENDER_MALE = 'male'
     GENDER_FEMALE = 'female'
     GENDER_OTHER = 'other'
@@ -115,6 +117,11 @@ class UserProfile(models.Model):
     @property
     def is_client(self):
         return self.role == self.ROLE_CLIENT
+
+    @property
+    def is_email_placeholder(self):
+        """True when the linked user's email is a generated temp placeholder."""
+        return (self.user.email or '').endswith(self.PLACEHOLDER_EMAIL_DOMAIN)
 
     @property
     def avatar_display_url(self):

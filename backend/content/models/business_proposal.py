@@ -22,6 +22,7 @@ class BusinessProposal(models.Model):
         REJECTED = 'rejected', 'Rejected'
         NEGOTIATING = 'negotiating', 'Negotiating'
         EXPIRED = 'expired', 'Expired'
+        FINISHED = 'finished', 'Finished'
 
     # Whitelist of allowed manual status transitions (seller-initiated).
     # 'viewed' and 'expired' are system-only — not available as manual targets.
@@ -30,7 +31,8 @@ class BusinessProposal(models.Model):
         Status.SENT:        frozenset({Status.NEGOTIATING, Status.REJECTED}),
         Status.VIEWED:      frozenset({Status.NEGOTIATING, Status.REJECTED}),
         Status.NEGOTIATING: frozenset({Status.ACCEPTED, Status.REJECTED}),
-        # ACCEPTED, REJECTED, EXPIRED → terminal (no outgoing transitions)
+        Status.ACCEPTED:    frozenset({Status.FINISHED}),
+        # FINISHED, REJECTED, EXPIRED → terminal (no outgoing transitions)
     }
 
     class Currency(models.TextChoices):
@@ -205,6 +207,19 @@ class BusinessProposal(models.Model):
         help_text='Parameters for contract PDF generation (party names, cédulas, bank details, etc.).',
     )
 
+    # Client (UserProfile with role=client) — single source of truth for client identity.
+    # Legacy client_name/client_email/client_phone fields above are write-through snapshots
+    # synced from this profile by ProposalClientService.sync_snapshot().
+    client = models.ForeignKey(
+        'accounts.UserProfile',
+        on_delete=models.PROTECT,
+        related_name='proposals',
+        null=True,
+        blank=True,
+        limit_choices_to={'role': 'client'},
+        help_text='UserProfile (rol=cliente) propietario de esta propuesta.',
+    )
+
     # Platform: commercial proposal lives on a project deliverable (OneToOne)
     deliverable = models.OneToOneField(
         'accounts.Deliverable',
@@ -255,7 +270,10 @@ class BusinessProposal(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.client_name)
+            slug_source = self.client_name
+            if not slug_source and self.client_id:
+                slug_source = self.client.user.get_full_name() or self.client.user.email
+            self.slug = slugify(slug_source or 'propuesta')
         super().save(*args, **kwargs)
 
     @property

@@ -241,6 +241,158 @@ venv/bin/python <command>
 - **If the technical document schema changes** (new fragments, renamed keys, new fields), **both files must be updated together**
 - The Python version is used by the analytics funnel to decide which fragments to show; the JS version is used by the client-facing proposal viewer to decide which panels to render
 
+### Stage Time Formatter (Python ↔ JavaScript)
+- `ProposalStageTracker.format_remaining_time(days)` in `backend/content/services/proposal_stage_tracker.py` and `useStageStatus.formatRemainingTime(days)` in `frontend/composables/useStageStatus.js` implement the **same** Spanish duration formatter (`"hoy"`, `"1 día"`, `"1 semana 5 días"`, `"2 semanas"`)
+- Used by the warning + overdue email subjects on the backend AND the badge labels in the Cronograma admin tab on the frontend
+- Both have parallel test suites covering the same case table (0, 1, 2, 6, 7, 8, 12, 14, 15, 21, -12 days). Update both test suites together if you change the format.
+
+---
+
+## 12. Pinia Reactivity (Vue 3 + Options API stores)
+
+### In-place mutation, not spread + reassign
+
+When updating nested arrays inside `currentProposal` (or any other top-level state), **mutate by index** — do not create a new array and reassign the parent:
+
+```js
+// ✅ Correct — matches the established pattern in proposals.js
+const idx = this.currentProposal.sections.findIndex((s) => s.id === sectionId);
+if (idx !== -1) {
+  this.currentProposal.sections[idx] = response.data;
+}
+
+// ❌ Wrong — silently fails to propagate through computed → prop chains
+this.currentProposal = {
+  ...this.currentProposal,
+  sections: this.currentProposal.sections.map((s) =>
+    s.id === sectionId ? response.data : s,
+  ),
+};
+```
+
+**Why**: Components that read via `computed(() => store.currentProposal)` track Vue's reactivity through the computed dependency. The spread+reassign pattern creates a new object reference at the parent level, but the chain through `props.proposal.project_stages` doesn't always re-fire reliably (especially with deep nested arrays). In-place index assignment works because Vue 3's `reactive()` tracks individual array indices.
+
+**Established sites to mirror**:
+- `frontend/stores/proposals.js:updateSection`
+- `frontend/stores/proposals.js:applySync`
+- `frontend/stores/proposals.js:reorderSections`
+- `frontend/stores/proposals.js:_mergeProjectStage` (added Apr 9 2026 after fixing ERR-006)
+
+### Components: read from the store, not deep-watch the prop
+
+When a component already imports the store, prefer reading directly from `proposalStore.currentProposal?.field` via a computed instead of receiving the data via prop and deep-watching it. Deep watchers are doubly bad: (a) they fire on every unrelated proposal mutation, and (b) they can clobber in-progress form edits if you re-snapshot form state on every change.
+
+If a deep watcher feels needed, ask: is the watch on the right subset (`() => proposal.project_stages`, not `() => proposal`)? Can the form state stay decoupled and only sync once on mount?
+
+---
+
+## 13. Internal Team Notifications vs Client-Facing Sends
+
+### `_log_email` is for client-facing emails only
+
+`backend/content/services/proposal_email_service.py` has a `_log_email()` helper that creates `EmailLog` rows. Use it ONLY for sends to a single client recipient (`proposal.client_email`). For team-facing internal alerts that fan out to multiple ops emails, **do not** call `_log_email()` — match the convention of:
+- `send_first_view_notification`
+- `send_comment_notification`
+- `send_share_notification`
+- `send_stakeholder_detected_notification`
+- `send_seller_inactivity_escalation`
+- `send_stage_warning` / `send_stage_overdue`
+
+These use `logger.info(...)` and `logger.exception(...)` only.
+
+### Why
+
+Per-recipient `_log_email` loops produce one EmailLog row per addressee for a single SMTP `send()` call. SMTP failures are per-connection, not per-recipient — so the loop encodes a lie ("recipient A failed AND recipient B failed AND…") that you can't distinguish from reality. Single-row internal logging via `logger` is honest about what actually happened.
+
+### Recipient list
+
+All internal team notifications resolve recipients via `cls._get_notification_recipients()`, which reads `NOTIFICATION_EMAIL` (CSV-supported) and `NOTIFICATION_EMAILS` (list/CSV). To target a different audience for one feature, change the env var — do NOT add a per-feature recipient setting.
+
+---
+
+## 14. Single Source of Truth for Small Catalogs
+
+When you have a small enum-like catalog (e.g., the two project stages `design` + `development`), put the canonical list in **one place** and have all consumers delegate to it.
+
+For project stages, that place is `ProposalStageTracker` in `backend/content/services/proposal_stage_tracker.py`:
+
+```python
+class ProposalStageTracker:
+    STAGE_DEFINITIONS = (
+        ('design', 0),
+        ('development', 1),
+    )
+
+    @classmethod
+    def ensure_stages(cls, proposal): ...
+
+    @classmethod
+    def get_or_create_stage(cls, proposal, stage_key): ...
+```
+
+Backed by the model's `TextChoices`:
+
+```python
+class ProposalProjectStage(models.Model):
+    class StageKey(models.TextChoices):
+        DESIGN = 'design', 'Diseño'
+        DEVELOPMENT = 'development', 'Desarrollo'
+```
+
+**Anti-pattern**: duplicating the `('design', 0)` tuple in the views file (`_STAGE_DEFAULT_ORDER`), the onboarding service, the migration, the frontend component, AND the test file. The first time you have to add a third stage, you'll have to chase six places.
+
+**Migrations are the one exception**: data migrations are frozen in time and should NOT import from current code, so a migration may legitimately re-declare the catalog locally.
+
+---
+
+## 15. Bogotá Timezone Arithmetic
+
+All day-level arithmetic (e.g., "is the stage overdue today?") must use Bogotá time, not Django's default UTC.
+
+**Helpers in `backend/content/utils.py`**:
+- `now_bogota()` — current `datetime` in `America/Bogota`
+- `today_bogota()` — current calendar `date` in `America/Bogota`
+- `to_bogota_date(dt)` — convert any datetime (naive or aware) to its Bogotá calendar date
+- `format_bogota_date(d)` — render `"8 de abril, 2026"` (accepts both `date` and `datetime`)
+- `format_bogota_datetime(dt)` — render `"8 de abril, 2026 — 14:30"`
+
+**Anti-pattern**: `date.today()` (returns UTC date on a UTC-configured Django) or `timezone.now().date()` (also UTC). Both will give wrong answers around midnight Bogotá local time.
+
+**Why it works**: Bogotá is fixed UTC-5 with **no daylight saving time**. The offset is stable year-round, so we can hard-code it via `ZoneInfo('America/Bogota')` without worrying about DST transitions.
+
+**Cron schedules**: Huey `crontab(...)` is evaluated in UTC (since `TIME_ZONE='UTC'` and Huey has no `tz` override). To run a daily task at 08:30 Bogotá, use `crontab(hour='13', minute='30')` and add a comment explaining the offset.
+
+---
+
+## 16. Internal-Only Model Fields in Shared Serializers
+
+When a model is internal-only by design (e.g., `ProposalProjectStage` per its docstring: "internal-only and never rendered to the client"), the corresponding field on a shared serializer must be **gated by admin context**, not exposed via plain nested-model rendering.
+
+### Pattern
+
+```python
+class ProposalDetailSerializer(serializers.ModelSerializer):
+    project_stages = serializers.SerializerMethodField()
+
+    def get_project_stages(self, obj):
+        if not self.context.get('is_admin', False):
+            return []
+        return ProposalProjectStageSerializer(obj.project_stages.all(), many=True).data
+```
+
+The view sets `context={'request': request, 'is_admin': True}` for admin endpoints. Public proposal views never set `is_admin`, so they get an empty list — the internal data leaks nowhere.
+
+### Anti-pattern
+
+```python
+# ❌ Always exposed, including via the public /proposal/{uuid}/ endpoint
+project_stages = ProposalProjectStageSerializer(many=True, read_only=True)
+```
+
+### Performance
+
+Don't forget to `prefetch_related('project_stages')` in the admin queryset, otherwise the SerializerMethodField triggers an extra SELECT per detail load.
+
 ---
 
 ## 11. Methodology Maintenance

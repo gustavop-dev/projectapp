@@ -60,6 +60,9 @@
 | Business Proposal — Proposal Email | ✅ Done | "Enviar correo" tab on proposal edit (sent+ statuses): same composer UI, each send creates `ProposalChangeLog` with `EMAIL_SENT` change type + updates `last_activity_at`; `ProposalEmailsTab.vue` with `mode` prop |
 | Blog — LinkedIn Publishing | ✅ Done | `LinkedInToken` singleton model with Fernet-encrypted OAuth tokens; `linkedin_service.py` — 3-legged OAuth flow, auto token refresh, publish/unpublish blog post summaries with cover images via LinkedIn Posts API |
 | Business Proposal — Advanced Filters & Saved Tabs | ✅ Done | `useProposalFilters.js` composable (11 filter dimensions, saved tabs with localStorage, URL sync); `ProposalFilterTabs.vue` (tab bar with +, rename, delete); `ProposalFilterPanel.vue` (collapsible filter grid); single-pass client-side filtering; max 12 tabs; `selectArrowStyle.js` shared utility |
+| Business Proposal — Project Schedule Tracking (Cronograma) | ✅ Done | `ProposalProjectStage` child model (design + development with `start_date`/`end_date`/`completed_at`/`warning_sent_at`/`last_overdue_reminder_at`); `ProposalStageTracker` service with `STAGE_DEFINITIONS`, `ensure_stages`, `get_or_create_stage`, `format_remaining_time`, `process(proposal)`; daily Huey task `notify_proposal_stage_deadlines` (08:30 Bogotá); 70%-elapsed warning + every-3-days overdue reminders; admin Cronograma tab (`ProjectScheduleEditor.vue` + `useStageStatus.js`); 2 PUT/POST endpoints; onboarding auto-creates rows; 2 internal email templates; 51 backend tests + 49 frontend unit tests + 6 E2E |
+| Backend — Bogotá date helpers | ✅ Done | `now_bogota()`, `today_bogota()`, `to_bogota_date(dt)` in `content/utils.py`; `format_bogota_date()` accepts both `date` and `datetime` instances |
+| Business Proposal — Real client profiles | 🚧 In progress | `BusinessProposal.client` FK to `accounts.UserProfile` (migrations 0079 + 0080 backfill); `proposal_client_service.py`, `serializers/proposal_clients.py`, `views/proposal_clients.py`; `proposalClients.js` store; `ClientAutocomplete.vue` component; replaces legacy grouped clients list. Untracked in `feat/platform-launch-and-email-improvements` working tree, pending commit |
 
 ---
 
@@ -68,9 +71,11 @@
 | Issue | Priority | Notes |
 |-------|----------|-------|
 | Credential rotation needed | High | MySQL password, email password, SECRET_KEY, CallMeBot key exposed in git history (see `docs/deployment-guide.md`) |
-| Large service files | Medium | `proposal_service.py` (133K), `proposal_pdf_service.py` (72K), `proposal_email_service.py` (71K), `pdf_utils.py` (47K) — shared utils extracted but could split further |
-| Large view file | Medium | `views/proposal.py` (162K, 4385 lines) — could benefit from splitting into submodules |
-| Single Django app | Low | All models/views/services in `content` app; consider splitting if scope grows |
+| Port 3000 squatted by `kore_project` | Medium | A Windsurf terminal respawns `kore_project` Next.js on port 3000. Workaround: run Nuxt on 3001 with `E2E_PORT=3001`. Tracked as `KNOWN-001` in `error-documentation.md`. |
+| Large service files | Medium | `proposal_service.py` (133K), `proposal_pdf_service.py` (72K), `proposal_email_service.py` (~73K after stage methods), `pdf_utils.py` (47K) — shared utils extracted but could split further |
+| Large view file | Medium | `views/proposal.py` (~5230 lines after stage endpoints) — could benefit from splitting into submodules |
+| Single Django app for content | Low | All proposal/blog/portfolio/contact models in `content` app; consider splitting if scope grows |
+| `proposal_clients` ecosystem uncommitted | Medium | New views/serializers/store/component exist in working tree but haven't been committed; methodology docs only mention them as "in progress" |
 
 ---
 
@@ -78,9 +83,9 @@
 
 | Suite | Location | Approximate Count | Status |
 |-------|----------|-------------------|--------|
-| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 87 test files | Active |
-| Frontend Unit (Jest) | `frontend/test/` | 70 test files | Active |
-| Frontend E2E (Playwright) | `frontend/e2e/` | 126 spec files across admin, auth, blog, layout, proposal, public, platform | Active |
+| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 91 test files | Active |
+| Frontend Unit (Jest) | `frontend/test/` | 73 test files | Active |
+| Frontend E2E (Playwright) | `frontend/e2e/` | 127 spec files across admin, auth, blog, layout, proposal, public, platform | Active |
 | Quality Gate | `scripts/test_quality_gate.py` | 100/100, 0 warnings/info | Active |
 
 ---

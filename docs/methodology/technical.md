@@ -120,6 +120,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 | `EMAIL_PORT` | `465` | SMTP port |
 | `EMAIL_USE_SSL` | `true` | SSL for SMTP |
 | `FRONTEND_BASE_URL` | `http://localhost:3000` | Used for proposal links in emails |
+| `NOTIFICATION_EMAIL` | `team@projectapp.co` | CSV-supported recipient list for ALL internal team notifications (first view, comments, seller inactivity, stage warnings, stage overdue, etc.). Read by `ProposalEmailService._get_notification_recipients()`. |
 | `ENABLE_SILK` | `false` | Enable query profiler |
 | `DJANGO_CORS_ALLOWED_ORIGINS` | `http://127.0.0.1:5173,...` | CORS origins |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | `http://127.0.0.1:5173,...` | CSRF trusted |
@@ -163,18 +164,22 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 ### Backend Patterns
 
 - **Function-based views** (`@api_view`) — all DRF views are FBV, not class-based
-- **Service layer** — business logic in `content/services/` (ProposalService, ProposalEmailService, ProposalPdfService, ContractPdfService, EmailTemplateRegistry, PdfUtils, DocumentPdfService, MarkdownParser, CollectionAccountService, CollectionAccountPdfService, TechnicalDocumentPdf, TechnicalDocumentFilter, PlatformOnboardingPdf)
+- **Service layer** — business logic in `content/services/` (ProposalService, ProposalEmailService, ProposalPdfService, ProposalStageTracker, ContractPdfService, EmailTemplateRegistry, PdfUtils, DocumentPdfService, MarkdownParser, CollectionAccountService, CollectionAccountPdfService, TechnicalDocumentPdf, TechnicalDocumentFilter, PlatformOnboardingPdf). Services are class-based with `@classmethod` static methods (matching `ProposalEmailService`).
 - **Model layer** — thin models with properties (`is_expired`, `days_remaining`, `public_url`)
-- **Huey tasks** — async operations: reminders, expiration, engagement-based emails
+- **Huey tasks** — async operations: reminders, expiration, engagement-based emails, project-stage deadline scans
 - **Custom admin site** — `content/admin.py` with custom `AdminSite` class
 - **Management commands** — fake data generation for development/testing
 - **Email template registry** — centralized email content management with admin-editable overrides
+- **Bogotá time helpers** (`content/utils.py`) — `now_bogota()`, `today_bogota()`, `to_bogota_date(dt)`, `format_bogota_date(d)` (accepts both `date` and `datetime`), `format_bogota_datetime(dt)`. Use these for any day-level arithmetic instead of `date.today()` (UTC). Bogotá is fixed UTC-5 with no DST.
+- **Internal-only fields gated by `is_admin`** — when a model is internal-only (e.g., `ProposalProjectStage`), expose it via `SerializerMethodField` returning `[]` for non-admin context, never `read_only=True` model nesting. Precedent: `ProposalDetailSerializer.get_project_stages`.
+- **Internal team notifications skip `_log_email`** — `EmailLog` rows are reserved for client-facing single-recipient sends. Internal team alerts (`send_first_view_notification`, `send_stage_warning`, etc.) use `logger.info` only.
 
 ### Frontend Patterns
 
 - **Pinia Options API** — all stores use Options API (state, getters, actions), not Composition API
-- **Composables** — 33 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, `useProposalFilters`, `useClientFilters`, `useSeoJsonLd`, `useIncludeArchivedQuery`, etc.)
-- **Component architecture** — 118 Vue components total; 34 BusinessProposal components (12 section types + admin + overlays + utilities)
+- **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place by index (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
+- **Composables** — 35 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, `useProposalFilters`, `useClientFilters`, `useSeoJsonLd`, `useIncludeArchivedQuery`, `useStageStatus`, etc.)
+- **Component architecture** — 120 Vue components total; 34 BusinessProposal components (12 section types + admin + overlays + utilities); admin-only components live under `components/BusinessProposal/admin/` (e.g., `ProjectScheduleEditor.vue`, `ProposalEmailsTab.vue`, `ProposalDocumentsTab.vue`)
 - **GSAP animations** — horizontal scroll with ScrollTrigger for proposal client view, reveal animations for marketing pages
 - **Layouts** — `default.vue` (public pages with navbar), `admin.vue` (admin panel with sidebar), `platform.vue` (platform with sidebar + theme)
 - **Middleware** — `admin-auth.js` route guard for `/panel/**` routes, `platform-auth.js` route guard for `/platform/**` routes
@@ -187,8 +192,8 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `backend/content/tests/`, `backend/accounts/tests/`, `backend/tests/`
 - Structure: `models/`, `serializers/`, `views/`, `services/`, `tasks/`, `utils/`, `management/`
-- Test files: 74 total (46 content + 24 accounts + 1 projectapp + 2 backend/tests/ + 1 conftest)
-- Fixtures: `conftest.py` at root and `content/tests/conftest.py`
+- Test files: **91 total**
+- Fixtures: `conftest.py` at root and `content/tests/conftest.py` (provides `proposal`, `accepted_proposal`, `admin_user`, `admin_client`, etc.)
 - Coverage: custom terminal report with per-file bars and Top-N focus
 - Config: `backend/pytest.ini`
 - Run: `source venv/bin/activate && pytest backend/content/tests/<specific_file> -v`
@@ -196,8 +201,8 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 ### Frontend Unit (Jest)
 
 - Location: `frontend/test/`
-- Structure: `components/` (4), `composables/` (28+8 SSR), `stores/` (18 incl. services), `utils/` (5)
-- Test files: 60 total
+- Structure: `components/`, `composables/`, `stores/` (incl. services), `utils/`
+- Test files: **73 total**
 - Config: `frontend/jest.config.cjs`
 - Run: `npm test -- test/<specific_file>.test.js`
 
@@ -205,11 +210,13 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `frontend/e2e/`
 - Structure: `admin/`, `auth/`, `blog/`, `layout/`, `platform/`, `proposal/`, `public/`
-- Spec files: 121 total
-- Flow definitions: `frontend/e2e/flow-definitions.json`
+- Spec files: **127 total**
+- Flow definitions: `frontend/e2e/flow-definitions.json` (must be updated for every new flow)
+- Flow tags: `frontend/e2e/helpers/flow-tags.js` (constants imported by spec files)
 - Config: `frontend/playwright.config.js`
 - Helpers: `frontend/e2e/helpers/`
 - Run: `npx playwright test e2e/<specific_file>.spec.js` (max 2 files per invocation)
+- Reuse running dev server: `E2E_REUSE_SERVER=1 npx playwright test ...`
 
 ### Quality Gate
 
@@ -248,32 +255,33 @@ projectapp/
 │   │   ├── tests/               # 27 test files
 │   │   └── urls.py              # 65 URL patterns
 │   ├── content/                 # Main Django app
-│   │   ├── models/              # 25 model files (proposal, blog, portfolio, contact, document, email, contract, etc.)
-│   │   ├── serializers/         # DRF serializers (proposal, blog, portfolio, contact)
-│   │   ├── views/               # FBV views (proposal 162K, blog 18K, portfolio 9K, email_templates 8K, document 10K, contact 2K)
-│   │   ├── services/            # 18 service files (proposal 134K, email 71K, pdf 76K, templates 44K, pdf_utils 52K, contract_pdf 12K, document_pdf 19K, markdown_parser 9K, linkedin 16K, collection_account*, technical_document*, platform_onboarding_pdf)
-│   │   ├── tasks.py             # Huey async tasks
-│   │   ├── templates/emails/    # 48 email templates (24 HTML + 24 TXT)
+│   │   ├── models/              # 26 model files (proposal, blog, portfolio, contact, document, email, contract, proposal_project_stage, etc.)
+│   │   ├── serializers/         # DRF serializers (proposal, blog, portfolio, contact, proposal_clients)
+│   │   ├── views/               # FBV views (proposal ~5230 lines, blog 18K, portfolio 9K, email_templates 8K, document 10K, contact 2K, proposal_clients)
+│   │   ├── services/            # 18+ service files (proposal_service, proposal_email_service, proposal_pdf_service, proposal_stage_tracker, email_template_registry, contract_pdf_service, document_pdf_service, markdown_parser, linkedin_service, collection_account*, technical_document*, platform_onboarding_pdf)
+│   │   ├── tasks.py             # Huey async tasks (incl. notify_proposal_stage_deadlines daily at 13:30 UTC = 08:30 Bogotá)
+│   │   ├── templates/emails/    # 52 email templates (26 HTML + 26 TXT — adds proposal_stage_warning + proposal_stage_overdue)
+│   │   ├── migrations/          # 82 migrations (latest: 0083_add_stage_change_types.py)
 │   │   ├── management/commands/ # 8 management commands
-│   │   ├── tests/               # 57 test files (models, serializers, views, services, tasks, utils)
-│   │   └── urls.py              # 107 URL patterns
+│   │   ├── tests/               # ~60 test files (models, serializers, views, services, tasks, utils)
+│   │   └── urls.py              # 115 URL patterns
 │   ├── projectapp/              # Django project (settings, urls, wsgi, views, 1 test file)
 │   ├── tests/                   # Root-level tests (test_document_pdf_service.py, test_markdown_parser.py)
 │   ├── static/                  # Static files (Nuxt build output in prod)
 │   └── media/                   # User uploads
 ├── frontend/
 │   ├── pages/                   # Nuxt file-based routing (64 pages)
-│   │   ├── panel/               # Admin pages (proposals, blog, portfolio, clients, documents, admins)
+│   │   ├── panel/               # Admin pages (proposals, blog, portfolio, clients, documents, admins). Proposal edit page has Cronograma tab.
 │   │   ├── platform/            # Platform pages (dashboard, board, projects, kanban, bugs, changes, deliverables, notifications, payments, clients, collection-accounts, profile, data-model)
 │   │   ├── blog/                # Blog listing + detail
 │   │   ├── portfolio-works/     # Portfolio listing + detail
 │   │   └── proposal/            # Client proposal view
-│   ├── components/              # Vue components (118 files)
-│   │   └── BusinessProposal/    # 34 proposal components (12 sections + admin tabs + overlays + utilities)
-│   ├── stores/                  # 19 Pinia stores (proposals, blog, portfolio_works, contacts, language, documents, emails, panel_admins, platform-auth, platform-clients, platform-projects, platform-requirements, platform-bug-reports, platform-change-requests, platform-deliverables, platform-notifications, platform-payments, platform-collection-accounts, platform-data-model)
-│   ├── composables/             # 33 composables
-│   ├── e2e/                     # Playwright E2E tests (126 spec files)
-│   ├── test/                    # Jest unit tests (70 test files)
+│   ├── components/              # Vue components (120 files)
+│   │   └── BusinessProposal/    # 35 proposal components (12 sections + admin tabs + overlays + utilities). Admin-only under `admin/` (incl. `ProjectScheduleEditor.vue`)
+│   ├── stores/                  # 20 Pinia stores (proposals, blog, portfolio_works, contacts, language, documents, emails, panel_admins, proposalClients, platform-auth, platform-clients, platform-projects, platform-requirements, platform-bug-reports, platform-change-requests, platform-deliverables, platform-notifications, platform-payments, platform-collection-accounts, platform-data-model)
+│   ├── composables/             # 35 composables (incl. useStageStatus.js)
+│   ├── e2e/                     # Playwright E2E tests (127 spec files)
+│   ├── test/                    # Jest unit tests (73 test files)
 │   ├── layouts/                 # default.vue, admin.vue, platform.vue
 │   ├── middleware/              # admin-auth.js, platform-auth.js
 │   ├── plugins/                 # 4 plugins (gsap, geo-locale, language-sync, cal-booking)
@@ -293,4 +301,6 @@ projectapp/
 3. **GoDaddy SMTP** — email delivery limited by provider (port 465 SSL only)
 4. **Redis required** — for Huey task queue (even if immediate mode in dev)
 5. **Nuxt builds to Django static** — production frontend is pre-rendered and served by Django, not a separate server
-6. **Large service files** — `proposal_service.py` (133K), `proposal_pdf_service.py` (72K), `proposal_email_service.py` (71K), `pdf_utils.py` (47K) — shared utils extracted but could benefit from further splitting
+6. **Large service files** — `proposal_service.py` (133K), `proposal_pdf_service.py` (72K), `proposal_email_service.py` (~73K after stage methods), `pdf_utils.py` (47K) — shared utils extracted but could benefit from further splitting
+7. **Bogotá timezone for day-level arithmetic** — Django's `TIME_ZONE='UTC'` means `date.today()` returns UTC date. For day-level logic (e.g., the daily Huey task computing "is the stage overdue today?") always use `today_bogota()` from `content/utils.py`. Bogotá is fixed UTC-5 with no DST so the offset is stable year-round.
+8. **Huey cron schedule is in UTC** — `crontab(hour='13', minute='30')` means 13:30 UTC = 08:30 Bogotá. Document the offset in a comment above any periodic task that's meant to land in the team inbox at a specific local time.

@@ -2,11 +2,25 @@
 
 ## Current State
 
-ProjectApp is in **production** at projectapp.co. All core features are implemented and deployed. Active branch: **`main`**. Codex-first methodology is now documented and operational via `AGENTS.md` + repo-local plugin skills (`plugins/projectapp-codex`). The Document System PDF (generic branded PDF on branch `generate-pdf-with-template`) is still in progress and not yet merged. Platform module has been significantly expanded with Bug Reports, Change Requests, Deliverables, Notifications, Payments modules, and a new Data Model Entities feature.
+ProjectApp is in **production** at projectapp.co. Core features are deployed. Active branch: **`feat/platform-launch-and-email-improvements`**. The Project Schedule Notification feature (Cronograma) just shipped and passed the post-merge code-quality simplification pass — all 46 backend stage tests, 217 frontend unit tests, and 6 E2E tests are green. A `proposal_clients` ecosystem (real `UserProfile` client entities replacing the legacy grouped clients list) is also in the working tree and pending commit. Codex-first methodology is documented via `AGENTS.md` + repo-local plugin skills (`plugins/projectapp-codex`). The Document System PDF (branch `generate-pdf-with-template`) is still in progress and not yet merged.
 
 ---
 
 ## Recent Focus Areas
+
+- **Project Schedule Notifications (Cronograma)** (Apr 9, 2026):
+  - New `ProposalProjectStage` child model on `BusinessProposal` (`backend/content/models/proposal_project_stage.py`) with `start_date`, `end_date`, `completed_at`, `warning_sent_at`, `last_overdue_reminder_at`. Migration `0081`, backfill `0082`, change-type enum `0083`.
+  - New `ProposalStageTracker` service (`backend/content/services/proposal_stage_tracker.py`) with `STAGE_DEFINITIONS` constant, `ensure_stages` / `get_or_create_stage` classmethods, `format_remaining_time(days)` ("hoy", "1 día", "1 semana 5 días", "2 semanas"), and `process(proposal)` decision logic
+  - Daily Huey periodic task `notify_proposal_stage_deadlines` at `crontab(hour='13', minute='30')` = 08:30 Bogotá. Filters by stage existence + dates + not-completed (NOT by proposal status), with `prefetch_related('project_stages')`.
+  - Two new internal-team email templates registered in `EmailTemplateRegistry`: `proposal_stage_warning_notification` (70% elapsed, sent once) + `proposal_stage_overdue_notification` (overdue, every 3 days while not completed). Both with HTML+TXT twins under `backend/content/templates/emails/`.
+  - Send methods `send_stage_warning` / `send_stage_overdue` in `ProposalEmailService` share a private `_send_stage_notification` helper. They use `_get_notification_recipients()` (CSV via `NOTIFICATION_EMAIL`) and do NOT call `_log_email` — internal team notifications use `logger.info` only, matching the convention of `send_first_view_notification`, `send_comment_notification`, etc.
+  - Admin UI: new "Cronograma" tab in proposal edit page (`frontend/pages/panel/proposals/[id]/edit.vue`), only visible when status is `accepted`/`finished`. Component: `frontend/components/BusinessProposal/admin/ProjectScheduleEditor.vue`. Composable: `frontend/composables/useStageStatus.js` (mirrors backend `format_remaining_time` + computes status badges in JS).
+  - Onboarding hook: `_ensure_project_stages` in `proposal_platform_onboarding.py` calls `ProposalStageTracker.ensure_stages` so accepted proposals get two empty stage rows automatically.
+  - 2 new endpoints: `PUT /api/proposals/<id>/stages/<stage_key>/` and `POST /api/proposals/<id>/stages/<stage_key>/complete/`.
+  - `ProposalDetailSerializer.get_project_stages` is gated by `is_admin` context — internal-only data is never exposed to public proposal views.
+  - Tests: 26 tracker + 9 email service + 13 view + 5 task + 2 onboarding (backend); 11 store + 22 composable + 16 component (frontend); 6 E2E (`admin-proposal-project-schedule.spec.js` registered in `flow-definitions.json` + `USER_FLOW_MAP.md`).
+  - Bogotá time helpers added to `backend/content/utils.py`: `now_bogota()`, `today_bogota()`, `to_bogota_date(dt)`. `format_bogota_date()` now accepts both `date` and `datetime`.
+  - **Ops action pending**: set `NOTIFICATION_EMAIL=team@projectapp.co,carlos18bp@gmail.com` in production environment. This is a single env var change; affects all internal team notifications, not just stage alerts.
 
 - **Codex Ecosystem Methodology Rollout** (Apr 8, 2026):
   - Added canonical Codex guide: `docs/codex-ecosystem-methodology-guide.md`
@@ -95,9 +109,13 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 
 - **FBV over CBV** — all views remain function-based; no plans to migrate
 - **Pinia Options API** — all stores use Options API pattern; no Composition API stores
+- **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
 - **Two Django apps** — `content` (proposals, blog, portfolio, contact) + `accounts` (platform auth, projects, kanban)
 - **Hybrid rendering** — SSR for SEO pages, SPA for admin, proposal, and platform views
 - **Dual auth strategy** — Session/CSRF for `/panel/` admin; JWT (SimpleJWT) for `/platform/`
+- **Stage tracking is admin-managed** — `ProposalProjectStage.start_date` / `end_date` are set manually from the Cronograma tab. We do NOT auto-derive them by parsing the free-text `timeline` proposal section ("1 semana", "2 weeks") because that text is sales/marketing copy, not project execution data.
+- **Internal team notifications use `_get_notification_recipients()` only** — recipient list lives in the `NOTIFICATION_EMAIL` env var (comma-separated). Do NOT add per-feature recipient settings. Internal sends are NOT logged to `EmailLog` (that table is for client-facing single-recipient sends).
+- **Internal-only model fields must be gated by `is_admin` in shared serializers** — when a model docstring says "internal-only" (e.g., `ProposalProjectStage`), the field on `ProposalDetailSerializer` must be a `SerializerMethodField` returning `[]` for non-admin context, never a nested `read_only=True` model serializer.
 
 ---
 
@@ -110,30 +128,35 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 
 ---
 
-## Verified Codebase Metrics (April 8, 2026 — refreshed)
+## Verified Codebase Metrics (April 9, 2026 — refreshed)
 
 | Metric | Count |
 |--------|-------|
-| Backend test files | 87 |
-| Frontend unit tests | 70 |
-| E2E spec files | 126 |
-| Vue components | 118 |
+| Backend test files | 91 |
+| Frontend unit tests | 73 |
+| E2E spec files | 127 |
+| Vue components | 120 |
 | Pages | 64 |
-| Pinia stores | 19 |
-| Composables | 33 |
-| Content model files | 25 (+1 accounts models.py) |
+| Pinia stores | 20 |
+| Composables | 35 |
+| Content model files | 26 (+1 accounts models.py with 21 model classes) |
 | Accounts models | 21 |
 | Accounts URL patterns | 65 |
-| Content URL patterns | 107 |
-| Email templates | 48 (24 HTML + 24 TXT) |
-| Content services | 18 |
+| Content URL patterns | 115 |
+| Email templates | 52 (26 HTML + 26 TXT — adds proposal_stage_warning + proposal_stage_overdue) |
+| Content services | 18 (+1 new: `proposal_stage_tracker.py`) |
 | Accounts services | 10 |
+| Content migrations | 82 (latest: `0083_add_stage_change_types.py`) |
 | Quality gate score | 100/100 (0 warnings, 0 info) |
 
 ---
 
 ## Next Steps
 
+- **Commit the stage notification feature** — currently in working tree as untracked + modified files. After commit, the methodology files will be in sync with `main`.
+- **Set `NOTIFICATION_EMAIL` in production env** to `team@projectapp.co,carlos18bp@gmail.com` so the new stage warning + overdue alerts reach the right inbox.
+- **Commit the in-flight `proposal_clients` ecosystem** (FK migration, service, serializer, view, store, autocomplete component) and document it in a follow-up methodology refresh.
+- Consider extending `ProposalStageTracker.STAGE_DEFINITIONS` beyond design + development (e.g., QA, Lanzamiento, Entrega Final) — the model + service already support N stages, only the catalog constant needs an update.
 - Complete Document System PDF generation (branch `generate-pdf-with-template`): template rendering, preview, download flow
 - Keep Codex docs and plugin skill inventory synchronized when adding/renaming skills (canonical `debug`, legacy aliases preserved)
 - Add unit tests for `useProposalFilters.js` composable and `ProposalFilterPanel.vue` / `ProposalFilterTabs.vue` components

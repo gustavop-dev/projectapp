@@ -1241,6 +1241,17 @@ describe('useProposalStore', () => {
       expect(result.success).toBe(false);
       expect(store.error).toBe('update_status_failed');
     });
+
+    it('updates status to finished from accepted', async () => {
+      patch_request.mockResolvedValue({ data: { id: 7, status: 'finished' } });
+      store.proposals = [{ id: 7, status: 'accepted' }];
+
+      const result = await store.updateProposalStatus(7, 'finished');
+
+      expect(patch_request).toHaveBeenCalledWith('proposals/7/update-status/', { status: 'finished' });
+      expect(result.success).toBe(true);
+      expect(store.proposals[0].status).toBe('finished');
+    });
   });
 
   describe('fetchScorecard', () => {
@@ -1996,6 +2007,124 @@ describe('useProposalStore', () => {
       await store.fetchEmailHistory(1, 1, 'proposal-email');
 
       expect(get_request).toHaveBeenCalledWith('proposals/1/proposal-email/history/?page=1');
+    });
+  });
+
+  describe('project schedule actions', () => {
+    it('updateProjectStage calls PUT on the stage endpoint with the dates payload', async () => {
+      put_request.mockResolvedValueOnce({
+        data: {
+          id: 1,
+          stage_key: 'design',
+          stage_label: 'Diseño',
+          start_date: '2026-04-01',
+          end_date: '2026-04-15',
+          completed_at: null,
+        },
+      });
+
+      const result = await store.updateProjectStage(42, 'design', {
+        start_date: '2026-04-01',
+        end_date: '2026-04-15',
+      });
+
+      expect(put_request).toHaveBeenCalledWith(
+        'proposals/42/stages/design/',
+        { start_date: '2026-04-01', end_date: '2026-04-15' },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it('updateProjectStage merges the returned stage into currentProposal.project_stages', async () => {
+      store.currentProposal = {
+        id: 42,
+        project_stages: [
+          { id: 1, stage_key: 'design', start_date: null, end_date: null },
+          { id: 2, stage_key: 'development', start_date: null, end_date: null },
+        ],
+      };
+      put_request.mockResolvedValueOnce({
+        data: {
+          id: 1,
+          stage_key: 'design',
+          start_date: '2026-04-01',
+          end_date: '2026-04-15',
+        },
+      });
+
+      await store.updateProjectStage(42, 'design', {
+        start_date: '2026-04-01',
+        end_date: '2026-04-15',
+      });
+
+      const updated = store.currentProposal.project_stages.find(
+        (s) => s.stage_key === 'design',
+      );
+      expect(updated.start_date).toBe('2026-04-01');
+      expect(updated.end_date).toBe('2026-04-15');
+    });
+
+    it('updateProjectStage returns success false when the request rejects', async () => {
+      put_request.mockRejectedValueOnce({
+        response: { data: { end_date: ['error'] } },
+      });
+
+      const result = await store.updateProjectStage(42, 'design', {
+        start_date: '2026-04-15',
+        end_date: '2026-04-01',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toEqual({ end_date: ['error'] });
+    });
+
+    it('completeProjectStage POSTs to the complete endpoint', async () => {
+      create_request.mockResolvedValueOnce({
+        data: {
+          id: 1,
+          stage_key: 'design',
+          completed_at: '2026-04-15T12:00:00Z',
+        },
+      });
+
+      const result = await store.completeProjectStage(42, 'design');
+
+      expect(create_request).toHaveBeenCalledWith(
+        'proposals/42/stages/design/complete/',
+        {},
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it('completeProjectStage updates the merged stage with completed_at', async () => {
+      store.currentProposal = {
+        id: 42,
+        project_stages: [
+          { id: 1, stage_key: 'design', completed_at: null },
+        ],
+      };
+      create_request.mockResolvedValueOnce({
+        data: {
+          id: 1,
+          stage_key: 'design',
+          completed_at: '2026-04-15T12:00:00Z',
+        },
+      });
+
+      await store.completeProjectStage(42, 'design');
+
+      const updated = store.currentProposal.project_stages.find(
+        (s) => s.stage_key === 'design',
+      );
+      expect(updated.completed_at).toBe('2026-04-15T12:00:00Z');
+    });
+
+    it('completeProjectStage returns success false when the request rejects', async () => {
+      create_request.mockRejectedValueOnce(new Error('boom'));
+
+      const result = await store.completeProjectStage(42, 'design');
+
+      expect(result.success).toBe(false);
     });
   });
 });

@@ -3,6 +3,7 @@ export const proposalStatusOptions = [
   { value: 'sent', label: 'Enviadas' },
   { value: 'viewed', label: 'Vistas' },
   { value: 'accepted', label: 'Aceptadas' },
+  { value: 'finished', label: 'Finalizadas' },
   { value: 'rejected', label: 'Rechazadas' },
   { value: 'negotiating', label: 'Negociando' },
   { value: 'expired', label: 'Expiradas' },

@@ -69,3 +69,23 @@ This file tracks known errors, their context, and resolutions. When a reusable f
 - **Context**: `getByText('Tablero')`, `getByText('Proyectos')`, etc. matched both sidebar links and page headings
 - **Resolution**: Scope to `page.locator('main')`, use `getByRole('heading')`, or `{ exact: true }`
 - **Files Affected**: Multiple platform E2E spec files
+
+### [ERR-005] format_bogota_date crashed on plain `date` instances
+- **Date**: 2026-04-09
+- **Context**: New `ProposalProjectStage` model uses `DateField` for `start_date` and `end_date`. The stage email send methods passed `stage.start_date` to `format_bogota_date()`, which expected a `datetime`.
+- **Root Cause**: `format_bogota_date()` called `dj_timezone.is_naive(dt)` and `dt.astimezone(_BOGOTA_TZ)` unconditionally — both of which AttributeError on a plain `date` instance.
+- **Resolution**: Updated `format_bogota_date()` in `backend/content/utils.py` to check `isinstance(dt, datetime)` first and skip the timezone conversion for `date` instances. The function now accepts both types and returns `''` for unsupported inputs.
+- **Files Affected**: `backend/content/utils.py:format_bogota_date`
+- **Test coverage**: 9 stage email service tests now exercise this code path with `DateField` values.
+
+### [ERR-006] Vue stage badge didn't update after store action
+- **Date**: 2026-04-09
+- **Context**: Mark-as-completed E2E test for the new Cronograma tab failed: clicking "Marcar como completada" called the API and returned `completed_at`, but the badge still showed "🟡 Faltan 1 día" instead of "🟢 Completada".
+- **Root Cause**: The store helper `_mergeProjectStage` was reassigning `currentProposal` to a new object spread (`this.currentProposal = { ...this.currentProposal, project_stages: stages }`). The component was reading via `props.proposal` which came from a parent `computed(() => proposalStore.currentProposal)`. Vue's reactivity through the computed → prop chain didn't reliably pick up the spread+reassign combination, even though it tracks the top-level ref.
+- **Resolution**: Two changes:
+  1. Switched `_mergeProjectStage` to in-place index mutation matching the established pattern used by `updateSection`, `applySync`, and `reorderSections` in the same store: `this.currentProposal.project_stages[idx] = stage`.
+  2. Refactored `ProjectScheduleEditor.vue` to read stages directly from `proposalStore.currentProposal?.project_stages` via a computed (with `props.proposal` as fallback for tests), instead of maintaining a local `localStages` mirror with a deep prop watcher (which also clobbered in-progress form edits when other parts of the proposal changed).
+- **Files Affected**:
+  - `frontend/stores/proposals.js:_mergeProjectStage`
+  - `frontend/components/BusinessProposal/admin/ProjectScheduleEditor.vue`
+- **Lesson**: When updating nested arrays in a Pinia store consumed by Vue components, mutate by index — do not spread + reassign the parent object. See `lessons-learned.md` § Pinia Reactivity for the rule.

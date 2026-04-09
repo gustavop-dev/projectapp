@@ -504,7 +504,8 @@ function statusPercent(count) {
 function statusBarColor(status) {
   const map = {
     draft: 'bg-gray-300', sent: 'bg-blue-400', viewed: 'bg-green-400',
-    accepted: 'bg-emerald-500', rejected: 'bg-red-400', expired: 'bg-yellow-400',
+    accepted: 'bg-emerald-500', finished: 'bg-violet-500',
+    rejected: 'bg-red-400', expired: 'bg-yellow-400',
   };
   return map[status] || 'bg-gray-300';
 }

@@ -36,6 +36,9 @@ class ProposalChangeLog(models.Model):
         EMAIL_SENT = 'email_sent', 'Email Sent'
         SELLER_INACTIVITY_ESCALATION = 'seller_inactivity_escalation', 'Seller Inactivity Escalation'
         PLATFORM_LAUNCH = 'platform_launch', 'Platform Launch'
+        STAGE_WARNING_SENT = 'stage_warning_sent', 'Stage Warning Sent'
+        STAGE_OVERDUE_SENT = 'stage_overdue_sent', 'Stage Overdue Sent'
+        STAGE_COMPLETED = 'stage_completed', 'Stage Completed'
 
     class ActorType(models.TextChoices):
         CLIENT = 'client', 'Client'

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>¡Proyecto finalizado! — Project App</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;max-width:600px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#7c3aed;padding:32px 40px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:700;">
+                🎯 ¡Proyecto Finalizado!
+              </h1>
+              <p style="margin:8px 0 0;color:#ede9fe;font-size:14px;">
+                Project App — Transformación Digital
+              </p>
+            </td>
+          </tr>
+
+          <!-- Greeting -->
+          <tr>
+            <td style="padding:40px 40px 24px;">
+              <h2 style="margin:0;color:#1f2937;font-size:22px;font-weight:600;">
+                {{ greeting }}
+              </h2>
+              <p style="margin:16px 0 0;color:#4b5563;font-size:16px;line-height:1.6;">
+                {{ body }}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Highlights card -->
+          <tr>
+            <td style="padding:0 40px 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f3ff;border-radius:12px;border:1px solid #ddd6fe;">
+                <tr>
+                  <td style="padding:24px;">
+                    <p style="margin:0 0 12px;color:#7c3aed;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">
+                      Cierre del proyecto
+                    </p>
+                    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+                      {% if project_name %}
+                      <tr>
+                        <td style="padding:6px 0;color:#4b5563;font-size:14px;">📁 Proyecto: <strong>{{ project_name }}</strong></td>
+                      </tr>
+                      {% endif %}
+                      {% if deliverable_title %}
+                      <tr>
+                        <td style="padding:6px 0;color:#4b5563;font-size:14px;">📦 Entregable principal: <strong>{{ deliverable_title }}</strong></td>
+                      </tr>
+                      {% endif %}
+                      <tr>
+                        <td style="padding:6px 0;color:#4b5563;font-size:14px;">✅ Estado: <strong>Finalizado</strong></td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA -->
+          {% if platform_login_url %}
+          <tr>
+            <td style="padding:0 40px 32px;text-align:center;">
+              <a href="{{ platform_login_url }}"
+                 style="display:inline-block;background-color:#7c3aed;color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:600;">
+                {{ cta_text }}
+              </a>
+            </td>
+          </tr>
+          {% endif %}
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 40px;">
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:0;">
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 40px 32px;text-align:center;">
+              <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.5;">
+                ¿Necesitas algo más? Escríbenos por
+                <a href="https://wa.me/573238122373" style="color:#7c3aed;text-decoration:none;font-weight:600;">WhatsApp</a>
+                o a <a href="mailto:team@projectapp.co" style="color:#7c3aed;text-decoration:none;font-weight:600;">team@projectapp.co</a>
+              </p>
+              <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;">
+                © 2026 ProjectApp.co | Bogotá, Colombia
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

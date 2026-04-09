@@ -70,19 +70,43 @@ DRAFT → SENT → VIEWED → ACCEPTED
 | Stakeholder alert | Share link is opened | Immediate |
 | Post-expiration visit | Client visits expired proposal | Immediate |
 | Engagement decay | Declining engagement detected | Immediate |
+| Stage warning (internal team) | Project stage 70% elapsed (Cronograma) | Daily 08:30 Bogotá, sent once per stage |
+| Stage overdue (internal team) | Project stage past `end_date` (Cronograma) | Daily 08:30 Bogotá, repeats every 3 days while uncompleted |
 
-**24h cooldown** enforced between automated emails per proposal. **Automations can be paused** per proposal (`automations_paused` flag).
+**24h cooldown** enforced between automated client-facing emails per proposal. **Automations can be paused** per proposal (`automations_paused` flag). **Internal team notifications** (stage warning, stage overdue, first view, comment, seller inactivity, etc.) bypass the cooldown — per-event dedup is handled by dedicated timestamp fields on the source model.
+
+**Internal team recipients** are read from the `NOTIFICATION_EMAIL` env var (CSV-supported). One env var, all internal notifications. To target a different audience for stage tracking specifically, change the env var — there is no per-feature recipient setting.
 
 #### Admin Panel — Proposals
 
 - **Dashboard** (`/panel/`): total proposals, status counts, heat scores, recent proposals, alerts
 - **Proposals list** (`/panel/proposals/`): table with title, client, status badge, investment, expiry, views, bulk actions
 - **Create** (`/panel/proposals/create`): form with all metadata + JSON import option
-- **Edit** (`/panel/proposals/{id}/edit`): Tab 1: General metadata + send button; Tab 2: Sections editor (expand/edit JSON per section)
+- **Edit** (`/panel/proposals/{id}/edit`): Tabs depending on proposal status:
+  - **General** — metadata + send button
+  - **Correos** (sent+ statuses) — branded email composer
+  - **Documentos** (negotiating/accepted/rejected) — contracts + uploaded annexes
+  - **Cronograma** (accepted/finished) — project stage scheduling (design + development dates, mark-as-completed, status badges)
+  - **Secciones** — section editor (expand/edit JSON per section)
+  - **Det. técnico**, **Prompt Proposal**, **JSON**, **Actividad**, **Analytics**
 - **Defaults** (`/panel/proposals/defaults`): manage default section templates per language
 - **Email templates** (`/panel/proposals/email-templates`): view/edit/preview/reset email content
 - **Email deliverability** (`/panel/proposals/email-deliverability`): dashboard tracking email send/delivery/bounce rates
 - **Clients list** (`/panel/clients/`): unique clients extracted from proposals
+
+#### Project Schedule Tracking (Cronograma)
+
+A new internal-only sub-system that tracks the **execution** of an accepted proposal — distinct from the client-facing `timeline` proposal section (which is sales/marketing copy with free-text durations like "1 semana").
+
+- **Two stages per accepted proposal**: `design` and `development`. Empty rows are auto-created when the proposal becomes `accepted` via the platform onboarding flow.
+- **Per-stage fields**: `start_date`, `end_date`, `completed_at`, `warning_sent_at`, `last_overdue_reminder_at`. The model lives at `backend/content/models/proposal_project_stage.py`.
+- **Manual date entry**: Admins fill in `start_date` and `end_date` from the new "Cronograma" tab in the proposal edit page (`frontend/components/BusinessProposal/admin/ProjectScheduleEditor.vue`). We do NOT auto-derive dates from the free-text `timeline` section.
+- **70%-elapsed warning email**: The daily Huey task `notify_proposal_stage_deadlines` (08:30 Bogotá) sends a warning email when ≥70% of `(end_date - start_date)` has elapsed. Sent at most once per stage (gated by `warning_sent_at`).
+- **Overdue reminders**: When `today > end_date`, sends a reminder email immediately and then repeats every 3 days until the admin marks the stage as completed (gated by `last_overdue_reminder_at`).
+- **Mark as completed**: A button per stage in the Cronograma tab. Sets `completed_at = now()` and clears the alert timestamps. Silences all future emails for that stage.
+- **Time format**: Both warning and overdue messages format remaining/overdue time as `"hoy"`, `"1 día"`, `"6 días"`, `"1 semana"`, `"1 semana 5 días"`, `"2 semanas"` (semanas if ≥7 days, días if less, mixed when needed). Logic in `ProposalStageTracker.format_remaining_time` (Python) and `useStageStatus.formatRemainingTime` (JS, kept in sync via parallel test cases).
+- **Recipients**: Internal team via `NOTIFICATION_EMAIL` CSV (see Automated Emails table above).
+- **Internal-only**: `ProposalProjectStage` is gated by `is_admin` context in `ProposalDetailSerializer.get_project_stages` — never exposed to public proposal views.
 
 ### 3.2 Portfolio Showcase
 
@@ -226,7 +250,7 @@ Building on the base Platform (auth, projects, kanban), these modules extend cli
 
 1. Each proposal gets a unique UUID for public access
 2. Proposals auto-expire when `expires_at < now()` (daily Huey cron)
-3. 24h cooldown between automated emails per proposal
+3. 24h cooldown between automated client-facing emails per proposal
 4. Automations can be paused per proposal
 5. Engagement heat score (1-10) computed from views, section time, recency
 6. Proposal sections map 1:1 to Vue components via `section_type`
@@ -234,3 +258,5 @@ Building on the base Platform (auth, projects, kanban), these modules extend cli
 8. Email templates are editable and resettable via admin panel
 9. Share links track independent view counts from main proposal views
 10. Change logs record full audit trail of proposal lifecycle events
+11. **Project stage notifications**: Stage rows are admin-managed (not auto-derived from JSON timeline). Warning fires once at 70% elapsed; overdue alert fires immediately when `today > end_date` and repeats every 3 days until `completed_at` is set. All day-level arithmetic uses Bogotá time (`today_bogota()` from `content/utils.py`). Internal team recipients live in `NOTIFICATION_EMAIL` CSV.
+12. **Proposal client identity** (in-progress branch): `BusinessProposal.client` is a FK to `accounts.UserProfile` (real client entity). Legacy denormalized fields `client_name`/`client_email`/`client_phone` are kept as write-through snapshots, synced via `proposal_client_service.sync_snapshot()`.

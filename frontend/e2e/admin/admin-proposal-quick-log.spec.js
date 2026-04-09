@@ -78,8 +78,9 @@ test.describe('Quick Log Activity from Proposals List', () => {
     await setupMock(page);
     await openQuickLogModal(page);
 
-    // Should show client name and title
-    await expect(page.getByText(/Log Client.*Quick Log Proposal/)).toBeVisible();
+    // Scope to the quick-log modal — the proposals list table also contains the same client name
+    const quickLogModal = page.locator('div.fixed.inset-0').filter({ has: page.getByText('Registrar') });
+    await expect(quickLogModal.getByText(/Log Client.*Quick Log Proposal/)).toBeVisible();
   });
 
   test('quick-log modal has activity type selector with 4 options', {

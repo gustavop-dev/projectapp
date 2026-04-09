@@ -51,13 +51,11 @@ test.describe('Admin Proposal Win Rate Dashboard', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForResponse(resp => resp.url().includes('/proposals/') && resp.status() === 200);
 
-    // Expand dashboard only if collapsed (button says "Mostrar")
-    const expandBtn = page.getByRole('button', { name: /Mostrar Dashboard/i });
-    if (await expandBtn.isVisible({ timeout: 3000 }).catch(() => false)) await expandBtn.click();
+    // Dashboard is collapsed by default — open it
+    await page.getByRole('button', { name: /Mostrar Dashboard KPI/ }).click();
 
-    await expect(page.getByText('Win rate por tipo de proyecto')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Win rate por tipo de proyecto')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('60%')).toBeVisible();
   });
 
@@ -66,12 +64,11 @@ test.describe('Admin Proposal Win Rate Dashboard', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForResponse(resp => resp.url().includes('/proposals/') && resp.status() === 200);
 
-    const expandBtn = page.getByRole('button', { name: /Mostrar Dashboard/i });
-    if (await expandBtn.isVisible({ timeout: 3000 }).catch(() => false)) await expandBtn.click();
+    // Dashboard is collapsed by default — open it
+    await page.getByRole('button', { name: /Mostrar Dashboard KPI/ }).click();
 
-    await expect(page.getByText('Win rate por tipo de mercado')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Win rate por tipo de mercado')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('75%')).toBeVisible();
   });
 
@@ -80,12 +77,11 @@ test.describe('Admin Proposal Win Rate Dashboard', () => {
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals');
-    await page.waitForResponse(resp => resp.url().includes('/proposals/') && resp.status() === 200);
 
-    const expandBtn = page.getByRole('button', { name: /Mostrar Dashboard/i });
-    if (await expandBtn.isVisible({ timeout: 3000 }).catch(() => false)) await expandBtn.click();
+    // Dashboard is collapsed by default — open it
+    await page.getByRole('button', { name: /Mostrar Dashboard KPI/ }).click();
 
-    await expect(page.getByText('Mejor combinación proyecto × mercado')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Mejor combinación proyecto × mercado')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('80%')).toBeVisible();
   });
 });

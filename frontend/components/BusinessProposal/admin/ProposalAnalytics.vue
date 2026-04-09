@@ -232,7 +232,7 @@
                 <span class="text-xs text-gray-400">{{ analytics.by_view_mode[mode]?.sessions || 0 }} sesiones</span>
               </div>
               <div v-if="analytics.by_view_mode[mode]?.sections?.length" class="space-y-2">
-                <div v-for="sec in analytics.by_view_mode[mode].sections" :key="sec.section_type" class="flex items-center gap-2">
+                <div v-for="sec in analytics.by_view_mode[mode].sections" :key="`${sec.section_type}:${sec.subsection_key || ''}`" class="flex items-center gap-2">
                   <span class="text-xs text-gray-500 dark:text-gray-400 truncate flex-1 min-w-0">{{ sec.section_title || sec.section_type }}</span>
                   <span class="text-xs text-gray-400 tabular-nums flex-shrink-0">{{ sec.visit_count }}×</span>
                   <span class="text-xs font-medium tabular-nums flex-shrink-0"

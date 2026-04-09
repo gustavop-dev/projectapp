@@ -135,7 +135,8 @@ class TestBusinessProposalPublicUrl:
 
 class TestBusinessProposalStatusChoices:
     @pytest.mark.parametrize('status', [
-        'draft', 'sent', 'viewed', 'accepted', 'rejected', 'expired',
+        'draft', 'sent', 'viewed', 'accepted', 'rejected', 'negotiating',
+        'expired', 'finished',
     ])
     def test_valid_status_choices(self, status):
         prop = BusinessProposal.objects.create(
@@ -144,6 +145,22 @@ class TestBusinessProposalStatusChoices:
             status=status,
         )
         assert prop.status == status
+
+    def test_accepted_can_transition_to_finished(self):
+        prop = BusinessProposal.objects.create(
+            title='Test',
+            client_name='Client',
+            status='accepted',
+        )
+        assert 'finished' in prop.available_transitions
+
+    def test_finished_is_terminal(self):
+        prop = BusinessProposal.objects.create(
+            title='Test',
+            client_name='Client',
+            status='finished',
+        )
+        assert prop.available_transitions == []
 
 
 class TestProposalChangeLogStr:

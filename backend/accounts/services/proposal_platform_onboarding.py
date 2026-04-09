@@ -155,6 +155,8 @@ def handle_proposal_accepted_for_platform(
 
         ProposalEmailService.send_acceptance_confirmation(proposal)
 
+    _ensure_project_stages(proposal)
+
     proposal.platform_onboarding_completed_at = timezone.now()
     proposal.save(update_fields=['platform_onboarding_completed_at'])
 
@@ -163,6 +165,22 @@ def handle_proposal_accepted_for_platform(
         'deliverable_id': d.id if d else None,
         'sync': sync_result,
     }
+
+
+def _ensure_project_stages(proposal) -> None:
+    """
+    Create empty `ProposalProjectStage` rows for the proposal if missing,
+    so the Cronograma admin tab has rows to populate. Delegates to
+    `ProposalStageTracker.ensure_stages` for the canonical stage catalog.
+    """
+    from content.services.proposal_stage_tracker import ProposalStageTracker
+
+    try:
+        ProposalStageTracker.ensure_stages(proposal)
+    except Exception:
+        logger.exception(
+            'Failed to ensure project stages for proposal %s', proposal.pk,
+        )
 
 
 def _sync_proposal_documents_to_deliverable(proposal, deliverable, acting_user):

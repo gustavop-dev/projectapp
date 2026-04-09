@@ -60,43 +60,62 @@
           />
         </div>
 
-        <!-- Client name -->
-        <div>
-          <label for="create-client-name" class="block text-sm font-medium text-gray-700 mb-1">Nombre del cliente</label>
-          <input
-            id="create-client-name"
-            v-model="form.client_name"
-            type="text"
-            required
-            placeholder="María García"
-            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-          />
-        </div>
+        <!-- Client picker (autocomplete + snapshot fields) -->
+        <div class="space-y-4 border border-gray-100 rounded-xl p-4 bg-gray-50/30">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+            <ClientAutocomplete
+              v-model="form.client_id"
+              :initial-label="form.client_name"
+              @select="onClientSelected"
+              @create-new="onCreateInlineClient"
+            />
+            <p class="text-xs text-gray-400 mt-1">
+              Busca un cliente existente o escribe uno nuevo. Si no tiene email, generaremos uno temporal y pausaremos automatizaciones hasta que lo agregues.
+            </p>
+          </div>
 
-        <!-- Client email -->
-        <div>
-          <label for="create-client-email" class="block text-sm font-medium text-gray-700 mb-1">Email del cliente</label>
-          <input
-            id="create-client-email"
-            v-model="form.client_email"
-            type="email"
-            placeholder="maria@example.com"
-            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-          />
-        </div>
-
-        <!-- Client phone -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono / WhatsApp</label>
-          <input
-            v-model="form.client_phone"
-            type="tel"
-            placeholder="+57 300 123 4567"
-            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
-          />
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="create-client-name" class="block text-xs font-medium text-gray-500 mb-1">Nombre</label>
+              <input
+                id="create-client-name"
+                v-model="form.client_name"
+                type="text"
+                required
+                placeholder="María García"
+                class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+            </div>
+            <div>
+              <label for="create-client-email" class="block text-xs font-medium text-gray-500 mb-1">Email</label>
+              <input
+                id="create-client-email"
+                v-model="form.client_email"
+                type="email"
+                placeholder="maria@gmail.com (opcional)"
+                class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Teléfono / WhatsApp</label>
+              <input
+                v-model="form.client_phone"
+                type="tel"
+                placeholder="+57 300 123 4567"
+                class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Empresa</label>
+              <input
+                v-model="form.client_company"
+                type="text"
+                placeholder="Acme Inc."
+                class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+            </div>
+          </div>
         </div>
 
         <!-- Project type + Market type -->
@@ -878,6 +897,7 @@ import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
 import { detectLegacyTechnicalFormat, downloadMigratedProposalJson, LEGACY_FIELD_LABELS } from '~/utils/proposalJsonMigration';
 import LegacyFormatWarning from '~/components/panel/LegacyFormatWarning.vue';
+import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -968,14 +988,6 @@ onMounted(async () => {
   await loadExpirationDefaults(form.language);
 });
 
-watch(
-  [() => form.language, () => jsonForm.language],
-  ([langA, langB], [prevA, prevB]) => {
-    const changed = langA !== prevA ? langA : langB !== prevB ? langB : null;
-    if (changed) loadExpirationDefaults(changed);
-  },
-);
-
 // -------------------------------------------------------------------------
 // Shared helpers
 // -------------------------------------------------------------------------
@@ -1024,9 +1036,11 @@ function formatError(errors) {
 // -------------------------------------------------------------------------
 const form = reactive({
   title: '',
+  client_id: null,
   client_name: '',
   client_email: '',
   client_phone: '',
+  client_company: '',
   project_type: '',
   market_type: '',
   project_type_custom: '',
@@ -1042,6 +1056,22 @@ const form = reactive({
   urgency_reminder_days: 15,
   discount_percent: 0,
 });
+
+function onClientSelected(client) {
+  if (!client) return;
+  form.client_id = client.id;
+  form.client_name = client.name || form.client_name;
+  form.client_email = client.is_email_placeholder ? '' : client.email || '';
+  form.client_phone = client.phone || form.client_phone;
+  form.client_company = client.company || form.client_company;
+}
+
+function onCreateInlineClient(typedName) {
+  form.client_id = null;
+  if (typedName) {
+    form.client_name = typedName;
+  }
+}
 
 const canSendDirectly = computed(() => {
   return !!(form.client_email && form.client_name && form.total_investment > 0);
@@ -1136,6 +1166,14 @@ const jsonPreview = computed(() => {
   const epicCount = Array.isArray(epics) ? epics.length : null;
   return { clientName, sectionCount, investment, epicCount };
 });
+
+watch(
+  [() => form.language, () => jsonForm.language],
+  ([langA, langB], [prevA, prevB]) => {
+    const changed = langA !== prevA ? langA : langB !== prevB ? langB : null;
+    if (changed) loadExpirationDefaults(changed);
+  },
+);
 
 function parseJson() {
   jsonError.value = '';

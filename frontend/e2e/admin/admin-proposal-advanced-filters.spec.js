@@ -117,4 +117,18 @@ test.describe('Admin Proposal Advanced Filters', () => {
     await expect(page.getByText('Propuesta SaaS')).toBeVisible();
     await expect(page.getByText('Propuesta Web App')).toBeVisible();
   });
+
+  test('status filter dropdown exposes Finalizadas option', {
+    tag: [...ADMIN_PROPOSAL_ADVANCED_FILTERS, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildMockHandler());
+    await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Propuestas' })).toBeVisible({ timeout: 20_000 });
+
+    await page.getByRole('button', { name: 'Filtros', exact: true }).click();
+    await expect(page.getByText('Clasificación')).toBeVisible();
+
+    await page.getByRole('button', { name: /estado/i }).click();
+    await expect(page.getByText('Finalizadas')).toBeVisible();
+  });
 });

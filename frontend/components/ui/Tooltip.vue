@@ -26,6 +26,7 @@
           backgroundColor,
           textColor,
           width,
+          minWidth,
           positionClasses
         ]"
       >
@@ -63,7 +64,11 @@ const props = defineProps({
   },
   width: {
     type: String,
-    default: 'max-w-lg', // ~32rem (512px)
+    default: 'max-w-2xl', // ~42rem (672px)
+  },
+  minWidth: {
+    type: String,
+    default: 'min-w-[260px] sm:min-w-[420px] lg:min-w-[560px]',
   },
 })
 
