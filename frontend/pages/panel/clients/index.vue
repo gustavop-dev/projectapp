@@ -142,7 +142,7 @@
             </span>
 
             <button
-              v-if="!client.is_orphan && !client.is_email_placeholder"
+              v-if="client.accepted_count > 0"
               type="button"
               :data-testid="`client-platform-${client.id}`"
               class="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
