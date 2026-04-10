@@ -18,7 +18,7 @@ Endpoints
 
 import logging
 
-from django.db.models import Count, Max, Q
+from django.db.models import Count, Max, OuterRef, Q, Subquery
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
@@ -26,6 +26,7 @@ from rest_framework.response import Response
 
 from accounts.models import UserProfile
 from accounts.services import proposal_client_service
+from content.models import BusinessProposal
 from content.serializers.proposal import ProposalListSerializer
 from content.serializers.proposal_clients import (
     ProposalClientSearchSerializer,
@@ -45,6 +46,18 @@ def _base_queryset():
             proposals_count=Count('proposals', distinct=True),
             projects_count=Count('user__projects', distinct=True),
             last_proposal_at=Max('proposals__last_activity_at'),
+            accepted_count=Count(
+                'proposals',
+                filter=Q(proposals__status__in=['accepted', 'finished']),
+                distinct=True,
+            ),
+            last_status=Subquery(
+                BusinessProposal.objects
+                .filter(client=OuterRef('pk'))
+                .order_by('-last_activity_at')
+                .values('status')[:1]
+            ),
+            last_sent_at=Max('proposals__sent_at'),
         )
     )
 
@@ -98,7 +111,7 @@ def list_proposal_clients(request):
     except (TypeError, ValueError):
         limit = 100
 
-    qs = qs.order_by('-last_proposal_at', '-updated_at')[:limit]
+    qs = qs.prefetch_related('proposals').order_by('-last_proposal_at', '-updated_at')[:limit]
     return Response(ProposalClientSerializer(qs, many=True).data)
 
 

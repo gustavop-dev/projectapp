@@ -131,10 +131,10 @@ export function useClientFilters() {
       if (currentFilters.lastStatuses.length && !currentFilters.lastStatuses.includes(c.last_status))
         return false;
 
-      if (projectTypeSet && !c.proposals.some((p) => projectTypeSet.has(p.project_type)))
+      if (projectTypeSet && !(c.project_types || []).some((t) => projectTypeSet.has(t)))
         return false;
 
-      if (marketTypeSet && !c.proposals.some((p) => marketTypeSet.has(p.market_type)))
+      if (marketTypeSet && !(c.market_types || []).some((t) => marketTypeSet.has(t)))
         return false;
 
       if (currentFilters.totalProposalsMin != null && c.total_proposals < currentFilters.totalProposalsMin)
@@ -142,9 +142,9 @@ export function useClientFilters() {
       if (currentFilters.totalProposalsMax != null && c.total_proposals > currentFilters.totalProposalsMax)
         return false;
 
-      if (currentFilters.acceptedMin != null && c.accepted < currentFilters.acceptedMin)
+      if (currentFilters.acceptedMin != null && (c.accepted_count || 0) < currentFilters.acceptedMin)
         return false;
-      if (currentFilters.acceptedMax != null && c.accepted > currentFilters.acceptedMax)
+      if (currentFilters.acceptedMax != null && (c.accepted_count || 0) > currentFilters.acceptedMax)
         return false;
 
       if (activityAfterDate || activityBeforeDate) {

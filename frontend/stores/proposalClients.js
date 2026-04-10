@@ -126,7 +126,6 @@ export const useProposalClientsStore = defineStore('proposalClients', {
 
     /** Fetch one client with the full nested proposals history. */
     async fetchClient(id) {
-      this.isLoading = true;
       this.error = null;
       try {
         const response = await get_request(
@@ -137,8 +136,6 @@ export const useProposalClientsStore = defineStore('proposalClients', {
       } catch (error) {
         this.error = error.response?.data?.error || 'fetch_failed';
         return { success: false, errors: error.response?.data };
-      } finally {
-        this.isLoading = false;
       }
     },
 

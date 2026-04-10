@@ -44,6 +44,11 @@ class ProposalClientSerializer(serializers.ModelSerializer):
     is_email_placeholder = serializers.BooleanField(read_only=True)
     total_proposals = serializers.SerializerMethodField()
     is_orphan = serializers.SerializerMethodField()
+    accepted_count = serializers.SerializerMethodField()
+    last_status = serializers.SerializerMethodField()
+    last_sent_at = serializers.SerializerMethodField()
+    project_types = serializers.SerializerMethodField()
+    market_types = serializers.SerializerMethodField()
 
     class Meta:
         model = UserProfile
@@ -57,6 +62,11 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'is_email_placeholder',
             'total_proposals',
             'is_orphan',
+            'accepted_count',
+            'last_status',
+            'last_sent_at',
+            'project_types',
+            'market_types',
             'created_at',
             'updated_at',
         )
@@ -66,6 +76,11 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'is_email_placeholder',
             'total_proposals',
             'is_orphan',
+            'accepted_count',
+            'last_status',
+            'last_sent_at',
+            'project_types',
+            'market_types',
             'created_at',
             'updated_at',
         )
@@ -92,6 +107,32 @@ class ProposalClientSerializer(serializers.ModelSerializer):
         if projects_annotated is not None:
             return projects_annotated == 0
         return not obj.user.projects.exists()
+
+    def get_accepted_count(self, obj):
+        annotated = getattr(obj, 'accepted_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.proposals.filter(status__in=['accepted', 'finished']).count()
+
+    def get_last_status(self, obj):
+        annotated = getattr(obj, 'last_status', None)
+        if annotated is not None:
+            return annotated
+        latest = obj.proposals.order_by('-last_activity_at').values_list('status', flat=True).first()
+        return latest
+
+    def get_last_sent_at(self, obj):
+        annotated = getattr(obj, 'last_sent_at', None)
+        if annotated is not None:
+            return annotated
+        from django.db.models import Max
+        return obj.proposals.aggregate(last=Max('sent_at'))['last']
+
+    def get_project_types(self, obj):
+        return list({p.project_type for p in obj.proposals.all() if p.project_type})
+
+    def get_market_types(self, obj):
+        return list({p.market_type for p in obj.proposals.all() if p.market_type})
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)

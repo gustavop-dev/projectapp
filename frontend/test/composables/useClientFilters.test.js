@@ -1,7 +1,7 @@
 /**
  * Tests for the useClientFilters composable.
  *
- * Covers: initialization, applyFilters (all 8 dimensions including nested proposals.some()),
+ * Covers: initialization, applyFilters (all 8 dimensions using flat project_types/market_types),
  * activeFilterCount, tab CRUD (save, update, delete, rename), resetFilters, selectTab,
  * tab limit enforcement, and URL sync via clientTab query param.
  *
@@ -33,9 +33,10 @@ import { useClientFilters } from '../../composables/useClientFilters';
 function buildClient(overrides = {}) {
   return {
     last_status: 'active',
-    proposals: [{ project_type: 'web', market_type: 'b2b' }],
+    project_types: ['web'],
+    market_types: ['b2b'],
     total_proposals: 5,
-    accepted: 2,
+    accepted_count: 2,
     last_sent_at: '2026-02-15T12:00:00Z',
     ...overrides,
   };
@@ -134,9 +135,9 @@ describe('useClientFilters', () => {
 
   describe('applyFilters — projectTypes', () => {
     const clients = [
-      buildClient({ proposals: [{ project_type: 'web', market_type: 'b2b' }] }),
-      buildClient({ proposals: [{ project_type: 'app', market_type: 'b2c' }] }),
-      buildClient({ proposals: [{ project_type: 'web', market_type: 'b2c' }, { project_type: 'app', market_type: 'b2b' }] }),
+      buildClient({ project_types: ['web'] }),
+      buildClient({ project_types: ['app'] }),
+      buildClient({ project_types: ['web', 'app'] }),
     ];
 
     it('filters clients whose proposals match projectType', () => {
@@ -159,8 +160,8 @@ describe('useClientFilters', () => {
 
   describe('applyFilters — marketTypes', () => {
     const clients = [
-      buildClient({ proposals: [{ project_type: 'web', market_type: 'b2b' }] }),
-      buildClient({ proposals: [{ project_type: 'app', market_type: 'b2c' }] }),
+      buildClient({ market_types: ['b2b'] }),
+      buildClient({ market_types: ['b2c'] }),
     ];
 
     it('filters clients whose proposals match marketType', () => {
@@ -208,9 +209,9 @@ describe('useClientFilters', () => {
 
   describe('applyFilters — accepted range', () => {
     const clients = [
-      buildClient({ accepted: 0 }),
-      buildClient({ accepted: 3 }),
-      buildClient({ accepted: 8 }),
+      buildClient({ accepted_count: 0 }),
+      buildClient({ accepted_count: 3 }),
+      buildClient({ accepted_count: 8 }),
     ];
 
     it('filters by acceptedMin', () => {
@@ -268,9 +269,9 @@ describe('useClientFilters', () => {
 
   describe('applyFilters — combined filters', () => {
     const clients = [
-      buildClient({ last_status: 'active', total_proposals: 5, proposals: [{ project_type: 'web', market_type: 'b2b' }] }),
-      buildClient({ last_status: 'active', total_proposals: 2, proposals: [{ project_type: 'app', market_type: 'b2c' }] }),
-      buildClient({ last_status: 'inactive', total_proposals: 10, proposals: [{ project_type: 'web', market_type: 'b2b' }] }),
+      buildClient({ last_status: 'active', total_proposals: 5, project_types: ['web'], market_types: ['b2b'] }),
+      buildClient({ last_status: 'active', total_proposals: 2, project_types: ['app'], market_types: ['b2c'] }),
+      buildClient({ last_status: 'inactive', total_proposals: 10, project_types: ['web'], market_types: ['b2b'] }),
     ];
 
     it('applies multiple filter dimensions simultaneously', () => {

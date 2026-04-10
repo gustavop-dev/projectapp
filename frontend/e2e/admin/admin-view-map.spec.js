@@ -15,6 +15,8 @@ const authCheck = {
 };
 
 test.describe('Admin View Map', () => {
+  test.describe.configure({ mode: 'serial' });
+
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, {
       token: 'e2e-admin-token',
@@ -77,6 +79,6 @@ test.describe('Admin View Map', () => {
     const copyButton = viewCard.getByTitle('Copiar referencia');
     await copyButton.click();
 
-    await expect(viewCard.getByTitle('Copiado!')).toBeVisible();
+    await expect(viewCard.getByTitle('Copiado!')).toBeVisible({ timeout: 5000 });
   });
 });
