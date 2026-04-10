@@ -3,12 +3,12 @@
     <!-- Header row -->
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-4">
-        <NuxtLink :to="localePath('/panel/blog')" class="text-gray-400 hover:text-gray-600 transition-colors">
+        <NuxtLink :to="localePath('/panel/blog')" class="text-gray-400 dark:text-green-light/60 hover:text-gray-600 dark:hover:text-white transition-colors">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
         </NuxtLink>
-        <h1 class="text-2xl font-light text-gray-900">Editar Blog Post</h1>
+        <h1 class="text-2xl font-light text-gray-900 dark:text-white">Editar Blog Post</h1>
       </div>
       <button
         v-if="loaded"
@@ -16,7 +16,7 @@
         class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
         :class="showPreview
           ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-          : 'border border-gray-200 text-gray-700 hover:bg-gray-50'"
+          : 'border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-green-light hover:bg-gray-50 dark:hover:bg-white/[0.04]'"
         @click="togglePreview"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
@@ -39,147 +39,147 @@
       >
         <!-- Slug -->
         <div>
-          <label for="slug" class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-          <input id="slug" v-model="form.slug" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
-          <p class="text-xs text-gray-400 mt-1">URL: /blog/{{ form.slug || '...' }}</p>
+          <label for="slug" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Slug</label>
+          <input id="slug" v-model="form.slug" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+          <p class="text-xs text-gray-400 dark:text-green-light/60 dark:text-green-light/60 mt-1">URL: /blog/{{ form.slug || '...' }}</p>
         </div>
 
         <!-- Metadata row -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label for="edit-category" class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-            <select id="edit-category" v-model="form.category" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white">
+            <label for="edit-category" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Categoría</label>
+            <select id="edit-category" v-model="form.category" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white">
               <option value="">Sin categoría</option>
               <option v-for="cat in blogStore.availableCategories" :key="cat.slug" :value="cat.slug">{{ cat.label }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Autor</label>
-            <select v-model="form.author" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white">
+            <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Autor</label>
+            <select v-model="form.author" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white">
               <option value="projectapp-team">Project App Team</option>
               <option value="gustavo-perez">Gustavo Pérez — CEO</option>
               <option value="carlos-blanco">Carlos Blanco — CFO</option>
             </select>
           </div>
           <div>
-            <label for="edit-read-time" class="block text-sm font-medium text-gray-700 mb-1">Tiempo lectura (min)</label>
-            <input id="edit-read-time" v-model.number="form.read_time_minutes" type="number" min="0" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+            <label for="edit-read-time" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Tiempo lectura (min)</label>
+            <input id="edit-read-time" v-model.number="form.read_time_minutes" type="number" min="0" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
           </div>
           <div class="flex items-end">
             <label class="relative inline-flex items-center cursor-pointer gap-3">
               <input v-model="form.is_featured" type="checkbox" class="sr-only peer" />
-              <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
-              <span class="text-sm text-gray-700">Destacado</span>
+              <div class="w-9 h-5 bg-gray-200 dark:bg-white/[0.15] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
+              <span class="text-sm text-gray-700 dark:text-white/70">Destacado</span>
             </label>
           </div>
         </div>
 
         <!-- Español Section -->
-        <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
-          <legend class="text-sm font-medium text-gray-700 px-2">Español</legend>
+        <fieldset class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+          <legend class="text-sm font-medium text-gray-700 dark:text-white/70 px-2">Español</legend>
           <div>
-            <label for="title_es" class="block text-sm font-medium text-gray-700 mb-1">Título (ES)</label>
-            <input id="title_es" v-model="form.title_es" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+            <label for="title_es" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Título (ES)</label>
+            <input id="title_es" v-model="form.title_es" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
           </div>
           <div>
-            <label for="excerpt_es" class="block text-sm font-medium text-gray-700 mb-1">Resumen (ES)</label>
-            <textarea id="excerpt_es" v-model="form.excerpt_es" rows="2" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" />
+            <label for="excerpt_es" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Resumen (ES)</label>
+            <textarea id="excerpt_es" v-model="form.excerpt_es" rows="2" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" />
           </div>
           <div>
-            <label for="content_es" class="block text-sm font-medium text-gray-700 mb-1">Contenido HTML (ES)</label>
+            <label for="content_es" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Contenido HTML (ES)</label>
             <textarea id="content_es" v-model="form.content_es" rows="6" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Contenido JSON (ES)</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Contenido JSON (ES)</label>
             <textarea v-model="form.content_json_es_raw" rows="10" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder='{ "intro": "...", "sections": [...], "conclusion": "...", "cta": "..." }' />
-            <p class="text-xs text-gray-400 mt-1">JSON estructurado con intro, sections, conclusion y cta. Tiene prioridad sobre el HTML.</p>
+            <p class="text-xs text-gray-400 dark:text-green-light/60 dark:text-green-light/60 mt-1">JSON estructurado con intro, sections, conclusion y cta. Tiene prioridad sobre el HTML.</p>
           </div>
         </fieldset>
 
         <!-- English Section -->
-        <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
-          <legend class="text-sm font-medium text-gray-700 px-2">English</legend>
+        <fieldset class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+          <legend class="text-sm font-medium text-gray-700 dark:text-white/70 px-2">English</legend>
           <div>
-            <label for="title_en" class="block text-sm font-medium text-gray-700 mb-1">Title (EN)</label>
-            <input id="title_en" v-model="form.title_en" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+            <label for="title_en" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Title (EN)</label>
+            <input id="title_en" v-model="form.title_en" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
           </div>
           <div>
-            <label for="excerpt_en" class="block text-sm font-medium text-gray-700 mb-1">Excerpt (EN)</label>
-            <textarea id="excerpt_en" v-model="form.excerpt_en" rows="2" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" />
+            <label for="excerpt_en" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Excerpt (EN)</label>
+            <textarea id="excerpt_en" v-model="form.excerpt_en" rows="2" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" />
           </div>
           <div>
-            <label for="content_en" class="block text-sm font-medium text-gray-700 mb-1">Content HTML (EN)</label>
+            <label for="content_en" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Content HTML (EN)</label>
             <textarea id="content_en" v-model="form.content_en" rows="6" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Content JSON (EN)</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Content JSON (EN)</label>
             <textarea v-model="form.content_json_en_raw" rows="10" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder='{ "intro": "...", "sections": [...], "conclusion": "...", "cta": "..." }' />
           </div>
         </fieldset>
 
         <!-- SEO Section -->
-        <fieldset class="border border-gray-200 rounded-xl p-5 space-y-6">
-          <legend class="text-sm font-medium text-gray-700 px-2">SEO</legend>
+        <fieldset class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-5 space-y-6">
+          <legend class="text-sm font-medium text-gray-700 dark:text-white/70 px-2">SEO</legend>
           <div class="space-y-4">
             <div>
-              <label for="edit-meta-title-es" class="block text-sm font-medium text-gray-700 mb-1">Meta título (ES)</label>
-              <input id="edit-meta-title-es" v-model="form.meta_title_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Título SEO en español (60 caracteres recomendado)" />
+              <label for="edit-meta-title-es" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Meta título (ES)</label>
+              <input id="edit-meta-title-es" v-model="form.meta_title_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Título SEO en español (60 caracteres recomendado)" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Meta title (EN)</label>
-              <input v-model="form.meta_title_en" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="SEO title in English (60 characters recommended)" />
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Meta title (EN)</label>
+              <input v-model="form.meta_title_en" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="SEO title in English (60 characters recommended)" />
             </div>
           </div>
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Meta descripción (ES)</label>
-              <textarea v-model="form.meta_description_es" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Descripción SEO en español (150-160 caracteres recomendado)" />
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Meta descripción (ES)</label>
+              <textarea v-model="form.meta_description_es" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Descripción SEO en español (150-160 caracteres recomendado)" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Meta description (EN)</label>
-              <textarea v-model="form.meta_description_en" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="SEO description in English (150-160 characters recommended)" />
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Meta description (EN)</label>
+              <textarea v-model="form.meta_description_en" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="SEO description in English (150-160 characters recommended)" />
             </div>
           </div>
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Keywords (ES)</label>
-              <input v-model="form.meta_keywords_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="cortinas inteligentes, automatización hogar, domotica" />
-              <p class="text-xs text-gray-400 mt-1">Separadas por coma. Palabras clave objetivo para SEO.</p>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Keywords (ES)</label>
+              <input v-model="form.meta_keywords_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="cortinas inteligentes, automatización hogar, domotica" />
+              <p class="text-xs text-gray-400 dark:text-green-light/60 dark:text-green-light/60 mt-1">Separadas por coma. Palabras clave objetivo para SEO.</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Keywords (EN)</label>
-              <input v-model="form.meta_keywords_en" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="smart blinds, home automation, domotics" />
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Keywords (EN)</label>
+              <input v-model="form.meta_keywords_en" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="smart blinds, home automation, domotics" />
             </div>
           </div>
         </fieldset>
 
         <!-- LinkedIn Summary -->
-        <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
-          <legend class="text-sm font-medium text-gray-700 px-2">LinkedIn</legend>
+        <fieldset class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+          <legend class="text-sm font-medium text-gray-700 dark:text-white/70 px-2">LinkedIn</legend>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Resumen LinkedIn (ES)</label>
-              <textarea v-model="form.linkedin_summary_es" rows="4" maxlength="1300" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Resumen para publicar en LinkedIn (max ~1300 caracteres)" />
-              <p class="text-xs text-gray-400 mt-1">{{ form.linkedin_summary_es.length }} / 1300</p>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Resumen LinkedIn (ES)</label>
+              <textarea v-model="form.linkedin_summary_es" rows="4" maxlength="1300" class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Resumen para publicar en LinkedIn (max ~1300 caracteres)" />
+              <p class="text-xs text-gray-400 dark:text-green-light/60 dark:text-green-light/60 mt-1">{{ form.linkedin_summary_es.length }} / 1300</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">LinkedIn Summary (EN)</label>
-              <textarea v-model="form.linkedin_summary_en" rows="4" maxlength="1300" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Summary for LinkedIn post (max ~1300 chars)" />
-              <p class="text-xs text-gray-400 mt-1">{{ form.linkedin_summary_en.length }} / 1300</p>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">LinkedIn Summary (EN)</label>
+              <textarea v-model="form.linkedin_summary_en" rows="4" maxlength="1300" class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Summary for LinkedIn post (max ~1300 chars)" />
+              <p class="text-xs text-gray-400 dark:text-green-light/60 dark:text-green-light/60 mt-1">{{ form.linkedin_summary_en.length }} / 1300</p>
             </div>
           </div>
 
           <!-- LinkedIn publish action -->
-          <div class="border-t border-gray-100 pt-4 mt-2">
+          <div class="border-t border-gray-100 dark:border-white/[0.06] pt-4 mt-2">
             <div v-if="!linkedinStatus.connected" class="flex items-center gap-3">
-              <span class="text-sm text-gray-500">LinkedIn no conectado.</span>
+              <span class="text-sm text-gray-500 dark:text-green-light/60">LinkedIn no conectado.</span>
               <button type="button" class="px-4 py-2 bg-[#0A66C2] text-white text-sm rounded-lg hover:bg-[#004182] transition-colors inline-flex items-center gap-2" @click="connectLinkedIn">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
                 Conectar LinkedIn
               </button>
             </div>
             <div v-else class="space-y-3">
-              <div class="flex items-center gap-2 text-sm text-gray-600">
+              <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-green-light/60">
                 <span class="w-2 h-2 rounded-full bg-emerald-500" />
                 Conectado como <strong>{{ linkedinStatus.profile_name }}</strong>
               </div>
@@ -198,7 +198,7 @@
                   {{ isPublishingLinkedIn ? 'Publicando...' : 'Publicar en LinkedIn' }}
                 </button>
               </div>
-              <p v-if="post?.linkedin_published_at" class="text-xs text-gray-400">
+              <p v-if="post?.linkedin_published_at" class="text-xs text-gray-400 dark:text-green-light/60">
                 Última publicación: {{ new Date(post.linkedin_published_at).toLocaleString() }}
               </p>
               <p v-if="linkedinMsg" class="text-sm text-emerald-600">{{ linkedinMsg }}</p>
@@ -208,14 +208,14 @@
         </fieldset>
 
         <!-- Cover image -->
-        <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
-          <legend class="text-sm font-medium text-gray-700 px-2">Imagen de portada</legend>
+        <fieldset class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+          <legend class="text-sm font-medium text-gray-700 dark:text-white/70 px-2">Imagen de portada</legend>
 
           <!-- File upload -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Subir archivo</label>
             <div class="flex items-center gap-3">
-              <label class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors">
+              <label class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 dark:text-white/70 hover:bg-gray-50 cursor-pointer transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                 Seleccionar imagen
                 <input type="file" accept="image/*" class="hidden" @change="handleCoverUpload" />
@@ -228,14 +228,14 @@
           <!-- OR divider -->
           <div class="flex items-center gap-3">
             <div class="flex-1 border-t border-gray-200" />
-            <span class="text-xs text-gray-400">o pegar URL externa</span>
+            <span class="text-xs text-gray-400 dark:text-green-light/60">o pegar URL externa</span>
             <div class="flex-1 border-t border-gray-200" />
           </div>
 
           <!-- URL input -->
           <div>
-            <label for="cover_image_url" class="block text-sm font-medium text-gray-700 mb-1">URL de imagen</label>
-            <input id="cover_image_url" v-model="form.cover_image_url" type="url" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://example.com/image.jpg" />
+            <label for="cover_image_url" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">URL de imagen</label>
+            <input id="cover_image_url" v-model="form.cover_image_url" type="url" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://example.com/image.jpg" />
           </div>
 
           <!-- Preview -->
@@ -247,12 +247,12 @@
           <!-- Credit -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Crédito de imagen</label>
-              <input v-model="form.cover_image_credit" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Foto de John Doe en Unsplash" />
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Crédito de imagen</label>
+              <input v-model="form.cover_image_credit" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Foto de John Doe en Unsplash" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">URL del crédito</label>
-              <input v-model="form.cover_image_credit_url" type="url" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://unsplash.com/@johndoe" />
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">URL del crédito</label>
+              <input v-model="form.cover_image_credit_url" type="url" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://unsplash.com/@johndoe" />
             </div>
           </div>
         </fieldset>
@@ -270,28 +270,28 @@
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
-          <p v-if="form.sources.length === 0" class="text-xs text-gray-400">No hay fuentes agregadas.</p>
+          <p v-if="form.sources.length === 0" class="text-xs text-gray-400 dark:text-green-light/60">No hay fuentes agregadas.</p>
         </div>
 
         <!-- Publishing options -->
-        <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
-          <legend class="text-sm font-medium text-gray-700 px-2">Publicación</legend>
+        <fieldset class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+          <legend class="text-sm font-medium text-gray-700 dark:text-white/70 px-2">Publicación</legend>
           <div class="flex flex-col gap-3">
             <label class="flex items-center gap-3 cursor-pointer">
               <input v-model="publishMode" type="radio" value="draft" name="publishMode" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-              <span class="text-sm text-gray-700">Borrador</span>
+              <span class="text-sm text-gray-700 dark:text-white/70">Borrador</span>
             </label>
             <label class="flex items-center gap-3 cursor-pointer">
               <input v-model="publishMode" type="radio" value="now" name="publishMode" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-              <span class="text-sm text-gray-700">Publicar ahora</span>
+              <span class="text-sm text-gray-700 dark:text-white/70">Publicar ahora</span>
             </label>
             <label class="flex items-center gap-3 cursor-pointer">
               <input v-model="publishMode" type="radio" value="schedule" name="publishMode" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-              <span class="text-sm text-gray-700">Programar publicación</span>
+              <span class="text-sm text-gray-700 dark:text-white/70">Programar publicación</span>
             </label>
             <div v-if="publishMode === 'schedule'" class="ml-7">
-              <input v-model="scheduledDate" type="datetime-local" class="px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
-              <p class="text-xs text-gray-400 mt-1">El post se publicará automáticamente en la fecha seleccionada.</p>
+              <input v-model="scheduledDate" type="datetime-local" class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+              <p class="text-xs text-gray-400 dark:text-green-light/60 dark:text-green-light/60 mt-1">El post se publicará automáticamente en la fecha seleccionada.</p>
             </div>
           </div>
         </fieldset>
@@ -315,7 +315,7 @@
       <!-- Preview panel: desktop (inline) -->
       <aside
         v-if="showPreview"
-        class="hidden lg:block w-[45%] flex-shrink-0 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-sm"
+        class="hidden lg:block w-[45%] flex-shrink-0 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-esmerald shadow-sm"
       >
         <div class="p-4 border-b border-gray-100 flex items-center justify-between">
           <span class="text-sm font-medium text-gray-700">Vista previa</span>
@@ -337,11 +337,11 @@
             <span class="px-3 py-1.5 rounded-full text-xs bg-emerald-50 text-emerald-700 font-medium capitalize">{{ previewCategory }}</span>
           </div>
           <h1 class="text-2xl font-light text-gray-900 mb-3 leading-tight">{{ previewTitle }}</h1>
-          <p class="text-sm text-gray-500 mb-4 leading-relaxed">{{ previewExcerpt }}</p>
+          <p class="text-sm text-gray-500 dark:text-green-light/60 mb-4 leading-relaxed">{{ previewExcerpt }}</p>
           <div v-if="coverImagePreview" class="mb-6 rounded-xl overflow-hidden border border-gray-200">
             <img :src="coverImagePreview" alt="Cover" class="w-full h-auto" />
           </div>
-          <div v-if="form.read_time_minutes" class="text-xs text-gray-400 mb-6">{{ form.read_time_minutes }} min de lectura</div>
+          <div v-if="form.read_time_minutes" class="text-xs text-gray-400 dark:text-green-light/60 mb-6">{{ form.read_time_minutes }} min de lectura</div>
           <BlogContentRenderer :content-json="previewContentJson" :html-content="previewHtmlContent" />
         </div>
       </aside>
@@ -378,11 +378,11 @@
                 <span class="px-3 py-1.5 rounded-full text-xs bg-emerald-50 text-emerald-700 font-medium capitalize">{{ previewCategory }}</span>
               </div>
               <h1 class="text-2xl font-light text-gray-900 mb-3 leading-tight">{{ previewTitle }}</h1>
-              <p class="text-sm text-gray-500 mb-4 leading-relaxed">{{ previewExcerpt }}</p>
+              <p class="text-sm text-gray-500 dark:text-green-light/60 mb-4 leading-relaxed">{{ previewExcerpt }}</p>
               <div v-if="coverImagePreview" class="mb-6 rounded-xl overflow-hidden border border-gray-200">
                 <img :src="coverImagePreview" alt="Cover" class="w-full h-auto" />
               </div>
-              <div v-if="form.read_time_minutes" class="text-xs text-gray-400 mb-6">{{ form.read_time_minutes }} min de lectura</div>
+              <div v-if="form.read_time_minutes" class="text-xs text-gray-400 dark:text-green-light/60 mb-6">{{ form.read_time_minutes }} min de lectura</div>
               <BlogContentRenderer :content-json="previewContentJson" :html-content="previewHtmlContent" />
             </div>
           </div>

@@ -10,7 +10,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="text-center py-16 text-gray-400 text-sm">
+  <div class="text-center py-16 text-gray-400 dark:text-green-light/60 text-sm">
     Redirigiendo...
   </div>
 </template>

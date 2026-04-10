@@ -102,7 +102,7 @@ describe('PanelMobileDrawer', () => {
   it('emits close and toggle-theme from the footer action', async () => {
     const wrapper = mountDrawer();
 
-    await wrapper.findAll('button')[1].trigger('click');
+    await wrapper.findAll('button')[2].trigger('click');
     await nextTick();
 
     expect(wrapper.emitted('close')).toEqual([[]]);

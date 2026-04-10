@@ -1,12 +1,12 @@
 <template>
   <div>
     <div class="flex items-center justify-between mb-8">
-      <h1 class="text-2xl font-light text-gray-900">Calendario de Blog</h1>
+      <h1 class="text-2xl font-light text-gray-900 dark:text-white">Calendario de Blog</h1>
       <div class="flex items-center gap-3">
         <NuxtLink
           :to="localePath('/panel/blog')"
-          class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl
-                 font-medium text-sm hover:bg-gray-50 transition-colors"
+          class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-green-light rounded-xl
+                 font-medium text-sm hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -27,11 +27,11 @@
     </div>
 
     <!-- Week navigation -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
-      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+    <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] mb-6">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/[0.06]">
         <button
           type="button"
-          class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
+          class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors text-gray-500 dark:text-green-light/60"
           @click="prevWeek"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,8 +39,8 @@
           </svg>
         </button>
         <div class="text-center">
-          <h2 class="text-sm font-semibold text-gray-900">{{ weekRangeLabel }}</h2>
-          <p class="text-xs text-gray-400 mt-0.5">Semana {{ weekNumber }}</p>
+          <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ weekRangeLabel }}</h2>
+          <p class="text-xs text-gray-400 dark:text-green-light/60 mt-0.5">Semana {{ weekNumber }}</p>
         </div>
         <div class="flex items-center gap-2">
           <button
@@ -52,7 +52,7 @@
           </button>
           <button
             type="button"
-            class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
+            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors text-gray-500 dark:text-green-light/60"
             @click="nextWeek"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,19 +68,19 @@
       </div>
 
       <!-- Week grid -->
-      <div v-else class="grid grid-cols-7 divide-x divide-gray-100">
+      <div v-else class="grid grid-cols-7 divide-x divide-gray-100 dark:divide-white/[0.04]">
         <div
           v-for="day in weekDays"
           :key="day.date"
           class="min-h-[160px] p-3"
-          :class="{ 'bg-emerald-50/40': day.isToday }"
+          :class="{ 'bg-emerald-50/40 dark:bg-emerald-500/10': day.isToday }"
         >
           <!-- Day header -->
           <div class="mb-2">
-            <p class="text-[10px] uppercase tracking-wider text-gray-400 font-medium">{{ day.dayName }}</p>
+            <p class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-green-light/60 font-medium">{{ day.dayName }}</p>
             <p
               class="text-sm font-semibold"
-              :class="day.isToday ? 'text-emerald-600' : 'text-gray-700'"
+              :class="day.isToday ? 'text-emerald-600' : 'text-gray-700 dark:text-white'"
             >
               {{ day.dayNumber }}
             </p>
@@ -101,13 +101,13 @@
           </div>
 
           <!-- Empty state -->
-          <p v-if="day.posts.length === 0" class="text-[10px] text-gray-300 mt-3">Sin posts</p>
+          <p v-if="day.posts.length === 0" class="text-[10px] text-gray-300 dark:text-white/20 mt-3">Sin posts</p>
         </div>
       </div>
     </div>
 
     <!-- Legend -->
-    <div class="flex items-center gap-6 text-xs text-gray-500">
+    <div class="flex items-center gap-6 text-xs text-gray-500 dark:text-green-light/60">
       <div class="flex items-center gap-1.5">
         <span class="w-3 h-3 rounded bg-emerald-100 border border-emerald-200 inline-block" />
         Publicado
@@ -211,9 +211,9 @@ function nextWeek() { weekOffset.value++; }
 function goToToday() { weekOffset.value = 0; }
 
 function postCardClass(post) {
-  if (post.calendar_status === 'published') return 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200';
-  if (post.calendar_status === 'scheduled') return 'bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-200';
-  return 'bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200';
+  if (post.calendar_status === 'published') return 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/20';
+  if (post.calendar_status === 'scheduled') return 'bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/20';
+  return 'bg-gray-50 dark:bg-white/[0.04] text-gray-600 dark:text-green-light hover:bg-gray-100 dark:hover:bg-white/[0.08] border border-gray-200 dark:border-white/[0.06]';
 }
 
 async function fetchWeekData() {

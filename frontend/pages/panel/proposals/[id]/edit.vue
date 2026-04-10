@@ -28,17 +28,17 @@
       @cancel="handleSyncCancel"
     />
     <div class="mb-8">
-      <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+      <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-gray-500 dark:text-green-light/60 hover:text-gray-700 dark:hover:text-white transition-colors">
         ← Volver a propuestas
       </NuxtLink>
     </div>
 
     <!-- Sticky header: title + investment + status -->
     <div v-if="proposal"
-         class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 transition-all">
+         class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 bg-white/80 dark:bg-esmerald-dark/80 backdrop-blur-md border-b border-gray-100 dark:border-white/[0.06] transition-all">
       <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-        <h1 class="text-lg sm:text-xl font-light text-gray-900 dark:text-gray-100 truncate">{{ proposal.title }}</h1>
-        <span v-if="proposal.total_investment > 0" class="text-sm sm:text-base font-light text-gray-400 dark:text-gray-500 whitespace-nowrap">
+        <h1 class="text-lg sm:text-xl font-light text-gray-900 dark:text-white truncate">{{ proposal.title }}</h1>
+        <span v-if="proposal.total_investment > 0" class="text-sm sm:text-base font-light text-gray-400 dark:text-green-light/60 whitespace-nowrap">
           ({{ formatInvestment(proposal.total_investment, proposal.currency) }})
         </span>
         <span class="text-xs px-2.5 py-0.5 rounded-full font-medium" :class="statusClass(proposal.status)">
@@ -48,7 +48,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="proposalStore.isLoading" class="text-center py-12 text-gray-400 text-sm">
+    <div v-if="proposalStore.isLoading" class="text-center py-12 text-gray-400 dark:text-green-light/60 text-sm">
       Cargando...
     </div>
 
@@ -59,10 +59,10 @@
       <!-- Tab: General -->
       <div v-show="activeTab === 'general'" class="max-w-2xl">
         <!-- Read-only info -->
-        <div class="bg-gray-50 rounded-xl p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+        <div class="bg-gray-50 dark:bg-white/[0.03] rounded-xl p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
             <span class="text-gray-400 text-xs">UUID</span>
-            <p class="text-gray-700 font-mono text-xs mt-0.5">{{ proposal.uuid }}</p>
+            <p class="text-gray-700 dark:text-green-light/60 font-mono text-xs mt-0.5">{{ proposal.uuid }}</p>
           </div>
           <div>
             <div class="flex items-center gap-1">
@@ -100,17 +100,17 @@
           </div>
           <div>
             <span class="text-gray-400 text-xs">Vistas</span>
-            <p class="text-gray-700 mt-0.5">{{ proposal.view_count }}</p>
+            <p class="text-gray-700 dark:text-green-light/60 mt-0.5">{{ proposal.view_count }}</p>
           </div>
           <div>
             <span class="text-gray-400 text-xs">Enviada</span>
-            <p class="text-gray-700 mt-0.5">
+            <p class="text-gray-700 dark:text-green-light/60 mt-0.5">
               {{ proposal.sent_at ? new Date(proposal.sent_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : '—' }}
             </p>
           </div>
           <div v-if="proposal.platform_onboarding_completed_at">
             <span class="text-gray-400 text-xs">Plataforma lanzada</span>
-            <p class="text-gray-700 mt-0.5 text-xs">
+            <p class="text-gray-700 dark:text-green-light/60 mt-0.5 text-xs">
               {{ new Date(proposal.platform_onboarding_completed_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
             </p>
           </div>
@@ -152,7 +152,7 @@
                   <button
                     type="button"
                     class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                    :class="proposal.is_active ? 'bg-emerald-600' : 'bg-gray-200'"
+                    :class="proposal.is_active ? 'bg-emerald-600' : 'bg-gray-200 dark:bg-white/[0.15]'"
                     @click="handleToggleActive"
                   >
                     <span
@@ -198,17 +198,17 @@
         </div>
 
         <!-- Editable form -->
-        <form class="bg-white rounded-xl shadow-sm border border-gray-100" @submit.prevent="handleUpdate">
+        <form class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06]" @submit.prevent="handleUpdate">
           <div class="p-4 sm:p-8 space-y-6">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Título</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Título</label>
             <input v-model="form.title" type="text" required
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
           </div>
           <!-- Client picker (autocomplete + snapshot fields) -->
-          <div class="space-y-4 border border-gray-100 rounded-xl p-4 bg-gray-50/30">
+          <div class="space-y-4 border border-gray-100 dark:border-white/[0.06] rounded-xl p-4 bg-gray-50/30 dark:bg-white/[0.03]">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Cliente</label>
               <ClientAutocomplete
                 v-model="form.client_id"
                 :initial-label="form.client_name"
@@ -224,9 +224,9 @@
             <!-- Placeholder warning badge -->
             <div
               v-if="proposal?.client?.is_email_placeholder"
-              class="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100"
+              class="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20"
             >
-              <span class="text-amber-700 text-xs font-medium">
+              <span class="text-amber-700 dark:text-amber-300 text-xs font-medium">
                 📧 Email pendiente — las automatizaciones de correo están pausadas para este cliente.
               </span>
             </div>
@@ -234,28 +234,28 @@
             <!-- Snapshot fields (still editable, but clearly subordinated) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Nombre snapshot</label>
+                <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Nombre snapshot</label>
                 <input id="edit-client-name" v-model="form.client_name" type="text" required
                   data-testid="edit-client-name"
-                  class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                  class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Email snapshot</label>
+                <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Email snapshot</label>
                 <input id="edit-client-email" v-model="form.client_email" type="email"
                   data-testid="edit-client-email"
-                  class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                  class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Teléfono / WhatsApp</label>
+                <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Teléfono / WhatsApp</label>
                 <input id="edit-client-phone" v-model="form.client_phone" type="tel" placeholder="+57 300 123 4567"
                   data-testid="edit-client-phone"
-                  class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                  class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Empresa</label>
+                <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Empresa</label>
                 <input id="edit-client-company" v-model="form.client_company" type="text" placeholder="Acme Inc."
                   data-testid="edit-client-company"
-                  class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                  class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               </div>
             </div>
 
@@ -267,16 +267,16 @@
                 data-testid="edit-client-propagate"
                 class="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
               />
-              <span class="text-xs text-gray-600">
+              <span class="text-xs text-gray-600 dark:text-green-light/60">
                 Actualizar el perfil del cliente con estos cambios (también se reflejarán en sus otras propuestas).
               </span>
             </label>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de proyecto</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Tipo de proyecto</label>
               <select v-model="form.project_type"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
                 <option value="">— Sin definir —</option>
                 <option value="website">Sitio Web</option>
                 <option value="ecommerce">E-commerce</option>
@@ -306,13 +306,13 @@
                 v-model="form.project_type_custom"
                 type="text"
                 placeholder="Especificar tipo de proyecto..."
-                class="mt-2 w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                class="mt-2 w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de mercado</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Tipo de mercado</label>
               <select v-model="form.market_type"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
                 <option value="">— Sin definir —</option>
                 <option value="b2b">B2B</option>
                 <option value="b2c">B2C</option>
@@ -347,14 +347,14 @@
                 v-model="form.market_type_custom"
                 type="text"
                 placeholder="Especificar tipo de mercado..."
-                class="mt-2 w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                class="mt-2 w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
               />
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Idioma</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Idioma</label>
             <select v-model="form.language"
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+              class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
               <option value="es">Español</option>
               <option value="en">English</option>
             </select>
@@ -362,14 +362,14 @@
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Inversión total</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Inversión total</label>
               <input v-model.number="form.total_investment" type="number" min="0" step="0.01"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Moneda</label>
               <select v-model="form.currency"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
                 <option value="COP">COP</option>
                 <option value="USD">USD</option>
               </select>
@@ -419,7 +419,7 @@
             </div>
             <div class="flex items-center gap-3">
               <input v-model.number="form.hosting_percent" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               <span class="text-sm text-gray-500">%</span>
             </div>
             <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-blue-50 border border-blue-200 rounded-xl overflow-hidden">
@@ -464,14 +464,14 @@
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Dcto. semestral (%)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. semestral (%)</label>
               <input v-model.number="form.hosting_discount_semiannual" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Dcto. trimestral (%)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. trimestral (%)</label>
               <input v-model.number="form.hosting_discount_quarterly" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             </div>
           </div>
           <div>
@@ -485,19 +485,19 @@
               </UiTooltip>
             </div>
             <input v-model="form.expires_at" type="datetime-local"
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Recordatorio (días después de enviar)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Recordatorio (días después de enviar)</label>
               <input v-model.number="form.reminder_days" type="number" min="1" max="30"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               <p class="text-xs text-gray-400 mt-1">Se enviará un email recordatorio al cliente X días después de enviar la propuesta.</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Urgencia (días después de enviar)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Urgencia (días después de enviar)</label>
               <input v-model.number="form.urgency_reminder_days" type="number" min="1" max="30"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               <p class="text-xs text-gray-400 mt-1">Se enviará un email de urgencia X días después de enviar (incluye descuento si % > 0).</p>
             </div>
           </div>
@@ -512,7 +512,7 @@
               </UiTooltip>
             </div>
             <input v-model.number="form.discount_percent" type="number" min="0" max="100"
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             <p class="text-xs text-gray-400 mt-1">0 = sin descuento en email de urgencia.</p>
           </div>
 
@@ -522,7 +522,7 @@
           </div>
 
           <!-- Sticky action bar -->
-          <div class="sticky bottom-0 rounded-b-xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-t border-gray-100 dark:border-gray-700 px-4 sm:px-5 py-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
+          <div class="sticky bottom-0 rounded-b-xl bg-white/95 dark:bg-esmerald/95 backdrop-blur-sm border-t border-gray-100 dark:border-white/[0.06] px-4 sm:px-5 py-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
             <div class="flex flex-wrap items-center gap-2 sm:gap-3 pr-14 sm:pr-0">
               <button type="submit" :disabled="proposalStore.isUpdating" data-testid="proposal-edit-submit"
                 class="px-4 sm:px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-100 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50">
@@ -645,7 +645,7 @@
             <template v-if="!promptIsEditing">
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="startEditPrompt"
               >
                 <PencilIcon class="w-4 h-4" />
@@ -653,7 +653,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="handleCopyPrompt"
               >
                 <DocumentDuplicateIcon class="w-4 h-4" />
@@ -661,7 +661,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="promptDownload"
               >
                 <ArrowDownTrayIcon class="w-4 h-4" />
@@ -670,7 +670,7 @@
               <button
                 v-if="promptText !== promptDefault"
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-gray-200 rounded-xl hover:bg-red-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                 @click="handleResetPrompt"
               >
                 Restaurar original
@@ -694,7 +694,7 @@
             </template>
           </div>
 
-          <div v-if="promptIsEditing" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div v-if="promptIsEditing" class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden">
             <textarea
               v-model="promptEditBuffer"
               rows="30"
@@ -702,7 +702,7 @@
             />
           </div>
 
-          <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div v-else class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden">
             <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
               <pre class="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap font-mono break-words">{{ promptText }}</pre>
             </div>
@@ -721,7 +721,7 @@
             <template v-if="!technicalPromptIsEditing">
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="startEditTechnicalPrompt"
               >
                 <PencilIcon class="w-4 h-4" />
@@ -729,7 +729,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="handleCopyTechnicalPrompt"
               >
                 <DocumentDuplicateIcon class="w-4 h-4" />
@@ -737,7 +737,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="technicalPromptDownload"
               >
                 <ArrowDownTrayIcon class="w-4 h-4" />
@@ -746,7 +746,7 @@
               <button
                 v-if="technicalPromptText !== technicalPromptDefault"
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-gray-200 rounded-xl hover:bg-red-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                 @click="handleResetTechnicalPrompt"
               >
                 Restaurar original
@@ -769,14 +769,14 @@
               </button>
             </template>
           </div>
-          <div v-if="technicalPromptIsEditing" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div v-if="technicalPromptIsEditing" class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden">
             <textarea
               v-model="technicalPromptEditBuffer"
               rows="28"
               class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 bg-transparent border-0 outline-none resize-y focus:ring-0"
             />
           </div>
-          <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div v-else class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden">
             <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
               <pre class="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap font-mono break-words">{{ technicalPromptText }}</pre>
             </div>
@@ -791,7 +791,7 @@
       <!-- Tab: JSON -->
       <div v-show="activeTab === 'json'" class="max-w-4xl">
         <!-- Current JSON (read-only) -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-6">
+        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6 mb-6">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
               <h3 class="text-sm font-medium text-gray-900">JSON de la propuesta</h3>
@@ -800,7 +800,7 @@
             <div class="flex items-center gap-2 flex-shrink-0">
               <button
                 type="button"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 :disabled="jsonExportLoading"
                 @click="refreshExportJson"
               >
@@ -811,7 +811,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="copyExportJson"
               >
                 <DocumentDuplicateIcon class="w-3.5 h-3.5" />
@@ -819,7 +819,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="downloadExportJson"
               >
                 <ArrowDownTrayIcon class="w-3.5 h-3.5" />
@@ -842,7 +842,7 @@
         </div>
 
         <!-- Import JSON -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6">
           <h3 class="text-sm font-medium text-gray-900 mb-1">Importar JSON</h3>
           <p class="text-xs text-gray-400 mb-4">Pega o sube un JSON para reemplazar el contenido de la propuesta (metadata + secciones).</p>
 
@@ -921,7 +921,7 @@
       <!-- Tab: Activity -->
       <div v-show="activeTab === 'activity'">
         <!-- Log activity form -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
+        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-5 mb-6">
           <div class="flex items-center gap-1.5 mb-3">
             <h3 class="text-sm font-semibold text-gray-700">Registrar actividad</h3>
             <UiTooltip position="right">
@@ -946,7 +946,7 @@
         </div>
 
         <!-- Timeline -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-5">
           <div class="flex items-center gap-1.5 mb-4">
             <h3 class="text-sm font-semibold text-gray-700">Historial de actividad</h3>
             <UiTooltip position="right">
@@ -1053,7 +1053,7 @@
       <!-- Tab: Sections -->
       <div v-show="activeTab === 'sections'">
         <!-- F10: Section completeness indicator -->
-        <div v-if="allSections.length" class="mb-4 bg-white rounded-xl shadow-sm border border-gray-100 px-5 py-4">
+        <div v-if="allSections.length" class="mb-4 bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] px-5 py-4">
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-1">
               <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Completitud de secciones</span>
@@ -1084,7 +1084,7 @@
           <div
             v-for="section in commercialSections"
             :key="section.id"
-            class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+            class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden"
           >
             <!-- Section header -->
             <div
@@ -1993,14 +1993,14 @@ function formatInvestment(value, currency = 'COP') {
 
 function statusClass(status) {
   const map = {
-    draft: 'bg-gray-100 text-gray-600',
-    sent: 'bg-blue-50 text-blue-700',
-    viewed: 'bg-green-50 text-green-700',
-    accepted: 'bg-emerald-50 text-emerald-700',
-    rejected: 'bg-red-50 text-red-700',
-    expired: 'bg-yellow-50 text-yellow-700',
+    draft: 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light',
+    sent: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300',
+    viewed: 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300',
+    accepted: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    rejected: 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300',
+    expired: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
   };
-  return map[status] || 'bg-gray-100 text-gray-600';
+  return map[status] || 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light';
 }
 
 // --- JSON tab ---

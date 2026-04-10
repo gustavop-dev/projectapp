@@ -66,7 +66,7 @@
             <div class="flex items-center gap-3">
               <input v-model.number="generalForm.hosting_percent" type="number" min="0" max="100"
                 class="w-32 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
-              <span class="text-sm text-gray-500">%</span>
+              <span class="text-sm text-gray-500 dark:text-green-light/60">%</span>
             </div>
           </div>
         </div>

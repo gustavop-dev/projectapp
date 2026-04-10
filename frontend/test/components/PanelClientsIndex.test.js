@@ -1,6 +1,11 @@
 global.useLocalePath = () => (path) => path;
 global.definePageMeta = jest.fn();
 
+jest.mock('vue-router', () => ({
+  useRoute: () => ({ query: {}, path: '/panel/clients' }),
+  useRouter: () => ({ replace: jest.fn() }),
+}));
+
 import { mount, flushPromises } from '@vue/test-utils';
 import PanelClientsIndex from '../../pages/panel/clients/index.vue';
 

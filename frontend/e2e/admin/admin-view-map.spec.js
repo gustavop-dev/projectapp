@@ -34,10 +34,10 @@ test.describe('Admin View Map', () => {
 
     await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByRole('heading', { name: 'Mapa de vistas' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'Mapa de vistas', level: 1 })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText('Sitio publico')).toBeVisible();
     await expect(page.getByText('Panel administrativo')).toBeVisible();
-    await expect(page.getByText('/panel/views')).toBeVisible();
+    await expect(page.getByText('/panel/views', { exact: true })).toBeVisible();
   });
 
   test('search filters results and clearing search restores the catalog', {
@@ -49,18 +49,18 @@ test.describe('Admin View Map', () => {
     });
 
     await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: 'Mapa de vistas' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'Mapa de vistas', level: 1 })).toBeVisible({ timeout: 30_000 });
 
     const search = page.getByPlaceholder('Buscar vista por nombre, URL, referencia o archivo...');
     await search.fill('/panel/views');
 
-    await expect(page.getByText('Mapa de vistas')).toBeVisible();
-    await expect(page.getByText('Inicio')).not.toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Mapa de vistas', level: 3 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Inicio', level: 3 })).not.toBeVisible();
 
     await search.fill('');
 
-    await expect(page.getByText('Inicio')).toBeVisible();
-    await expect(page.getByText('Mapa de vistas')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Inicio', level: 3 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Mapa de vistas', level: 3 })).toBeVisible();
   });
 
   test('copy reference button shows copied feedback', {
@@ -73,7 +73,7 @@ test.describe('Admin View Map', () => {
     });
 
     await page.goto('/panel/views', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: 'Mapa de vistas' })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('heading', { name: 'Mapa de vistas', level: 1 })).toBeVisible({ timeout: 30_000 });
 
     const viewCard = page.locator('article').filter({ hasText: '/panel/views' }).first();
     const copyButton = viewCard.getByTitle('Copiar referencia');

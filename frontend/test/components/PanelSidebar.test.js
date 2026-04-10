@@ -59,7 +59,7 @@ describe('PanelSidebar', () => {
   it('emits toggle-theme when the theme button is clicked', async () => {
     const wrapper = mountSidebar();
 
-    await wrapper.find('button').trigger('click');
+    await wrapper.findAll('button')[1].trigger('click');
 
     expect(wrapper.emitted('toggle-theme')).toHaveLength(1);
   });

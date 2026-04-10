@@ -91,7 +91,7 @@
         </div>
         <button
           type="button"
-          class="text-xs text-amber-700 font-medium hover:text-amber-900 transition-colors"
+          class="text-xs text-amber-700 dark:text-amber-400 font-medium hover:text-amber-900 dark:hover:text-amber-300 transition-colors"
           @click.stop="toggleAlertForm"
         >
           {{ showAlertForm ? 'Cancelar' : '+ Crear recordatorio' }}
@@ -102,15 +102,15 @@
       <div v-if="showAlertForm" class="mb-4 bg-white rounded-lg border border-amber-100 p-4 space-y-3 dark:bg-gray-800 dark:border-gray-600">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Propuesta</label>
-            <select v-model="newAlert.proposal" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-emerald-500">
+            <label class="block text-xs text-gray-500 dark:text-green-light/60 mb-1">Propuesta</label>
+            <select v-model="newAlert.proposal" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-emerald-500 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white">
               <option value="">Seleccionar...</option>
               <option v-for="p in proposalStore.proposals" :key="p.id" :value="p.id">{{ p.client_name }} — {{ p.title }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Tipo</label>
-            <select v-model="newAlert.alert_type" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-emerald-500">
+            <label class="block text-xs text-gray-500 dark:text-green-light/60 mb-1">Tipo</label>
+            <select v-model="newAlert.alert_type" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-emerald-500 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white">
               <option value="reminder">Recordatorio</option>
               <option value="followup">Seguimiento</option>
               <option value="call">Llamada</option>
@@ -119,14 +119,14 @@
             </select>
           </div>
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Fecha</label>
-            <input v-model="newAlert.alert_date" type="datetime-local" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-emerald-500" />
+            <label class="block text-xs text-gray-500 dark:text-green-light/60 mb-1">Fecha</label>
+            <input v-model="newAlert.alert_date" type="datetime-local" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-emerald-500 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white" />
           </div>
         </div>
         <div class="flex gap-3 items-end">
           <div class="flex-1">
-            <label class="block text-xs text-gray-500 mb-1">Mensaje</label>
-            <input v-model="newAlert.message" type="text" placeholder="Ej: Llamar al cliente para seguimiento..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-emerald-500" />
+            <label class="block text-xs text-gray-500 dark:text-green-light/60 mb-1">Mensaje</label>
+            <input v-model="newAlert.message" type="text" placeholder="Ej: Llamar al cliente para seguimiento..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-emerald-500 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" />
           </div>
           <button
             type="button"
@@ -155,7 +155,7 @@
               <span class="text-sm">{{ group.icon }}</span>
               <div class="min-w-0">
                 <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ group.client_name }}</span>
-                <span class="text-xs text-gray-400 ml-2">{{ group.subtitle }}</span>
+                <span class="text-xs text-gray-400 dark:text-green-light/60 ml-2">{{ group.subtitle }}</span>
                 <span v-if="group.priority === 'critical'" class="ml-2 px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">urgente</span>
                 <span v-if="group.alerts.length > 1" class="ml-2 px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
                   {{ group.alerts.length }} alertas
@@ -171,7 +171,7 @@
               </div>
               <button
                 type="button"
-                class="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                class="text-xs text-gray-400 dark:text-green-light/60 hover:text-red-500 transition-colors"
                 title="Descartar"
                 @click.stop="handleDismissAlertGroup(group)"
               >✕</button>
@@ -211,7 +211,7 @@
     <!-- Search + Filter toggle -->
     <div class="flex flex-col sm:flex-row gap-3 mb-4">
       <div class="relative flex-1 max-w-sm">
-        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-green-light/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input
@@ -243,13 +243,13 @@
 
     <!-- Empty state -->
     <div v-else-if="proposals.length === 0" class="text-center py-16 dark:text-gray-400">
-      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center">
+        <svg class="w-8 h-8 text-gray-400 dark:text-green-light/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       </div>
-      <p class="text-gray-500 text-sm">No hay propuestas{{ hasActiveFilters ? ' con los filtros seleccionados' : '' }}.</p>
+      <p class="text-gray-500 dark:text-green-light/60 text-sm">No hay propuestas{{ hasActiveFilters ? ' con los filtros seleccionados' : '' }}.</p>
     </div>
 
     <!-- Batch action bar -->
@@ -322,11 +322,11 @@
             <td class="px-3 py-4" @click.stop>
               <input type="checkbox" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" :checked="selectedIds.has(p.id)" @change="toggleSelect(p.id)" />
             </td>
-            <td class="px-4 py-4 text-xs text-gray-400 tabular-nums">#{{ p.id }}</td>
+            <td class="px-4 py-4 text-xs text-gray-400 dark:text-green-light/60 tabular-nums">#{{ p.id }}</td>
             <td class="px-6 py-4">
               <div class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ p.client_name }}</div>
               <div v-if="p.title" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">{{ p.title }}</div>
-              <div v-if="p.client_phone" class="text-[10px] text-gray-400">📱 {{ p.client_phone }}</div>
+              <div v-if="p.client_phone" class="text-[10px] text-gray-400 dark:text-green-light/60">📱 {{ p.client_phone }}</div>
             </td>
             <td class="px-6 py-4">
               <template v-if="(p.available_transitions || []).length">
@@ -359,7 +359,7 @@
             </td>
             <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
               <template v-if="isInactive(p)">
-                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700">
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-300">
                   {{ inactiveDays(p) }}d sin actividad
                 </span>
               </template>
@@ -368,9 +368,9 @@
               </template>
               <template v-else-if="p.created_at">
                 {{ timeAgo(p.created_at) }}
-                <span class="text-[10px] text-gray-300 ml-1">(creada)</span>
+                <span class="text-[10px] text-gray-300 dark:text-green-light/60 ml-1">(creada)</span>
               </template>
-              <span v-else class="text-gray-300">—</span>
+              <span v-else class="text-gray-300 dark:text-green-light/60">—</span>
             </td>
             <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 tabular-nums">{{ p.view_count }}</td>
             <td class="px-6 py-4 text-center">
@@ -410,12 +410,12 @@
               <span v-else-if="p.heat_score > 0" class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white" :class="heatScoreColor(p.heat_score)">
                 {{ p.heat_score }}
               </span>
-              <span v-else class="text-gray-300 text-xs">—</span>
+              <span v-else class="text-gray-300 dark:text-green-light/60 text-xs">—</span>
             </td>
             <td class="px-6 py-4">
               <div class="flex items-center gap-2">
                 <button
-                  class="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+                  class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors text-gray-400 dark:text-green-light/60 hover:text-gray-600 dark:hover:text-white"
                   @click.stop="actionsModalProposal = p"
                 >
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -436,14 +436,14 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="actionsModalProposal = null"
         >
-          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full dark:bg-gray-800">
+          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full dark:bg-esmerald dark:border dark:border-white/[0.06]">
             <!-- Header -->
-            <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
               <div>
-                <h3 class="text-base font-bold text-gray-900 dark:text-gray-100 truncate">{{ actionsModalProposal.title }}</h3>
-                <p class="text-xs text-gray-500 mt-0.5">{{ actionsModalProposal.client_name }}</p>
+                <h3 class="text-base font-bold text-gray-900 dark:text-white truncate">{{ actionsModalProposal.title }}</h3>
+                <p class="text-xs text-gray-500 dark:text-green-light/60 mt-0.5">{{ actionsModalProposal.client_name }}</p>
               </div>
-              <button class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors" @click="actionsModalProposal = null">
+              <button class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 dark:text-green-light/60 hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors" @click="actionsModalProposal = null">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -454,20 +454,20 @@
                   :is="action.href ? 'a' : action.to ? 'NuxtLink' : 'button'"
                   v-bind="action.href ? { href: action.href, target: '_blank', rel: 'noopener noreferrer' } : action.to ? { to: action.to } : {}"
                   class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors group"
-                  :class="action.danger ? 'hover:bg-red-50' : 'hover:bg-gray-50'"
+                  :class="action.danger ? 'hover:bg-red-50 dark:hover:bg-red-500/10' : 'hover:bg-gray-50 dark:hover:bg-white/[0.04]'"
                   @click="action.onClick ? action.onClick() : null"
                 >
                   <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
-                    :class="action.danger ? 'bg-red-50 text-red-500' : action.bgClass || 'bg-gray-100'"
+                    :class="action.danger ? 'bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400' : action.bgClass || 'bg-gray-100 dark:bg-white/[0.06]'"
                   >
                     {{ action.icon }}
                   </span>
                   <div class="flex-1 min-w-0">
-                    <span class="text-sm font-medium block" :class="action.danger ? 'text-red-600' : action.textClass || 'text-gray-800'">{{ action.label }}</span>
+                    <span class="text-sm font-medium block" :class="action.danger ? 'text-red-600 dark:text-red-400' : action.textClass || 'text-gray-800 dark:text-white'">{{ action.label }}</span>
                   </div>
                   <!-- Info tooltip -->
                   <div class="relative flex-shrink-0 group/info">
-                    <span class="w-6 h-6 rounded-full bg-gray-100 group-hover/info:bg-emerald-50 flex items-center justify-center text-gray-400 group-hover/info:text-emerald-600 text-[11px] cursor-help transition-colors">?</span>
+                    <span class="w-6 h-6 rounded-full bg-gray-100 dark:bg-white/[0.06] group-hover/info:bg-emerald-50 dark:group-hover/info:bg-emerald-500/10 flex items-center justify-center text-gray-400 dark:text-green-light/60 group-hover/info:text-emerald-600 text-[11px] cursor-help transition-colors">?</span>
                     <div class="absolute right-full top-1/2 -translate-y-1/2 mr-2 w-52 bg-gray-900 text-white text-xs rounded-xl px-3 py-2 shadow-lg opacity-0 pointer-events-none group-hover/info:opacity-100 group-hover/info:pointer-events-auto transition-opacity z-10 leading-relaxed">
                       {{ action.info }}
                       <div class="absolute top-1/2 -translate-y-1/2 -right-1 w-2 h-2 bg-gray-900 rotate-45" />
@@ -490,10 +490,10 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="sendConfirmId = null"
         >
-          <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center dark:bg-gray-800">
+          <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center dark:bg-esmerald dark:border dark:border-white/[0.06]">
             <div class="text-4xl mb-3">📤</div>
-            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">¿Enviar esta propuesta?</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Se enviará un email al cliente con el enlace de la propuesta.</p>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">¿Enviar esta propuesta?</h3>
+            <p class="text-sm text-gray-500 dark:text-green-light/60 mb-6">Se enviará un email al cliente con el enlace de la propuesta.</p>
             <div class="flex gap-3 justify-center">
               <button
                 class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors"
@@ -503,7 +503,7 @@
                 {{ isSending ? 'Enviando...' : 'Sí, enviar' }}
               </button>
               <button
-                class="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
+                class="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors dark:bg-white/[0.06] dark:text-green-light dark:hover:bg-white/[0.1]"
                 @click="sendConfirmId = null"
               >
                 Cancelar
@@ -522,18 +522,18 @@
           class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
           @click.self="quickLogProposal = null"
         >
-          <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 dark:bg-gray-800">
+          <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 dark:bg-esmerald dark:border dark:border-white/[0.06]">
             <div class="flex items-center justify-between mb-4">
-              <h3 class="text-base font-bold text-gray-900 dark:text-gray-100">Registrar actividad</h3>
-              <button class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors" @click="quickLogProposal = null">
+              <h3 class="text-base font-bold text-gray-900 dark:text-white">Registrar actividad</h3>
+              <button class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 dark:text-green-light/60 hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors" @click="quickLogProposal = null">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <p class="text-xs text-gray-500 mb-4">{{ quickLogProposal.client_name }} — {{ quickLogProposal.title }}</p>
+            <p class="text-xs text-gray-500 dark:text-green-light/60 mb-4">{{ quickLogProposal.client_name }} — {{ quickLogProposal.title }}</p>
             <div class="space-y-3">
               <div>
-                <label class="block text-xs text-gray-500 mb-1">Tipo de actividad</label>
-                <select v-model="quickLogType" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-emerald-500">
+                <label class="block text-xs text-gray-500 dark:text-green-light/60 mb-1">Tipo de actividad</label>
+                <select v-model="quickLogType" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-emerald-500 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white">
                   <option value="call">📞 Llamada</option>
                   <option value="meeting">🤝 Reunión</option>
                   <option value="followup">📩 Seguimiento</option>
@@ -541,8 +541,8 @@
                 </select>
               </div>
               <div>
-                <label class="block text-xs text-gray-500 mb-1">Descripción</label>
-                <input v-model="quickLogMessage" type="text" placeholder="Ej: Llamada de seguimiento, cliente interesado..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-emerald-500" @keyup.enter="confirmQuickLog" />
+                <label class="block text-xs text-gray-500 dark:text-green-light/60 mb-1">Descripción</label>
+                <input v-model="quickLogMessage" type="text" placeholder="Ej: Llamada de seguimiento, cliente interesado..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-emerald-500 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" @keyup.enter="confirmQuickLog" />
               </div>
             </div>
             <div class="flex gap-3 mt-5">
@@ -554,7 +554,7 @@
                 {{ isQuickLogging ? 'Guardando...' : 'Registrar' }}
               </button>
               <button
-                class="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
+                class="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors dark:bg-white/[0.06] dark:text-green-light dark:hover:bg-white/[0.1]"
                 @click="quickLogProposal = null"
               >
                 Cancelar
@@ -566,14 +566,14 @@
     </Teleport>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-gray-700">
-        <span class="text-xs text-gray-400">{{ filteredProposals.length }} propuestas</span>
+      <div v-if="totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-white/[0.06]">
+        <span class="text-xs text-gray-400 dark:text-green-light/60">{{ filteredProposals.length }} propuestas</span>
         <div class="flex gap-1">
           <button
             v-for="page in totalPages"
             :key="page"
             class="w-8 h-8 rounded-lg text-xs font-medium transition-colors"
-            :class="currentPage === page ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:bg-gray-100'"
+            :class="currentPage === page ? 'bg-emerald-600 text-white dark:bg-lemon dark:text-esmerald-dark' : 'text-gray-500 dark:text-green-light/60 hover:bg-gray-100 dark:hover:bg-white/[0.04]'"
             @click="currentPage = page"
           >
             {{ page }}
@@ -589,8 +589,8 @@
           v-if="statusToast"
           class="fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium pointer-events-none"
           :class="statusToast.type === 'success'
-            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-            : 'bg-red-50 text-red-700 border border-red-200'"
+            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20'
+            : 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/20'"
         >
           <svg v-if="statusToast.type === 'success'" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -881,8 +881,8 @@ const proposalActions = computed(() => {
     label: 'Editar propuesta',
     info: 'Abre el editor para modificar secciones, precios y contenido de la propuesta.',
     to: `/panel/proposals/${p.id}/edit`,
-    bgClass: 'bg-gray-100',
-    textClass: 'text-gray-800',
+    bgClass: 'bg-gray-100 dark:bg-white/[0.06]',
+    textClass: 'text-gray-800 dark:text-white',
     onClick: () => { actionsModalProposal.value = null; },
   });
 
@@ -892,8 +892,8 @@ const proposalActions = computed(() => {
     label: 'Ver preview',
     info: 'Abre la propuesta tal como la ve el cliente, sin registrar vistas.',
     href: `/proposal/${p.uuid}?preview=1`,
-    bgClass: 'bg-purple-50 text-purple-600',
-    textClass: 'text-purple-700',
+    bgClass: 'bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400',
+    textClass: 'text-purple-700 dark:text-purple-300',
   });
 
   if (p.status === 'draft') {
@@ -902,8 +902,8 @@ const proposalActions = computed(() => {
       icon: '📤',
       label: 'Enviar al cliente',
       info: 'Envía un email al cliente con el enlace de la propuesta. Cambia el estado a "enviada".',
-      bgClass: 'bg-blue-50 text-blue-600',
-      textClass: 'text-blue-700',
+      bgClass: 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400',
+      textClass: 'text-blue-700 dark:text-blue-300',
       onClick: () => { actionsModalProposal.value = null; handleSend(p.id); },
     });
   }
@@ -914,8 +914,8 @@ const proposalActions = computed(() => {
       icon: '🔄',
       label: 'Re-enviar email',
       info: 'Envía nuevamente el email al cliente. Mantiene la misma fecha de expiración.',
-      bgClass: 'bg-blue-50 text-blue-600',
-      textClass: 'text-blue-700',
+      bgClass: 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400',
+      textClass: 'text-blue-700 dark:text-blue-300',
       onClick: () => { actionsModalProposal.value = null; handleResend(p.id); },
     });
   }
@@ -925,8 +925,8 @@ const proposalActions = computed(() => {
     icon: copiedId.value === p.id ? '✅' : '🔗',
     label: copiedId.value === p.id ? '¡Enlace copiado!' : 'Copiar enlace',
     info: 'Copia el enlace público de la propuesta al portapapeles para compartir manualmente.',
-    bgClass: copiedId.value === p.id ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100',
-    textClass: copiedId.value === p.id ? 'text-emerald-600' : 'text-gray-800',
+    bgClass: copiedId.value === p.id ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-gray-100 dark:bg-white/[0.06]',
+    textClass: copiedId.value === p.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-800 dark:text-white',
     onClick: () => { handleCopyLink(p); },
   });
 
@@ -936,8 +936,8 @@ const proposalActions = computed(() => {
     label: 'Enviar por WhatsApp',
     info: 'Abre WhatsApp con un mensaje pre-escrito incluyendo el enlace de la propuesta.',
     href: buildWhatsAppUrl(p),
-    bgClass: 'bg-green-50 text-green-600',
-    textClass: 'text-green-700',
+    bgClass: 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400',
+    textClass: 'text-green-700 dark:text-green-300',
   });
 
   actions.push({
@@ -945,8 +945,8 @@ const proposalActions = computed(() => {
     icon: '📝',
     label: 'Registrar actividad',
     info: 'Registra rápidamente una llamada, reunión o nota sin entrar a la propuesta.',
-    bgClass: 'bg-teal-50 text-teal-600',
-    textClass: 'text-teal-700',
+    bgClass: 'bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-400',
+    textClass: 'text-teal-700 dark:text-teal-300',
     onClick: () => { actionsModalProposal.value = null; openQuickLog(p); },
   });
 
@@ -955,8 +955,8 @@ const proposalActions = computed(() => {
     icon: '📋',
     label: 'Duplicar propuesta',
     info: 'Crea una copia exacta de esta propuesta para reutilizar con otro cliente.',
-    bgClass: 'bg-indigo-50 text-indigo-600',
-    textClass: 'text-indigo-700',
+    bgClass: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400',
+    textClass: 'text-indigo-700 dark:text-indigo-300',
     onClick: () => { actionsModalProposal.value = null; handleDuplicate(p.id); },
   });
 
@@ -967,8 +967,8 @@ const proposalActions = computed(() => {
     info: p.is_active
       ? 'Desactiva la propuesta. El cliente no podrá acceder al enlace.'
       : 'Reactiva la propuesta para que el cliente pueda verla nuevamente.',
-    bgClass: p.is_active ? 'bg-yellow-50 text-yellow-600' : 'bg-emerald-50 text-emerald-600',
-    textClass: p.is_active ? 'text-yellow-700' : 'text-emerald-700',
+    bgClass: p.is_active ? 'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400',
+    textClass: p.is_active ? 'text-yellow-700 dark:text-yellow-300' : 'text-emerald-700 dark:text-emerald-300',
     onClick: () => { actionsModalProposal.value = null; handleToggleActive(p.id, p.is_active); },
   });
 
@@ -1265,16 +1265,16 @@ function handleDelete(id) {
 
 function statusClass(status) {
   const map = {
-    draft: 'bg-gray-100 text-gray-600',
-    sent: 'bg-blue-50 text-blue-700',
-    viewed: 'bg-green-50 text-green-700',
-    accepted: 'bg-emerald-50 text-emerald-700',
-    finished: 'bg-violet-50 text-violet-700',
-    rejected: 'bg-red-50 text-red-700',
-    negotiating: 'bg-amber-50 text-amber-700',
-    expired: 'bg-yellow-50 text-yellow-700',
+    draft: 'bg-gray-100 text-gray-600 dark:bg-white/[0.06] dark:text-green-light',
+    sent: 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300',
+    viewed: 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300',
+    accepted: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+    finished: 'bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300',
+    rejected: 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300',
+    negotiating: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',
+    expired: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-300',
   };
-  return map[status] || 'bg-gray-100 text-gray-600';
+  return map[status] || 'bg-gray-100 text-gray-600 dark:bg-white/[0.06] dark:text-green-light';
 }
 
 function isInactive(p) {
@@ -1293,8 +1293,8 @@ function inactiveDays(p) {
 function heatScoreColor(score) {
   if (score >= 8) return 'bg-red-500';
   if (score >= 5) return 'bg-orange-400';
-  if (score >= 2) return 'bg-yellow-400 text-gray-800';
-  return 'bg-gray-300 text-gray-700';
+  if (score >= 2) return 'bg-yellow-400 text-gray-800 dark:text-esmerald-dark';
+  return 'bg-gray-300 text-gray-700 dark:bg-white/[0.15] dark:text-white';
 }
 
 function formatInvestmentTime(seconds) {
