@@ -4158,6 +4158,7 @@ class TestCompleteProjectStage:
         )
         assert stage.completed_at is not None
 
+    @freeze_time('2026-04-10 12:00:00')
     def test_clears_alert_timestamps(self, admin_client, accepted_proposal):
         from content.models import ProposalProjectStage
 

@@ -299,6 +299,7 @@ class TestExpireStaleProposalsTask:
         import content.tasks as tasks_module
         tasks_module.expire_stale_proposals.call_local()
 
+        assert BusinessProposal.objects.filter(status='expired').count() == 1
         mock_info.assert_any_call('Expired %d stale proposals.', 1)
 
     @freeze_time('2026-03-10 10:00:00')
@@ -2088,7 +2089,7 @@ class TestNotifyProposalStageDeadlines:
         import content.tasks as tasks_module
         tasks_module.notify_proposal_stage_deadlines.call_local()
 
-        mock_process.assert_not_called()
+        assert mock_process.call_count == 0
 
     @patch(
         'content.services.proposal_stage_tracker.ProposalStageTracker.process',
@@ -2109,8 +2110,9 @@ class TestNotifyProposalStageDeadlines:
         import content.tasks as tasks_module
         tasks_module.notify_proposal_stage_deadlines.call_local()
 
-        mock_process.assert_not_called()
+        assert mock_process.call_count == 0
 
+    @freeze_time('2026-04-10 12:00:00')
     @patch(
         'content.services.proposal_stage_tracker.ProposalStageTracker.process',
     )
@@ -2130,7 +2132,7 @@ class TestNotifyProposalStageDeadlines:
         import content.tasks as tasks_module
         tasks_module.notify_proposal_stage_deadlines.call_local()
 
-        mock_process.assert_not_called()
+        assert mock_process.call_count == 0
 
     @patch(
         'content.services.proposal_stage_tracker.ProposalStageTracker.process',
@@ -2149,7 +2151,7 @@ class TestNotifyProposalStageDeadlines:
         import content.tasks as tasks_module
         tasks_module.notify_proposal_stage_deadlines.call_local()
 
-        mock_process.assert_not_called()
+        assert mock_process.call_count == 0
 
     @patch(
         'content.tasks.logger.exception',
@@ -2174,6 +2176,8 @@ class TestNotifyProposalStageDeadlines:
         import content.tasks as tasks_module
         tasks_module.notify_proposal_stage_deadlines.call_local()
 
+        assert mock_process.call_count == 1
+        assert mock_log_exception.call_count == 1
         mock_process.assert_called_once_with(proposal)
         mock_log_exception.assert_called_once()
 

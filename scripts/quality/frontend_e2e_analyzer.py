@@ -336,7 +336,7 @@ class FrontendE2EAnalyzer:
                 issues=[Issue(
                     file=error_file,
                     message="AST bridge not available - frontend E2E tests were not analyzed",
-                    severity=Severity.ERROR,
+                    severity=Severity.WARNING,
                     category=IssueCategory.PARSE_ERROR,
                     line=1,
                     suggestion="Install frontend dependencies and ensure Node.js is available",

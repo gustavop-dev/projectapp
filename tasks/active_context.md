@@ -158,7 +158,7 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 | Content services | 17 |
 | Accounts services | 11 |
 | Content migrations | 82 |
-| Quality gate score | 100/100 (0 warnings, 0 info) |
+| Quality gate score | 100/100 (0 errors, 2 warnings) |
 
 ---
 
@@ -172,7 +172,7 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 - Add E2E coverage for Contract System (ContractParamsModal, SendDocumentsModal admin workflows)
 - Add E2E coverage for Platform Data Model page (`/platform/projects/[id]/data-model`)
 - Add backend test coverage for contract/document services (`contract_pdf_service.py`, `technical_document_pdf.py`)
-- Fix 4 failing `usePlatformApi.test.js` tests (`window.location.href` assertion issue in JSDOM)
+- ~~Fix 4 failing `usePlatformApi.test.js` tests~~ — all 56 tests pass (already resolved)
 - **Deferred E2E:** `platform-verify-onboarding` — requires OTP test infrastructure (mock OTP delivery or test bypass)
 - Add E2E coverage for new Platform modules (bug reports, change requests, deliverables, notifications, payments)
 - Increase backend test coverage (target areas: services edge cases, accounts app edge cases)

@@ -253,6 +253,7 @@ class TestProposalShareLinkStr:
         assert 'pending' in result
 
 
+@freeze_time('2026-04-10 12:00:00')
 class TestProposalAlertModel:
     def test_save_auto_assigns_priority_from_alert_type(self, proposal):
         alert = ProposalAlert.objects.create(
