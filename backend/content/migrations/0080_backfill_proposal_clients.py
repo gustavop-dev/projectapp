@@ -146,8 +146,7 @@ def forwards(apps, schema_editor):
                         existing_user.pk, normalized, existing_profile.role, proposal.pk,
                     )
                     profile = None
-
-            if profile is None:
+            elif profile is None:
                 # No matching user — create a fresh User + profile from the email.
                 first_name, last_name = _split_name(proposal.client_name)
                 user = _create_user(
@@ -165,8 +164,6 @@ def forwards(apps, schema_editor):
                 )
                 created_real += 1
 
-            cache[normalized] = profile.pk
-
         # Empty email or admin collision — placeholder.
         if profile is None:
             profile = _generate_placeholder_user(
@@ -176,6 +173,9 @@ def forwards(apps, schema_editor):
                 phone=proposal.client_phone,
             )
             created_placeholder += 1
+
+        if normalized:
+            cache[normalized] = profile.pk
 
         BusinessProposal.objects.filter(pk=proposal.pk).update(client_id=profile.pk)
 
