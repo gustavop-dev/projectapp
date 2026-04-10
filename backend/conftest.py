@@ -7,7 +7,7 @@ from rest_framework.test import APIClient
 # Bar widths: per-file bars use MINI, the TOTAL row uses WIDE
 _MINI_W = 13
 _WIDE_W = 15
-_APP_NAMES = ("content", "accounts")
+_APP_NAMES = ("content", "accounts", "projectapp")
 
 
 def _color_for(pct):
@@ -53,7 +53,8 @@ def pytest_configure(config):
 @pytest.hookimpl(trylast=True)
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
     """Custom coverage report with per-file table and Top-N focus footer."""
-    cov_file = os.path.join(os.path.dirname(__file__), ".coverage")
+    root_dir = os.path.dirname(__file__)
+    cov_file = os.path.join(root_dir, ".coverage")
     if not os.path.exists(cov_file):
         return
 
@@ -70,8 +71,13 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         return
 
     for filepath in measured:
-        norm = filepath.replace("\\", "/")
-        if not any(app in norm for app in _APP_NAMES) or "/tests/" in norm:
+        try:
+            short = os.path.relpath(filepath, root_dir).replace("\\", "/")
+        except ValueError:
+            continue
+        if not short.startswith(tuple(f"{app}/" for app in _APP_NAMES)):
+            continue
+        if "/tests/" in short or "/migrations/" in short:
             continue
         try:
             analysis = cov._analyze(filepath)
@@ -80,12 +86,6 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
                 continue
             missing = len(analysis.missing)
             pct = (stmts - missing) / stmts * 100
-            idx = -1
-            for app in _APP_NAMES:
-                found = norm.find(app)
-                if found >= 0 and (idx < 0 or found < idx):
-                    idx = found
-            short = norm[idx:] if idx >= 0 else norm
             results.append({"path": short, "stmts": stmts, "missing": missing, "pct": pct})
         except Exception:
             continue

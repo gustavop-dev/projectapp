@@ -212,6 +212,7 @@
               <ClientAutocomplete
                 v-model="form.client_id"
                 :initial-label="form.client_name"
+                test-id="proposal-edit-client-autocomplete"
                 @select="onClientSelected"
                 @create-new="onCreateInlineClient"
               />
@@ -234,22 +235,26 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">Nombre snapshot</label>
-                <input v-model="form.client_name" type="text" required
+                <input id="edit-client-name" v-model="form.client_name" type="text" required
+                  data-testid="edit-client-name"
                   class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">Email snapshot</label>
-                <input v-model="form.client_email" type="email"
+                <input id="edit-client-email" v-model="form.client_email" type="email"
+                  data-testid="edit-client-email"
                   class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">Teléfono / WhatsApp</label>
-                <input v-model="form.client_phone" type="tel" placeholder="+57 300 123 4567"
+                <input id="edit-client-phone" v-model="form.client_phone" type="tel" placeholder="+57 300 123 4567"
+                  data-testid="edit-client-phone"
                   class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">Empresa</label>
-                <input v-model="form.client_company" type="text" placeholder="Acme Inc."
+                <input id="edit-client-company" v-model="form.client_company" type="text" placeholder="Acme Inc."
+                  data-testid="edit-client-company"
                   class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               </div>
             </div>
@@ -259,6 +264,7 @@
               <input
                 v-model="form.propagate_client_updates"
                 type="checkbox"
+                data-testid="edit-client-propagate"
                 class="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
               />
               <span class="text-xs text-gray-600">
@@ -518,7 +524,7 @@
           <!-- Sticky action bar -->
           <div class="sticky bottom-0 rounded-b-xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-t border-gray-100 dark:border-gray-700 px-4 sm:px-5 py-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
             <div class="flex flex-wrap items-center gap-2 sm:gap-3 pr-14 sm:pr-0">
-              <button type="submit" :disabled="proposalStore.isUpdating"
+              <button type="submit" :disabled="proposalStore.isUpdating" data-testid="proposal-edit-submit"
                 class="px-4 sm:px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-100 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50">
                 {{ proposalStore.isUpdating ? 'Guardando...' : 'Guardar Cambios' }}
               </button>

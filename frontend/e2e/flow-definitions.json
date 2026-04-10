@@ -1,6 +1,6 @@
 {
-  "version": "2.15.0",
-  "lastUpdated": "2026-04-09",
+  "version": "2.16.0",
+  "lastUpdated": "2026-04-10",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1381,6 +1381,16 @@
       "description": "Dashboard tracking email send/delivery/bounce rates for all proposal-related automated emails. Accessible from /panel/proposals/email-deliverability.",
       "expectedSpecs": 1
     },
+    "admin-view-map": {
+      "name": "Admin View Map",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P4",
+      "description": "Open the panel route inventory, filter grouped views, and copy route references for support and QA communication.",
+      "expectedSpecs": 1
+    },
     "public-landing-software": {
       "name": "Landing Software Development",
       "module": "public",
@@ -1647,16 +1657,6 @@
       ],
       "priority": "P2",
       "description": "Create a proposal without a client email — backend generates a placeholder email and all automations are paused for that client.",
-      "expectedSpecs": 1
-    },
-    "admin-client-update-profile": {
-      "name": "Admin Client Update Profile",
-      "module": "admin",
-      "roles": [
-        "admin"
-      ],
-      "priority": "P2",
-      "description": "Update an existing client's profile (name, email, company, phone) from /panel/clients/:id/edit. Optionally propagate changes to all linked proposal snapshots via the propagate checkbox.",
       "expectedSpecs": 1
     },
     "admin-proposal-update-client": {

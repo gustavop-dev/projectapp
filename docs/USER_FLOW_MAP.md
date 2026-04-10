@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.14.0
-> **Last updated:** 2026-04-09
+> **Version:** 2.16.0
+> **Last updated:** 2026-04-10
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -1752,7 +1752,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `public-home` | public | guest | P1 | ✅ Covered | `e2e/public/public-home.spec.js` |
 | `public-portfolio` | public | guest | P2 | ✅ Covered | `e2e/public/public-pages.spec.js` |
 | `public-portfolio-detail` | public | guest | P2 | ✅ Covered | `e2e/public/public-portfolio-detail.spec.js` |
-| `public-about-us` | public | guest | P3 | ✅ Covered | `e2e/public/public-pages.spec.js` |
+| `public-about-us` | public | guest | P3 | 🗄️ Archived | — (page removed from navigation) |
 | `public-landing-web-design` | public | guest | P2 | ✅ Covered | `e2e/public/public-pages.spec.js` |
 | `public-contact-submit` | public | guest | P1 | ✅ Covered | `e2e/public/public-contact.spec.js` |
 | `blog-list` | blog | guest | P2 | ✅ Covered | `e2e/blog/blog-list.spec.js` |
@@ -1828,7 +1828,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-negotiate` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-respond.spec.js` |
 | `admin-proposal-quick-send` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-list.spec.js` |
 | `admin-proposal-quick-log` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-quick-log.spec.js` |
-| `proposal-calculator-timeline-impact` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-calculator-timeline.spec.js` |
+| `proposal-calculator-timeline` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-calculator-timeline.spec.js` |
 | `proposal-discount-multi-section` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-discount-multi-section.spec.js` |
 | `proposal-onboarding-mobile-swipe` | proposal | guest | P3 | ✅ Covered | `e2e/proposal/proposal-onboarding-mobile-swipe.spec.js` |
 | `proposal-og-meta-personalized` | proposal | guest | P3 | ✅ Covered | `e2e/proposal/proposal-og-meta-personalized.spec.js` |
@@ -1856,6 +1856,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
 | `admin-email-deliverability` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-email-deliverability.spec.js` |
+| `admin-view-map` | admin | admin | P4 | ✅ Covered | `e2e/admin/admin-view-map.spec.js` |
 | `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `admin-send-proposal-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
 | `public-landing-software` | public | guest | P3 | ✅ Covered | `e2e/public/public-landing-software.spec.js` |
@@ -1889,13 +1890,13 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 
 ### Summary
 
-- **Total flows:** 132
-- **P1 (Critical):** 26
-- **P2 (High):** 80
-- **P3 (Medium):** 23
-- **P4 (Nice-to-have):** 2
-- **Covered (full):** 111 (84%)
-- **Backend-only:** 10 (8%) — system-triggered alerts and automation covered by backend unit tests
+- **Total flows:** 141
+- **P1 (Critical):** 29
+- **P2 (High):** 90
+- **P3 (Medium):** 19
+- **P4 (Nice-to-have):** 1
+- **Covered (full):** 129 (91%)
+- **Backend-only:** 10 (7%) — system-triggered alerts and automation covered by backend unit tests
 - **Partial:** 0 (0%)
 - **Missing:** 0 (0%)
 - **Deferred:** 0
@@ -2915,31 +2916,12 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 
 ### 12.1 Admin Client Profile Update
 
-#### FLOW: `admin-client-update-profile`
+No active browser flow is registered for client profile editing at this time.
 
-- **Module:** admin
-- **Role:** admin
-- **Priority:** P2
-- **Routes:** `/panel/clients/:id/edit`
-- **API:** `PATCH /api/proposals/client-profiles/:id/` with optional `propagate_client_updates=true`
-- **Frontend pages involved:** `/panel/clients/:id/edit`
-- **Description:** Admin edits an existing client's profile (name, email, company, phone) and optionally propagates the changes to the snapshot fields on all linked proposals. If propagate is checked, `proposal_client_service.update_client_profile()` runs a bulk update on all `BusinessProposal` rows linked to that client.
-- **Steps:**
-  1. Admin opens `/panel/clients/` → locates a client → clicks the edit icon.
-  2. Edit page loads with current name, email, company, phone pre-filled.
-  3. Admin modifies one or more fields (e.g., corrects a typo in the email).
-  4. "Propagar cambios a propuestas vinculadas" checkbox is visible (default unchecked).
-  5. Admin checks the propagate checkbox.
-  6. Admin clicks "Guardar cambios".
-  7. `PATCH /api/proposals/client-profiles/:id/` is called with `propagate_client_updates: true`.
-  8. Backend updates the `UserProfile` + bulk-updates `client_name`/`client_email`/`client_phone` on all linked proposals.
-  9. Success toast renders; admin is redirected back to `/panel/clients/`.
-- **Branches:**
-  - [Branch A — Without propagate] Admin unchecks the propagate option → only the `UserProfile` is updated; existing proposal snapshots keep old values.
-  - [Branch B — Email becomes placeholder domain] If the new email ends with `@temp.example.com`, the placeholder badge re-appears on linked proposals.
-  - [Branch C — Validation error] Empty name or malformed email → form shows inline error; no PATCH is made.
-- **Coverage:** ❌ Not covered — spec to be written
-- **Suggested Spec:** `e2e/admin/admin-client-update-profile.spec.js`
+- **Current panel surface:** `/panel/clients/` supports list, filter, expand, standalone create, and orphan delete.
+- **Missing UI route:** `/panel/clients/:id/edit` is not implemented in `frontend/pages/panel/clients/` as of 2026-04-10.
+- **Backend capability:** `PATCH /api/proposals/client-profiles/:id/` exists and is covered by backend tests, but there is no current panel route that exposes it as a user journey.
+- **E2E expectation:** none until a real panel edit surface exists.
 
 ### 12.2 Admin Proposal Re-assign Client
 
@@ -2965,12 +2947,277 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — New client has placeholder email] Autocomplete badge shows "Sin email real"; proposal automations are paused for this client until a real email is provided.
   - [Branch B — Client cleared without selection] Autocomplete input left empty → proposal save fails validation (client is required for existing proposals).
-- **Coverage:** ❌ Not covered — spec to be written
-- **Suggested Spec:** `e2e/admin/admin-proposal-update-client.spec.js`
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-update-client.spec.js`
 
 ### 12.3 New Flows Coverage Index
 
 | Flow ID | Module | Role | Priority | Status | Suggested Spec |
 |---------|--------|------|----------|--------|----------------|
-| `admin-client-update-profile` | admin | admin | P2 | ❌ Not covered | `e2e/admin/admin-client-update-profile.spec.js` |
-| `admin-proposal-update-client` | admin | admin | P2 | ❌ Not covered | `e2e/admin/admin-proposal-update-client.spec.js` |
+| `admin-proposal-update-client` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-update-client.spec.js` |
+
+---
+
+## 13. Audit Alignment Flows (v2.16.0)
+
+> Retro-documented browser flows that were already registered in `frontend/e2e/flow-definitions.json` and tagged in Playwright specs, but did not yet have full headed entries in this markdown map. Also adds the new `/panel/views` admin reference flow introduced during the audit.
+
+### 13.1 Proposal Audit Additions
+
+#### FLOW: `proposal-countdown-realtime`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P3
+- **Routes:** `/proposal/:uuid`
+- **Description:** When a proposal expires within 48 hours, the countdown switches from day-based copy to a live HH:MM timer that updates on the client without reloading the page.
+- **Steps:**
+  1. Client opens a proposal whose `expires_at` is within the 48-hour window.
+  2. Countdown UI renders a live hours/minutes timer.
+  3. Timer updates on the page over time.
+  4. Expiration badge and urgency messaging stay in sync with the live countdown.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-countdown-realtime.spec.js`
+
+#### FLOW: `proposal-rejection-optional-reason`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** The rejection path keeps the reason optional while nudging the client to provide context before submitting a negative response.
+- **Steps:**
+  1. Client opens the rejection modal from the closing section.
+  2. Helper copy explains that feedback is optional but useful.
+  3. Client submits rejection without choosing a reason.
+  4. Proposal is rejected successfully and the UI moves to the rejection confirmation state.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-rejection-optional.spec.js`
+
+#### FLOW: `proposal-calculator-timeline`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P1
+- **Routes:** `/proposal/:uuid`
+- **Description:** Investment calculator changes the estimated delivery timeline dynamically as optional modules are toggled on or off.
+- **Steps:**
+  1. Client opens the investment calculator modal.
+  2. Baseline weeks are visible before any changes.
+  3. Client selects or removes priced modules.
+  4. Estimated timeline updates immediately to reflect the module mix.
+  5. Confirming the selection preserves the new timeline in the closing state.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-calculator-timeline.spec.js`
+
+#### FLOW: `proposal-calculator-micro-feedback`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** Calculator toggles show transient micro-feedback badges such as positive or negative price deltas when the client adds or removes priced modules.
+- **Steps:**
+  1. Client opens the investment calculator modal.
+  2. Client toggles a module with a price impact.
+  3. A transient feedback badge appears near the interaction showing the delta.
+  4. Badge fades away while totals remain updated.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-calculator-micro-feedback.spec.js`
+
+#### FLOW: `proposal-payment-plan-closing`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** Payment milestones are summarized near the accept CTA in the closing section so the client can review the plan without reopening the investment section.
+- **Steps:**
+  1. Client navigates to the proposal closing section.
+  2. Closing card renders payment milestones and labels.
+  3. Payment plan stays visible next to the primary accept action.
+  4. The displayed plan matches the investment data configured for the proposal.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-payment-plan-closing.spec.js`
+
+#### FLOW: `proposal-post-acceptance-welcome`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P1
+- **Routes:** `/proposal/:uuid`
+- **Description:** After acceptance, the client sees a welcome-kit style success state with onboarding guidance, downloadable material, and a direct PM communication CTA.
+- **Steps:**
+  1. Client accepts the proposal from the closing flow.
+  2. Proposal switches to the post-acceptance state.
+  3. Welcome content renders with next steps and onboarding guidance.
+  4. PDF download and PM WhatsApp contact actions are available.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-post-acceptance-welcome.spec.js`
+
+#### FLOW: `proposal-structured-negotiation`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** Negotiation modal provides structured reasons and tabs so the client can request changes with more specific context than a free-text note alone.
+- **Steps:**
+  1. Client opens the negotiation modal from the closing section.
+  2. Modal renders structured reason options and adjust/comment tab states.
+  3. Client selects reasons and optionally adds custom context.
+  4. Client submits the negotiation request and sees success feedback.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-structured-negotiation.spec.js`
+
+#### FLOW: `proposal-conditional-acceptance`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** Client accepts the proposal while attaching an optional “Acepto, pero…” condition note that is persisted with the response.
+- **Steps:**
+  1. Client opens the acceptance flow from the closing section.
+  2. Client adds an optional condition note.
+  3. Client confirms acceptance.
+  4. Proposal moves to the accepted state while retaining the condition note.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-conditional-acceptance.spec.js`
+
+### 13.2 Admin Audit Additions
+
+#### FLOW: `admin-dashboard-pipeline-value`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/`
+- **Description:** Dashboard shows a dedicated pipeline-value KPI card summarizing the total investment currently active in the sales pipeline.
+- **Steps:**
+  1. Admin opens the panel dashboard.
+  2. Proposal dashboard data loads from `GET /api/proposals/dashboard/`.
+  3. Pipeline KPI card renders the total active value and proposal count.
+  4. Card is hidden when the backend returns no pipeline value.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-dashboard.spec.js`
+
+#### FLOW: `admin-proposal-create-and-send`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/create`
+- **Description:** After creating a proposal with valid client contact data, the admin can send it immediately from the post-create interstitial without first navigating to the edit page.
+- **Steps:**
+  1. Admin creates a proposal from the create screen.
+  2. Post-create modal appears with next actions.
+  3. Admin clicks the send action from the modal.
+  4. Proposal send endpoint is called and the new proposal moves to the sent state.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-create.spec.js`
+
+#### FLOW: `admin-proposal-create-preview`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/create`
+- **Description:** Post-create interstitial lets the admin preview, edit, or send the newly created proposal before leaving the creation context.
+- **Steps:**
+  1. Admin completes proposal creation.
+  2. Confirmation modal summarizes the created proposal.
+  3. Modal exposes preview and edit actions for the new record.
+  4. Admin can move to the edit page directly from the interstitial.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-create.spec.js`
+
+#### FLOW: `admin-discount-analysis-enhanced`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/proposals/`
+- **Description:** Discount analysis card shows richer context including sample sizes, average discount percentages, and warnings when discount performance differs from the baseline.
+- **Steps:**
+  1. Admin opens the proposals page dashboard.
+  2. Discount analysis card loads from dashboard metrics.
+  3. Card renders sample size and average discount context.
+  4. Delta warning messaging appears when discount performance trends negatively.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-discount-analysis.spec.js`
+
+#### FLOW: `admin-proposal-inline-status-change`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/`
+- **Description:** Proposal status can be updated directly from the proposals table via an inline dropdown without opening the edit page.
+- **Steps:**
+  1. Admin opens the proposals list.
+  2. Row-level status dropdown is visible for editable proposals.
+  3. Admin selects a new status from the inline selector.
+  4. Status update endpoint is called and the row refreshes with the new value.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-inline-status.spec.js`
+
+#### FLOW: `admin-proposal-scorecard`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/:id/edit`
+- **Description:** Edit view surfaces a pre-send scorecard with blockers so the admin can see whether a proposal is ready to be sent.
+- **Steps:**
+  1. Admin opens a proposal edit page.
+  2. Scorecard endpoint loads readiness data for that proposal.
+  3. Score and blocker state render in the UI.
+  4. Blocking issues prevent sending until the missing data is fixed.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-scorecard.spec.js`
+
+#### FLOW: `admin-proposal-section-completeness`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P3
+- **Routes:** `/panel/proposals/:id/edit`
+- **Description:** Edit page shows a section-completeness indicator summarizing how many enabled sections currently have content.
+- **Steps:**
+  1. Admin opens a proposal edit page.
+  2. Completeness summary loads from current section data.
+  3. Progress UI shows the percentage of enabled sections with content.
+  4. Indicator updates as section content changes.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-section-completeness.spec.js`
+
+#### FLOW: `admin-proposal-zombie-segment`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/`
+- **Description:** Proposals dashboard highlights stale “zombie” proposals in a dedicated collapsible segment so the sales owner can triage cold opportunities quickly.
+- **Steps:**
+  1. Admin opens the proposals page.
+  2. Zombie segment renders when stale draft/sent proposals are present.
+  3. Segment shows the relevant proposals and alert styling.
+  4. Admin can expand or collapse the section while reviewing the stale pipeline.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-zombie-segment.spec.js`
+
+#### FLOW: `admin-view-map`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P4
+- **Routes:** `/panel/views`
+- **Description:** Admin opens the panel route inventory page, searches grouped browser views by name/URL/file, and copies route references for QA or support communication.
+- **Steps:**
+  1. Admin opens `/panel/views` from the Reference section in the panel sidebar.
+  2. Grouped route catalog renders with section totals and a proposal reference guide.
+  3. Admin searches for a route, view name, or file path to narrow the catalog.
+  4. Admin clicks the copy button on a view row and sees copied feedback.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-view-map.spec.js`

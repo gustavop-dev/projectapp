@@ -1717,6 +1717,35 @@ class TestInvestmentHostingEdgeCases:
         SECTION_RENDERERS['investment'](pdf_canvas, data, proposal)
         assert pdf_canvas.getPageNumber() >= page_before
 
+    def test_investment_with_billing_tiers_and_badge(self, pdf_canvas, proposal):
+        """Billing tiers render badge, monthly price, and plural period total text."""
+        data = _investment_content_json(
+            index='9',
+            title='Investment',
+            totalInvestment='$5,000,000',
+            hostingPlan={
+                'title': 'Scale',
+                'description': 'Managed hosting.',
+                'hostingPercent': 12,
+                'billingTiers': [
+                    {'label': 'Mensual', 'months': 1, 'discountPercent': 0},
+                    {'label': 'Semestral', 'months': 6, 'discountPercent': 10, 'badge': 'Ahorra'},
+                ],
+            },
+        )
+        ps = {
+            'num': 1,
+            'client': 'Test',
+            'total': None,
+            'selected_modules': None,
+            '_fr_items': [],
+            '_calc_module_items': [],
+            'base_weeks': 0,
+        }
+        page_before = pdf_canvas.getPageNumber()
+        SECTION_RENDERERS['investment'](pdf_canvas, data, proposal, ps=ps)
+        assert pdf_canvas.getPageNumber() >= page_before
+
     def test_investment_with_monthly_price_only(self, pdf_canvas, proposal):
         """Investment hosting with only monthly price renders."""
         data = _investment_content_json(
@@ -1727,6 +1756,23 @@ class TestInvestmentHostingEdgeCases:
                 'description': 'Basic hosting.',
                 'monthlyPrice': '$50.000',
                 'annualPrice': '',
+            },
+        )
+        page_before = pdf_canvas.getPageNumber()
+        SECTION_RENDERERS['investment'](pdf_canvas, data, proposal)
+        assert pdf_canvas.getPageNumber() >= page_before
+
+    def test_investment_with_annual_price_only(self, pdf_canvas, proposal):
+        """Legacy annual-only hosting pricing renders without monthlyPrice."""
+        data = _investment_content_json(
+            index='9',
+            title='Investment',
+            totalInvestment='$1,000,000',
+            hostingPlan={
+                'title': 'Annual',
+                'description': 'Annual hosting.',
+                'monthlyPrice': '',
+                'annualPrice': '$500.000',
             },
         )
         page_before = pdf_canvas.getPageNumber()

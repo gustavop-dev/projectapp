@@ -297,6 +297,49 @@ class TestProposalCreateWithClientId:
         proposal = BusinessProposal.objects.get(pk=response.data['id'])
         assert proposal.client.is_email_placeholder is True
 
+    def test_proposal_update_with_client_id_switches_profile_and_resyncs_snapshot(
+        self, admin_client, real_client_with_proposal,
+    ):
+        replacement = proposal_client_service.get_or_create_client_for_proposal(
+            name='Nueva Cuenta',
+            email='nueva@gmail.com',
+            phone='+57 320 555 0000',
+            company='NuevaCo',
+        )
+        proposal = real_client_with_proposal.proposals.first()
+
+        response = admin_client.patch(
+            reverse('update-proposal', args=[proposal.pk]),
+            {
+                'client_id': replacement.pk,
+                'client_name': 'ignorado',
+                'client_email': 'ignorado@gmail.com',
+                'client_phone': '000',
+            },
+            format='json',
+        )
+
+        assert response.status_code == 200
+        proposal.refresh_from_db()
+        assert proposal.client_id == replacement.pk
+        assert proposal.client_name == 'Nueva Cuenta'
+        assert proposal.client_email == 'nueva@gmail.com'
+        assert proposal.client_phone == '+57 320 555 0000'
+
+    def test_proposal_update_rejects_unknown_client_id(
+        self, admin_client, real_client_with_proposal,
+    ):
+        proposal = real_client_with_proposal.proposals.first()
+
+        response = admin_client.patch(
+            reverse('update-proposal', args=[proposal.pk]),
+            {'client_id': 999999},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'client_id' in response.data
+
 
 # ---------------------------------------------------------------------------
 # Edge cases — proposal/client lifecycle interactions

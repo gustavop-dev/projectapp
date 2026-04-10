@@ -61,7 +61,7 @@ function parseBackend() {
   if (data.files) {
     for (const [filePath, fileData] of Object.entries(data.files)) {
       // Exclude test files — coverage on tests is not actionable
-      if (/\/tests\//.test(filePath)) continue;
+      if (/\/tests\//.test(filePath) || /\/migrations\//.test(filePath)) continue;
       const s = fileData.summary;
       const stmts = s.num_statements || 0;
       const covered = s.covered_lines || 0;

@@ -164,6 +164,7 @@ export const ADMIN_DOCUMENT_CREATE = ['@flow:admin-document-create', '@module:ad
 export const ADMIN_DOCUMENT_EDIT = ['@flow:admin-document-edit', '@module:admin', '@priority:P2'];
 export const ADMIN_ADMIN_MANAGEMENT = ['@flow:admin-admin-management', '@module:admin', '@priority:P3'];
 export const ADMIN_EMAIL_DELIVERABILITY = ['@flow:admin-email-deliverability', '@module:admin', '@priority:P3'];
+export const ADMIN_VIEW_MAP = ['@flow:admin-view-map', '@module:admin', '@priority:P4'];
 export const PUBLIC_LANDING_SOFTWARE = ['@flow:public-landing-software', '@module:public', '@priority:P3'];
 export const PUBLIC_LANDING_APPS = ['@flow:public-landing-apps', '@module:public', '@priority:P3'];
 
@@ -203,3 +204,4 @@ export const ADMIN_CLIENT_DELETE_ORPHAN = ['@flow:admin-client-delete-orphan', '
 export const ADMIN_CLIENT_DELETE_PROTECTED = ['@flow:admin-client-delete-protected', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_CLIENT_AUTOCOMPLETE = ['@flow:admin-proposal-client-autocomplete', '@module:admin', '@priority:P1'];
 export const ADMIN_PROPOSAL_CLIENT_NO_EMAIL = ['@flow:admin-proposal-client-no-email', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_UPDATE_CLIENT = ['@flow:admin-proposal-update-client', '@module:admin', '@priority:P2'];

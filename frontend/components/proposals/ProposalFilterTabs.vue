@@ -40,6 +40,7 @@
       >
         <button
           type="button"
+          :data-testid="`filter-tabs-tab-${tab.id}`"
           class="px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap"
           :class="activeTabId === tab.id
             ? 'border-emerald-600 text-emerald-600'
@@ -51,6 +52,7 @@
         <!-- Tab context menu trigger -->
         <button
           type="button"
+          :data-testid="`filter-tabs-menu-${tab.id}`"
           class="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity -ml-1 mr-1"
           @click.stop="toggleMenu(tab.id)"
         >
@@ -65,6 +67,7 @@
         >
           <button
             type="button"
+            data-testid="filter-tabs-rename"
             class="w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             @click="startRename(tab)"
           >
@@ -72,6 +75,7 @@
           </button>
           <button
             type="button"
+            data-testid="filter-tabs-delete"
             class="w-full px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
             @click="handleDelete(tab.id)"
           >
@@ -83,6 +87,7 @@
       <!-- "+" button to create new tab -->
       <button
         type="button"
+        data-testid="filter-tabs-create"
         class="px-3 py-2.5 text-sm font-medium transition-colors border-b-2 border-transparent -mb-px"
         :class="props.isTabLimitReached
           ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
@@ -106,6 +111,7 @@
         <input
           ref="nameInputRef"
           v-model="inputName"
+          data-testid="filter-tabs-input"
           type="text"
           :placeholder="isRenaming ? 'Nuevo nombre...' : 'Nombre de la pestaña...'"
           class="flex-1 max-w-xs px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm
@@ -116,6 +122,7 @@
         />
         <button
           type="button"
+          data-testid="filter-tabs-confirm"
           class="px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
           :disabled="!inputName.trim()"
           @click="confirmInput"
@@ -124,6 +131,7 @@
         </button>
         <button
           type="button"
+          data-testid="filter-tabs-cancel"
           class="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           @click="cancelInput"
         >
@@ -135,6 +143,7 @@
     <!-- Click-outside overlay to close menus -->
     <div
       v-if="openMenuId"
+      data-testid="filter-tabs-overlay"
       class="fixed inset-0 z-40"
       @click="openMenuId = null"
     />

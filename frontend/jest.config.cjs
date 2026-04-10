@@ -32,8 +32,11 @@ module.exports = {
     collectCoverageFrom: [
         'stores/**/*.js',
         'composables/**/*.js',
+        'components/**/*.vue',
+        'components/**/*.js',
         'utils/**/*.js',
         '!**/node_modules/**',
+        '!components/**/index.js',
     ],
     coveragePathIgnorePatterns: [
         '/node_modules/',

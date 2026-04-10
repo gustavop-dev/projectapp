@@ -46,7 +46,7 @@ This file captures important patterns, preferences, and project intelligence tha
 ### Backend: Function-Based Views (FBV)
 - **All** DRF views use `@api_view` decorators, not class-based views
 - Never convert to CBV unless explicitly requested
-- Views file for proposals is very large (162K, 4385 lines) — be careful with edits
+- The proposal views module is very large — be careful with edits and prefer localized changes
 
 ### Frontend: Pinia Options API
 - **All** Pinia stores use Options API pattern: `{ state, getters, actions }`

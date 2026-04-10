@@ -7,7 +7,7 @@
 | Business Proposal — Core Models | ✅ Done | BusinessProposal, ProposalSection, ProposalAlert, RequirementGroup/Item |
 | Business Proposal — Public View | ✅ Done | Fullscreen horizontal scroll, 12 section components, GSAP animations |
 | Business Proposal — Admin CRUD | ✅ Done | Create, edit, send, duplicate, JSON import, section editor, defaults, alerts |
-| Business Proposal — Email System | ✅ Done | 48 templates (24 HTML + 24 TXT), automated reminders, cooldown, pause, admin notifications |
+| Business Proposal — Email System | ✅ Done | 54 content email templates (27 HTML + 27 TXT), automated reminders, cooldown, pause, admin notifications |
 | Business Proposal — Analytics | ✅ Done | View tracking, section time, heat score, session tracking, engagement signals |
 | Business Proposal — PDF | ✅ Done | ReportLab generation, downloadable from proposal page |
 | Business Proposal — Share Links | ✅ Done | UUID share links with independent tracking |
@@ -18,7 +18,7 @@
 | Business Proposal — Email Deliverability | ✅ Done | Dashboard with send/delivery/bounce rates |
 | Business Proposal — Email Templates Editor | ✅ Done | View, edit, preview, reset email content |
 | Business Proposal — Default Config | ✅ Done | Per-language default section templates |
-| Business Proposal — Clients List | ✅ Done | Unique clients extracted from proposals |
+| Business Proposal — Clients List | ✅ Done | Real `accounts.UserProfile` client entities power `/panel/clients/`, proposal autocomplete, orphan cleanup, and snapshot sync back to linked proposals |
 | Portfolio Works — Public | ✅ Done | Listing and detail with bilingual structured JSON |
 | Portfolio Works — Admin CRUD | ✅ Done | Create, edit, delete, duplicate, cover image upload, JSON import |
 | Blog — Public | ✅ Done | Listing with featured hero, categories, pagination, detail with JSON/HTML |
@@ -42,9 +42,9 @@
 | Platform — Projects & Kanban | ✅ Done | Project CRUD, detail hub, 3-column kanban board, drag & drop, comments |
 | Platform — Client Management | ✅ Done | Admin invite, list, detail, edit, deactivate, reactivate |
 | Platform — Sidebar & Layout | ✅ Done | Collapsible sidebar, mobile drawer, theme toggle, role-based nav |
-| Platform — E2E Coverage | ✅ Done | 14 flows registered and covered; 14 spec files in `e2e/platform/` (login, verify, profile, dashboard, projects, kanban, clients, sidebar, etc.) |
+| Platform — E2E Coverage | ✅ Done | Platform flows are registered and covered across auth, dashboard, projects, kanban, clients, collection accounts, data model, notifications, payments, and related routes |
 | Document System — Model + Admin CRUD | ✅ Done | `Document` model (uuid, title, slug, status, language, cover_type); panel pages (index, create, edit); `documents.js` store |
-| Document System — PDF Generation | 🔄 In Progress | `document_pdf_service.py` (20K), `markdown_parser.py` (9K), `pdf_utils.py` (36K shared utilities); branch `generate-pdf-with-template` |
+| Document System — PDF Generation | 🔄 In Progress | `document_pdf_service.py`, `markdown_parser.py`, and shared `pdf_utils.py`; branch `generate-pdf-with-template` |
 | Panel — Admins Management | ✅ Done | `panel/admins/index.vue` + `panel_admins.js` store |
 | Panel — Dedicated Login | ✅ Done | `panel/login.vue` page |
 | Platform — Bug Reports | ✅ Done | `platform-bug-reports.js`; global `/platform/bugs` + per-project `/platform/projects/[id]/bugs`; `test_bug_reports.py` |
@@ -72,8 +72,8 @@
 |-------|----------|-------|
 | Credential rotation needed | High | MySQL password, email password, SECRET_KEY, CallMeBot key exposed in git history (see `docs/deployment-guide.md`) |
 | Port 3000 squatted by `kore_project` | Medium | A Windsurf terminal respawns `kore_project` Next.js on port 3000. Workaround: run Nuxt on 3001 with `E2E_PORT=3001`. Tracked as `KNOWN-001` in `error-documentation.md`. |
-| Large service files | Medium | `proposal_service.py` (133K), `proposal_pdf_service.py` (72K), `proposal_email_service.py` (~73K after stage methods), `pdf_utils.py` (47K) — shared utils extracted but could split further |
-| Large view file | Medium | `views/proposal.py` (~5230 lines after stage endpoints) — could benefit from splitting into submodules |
+| Large service files | Medium | `proposal_service.py`, `proposal_pdf_service.py`, `proposal_email_service.py`, and `pdf_utils.py` remain large enough to justify future splitting |
+| Large view file | Medium | `views/proposal.py` remains a very large FBV module and could benefit from submodule extraction |
 | Single Django app for content | Low | All proposal/blog/portfolio/contact models in `content` app; consider splitting if scope grows |
 
 ---
@@ -82,9 +82,9 @@
 
 | Suite | Location | Approximate Count | Status |
 |-------|----------|-------------------|--------|
-| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 91 test files | Active |
+| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 121 test files | Active |
 | Frontend Unit (Jest) | `frontend/test/` | 73 test files | Active |
-| Frontend E2E (Playwright) | `frontend/e2e/` | 127 spec files across admin, auth, blog, layout, proposal, public, platform | Active |
+| Frontend E2E (Playwright) | `frontend/e2e/` | 129 spec files across admin, auth, blog, layout, proposal, public, platform | Active |
 | Quality Gate | `scripts/test_quality_gate.py` | 100/100, 0 warnings/info | Active |
 
 ---
@@ -116,7 +116,7 @@
 
 ## 5. Potential Improvements
 
-1. **Split large files** — proposal views (162K), proposal service (133K), email service (71K), PDF service (72K), pdf_utils (47K)
+1. **Split large files** — proposal views/services and the shared PDF utility layer are still large enough to benefit from decomposition
 2. **API versioning** — no versioning strategy currently
 3. **Rate limiting** — no rate limiting on public endpoints
 4. **Caching layer** — Redis available but no application-level caching implemented

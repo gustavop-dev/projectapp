@@ -213,22 +213,22 @@ flowchart TD
 
 ### Service Responsibilities
 
-| Service | File Size | Responsibilities |
+| Service | Footprint | Responsibilities |
 |---------|-----------|-----------------|
-| **ProposalService** | 132K | Proposal CRUD, section management, default sections, analytics computation, engagement scoring, dashboard aggregation, CSV export, scorecard |
-| **ProposalEmailService** | ~73K | All email sending: proposal sent, reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration, branded + proposal composed emails, stage warning + stage overdue (via shared `_send_stage_notification` helper) |
-| **ProposalStageTracker** | ~9K | Day-by-day decision logic for project-stage email notifications. Holds the canonical `STAGE_DEFINITIONS` catalog (`design`, `development`), `ensure_stages` / `get_or_create_stage` helpers, `format_remaining_time(days)` (`"hoy"`, `"1 día"`, `"1 semana 5 días"`), and `process(proposal)` decision tree (70%-elapsed warning + every-3-days overdue reminders). |
-| **ProposalPdfService** | 72K | PDF generation with ReportLab: all 12 section types rendered to PDF |
-| **ContractPdfService** | 10K | Contract PDF generation with contractor signature block, draft mode (no signature), Helvetica font, clickable TOC |
-| **EmailTemplateRegistry** | 44K | Centralized registry of all email templates with default content, admin-editable overrides, preview rendering, branded + proposal composed email entries |
-| **PdfUtils** | 47K | Shared PDF rendering utilities (fonts, colors, layout helpers) used by ProposalPdfService, ContractPdfService, and DocumentPdfService |
-| **DocumentPdfService** | 20K | PDF generation for generic branded Documents with template-based rendering |
-| **MarkdownParser** | 9K | Parses markdown content for Document PDF rendering |
-| **CollectionAccountService** | 6K | Collection account business logic |
-| **CollectionAccountPdfService** | 7K | PDF generation for collection account documents |
-| **TechnicalDocumentPdf** | 17K | PDF generation for technical documents |
-| **TechnicalDocumentFilter** | 3K | Filtering logic for technical document modules |
-| **PlatformOnboardingPdf** | 5K | PDF generation for platform onboarding documents |
+| **ProposalService** | Very large | Proposal CRUD, section management, default sections, analytics computation, engagement scoring, dashboard aggregation, CSV export, scorecard |
+| **ProposalEmailService** | Very large | All email sending: proposal sent, reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration, branded + proposal composed emails, stage warning + stage overdue (via shared `_send_stage_notification` helper) |
+| **ProposalStageTracker** | Small | Day-by-day decision logic for project-stage email notifications. Holds the canonical `STAGE_DEFINITIONS` catalog (`design`, `development`), `ensure_stages` / `get_or_create_stage` helpers, `format_remaining_time(days)` (`"hoy"`, `"1 día"`, `"1 semana 5 días"`), and `process(proposal)` decision tree (70%-elapsed warning + every-3-days overdue reminders). |
+| **ProposalPdfService** | Large | PDF generation with ReportLab: all 12 section types rendered to PDF |
+| **ContractPdfService** | Medium | Contract PDF generation with contractor signature block, draft mode (no signature), Helvetica font, clickable TOC |
+| **EmailTemplateRegistry** | Large | Centralized registry of all email templates with default content, admin-editable overrides, preview rendering, branded + proposal composed email entries |
+| **PdfUtils** | Large | Shared PDF rendering utilities (fonts, colors, layout helpers) used by ProposalPdfService, ContractPdfService, and DocumentPdfService |
+| **DocumentPdfService** | Medium | PDF generation for generic branded Documents with template-based rendering |
+| **MarkdownParser** | Small | Parses markdown content for Document PDF rendering |
+| **CollectionAccountService** | Small | Collection account business logic |
+| **CollectionAccountPdfService** | Small | PDF generation for collection account documents |
+| **TechnicalDocumentPdf** | Medium | PDF generation for technical documents |
+| **TechnicalDocumentFilter** | Small | Filtering logic for technical document modules |
+| **PlatformOnboardingPdf** | Small | PDF generation for platform onboarding documents |
 
 ---
 

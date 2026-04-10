@@ -4,9 +4,14 @@ Covers: _get_lang context fallback, _validate_portfolio_json error paths,
 validate_content_json_en on CreateUpdate and FromJSON serializers.
 """
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
+from rest_framework.request import Request
 from rest_framework import serializers as drf_serializers
+from rest_framework.test import APIRequestFactory
 
 from content.serializers.portfolio_works import (
+    PortfolioWorkAdminDetailSerializer,
+    PortfolioWorkAdminListSerializer,
     PortfolioWorkCreateUpdateSerializer,
     PortfolioWorkDetailSerializer,
     PortfolioWorkFromJSONSerializer,
@@ -42,6 +47,53 @@ class TestGetLangContextFallback:
             context={},
         )
         assert serializer.data['title'] == published_portfolio_work.title_es
+
+    def test_invalid_request_lang_falls_back_to_es(self, published_portfolio_work):
+        """Unsupported request lang values fall back to Spanish."""
+        factory = APIRequestFactory()
+        request = Request(factory.get('/api/portfolio', {'lang': 'fr'}))
+        serializer = PortfolioWorkListSerializer(
+            published_portfolio_work,
+            context={'request': request},
+        )
+        assert serializer.data['title'] == published_portfolio_work.title_es
+
+
+class TestCoverImageDisplay:
+    def test_public_serializer_prefers_uploaded_cover_image(self, db):
+        portfolio_work = PortfolioWorkDetailSerializer.Meta.model.objects.create(
+            title_es='Titulo',
+            title_en='Title',
+            project_url='https://example.com/work',
+            cover_image=SimpleUploadedFile('cover.png', b'\x89PNG\r\n', content_type='image/png'),
+            cover_image_url='https://cdn.example.com/fallback.png',
+        )
+        serializer = PortfolioWorkDetailSerializer(portfolio_work, context={})
+        assert serializer.data['cover_image'].startswith('/media/portfolio/cover/')
+        assert 'cover' in serializer.data['cover_image']
+        assert 'fallback.png' not in serializer.data['cover_image']
+
+    def test_admin_list_serializer_returns_cover_image_display(self, db):
+        portfolio_work = PortfolioWorkAdminListSerializer.Meta.model.objects.create(
+            title_es='Titulo',
+            title_en='Title',
+            project_url='https://example.com/work',
+            cover_image=SimpleUploadedFile('admin-list.png', b'\x89PNG\r\n', content_type='image/png'),
+        )
+        serializer = PortfolioWorkAdminListSerializer(portfolio_work)
+        assert serializer.data['cover_image_display'].startswith('/media/portfolio/cover/')
+        assert 'admin-list' in serializer.data['cover_image_display']
+
+    def test_admin_detail_serializer_returns_cover_image_display(self, db):
+        portfolio_work = PortfolioWorkAdminDetailSerializer.Meta.model.objects.create(
+            title_es='Titulo',
+            title_en='Title',
+            project_url='https://example.com/work',
+            cover_image=SimpleUploadedFile('admin-detail.png', b'\x89PNG\r\n', content_type='image/png'),
+        )
+        serializer = PortfolioWorkAdminDetailSerializer(portfolio_work)
+        assert serializer.data['cover_image_display'].startswith('/media/portfolio/cover/')
+        assert 'admin-detail' in serializer.data['cover_image_display']
 
 
 class TestValidatePortfolioJson:
@@ -100,6 +152,17 @@ class TestCreateUpdateSerializerContentJsonEn:
         assert not serializer.is_valid()
         assert 'content_json_en' in serializer.errors
 
+    def test_valid_content_json_es_passes_validation(self, db):
+        payload = {
+            'title_es': 'Titulo',
+            'title_en': 'Title',
+            'project_url': 'https://example.com',
+            'content_json_es': _VALID_CONTENT_JSON,
+        }
+        serializer = PortfolioWorkCreateUpdateSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['content_json_es'] == _VALID_CONTENT_JSON
+
 
 class TestFromJSONSerializerContentJsonEn:
     """Cover validate_content_json_en on PortfolioWorkFromJSONSerializer (line 211)."""
@@ -127,3 +190,15 @@ class TestFromJSONSerializerContentJsonEn:
         serializer = PortfolioWorkFromJSONSerializer(data=payload)
         assert not serializer.is_valid()
         assert 'content_json_en' in serializer.errors
+
+    def test_empty_content_json_en_is_accepted(self):
+        payload = {
+            'title_es': 'Titulo',
+            'title_en': 'Title',
+            'project_url': 'https://example.com',
+            'content_json_es': _VALID_CONTENT_JSON,
+            'content_json_en': {},
+        }
+        serializer = PortfolioWorkFromJSONSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['content_json_en'] == {}

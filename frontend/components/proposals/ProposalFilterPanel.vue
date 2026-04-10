@@ -105,6 +105,7 @@
         <div ref="engagementRef" class="relative">
           <button
             type="button"
+            data-testid="filter-panel-engagement-toggle"
             class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors border whitespace-nowrap focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
             :class="modelValue.technicalViewed
               ? 'bg-teal-600 text-white border-teal-600 hover:bg-teal-700'
@@ -128,6 +129,7 @@
               <label class="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
                 <input
                   type="checkbox"
+                  data-testid="filter-panel-technical-viewed"
                   :checked="modelValue.technicalViewed"
                   class="w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 accent-teal-600"
                   @change="emit('update:modelValue', { ...modelValue, technicalViewed: $event.target.checked })"
@@ -141,6 +143,7 @@
         <button
           v-if="filterCount > 0"
           type="button"
+          data-testid="filter-panel-reset"
           class="text-xs text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors font-medium whitespace-nowrap"
           @click="emit('reset')"
         >
@@ -159,6 +162,7 @@
         {{ chip.label }}
         <button
           type="button"
+          :data-testid="`filter-chip-clear-${chip.key}`"
           class="ml-0.5 hover:text-red-500 dark:hover:text-red-400 leading-none"
           @click="clearChip(chip.key)"
         >&times;</button>

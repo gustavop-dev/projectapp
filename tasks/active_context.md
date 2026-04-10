@@ -2,7 +2,7 @@
 
 ## Current State
 
-ProjectApp is in **production** at projectapp.co. Core features are deployed. Active branch: **`feat/platform-launch-and-email-improvements`**. The Project Schedule Notification feature (Cronograma) shipped on Apr 9, 2026 and passed the post-merge simplification pass. The Real Client Entity for Proposals feature (`BusinessProposal.client` FK to `accounts.UserProfile` + autocomplete + orphan management + placeholder email skip + the `respond_to_proposal` accepted-branch bug fix) also shipped on Apr 9, 2026 with 69 new tests green and zero regression in the existing 1500+ tests. Codex-first methodology is now documented via `AGENTS.md` scopes, native repo skills in `.agents/skills/`, and `.codex/config.toml`, with `.claude/` and `.windsurf/` kept only for compatibility. The Document System PDF (branch `generate-pdf-with-template`) is still in progress and not yet merged.
+ProjectApp is in **production** at projectapp.co. Core features are deployed. Active branch: **`feat/platform-launch-and-email-improvements`**. The Project Schedule Notification feature (Cronograma) shipped on Apr 9, 2026 and passed the post-merge simplification pass. The Real Client Entity for Proposals feature (`BusinessProposal.client` FK to `accounts.UserProfile` + autocomplete + orphan management + placeholder email skip + the `respond_to_proposal` accepted-branch bug fix) also shipped on Apr 9, 2026 with 69 new tests green and zero regression in the existing proposal regression slices. Codex-first methodology is documented via `AGENTS.md` scopes, native repo skills in `.agents/skills/`, and `.codex/config.toml`, with `CLAUDE.md`, `.claude/`, and `.windsurf/` retained only as compatibility surfaces. The Document System PDF work on branch `generate-pdf-with-template` is still the main unfinished documentation-visible feature area.
 
 ---
 
@@ -82,7 +82,7 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
    - Dark mode removed from platform login, verify, complete-profile pages; `usePlatformTheme.js` simplified
 4. **Document System (branch `generate-pdf-with-template` — not yet merged)** — Generic branded PDF documents:
    - `Document` model in `content/models/document.py` — uuid, title, slug, status (draft/published/archived), language, cover_type
-   - Services: `document_pdf_service.py` (20K), `markdown_parser.py` (9K), `pdf_utils.py` (shared PDF utilities)
+   - Services: `document_pdf_service.py`, `markdown_parser.py`, `pdf_utils.py` (shared PDF utilities)
    - Panel pages: `/panel/documents/` (index, create, edit)
    - Store: `documents.js`
    - New composable: `useMarkdownPreview.js`
@@ -100,7 +100,7 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 4. **Panel Login** — Dedicated `panel/login.vue` page
 5. **Proposal → Project integration** — Link proposals to projects: auto-create Kanban requirements from `functional_requirements` section, extract payment milestones and hosting tiers, auto-renewal on payment approval
 6. **Platform E2E test fixes** — Fixed all platform Playwright spec files; removed `defineI18nRoute(false)`, fixed security bug in `platform-auth.js` middleware, replaced `networkidle` with `domcontentloaded`
-7. **E2E coverage audit & remediation** — 112 E2E spec files; Quality gate: **100/100** with **0 warnings**
+7. **E2E coverage audit & remediation** — current workspace carries 129 E2E spec files; Quality gate: **100/100** with **0 warnings**
 8. **CI/CD pipeline** — GitHub Actions with pytest, Jest, Playwright (5 shards), quality gate
 9. **SEO On-Page Optimization** — Comprehensive SEO improvements across main views and blog:
    - Enhanced `useSeoHead.js` composable: added canonical URL, `og:locale`, `twitter:site`
@@ -139,34 +139,32 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ---
 
-## Verified Codebase Metrics (April 9, 2026 — refreshed)
+## Verified Codebase Metrics (April 10, 2026 — refreshed)
 
 | Metric | Count |
 |--------|-------|
-| Backend test files | 94 (+3 from real client entity feature: `test_proposal_client_service.py`, `test_proposal_clients_views.py`, `test_proposal_email_service_placeholder_skip.py`) |
-| Frontend unit tests | 74 (+1: `proposalClients.test.js`) |
-| E2E spec files | 127 |
-| Vue components | 121 (+1: `ClientAutocomplete.vue`) |
+| Backend test files | 121 |
+| Frontend unit tests | 73 |
+| E2E spec files | 129 |
+| Vue components | 122 |
 | Pages | 64 |
-| Pinia stores | 21 (+1: `proposalClients.js`) |
+| Pinia stores | 20 |
 | Composables | 35 |
-| Content model files | 26 (+1 accounts models.py with 21 model classes) |
-| Accounts models | 21 |
+| Content model files | 26 |
+| Accounts model classes | 21 |
 | Accounts URL patterns | 65 |
-| Content URL patterns | 121 (+6: client-profiles list/search/detail/create/update/delete) |
-| Email templates | 52 (26 HTML + 26 TXT) |
-| Content services | 18 (+1 in accounts: `accounts/services/proposal_client_service.py`) |
-| Accounts services | 11 (+1: `proposal_client_service.py`) |
-| Content migrations | 84 (latest: `0080_backfill_proposal_clients.py` follows `0083_add_stage_change_types.py` from a different branch — final ordering reconciled at merge) |
+| Content URL patterns | 115 |
+| Email templates | 57 (30 HTML + 27 TXT across `accounts` + `content`) |
+| Content services | 17 |
+| Accounts services | 11 |
+| Content migrations | 82 |
 | Quality gate score | 100/100 (0 warnings, 0 info) |
 
 ---
 
 ## Next Steps
 
-- **Commit the stage notification feature** — currently in working tree as untracked + modified files. After commit, the methodology files will be in sync with `main`.
 - **Set `NOTIFICATION_EMAIL` in production env** to `team@projectapp.co,carlos18bp@gmail.com` so the new stage warning + overdue alerts reach the right inbox.
-- **Commit the in-flight `proposal_clients` ecosystem** (FK migration, service, serializer, view, store, autocomplete component) and document it in a follow-up methodology refresh.
 - Consider extending `ProposalStageTracker.STAGE_DEFINITIONS` beyond design + development (e.g., QA, Lanzamiento, Entrega Final) — the model + service already support N stages, only the catalog constant needs an update.
 - Complete Document System PDF generation (branch `generate-pdf-with-template`): template rendering, preview, download flow
 - Keep Codex docs, native repo skills, and compatibility mirrors synchronized when adding or renaming recurring workflows
@@ -179,7 +177,7 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 - Add E2E coverage for new Platform modules (bug reports, change requests, deliverables, notifications, payments)
 - Increase backend test coverage (target areas: services edge cases, accounts app edge cases)
 - Increase frontend unit test coverage (target areas: remaining composables, components)
-- Consider splitting large files (proposal views 162K, proposal service 133K, email service 71K — shared utils already in `pdf_utils.py`)
+- Consider splitting the largest proposal/backend modules (`views/proposal.py`, `proposal_service.py`, `proposal_email_service.py`) now that the shared PDF helpers already live in `pdf_utils.py`
 - Credential rotation for production secrets exposed in git history
 - Explore API rate limiting for public endpoints
 - Kill rogue `kore_project` Next.js server on port 3000 permanently (respawns from Windsurf terminal)

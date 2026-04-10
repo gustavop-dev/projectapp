@@ -3,7 +3,9 @@
 Provides reusable fixtures for API clients, model instances,
 and authenticated users following the project testing standards.
 """
+import sys
 from decimal import Decimal
+from types import ModuleType
 from unittest.mock import patch
 
 import pytest
@@ -33,8 +35,32 @@ User = get_user_model()
 # ── Global mocks ──
 
 @pytest.fixture(autouse=True)
-def _skip_mx_validation():
-    """Bypass DNS MX lookups in all tests — test domains have no real records."""
+def _skip_mx_validation(monkeypatch):
+    """Bypass DNS MX lookups in all tests, even when dnspython is unavailable."""
+    if 'dns' not in sys.modules:
+        dns_module = ModuleType('dns')
+        dns_resolver_module = ModuleType('dns.resolver')
+        dns_exception_module = ModuleType('dns.exception')
+
+        class _DummyResolver:
+            lifetime = 2.0
+
+            def resolve(self, *_args, **_kwargs):
+                return []
+
+        dns_resolver_module.Resolver = _DummyResolver
+        dns_resolver_module.NoAnswer = type('NoAnswer', (Exception,), {})
+        dns_resolver_module.NXDOMAIN = type('NXDOMAIN', (Exception,), {})
+        dns_resolver_module.NoNameservers = type('NoNameservers', (Exception,), {})
+        dns_exception_module.Timeout = type('Timeout', (Exception,), {})
+
+        dns_module.resolver = dns_resolver_module
+        dns_module.exception = dns_exception_module
+
+        monkeypatch.setitem(sys.modules, 'dns', dns_module)
+        monkeypatch.setitem(sys.modules, 'dns.resolver', dns_resolver_module)
+        monkeypatch.setitem(sys.modules, 'dns.exception', dns_exception_module)
+
     with patch('content.utils.check_domain_mx', return_value=True):
         yield
 

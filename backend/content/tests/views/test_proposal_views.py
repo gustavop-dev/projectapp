@@ -185,6 +185,23 @@ class TestDownloadProposalPdf:
         assert response.status_code == 404
 
 
+class TestTechnicalFragmentHasContent:
+    def test_api_fragment_detects_content_from_domain_rows(self):
+        from content.views.proposal import _technical_fragment_has_content
+
+        result = _technical_fragment_has_content(
+            'api',
+            {
+                'apiSummary': '',
+                'apiDomains': [
+                    {'domain': 'Authentication', 'summary': 'JWT login and refresh endpoints.'},
+                ],
+            },
+        )
+
+        assert result is True
+
+
 class TestRespondToProposal:
     @patch('content.services.proposal_email_service.ProposalEmailService.send_response_notification')
     def test_accepts_proposal_returns_200(self, mock_notify, api_client, sent_proposal):
@@ -524,6 +541,24 @@ class TestAdminUpdateProposal:
         )
         assert response.status_code == 400
 
+    def test_logs_changed_fields(self, admin_client, proposal):
+        url = reverse('update-proposal', kwargs={'proposal_id': proposal.id})
+        response = admin_client.patch(
+            url,
+            {'title': 'Updated Title', 'client_name': 'Updated Client'},
+            format='json',
+        )
+        assert response.status_code == 200
+        change_fields = set(
+            ProposalChangeLog.objects.filter(
+                proposal=proposal,
+                change_type='updated',
+                actor_type='seller',
+            ).values_list('field_name', flat=True)
+        )
+        assert 'title' in change_fields
+        assert 'client_name' in change_fields
+
     def test_returns_404_for_nonexistent_id(self, admin_client):
         url = reverse('update-proposal', kwargs={'proposal_id': 99999})
         response = admin_client.patch(url, {}, format='json')
@@ -635,6 +670,36 @@ class TestCreateProposalFromJSON:
         response = admin_client.post(url, self._minimal_payload(), format='json')
         assert response.status_code == 201
         assert len(response.data['sections']) == EXPECTED_DEFAULT_SECTION_COUNT
+
+    @patch(
+        'content.services.proposal_service.ProposalService.compute_default_expires_at',
+    )
+    def test_uses_computed_default_expiration_when_payload_omits_expires_at(
+        self, mock_compute_default_expires_at, admin_client,
+    ):
+        mock_compute_default_expires_at.return_value = datetime(
+            2026, 4, 30, 12, 0, 0, tzinfo=dt_tz.utc,
+        )
+
+        url = reverse('create-proposal-from-json')
+        response = admin_client.post(url, self._minimal_payload(), format='json')
+
+        assert response.status_code == 201
+        proposal = BusinessProposal.objects.get(pk=response.data['id'])
+        assert proposal.expires_at == mock_compute_default_expires_at.return_value
+
+    def test_associates_auto_created_canonical_client_when_email_is_provided(self, admin_client):
+        url = reverse('create-proposal-from-json')
+        payload = self._minimal_payload()
+        payload['client_email'] = 'json-client@example.com'
+        payload['client_phone'] = '+57 300 123 4567'
+        response = admin_client.post(url, payload, format='json')
+
+        assert response.status_code == 201
+        proposal = BusinessProposal.objects.get(pk=response.data['id'])
+        assert proposal.client is not None
+        assert proposal.client.user.email == 'json-client@example.com'
+        assert proposal.client_name == 'JSON Client'
 
     def test_technical_document_section_present_after_minimal_json_create(self, admin_client):
         url = reverse('create-proposal-from-json')

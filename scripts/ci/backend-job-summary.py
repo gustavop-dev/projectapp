@@ -27,7 +27,7 @@ files = data.get('files', {})
 total_funcs = 0
 covered_funcs = 0
 for fp, fd in files.items():
-    if '/tests/' in fp:
+    if '/tests/' in fp or '/migrations/' in fp:
         continue
     for func_data in fd.get('functions', {}).values():
         total_funcs += 1
@@ -46,7 +46,7 @@ print(f'| Lines | {lines_cov} | {lines_total} | {stmts_pct:.1f}% |')
 file_list = []
 for fp, fd in files.items():
     # Exclude test files — coverage on tests is not actionable
-    if '/tests/' in fp:
+    if '/tests/' in fp or '/migrations/' in fp:
         continue
     s = fd.get('summary', {})
     stmts = s.get('num_statements', 0)
