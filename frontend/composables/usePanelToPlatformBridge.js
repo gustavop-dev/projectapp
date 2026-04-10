@@ -17,9 +17,11 @@ export function usePanelToPlatformBridge() {
         refreshToken: data.tokens.refresh,
         user: data.user,
       })
-      window.location.href = localePath(targetPath)
+      window.open(localePath(targetPath), '_blank')
     } catch {
-      window.location.href = localePath('/platform/login')
+      window.open(localePath('/platform/login'), '_blank')
+    } finally {
+      isBridging.value = false
     }
   }
 

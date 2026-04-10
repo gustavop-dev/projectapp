@@ -18,11 +18,12 @@ def session_token_bridge(request):
     platform without requiring a separate login.
     """
     user = request.user
-    profile, _ = UserProfile.objects.get_or_create(
+    profile, _ = UserProfile.objects.update_or_create(
         user=user,
         defaults={
             'role': UserProfile.ROLE_ADMIN,
             'is_onboarded': True,
+            'profile_completed': True,
             'created_by': user,
         },
     )
