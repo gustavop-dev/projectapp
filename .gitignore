@@ -33,6 +33,7 @@ backend/.coverage
 backend/.coveragerc
 backend/.pytest_cache/
 backend/venv/
+backend/tmp_backend_cov*.json
 
 # Python virtual environment
 venv/
