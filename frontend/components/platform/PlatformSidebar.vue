@@ -278,6 +278,7 @@ const accountItems = computed(() => [
 
 const adminItems = computed(() => [
   { label: 'Clientes', href: lp('/platform/clients'), icon: 'users' },
+  { label: 'Panel admin', href: '/panel', icon: 'external', external: true },
 ])
 
 const projectSubModules = {

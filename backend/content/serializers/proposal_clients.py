@@ -41,6 +41,7 @@ class ProposalClientSerializer(serializers.ModelSerializer):
         allow_blank=True,
         max_length=200,
     )
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
     is_email_placeholder = serializers.BooleanField(read_only=True)
     total_proposals = serializers.SerializerMethodField()
     is_orphan = serializers.SerializerMethodField()
@@ -54,6 +55,7 @@ class ProposalClientSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = (
             'id',
+            'user_id',
             'name',
             'email',
             'phone',
@@ -72,6 +74,7 @@ class ProposalClientSerializer(serializers.ModelSerializer):
         )
         read_only_fields = (
             'id',
+            'user_id',
             'is_onboarded',
             'is_email_placeholder',
             'total_proposals',

@@ -9,6 +9,7 @@ from accounts.collection_account_views import (
     collection_account_pdf_view,
     project_collection_account_list_view,
 )
+from accounts.views_bridge import session_token_bridge
 from accounts.views import (
     admin_detail_view,
     admin_list_view,
@@ -72,6 +73,7 @@ from accounts.views import (
 
 urlpatterns = [
     # Auth
+    path('session-token-bridge/', session_token_bridge, name='platform-session-bridge'),
     path('login/', login_view, name='platform-login'),
     path('verify/', verify_view, name='platform-verify'),
     path('resend-code/', resend_code_view, name='platform-resend-code'),

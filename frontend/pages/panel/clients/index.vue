@@ -141,6 +141,18 @@
               {{ client.total_proposals }} propuesta{{ client.total_proposals !== 1 ? 's' : '' }}
             </span>
 
+            <button
+              v-if="!client.is_orphan && !client.is_email_placeholder"
+              type="button"
+              :data-testid="`client-platform-${client.id}`"
+              class="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+              :disabled="isBridging"
+              title="Ver en plataforma"
+              @click.stop="goToPlatform('/platform/clients/' + client.user_id)"
+            >
+              <SidebarIcon name="external" class="w-4 h-4" />
+            </button>
+
             <!-- Trash button (orphans only) -->
             <button
               v-if="client.is_orphan"
@@ -326,14 +338,17 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import SidebarIcon from '~/components/platform/SidebarIcon.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useClientFilters } from '~/composables/useClientFilters';
+import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge';
 import { useProposalClientsStore } from '~/stores/proposalClients';
 
 const localePath = useLocalePath();
+const { goToPlatform, isBridging } = usePanelToPlatformBridge();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const clientsStore = useProposalClientsStore();
