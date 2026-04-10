@@ -14,7 +14,7 @@
       <!-- CSV Export button -->
       <div class="flex justify-end">
         <button
-          class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl text-sm text-gray-600 dark:text-green-light hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors shadow-sm"
           @click="downloadCSV"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

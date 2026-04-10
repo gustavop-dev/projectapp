@@ -794,8 +794,8 @@
         <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6 mb-6">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
-              <h3 class="text-sm font-medium text-gray-900">JSON de la propuesta</h3>
-              <p class="text-xs text-gray-400 mt-0.5">Representación JSON completa — se actualiza al guardar cambios en otras pestañas.</p>
+              <h3 class="text-sm font-medium text-gray-900 dark:text-white">JSON de la propuesta</h3>
+              <p class="text-xs text-gray-400 dark:text-green-light/40 mt-0.5">Representación JSON completa — se actualiza al guardar cambios en otras pestañas.</p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <button
@@ -836,20 +836,20 @@
             :value="exportJsonString"
             readonly
             rows="18"
-            class="w-full px-4 py-3 border border-gray-200 rounded-xl text-xs font-mono leading-relaxed
-                   bg-gray-50 text-gray-700 outline-none resize-y cursor-text select-all"
+            class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-mono leading-relaxed
+                   bg-gray-50 dark:bg-esmerald-dark text-gray-700 dark:text-gray-300 outline-none resize-y cursor-text select-all"
           />
         </div>
 
         <!-- Import JSON -->
         <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6">
-          <h3 class="text-sm font-medium text-gray-900 mb-1">Importar JSON</h3>
+          <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-1">Importar JSON</h3>
           <p class="text-xs text-gray-400 mb-4">Pega o sube un JSON para reemplazar el contenido de la propuesta (metadata + secciones).</p>
 
           <div class="flex items-center gap-3 mb-3">
             <label
-              class="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-xs
-                     text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
+              class="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-200 dark:border-white/[0.08] rounded-lg text-xs
+                     text-gray-700 dark:text-green-light hover:bg-gray-50 dark:hover:bg-white/[0.04] cursor-pointer transition-colors"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -857,30 +857,30 @@
               Subir .json
               <input type="file" accept=".json" class="hidden" @change="handleJsonFileUpload" />
             </label>
-            <span v-if="jsonImportFileName" class="text-xs text-gray-500">{{ jsonImportFileName }}</span>
+            <span v-if="jsonImportFileName" class="text-xs text-gray-500 dark:text-green-light/60">{{ jsonImportFileName }}</span>
           </div>
 
           <textarea
             v-model="jsonImportRaw"
             rows="10"
             placeholder='Pega aquí el JSON completo de la propuesta...'
-            class="w-full px-4 py-3 border border-gray-200 rounded-xl text-xs font-mono leading-relaxed
+            class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-xs font-mono leading-relaxed
                    focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y"
             @input="parseImportJson"
           />
 
           <!-- Parse error -->
-          <div v-if="jsonImportError" class="mt-2 text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">
+          <div v-if="jsonImportError" class="mt-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-lg">
             {{ jsonImportError }}
           </div>
 
           <!-- Preview -->
-          <div v-if="jsonImportParsed && !jsonImportError" class="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
+          <div v-if="jsonImportParsed && !jsonImportError" class="mt-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/30 rounded-lg px-4 py-3">
             <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-              <span><span class="text-gray-500">Cliente:</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.clientName }}</span></span>
-              <span><span class="text-gray-500">Secciones:</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.sectionCount }}</span></span>
-              <span v-if="jsonImportPreview.epicCount != null"><span class="text-gray-500">Módulos (téc.):</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.epicCount }}</span></span>
-              <span v-if="jsonImportPreview.investment"><span class="text-gray-500">Inversión:</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.investment }}</span></span>
+              <span><span class="text-gray-500 dark:text-green-light/60">Cliente:</span> <span class="font-medium text-gray-900 dark:text-white">{{ jsonImportPreview.clientName }}</span></span>
+              <span><span class="text-gray-500 dark:text-green-light/60">Secciones:</span> <span class="font-medium text-gray-900 dark:text-white">{{ jsonImportPreview.sectionCount }}</span></span>
+              <span v-if="jsonImportPreview.epicCount != null"><span class="text-gray-500 dark:text-green-light/60">Módulos (téc.):</span> <span class="font-medium text-gray-900 dark:text-white">{{ jsonImportPreview.epicCount }}</span></span>
+              <span v-if="jsonImportPreview.investment"><span class="text-gray-500 dark:text-green-light/60">Inversión:</span> <span class="font-medium text-gray-900 dark:text-white">{{ jsonImportPreview.investment }}</span></span>
             </div>
           </div>
 
@@ -908,11 +908,11 @@
               </svg>
               {{ proposalStore.isUpdating ? 'Aplicando...' : 'Aplicar JSON' }}
             </button>
-            <p class="text-xs text-gray-400">Esto reemplazará la metadata y todas las secciones de la propuesta.</p>
+            <p class="text-xs text-gray-400 dark:text-green-light/40">Esto reemplazará la metadata y todas las secciones de la propuesta.</p>
           </div>
 
           <!-- Import result message -->
-          <div v-if="jsonImportMsg" class="mt-3 text-sm px-4 py-3 rounded-xl" :class="jsonImportMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'">
+          <div v-if="jsonImportMsg" class="mt-3 text-sm px-4 py-3 rounded-xl" :class="jsonImportMsg.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'">
             {{ jsonImportMsg.text }}
           </div>
         </div>
@@ -923,7 +923,7 @@
         <!-- Log activity form -->
         <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-5 mb-6">
           <div class="flex items-center gap-1.5 mb-3">
-            <h3 class="text-sm font-semibold text-gray-700">Registrar actividad</h3>
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-white">Registrar actividad</h3>
             <UiTooltip position="right">
               <template #trigger>
                 <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
@@ -932,13 +932,13 @@
             </UiTooltip>
           </div>
           <div class="flex flex-col sm:flex-row gap-3">
-            <select v-model="activityForm.change_type" class="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-1 focus:ring-emerald-500 outline-none sm:w-40">
+            <select v-model="activityForm.change_type" class="px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-xl text-sm bg-white focus:ring-1 focus:ring-emerald-500 outline-none sm:w-40">
               <option value="call">📞 Llamada</option>
               <option value="meeting">🤝 Reunión</option>
               <option value="followup">📩 Seguimiento</option>
               <option value="note">📝 Nota</option>
             </select>
-            <input v-model="activityForm.description" type="text" placeholder="Descripción de la actividad..." class="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-1 focus:ring-emerald-500 outline-none" @keydown.enter.prevent="submitActivity" />
+            <input v-model="activityForm.description" type="text" placeholder="Descripción de la actividad..." class="flex-1 px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-1 focus:ring-emerald-500 outline-none" @keydown.enter.prevent="submitActivity" />
             <button type="button" :disabled="!activityForm.description.trim() || isSubmittingActivity" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 whitespace-nowrap" @click="submitActivity">
               {{ isSubmittingActivity ? 'Guardando...' : 'Agregar' }}
             </button>
@@ -948,7 +948,7 @@
         <!-- Timeline -->
         <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-5">
           <div class="flex items-center gap-1.5 mb-4">
-            <h3 class="text-sm font-semibold text-gray-700">Historial de actividad</h3>
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-white">Historial de actividad</h3>
             <UiTooltip position="right">
               <template #trigger>
                 <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
@@ -956,20 +956,20 @@
               {{ tt.activityHistory }}
             </UiTooltip>
           </div>
-          <div v-if="!changeLogs.length" class="text-center py-8 text-sm text-gray-400">Sin actividad registrada.</div>
+          <div v-if="!changeLogs.length" class="text-center py-8 text-sm text-gray-400 dark:text-green-light/40">Sin actividad registrada.</div>
           <div v-else class="relative pl-6 space-y-0">
-            <div class="absolute left-[9px] top-2 bottom-2 w-px bg-gray-200" />
+            <div class="absolute left-[9px] top-2 bottom-2 w-px bg-gray-200 dark:bg-white/[0.08]" />
             <div v-for="log in changeLogs" :key="log.id" class="relative pb-5 last:pb-0">
-              <div class="absolute -left-6 top-1 w-[18px] h-[18px] rounded-full border-2 border-white shadow-sm flex items-center justify-center text-[10px]" :class="activityDotClass(log.change_type)">
+              <div class="absolute -left-6 top-1 w-[18px] h-[18px] rounded-full border-2 border-white dark:border-esmerald shadow-sm flex items-center justify-center text-[10px]" :class="activityDotClass(log.change_type)">
                 {{ activityIcon(log.change_type) }}
               </div>
               <div class="ml-2">
                 <div class="flex items-baseline gap-2">
                   <span class="text-xs font-semibold" :class="activityLabelClass(log.change_type)">{{ activityLabel(log.change_type) }}</span>
-                  <span class="text-[10px] text-gray-400">{{ formatLogDate(log.created_at) }}</span>
+                  <span class="text-[10px] text-gray-400 dark:text-green-light/40">{{ formatLogDate(log.created_at) }}</span>
                 </div>
                 <!-- eslint-disable-next-line vue/no-v-html -->
-                <p class="text-sm text-gray-600 mt-0.5" v-html="formatActivityDescription(log)"></p>
+                <p class="text-sm text-gray-600 dark:text-green-light/60 mt-0.5" v-html="formatActivityDescription(log)"></p>
               </div>
             </div>
           </div>

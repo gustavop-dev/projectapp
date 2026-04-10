@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-6">
-    <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-900">
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-700/30 rounded-xl p-4 text-xs text-blue-900 dark:text-blue-200">
       <p class="font-semibold mb-1">📅 Cronograma del proyecto</p>
       <p class="leading-relaxed">
         Define las fechas de inicio y fin para cada etapa. El equipo recibirá un aviso cuando
@@ -12,47 +12,47 @@
     <section
       v-for="row in stagesWithStatus"
       :key="row.stage_key"
-      class="bg-white border border-gray-100 rounded-xl p-5"
+      class="bg-white dark:bg-esmerald border border-gray-100 dark:border-white/[0.06] rounded-xl p-5"
       :data-testid="`stage-card-${row.stage_key}`"
     >
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2">
           <span class="text-2xl" aria-hidden="true">{{ row.emoji }}</span>
-          <h3 class="text-sm font-semibold text-gray-800">
+          <h3 class="text-sm font-semibold text-gray-800 dark:text-white">
             Etapa de {{ row.stage_label }}
           </h3>
         </div>
         <span
           v-if="row.completed_at"
-          class="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded text-[11px] font-medium"
+          class="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded text-[11px] font-medium"
           :data-testid="`stage-status-${row.stage_key}`"
         >
           🟢 Completada
         </span>
         <span
           v-else-if="row.status.kind === 'overdue'"
-          class="px-2 py-0.5 bg-red-50 text-red-700 rounded text-[11px] font-medium"
+          class="px-2 py-0.5 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded text-[11px] font-medium"
           :data-testid="`stage-status-${row.stage_key}`"
         >
           🔴 Vencida hace {{ row.status.label }}
         </span>
         <span
           v-else-if="row.status.kind === 'pending'"
-          class="px-2 py-0.5 bg-amber-50 text-amber-700 rounded text-[11px] font-medium"
+          class="px-2 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded text-[11px] font-medium"
           :data-testid="`stage-status-${row.stage_key}`"
         >
           🟡 Faltan {{ row.status.label }}
         </span>
         <span
           v-else-if="row.status.kind === 'not_started'"
-          class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[11px] font-medium"
+          class="px-2 py-0.5 bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light/60 rounded text-[11px] font-medium"
           :data-testid="`stage-status-${row.stage_key}`"
         >
           ⏳ Aún no inicia
         </span>
         <span
           v-else
-          class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[11px] font-medium"
+          class="px-2 py-0.5 bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-green-light/40 rounded text-[11px] font-medium"
           :data-testid="`stage-status-${row.stage_key}`"
         >
           Sin programar
@@ -63,7 +63,7 @@
         <div>
           <label
             :for="`start-${row.stage_key}`"
-            class="block text-xs text-gray-500 mb-1"
+            class="block text-xs text-gray-500 dark:text-white/70 mb-1"
           >
             Fecha de inicio
           </label>
@@ -73,13 +73,13 @@
             type="date"
             :disabled="!!row.completed_at"
             :data-testid="`stage-start-${row.stage_key}`"
-            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-50 disabled:text-gray-400"
+            class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-50 dark:disabled:bg-white/[0.03] disabled:text-gray-400 dark:disabled:text-green-light/40"
           />
         </div>
         <div>
           <label
             :for="`end-${row.stage_key}`"
-            class="block text-xs text-gray-500 mb-1"
+            class="block text-xs text-gray-500 dark:text-white/70 mb-1"
           >
             Fecha fin planeada
           </label>
@@ -89,7 +89,7 @@
             type="date"
             :disabled="!!row.completed_at"
             :data-testid="`stage-end-${row.stage_key}`"
-            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-50 disabled:text-gray-400"
+            class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-50 dark:disabled:bg-white/[0.03] disabled:text-gray-400 dark:disabled:text-green-light/40"
           />
         </div>
       </div>
@@ -117,14 +117,14 @@
           type="button"
           :disabled="isCompleting[row.stage_key]"
           :data-testid="`stage-complete-${row.stage_key}`"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-100 transition-colors disabled:opacity-50"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/[0.03] text-gray-700 dark:text-green-light rounded-lg text-xs font-medium hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors disabled:opacity-50"
           @click="handleComplete(row.stage_key)"
         >
           ✅ {{ isCompleting[row.stage_key] ? 'Marcando…' : 'Marcar como completada' }}
         </button>
         <span
           v-if="row.completed_at"
-          class="text-xs text-gray-500"
+          class="text-xs text-gray-500 dark:text-green-light/60"
         >
           Completada el {{ formatHumanDate(row.completed_at) }}
         </span>

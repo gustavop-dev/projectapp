@@ -1,31 +1,31 @@
 <template>
   <div class="space-y-8">
     <!-- Contract section -->
-    <section class="bg-white border border-gray-100 rounded-xl p-5">
+    <section class="bg-white dark:bg-esmerald border border-gray-100 dark:border-white/[0.06] rounded-xl p-5">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2">
           <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <h3 class="text-sm font-semibold text-gray-800">Contrato de desarrollo</h3>
+          <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Contrato de desarrollo</h3>
         </div>
         <div v-if="contractDoc" class="flex items-center gap-2">
           <a :href="contractPdfUrl" target="_blank"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-medium hover:bg-emerald-100 transition-colors">
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             Descargar
           </a>
           <a :href="draftContractPdfUrl" target="_blank"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-100 transition-colors">
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             Borrador
           </a>
           <button type="button" @click="$emit('editContract')"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-100 transition-colors">
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/[0.03] text-gray-600 dark:text-green-light rounded-lg text-xs font-medium hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
@@ -33,36 +33,36 @@
           </button>
         </div>
         <div v-else class="flex items-center gap-2">
-          <span class="text-xs text-gray-400">No generado</span>
+          <span class="text-xs text-gray-400 dark:text-green-light/40">No generado</span>
           <button type="button" @click="$emit('generateContract')"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-medium hover:bg-emerald-100 transition-colors">
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
             Generar contrato
           </button>
         </div>
       </div>
-      <p v-if="contractDoc" class="text-xs text-gray-500">
+      <p v-if="contractDoc" class="text-xs text-gray-500 dark:text-green-light/60">
         Generado el {{ formatDate(contractDoc.created_at) }}
       </p>
     </section>
 
     <!-- Proposal PDFs section -->
-    <section class="bg-white border border-gray-100 rounded-xl p-5">
+    <section class="bg-white dark:bg-esmerald border border-gray-100 dark:border-white/[0.06] rounded-xl p-5">
       <div class="flex items-center gap-2 mb-4">
         <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
-        <h3 class="text-sm font-semibold text-gray-800">PDFs de la propuesta</h3>
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-white">PDFs de la propuesta</h3>
       </div>
       <div class="flex flex-wrap items-center gap-3">
         <a :href="'/api/proposals/' + proposal.uuid + '/pdf/'" target="_blank"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-medium hover:bg-emerald-100 transition-colors">
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
           Propuesta comercial
         </a>
         <a :href="'/api/proposals/' + proposal.uuid + '/pdf/?doc=technical'" target="_blank"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-medium hover:bg-emerald-100 transition-colors">
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
@@ -72,12 +72,12 @@
     </section>
 
     <!-- Send documents to client section -->
-    <section class="bg-white border border-emerald-100 rounded-xl p-5">
+    <section class="bg-white dark:bg-esmerald border border-emerald-100 dark:border-emerald-700/30 rounded-xl p-5">
       <div class="flex items-center gap-2 mb-4">
         <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
-        <h3 class="text-sm font-semibold text-gray-800">Enviar documentos al cliente</h3>
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Enviar documentos al cliente</h3>
       </div>
 
       <!-- Main documents checkboxes -->
@@ -87,45 +87,45 @@
           <input type="checkbox" value="draft_contract"
             v-model="selectedMainDocs"
             :disabled="!contractDoc"
-            class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-          <span class="text-xs text-gray-700">Contrato de desarrollo (borrador)</span>
-          <span v-if="!contractDoc" class="text-[10px] text-gray-400">(no generado)</span>
+            class="rounded border-gray-300 dark:border-white/[0.15] text-emerald-600 focus:ring-emerald-500" />
+          <span class="text-xs text-gray-700 dark:text-white/70">Contrato de desarrollo (borrador)</span>
+          <span v-if="!contractDoc" class="text-[10px] text-gray-400 dark:text-green-light/40">(no generado)</span>
         </label>
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" value="commercial"
             v-model="selectedMainDocs"
-            class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-          <span class="text-xs text-gray-700">Propuesta comercial</span>
+            class="rounded border-gray-300 dark:border-white/[0.15] text-emerald-600 focus:ring-emerald-500" />
+          <span class="text-xs text-gray-700 dark:text-white/70">Propuesta comercial</span>
         </label>
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" value="technical"
             v-model="selectedMainDocs"
-            class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-          <span class="text-xs text-gray-700">Detalle técnico</span>
+            class="rounded border-gray-300 dark:border-white/[0.15] text-emerald-600 focus:ring-emerald-500" />
+          <span class="text-xs text-gray-700 dark:text-white/70">Detalle técnico</span>
         </label>
       </div>
 
       <!-- Additional documents checkboxes -->
-      <div v-if="additionalDocs.length" class="border-t border-gray-100 pt-3 mb-4">
-        <p class="text-[10px] text-gray-400 uppercase tracking-wide mb-2">Documentos adicionales</p>
+      <div v-if="additionalDocs.length" class="border-t border-gray-100 dark:border-white/[0.06] pt-3 mb-4">
+        <p class="text-[10px] text-gray-400 dark:text-green-light/40 uppercase tracking-wide mb-2">Documentos adicionales</p>
         <div class="space-y-2">
           <label v-for="doc in additionalDocs" :key="doc.id"
             class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" :value="doc.id"
               v-model="selectedAdditionalDocIds"
-              class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-            <span class="px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] font-medium">
+              class="rounded border-gray-300 dark:border-white/[0.15] text-emerald-600 focus:ring-emerald-500" />
+            <span class="px-1.5 py-0.5 bg-gray-200 dark:bg-white/[0.08] text-gray-600 dark:text-green-light/60 rounded text-[10px] font-medium">
               {{ doc.document_type_display }}
             </span>
-            <span class="text-xs text-gray-700">{{ doc.title }}</span>
+            <span class="text-xs text-gray-700 dark:text-white/70">{{ doc.title }}</span>
           </label>
         </div>
       </div>
 
       <!-- Send button and client email -->
       <div class="flex items-center justify-between pt-2">
-        <p v-if="proposal.client_email" class="text-xs text-gray-400">
-          Se enviará a: <span class="font-medium text-gray-600">{{ proposal.client_email }}</span>
+        <p v-if="proposal.client_email" class="text-xs text-gray-400 dark:text-green-light/40">
+          Se enviará a: <span class="font-medium text-gray-600 dark:text-green-light">{{ proposal.client_email }}</span>
         </p>
         <p v-else class="text-xs text-red-400">No hay email del cliente configurado</p>
         <button type="button"
@@ -146,22 +146,22 @@
     </section>
 
     <!-- Additional documents section -->
-    <section class="bg-white border border-gray-100 rounded-xl p-5">
+    <section class="bg-white dark:bg-esmerald border border-gray-100 dark:border-white/[0.06] rounded-xl p-5">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2">
           <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
           </svg>
-          <h3 class="text-sm font-semibold text-gray-800">Documentos adicionales</h3>
+          <h3 class="text-sm font-semibold text-gray-800 dark:text-white">Documentos adicionales</h3>
         </div>
       </div>
 
       <!-- Existing documents list -->
       <div v-if="additionalDocs.length" class="space-y-2 mb-4">
         <div v-for="doc in additionalDocs" :key="doc.id"
-          class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+          class="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-white/[0.03] rounded-lg">
           <div class="flex items-center gap-2">
-            <span class="px-2 py-0.5 bg-gray-200 text-gray-600 rounded text-[10px] font-medium">
+            <span class="px-2 py-0.5 bg-gray-200 dark:bg-white/[0.08] text-gray-600 dark:text-green-light/60 rounded text-[10px] font-medium">
               {{ doc.document_type_display }}
             </span>
             <a :href="doc.file" target="_blank" class="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
@@ -176,21 +176,21 @@
           </button>
         </div>
       </div>
-      <p v-else class="text-xs text-gray-400 mb-4">No hay documentos adicionales.</p>
+      <p v-else class="text-xs text-gray-400 dark:text-green-light/40 mb-4">No hay documentos adicionales.</p>
 
       <!-- Upload form -->
-      <div class="border-t border-gray-100 pt-4">
-        <p class="text-xs text-gray-500 mb-3">Subir documento (otrosí, anexo, documento del cliente, etc.)</p>
+      <div class="border-t border-gray-100 dark:border-white/[0.06] pt-4">
+        <p class="text-xs text-gray-500 dark:text-green-light/60 mb-3">Subir documento (otrosí, anexo, documento del cliente, etc.)</p>
         <div class="flex flex-wrap items-end gap-3">
           <div class="flex-1 min-w-[150px]">
-            <label class="block text-xs text-gray-400 mb-1">Título</label>
+            <label class="block text-xs text-gray-400 dark:text-green-light/40 mb-1">Título</label>
             <input v-model="uploadTitle" type="text" placeholder="Ej: Anexo técnico"
-              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500" />
+              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-lg text-xs focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div class="w-36">
-            <label class="block text-xs text-gray-400 mb-1">Tipo</label>
+            <label class="block text-xs text-gray-400 dark:text-green-light/40 mb-1">Tipo</label>
             <select v-model="uploadType"
-              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500">
+              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-lg text-xs focus:ring-2 focus:ring-emerald-500">
               <option value="amendment">Otrosí</option>
               <option value="legal_annex">Anexo legal</option>
               <option value="client_document">Doc. del cliente</option>
@@ -198,14 +198,14 @@
             </select>
           </div>
           <div v-if="uploadType === 'other'" class="min-w-[120px]">
-            <label class="block text-xs text-gray-400 mb-1">Nombre categoría</label>
+            <label class="block text-xs text-gray-400 dark:text-green-light/40 mb-1">Nombre categoría</label>
             <input v-model="uploadCustomLabel" type="text" placeholder="Ej: Diseños"
-              class="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500" />
+              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-lg text-xs focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div>
-            <label class="block text-xs text-gray-400 mb-1">Archivo</label>
+            <label class="block text-xs text-gray-400 dark:text-green-light/40 mb-1">Archivo</label>
             <input ref="fileInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-              class="text-xs file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-emerald-50 file:text-emerald-700 file:rounded-lg hover:file:bg-emerald-100" />
+              class="text-xs dark:text-white/70 file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-emerald-50 dark:file:bg-emerald-900/20 file:text-emerald-700 dark:file:text-emerald-400 file:rounded-lg hover:file:bg-emerald-100 dark:hover:file:bg-emerald-900/30" />
           </div>
           <button type="button" :disabled="isUploading" @click="handleUpload"
             class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50">

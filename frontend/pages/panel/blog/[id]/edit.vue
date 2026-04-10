@@ -41,7 +41,7 @@
         <div>
           <label for="slug" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Slug</label>
           <input id="slug" v-model="form.slug" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
-          <p class="text-xs text-gray-400 dark:text-green-light/60 dark:text-green-light/60 mt-1">URL: /blog/{{ form.slug || '...' }}</p>
+          <p class="text-xs text-gray-400 dark:text-green-light/60 mt-1">URL: /blog/{{ form.slug || '...' }}</p>
         </div>
 
         <!-- Metadata row -->
@@ -87,12 +87,12 @@
           </div>
           <div>
             <label for="content_es" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Contenido HTML (ES)</label>
-            <textarea id="content_es" v-model="form.content_es" rows="6" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" />
+            <textarea id="content_es" v-model="form.content_es" rows="6" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Contenido JSON (ES)</label>
-            <textarea v-model="form.content_json_es_raw" rows="10" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder='{ "intro": "...", "sections": [...], "conclusion": "...", "cta": "..." }' />
-            <p class="text-xs text-gray-400 dark:text-green-light/60 dark:text-green-light/60 mt-1">JSON estructurado con intro, sections, conclusion y cta. Tiene prioridad sobre el HTML.</p>
+            <textarea v-model="form.content_json_es_raw" rows="10" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-xs font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder='{ "intro": "...", "sections": [...], "conclusion": "...", "cta": "..." }' />
+            <p class="text-xs text-gray-400 dark:text-green-light/60 mt-1">JSON estructurado con intro, sections, conclusion y cta. Tiene prioridad sobre el HTML.</p>
           </div>
         </fieldset>
 
@@ -109,11 +109,11 @@
           </div>
           <div>
             <label for="content_en" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Content HTML (EN)</label>
-            <textarea id="content_en" v-model="form.content_en" rows="6" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" />
+            <textarea id="content_en" v-model="form.content_en" rows="6" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Content JSON (EN)</label>
-            <textarea v-model="form.content_json_en_raw" rows="10" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder='{ "intro": "...", "sections": [...], "conclusion": "...", "cta": "..." }' />
+            <textarea v-model="form.content_json_en_raw" rows="10" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-xs font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder='{ "intro": "...", "sections": [...], "conclusion": "...", "cta": "..." }' />
           </div>
         </fieldset>
 
@@ -144,7 +144,7 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Keywords (ES)</label>
               <input v-model="form.meta_keywords_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="cortinas inteligentes, automatización hogar, domotica" />
-              <p class="text-xs text-gray-400 dark:text-green-light/60 dark:text-green-light/60 mt-1">Separadas por coma. Palabras clave objetivo para SEO.</p>
+              <p class="text-xs text-gray-400 dark:text-green-light/60 mt-1">Separadas por coma. Palabras clave objetivo para SEO.</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Keywords (EN)</label>
@@ -160,12 +160,12 @@
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Resumen LinkedIn (ES)</label>
               <textarea v-model="form.linkedin_summary_es" rows="4" maxlength="1300" class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Resumen para publicar en LinkedIn (max ~1300 caracteres)" />
-              <p class="text-xs text-gray-400 dark:text-green-light/60 dark:text-green-light/60 mt-1">{{ form.linkedin_summary_es.length }} / 1300</p>
+              <p class="text-xs text-gray-400 dark:text-green-light/60 mt-1">{{ form.linkedin_summary_es.length }} / 1300</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">LinkedIn Summary (EN)</label>
               <textarea v-model="form.linkedin_summary_en" rows="4" maxlength="1300" class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm leading-relaxed focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Summary for LinkedIn post (max ~1300 chars)" />
-              <p class="text-xs text-gray-400 dark:text-green-light/60 dark:text-green-light/60 mt-1">{{ form.linkedin_summary_en.length }} / 1300</p>
+              <p class="text-xs text-gray-400 dark:text-green-light/60 mt-1">{{ form.linkedin_summary_en.length }} / 1300</p>
             </div>
           </div>
 
@@ -184,7 +184,7 @@
                 Conectado como <strong>{{ linkedinStatus.profile_name }}</strong>
               </div>
               <div class="flex items-center gap-3">
-                <select v-model="linkedinLang" class="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                <select v-model="linkedinLang" class="px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
                   <option value="es">Publicar en Español</option>
                   <option value="en">Publish in English</option>
                 </select>
@@ -213,9 +213,9 @@
 
           <!-- File upload -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Subir archivo</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-2">Subir archivo</label>
             <div class="flex items-center gap-3">
-              <label class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 dark:text-white/70 hover:bg-gray-50 cursor-pointer transition-colors">
+              <label class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] rounded-xl text-sm text-gray-700 dark:text-white/70 hover:bg-gray-50 dark:hover:bg-white/[0.04] cursor-pointer transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                 Seleccionar imagen
                 <input type="file" accept="image/*" class="hidden" @change="handleCoverUpload" />
@@ -227,9 +227,9 @@
 
           <!-- OR divider -->
           <div class="flex items-center gap-3">
-            <div class="flex-1 border-t border-gray-200" />
+            <div class="flex-1 border-t border-gray-200 dark:border-white/[0.06]" />
             <span class="text-xs text-gray-400 dark:text-green-light/60">o pegar URL externa</span>
-            <div class="flex-1 border-t border-gray-200" />
+            <div class="flex-1 border-t border-gray-200 dark:border-white/[0.06]" />
           </div>
 
           <!-- URL input -->
@@ -260,12 +260,12 @@
         <!-- Sources -->
         <div>
           <div class="flex items-center justify-between mb-2">
-            <label class="block text-sm font-medium text-gray-700">Fuentes</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-white/70">Fuentes</label>
             <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 transition-colors" @click="addSource">+ Agregar fuente</button>
           </div>
           <div v-for="(source, idx) in form.sources" :key="idx" class="flex gap-2 mb-2">
-            <input v-model="source.name" type="text" class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Nombre de la fuente" />
-            <input v-model="source.url" type="url" class="flex-[2] px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://..." />
+            <input v-model="source.name" type="text" class="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Nombre de la fuente" />
+            <input v-model="source.url" type="url" class="flex-[2] px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://..." />
             <button type="button" class="text-gray-400 hover:text-red-500 transition-colors px-2" @click="removeSource(idx)">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
@@ -291,7 +291,7 @@
             </label>
             <div v-if="publishMode === 'schedule'" class="ml-7">
               <input v-model="scheduledDate" type="datetime-local" class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
-              <p class="text-xs text-gray-400 dark:text-green-light/60 dark:text-green-light/60 mt-1">El post se publicará automáticamente en la fecha seleccionada.</p>
+              <p class="text-xs text-gray-400 dark:text-green-light/60 mt-1">El post se publicará automáticamente en la fecha seleccionada.</p>
             </div>
           </div>
         </fieldset>
@@ -305,7 +305,7 @@
           <button type="submit" :disabled="blogStore.isUpdating" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
             {{ blogStore.isUpdating ? 'Guardando...' : 'Guardar Cambios' }}
           </button>
-          <a v-if="post?.slug" :href="`/blog/${post.slug}`" target="_blank" class="px-6 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition-colors inline-flex items-center gap-1">
+          <a v-if="post?.slug" :href="`/blog/${post.slug}`" target="_blank" class="px-6 py-2.5 border border-gray-200 dark:border-white/[0.08] text-gray-600 dark:text-green-light rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors inline-flex items-center gap-1">
             Ver en blog
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
           </a>
@@ -317,28 +317,28 @@
         v-if="showPreview"
         class="hidden lg:block w-[45%] flex-shrink-0 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-esmerald shadow-sm"
       >
-        <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-          <span class="text-sm font-medium text-gray-700">Vista previa</span>
-          <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+        <div class="p-4 border-b border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
+          <span class="text-sm font-medium text-gray-700 dark:text-white/70">Vista previa</span>
+          <div class="flex items-center gap-1 bg-gray-100 dark:bg-white/[0.06] rounded-lg p-0.5">
             <button
               type="button"
-              :class="['px-3 py-1 text-xs rounded-md transition-colors', previewLang === 'es' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500']"
+              :class="['px-3 py-1 text-xs rounded-md transition-colors', previewLang === 'es' ? 'bg-white dark:bg-esmerald shadow-sm font-medium text-gray-900 dark:text-white' : 'text-gray-500 dark:text-green-light/60']"
               @click="previewLang = 'es'"
             >ES</button>
             <button
               type="button"
-              :class="['px-3 py-1 text-xs rounded-md transition-colors', previewLang === 'en' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500']"
+              :class="['px-3 py-1 text-xs rounded-md transition-colors', previewLang === 'en' ? 'bg-white dark:bg-esmerald shadow-sm font-medium text-gray-900 dark:text-white' : 'text-gray-500 dark:text-green-light/60']"
               @click="previewLang = 'en'"
             >EN</button>
           </div>
         </div>
         <div class="p-6">
           <div v-if="previewCategory" class="mb-4">
-            <span class="px-3 py-1.5 rounded-full text-xs bg-emerald-50 text-emerald-700 font-medium capitalize">{{ previewCategory }}</span>
+            <span class="px-3 py-1.5 rounded-full text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-medium capitalize">{{ previewCategory }}</span>
           </div>
-          <h1 class="text-2xl font-light text-gray-900 mb-3 leading-tight">{{ previewTitle }}</h1>
+          <h1 class="text-2xl font-light text-gray-900 dark:text-white mb-3 leading-tight">{{ previewTitle }}</h1>
           <p class="text-sm text-gray-500 dark:text-green-light/60 mb-4 leading-relaxed">{{ previewExcerpt }}</p>
-          <div v-if="coverImagePreview" class="mb-6 rounded-xl overflow-hidden border border-gray-200">
+          <div v-if="coverImagePreview" class="mb-6 rounded-xl overflow-hidden border border-gray-200 dark:border-white/[0.08]">
             <img :src="coverImagePreview" alt="Cover" class="w-full h-auto" />
           </div>
           <div v-if="form.read_time_minutes" class="text-xs text-gray-400 dark:text-green-light/60 mb-6">{{ form.read_time_minutes }} min de lectura</div>
@@ -352,34 +352,34 @@
       <Transition name="drawer">
         <div v-if="showPreview && isMobilePreview" class="fixed inset-0 z-50 flex justify-end" @click.self="showPreview = false">
           <div class="absolute inset-0 bg-black/30" @click="showPreview = false" />
-          <div class="relative w-[90vw] max-w-lg h-full bg-white shadow-2xl overflow-y-auto">
-            <div class="sticky top-0 bg-white z-10 p-4 border-b border-gray-100 flex items-center justify-between">
-              <span class="text-sm font-medium text-gray-700">Vista previa</span>
+          <div class="relative w-[90vw] max-w-lg h-full bg-white dark:bg-esmerald shadow-2xl overflow-y-auto">
+            <div class="sticky top-0 bg-white dark:bg-esmerald z-10 p-4 border-b border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
+              <span class="text-sm font-medium text-gray-700 dark:text-white/70">Vista previa</span>
               <div class="flex items-center gap-3">
-                <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+                <div class="flex items-center gap-1 bg-gray-100 dark:bg-white/[0.06] rounded-lg p-0.5">
                   <button
                     type="button"
-                    :class="['px-3 py-1 text-xs rounded-md transition-colors', previewLang === 'es' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500']"
+                    :class="['px-3 py-1 text-xs rounded-md transition-colors', previewLang === 'es' ? 'bg-white dark:bg-esmerald shadow-sm font-medium text-gray-900 dark:text-white' : 'text-gray-500 dark:text-green-light/60']"
                     @click="previewLang = 'es'"
                   >ES</button>
                   <button
                     type="button"
-                    :class="['px-3 py-1 text-xs rounded-md transition-colors', previewLang === 'en' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500']"
+                    :class="['px-3 py-1 text-xs rounded-md transition-colors', previewLang === 'en' ? 'bg-white dark:bg-esmerald shadow-sm font-medium text-gray-900 dark:text-white' : 'text-gray-500 dark:text-green-light/60']"
                     @click="previewLang = 'en'"
                   >EN</button>
                 </div>
-                <button type="button" class="text-gray-400 hover:text-gray-600" @click="showPreview = false">
+                <button type="button" class="text-gray-400 dark:text-green-light/40 hover:text-gray-600 dark:hover:text-white/70" @click="showPreview = false">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </div>
             </div>
             <div class="p-6">
               <div v-if="previewCategory" class="mb-4">
-                <span class="px-3 py-1.5 rounded-full text-xs bg-emerald-50 text-emerald-700 font-medium capitalize">{{ previewCategory }}</span>
+                <span class="px-3 py-1.5 rounded-full text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-medium capitalize">{{ previewCategory }}</span>
               </div>
-              <h1 class="text-2xl font-light text-gray-900 mb-3 leading-tight">{{ previewTitle }}</h1>
+              <h1 class="text-2xl font-light text-gray-900 dark:text-white mb-3 leading-tight">{{ previewTitle }}</h1>
               <p class="text-sm text-gray-500 dark:text-green-light/60 mb-4 leading-relaxed">{{ previewExcerpt }}</p>
-              <div v-if="coverImagePreview" class="mb-6 rounded-xl overflow-hidden border border-gray-200">
+              <div v-if="coverImagePreview" class="mb-6 rounded-xl overflow-hidden border border-gray-200 dark:border-white/[0.08]">
                 <img :src="coverImagePreview" alt="Cover" class="w-full h-auto" />
               </div>
               <div v-if="form.read_time_minutes" class="text-xs text-gray-400 dark:text-green-light/60 mb-6">{{ form.read_time_minutes }} min de lectura</div>

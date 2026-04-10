@@ -48,7 +48,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Contenido JSON (ES)</label>
-          <textarea v-model="contentJsonEsRaw" rows="12" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder='{ "problem": {...}, "solution": {...}, "results": {...} }' />
+          <textarea v-model="contentJsonEsRaw" rows="12" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-xs font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder='{ "problem": {...}, "solution": {...}, "results": {...} }' />
         </div>
       </fieldset>
 
@@ -65,7 +65,7 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Content JSON (EN)</label>
-          <textarea v-model="contentJsonEnRaw" rows="12" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder='{ "problem": {...}, "solution": {...}, "results": {...} }' />
+          <textarea v-model="contentJsonEnRaw" rows="12" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-xs font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder='{ "problem": {...}, "solution": {...}, "results": {...} }' />
         </div>
       </fieldset>
 
@@ -117,11 +117,11 @@
       </fieldset>
 
       <!-- Publishing -->
-      <fieldset class="border border-gray-200 rounded-xl p-5 space-y-3">
+      <fieldset class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-5 space-y-3">
         <legend class="text-sm font-medium text-gray-700 dark:text-white/70 px-2">Publicación</legend>
         <label class="relative inline-flex items-center cursor-pointer gap-3">
           <input v-model="form.is_published" type="checkbox" class="sr-only peer" />
-          <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
+          <div class="w-9 h-5 bg-gray-200 dark:bg-white/[0.15] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
           <span class="text-sm text-gray-700 dark:text-white/70">Publicado</span>
         </label>
       </fieldset>
@@ -134,7 +134,7 @@
         <button type="submit" :disabled="portfolioStore.isUpdating" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
           {{ portfolioStore.isUpdating ? 'Guardando...' : 'Guardar cambios' }}
         </button>
-        <NuxtLink :to="localePath('/panel/portfolio')" class="px-6 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition-colors">Volver</NuxtLink>
+        <NuxtLink :to="localePath('/panel/portfolio')" class="px-6 py-2.5 border border-gray-200 dark:border-white/[0.08] text-gray-600 dark:text-green-light rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors">Volver</NuxtLink>
       </div>
     </form>
   </div>
