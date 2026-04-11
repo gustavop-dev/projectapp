@@ -190,7 +190,7 @@ function parseBackendTestResults() {
 
   // Extract failed test names
   const failures = [];
-  const tcRegex = /<testcase\s+[^>]*classname="([^"]*)"[^>]*name="([^"]*)"[^>]*>[\s\S]*?<\/testcase>/g;
+  const tcRegex = /<testcase\s+[^>]*classname="([^"]*)"[^>]*name="([^"]*)"[^>]*(?<!\/)>[\s\S]*?<\/testcase>/g;
   let match;
   while ((match = tcRegex.exec(xml)) !== null) {
     const block = match[0];
