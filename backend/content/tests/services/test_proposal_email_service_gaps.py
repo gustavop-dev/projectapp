@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.test import override_settings
 from django.utils import timezone
+from freezegun import freeze_time
 
 from content.models import BusinessProposal
 from content.services.proposal_email_service import ProposalEmailService
@@ -72,6 +73,7 @@ class TestGetNotificationRecipients:
 # ===========================================================================
 
 class TestCheckCooldown:
+    @freeze_time('2026-03-01 12:00:00')
     def test_returns_false_when_within_cooldown_period(self, proposal):
         # Set last_automated_email_at to 1 hour ago (within 24-hour cooldown)
         proposal.last_automated_email_at = timezone.now() - timezone.timedelta(hours=1)
@@ -81,6 +83,7 @@ class TestCheckCooldown:
 
         assert result is False
 
+    @freeze_time('2026-03-01 12:00:00')
     def test_returns_true_and_updates_timestamp_when_cooldown_passed(self, proposal):
         # Set last_automated_email_at to 25 hours ago (outside cooldown)
         proposal.last_automated_email_at = timezone.now() - timezone.timedelta(hours=25)
@@ -89,6 +92,8 @@ class TestCheckCooldown:
         result = ProposalEmailService._check_cooldown(proposal)
 
         assert result is True
+        proposal.refresh_from_db()
+        assert proposal.last_automated_email_at == timezone.now()
 
 
 # ===========================================================================
@@ -204,6 +209,8 @@ class TestSendMagicLinkEmail:
         )
 
         assert result is True
+        mock_email_cls.assert_called_once()
+        mock_email.send.assert_called_once_with(fail_silently=False)
 
     @patch('content.services.proposal_email_service.EmailMultiAlternatives', side_effect=Exception('smtp error'))
     def test_returns_false_on_send_exception(self, mock_email_cls, proposal):
@@ -251,6 +258,9 @@ class TestSendDocumentsToClient:
         )
 
         assert result is True
+        assert mock_render.call_count == 2
+        mock_email_cls.assert_called_once()
+        mock_email.send.assert_called_once_with(fail_silently=False)
 
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
     @patch('content.services.proposal_email_service.render_to_string', return_value='html')
@@ -270,6 +280,9 @@ class TestSendDocumentsToClient:
         )
 
         assert result is True
+        assert mock_render.call_count == 2
+        mock_email_cls.assert_called_once()
+        mock_email.send.assert_called_once_with(fail_silently=False)
 
 
 # ===========================================================================
@@ -292,6 +305,9 @@ class TestSendStandaloneBrandedEmail:
         )
 
         assert result is True
+        assert mock_render.call_count == 2
+        mock_email_cls.assert_called_once()
+        mock_email.send.assert_called_once_with(fail_silently=False)
 
 
 # ===========================================================================

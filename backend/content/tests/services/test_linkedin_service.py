@@ -567,6 +567,8 @@ class TestUploadImageToLinkedin:
         result = linkedin_service._upload_image_to_linkedin('https://img.test/photo.jpg')
 
         assert result is None
+        mock_get.assert_called_once_with('https://img.test/photo.jpg', timeout=30, stream=True)
+        mock_post.assert_called_once()
 
     @patch('content.services.linkedin_service.requests.post')
     @patch('content.services.linkedin_service.requests.get')
@@ -587,6 +589,8 @@ class TestUploadImageToLinkedin:
         result = linkedin_service._upload_image_to_linkedin('https://img.test/photo.jpg')
 
         assert result is None
+        mock_get.assert_called_once_with('https://img.test/photo.jpg', timeout=30, stream=True)
+        mock_post.assert_called_once()
 
     @patch('content.services.linkedin_service.requests.put')
     @patch('content.services.linkedin_service.requests.post')

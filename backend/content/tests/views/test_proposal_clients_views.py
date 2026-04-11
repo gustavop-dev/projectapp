@@ -6,7 +6,11 @@ update, delete) plus the integration with proposal create/update via
 ``client_id``.
 """
 
+from unittest.mock import patch
+from uuid import uuid4
+
 import pytest
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 
 from accounts.models import Project, UserProfile
@@ -15,6 +19,26 @@ from content.models.business_proposal import BusinessProposal
 
 
 pytestmark = pytest.mark.django_db
+User = get_user_model()
+
+
+def _bulk_create_client_profiles(count, prefix):
+    users = [
+        User(
+            username=f'{prefix}-{index}@example.com',
+            email=f'{prefix}-{index}@example.com',
+            is_active=False,
+        )
+        for index in range(count)
+    ]
+    User.objects.bulk_create(users)
+    created_users = list(
+        User.objects.filter(username__startswith=f'{prefix}-').order_by('id')
+    )
+    UserProfile.objects.bulk_create([
+        UserProfile(user=user, role=UserProfile.ROLE_CLIENT)
+        for user in created_users
+    ])
 
 
 # ---------------------------------------------------------------------------
@@ -98,6 +122,41 @@ class TestListProposalClients:
         response = api_client.get(reverse('list-proposal-clients'))
         assert response.status_code in (401, 403)
 
+    @pytest.mark.parametrize('orphans_value', ['1', 'yes', 'on'])
+    def test_orphans_filter_accepts_truthy_variants(
+        self, admin_client, real_client_with_proposal, orphan_client, orphans_value,
+    ):
+        response = admin_client.get(
+            reverse('list-proposal-clients'), {'orphans': orphans_value},
+        )
+
+        assert response.status_code == 200
+        ids = [client['id'] for client in response.data]
+        assert orphan_client.pk in ids
+        assert real_client_with_proposal.pk not in ids
+
+    def test_invalid_limit_falls_back_to_default_100(self, admin_client):
+        prefix = f'limit-default-{uuid4().hex}'
+        _bulk_create_client_profiles(101, prefix)
+
+        response = admin_client.get(
+            reverse('list-proposal-clients'), {'limit': 'not-a-number'},
+        )
+
+        assert response.status_code == 200
+        assert len(response.data) == 100
+
+    def test_limit_is_capped_at_500(self, admin_client):
+        prefix = f'limit-cap-{uuid4().hex}'
+        _bulk_create_client_profiles(505, prefix)
+
+        response = admin_client.get(
+            reverse('list-proposal-clients'), {'limit': 999},
+        )
+
+        assert response.status_code == 200
+        assert len(response.data) == 500
+
 
 # ---------------------------------------------------------------------------
 # Search (autocomplete)
@@ -121,6 +180,38 @@ class TestSearchProposalClients:
         assert response.status_code == 200
         assert len(response.data) == 2
 
+    @pytest.mark.parametrize(
+        'query,first_name,last_name,company_name',
+        [
+            ('marcela', 'Marcela', 'Lopez', ''),
+            ('lopez', 'Marcela', 'Lopez', ''),
+            ('spectra', 'Marcela', 'Lopez', 'Spectra Labs'),
+        ],
+    )
+    def test_search_matches_name_and_company_fields(
+        self, admin_client, query, first_name, last_name, company_name,
+    ):
+        identity = uuid4().hex
+        user = User.objects.create_user(
+            username=f'{identity}@example.com',
+            email=f'{identity}@example.com',
+            password='pass12345',
+            first_name=first_name,
+            last_name=last_name,
+        )
+        profile = UserProfile.objects.create(
+            user=user,
+            role=UserProfile.ROLE_CLIENT,
+            company_name=company_name,
+        )
+
+        response = admin_client.get(
+            reverse('search-proposal-clients'), {'q': query},
+        )
+
+        assert response.status_code == 200
+        assert response.data[0]['id'] == profile.pk
+
 
 # ---------------------------------------------------------------------------
 # Retrieve detail
@@ -143,6 +234,24 @@ class TestRetrieveProposalClient:
         response = admin_client.get(reverse('retrieve-proposal-client', args=[999999]))
         assert response.status_code == 404
         assert response.data['error'] == 'client_not_found'
+
+    def test_detail_orders_nested_proposals_by_created_at_desc(
+        self, admin_client, real_client_with_proposal,
+    ):
+        BusinessProposal.objects.create(
+            title='Newest proposal',
+            client=real_client_with_proposal,
+            client_name='Activa Mendoza',
+            client_email='activa@gmail.com',
+            total_investment=1200,
+        )
+
+        response = admin_client.get(
+            reverse('retrieve-proposal-client', args=[real_client_with_proposal.pk]),
+        )
+
+        assert response.status_code == 200
+        assert response.data['proposals'][0]['title'] == 'Newest proposal'
 
 
 # ---------------------------------------------------------------------------
@@ -179,6 +288,20 @@ class TestCreateProposalClient:
         assert response.status_code == 400
         assert response.data['error'] == 'name_or_email_required'
 
+    @patch('content.views.proposal_clients.proposal_client_service.get_or_create_client_for_proposal')
+    def test_create_returns_service_validation_error_payload(self, mock_get_or_create, admin_client):
+        mock_get_or_create.side_effect = ValueError('Email already used by another client.')
+
+        response = admin_client.post(
+            reverse('create-proposal-client'),
+            {'name': 'Conflicted', 'email': 'conflict@example.com'},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.data['error'] == 'invalid_client_data'
+        assert response.data['message'] == 'Email already used by another client.'
+
 
 # ---------------------------------------------------------------------------
 # Update
@@ -197,6 +320,44 @@ class TestUpdateProposalClient:
         proposal = real_client_with_proposal.proposals.first()
         proposal.refresh_from_db()
         assert proposal.client_phone == '+57 311 9999'
+
+    def test_update_returns_existing_representation_for_empty_payload(
+        self, admin_client, real_client_with_proposal,
+    ):
+        response = admin_client.patch(
+            reverse('update-proposal-client', args=[real_client_with_proposal.pk]),
+            {},
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.data['id'] == real_client_with_proposal.pk
+        assert response.data['phone'] == real_client_with_proposal.phone
+
+    @patch('content.views.proposal_clients.proposal_client_service.update_client_profile')
+    def test_update_returns_conflict_payload_when_service_rejects_change(
+        self, mock_update_client_profile, admin_client, real_client_with_proposal,
+    ):
+        mock_update_client_profile.side_effect = ValueError('Otro usuario ya está usando el email.')
+
+        response = admin_client.patch(
+            reverse('update-proposal-client', args=[real_client_with_proposal.pk]),
+            {'email': 'used@example.com'},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.data['error'] == 'update_conflict'
+
+    def test_update_returns_404_for_unknown_client(self, admin_client):
+        response = admin_client.patch(
+            reverse('update-proposal-client', args=[999999]),
+            {'phone': '+57 300 0000'},
+            format='json',
+        )
+
+        assert response.status_code == 404
+        assert response.data['error'] == 'client_not_found'
 
 
 # ---------------------------------------------------------------------------
@@ -232,6 +393,14 @@ class TestDeleteProposalClient:
         )
         assert response.status_code == 400
         assert response.data['error'] == 'client_has_projects'
+
+    def test_delete_returns_404_for_unknown_client(self, admin_client):
+        response = admin_client.delete(
+            reverse('delete-proposal-client', args=[999999]),
+        )
+
+        assert response.status_code == 404
+        assert response.data['error'] == 'client_not_found'
 
 
 # ---------------------------------------------------------------------------

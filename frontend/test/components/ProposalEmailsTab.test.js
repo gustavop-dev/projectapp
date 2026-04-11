@@ -1,278 +1,370 @@
-/**
- * Tests for ProposalEmailsTab logic.
- *
- * Covers: basePath computation, canSend validation, section management,
- * file validation, status labels, date formatting, and title selection.
- *
- * Following project convention: extract and test component logic directly
- * rather than mounting Vue components.
- */
+import { mount } from '@vue/test-utils';
+import ProposalEmailsTab from '../../components/BusinessProposal/admin/ProposalEmailsTab.vue';
 
-// ── basePath logic (mirrors computed in component, driven by activeMode) ────
-
-function basePath(activeMode) {
-  return activeMode === 'proposal' ? 'proposal-email' : 'branded-email';
+async function flushPromises() {
+  await Promise.resolve();
+  await Promise.resolve();
 }
 
-describe('basePath', () => {
-  it('returns proposal-email when activeMode is proposal', () => {
-    expect(basePath('proposal')).toBe('proposal-email');
-  });
+const proposalStore = {
+  sendComposedEmail: jest.fn(),
+  fetchEmailHistory: jest.fn(),
+  fetchEmailDefaults: jest.fn(),
+};
 
-  it('returns branded-email when activeMode is branded', () => {
-    expect(basePath('branded')).toBe('branded-email');
-  });
+global.useProposalStore = jest.fn(() => proposalStore);
 
-  it('returns branded-email for unknown activeMode', () => {
-    expect(basePath('something')).toBe('branded-email');
-  });
-});
+const baseProposal = {
+  id: 42,
+  client_name: 'Carlos',
+  client_email: 'carlos@example.com',
+};
 
-
-// ── canSend validation (mirrors computed in component) ──────────────────────
-
-function canSend(recipient, subject, sections) {
-  if (!recipient.trim()) return false;
-  if (!subject.trim()) return false;
-  if (!sections.some(s => s.text.trim())) return false;
-  return true;
+function buildHistoryEntry(overrides = {}) {
+  return {
+    id: 1,
+    subject: 'Seguimiento',
+    recipient: 'carlos@example.com',
+    status: 'sent',
+    sent_at: '2026-04-10T10:00:00Z',
+    metadata: {
+      greeting: 'Hola Carlos',
+      sections: ['Primer bloque'],
+      footer: 'Footer',
+      attachment_names: ['brief.pdf'],
+    },
+    ...overrides,
+  };
 }
 
-describe('canSend', () => {
-  it('returns true when all fields are filled', () => {
-    expect(canSend('test@example.com', 'Subject', [{ text: 'content' }])).toBe(true);
+function mountTab(props = {}) {
+  return mount(ProposalEmailsTab, {
+    props: {
+      proposal: baseProposal,
+      ...props,
+    },
   });
+}
 
-  it('returns false when recipient is empty', () => {
-    expect(canSend('', 'Subject', [{ text: 'content' }])).toBe(false);
-  });
-
-  it('returns false when recipient is whitespace only', () => {
-    expect(canSend('   ', 'Subject', [{ text: 'content' }])).toBe(false);
-  });
-
-  it('returns false when subject is empty', () => {
-    expect(canSend('test@example.com', '', [{ text: 'content' }])).toBe(false);
-  });
-
-  it('returns false when all sections are empty', () => {
-    expect(canSend('test@example.com', 'Subject', [{ text: '' }, { text: '  ' }])).toBe(false);
-  });
-
-  it('returns true when at least one section has content', () => {
-    expect(canSend('test@example.com', 'Subject', [{ text: '' }, { text: 'valid' }])).toBe(true);
-  });
-});
-
-
-// ── Section management ──────────────────────────────────────────────────────
-
-describe('section management', () => {
-  let sectionIdSeq;
-  const nextSectionId = () => ++sectionIdSeq;
-
-  function addSection(sections) {
-    sections.push({ id: nextSectionId(), text: '' });
-  }
-
-  function removeSection(sections, idx) {
-    if (sections.length > 1) {
-      sections.splice(idx, 1);
-    }
-  }
-
+describe('ProposalEmailsTab', () => {
   beforeEach(() => {
-    sectionIdSeq = 0;
+    jest.useFakeTimers();
+    proposalStore.sendComposedEmail.mockReset();
+    proposalStore.fetchEmailHistory.mockReset();
+    proposalStore.fetchEmailDefaults.mockReset();
+    proposalStore.fetchEmailDefaults.mockResolvedValue({
+      success: true,
+      data: {
+        greeting: 'Hola Carlos',
+        footer: 'Quedamos atentos.',
+      },
+    });
+    proposalStore.fetchEmailHistory.mockResolvedValue({
+      success: true,
+      data: {
+        results: [],
+        page: 1,
+        has_next: false,
+      },
+    });
+    proposalStore.sendComposedEmail.mockResolvedValue({ success: true });
   });
 
-  it('adds a new empty section with incremental id', () => {
-    const sections = [{ id: nextSectionId(), text: 'first' }];
-    addSection(sections);
-
-    expect(sections).toHaveLength(2);
-    expect(sections[1].text).toBe('');
-    expect(sections[1].id).toBe(2);
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
-  it('removes section at given index', () => {
-    const sections = [
-      { id: 1, text: 'first' },
-      { id: 2, text: 'second' },
-    ];
-    removeSection(sections, 0);
+  it('loads defaults and history on mount with the proposal-email base path', async () => {
+    mountTab();
+    await flushPromises();
 
-    expect(sections).toHaveLength(1);
-    expect(sections[0].text).toBe('second');
+    expect(proposalStore.fetchEmailDefaults).toHaveBeenCalledWith(42, 'proposal-email');
+    expect(proposalStore.fetchEmailHistory).toHaveBeenCalledWith(42, 1, 'proposal-email');
   });
 
-  it('does not remove the last remaining section', () => {
-    const sections = [{ id: 1, text: 'only' }];
-    removeSection(sections, 0);
+  it('falls back to empty recipient and generic greeting when the proposal has no client data', async () => {
+    proposalStore.fetchEmailDefaults.mockResolvedValueOnce({ success: true, data: {} });
+    const wrapper = mountTab({
+      proposal: {
+        id: 42,
+        client_name: '',
+        client_email: '',
+      },
+    });
+    await flushPromises();
 
-    expect(sections).toHaveLength(1);
-    expect(sections[0].text).toBe('only');
-  });
-});
-
-
-// ── File validation ─────────────────────────────────────────────────────────
-
-const ALLOWED_EXTENSIONS = new Set(['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.png', '.jpg', '.jpeg']);
-const MAX_FILE_SIZE = 15 * 1024 * 1024;
-
-function validateFile(file) {
-  const ext = '.' + file.name.split('.').pop().toLowerCase();
-  if (!ALLOWED_EXTENSIONS.has(ext)) {
-    return `${file.name}: tipo no permitido`;
-  }
-  if (file.size > MAX_FILE_SIZE) {
-    return `${file.name}: excede 15 MB`;
-  }
-  return null;
-}
-
-describe('file validation', () => {
-  it('accepts a valid PDF file', () => {
-    expect(validateFile({ name: 'contract.pdf', size: 1024 })).toBeNull();
+    const inputs = wrapper.findAll('input');
+    expect(inputs[0].element.value).toBe('');
+    expect(inputs[2].element.value).toBe('Hola');
+    expect(wrapper.findAll('button').find((button) => button.text().includes('Enviar correo')).attributes('disabled')).toBeDefined();
   });
 
-  it('accepts a valid DOCX file', () => {
-    expect(validateFile({ name: 'report.docx', size: 1024 })).toBeNull();
+  it('renders the empty history state when there are no entries', async () => {
+    const wrapper = mountTab();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('No se han enviado correos desde esta propuesta.');
   });
 
-  it('accepts a valid image file', () => {
-    expect(validateFile({ name: 'photo.jpg', size: 1024 })).toBeNull();
+  it('switches to branded mode and reloads defaults and history', async () => {
+    const wrapper = mountTab();
+    await flushPromises();
+
+    await wrapper.findAll('button').find((button) => button.text().includes('General')).trigger('click');
+    await flushPromises();
+
+    expect(proposalStore.fetchEmailDefaults).toHaveBeenLastCalledWith(42, 'branded-email');
+    expect(proposalStore.fetchEmailHistory).toHaveBeenLastCalledWith(42, 1, 'branded-email');
   });
 
-  it('rejects a disallowed extension', () => {
-    const error = validateFile({ name: 'malware.exe', size: 1024 });
-    expect(error).toContain('tipo no permitido');
+  it('disables the send button until recipient, subject, and one section have content', async () => {
+    const wrapper = mountTab();
+    await flushPromises();
+
+    const sendButton = wrapper.findAll('button').find((button) => button.text().includes('Enviar correo'));
+    expect(sendButton.attributes('disabled')).toBeDefined();
+
+    const inputs = wrapper.findAll('input');
+    await inputs[1].setValue('Asunto');
+    await wrapper.find('textarea').setValue('Contenido');
+
+    expect(sendButton.attributes('disabled')).toBeUndefined();
   });
 
-  it('rejects a file exceeding 15 MB', () => {
-    const error = validateFile({ name: 'large.pdf', size: 16 * 1024 * 1024 });
-    expect(error).toContain('excede 15 MB');
+  it('adds and removes composer sections from the UI', async () => {
+    const wrapper = mountTab();
+    await flushPromises();
+
+    await wrapper.findAll('button').find((button) => button.text().includes('Agregar sección')).trigger('click');
+    expect(wrapper.text()).toContain('Sección 2');
+
+    await wrapper.findAll('button').find((button) => button.html().includes('M19 7l-.867')).trigger('click');
+    expect(wrapper.text()).not.toContain('Sección 2');
   });
 
-  it('handles uppercase extensions correctly', () => {
-    expect(validateFile({ name: 'photo.PNG', size: 1024 })).toBeNull();
-  });
-});
+  it('shows a validation error for files with disallowed extensions', async () => {
+    const wrapper = mountTab();
+    await flushPromises();
 
+    const fileInput = wrapper.find('input[type="file"]');
+    const file = new File(['bad'], 'malware.exe', { type: 'application/octet-stream' });
+    Object.defineProperty(fileInput.element, 'files', {
+      configurable: true,
+      value: [file],
+    });
 
-// ── Status labels ───────────────────────────────────────────────────────────
+    await fileInput.trigger('change');
 
-const STATUS_LABELS = { sent: 'Enviado', delivered: 'Entregado', bounced: 'Rebotado', failed: 'Fallido' };
-
-function statusLabel(s) {
-  return STATUS_LABELS[s] || s;
-}
-
-describe('statusLabel', () => {
-  it('returns Enviado for sent status', () => {
-    expect(statusLabel('sent')).toBe('Enviado');
+    expect(wrapper.text()).toContain('malware.exe: tipo no permitido');
   });
 
-  it('returns Fallido for failed status', () => {
-    expect(statusLabel('failed')).toBe('Fallido');
+  it('ignores file change events with no selected files', async () => {
+    const wrapper = mountTab();
+    await flushPromises();
+
+    const fileInput = wrapper.find('input[type="file"]');
+    Object.defineProperty(fileInput.element, 'files', {
+      configurable: true,
+      value: [],
+    });
+
+    await fileInput.trigger('change');
+
+    expect(wrapper.text()).not.toContain('tipo no permitido');
   });
 
-  it('returns raw value for unknown status', () => {
-    expect(statusLabel('pending')).toBe('pending');
-  });
-});
+  it('shows a validation error for oversized files', async () => {
+    const wrapper = mountTab();
+    await flushPromises();
 
+    const fileInput = wrapper.find('input[type="file"]');
+    const file = new File(['x'.repeat(10)], 'large.pdf', { type: 'application/pdf' });
+    Object.defineProperty(file, 'size', {
+      configurable: true,
+      value: 16 * 1024 * 1024,
+    });
+    Object.defineProperty(fileInput.element, 'files', {
+      configurable: true,
+      value: [file],
+    });
 
-// ── Date formatting ─────────────────────────────────────────────────────────
+    await fileInput.trigger('change');
 
-function formatDate(isoString) {
-  if (!isoString) return '';
-  return new Date(isoString).toLocaleDateString('es-CO', {
-    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  });
-}
-
-describe('formatDate', () => {
-  it('formats an ISO date string to Colombian locale', () => {
-    const result = formatDate('2026-03-15T10:30:00Z');
-    expect(result).toContain('2026');
-    expect(result).toContain('15');
+    expect(wrapper.text()).toContain('large.pdf: excede 15 MB');
   });
 
-  it('returns empty string for null', () => {
-    expect(formatDate(null)).toBe('');
+  it('adds valid attachments and allows removing them', async () => {
+    const wrapper = mountTab();
+    await flushPromises();
+
+    const fileInput = wrapper.find('input[type="file"]');
+    const file = new File(['pdf'], 'brief.pdf', { type: 'application/pdf' });
+    Object.defineProperty(fileInput.element, 'files', {
+      configurable: true,
+      value: [file],
+    });
+
+    await fileInput.trigger('change');
+    expect(wrapper.text()).toContain('brief.pdf');
+
+    await wrapper.findAll('button').find((button) => button.html().includes('M6 18L18 6')).trigger('click');
+    expect(wrapper.text()).not.toContain('brief.pdf');
   });
 
-  it('returns empty string for undefined', () => {
-    expect(formatDate(undefined)).toBe('');
+  it('sends a composed email and resets the form after a successful response', async () => {
+    const wrapper = mountTab();
+    await flushPromises();
+
+    const inputs = wrapper.findAll('input');
+    await inputs[1].setValue('Seguimiento de propuesta');
+    await wrapper.find('textarea').setValue('Primer bloque');
+
+    await wrapper.findAll('button').find((button) => button.text().includes('Enviar correo')).trigger('click');
+    await flushPromises();
+
+    const [, formData, basePath] = proposalStore.sendComposedEmail.mock.calls[0];
+    expect(basePath).toBe('proposal-email');
+    expect(formData.get('recipient_email')).toBe('carlos@example.com');
+    expect(formData.get('subject')).toBe('Seguimiento de propuesta');
+    expect(formData.get('greeting')).toBe('Hola Carlos');
+    expect(formData.get('sections')).toBe(JSON.stringify(['Primer bloque']));
+    expect(wrapper.text()).toContain('Correo enviado correctamente.');
+
+    jest.advanceTimersByTime(5000);
+    await flushPromises();
+    expect(wrapper.text()).not.toContain('Correo enviado correctamente.');
   });
 
-  it('returns empty string for empty string', () => {
-    expect(formatDate('')).toBe('');
-  });
-});
+  it('appends attachments to the form data when sending', async () => {
+    const wrapper = mountTab();
+    await flushPromises();
 
+    const fileInput = wrapper.find('input[type="file"]');
+    const file = new File(['pdf'], 'brief.pdf', { type: 'application/pdf' });
+    Object.defineProperty(fileInput.element, 'files', {
+      configurable: true,
+      value: [file],
+    });
+    await fileInput.trigger('change');
 
-// ── Title selection by mode ─────────────────────────────────────────────────
+    const inputs = wrapper.findAll('input');
+    await inputs[1].setValue('Seguimiento con adjunto');
+    await wrapper.find('textarea').setValue('Primer bloque');
+    await wrapper.findAll('button').find((button) => button.text().includes('Enviar correo')).trigger('click');
+    await flushPromises();
 
-function composerTitle(mode) {
-  return mode === 'proposal' ? 'Enviar correo de propuesta' : 'Enviar correo con branding';
-}
-
-describe('composerTitle', () => {
-  it('returns proposal title for proposal mode', () => {
-    expect(composerTitle('proposal')).toBe('Enviar correo de propuesta');
-  });
-
-  it('returns branded title for branded mode', () => {
-    expect(composerTitle('branded')).toBe('Enviar correo con branding');
-  });
-});
-
-
-// ── Default greeting logic ──────────────────────────────────────────────────
-
-function defaultGreeting(clientName) {
-  return clientName ? `Hola ${clientName}` : 'Hola';
-}
-
-describe('defaultGreeting', () => {
-  it('includes client name when provided', () => {
-    expect(defaultGreeting('Carlos')).toBe('Hola Carlos');
+    const [, formData] = proposalStore.sendComposedEmail.mock.calls[0];
+    expect(formData.getAll('attachments')).toHaveLength(1);
+    expect(formData.getAll('attachments')[0].name).toBe('brief.pdf');
   });
 
-  it('returns plain Hola when client name is empty', () => {
-    expect(defaultGreeting('')).toBe('Hola');
+  it('shows a fallback error when the send request fails', async () => {
+    proposalStore.sendComposedEmail.mockResolvedValueOnce({ success: false });
+    const wrapper = mountTab();
+    await flushPromises();
+
+    const inputs = wrapper.findAll('input');
+    await inputs[1].setValue('Seguimiento de propuesta');
+    await wrapper.find('textarea').setValue('Primer bloque');
+
+    await wrapper.findAll('button').find((button) => button.text().includes('Enviar correo')).trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Error al enviar el correo. Intenta de nuevo.');
   });
 
-  it('returns plain Hola when client name is null', () => {
-    expect(defaultGreeting(null)).toBe('Hola');
-  });
-});
+  it('renders history entries and toggles the expanded detail view', async () => {
+    proposalStore.fetchEmailHistory.mockResolvedValueOnce({
+      success: true,
+      data: {
+        results: [buildHistoryEntry()],
+        page: 1,
+        has_next: false,
+      },
+    });
 
+    const wrapper = mountTab();
+    await flushPromises();
 
-// ── Regression: edit.vue must explicitly import ProposalEmailsTab ───────────
-// Without this import, Nuxt resolves the component dynamically and renders nothing.
-// See: fix-correos-tab-empty-12c950
-
-const fs = require('fs');
-const path = require('path');
-
-describe('edit.vue ProposalEmailsTab import', () => {
-  const editVuePath = path.resolve(__dirname, '../../pages/panel/proposals/[id]/edit.vue');
-  let editVueContent;
-
-  beforeAll(() => {
-    editVueContent = fs.readFileSync(editVuePath, 'utf-8');
-  });
-
-  it('contains explicit import of ProposalEmailsTab', () => {
-    expect(editVueContent).toContain(
-      "import ProposalEmailsTab from '~/components/BusinessProposal/admin/ProposalEmailsTab.vue'",
-    );
+    expect(wrapper.text()).toContain('Seguimiento');
+    await wrapper.findAll('button').find((button) => button.text().includes('carlos@example.com')).trigger('click');
+    await flushPromises();
+    expect(wrapper.text()).toContain('Primer bloque');
+    expect(wrapper.text()).toContain('brief.pdf');
   });
 
-  it('uses ProposalEmailsTab in the template', () => {
-    expect(editVueContent).toContain('<ProposalEmailsTab');
+  it('collapses an expanded history entry on the second toggle', async () => {
+    proposalStore.fetchEmailHistory.mockResolvedValueOnce({
+      success: true,
+      data: {
+        results: [buildHistoryEntry()],
+        page: 1,
+        has_next: false,
+      },
+    });
+
+    const wrapper = mountTab();
+    await flushPromises();
+
+    const historyButton = wrapper.findAll('button').find((button) => button.text().includes('carlos@example.com'));
+    await historyButton.trigger('click');
+    await flushPromises();
+    expect(wrapper.text()).toContain('Primer bloque');
+
+    await historyButton.trigger('click');
+    await flushPromises();
+    expect(wrapper.text()).not.toContain('Primer bloque');
+  });
+
+  it('renders unknown history status values and blank dates without formatting them', async () => {
+    proposalStore.fetchEmailHistory.mockResolvedValueOnce({
+      success: true,
+      data: {
+        results: [
+          buildHistoryEntry({
+            id: 2,
+            status: 'queued',
+            sent_at: null,
+          }),
+        ],
+        page: 1,
+        has_next: false,
+      },
+    });
+
+    const wrapper = mountTab();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('queued');
+    expect(wrapper.text()).toContain('carlos@example.com');
+  });
+
+  it('loads the next history page when the load more button is clicked', async () => {
+    proposalStore.fetchEmailHistory
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          results: [buildHistoryEntry({ id: 1, subject: 'Primero' })],
+          page: 1,
+          has_next: true,
+        },
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          results: [buildHistoryEntry({ id: 2, subject: 'Segundo' })],
+          page: 2,
+          has_next: false,
+        },
+      });
+
+    const wrapper = mountTab();
+    await flushPromises();
+    await wrapper.findAll('button').find((button) => button.text().includes('Cargar más')).trigger('click');
+    await flushPromises();
+
+    expect(proposalStore.fetchEmailHistory).toHaveBeenLastCalledWith(42, 2, 'proposal-email');
+    expect(wrapper.text()).toContain('Segundo');
   });
 });

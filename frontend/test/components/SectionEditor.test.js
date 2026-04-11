@@ -5,6 +5,7 @@
  * formToReadableText, groupToReadableText, buildSavePayload
  * for all 12 section types with form/paste mode and edge cases.
  */
+import { mount } from '@vue/test-utils';
 import {
   arrToText,
   textToArr,
@@ -14,6 +15,67 @@ import {
   groupToReadableText,
   buildSavePayload,
 } from '../../components/BusinessProposal/admin/sectionEditorUtils.js';
+import SectionEditor from '../../components/BusinessProposal/admin/SectionEditor.vue';
+
+jest.mock('vuedraggable', () => ({
+  __esModule: true,
+  default: {
+    name: 'DraggableStub',
+    props: ['modelValue'],
+    template: `
+      <div>
+        <template v-for="(element, index) in modelValue || []" :key="element.id || element._idx || index">
+          <slot name="item" :element="element" :index="index" />
+        </template>
+        <slot />
+      </div>
+    `,
+  },
+}));
+
+jest.mock('~/components/BusinessProposal/admin/EmojiIconField.vue', () => ({
+  __esModule: true,
+  default: {
+    name: 'EmojiIconField',
+    props: ['modelValue', 'label', 'placeholder'],
+    template: `
+      <label>
+        <span>{{ label }}</span>
+        <input
+          :value="modelValue"
+          :placeholder="placeholder"
+          @input="$emit('update:modelValue', $event.target.value)"
+        />
+      </label>
+    `,
+  },
+}));
+
+jest.mock('~/components/BusinessProposal/admin/SectionPreviewModal.vue', () => ({
+  __esModule: true,
+  default: {
+    name: 'SectionPreviewModal',
+    props: ['visible', 'section', 'proposalData', 'subSection'],
+    template: `
+      <div v-if="visible" class="section-preview-stub">
+        {{ subSection ? 'sub-preview-open' : 'preview-open' }}
+      </div>
+    `,
+  },
+}));
+
+jest.mock('~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue', () => ({
+  __esModule: true,
+  default: {
+    name: 'TechnicalDocumentEditor',
+    props: ['section', 'moduleLinkOptions'],
+    template: `
+      <button data-testid="technical-document-save" @click="$emit('save', { title: 'Technical' })">
+        technical-document-editor
+      </button>
+    `,
+  },
+}));
 
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -235,6 +297,349 @@ const nextStepsJson = {
   validityMessage: 'Válida 30 días.',
   thankYouMessage: 'Gracias.',
 };
+
+const processMethodologyJson = {
+  index: '12',
+  title: 'Metodología',
+  intro: 'Así trabajamos.',
+  steps: [
+    { icon: '🔍', title: 'Descubrimiento', description: 'Definimos objetivos.', clientAction: 'Aprobar alcance' },
+  ],
+};
+
+function buildSection(sectionType, contentJson, extra = {}) {
+  return {
+    id: 99,
+    title: `Section ${sectionType}`,
+    section_type: sectionType,
+    is_wide_panel: false,
+    content_json: contentJson,
+    ...extra,
+  };
+}
+
+function mountSectionEditor(props = {}) {
+  return mount(SectionEditor, {
+    props: {
+      section: buildSection('greeting', greetingJson),
+      proposalData: {
+        title: 'Proyecto Base',
+        client_name: 'Cliente Base',
+        total_investment: 3500000,
+        currency: 'COP',
+        hosting_percent: 30,
+      },
+      moduleLinkOptions: [],
+      ...props,
+    },
+    global: {
+      stubs: {
+      },
+    },
+  });
+}
+
+describe('SectionEditor component', () => {
+  it('renders the technical document branch and forwards its save event', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('technical_document', {
+        purpose: 'Propósito',
+        stack: [],
+        epics: [],
+      }),
+      moduleLinkOptions: [{ id: 'analytics', label: 'Analytics' }],
+    });
+
+    expect(wrapper.text()).toContain('technical-document-editor');
+    await wrapper.find('[data-testid="technical-document-save"]').trigger('click');
+    expect(wrapper.emitted('save')).toEqual([[{ title: 'Technical' }]]);
+  });
+
+  it.each([
+    ['greeting', greetingJson],
+    ['executive_summary', executiveSummaryJson],
+    ['context_diagnostic', contextDiagnosticJson],
+    ['conversion_strategy', conversionStrategyJson],
+    ['design_ux', designUxJson],
+    ['creative_support', creativeSupportJson],
+    ['development_stages', developmentStagesJson],
+    ['functional_requirements', functionalRequirementsJson],
+    ['timeline', timelineJson],
+    ['investment', investmentJson],
+    ['final_note', finalNoteJson],
+    ['next_steps', nextStepsJson],
+    ['process_methodology', processMethodologyJson],
+  ])('mounts the %s branch without crashing', (sectionType, contentJson) => {
+    const wrapper = mountSectionEditor({
+      section: buildSection(sectionType, contentJson),
+    });
+
+    expect(wrapper.find('[data-testid="section-editor"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Guardar Sección');
+  });
+
+  it('renders the paste textarea when the section opens in paste mode', () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('executive_summary', {
+        ...executiveSummaryJson,
+        _editMode: 'paste',
+        rawText: 'Resumen pegado',
+      }),
+    });
+
+    expect(wrapper.find('[data-testid="paste-textarea"]').element.value).toBe('Resumen pegado');
+  });
+
+  it('switches to paste mode and mirrors the current form content', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('greeting', greetingJson),
+    });
+
+    await wrapper.findAll('button').find((button) => button.text() === 'Pegar contenido').trigger('click');
+
+    expect(wrapper.find('[data-testid="paste-textarea"]').element.value).toContain('María García');
+  });
+
+  it('opens the main preview modal', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('greeting', greetingJson),
+    });
+
+    await wrapper.findAll('button').find((button) => button.text().includes('Previsualizar')).trigger('click');
+
+    expect(wrapper.find('.section-preview-stub').text()).toContain('preview-open');
+  });
+
+  it('emits the saved payload in form mode', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('greeting', greetingJson),
+    });
+
+    await wrapper.find('input[type="text"]').setValue('Nuevo título');
+    await wrapper.findAll('button').find((button) => button.text().includes('Guardar Sección')).trigger('click');
+
+    expect(wrapper.emitted('save')[0][0]).toEqual(
+      expect.objectContaining({
+        sectionId: 99,
+        payload: expect.objectContaining({
+          title: 'Nuevo título',
+          content_json: expect.objectContaining({ _editMode: 'form' }),
+        }),
+      }),
+    );
+  });
+
+  it('emits rawText in paste mode saves', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('executive_summary', executiveSummaryJson),
+    });
+
+    await wrapper.findAll('button').find((button) => button.text() === 'Pegar contenido').trigger('click');
+    await wrapper.find('[data-testid="paste-textarea"]').setValue('Texto pegado');
+    await wrapper.findAll('button').find((button) => button.text().includes('Guardar Sección')).trigger('click');
+
+    expect(wrapper.emitted('save')[0][0].payload.content_json).toEqual(
+      expect.objectContaining({
+        _editMode: 'paste',
+        rawText: 'Texto pegado',
+      }),
+    );
+  });
+
+  it('blocks saving when a functional requirements optional item has no price', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('functional_requirements', {
+        index: '7',
+        title: 'Requerimientos',
+        intro: 'Detalle.',
+        groups: [
+          {
+            id: 'views',
+            icon: '🖥️',
+            title: 'Vistas',
+            description: 'Pantallas.',
+            items: [
+              {
+                icon: '🏠',
+                name: 'Home',
+                description: 'Landing.',
+                is_required: false,
+                price: null,
+              },
+            ],
+          },
+        ],
+        additionalModules: [],
+      }),
+    });
+
+    await wrapper.findAll('button').find((button) => button.text().includes('Guardar Sección')).trigger('click');
+
+    expect(wrapper.text()).toContain('no tienen precio asignado');
+    expect(wrapper.emitted('save')).toBeUndefined();
+  });
+
+  it('opens the sub-preview for a functional requirements group', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('functional_requirements', functionalRequirementsJson),
+    });
+
+    await wrapper.find('[data-testid="requirement-group-views"]').findAll('button')
+      .find((button) => button.html().includes('M15 12a3 3'))
+      .trigger('click');
+
+    expect(wrapper.find('.section-preview-stub').text()).toContain('sub-preview-open');
+  });
+
+  it('switches a functional requirements group into paste mode with generated text', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('functional_requirements', functionalRequirementsJson),
+    });
+
+    await wrapper.find('[data-testid="requirement-group-views"]').findAll('button')
+      .find((button) => button.text() === 'Pegar contenido')
+      .trigger('click');
+
+    expect(wrapper.find('[data-testid="group-paste-textarea"]').element.value).toContain('Vistas');
+  });
+
+  it('syncs the hosting percent when saving the investment section', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('investment', investmentJsonLegacy),
+      proposalData: {
+        title: 'Proyecto Base',
+        client_name: 'Cliente Base',
+        total_investment: 3500000,
+        currency: 'COP',
+        hosting_percent: 30,
+      },
+    });
+
+    await wrapper.setProps({
+      proposalData: {
+        title: 'Proyecto Base',
+        client_name: 'Cliente Base',
+        total_investment: 3500000,
+        currency: 'COP',
+        hosting_percent: 45,
+      },
+    });
+    await wrapper.findAll('button').find((button) => button.text().includes('Guardar Sección')).trigger('click');
+
+    expect(wrapper.emitted('syncHostingPercent')).toEqual([[45]]);
+  });
+
+  it('auto-fills the investment form from proposalData when the section is empty', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('investment', {
+        index: '9',
+        title: 'Inversión',
+        introText: '',
+        totalInvestment: '',
+        currency: '',
+        whatsIncluded: [],
+        paymentOptions: [],
+        hostingPlan: {
+          title: 'Hosting',
+          description: '',
+          specs: [],
+          hostingPercent: null,
+          billingTiers: [],
+          renewalNote: '',
+          coverageNote: '',
+        },
+        paymentMethods: [],
+        valueReasons: [],
+      }),
+    });
+
+    await wrapper.findAll('button').find((button) => button.text().includes('Mostrar')).trigger('click');
+
+    expect(wrapper.find('textarea[readonly]').element.value).toContain('$3,500,000');
+    expect(wrapper.find('textarea[readonly]').element.value).toContain('40% al firmar el contrato');
+  });
+
+  it('recalculates investment payment descriptions when proposalData.total_investment changes', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('investment', investmentJson),
+    });
+
+    await wrapper.setProps({
+      proposalData: {
+        title: 'Proyecto Base',
+        client_name: 'Cliente Base',
+        total_investment: 7000000,
+        currency: 'COP',
+        hosting_percent: 30,
+      },
+    });
+    await wrapper.findAll('button').find((button) => button.text().includes('Mostrar')).trigger('click');
+
+    expect(wrapper.find('textarea[readonly]').element.value).toContain('$2,800,000 COP');
+  });
+
+  it('updates functional requirements paste caches when form fields change in form mode', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('functional_requirements', functionalRequirementsJson),
+    });
+
+    const groupInputs = wrapper.find('[data-testid="requirement-group-views"]').findAll('input');
+    await groupInputs[1].setValue('Vistas actualizadas');
+
+    await wrapper.find('[data-testid="requirement-group-views"]').findAll('button')
+      .find((button) => button.text() === 'Pegar contenido')
+      .trigger('click');
+
+    expect(wrapper.find('[data-testid="group-paste-textarea"]').element.value).toContain('Vistas actualizadas');
+  });
+
+  it('shows raw JSON for the current section when toggled open', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('greeting', greetingJson),
+    });
+
+    await wrapper.findAll('button').find((button) => button.text().includes('Mostrar')).trigger('click');
+
+    expect(wrapper.find('textarea[readonly]').element.value).toContain('"clientName": "María García"');
+  });
+
+  it('blocks saving when an investment optional module has no price', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('investment', {
+        ...investmentJson,
+        modules: [
+          {
+            name: 'Módulo premium',
+            is_required: false,
+            price: null,
+          },
+        ],
+      }),
+    });
+
+    await wrapper.findAll('button').find((button) => button.text().includes('Guardar Sección')).trigger('click');
+
+    expect(wrapper.text()).toContain('Módulo premium');
+    expect(wrapper.emitted('save')).toBeUndefined();
+  });
+
+  it('updates the form when the section prop changes', async () => {
+    const wrapper = mountSectionEditor({
+      section: buildSection('greeting', greetingJson),
+    });
+
+    await wrapper.setProps({
+      section: buildSection('greeting', {
+        clientName: 'Cliente Actualizado',
+        inspirationalQuote: 'Nueva frase',
+      }, { title: 'Greeting updated' }),
+    });
+
+    const inputs = wrapper.findAll('input');
+    expect(inputs[0].element.value).toBe('Greeting updated');
+    expect(inputs[2].element.value).toBe('Cliente Actualizado');
+  });
+});
 
 
 // ─── arrToText / textToArr ───────────────────────────────────────────────────

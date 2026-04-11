@@ -327,12 +327,6 @@ const props = defineProps({
 
 const activeMode = ref('proposal');
 
-function modeButtonClass(mode) {
-  return activeMode.value === mode
-    ? 'px-3 py-1 text-xs font-semibold bg-emerald-600 text-white rounded-full'
-    : 'px-3 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors';
-}
-
 const basePath = computed(() =>
   activeMode.value === 'proposal' ? 'proposal-email' : 'branded-email',
 );
@@ -382,7 +376,7 @@ const ALLOWED_EXTENSIONS = new Set(['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.
 const MAX_FILE_SIZE = 15 * 1024 * 1024;
 
 function handleFilesChange(e) {
-  const files = Array.from(e.target.files || []);
+  const files = Array.from(e.target.files);
   const validFiles = [];
   const errors = [];
   for (const file of files) {

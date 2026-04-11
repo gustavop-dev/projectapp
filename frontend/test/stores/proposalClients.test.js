@@ -146,6 +146,19 @@ describe('useProposalClientsStore', () => {
       );
     });
 
+    it('omits the limit query when limit is zero', async () => {
+      get_request.mockResolvedValueOnce({ data: [] });
+      await store.fetchClients({ limit: 0 });
+      expect(get_request).toHaveBeenCalledWith('proposals/client-profiles/');
+    });
+
+    it('stores an empty array when the API returns a non-array payload', async () => {
+      get_request.mockResolvedValueOnce({ data: { results: [] } });
+      const result = await store.fetchClients();
+      expect(result.success).toBe(true);
+      expect(store.clients).toEqual([]);
+    });
+
     it('returns failure shape on network error', async () => {
       get_request.mockRejectedValueOnce({
         response: { data: { error: 'fetch_failed' } },
@@ -153,6 +166,14 @@ describe('useProposalClientsStore', () => {
       const result = await store.fetchClients();
       expect(result.success).toBe(false);
       expect(store.error).toBe('fetch_failed');
+    });
+
+    it('stores fetch_failed when the list request has no response payload', async () => {
+      get_request.mockRejectedValueOnce(new Error('offline'));
+      const result = await store.fetchClients();
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('fetch_failed');
+      expect(result.errors).toBeUndefined();
     });
 
     it('toggles isLoading around the request', async () => {
@@ -189,6 +210,22 @@ describe('useProposalClientsStore', () => {
       expect(result.data).toEqual(hits);
     });
 
+    it('uses an empty query string when no search text is provided', async () => {
+      get_request.mockResolvedValueOnce({ data: [] });
+      await store.searchClients();
+      expect(get_request).toHaveBeenCalledWith(
+        'proposals/client-profiles/search/?q=',
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
+    });
+
+    it('stores an empty array when search returns a non-array payload', async () => {
+      get_request.mockResolvedValueOnce({ data: { results: [] } });
+      const result = await store.searchClients('john');
+      expect(result.success).toBe(true);
+      expect(store.searchResults).toEqual([]);
+    });
+
     it('returns cancelled flag when axios cancels the request', async () => {
       const error = new Error('canceled');
       error.name = 'CanceledError';
@@ -196,6 +233,37 @@ describe('useProposalClientsStore', () => {
       const result = await store.searchClients('q');
       expect(result.success).toBe(false);
       expect(result.cancelled).toBe(true);
+      expect(store.searchResults).toEqual([]);
+      expect(store._searchAbortController).toBeNull();
+      expect(store.isSearching).toBe(false);
+    });
+
+    it('returns cancelled flag when axios sets ERR_CANCELED', async () => {
+      const error = new Error('canceled');
+      error.code = 'ERR_CANCELED';
+      get_request.mockRejectedValueOnce(error);
+      const result = await store.searchClients('q');
+      expect(result.success).toBe(false);
+      expect(result.cancelled).toBe(true);
+      expect(store.error).toBeNull();
+    });
+
+    it('stores search_failed when search throws without response data', async () => {
+      get_request.mockRejectedValueOnce(new Error('offline'));
+      const result = await store.searchClients('q');
+      expect(result.success).toBe(false);
+      expect(store.cancelled).toBeUndefined();
+      expect(store.error).toBe('search_failed');
+    });
+
+    it('stores the backend search error code when the search request fails', async () => {
+      get_request.mockRejectedValueOnce({
+        response: { data: { error: 'search_failed_backend' } },
+      });
+      const result = await store.searchClients('q');
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('search_failed_backend');
+      expect(result.errors).toEqual({ error: 'search_failed_backend' });
     });
 
     it('aborts the previous request when called twice in a row', async () => {
@@ -212,6 +280,37 @@ describe('useProposalClientsStore', () => {
       // Detach the un-resolved promise so jest doesn't warn
       first.catch(() => {});
     });
+
+    it('keeps the latest controller active when an older request resolves later', async () => {
+      let resolveFirst;
+      let resolveSecond;
+      get_request.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          }),
+      );
+      get_request.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecond = resolve;
+          }),
+      );
+
+      const firstPromise = store.searchClients('a');
+      const secondPromise = store.searchClients('ab');
+
+      resolveFirst({ data: [buildClient({ id: 1 })] });
+      await firstPromise;
+      expect(store._searchAbortController).not.toBeNull();
+      expect(store.isSearching).toBe(true);
+
+      resolveSecond({ data: [buildClient({ id: 2 })] });
+      await secondPromise;
+      expect(store._searchAbortController).toBeNull();
+      expect(store.isSearching).toBe(false);
+      expect(store.searchResults).toEqual([buildClient({ id: 2 })]);
+    });
   });
 
   // -------------------------------------------------------------------
@@ -226,6 +325,21 @@ describe('useProposalClientsStore', () => {
       expect(get_request).toHaveBeenCalledWith('proposals/client-profiles/7/');
       expect(store.currentClient).toEqual(data);
       expect(result.success).toBe(true);
+    });
+
+    it('stores fetch_failed when the detail request fails without a backend error key', async () => {
+      get_request.mockRejectedValueOnce({ response: { data: {} } });
+      const result = await store.fetchClient(7);
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('fetch_failed');
+    });
+
+    it('stores fetch_failed when the detail request throws without a response object', async () => {
+      get_request.mockRejectedValueOnce(new Error('offline'));
+      const result = await store.fetchClient(7);
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('fetch_failed');
+      expect(result.errors).toBeUndefined();
     });
   });
 
@@ -254,6 +368,21 @@ describe('useProposalClientsStore', () => {
       const result = await store.createClient({});
       expect(result.success).toBe(false);
     });
+
+    it('stores create_failed when the create request fails without backend data', async () => {
+      create_request.mockRejectedValueOnce({ response: { data: {} } });
+      const result = await store.createClient({});
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('create_failed');
+    });
+
+    it('stores create_failed when create throws without a response object', async () => {
+      create_request.mockRejectedValueOnce(new Error('offline'));
+      const result = await store.createClient({});
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('create_failed');
+      expect(result.errors).toBeUndefined();
+    });
   });
 
   // -------------------------------------------------------------------
@@ -274,6 +403,53 @@ describe('useProposalClientsStore', () => {
       expect(store.clients[0].phone).toBe('new');
       expect(result.success).toBe(true);
     });
+
+    it('merges the response into currentClient when the ids match', async () => {
+      store.clients = [buildClient({ id: 4, phone: 'old' })];
+      store.currentClient = buildClient({ id: 4, company: 'Old Co', phone: 'old' });
+      patch_request.mockResolvedValueOnce({
+        data: buildClient({ id: 4, phone: 'new', company: 'New Co' }),
+      });
+
+      await store.updateClient(4, { phone: 'new' });
+
+      expect(store.currentClient).toEqual(
+        expect.objectContaining({ id: 4, phone: 'new', company: 'New Co' }),
+      );
+    });
+
+    it('leaves currentClient untouched when a different client is updated', async () => {
+      store.clients = [
+        buildClient({ id: 4, phone: 'old' }),
+        buildClient({ id: 8, phone: 'stay' }),
+      ];
+      store.currentClient = buildClient({ id: 9, phone: 'keep' });
+      patch_request.mockResolvedValueOnce({
+        data: buildClient({ id: 4, phone: 'new' }),
+      });
+
+      await store.updateClient(4, { phone: 'new' });
+
+      expect(store.clients[1]).toEqual(expect.objectContaining({ id: 8, phone: 'stay' }));
+      expect(store.currentClient).toEqual(
+        expect.objectContaining({ id: 9, phone: 'keep' }),
+      );
+    });
+
+    it('stores update_failed when the backend omits an error code', async () => {
+      patch_request.mockRejectedValueOnce({ response: { data: {} } });
+      const result = await store.updateClient(4, { phone: 'new' });
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('update_failed');
+    });
+
+    it('stores update_failed when update throws without a response object', async () => {
+      patch_request.mockRejectedValueOnce(new Error('offline'));
+      const result = await store.updateClient(4, { phone: 'new' });
+      expect(result.success).toBe(false);
+      expect(store.error).toBe('update_failed');
+      expect(result.errors).toBeUndefined();
+    });
   });
 
   // -------------------------------------------------------------------
@@ -293,6 +469,26 @@ describe('useProposalClientsStore', () => {
       expect(result.success).toBe(true);
     });
 
+    it('clears currentClient when deleting the selected client', async () => {
+      store.clients = [buildClient({ id: 1 }), buildClient({ id: 2 })];
+      store.currentClient = buildClient({ id: 1 });
+      delete_request.mockResolvedValueOnce({ status: 204 });
+
+      await store.deleteClient(1);
+
+      expect(store.currentClient).toBeNull();
+    });
+
+    it('preserves currentClient when deleting a different client', async () => {
+      store.clients = [buildClient({ id: 1 }), buildClient({ id: 2 })];
+      store.currentClient = buildClient({ id: 2 });
+      delete_request.mockResolvedValueOnce({ status: 204 });
+
+      await store.deleteClient(1);
+
+      expect(store.currentClient).toEqual(expect.objectContaining({ id: 2 }));
+    });
+
     it('returns errorCode and count when the backend blocks the delete', async () => {
       store.clients = [buildClient({ id: 1, is_orphan: false })];
       delete_request.mockRejectedValueOnce({
@@ -304,6 +500,23 @@ describe('useProposalClientsStore', () => {
       expect(result.count).toBe(3);
       // Client must remain in the list when the delete fails.
       expect(store.clients).toHaveLength(1);
+    });
+
+    it('stores delete_failed when the backend omits a specific error code', async () => {
+      delete_request.mockRejectedValueOnce({ response: { data: {} } });
+      const result = await store.deleteClient(1);
+      expect(result.success).toBe(false);
+      expect(result.errorCode).toBeUndefined();
+      expect(store.error).toBe('delete_failed');
+    });
+
+    it('stores delete_failed when delete throws without a response object', async () => {
+      delete_request.mockRejectedValueOnce(new Error('offline'));
+      const result = await store.deleteClient(1);
+      expect(result.success).toBe(false);
+      expect(result.errorCode).toBeUndefined();
+      expect(result.errors).toBeUndefined();
+      expect(store.error).toBe('delete_failed');
     });
   });
 });

@@ -9,14 +9,20 @@ import { ref } from 'vue';
 let mockT;
 let mockUseHead;
 let useSeoHead;
+let localeRef;
+let localeHeadRef;
+let routeRef;
 
 beforeEach(() => {
   mockT = jest.fn((key) => key);
   mockUseHead = jest.fn();
+  localeRef = ref('en-us');
+  localeHeadRef = ref({ htmlAttrs: { lang: 'en' }, link: [{ rel: 'alternate' }] });
+  routeRef = { name: 'index___en-us', params: {}, query: {}, path: '/', fullPath: '/en-us' };
 
-  global.useI18n = () => ({ t: mockT });
-  global.useLocaleHead = () => ref({ htmlAttrs: { lang: 'en' }, link: [{ rel: 'alternate' }] });
-  global.useRoute = () => ({ name: 'index___en-us', params: {}, query: {}, path: '/', fullPath: '/en-us' });
+  global.useI18n = () => ({ t: mockT, locale: localeRef });
+  global.useLocaleHead = () => localeHeadRef;
+  global.useRoute = () => routeRef;
   global.useHead = mockUseHead;
 
   jest.resetModules();
@@ -134,6 +140,31 @@ describe('useSeoHead', () => {
     expect(arg.link[1]).toEqual({ rel: 'alternate' });
   });
 
+  it('sets og:locale to en_US for non-Spanish locales', () => {
+    useSeoHead('aboutUs');
+
+    const arg = mockUseHead.mock.calls[0][0];
+    const ogLocale = arg.meta.find((m) => m.property === 'og:locale');
+    expect(ogLocale.content()).toBe('en_US');
+  });
+
+  it('sets og:locale to es_CO for es-co locale', () => {
+    localeRef.value = 'es-co';
+    useSeoHead('aboutUs');
+
+    const arg = mockUseHead.mock.calls[0][0];
+    const ogLocale = arg.meta.find((m) => m.property === 'og:locale');
+    expect(ogLocale.content()).toBe('es_CO');
+  });
+
+  it('uses the route fullPath for the canonical href callback', () => {
+    routeRef.fullPath = '/es-co/contact';
+    useSeoHead('contact');
+
+    const arg = mockUseHead.mock.calls[0][0];
+    expect(arg.link[0].href()).toBe('https://projectapp.co/es-co/contact');
+  });
+
   it('invokes og:title content callback', () => {
     useSeoHead('aboutUs');
 
@@ -183,12 +214,33 @@ describe('useSeoHead', () => {
   });
 
   it('returns undefined lang when htmlAttrs is undefined', () => {
-    global.useLocaleHead = () => ref({ link: [{ rel: 'alternate' }] });
+    localeHeadRef = ref({ link: [{ rel: 'alternate' }] });
     jest.resetModules();
     const mod = require('../../composables/useSeoHead');
     mod.useSeoHead('aboutUs');
 
     const arg = mockUseHead.mock.calls[0][0];
     expect(arg.htmlAttrs.lang).toBeUndefined();
+  });
+
+  it('passes through all alternate links from useLocaleHead', () => {
+    localeHeadRef = ref({
+      htmlAttrs: { lang: 'es' },
+      link: [
+        { rel: 'alternate', hreflang: 'es-co', href: 'https://projectapp.co/es-co' },
+        { rel: 'alternate', hreflang: 'en-us', href: 'https://projectapp.co/en-us' },
+      ],
+    });
+    jest.resetModules();
+    const mod = require('../../composables/useSeoHead');
+    mod.useSeoHead('aboutUs');
+
+    const arg = mockUseHead.mock.calls[0][0];
+    expect(arg.link[1]).toEqual(
+      expect.objectContaining({ rel: 'alternate', hreflang: 'es-co' }),
+    );
+    expect(arg.link[2]).toEqual(
+      expect.objectContaining({ rel: 'alternate', hreflang: 'en-us' }),
+    );
   });
 });

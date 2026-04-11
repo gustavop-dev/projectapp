@@ -234,6 +234,18 @@ class TestUpdateDocument:
         assert response.status_code == 200
         document.refresh_from_db()
         assert document.content_json is not None
+        assert document.content_json['blocks'][0]['text'] == 'New Heading'
+
+    def test_keeps_existing_content_json_when_markdown_is_not_updated(self, admin_client, document):
+        original_content_json = document.content_json
+        url = reverse('update-document', kwargs={'document_id': document.id})
+
+        response = admin_client.patch(url, {'client_name': 'Updated Client'}, format='json')
+
+        assert response.status_code == 200
+        document.refresh_from_db()
+        assert document.client_name == 'Updated Client'
+        assert document.content_json == original_content_json
 
     def test_returns_400_on_invalid_payload(self, admin_client, document):
         url = reverse('update-document', kwargs={'document_id': document.id})
@@ -316,6 +328,20 @@ class TestDuplicateDocument:
         duplicate = Document.objects.get(pk=data['id'])
         assert duplicate.document_type is not None
 
+    def test_duplicate_keeps_content_json_independent_from_original(self, admin_client, document):
+        url = reverse('duplicate-document', kwargs={'document_id': document.id})
+
+        response = admin_client.post(url)
+
+        assert response.status_code == 201
+        duplicate = Document.objects.get(pk=response.json()['id'])
+
+        document.content_json['blocks'][0]['text'] = 'Changed after duplicate'
+        document.save(update_fields=['content_json'])
+        duplicate.refresh_from_db()
+
+        assert duplicate.content_json['blocks'][0]['text'] == 'Hello'
+
 
 # ── download_document_pdf ──
 
@@ -362,3 +388,22 @@ class TestDownloadDocumentPdf:
             response = admin_client.get(url)
 
         assert response.status_code == 500
+
+    def test_uses_document_fallback_filename_when_slugify_returns_empty_string(
+        self, admin_client, markdown_doc_type,
+    ):
+        document = Document.objects.create(
+            title='###',
+            document_type=markdown_doc_type,
+            content_json={'meta': {}, 'blocks': [{'type': 'heading', 'text': 'Hello'}]},
+        )
+        url = reverse('download-document-pdf', kwargs={'document_id': document.id})
+
+        with patch(
+            'content.services.document_pdf_service.DocumentPdfService.generate',
+            return_value=b'%PDF-1.4 fallback',
+        ):
+            response = admin_client.get(url)
+
+        assert response.status_code == 200
+        assert response['Content-Disposition'] == 'attachment; filename="document.pdf"'
