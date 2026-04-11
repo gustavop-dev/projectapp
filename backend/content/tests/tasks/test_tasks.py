@@ -124,6 +124,35 @@ class TestSendProposalReminderTask:
 
         assert mock_send.call_count == 0
 
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_reminder')
+    def test_skips_when_automations_are_paused(self, mock_send):
+        proposal = BusinessProposal.objects.create(
+            title='Paused Reminder',
+            client_name='Client',
+            client_email='client@test.com',
+            status='sent',
+            automations_paused=True,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_proposal_reminder.call_local(proposal.id)
+
+        assert mock_send.call_count == 0
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_reminder')
+    def test_skips_when_client_email_is_placeholder(self, mock_send):
+        proposal = BusinessProposal.objects.create(
+            title='Placeholder Reminder',
+            client_name='Client',
+            client_email='cliente_10@temp.example.com',
+            status='sent',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_proposal_reminder.call_local(proposal.id)
+
+        assert mock_send.call_count == 0
+
 
 class TestSendUrgencyReminderTask:
     @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email',
@@ -217,6 +246,35 @@ class TestSendUrgencyReminderTask:
             client_name='Client',
             client_email='client@test.com',
             status='accepted',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_urgency_reminder.call_local(proposal.id)
+
+        assert mock_send.call_count == 0
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email')
+    def test_skips_when_automations_are_paused(self, mock_send):
+        proposal = BusinessProposal.objects.create(
+            title='Paused Urgency',
+            client_name='Client',
+            client_email='client@test.com',
+            status='sent',
+            automations_paused=True,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_urgency_reminder.call_local(proposal.id)
+
+        assert mock_send.call_count == 0
+
+    @patch('content.services.proposal_email_service.ProposalEmailService.send_urgency_email')
+    def test_skips_when_client_email_is_placeholder(self, mock_send):
+        proposal = BusinessProposal.objects.create(
+            title='Placeholder Urgency',
+            client_name='Client',
+            client_email='cliente_11@temp.example.com',
+            status='sent',
         )
 
         import content.tasks as tasks_module
@@ -335,6 +393,32 @@ class TestExpireStaleProposalsTask:
         proposal.refresh_from_db()
         assert proposal.status == 'finished'
 
+    @freeze_time('2026-03-10 10:00:00')
+    def test_auto_extends_proposal_with_recent_view_activity(self):
+        proposal = BusinessProposal.objects.create(
+            title='Recently Viewed',
+            client_name='Client',
+            status='sent',
+            expires_at=timezone.now() - timezone.timedelta(days=1),
+        )
+        ProposalViewEvent.objects.create(
+            proposal=proposal,
+            session_id='recent-view',
+            ip_address='127.0.0.1',
+            viewed_at=timezone.now() - timezone.timedelta(days=1),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.expire_stale_proposals.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.status == 'sent'
+        assert proposal.expires_at == timezone.now() + timezone.timedelta(days=7)
+        assert ProposalChangeLog.objects.filter(
+            proposal=proposal,
+            description='Auto-extended expiration by 7 days due to recent client activity.',
+        ).exists()
+
 
 class TestSendRejectionReengagementTask:
     @patch(
@@ -385,6 +469,19 @@ class TestSendRejectionReengagementTask:
 
         import content.tasks as tasks_module
         tasks_module.send_rejection_reengagement.call_local(proposal.id)
+        assert not ProposalChangeLog.objects.filter(change_type='reengagement').exists()
+
+    def test_skips_when_client_email_is_placeholder(self):
+        proposal = BusinessProposal.objects.create(
+            title='Placeholder Email',
+            client_name='Client',
+            client_email='cliente_12@temp.example.com',
+            status='rejected',
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.send_rejection_reengagement.call_local(proposal.id)
+
         assert not ProposalChangeLog.objects.filter(change_type='reengagement').exists()
 
     @patch(
@@ -501,6 +598,66 @@ class TestCheckEngagementFollowupsTask:
 
         assert mock_send.call_count == 0
 
+
+
+class TestSuggestPreExpirationDiscountTask:
+    @freeze_time('2026-03-10 12:00:00')
+    def test_creates_discount_suggestion_for_viewed_candidate(self):
+        proposal = BusinessProposal.objects.create(
+            title='Discount Candidate',
+            client_name='Client',
+            status='viewed',
+            is_active=True,
+            discount_percent=0,
+            responded_at=None,
+            expires_at=timezone.now() + timezone.timedelta(days=3),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.suggest_pre_expiration_discount.call_local()
+
+        assert proposal.alerts.filter(alert_type='discount_suggestion').exists()
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_skips_creating_duplicate_discount_suggestion(self):
+        proposal = BusinessProposal.objects.create(
+            title='Existing Suggestion',
+            client_name='Client',
+            status='viewed',
+            is_active=True,
+            discount_percent=0,
+            responded_at=None,
+            expires_at=timezone.now() + timezone.timedelta(days=2),
+        )
+        proposal.alerts.create(
+            alert_type='discount_suggestion',
+            message='Already suggested',
+            alert_date=timezone.now(),
+            is_dismissed=False,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.suggest_pre_expiration_discount.call_local()
+
+        assert proposal.alerts.filter(alert_type='discount_suggestion').count() == 1
+
+    @freeze_time('2026-03-10 12:00:00')
+    def test_skips_non_candidate_proposal(self):
+        proposal = BusinessProposal.objects.create(
+            title='Already Discounted',
+            client_name='Client',
+            status='viewed',
+            is_active=True,
+            discount_percent=10,
+            responded_at=None,
+            expires_at=timezone.now() + timezone.timedelta(days=2),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.suggest_pre_expiration_discount.call_local()
+
+        assert proposal.alerts.count() == 0
+
     @freeze_time('2026-03-10 12:00:00')
     @patch(
         'content.services.proposal_email_service.ProposalEmailService.send_investment_interest_followup',
@@ -607,6 +764,47 @@ class TestCheckEngagementFollowupsTask:
         tasks_module.check_engagement_followups.call_local()
 
         assert mock_send.call_count == 0
+
+    @freeze_time('2026-03-10 12:00:00')
+    @patch('content.tasks.logger.info')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_investment_interest_followup',
+        return_value=True,
+    )
+    def test_logs_when_investment_interest_followup_is_sent(self, mock_send, mock_log_info):
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Interest Log',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            first_viewed_at=now - timedelta(hours=5),
+        )
+        view_event = ProposalViewEvent.objects.create(
+            proposal=proposal,
+            session_id='sess-interest-log',
+            ip_address='127.0.0.1',
+        )
+        ProposalViewEvent.objects.filter(pk=view_event.pk).update(
+            viewed_at=now - timedelta(hours=3),
+        )
+        ProposalSectionView.objects.create(
+            view_event=view_event,
+            section_type='investment',
+            time_spent_seconds=75,
+            entered_at=now - timedelta(hours=3),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_engagement_followups.call_local()
+
+        assert mock_send.call_count == 1
+        assert mock_send.call_args.args == (proposal, 75)
+        assert (
+            'Sent investment interest followup for proposal %s (time=%ds)',
+            proposal.uuid,
+            75,
+        ) in [call.args for call in mock_log_info.call_args_list]
 
 
 class TestSendScheduledFollowupTask:

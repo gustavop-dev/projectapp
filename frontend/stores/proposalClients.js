@@ -67,12 +67,13 @@ export const useProposalClientsStore = defineStore('proposalClients', {
         }`;
         const response = await get_request(url);
         this.clients = Array.isArray(response.data) ? response.data : [];
+        this.isLoading = false;
         return { success: true, data: this.clients };
       } catch (error) {
-        this.error = error.response?.data?.error || 'fetch_failed';
-        return { success: false, errors: error.response?.data };
-      } finally {
+        const data = error?.response?.data;
+        this.error = data?.error || 'fetch_failed';
         this.isLoading = false;
+        return { success: false, errors: data };
       }
     },
 
@@ -104,19 +105,27 @@ export const useProposalClientsStore = defineStore('proposalClients', {
         )}`;
         const response = await get_request(url, { signal: controller.signal });
         this.searchResults = Array.isArray(response.data) ? response.data : [];
-        return { success: true, data: this.searchResults };
-      } catch (error) {
-        // Cancellation is not a real error — keep results untouched.
-        if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
-          return { success: false, cancelled: true };
-        }
-        this.error = error.response?.data?.error || 'search_failed';
-        return { success: false, errors: error.response?.data };
-      } finally {
         if (this._searchAbortController === controller) {
           this._searchAbortController = null;
           this.isSearching = false;
         }
+        return { success: true, data: this.searchResults };
+      } catch (error) {
+        const data = error?.response?.data;
+        // Cancellation is not a real error — keep results untouched.
+        if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+          if (this._searchAbortController === controller) {
+            this._searchAbortController = null;
+            this.isSearching = false;
+          }
+          return { success: false, cancelled: true };
+        }
+        if (this._searchAbortController === controller) {
+          this._searchAbortController = null;
+          this.isSearching = false;
+        }
+        this.error = data?.error || 'search_failed';
+        return { success: false, errors: data };
       }
     },
 
@@ -134,8 +143,9 @@ export const useProposalClientsStore = defineStore('proposalClients', {
         this.currentClient = response.data;
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = error.response?.data?.error || 'fetch_failed';
-        return { success: false, errors: error.response?.data };
+        const data = error?.response?.data;
+        this.error = data?.error || 'fetch_failed';
+        return { success: false, errors: data };
       }
     },
 
@@ -156,12 +166,13 @@ export const useProposalClientsStore = defineStore('proposalClients', {
           payload,
         );
         this.clients = [response.data, ...this.clients];
+        this.isUpdating = false;
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = error.response?.data?.error || 'create_failed';
-        return { success: false, errors: error.response?.data };
-      } finally {
+        const data = error?.response?.data;
+        this.error = data?.error || 'create_failed';
         this.isUpdating = false;
+        return { success: false, errors: data };
       }
     },
 
@@ -180,12 +191,13 @@ export const useProposalClientsStore = defineStore('proposalClients', {
         if (this.currentClient?.id === id) {
           this.currentClient = { ...this.currentClient, ...response.data };
         }
+        this.isUpdating = false;
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = error.response?.data?.error || 'update_failed';
-        return { success: false, errors: error.response?.data };
-      } finally {
+        const data = error?.response?.data;
+        this.error = data?.error || 'update_failed';
         this.isUpdating = false;
+        return { success: false, errors: data };
       }
     },
 
@@ -203,18 +215,18 @@ export const useProposalClientsStore = defineStore('proposalClients', {
         if (this.currentClient?.id === id) {
           this.currentClient = null;
         }
+        this.isUpdating = false;
         return { success: true };
       } catch (error) {
-        const data = error.response?.data;
+        const data = error?.response?.data;
         this.error = data?.error || 'delete_failed';
+        this.isUpdating = false;
         return {
           success: false,
           errorCode: data?.error,
           count: data?.count,
           errors: data,
         };
-      } finally {
-        this.isUpdating = false;
       }
     },
   },

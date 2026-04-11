@@ -430,11 +430,7 @@ def check_engagement_followups():
                 ProposalEmailService.send_investment_interest_followup(
                     proposal, investment_time,
                 )
-                logger.info(
-                    'Sent investment interest followup for proposal %s '
-                    '(time=%ds)',
-                    proposal.uuid, investment_time,
-                )
+                logger.info('Sent investment interest followup for proposal %s (time=%ds)', proposal.uuid, investment_time)
             except Exception:
                 logger.exception(
                     'Failed investment interest followup for proposal %s',

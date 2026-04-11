@@ -102,6 +102,14 @@ describe('useViewMapFilters', () => {
 
       expect(activeTabId.value).toBe('all');
     });
+
+    it('returns an empty savedTabs array when localStorage contains invalid JSON', () => {
+      localStorage.setItem('view_map_filter_tabs', '{broken');
+
+      const { savedTabs } = useViewMapFilters();
+
+      expect(savedTabs.value).toEqual([]);
+    });
   });
 
   // ── applyFilters ───────────────────────────────────────────────────────────
@@ -217,6 +225,12 @@ describe('useViewMapFilters', () => {
       currentFilters.viewTypes = ['list'];
       expect(activeFilterCount.value).toBe(3);
     });
+
+    it('sets hasActiveFilters to true when at least one dimension is active', () => {
+      const { hasActiveFilters, currentFilters } = useViewMapFilters();
+      currentFilters.categories = ['admin-panel'];
+      expect(hasActiveFilters.value).toBe(true);
+    });
   });
 
   // ── Tab CRUD ───────────────────────────────────────────────────────────────
@@ -248,6 +262,24 @@ describe('useViewMapFilters', () => {
       expect(result).toBeNull();
     });
 
+    it('marks the tab limit as reached when there are 12 saved tabs', () => {
+      const { saveTab, isTabLimitReached } = useViewMapFilters();
+      saveTab('Tab 0');
+      saveTab('Tab 1');
+      saveTab('Tab 2');
+      saveTab('Tab 3');
+      saveTab('Tab 4');
+      saveTab('Tab 5');
+      saveTab('Tab 6');
+      saveTab('Tab 7');
+      saveTab('Tab 8');
+      saveTab('Tab 9');
+      saveTab('Tab 10');
+      saveTab('Tab 11');
+
+      expect(isTabLimitReached.value).toBe(true);
+    });
+
     it('deletes a tab and resets if it was active', () => {
       const { saveTab, deleteTab, savedTabs, activeTabId, currentFilters } = useViewMapFilters();
       currentFilters.categories = ['admin-panel'];
@@ -269,6 +301,12 @@ describe('useViewMapFilters', () => {
       expect(savedTabs.value[0].name).toBe('Renamed');
     });
 
+    it('does nothing when renaming an unknown tab', () => {
+      const { renameTab, savedTabs } = useViewMapFilters();
+      renameTab('missing', 'Renamed');
+      expect(savedTabs.value).toEqual([]);
+    });
+
     it('auto-updates active tab when filters change', async () => {
       const { saveTab, savedTabs, currentFilters } = useViewMapFilters();
       saveTab('Auto-update test');
@@ -277,6 +315,34 @@ describe('useViewMapFilters', () => {
       await nextTick();
 
       expect(savedTabs.value[0].filters.viewTypes).toEqual(['create']);
+    });
+
+    it('does not update a missing tab id', async () => {
+      const { savedTabs, activeTabId, currentFilters } = useViewMapFilters();
+      savedTabs.value = [
+        {
+          id: 'tab-1',
+          name: 'Admin',
+          filters: { categories: [], audiences: [], viewTypes: [] },
+          createdAt: '2026-01-01',
+          updatedAt: '2026-01-01',
+        },
+      ];
+      activeTabId.value = 'missing-tab';
+      currentFilters.categories = ['admin-panel'];
+      await nextTick();
+      expect(savedTabs.value[0].filters.categories).toEqual([]);
+    });
+
+    it('does not update a tab when filters remain unchanged', async () => {
+      const { saveTab, savedTabs } = useViewMapFilters();
+      const tab = saveTab('Stable');
+      const originalUpdatedAt = savedTabs.value[0].updatedAt;
+
+      await nextTick();
+
+      expect(savedTabs.value[0].id).toBe(tab.id);
+      expect(savedTabs.value[0].updatedAt).toBe(originalUpdatedAt);
     });
   });
 
@@ -303,6 +369,15 @@ describe('useViewMapFilters', () => {
       selectTab('all');
 
       expect(currentFilters.audiences).toEqual([]);
+    });
+
+    it('keeps current filters when selecting an unknown tab id', () => {
+      const { selectTab, currentFilters } = useViewMapFilters();
+      currentFilters.audiences = ['admin'];
+
+      selectTab('missing');
+
+      expect(currentFilters.audiences).toEqual(['admin']);
     });
   });
 

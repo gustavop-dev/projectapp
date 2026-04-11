@@ -1,8 +1,19 @@
 """Tests for proposal serializers — validation, computed fields, section filtering."""
-import pytest
-from freezegun import freeze_time
+from unittest.mock import patch
 
-from content.models import ProposalSection
+import pytest
+from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
+from freezegun import freeze_time
+from rest_framework import serializers
+
+from accounts.models import UserProfile
+from content.models import (
+    ProposalChangeLog,
+    ProposalDocument,
+    ProposalProjectStage,
+    ProposalSection,
+)
 from content.serializers.proposal import (
     ContractParamsSerializer,
     EmailTemplateConfigSerializer,
@@ -11,10 +22,22 @@ from content.serializers.proposal import (
     ProposalDetailSerializer,
     ProposalFromJSONSerializer,
     ProposalListSerializer,
+    ProposalProjectStageSerializer,
     ProposalSectionUpdateSerializer,
 )
 
 pytestmark = pytest.mark.django_db
+User = get_user_model()
+
+
+def _create_change_logs(proposal, count):
+    for index in range(count):
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type='updated',
+            actor_type='system',
+            description=f'Change {index:02d}',
+        )
 
 
 class TestProposalCreateUpdateSerializerValidation:
@@ -69,6 +92,22 @@ class TestProposalCreateUpdateSerializerValidation:
         }
         serializer = ProposalCreateUpdateSerializer(data=payload)
         assert serializer.is_valid(), serializer.errors
+
+    @patch('content.serializers.proposal.validate_email_domain_mx', return_value=False)
+    def test_rejects_client_email_when_domain_has_no_mx(self, mock_validate_email_domain_mx):
+        serializer = ProposalCreateUpdateSerializer(
+            data={
+                'title': 'Test',
+                'client_name': 'Client',
+                'client_email': 'bad@example.com',
+                'total_investment': '1000.00',
+                'currency': 'COP',
+            }
+        )
+
+        assert not serializer.is_valid()
+        assert 'client_email' in serializer.errors
+        mock_validate_email_domain_mx.assert_called_once_with('bad@example.com')
 
 
 class TestProposalSectionUpdateSerializerValidation:
@@ -166,6 +205,91 @@ class TestProposalDetailSerializerComputedFields:
         assert 'hosting_percent' in serializer.data
         assert serializer.data['hosting_percent'] == 30
 
+    def test_project_stages_is_hidden_for_non_admin_context(self, proposal):
+        ProposalProjectStage.objects.create(
+            proposal=proposal,
+            stage_key=ProposalProjectStage.StageKey.DESIGN,
+            order=1,
+        )
+
+        serializer = ProposalDetailSerializer(proposal, context={'is_admin': False})
+
+        assert serializer.data['project_stages'] == []
+
+    def test_project_stages_is_included_for_admin_context(self, proposal):
+        stage = ProposalProjectStage.objects.create(
+            proposal=proposal,
+            stage_key=ProposalProjectStage.StageKey.DESIGN,
+            order=1,
+        )
+
+        serializer = ProposalDetailSerializer(proposal, context={'is_admin': True})
+
+        assert serializer.data['project_stages'][0]['id'] == stage.id
+
+    def test_proposal_documents_is_hidden_for_non_admin_context(self, proposal):
+        ProposalDocument.objects.create(
+            proposal=proposal,
+            document_type=ProposalDocument.DOC_TYPE_OTHER,
+            title='Annex',
+            file=ContentFile(b'file-bytes', name='annex.pdf'),
+        )
+
+        serializer = ProposalDetailSerializer(proposal, context={'is_admin': False})
+
+        assert serializer.data['proposal_documents'] == []
+
+    def test_proposal_documents_is_included_for_admin_context(self, proposal):
+        document = ProposalDocument.objects.create(
+            proposal=proposal,
+            document_type=ProposalDocument.DOC_TYPE_OTHER,
+            title='Annex',
+            file=ContentFile(b'file-bytes', name='annex.pdf'),
+            custom_type_label='Annexo',
+        )
+
+        serializer = ProposalDetailSerializer(proposal, context={'is_admin': True})
+
+        assert serializer.data['proposal_documents'][0]['id'] == document.id
+
+    def test_change_logs_is_ordered_desc_and_limited_to_50_items(self, proposal):
+        _create_change_logs(proposal, 55)
+
+        serializer = ProposalDetailSerializer(proposal, context={'is_admin': True})
+
+        assert len(serializer.data['change_logs']) == 50
+        assert serializer.data['change_logs'][0]['description'] == 'Change 54'
+        assert serializer.data['change_logs'][-1]['description'] == 'Change 05'
+
+
+class TestProposalProjectStageSerializerValidation:
+    def test_accepts_same_day_stage_range(self, proposal):
+        serializer = ProposalProjectStageSerializer(
+            data={
+                'proposal': proposal.pk,
+                'stage_key': ProposalProjectStage.StageKey.DESIGN,
+                'order': 1,
+                'start_date': '2026-04-10',
+                'end_date': '2026-04-10',
+            }
+        )
+
+        assert serializer.is_valid(), serializer.errors
+
+    def test_rejects_stage_when_start_date_is_after_end_date(self, proposal):
+        serializer = ProposalProjectStageSerializer(
+            data={
+                'proposal': proposal.pk,
+                'stage_key': ProposalProjectStage.StageKey.DESIGN,
+                'order': 1,
+                'start_date': '2026-04-11',
+                'end_date': '2026-04-10',
+            }
+        )
+
+        assert not serializer.is_valid()
+        assert 'end_date' in serializer.errors
+
 
 class TestProposalCreateUpdateSerializerHostingPercent:
     def test_accepts_hosting_percent(self):
@@ -197,6 +321,167 @@ class TestProposalCreateUpdateSerializerHostingPercent:
         assert serializer.is_valid(), serializer.errors
         assert 'hosting_percent' not in serializer.validated_data or \
             serializer.validated_data['hosting_percent'] == 30
+
+
+class TestProposalCreateUpdateSerializerClientResolution:
+    def test_create_uses_service_resolution_when_client_id_is_omitted(self):
+        serializer = ProposalCreateUpdateSerializer(
+            data={
+                'title': 'Service Resolved Proposal',
+                'client_name': 'Resolved Client',
+                'client_email': 'resolved@example.com',
+                'client_phone': '+57 300 0003',
+                'client_company': 'Resolved Co',
+                'total_investment': '1800.00',
+                'currency': 'COP',
+            }
+        )
+        user = User.objects.create_user(
+            username='serializer-service@test.com',
+            email='serializer-service@test.com',
+            password='pass12345',
+        )
+        client_profile = UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+
+        with patch(
+            'content.serializers.proposal.proposal_client_service.get_or_create_client_for_proposal',
+            return_value=client_profile,
+        ) as mock_get_or_create, patch(
+            'content.serializers.proposal.proposal_client_service.sync_snapshot'
+        ) as mock_sync_snapshot:
+            assert serializer.is_valid(), serializer.errors
+            proposal_instance = serializer.save()
+
+        assert proposal_instance.client_id == client_profile.pk
+        mock_get_or_create.assert_called_once_with(
+            name='Resolved Client',
+            email='resolved@example.com',
+            phone='+57 300 0003',
+            company='Resolved Co',
+        )
+        mock_sync_snapshot.assert_called_once_with(proposal_instance)
+
+    def test_create_uses_explicit_client_id_without_get_or_create(self):
+        user = User.objects.create_user(
+            username='serializer-client@test.com',
+            email='serializer-client@test.com',
+            password='pass12345',
+        )
+        client_profile = UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        serializer = ProposalCreateUpdateSerializer(
+            data={
+                'title': 'Client Bound Proposal',
+                'client_id': client_profile.pk,
+                'client_name': 'Ignored',
+                'client_email': 'ignored@example.com',
+                'total_investment': '1500.00',
+                'currency': 'COP',
+            }
+        )
+
+        with patch(
+            'content.serializers.proposal.proposal_client_service.get_or_create_client_for_proposal'
+        ) as mock_get_or_create, patch(
+            'content.serializers.proposal.proposal_client_service.sync_snapshot'
+        ) as mock_sync_snapshot:
+            assert serializer.is_valid(), serializer.errors
+            proposal_instance = serializer.save()
+
+        assert proposal_instance.client_id == client_profile.pk
+        mock_get_or_create.assert_not_called()
+        mock_sync_snapshot.assert_called_once_with(proposal_instance)
+
+    def test_update_propagates_client_updates_when_flag_is_true(self, proposal):
+        user = User.objects.create_user(
+            username='serializer-propagate@test.com',
+            email='serializer-propagate@test.com',
+            password='pass12345',
+        )
+        proposal.client = UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        proposal.save(update_fields=['client'])
+
+        serializer = ProposalCreateUpdateSerializer(
+            proposal,
+            data={
+                'client_name': 'Updated Client',
+                'client_email': 'updated@example.com',
+                'client_phone': '+57 300 0001',
+                'client_company': 'Updated Co',
+                'propagate_client_updates': True,
+            },
+            partial=True,
+        )
+
+        with patch(
+            'content.serializers.proposal.proposal_client_service.update_client_profile'
+        ) as mock_update_client_profile, patch(
+            'content.serializers.proposal.proposal_client_service.sync_snapshot'
+        ) as mock_sync_snapshot:
+            assert serializer.is_valid(), serializer.errors
+            serializer.save()
+
+        mock_update_client_profile.assert_called_once()
+        mock_sync_snapshot.assert_called_once()
+
+    def test_update_does_not_propagate_client_updates_when_flag_is_false(self, proposal):
+        user = User.objects.create_user(
+            username='serializer-local@test.com',
+            email='serializer-local@test.com',
+            password='pass12345',
+        )
+        proposal.client = UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+        proposal.save(update_fields=['client'])
+
+        serializer = ProposalCreateUpdateSerializer(
+            proposal,
+            data={
+                'client_name': 'Local Override',
+                'client_phone': '+57 300 0002',
+                'propagate_client_updates': False,
+            },
+            partial=True,
+        )
+
+        with patch(
+            'content.serializers.proposal.proposal_client_service.update_client_profile'
+        ) as mock_update_client_profile, patch(
+            'content.serializers.proposal.proposal_client_service.sync_snapshot'
+        ) as mock_sync_snapshot:
+            assert serializer.is_valid(), serializer.errors
+            serializer.save()
+
+        mock_update_client_profile.assert_not_called()
+        mock_sync_snapshot.assert_not_called()
+
+    def test_update_switches_to_explicit_client_and_syncs_snapshot(self, proposal):
+        original_user = User.objects.create_user(
+            username='serializer-original@test.com',
+            email='serializer-original@test.com',
+            password='pass12345',
+        )
+        proposal.client = UserProfile.objects.create(user=original_user, role=UserProfile.ROLE_CLIENT)
+        proposal.save(update_fields=['client'])
+
+        new_user = User.objects.create_user(
+            username='serializer-new@test.com',
+            email='serializer-new@test.com',
+            password='pass12345',
+        )
+        new_profile = UserProfile.objects.create(user=new_user, role=UserProfile.ROLE_CLIENT)
+        serializer = ProposalCreateUpdateSerializer(
+            proposal,
+            data={'client_id': new_profile.pk},
+            partial=True,
+        )
+
+        with patch(
+            'content.serializers.proposal.proposal_client_service.sync_snapshot'
+        ) as mock_sync_snapshot:
+            assert serializer.is_valid(), serializer.errors
+            updated = serializer.save()
+
+        assert updated.client_id == new_profile.pk
+        mock_sync_snapshot.assert_called_once_with(updated)
 
 
 class TestProposalHostingBillingDiscounts:
@@ -350,6 +635,17 @@ class TestProposalDetailSerializerDiscountedInvestment:
 
 
 class TestContractParamsSerializerValidation:
+    def test_validate_raises_for_custom_source_without_markdown(self):
+        serializer = ContractParamsSerializer()
+
+        with pytest.raises(serializers.ValidationError) as exc_info:
+            serializer.validate({
+                'client_cedula': '123456',
+                'contract_source': 'custom',
+                'custom_contract_markdown': '',
+            })
+        assert 'custom_contract_markdown' in str(exc_info.value)
+
     def test_rejects_custom_source_without_markdown(self):
         """ContractParamsSerializer rejects contract_source=custom with no custom_contract_markdown."""
         payload = {
@@ -382,6 +678,13 @@ class TestContractParamsSerializerValidation:
 
 
 class TestProposalDefaultConfigSerializerValidation:
+    def test_validate_language_rejects_non_supported_value(self):
+        serializer = ProposalDefaultConfigSerializer()
+
+        with pytest.raises(serializers.ValidationError) as exc_info:
+            serializer.validate_language('fr')
+        assert 'Language must be "es" or "en".' in str(exc_info.value)
+
     def test_rejects_invalid_language(self):
         """ProposalDefaultConfigSerializer rejects language values other than es/en."""
         serializer = ProposalDefaultConfigSerializer(
@@ -425,6 +728,21 @@ class TestProposalDefaultConfigSerializerValidation:
         serializer = ProposalDefaultConfigSerializer(
             data={'language': 'es', 'sections_json': [section]}
         )
+        assert serializer.is_valid(), serializer.errors
+
+    def test_rejects_expiration_days_below_minimum(self):
+        serializer = ProposalDefaultConfigSerializer(
+            data={'language': 'es', 'sections_json': [], 'expiration_days': 0}
+        )
+
+        assert not serializer.is_valid()
+        assert 'expiration_days' in serializer.errors
+
+    def test_accepts_expiration_days_within_allowed_range(self):
+        serializer = ProposalDefaultConfigSerializer(
+            data={'language': 'es', 'sections_json': [], 'expiration_days': 365}
+        )
+
         assert serializer.is_valid(), serializer.errors
 
 

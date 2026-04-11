@@ -230,6 +230,10 @@ class TestUploadImageToLinkedin:
         result = linkedin_service._upload_image_to_linkedin('https://example.com/img.jpg')
 
         assert result is None
+        mock_token.assert_called_once()
+        mock_urn.assert_called_once()
+        mock_get.assert_called_once_with('https://example.com/img.jpg', timeout=30, stream=True)
+        mock_post.assert_called_once()
 
     @patch('content.services.linkedin_service.requests.post')
     @patch('content.services.linkedin_service.requests.get')
@@ -252,6 +256,10 @@ class TestUploadImageToLinkedin:
         result = linkedin_service._upload_image_to_linkedin('https://example.com/img.jpg')
 
         assert result is None
+        mock_token.assert_called_once()
+        mock_urn.assert_called_once()
+        mock_get.assert_called_once_with('https://example.com/img.jpg', timeout=30, stream=True)
+        mock_post.assert_called_once()
 
     @patch('content.services.linkedin_service.requests.put')
     @patch('content.services.linkedin_service.requests.post')
@@ -284,6 +292,11 @@ class TestUploadImageToLinkedin:
         result = linkedin_service._upload_image_to_linkedin('https://example.com/img.jpg')
 
         assert result == 'urn:li:image:ABC123'
+        mock_token.assert_called_once()
+        mock_urn.assert_called_once()
+        mock_get.assert_called_once_with('https://example.com/img.jpg', timeout=30, stream=True)
+        mock_post.assert_called_once()
+        mock_put.assert_called_once()
 
     @patch('content.services.linkedin_service.requests.put')
     @patch('content.services.linkedin_service.requests.post')
@@ -316,6 +329,11 @@ class TestUploadImageToLinkedin:
         result = linkedin_service._upload_image_to_linkedin('https://example.com/img.jpg')
 
         assert result is None
+        mock_token.assert_called_once()
+        mock_urn.assert_called_once()
+        mock_get.assert_called_once_with('https://example.com/img.jpg', timeout=30, stream=True)
+        mock_post.assert_called_once()
+        mock_put.assert_called_once()
 
 
 # ===========================================================================
@@ -383,6 +401,10 @@ class TestPublishBlogMissingBranches:
         assert result['success'] is True
         payload = mock_post.call_args[1]['json']
         assert 'thumbnail' not in payload['content']['article']
+        mock_token.assert_called_once()
+        mock_urn.assert_called_once()
+        mock_upload.assert_called_once_with('https://img.example.com/cover.jpg')
+        mock_post.assert_called_once()
 
     @patch('content.services.linkedin_service.requests.post')
     @patch('content.services.linkedin_service.get_member_urn', return_value='urn:li:person:abc')
@@ -402,6 +424,9 @@ class TestPublishBlogMissingBranches:
         assert result['success'] is True
         payload = mock_post.call_args[1]['json']
         assert 'thumbnail' not in payload['content']['article']
+        mock_token.assert_called_once()
+        mock_urn.assert_called_once()
+        mock_post.assert_called_once()
 
     @patch('content.services.linkedin_service.requests.post')
     @patch('content.services.linkedin_service.get_member_urn', return_value='urn:li:person:abc')
@@ -420,6 +445,9 @@ class TestPublishBlogMissingBranches:
 
         payload = mock_post.call_args[1]['json']
         assert payload['commentary'] == 'Line one\nLine two'
+        mock_token.assert_called_once()
+        mock_urn.assert_called_once()
+        mock_post.assert_called_once()
 
     @patch('content.services.linkedin_service.requests.post')
     @patch('content.services.linkedin_service.get_member_urn', return_value='urn:li:person:abc')
@@ -435,6 +463,9 @@ class TestPublishBlogMissingBranches:
         )
 
         assert result['success'] is True
+        mock_token.assert_called_once()
+        mock_urn.assert_called_once()
+        mock_post.assert_called_once()
 
     @patch('content.services.linkedin_service.requests.post')
     @patch('content.services.linkedin_service.get_member_urn', return_value='urn:li:person:abc')
@@ -454,6 +485,9 @@ class TestPublishBlogMissingBranches:
 
         payload = mock_post.call_args[1]['json']
         assert payload['content']['article']['description'] == 'Short blurb'
+        mock_token.assert_called_once()
+        mock_urn.assert_called_once()
+        mock_post.assert_called_once()
 
 
 # ===========================================================================
@@ -556,6 +590,7 @@ class TestRefreshAccessTokenHttpPath:
             result = linkedin_service._refresh_access_token()
 
             assert result == 'refreshed-tok'
+            mock_post.assert_called_once()
 
     @freeze_time(FROZEN_NOW)
     @patch('content.services.linkedin_service.requests.post')
@@ -579,6 +614,7 @@ class TestRefreshAccessTokenHttpPath:
             assert result is None
             token.refresh_from_db()
             assert token.get_access_token() is None
+            mock_post.assert_called_once()
 
 
 # ===========================================================================
@@ -640,6 +676,7 @@ class TestExchangeCodeForToken:
         with override_settings(**LINKEDIN_SETTINGS):
             with pytest.raises(ValueError, match='token exchange failed'):
                 linkedin_service.exchange_code_for_token('bad-code')
+        mock_post.assert_called_once()
 
 
 # ===========================================================================
@@ -679,6 +716,7 @@ class TestFetchProfileFromApi:
 
         assert result['sub'] == 'xyz'
         assert result['name'] == 'Alice'
+        mock_get.assert_called_once()
 
     @patch('content.services.linkedin_service.requests.get')
     def test_returns_none_on_api_error(self, mock_get):
@@ -690,6 +728,7 @@ class TestFetchProfileFromApi:
         result = linkedin_service._fetch_profile_from_api('bad-token')
 
         assert result is None
+        mock_get.assert_called_once()
 
 
 # ===========================================================================
@@ -725,6 +764,10 @@ class TestPublishBlogRemainingBranches:
         assert result['success'] is True
         payload = mock_post.call_args[1]['json']
         assert payload['content']['article']['thumbnail'] == 'urn:li:image:IMG1'
+        mock_token.assert_called_once()
+        mock_urn.assert_called_once()
+        mock_upload.assert_called_once_with('https://img.example.com/cover.jpg')
+        mock_post.assert_called_once()
 
     @patch('content.services.linkedin_service.requests.post')
     @patch('content.services.linkedin_service.get_member_urn', return_value='urn:li:person:abc')
@@ -741,6 +784,9 @@ class TestPublishBlogRemainingBranches:
 
         assert result['success'] is False
         assert '422' in result['message']
+        mock_token.assert_called_once()
+        mock_urn.assert_called_once()
+        mock_post.assert_called_once()
 
 
 # ===========================================================================

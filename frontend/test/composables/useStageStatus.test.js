@@ -54,6 +54,10 @@ describe('useStageStatus.formatRemainingTime', () => {
   it('treats negative values as their absolute value', () => {
     expect(formatRemainingTime(-12)).toBe('1 semana 5 días');
   });
+
+  it('truncates decimal values before formatting', () => {
+    expect(formatRemainingTime(8.9)).toBe('1 semana 1 día');
+  });
 });
 
 describe('useStageStatus.computeStageStatus', () => {
@@ -76,6 +80,12 @@ describe('useStageStatus.computeStageStatus', () => {
     ).toBe('unscheduled');
   });
 
+  it('returns unscheduled when end_date is missing', () => {
+    expect(
+      computeStageStatus({ start_date: '2026-04-01', end_date: null }).kind,
+    ).toBe('unscheduled');
+  });
+
   it('returns completed when completed_at is set', () => {
     expect(
       computeStageStatus({
@@ -84,6 +94,15 @@ describe('useStageStatus.computeStageStatus', () => {
         end_date: '2026-04-10',
       }).kind,
     ).toBe('completed');
+  });
+
+  it('returns unscheduled when either date is invalid', () => {
+    expect(
+      computeStageStatus({
+        start_date: 'not-a-date',
+        end_date: '2026-04-10',
+      }).kind,
+    ).toBe('unscheduled');
   });
 
   it('returns not_started when today is before start_date', () => {
@@ -123,6 +142,15 @@ describe('useStageStatus.computeStageStatus', () => {
     });
     expect(status.percent).toBe(80);
   });
+
+  it('caps pending percent at 100 for same-day windows', () => {
+    const status = computeStageStatus({
+      start_date: '2026-04-09',
+      end_date: '2026-04-09',
+    });
+    expect(status.kind).toBe('pending');
+    expect(status.percent).toBe(0);
+  });
 });
 
 describe('useStageStatus.formatHumanDate', () => {
@@ -140,5 +168,9 @@ describe('useStageStatus.formatHumanDate', () => {
 
   it('formats a Date instance', () => {
     expect(formatHumanDate(new Date('2026-12-25'))).toBe('25 de diciembre, 2026');
+  });
+
+  it('returns empty string for undefined', () => {
+    expect(formatHumanDate(undefined)).toBe('');
   });
 });
