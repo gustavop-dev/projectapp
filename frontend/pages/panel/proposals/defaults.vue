@@ -66,7 +66,7 @@
             <div class="flex items-center gap-3">
               <input v-model.number="generalForm.hosting_percent" type="number" min="0" max="100"
                 class="w-32 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
-              <span class="text-sm text-gray-500">%</span>
+              <span class="text-sm text-gray-500 dark:text-green-light/60">%</span>
             </div>
           </div>
         </div>
@@ -93,6 +93,15 @@
             <input v-model.number="generalForm.urgency_reminder_days" type="number" min="1" max="30"
               class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
           </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de expiración</label>
+          <div class="flex items-center gap-3">
+            <input v-model.number="generalForm.expiration_days" type="number" min="1" max="365"
+              class="w-32 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
+            <span class="text-sm text-gray-500">días</span>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">3 semanas = 21 días.</p>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descuento por defecto (%)</label>
@@ -272,12 +281,13 @@
           No hay sección <code class="text-xs">technical_document</code> en la plantilla.
           Restaura valores originales desde Secciones o añade la entrada en la pestaña JSON.
         </p>
-        <TechnicalDocumentEditor
-          v-else
-          :key="`defaults-tech-${selectedLang}-${technicalDocumentIndex}`"
-          :section="technicalDefaultVirtualSection"
-          @save="handleSaveSection"
-        />
+        <div v-else class="defaults-technical-editor">
+          <TechnicalDocumentEditor
+            :key="`defaults-tech-${selectedLang}-${technicalDocumentIndex}`"
+            :section="technicalDefaultVirtualSection"
+            @save="handleSaveSection"
+          />
+        </div>
       </div>
 
       <div v-show="defaultsTechnicalSubTab === 'json'" class="space-y-4">
@@ -287,7 +297,7 @@
         </p>
         <textarea
           v-model="defaultsTechnicalJsonRaw"
-          rows="22"
+          rows="24"
           class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-xs font-mono bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 resize-y outline-none focus:ring-2 focus:ring-emerald-500"
         />
         <div v-if="defaultsTechnicalJsonError" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-lg">
@@ -908,6 +918,7 @@ const generalForm = ref({
   hosting_percent: 30,
   hosting_discount_semiannual: 20,
   hosting_discount_quarterly: 10,
+  expiration_days: 21,
   reminder_days: 3,
   urgency_reminder_days: 7,
   discount_percent: 0,
@@ -916,8 +927,16 @@ const generalForm = ref({
 async function handleSaveGeneral() {
   isSaving.value = true;
   try {
-    const result = await proposalStore.saveProposalDefaults(generalForm.value.language, [], generalForm.value);
+    const result = await proposalStore.saveProposalDefaults(
+      generalForm.value.language,
+      null,
+      generalForm.value,
+    );
     if (result.success) {
+      if (generalForm.value.language !== selectedLang.value) {
+        selectedLang.value = generalForm.value.language;
+        await loadDefaults(selectedLang.value);
+      }
       showFeedback('Valores generales guardados correctamente.', 'success');
     } else {
       showFeedback('Error al guardar los valores generales.', 'error');
@@ -1080,6 +1099,13 @@ async function loadDefaults(lang) {
     if (result.success && result.data) {
       sections.value = result.data.sections_json || [];
       configUpdatedAt.value = result.data.updated_at;
+      generalForm.value = {
+        ...generalForm.value,
+        language: lang,
+        expiration_days: Number.isInteger(Number(result.data.expiration_days))
+          ? Number(result.data.expiration_days)
+          : 21,
+      };
     }
   } finally {
     isLoading.value = false;
@@ -1499,3 +1525,9 @@ onMounted(() => {
   loadTechnicalDefaultsPrompt();
 });
 </script>
+
+<style scoped>
+.defaults-technical-editor :deep(.technical-document-editor textarea) {
+  min-height: 5.5rem;
+}
+</style>

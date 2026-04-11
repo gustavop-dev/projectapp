@@ -499,6 +499,19 @@ class TestGetDefaultSectionsFromDB:
         assert len(hardcoded) == EXPECTED_DEFAULT_SECTION_COUNT
 
 
+class TestGetDefaultExpirationDays:
+    def test_returns_21_when_no_config_exists(self):
+        assert ProposalService.get_default_expiration_days('es') == 21
+
+    def test_returns_configured_value_when_config_exists(self):
+        ProposalDefaultConfig.objects.create(
+            language='es',
+            sections_json=[],
+            expiration_days=30,
+        )
+        assert ProposalService.get_default_expiration_days('es') == 30
+
+
 class TestSendProposal:
     def test_raises_error_without_client_email(self):
         proposal = BusinessProposal.objects.create(
@@ -568,8 +581,8 @@ class TestSendProposal:
     @freeze_time('2025-06-01 12:00:00')
     @patch('content.tasks.send_urgency_reminder')
     @patch('content.tasks.send_proposal_reminder')
-    def test_auto_sets_expires_at_to_20_days(self, mock_reminder, mock_urgency):
-        """When expires_at is not set, send_proposal auto-sets it to 20 days."""
+    def test_auto_sets_expires_at_to_21_days(self, mock_reminder, mock_urgency):
+        """When expires_at is not set, send_proposal auto-sets it to 21 days."""
         mock_reminder.schedule = MagicMock(return_value=None)
         mock_urgency.schedule = MagicMock(return_value=None)
         proposal = BusinessProposal.objects.create(
@@ -580,7 +593,7 @@ class TestSendProposal:
         assert proposal.expires_at is None
         ProposalService.send_proposal(proposal)
         proposal.refresh_from_db()
-        assert proposal.expires_at == datetime(2025, 6, 21, 12, 0, 0, tzinfo=dt_tz.utc)
+        assert proposal.expires_at == datetime(2025, 6, 22, 12, 0, 0, tzinfo=dt_tz.utc)
         mock_reminder.schedule.assert_called_once()
         mock_urgency.schedule.assert_called_once()
 

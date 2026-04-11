@@ -56,6 +56,17 @@
 
         <div class="shrink-0 border-t border-esmerald/[0.06] p-4 dark:border-white/[0.06]">
           <p class="truncate text-xs text-green-light">Internal admin</p>
+
+          <button
+            type="button"
+            :disabled="isBridging"
+            class="mt-2 flex h-9 w-full items-center justify-center gap-2 rounded-lg text-sm font-medium text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
+            @click="goToPlatform('/platform/dashboard')"
+          >
+            <SidebarIcon name="external" class="h-4 w-4 shrink-0" />
+            {{ isBridging ? 'Abriendo...' : 'Plataforma' }}
+          </button>
+
           <button
             type="button"
             class="mt-2 flex h-9 w-full items-center justify-center rounded-lg text-sm font-medium text-green-light transition hover:bg-esmerald-light hover:text-esmerald dark:hover:bg-white/[0.06] dark:hover:text-white"
@@ -73,9 +84,13 @@
 import { computed } from 'vue'
 import { getPanelNavSections } from '~/config/panelNav'
 import { isPanelNavItemActive } from '~/utils/panelNavActive'
+import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge'
+import SidebarIcon from '~/components/platform/SidebarIcon.vue'
 import SidebarItem from '~/components/platform/SidebarItem.vue'
 
 defineEmits(['close', 'toggle-theme'])
+
+const { goToPlatform, isBridging } = usePanelToPlatformBridge()
 
 defineProps({
   isOpen: { type: Boolean, default: false },

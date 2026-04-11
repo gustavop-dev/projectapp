@@ -3,6 +3,7 @@ import pytest
 from django.urls import reverse
 
 from content.models import EmailTemplateConfig
+from content.services.email_template_registry import get_all_keys
 
 pytestmark = pytest.mark.django_db
 
@@ -19,7 +20,7 @@ class TestEmailTemplateList:
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        assert len(data) == 26
+        assert len(data) == len(get_all_keys())
         keys_in_item = {
             'template_key', 'name', 'description', 'category',
             'is_active', 'is_customized', 'editable_fields_count',

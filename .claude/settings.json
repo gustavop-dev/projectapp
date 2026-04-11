@@ -2,37 +2,15 @@
   "permissions": {
     "allow": [
       "Read",
-      "Read(//tmp/**)",
-      "WebSearch",
-      "Bash(python:*)",
-      "Bash(python3:*)",
-      "Bash(pytest:*)",
-      "Bash(pip install:*)",
-      "Bash(pip3 install:*)",
-      "Bash(source:*)",
-      "Bash(npm:*)",
-      "Bash(npx:*)",
-      "Bash(node:*)",
-      "Bash(git:*)",
-      "Bash(curl:*)",
-      "Bash(find:*)",
-      "Bash(grep:*)",
-      "Bash(ls:*)",
-      "Bash(cat:*)",
-      "Bash(echo:*)",
-      "Bash(cp:*)",
-      "Bash(awk:*)",
-      "Bash(tee:*)",
-      "Bash(lsof:*)",
-      "Bash(xargs:*)",
-      "Bash(while:*)",
-      "Bash(do:*)",
-      "Bash(done)",
-      "Bash(timeout:*)",
-      "Bash(E2E_REUSE_SERVER=1:*)"
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash",
+      "WebSearch"
     ],
-    "deny": [
-    ],
-    "ask": []
-  }
+    "defaultMode": "auto"
+  },
+  "effortLevel": "high",
+  "model": "sonnet"
 }

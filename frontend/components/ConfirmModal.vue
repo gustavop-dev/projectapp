@@ -6,7 +6,7 @@
         class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
         @click.self="handleCancel"
       >
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" @click.stop>
+        <div class="bg-white dark:bg-esmerald dark:border dark:border-white/[0.06] rounded-2xl shadow-2xl dark:shadow-black/40 w-full max-w-md overflow-hidden" @click.stop>
           <!-- Header -->
           <div class="px-6 pt-6 pb-2">
             <div class="flex items-start gap-4">
@@ -17,8 +17,8 @@
                 <component :is="variantIcon" class="w-5 h-5" :class="variantClasses.iconColor" />
               </div>
               <div class="flex-1 min-w-0">
-                <h3 class="text-lg font-bold text-esmerald">{{ title }}</h3>
-                <p class="mt-1 text-sm text-esmerald/70 leading-relaxed">{{ message }}</p>
+                <h3 class="text-lg font-bold text-esmerald dark:text-white">{{ title }}</h3>
+                <p class="mt-1 text-sm text-esmerald/70 dark:text-green-light/60 leading-relaxed">{{ message }}</p>
               </div>
             </div>
           </div>
@@ -27,7 +27,7 @@
           <div class="flex items-center justify-end gap-3 px-6 py-4">
             <button
               type="button"
-              class="px-4 py-2 text-sm font-medium text-esmerald/70 bg-esmerald-light/60 hover:bg-esmerald-light rounded-xl transition-colors"
+              class="px-4 py-2 text-sm font-medium text-esmerald/70 dark:text-green-light bg-esmerald-light/60 dark:bg-white/[0.06] hover:bg-esmerald-light dark:hover:bg-white/[0.10] rounded-xl transition-colors"
               @click="handleCancel"
             >
               {{ cancelText }}
@@ -68,19 +68,19 @@ const emit = defineEmits(['update:modelValue', 'confirm', 'cancel'])
 const variantClasses = computed(() => {
   const map = {
     warning: {
-      iconBg: 'bg-lemon/30',
-      iconColor: 'text-esmerald',
-      confirmBtn: 'bg-esmerald text-white hover:bg-esmerald-dark',
+      iconBg: 'bg-lemon/30 dark:bg-lemon/20',
+      iconColor: 'text-esmerald dark:text-lemon',
+      confirmBtn: 'bg-esmerald text-white hover:bg-esmerald-dark dark:bg-lemon dark:text-esmerald-dark dark:hover:bg-lemon/90',
     },
     danger: {
-      iconBg: 'bg-red-50',
-      iconColor: 'text-red-600',
+      iconBg: 'bg-red-50 dark:bg-red-500/10',
+      iconColor: 'text-red-600 dark:text-red-400',
       confirmBtn: 'bg-red-600 text-white hover:bg-red-700',
     },
     info: {
-      iconBg: 'bg-esmerald-light',
-      iconColor: 'text-esmerald',
-      confirmBtn: 'bg-esmerald text-white hover:bg-esmerald-dark',
+      iconBg: 'bg-esmerald-light dark:bg-white/[0.06]',
+      iconColor: 'text-esmerald dark:text-lemon',
+      confirmBtn: 'bg-esmerald text-white hover:bg-esmerald-dark dark:bg-lemon dark:text-esmerald-dark dark:hover:bg-lemon/90',
     },
   }
   return map[props.variant] || map.warning

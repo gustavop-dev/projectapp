@@ -59,6 +59,23 @@
       >
         Internal admin
       </div>
+
+      <button
+        type="button"
+        :disabled="isBridging"
+        :class="[
+          'mb-2 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm transition',
+          'text-green-light hover:bg-esmerald-light hover:text-esmerald',
+          'dark:hover:bg-white/[0.06] dark:hover:text-white',
+          isCollapsed ? 'justify-center' : '',
+        ]"
+        :title="isCollapsed ? 'Plataforma' : undefined"
+        @click="goToPlatform('/platform/dashboard')"
+      >
+        <SidebarIcon name="external" class="h-4 w-4 shrink-0" />
+        <span v-if="!isCollapsed" class="truncate">{{ isBridging ? 'Abriendo...' : 'Plataforma' }}</span>
+      </button>
+
       <div
         :class="[
           'flex items-center gap-1',
@@ -105,9 +122,13 @@
 import { computed, inject } from 'vue'
 import { getPanelNavSections } from '~/config/panelNav'
 import { isPanelNavItemActive } from '~/utils/panelNavActive'
+import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge'
+import SidebarIcon from '~/components/platform/SidebarIcon.vue'
 import SidebarItem from '~/components/platform/SidebarItem.vue'
 
 defineEmits(['toggle-theme'])
+
+const { goToPlatform, isBridging } = usePanelToPlatformBridge()
 
 const props = defineProps({
   isCollapsed: { type: Boolean, default: false },

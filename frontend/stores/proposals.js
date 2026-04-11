@@ -18,6 +18,7 @@ export const useProposalStore = defineStore('proposals', {
     isLoading: false,
     isUpdating: false,
     error: null,
+    _expirationDaysCache: {},
   }),
 
   getters: {
@@ -384,6 +385,69 @@ export const useProposalStore = defineStore('proposals', {
     },
 
     /**
+     * launchToPlatform: Trigger platform onboarding for an accepted proposal.
+     * @param {number} id - Proposal ID.
+     * @param {boolean} force - If true, re-onboard even if already completed.
+     */
+    async launchToPlatform(id, force = false) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(`proposals/${id}/launch-to-platform/`, { force });
+        if (this.currentProposal?.id === id) {
+          this.currentProposal = response.data;
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'launch_to_platform_failed';
+        console.error('Error launching to platform:', error);
+        return { success: false, errors: error.response?.data, status: error.response?.status };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * pollOnboardingStatus: Poll proposal detail until onboarding completes or fails.
+     * @param {number} id - Proposal ID.
+     * @param {Function} onUpdate - Callback with updated proposal data.
+     * @param {number} interval - Polling interval in ms (default 3000).
+     * @param {number} maxAttempts - Max polls before giving up (default 60).
+     * @returns {Function} cancel - Call to stop polling.
+     */
+    pollOnboardingStatus(id, onUpdate, interval = 3000, maxAttempts = 60) {
+      let attempts = 0;
+      let stopped = false;
+
+      const poll = async () => {
+        if (stopped) return;
+        attempts++;
+        try {
+          const response = await get_request(`proposals/${id}/detail/`);
+          const data = response.data;
+          const status = data.platform_onboarding_status;
+          if (status !== 'pending' || attempts >= maxAttempts) {
+            stopped = true;
+            if (this.currentProposal?.id === id) {
+              this.currentProposal = data;
+            }
+            onUpdate(data);
+            return;
+          }
+        } catch (error) {
+          console.error('Error polling onboarding status:', error);
+        }
+        if (!stopped) {
+          setTimeout(poll, interval);
+        }
+      };
+
+      setTimeout(poll, interval);
+      return () => { stopped = true; };
+    },
+
+    /**
      * fetchScorecard: Get pre-send scorecard for a proposal.
      * @param {number} id - Proposal ID.
      */
@@ -706,12 +770,13 @@ export const useProposalStore = defineStore('proposals', {
     },
 
     /**
-     * dismissAlert: Dismiss a manual alert by its ID.
-     * @param {number} alertId - The alert ID.
+     * dismissAlert: Dismiss a manual or computed alert.
+     * @param {number} alertId - Manual alert ID, or proposal ID for computed alerts.
+     * @param {object} payload - Optional payload for computed alerts.
      */
-    async dismissAlert(alertId) {
+    async dismissAlert(alertId, payload = {}) {
       try {
-        await patch_request(`proposals/alerts/${alertId}/dismiss/`, {});
+        await patch_request(`proposals/alerts/${alertId}/dismiss/`, payload);
         return { success: true };
       } catch (error) {
         console.error('Error dismissing alert:', error);
@@ -771,18 +836,56 @@ export const useProposalStore = defineStore('proposals', {
     },
 
     /**
+     * Clear the expiration-days cache (for test isolation).
+     */
+    _clearExpirationCache() {
+      this._expirationDaysCache = {};
+    },
+
+    /**
+     * fetchExpirationDays: Return cached expiration_days for a language,
+     * fetching from the API only on cache miss. Avoids a full defaults
+     * round-trip when only the expiration value is needed.
+     * @param {string} lang - 'es' or 'en'.
+     * @returns {Promise<number|null>} expiration_days or null on failure.
+     */
+    async fetchExpirationDays(lang = 'es') {
+      if (this._expirationDaysCache[lang] != null) {
+        return this._expirationDaysCache[lang];
+      }
+      const result = await this.fetchProposalDefaults(lang);
+      if (!result.success || !result.data) return null;
+      const days = Number(result.data.expiration_days);
+      if (Number.isInteger(days) && days > 0) {
+        this._expirationDaysCache[lang] = days;
+      }
+      return Number.isInteger(days) && days > 0 ? days : null;
+    },
+
+    /**
      * saveProposalDefaults: Save (create or update) default section config.
      * @param {string} lang - 'es' or 'en'.
-     * @param {Array} sectionsJson - Full array of section dicts.
+     * @param {Array|null} sectionsJson - Full array of section dicts.
+     * @param {Object|null} generalConfig - Optional general defaults payload.
      */
-    async saveProposalDefaults(lang, sectionsJson) {
+    async saveProposalDefaults(lang, sectionsJson, generalConfig = null) {
       this.isUpdating = true;
       this.error = null;
       try {
-        const response = await put_request('proposals/defaults/', {
+        const payload = {
           language: lang,
-          sections_json: sectionsJson,
+        };
+        if (Array.isArray(sectionsJson)) {
+          payload.sections_json = sectionsJson;
+        }
+        const expirationDays = Number(generalConfig?.expiration_days);
+        if (Number.isInteger(expirationDays) && expirationDays > 0) {
+          payload.expiration_days = expirationDays;
+        }
+        const response = await put_request('proposals/defaults/', {
+          ...payload,
         });
+        delete this._expirationDaysCache[lang];
         return { success: true, data: response.data };
       } catch (error) {
         this.error = 'save_defaults_failed';
@@ -803,6 +906,7 @@ export const useProposalStore = defineStore('proposals', {
       this.error = null;
       try {
         const response = await create_request('proposals/defaults/reset/', { language: lang });
+        delete this._expirationDaysCache[lang];
         return { success: true, data: response.data };
       } catch (error) {
         this.error = 'reset_defaults_failed';
@@ -1141,6 +1245,76 @@ export const useProposalStore = defineStore('proposals', {
       } catch (error) {
         console.error(`Error fetching ${basePath} history:`, error);
         return { success: false, data: { results: [], total: 0, page: 1, has_next: false } };
+      }
+    },
+
+    // -----------------------------------------------------------------
+    // Project schedule (Cronograma)
+    // -----------------------------------------------------------------
+
+    /**
+     * updateProjectStage: PUT start_date / end_date for a stage.
+     * On success, replaces the matching stage in
+     * `currentProposal.project_stages` so the UI reflects the new dates.
+     * @param {number} proposalId
+     * @param {string} stageKey - 'design' | 'development'
+     * @param {{ start_date?: string, end_date?: string }} dates
+     * @returns {Promise<{ success: boolean, data?: object, error?: object }>}
+     */
+    async updateProjectStage(proposalId, stageKey, dates) {
+      try {
+        const response = await put_request(
+          `proposals/${proposalId}/stages/${stageKey}/`,
+          dates,
+        );
+        this._mergeProjectStage(proposalId, response.data);
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error updating project stage:', error);
+        return { success: false, error: error?.response?.data || null };
+      }
+    },
+
+    /**
+     * completeProjectStage: POST to mark a stage as completed.
+     * @param {number} proposalId
+     * @param {string} stageKey - 'design' | 'development'
+     * @returns {Promise<{ success: boolean, data?: object }>}
+     */
+    async completeProjectStage(proposalId, stageKey) {
+      try {
+        const response = await create_request(
+          `proposals/${proposalId}/stages/${stageKey}/complete/`,
+          {},
+        );
+        this._mergeProjectStage(proposalId, response.data);
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error completing project stage:', error);
+        return { success: false };
+      }
+    },
+
+    /**
+     * Replace (or insert) a stage in `currentProposal.project_stages`,
+     * mutating the array in place. Matches the existing pattern used by
+     * updateSection / applySync / reorderSections in this same store.
+     *
+     * @param {number} proposalId
+     * @param {object} stage
+     */
+    _mergeProjectStage(proposalId, stage) {
+      if (!this.currentProposal || this.currentProposal.id !== proposalId) return;
+      if (!Array.isArray(this.currentProposal.project_stages)) {
+        this.currentProposal.project_stages = [];
+      }
+      const idx = this.currentProposal.project_stages.findIndex(
+        (s) => s.stage_key === stage.stage_key,
+      );
+      if (idx !== -1) {
+        this.currentProposal.project_stages[idx] = stage;
+      } else {
+        this.currentProposal.project_stages.push(stage);
       }
     },
   },

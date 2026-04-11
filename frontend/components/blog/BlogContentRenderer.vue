@@ -1,27 +1,27 @@
 <template>
   <div v-if="hasJsonContent" class="blog-json-content">
     <!-- Introduction -->
-    <p class="text-xl mb-12 text-esmerald/80 leading-relaxed font-regular">
+    <p class="text-xl mb-12 text-esmerald/80 dark:text-white/80 leading-relaxed font-regular">
       {{ contentJson.intro }}
     </p>
 
     <!-- Sections -->
     <div v-for="(section, index) in contentJson.sections" :key="index" class="mb-16">
-      <h2 class="text-2xl md:text-3xl lg:text-4xl font-light mb-6 tracking-tight text-esmerald">
+      <h2 class="text-2xl md:text-3xl lg:text-4xl font-light mb-6 tracking-tight text-esmerald dark:text-white">
         {{ section.heading }}
       </h2>
 
-      <p v-if="section.content" class="text-lg mb-6 text-green-light leading-relaxed font-regular">
+      <p v-if="section.content" class="text-lg mb-6 text-green-light dark:text-green-light/80 leading-relaxed font-regular">
         {{ section.content }}
       </p>
 
       <!-- List with check icons -->
       <ul v-if="section.list && section.list.length" class="space-y-4 mb-6">
         <li v-for="(item, i) in section.list" :key="i" class="flex items-start gap-3">
-          <svg class="w-6 h-6 flex-shrink-0 mt-1 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-6 h-6 flex-shrink-0 mt-1 text-esmerald dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
           </svg>
-          <span class="text-lg text-green-light leading-relaxed font-regular">{{ item }}</span>
+          <span class="text-lg text-green-light dark:text-green-light/80 leading-relaxed font-regular">{{ item }}</span>
         </li>
       </ul>
 
@@ -30,10 +30,10 @@
         <div
           v-for="(sub, i) in section.subsections"
           :key="i"
-          class="bg-esmerald-light rounded-2xl p-5 sm:p-8 border border-gray-200/40"
+          class="bg-esmerald-light dark:bg-white/[0.03] rounded-2xl p-5 sm:p-8 border border-gray-200/40 dark:border-white/[0.06]"
         >
-          <h3 class="text-xl font-medium mb-3 text-esmerald">{{ sub.title }}</h3>
-          <p class="text-base text-green-light leading-relaxed font-regular">{{ sub.description }}</p>
+          <h3 class="text-xl font-medium mb-3 text-esmerald dark:text-white">{{ sub.title }}</h3>
+          <p class="text-base text-green-light dark:text-green-light/80 leading-relaxed font-regular">{{ sub.description }}</p>
         </div>
       </div>
 
@@ -41,14 +41,14 @@
       <div v-if="section.timeline && section.timeline.length" class="space-y-4">
         <div v-for="(item, i) in section.timeline" :key="i" class="flex gap-6">
           <div class="flex flex-col items-center">
-            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 bg-esmerald-light">
-              <span class="text-lg font-bold text-esmerald">{{ i + 1 }}</span>
+            <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 bg-esmerald-light dark:bg-white/[0.06]">
+              <span class="text-lg font-bold text-esmerald dark:text-white">{{ i + 1 }}</span>
             </div>
-            <div v-if="i < section.timeline.length - 1" class="w-0.5 h-full mt-2 bg-gray-200" />
+            <div v-if="i < section.timeline.length - 1" class="w-0.5 h-full mt-2 bg-gray-200 dark:bg-white/[0.08]" />
           </div>
           <div class="pb-8">
-            <h4 class="text-lg font-medium mb-2 text-esmerald">{{ item.step }}</h4>
-            <p class="text-base text-green-light leading-relaxed font-regular">{{ item.description }}</p>
+            <h4 class="text-lg font-medium mb-2 text-esmerald dark:text-white">{{ item.step }}</h4>
+            <p class="text-base text-green-light dark:text-green-light/80 leading-relaxed font-regular">{{ item.description }}</p>
           </div>
         </div>
       </div>
@@ -58,9 +58,9 @@
         <div
           v-for="(example, i) in section.examples"
           :key="i"
-          class="bg-esmerald-light rounded-xl p-6"
+          class="bg-esmerald-light dark:bg-white/[0.03] rounded-xl p-6"
         >
-          <p class="text-base font-regular text-esmerald leading-relaxed">{{ example }}</p>
+          <p class="text-base font-regular text-esmerald dark:text-white/80 leading-relaxed">{{ example }}</p>
         </div>
       </div>
 
@@ -90,7 +90,7 @@
 
       <!-- Quote -->
       <blockquote v-if="section.quote && section.quote.text" class="my-8 pl-6 border-l-4 border-lemon">
-        <p class="text-xl italic text-esmerald leading-relaxed font-regular mb-3">
+        <p class="text-xl italic text-esmerald dark:text-white/90 leading-relaxed font-regular mb-3">
           "{{ section.quote.text }}"
         </p>
         <cite v-if="section.quote.author" class="text-sm text-green-light font-regular not-italic">
@@ -107,8 +107,8 @@
         <div class="flex items-start gap-3">
           <span class="text-xl flex-shrink-0 mt-0.5" aria-hidden="true">{{ calloutIcon(section.callout.type) }}</span>
           <div>
-            <p v-if="section.callout.title" class="font-medium mb-2 text-esmerald text-lg">{{ section.callout.title }}</p>
-            <p class="text-base text-green-light leading-relaxed font-regular">{{ section.callout.text }}</p>
+            <p v-if="section.callout.title" class="font-medium mb-2 text-esmerald dark:text-white text-lg">{{ section.callout.title }}</p>
+            <p class="text-base text-green-light dark:text-green-light/80 leading-relaxed font-regular">{{ section.callout.text }}</p>
           </div>
         </div>
       </div>
@@ -129,15 +129,15 @@
       </div>
 
       <!-- Key Takeaways (summary box — AI engines love structured summaries) -->
-      <div v-if="section.key_takeaways && section.key_takeaways.length" class="my-8 bg-lemon/10 border-2 border-lemon/30 rounded-2xl p-5 sm:p-8">
+      <div v-if="section.key_takeaways && section.key_takeaways.length" class="my-8 bg-lemon/10 dark:bg-lemon/5 border-2 border-lemon/30 dark:border-lemon/20 rounded-2xl p-5 sm:p-8">
         <div class="flex items-center gap-2 mb-5">
           <span class="text-xl" aria-hidden="true">💡</span>
-          <h3 class="text-lg font-medium text-esmerald">{{ section.heading }}</h3>
+          <h3 class="text-lg font-medium text-esmerald dark:text-white">{{ section.heading }}</h3>
         </div>
         <ul class="space-y-3">
           <li v-for="(takeaway, i) in section.key_takeaways" :key="i" class="flex items-start gap-3">
             <span class="w-6 h-6 rounded-full bg-esmerald text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{{ i + 1 }}</span>
-            <span class="text-base text-green-light leading-relaxed font-regular">{{ takeaway }}</span>
+            <span class="text-base text-green-light dark:text-green-light/80 leading-relaxed font-regular">{{ takeaway }}</span>
           </li>
         </ul>
       </div>
@@ -152,18 +152,18 @@
         <div
           v-for="(item, i) in section.faq"
           :key="i"
-          class="bg-white rounded-2xl border border-gray-200/60 overflow-hidden"
+          class="bg-white dark:bg-esmerald rounded-2xl border border-gray-200/60 dark:border-white/[0.06] overflow-hidden"
           itemscope
           itemprop="mainEntity"
           itemtype="https://schema.org/Question"
         >
           <details class="group">
-            <summary class="flex items-center justify-between gap-4 px-5 sm:px-8 py-5 cursor-pointer select-none hover:bg-esmerald-light/40 transition-colors">
-              <span class="text-base sm:text-lg font-medium text-esmerald leading-snug" itemprop="name">{{ item.question }}</span>
+            <summary class="flex items-center justify-between gap-4 px-5 sm:px-8 py-5 cursor-pointer select-none hover:bg-esmerald-light/40 dark:hover:bg-white/[0.03] transition-colors">
+              <span class="text-base sm:text-lg font-medium text-esmerald dark:text-white leading-snug" itemprop="name">{{ item.question }}</span>
               <svg class="w-5 h-5 text-green-light flex-shrink-0 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
             </summary>
             <div class="px-5 sm:px-8 pb-5 sm:pb-8" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-              <p class="text-base text-green-light leading-relaxed font-regular" itemprop="text">{{ item.answer }}</p>
+              <p class="text-base text-green-light dark:text-green-light/80 leading-relaxed font-regular" itemprop="text">{{ item.answer }}</p>
             </div>
           </details>
         </div>
@@ -208,10 +208,10 @@ const hasJsonContent = computed(() => {
 
 function calloutClasses(type) {
   const map = {
-    tip: 'bg-emerald-50/60 border-emerald-200/60',
-    warning: 'bg-amber-50/60 border-amber-200/60',
-    info: 'bg-blue-50/60 border-blue-200/60',
-    note: 'bg-gray-50/60 border-gray-200/60',
+    tip: 'bg-emerald-50/60 border-emerald-200/60 dark:bg-emerald-900/20 dark:border-emerald-700/30',
+    warning: 'bg-amber-50/60 border-amber-200/60 dark:bg-amber-900/20 dark:border-amber-700/30',
+    info: 'bg-blue-50/60 border-blue-200/60 dark:bg-blue-900/20 dark:border-blue-700/30',
+    note: 'bg-gray-50/60 border-gray-200/60 dark:bg-white/[0.03] dark:border-white/[0.06]',
   };
   return map[type] || map.note;
 }
@@ -287,4 +287,14 @@ function videoEmbedUrl(url) {
   font-family: 'Ubuntu-Regular', sans-serif;
   margin: 1.5rem 0;
 }
+
+/* Dark mode overrides for HTML fallback content */
+:global(.dark) .blog-html-content :deep(h2) { color: #ffffff; }
+:global(.dark) .blog-html-content :deep(h3) { color: #ffffff; }
+:global(.dark) .blog-html-content :deep(p) { color: #a0b8b2; }
+:global(.dark) .blog-html-content :deep(a) { color: #6ee7b7; }
+:global(.dark) .blog-html-content :deep(strong) { color: #ffffff; }
+:global(.dark) .blog-html-content :deep(ul),
+:global(.dark) .blog-html-content :deep(ol) { color: #a0b8b2; }
+:global(.dark) .blog-html-content :deep(blockquote) { color: #ffffff; }
 </style>

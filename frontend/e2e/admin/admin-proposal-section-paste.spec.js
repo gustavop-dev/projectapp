@@ -182,7 +182,8 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
 
     // Save
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     // Verify payload
     expect(captured.length).toBeGreaterThanOrEqual(1);
@@ -208,7 +209,8 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     await pasteTextarea.fill('Contexto pegado directamente.');
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -234,7 +236,8 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
 
     // Save in form mode
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -259,7 +262,8 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     await pasteTextarea.fill('');
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -405,7 +409,8 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     await pasteTextarea.fill('Estrategia de conversión pegada directamente.');
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];

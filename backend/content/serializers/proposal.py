@@ -1,15 +1,29 @@
 from rest_framework import serializers
 
+from accounts.models import UserProfile
+from accounts.services import proposal_client_service
 from content.models import (
     BusinessProposal,
     EmailTemplateConfig,
     ProposalAlert,
+    ProposalProjectStage,
     ProposalSection,
     ProposalRequirementGroup,
     ProposalRequirementItem,
     ProposalShareLink,
     ProposalDefaultConfig,
 )
+from content.serializers.proposal_clients import ProposalClientSerializer
+from content.utils import validate_email_domain_mx
+
+
+def _validate_client_email_mx(value):
+    """Shared field validator: reject emails whose domain has no MX/A records."""
+    if value and not validate_email_domain_mx(value):
+        raise serializers.ValidationError(
+            'El dominio de este correo no puede recibir emails (sin registros MX).'
+        )
+    return value
 
 
 class ProposalRequirementItemSerializer(serializers.ModelSerializer):
@@ -31,6 +45,41 @@ class ProposalRequirementGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProposalRequirementGroup
         fields = ('id', 'group_id', 'title', 'description', 'order', 'items')
+
+
+class ProposalProjectStageSerializer(serializers.ModelSerializer):
+    """
+    Serializer for ProposalProjectStage — internal project execution tracking.
+
+    Exposes the stage dates + completion + alert timestamps. Used by the
+    admin Cronograma tab to read stage state. Writes go through the
+    dedicated update_project_stage / complete_project_stage endpoints,
+    not through ProposalDetailSerializer (which is read-only for stages).
+    """
+    stage_label = serializers.CharField(source='get_stage_key_display', read_only=True)
+
+    class Meta:
+        model = ProposalProjectStage
+        fields = (
+            'id', 'stage_key', 'stage_label', 'order',
+            'start_date', 'end_date', 'completed_at',
+            'warning_sent_at', 'last_overdue_reminder_at',
+            'created_at', 'updated_at',
+        )
+        read_only_fields = (
+            'id', 'stage_label', 'completed_at',
+            'warning_sent_at', 'last_overdue_reminder_at',
+            'created_at', 'updated_at',
+        )
+
+    def validate(self, attrs):
+        start = attrs.get('start_date', getattr(self.instance, 'start_date', None))
+        end = attrs.get('end_date', getattr(self.instance, 'end_date', None))
+        if start and end and start > end:
+            raise serializers.ValidationError({
+                'end_date': 'La fecha fin debe ser igual o posterior a la fecha de inicio.',
+            })
+        return attrs
 
 
 class ProposalSectionListSerializer(serializers.ModelSerializer):
@@ -61,6 +110,7 @@ class ProposalListSerializer(serializers.ModelSerializer):
     days_remaining = serializers.SerializerMethodField()
     is_expired = serializers.SerializerMethodField()
     available_transitions = serializers.SerializerMethodField()
+    client = ProposalClientSerializer(read_only=True)
 
     class Meta:
         model = BusinessProposal
@@ -73,6 +123,7 @@ class ProposalListSerializer(serializers.ModelSerializer):
             'project_type_custom', 'market_type_custom',
             'cached_heat_score', 'engagement_declining',
             'available_transitions', 'language', 'sent_at',
+            'client',
         )
 
     def get_days_remaining(self, obj):
@@ -94,12 +145,16 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
     """
     sections = serializers.SerializerMethodField()
     requirement_groups = ProposalRequirementGroupSerializer(many=True, read_only=True)
+    # project_stages is internal-only execution tracking; the model docstring
+    # explicitly says it must never be rendered to the client. Gate by is_admin.
+    project_stages = serializers.SerializerMethodField()
     days_remaining = serializers.SerializerMethodField()
     is_expired = serializers.SerializerMethodField()
     public_url = serializers.SerializerMethodField()
     discounted_investment = serializers.SerializerMethodField()
     available_transitions = serializers.SerializerMethodField()
     proposal_documents = serializers.SerializerMethodField()
+    client = ProposalClientSerializer(read_only=True)
 
     change_logs = serializers.SerializerMethodField()
 
@@ -118,11 +173,21 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
             'last_activity_at',
             'view_count', 'first_viewed_at', 'sent_at', 'responded_at',
             'created_at', 'updated_at',
-            'sections', 'requirement_groups', 'change_logs',
+            'sections', 'requirement_groups', 'project_stages', 'change_logs',
             'days_remaining', 'is_expired', 'public_url',
             'discounted_investment', 'selected_modules',
             'contract_params', 'available_transitions', 'proposal_documents',
+            'platform_onboarding_completed_at',
+            'platform_onboarding_status',
+            'client',
         )
+
+    def get_project_stages(self, obj):
+        """Return project_stages only for admin requests; empty for public."""
+        if not self.context.get('is_admin', False):
+            return []
+        stages = obj.project_stages.all()
+        return ProposalProjectStageSerializer(stages, many=True).data
 
     def get_sections(self, obj):
         """
@@ -237,7 +302,40 @@ def serialize_proposal_document(d):
 class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
     """
     Serializer for creating and updating business proposal metadata.
+
+    Client identity is canonical on ``BusinessProposal.client`` (FK to
+    ``accounts.UserProfile``). The legacy ``client_name``/``client_email``/
+    ``client_phone`` fields remain as write-through snapshots, kept in sync
+    via ``proposal_client_service.sync_snapshot()``.
+
+    Write contract:
+        - ``client_id``: optional FK to an existing ``UserProfile``
+          (role=client). When provided, that profile is used as-is and the
+          inline ``client_name``/``client_email``/``client_phone``/``client_company``
+          values are ignored — the snapshot is rebuilt from the profile.
+        - When ``client_id`` is omitted/null, the service is asked to
+          ``get_or_create`` a profile from the inline fields. Empty email
+          triggers placeholder generation.
+        - ``propagate_client_updates``: write-only boolean. When ``true``
+          AND a client is being updated inline, the service propagates the
+          new values to the ``UserProfile`` (cascading to all linked
+          proposals). Default ``false``.
     """
+
+    client_id = serializers.PrimaryKeyRelatedField(
+        queryset=UserProfile.objects.filter(role=UserProfile.ROLE_CLIENT),
+        source='client',
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
+    client_company = serializers.CharField(
+        write_only=True, required=False, allow_blank=True, max_length=200, default='',
+    )
+    propagate_client_updates = serializers.BooleanField(
+        write_only=True, required=False, default=False,
+    )
+    client = ProposalClientSerializer(read_only=True)
 
     class Meta:
         model = BusinessProposal
@@ -249,7 +347,11 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
             'discount_percent', 'is_active', 'automations_paused',
             'project_type', 'market_type', 'client_phone',
             'project_type_custom', 'market_type_custom',
+            'client_id', 'client_company', 'propagate_client_updates', 'client',
         )
+
+    def validate_client_email(self, value):
+        return _validate_client_email_mx(value)
 
     def validate_expires_at(self, value):
         """Ensure expiration date is in the future when provided."""
@@ -273,6 +375,69 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
                 'client_email': 'Client email is required when sending a proposal.',
             })
         return attrs
+
+    # ------------------------------------------------------------------
+    # client FK resolution + snapshot sync
+    # ------------------------------------------------------------------
+
+    def _pop_client_inputs(self, validated_data):
+        """Strip client-related inputs from validated_data; return as dict."""
+        return {
+            'client': validated_data.pop('client', None),
+            'name': validated_data.get('client_name', ''),
+            'email': validated_data.get('client_email', ''),
+            'phone': validated_data.get('client_phone', ''),
+            'company': validated_data.pop('client_company', ''),
+            'propagate': validated_data.pop('propagate_client_updates', False),
+        }
+
+    def create(self, validated_data):
+        client_inputs = self._pop_client_inputs(validated_data)
+        profile = client_inputs['client']
+        if profile is None:
+            profile = proposal_client_service.get_or_create_client_for_proposal(
+                name=client_inputs['name'],
+                email=client_inputs['email'],
+                phone=client_inputs['phone'],
+                company=client_inputs['company'],
+            )
+        validated_data['client'] = profile
+        proposal = super().create(validated_data)
+        proposal_client_service.sync_snapshot(proposal)
+        return proposal
+
+    def update(self, instance, validated_data):
+        client_inputs = self._pop_client_inputs(validated_data)
+        explicit_profile = client_inputs['client']
+
+        # If caller passed a client_id, switch the FK and skip auto-create.
+        if explicit_profile is not None:
+            validated_data['client'] = explicit_profile
+        # Otherwise: keep the current FK; the snapshot fields may still be
+        # edited inline (overrides for THIS proposal only).
+
+        # Optional propagation: when the admin opted in via the checkbox,
+        # push the inline edits up to the canonical UserProfile so all other
+        # proposals stay in sync.
+        if client_inputs['propagate']:
+            target = explicit_profile or instance.client
+            if target is not None:
+                proposal_client_service.update_client_profile(
+                    target,
+                    name=client_inputs['name'] or None,
+                    email=client_inputs['email'] or None,
+                    phone=client_inputs['phone'] or None,
+                    company=client_inputs['company'] or None,
+                )
+
+        proposal = super().update(instance, validated_data)
+
+        # When we just switched FK or propagated upstream, reset the snapshot
+        # so this proposal mirrors the canonical client identity.
+        if explicit_profile is not None or client_inputs['propagate']:
+            proposal_client_service.sync_snapshot(proposal)
+
+        return proposal
 
 
 class ProposalSectionUpdateSerializer(serializers.ModelSerializer):
@@ -348,6 +513,9 @@ class ProposalFromJSONSerializer(serializers.Serializer):
     discount_percent = serializers.IntegerField(required=False, default=0)
     sections = serializers.DictField(child=serializers.DictField(), required=True)
 
+    def validate_client_email(self, value):
+        return _validate_client_email_mx(value)
+
     def validate_expires_at(self, value):
         if value is not None:
             from django.utils import timezone
@@ -412,7 +580,14 @@ class ProposalDefaultConfigSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProposalDefaultConfig
-        fields = ('id', 'language', 'sections_json', 'created_at', 'updated_at')
+        fields = (
+            'id',
+            'language',
+            'sections_json',
+            'expiration_days',
+            'created_at',
+            'updated_at',
+        )
         read_only_fields = ('id', 'created_at', 'updated_at')
 
     def validate_language(self, value):
@@ -438,6 +613,13 @@ class ProposalDefaultConfigSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     f'Section at index {i} is missing keys: {missing}'
                 )
+        return value
+
+    def validate_expiration_days(self, value):
+        if value < 1 or value > 365:
+            raise serializers.ValidationError(
+                'expiration_days must be between 1 and 365.'
+            )
         return value
 
 

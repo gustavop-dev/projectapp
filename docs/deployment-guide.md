@@ -97,25 +97,22 @@ sudo systemctl status projectapp-huey
 
 ```bash
 cd /home/ryzepeck/webapps/projectapp
-git pull origin main
+./scripts/deploy.sh
+```
 
-# Backend
-cd backend
-source venv/bin/activate
-pip install -r requirements.txt
-DJANGO_SETTINGS_MODULE=projectapp.settings_prod python manage.py migrate
+The deploy script handles: git pull, backend deps + migrations, frontend build,
+static collection, and service restart. Run `./scripts/deploy.sh --help` for options.
 
-# Frontend
-cd ../frontend
-npm ci
-npm run build:django
+| Flag | Effect |
+|------|--------|
+| `--sync-configs` | Also sync systemd/nginx configs from repo to server |
+| `--skip-frontend` | Skip frontend build (backend-only deploy) |
+| `--yes` | Skip confirmation prompts |
+| `--dry-run` | Show what would be done without executing |
 
-# Collect static + restart
-cd ../backend
-source venv/bin/activate
-DJANGO_SETTINGS_MODULE=projectapp.settings_prod python manage.py collectstatic --noinput
-sudo systemctl restart projectapp
-sudo systemctl restart projectapp-huey
+To sync server configs independently:
+```bash
+./scripts/sync-configs.sh
 ```
 
 ---
@@ -145,7 +142,7 @@ EMAIL_USE_SSL=true
 EMAIL_HOST_USER=team@projectapp.co
 EMAIL_HOST_PASSWORD=<email-password>
 DEFAULT_FROM_EMAIL=team@projectapp.co
-NOTIFICATION_EMAIL=dev.gustavo.perezp@gmail.com
+NOTIFICATION_EMAIL=team@projectapp.co,carlos18bp@gmail.com
 
 # WhatsApp (CallMeBot)
 WHATSAPP_PHONE=<phone-with-country-code>

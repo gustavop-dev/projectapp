@@ -12,6 +12,7 @@ import { ADMIN_PROPOSAL_INLINE_STATUS_CHANGE } from '../helpers/flow-tags.js';
 const mockProposals = [
   { id: 1, title: 'Proposal A', client_name: 'Client A', status: 'viewed', client_email: 'a@test.com', total_investment: '5000000', currency: 'COP' },
   { id: 2, title: 'Proposal B', client_name: 'Client B', status: 'sent', client_email: 'b@test.com', total_investment: '3000000', currency: 'COP' },
+  { id: 3, title: 'Proposal C', client_name: 'Client C', status: 'accepted', client_email: 'c@test.com', total_investment: '8000000', currency: 'COP', available_transitions: ['finished'] },
 ];
 
 test.describe('Admin Proposal Inline Status Change', () => {
@@ -98,5 +99,34 @@ test.describe('Admin Proposal Inline Status Change', () => {
       expect(options).toContain('negotiating');
       expect(options).toContain('expired');
     }
+  });
+
+  test('accepted proposal exposes finished as inline transition option', {
+    tag: [...ADMIN_PROPOSAL_INLINE_STATUS_CHANGE, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === 'proposals/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposals) };
+      }
+      if (apiPath === 'proposals/dashboard/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({}) };
+      }
+      if (apiPath === 'proposals/alerts/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/proposals');
+    await page.waitForResponse(resp => resp.url().includes('/proposals') && resp.status() === 200);
+
+    const row = page.getByRole('row').filter({ hasText: 'Proposal C' });
+    const statusSelect = row.getByRole('combobox');
+    await expect(statusSelect).toBeVisible();
+    const labels = await statusSelect.locator('option').allTextContents();
+    expect(labels).toContain('Finalizadas');
   });
 });

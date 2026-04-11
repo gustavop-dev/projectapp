@@ -82,11 +82,11 @@ test.describe('Admin Proposal Documents Send', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Send section header
-    await expect(page.getByText('Enviar documentos al cliente').first()).toBeVisible();
-    // Checkboxes for main docs
-    await expect(page.getByText('Contrato de desarrollo (borrador)')).toBeVisible();
-    await expect(page.getByText('Propuesta comercial').first()).toBeVisible();
-    await expect(page.getByText('Detalle técnico').first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Enviar documentos al cliente' })).toBeVisible();
+    // Checkbox labels — scoped via the input value to avoid matching the proposal mode links elsewhere on the page
+    await expect(page.locator('label').filter({ has: page.locator('input[value="draft_contract"]') })).toContainText('Contrato de desarrollo (borrador)');
+    await expect(page.locator('label').filter({ has: page.locator('input[value="commercial"]') })).toContainText('Propuesta comercial');
+    await expect(page.locator('label').filter({ has: page.locator('input[value="technical"]') })).toContainText('Detalle técnico');
   });
 
   test('draft contract checkbox disabled when no contract generated', {
@@ -177,8 +177,7 @@ test.describe('Admin Proposal Documents Send', () => {
     await page.getByRole('button', { name: /Enviar al cliente/i }).click();
     await page.getByRole('button', { name: /Enviar documentos$/i }).click();
 
-    await page.waitForTimeout(500);
-    expect(sendCalled).toBe(true);
+    await expect(() => expect(sendCalled).toBe(true)).toPass({ timeout: 5000 });
   });
 
   test('no client email shows warning and disables send button', {

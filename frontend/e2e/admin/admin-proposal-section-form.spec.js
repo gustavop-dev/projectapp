@@ -175,7 +175,8 @@ test.describe('Proposal Section Edit — Form Mode', () => {
 
     // Click save
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     // Verify captured payload
     expect(captured.length).toBeGreaterThanOrEqual(1);
@@ -198,7 +199,8 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await editor.getByLabel('Highlights / Incluye').fill('Diseño personalizado\nDesarrollo responsivo');
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -220,7 +222,8 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await editor.getByRole('textbox', { name: 'Oportunidad', exact: true }).fill('Crear plataforma de confianza.');
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -229,7 +232,7 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     expect(last.body.content_json.opportunity).toBe('Crear plataforma de confianza.');
   });
 
-  test('save button shows confirmation text after saving', {
+  test('save button auto-collapses the section editor on success', {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
   }, async ({ page }) => {
     await openSectionEditor(page, [], 'greeting');
@@ -237,8 +240,8 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     const editor = page.getByTestId('section-editor');
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
 
-    // Verify "✓ Guardado" appears
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
   });
 
   test('section title change is included in save payload', {
@@ -252,7 +255,8 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await editor.getByLabel('Título de la sección').fill('Custom Greeting Title');
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -269,7 +273,8 @@ test.describe('Proposal Section Edit — Form Mode', () => {
 
     // Leave all fields empty, just click save
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -285,7 +290,8 @@ test.describe('Proposal Section Edit — Form Mode', () => {
 
     const editor = page.getByTestId('section-editor');
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -346,7 +352,8 @@ test.describe('Proposal Section Edit — Form Mode', () => {
 
     const editor = page.getByTestId('section-editor');
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -366,7 +373,8 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await editor.getByLabel('Resultado esperado').fill('Incremento del 30% en conversiones.', { timeout: 5000 });
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click({ timeout: 5000 });
-    await expect(editor.getByText('✓ Guardado')).toBeVisible({ timeout: 5000 });
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -388,7 +396,8 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await editor.getByLabel('Duración total').fill('3 meses');
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -411,7 +420,8 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     // (editable only from the General tab), so we only fill introText here.
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click({ timeout: 5000 });
-    await expect(editor.getByText('✓ Guardado')).toBeVisible({ timeout: 5000 });
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -432,7 +442,8 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await editor.getByLabel('Items de enfoque').fill('Usabilidad\nAccesibilidad', { timeout: 5000 });
 
     await editor.getByRole('button', { name: 'Guardar Sección' }).click({ timeout: 5000 });
-    await expect(editor.getByText('✓ Guardado')).toBeVisible({ timeout: 5000 });
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];

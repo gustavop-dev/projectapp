@@ -151,3 +151,80 @@ test.describe('Platform Deliverable detail', () => {
     await pdfWait;
   });
 });
+
+// ── Unified cross-project view (/platform/deliverables) ──
+
+const mockProject2 = {
+  id: 2, name: 'Mobile App', status: 'active', progress: 20,
+  client_id: 9002, client_name: 'Client E2E', client_email: 'client@e2e-test.com',
+  client_company: 'ACME Corp', start_date: '2025-03-01', estimated_end_date: '2025-09-30',
+};
+
+const mockDeliverablesCrossProject = [
+  { ...mockDeliverables[0], project_id: 1, project_name: 'E-commerce Platform' },
+  { ...mockDeliverables[1], project_id: 1, project_name: 'E-commerce Platform' },
+  {
+    id: 3, title: 'iOS Prototype', description: 'First prototype build.',
+    category: 'apks', current_version: 1, file_url: '/media/app-v1.ipa',
+    file_name: 'app-v1.ipa', file_size: 4096, uploaded_by_name: 'Admin E2E',
+    versions_count: 1, created_at: '2025-02-05T10:00:00Z', updated_at: '2025-02-05T10:00:00Z',
+    project_id: 2, project_name: 'Mobile App',
+  },
+];
+
+function setupUnifiedDeliverablesMocks(page, { user, deliverables = mockDeliverablesCrossProject }) {
+  return mockApi(page, async ({ apiPath, method }) => {
+    if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(user);
+    if (apiPath === 'accounts/projects/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProject, mockProject2]) };
+    }
+    if (apiPath.startsWith('accounts/deliverables/') && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(deliverables) };
+    }
+    if (apiPath === 'accounts/notifications/unread-count/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify({ unread_count: 0 }) };
+    }
+    return null;
+  });
+}
+
+test.describe('Platform Deliverables — Unified /platform/deliverables', () => {
+  test.setTimeout(60_000);
+
+  test('client sees deliverables grouped by project', {
+    tag: [...PLATFORM_DELIVERABLES, '@role:platform-client'],
+  }, async ({ page }) => {
+    await setPlatformAuth(page, { user: mockPlatformClient });
+    await setupUnifiedDeliverablesMocks(page, { user: mockPlatformClient });
+    await page.goto('/platform/deliverables', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /mis entregables/i }).waitFor({ state: 'visible', timeout: 30000 });
+
+    await expect(page.getByText('E-commerce Platform')).toBeVisible();
+    await expect(page.getByText('Wireframes página principal')).toBeVisible();
+    await expect(page.getByText('Mobile App')).toBeVisible();
+    await expect(page.getByText('iOS Prototype')).toBeVisible();
+  });
+
+  test('admin sees all deliverables with category summary pills', {
+    tag: [...PLATFORM_DELIVERABLES, '@role:platform-admin'],
+  }, async ({ page }) => {
+    await setPlatformAuth(page, { user: mockPlatformAdmin });
+    await setupUnifiedDeliverablesMocks(page, { user: mockPlatformAdmin });
+    await page.goto('/platform/deliverables', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /entregables/i }).waitFor({ state: 'visible', timeout: 30000 });
+
+    await expect(page.getByText('E-commerce Platform')).toBeVisible();
+    await expect(page.getByText('Mobile App')).toBeVisible();
+  });
+
+  test('shows empty state when no deliverables exist', {
+    tag: [...PLATFORM_DELIVERABLES, '@role:platform-client'],
+  }, async ({ page }) => {
+    await setPlatformAuth(page, { user: mockPlatformClient });
+    await setupUnifiedDeliverablesMocks(page, { user: mockPlatformClient, deliverables: [] });
+    await page.goto('/platform/deliverables', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /mis entregables/i }).waitFor({ state: 'visible', timeout: 30000 });
+
+    await expect(page.getByText('No hay entregables en este momento.')).toBeVisible();
+  });
+});

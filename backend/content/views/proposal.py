@@ -1,7 +1,8 @@
 import copy
 import logging
 import re
-from decimal import Decimal
+from datetime import timedelta
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -26,6 +27,7 @@ from content.serializers.proposal import (
     ProposalDetailSerializer,
     ProposalFromJSONSerializer,
     ProposalListSerializer,
+    ProposalProjectStageSerializer,
     ProposalSectionUpdateSerializer,
     ProposalShareLinkSerializer,
     SECTION_KEY_MAP,
@@ -49,6 +51,7 @@ _KEY_PROPOSAL_SECTIONS = frozenset({
 
 # Spanish labels for the three client-selectable view modes.
 VIEW_MODE_LABELS = {'executive': 'ejecutiva', 'detailed': 'completa', 'technical': 'técnica'}
+CLIENT_VIEW_ACTIVITY_COOLDOWN = timedelta(hours=3)
 
 # Ordered fragments of the technical document panel, matching frontend utils/technicalProposalPanels.js
 _TECHNICAL_FRAGMENT_ORDER = [
@@ -74,6 +77,160 @@ _TECHNICAL_FRAGMENT_TITLES = {
 }
 
 
+def _ne(v):
+    """Non-empty string check (mirrors JS _nonEmptyStr)."""
+    return isinstance(v, str) and v.strip() != ''
+
+
+def _row_has(row, keys):
+    """True if *row* is a dict with at least one non-empty string among *keys*."""
+    if not isinstance(row, dict):
+        return False
+    return any(_ne(row.get(k)) for k in keys)
+
+
+def _technical_fragment_has_content(fragment, doc):
+    """Python port of frontend technicalFragmentHasContent().
+
+    Returns True when *fragment* has real data inside the technical
+    document *doc* (content_json of the technical_document section).
+    """
+    d = doc if isinstance(doc, dict) else {}
+
+    if fragment == 'intro':
+        return True
+
+    if fragment == 'stack':
+        rows = d.get('stack')
+        return isinstance(rows, list) and any(
+            _row_has(r, ('layer', 'technology', 'rationale')) for r in rows
+        )
+
+    if fragment == 'architecture':
+        arch = d.get('architecture') or {}
+        if _ne(arch.get('summary')) or _ne(arch.get('diagramNote')):
+            return True
+        return any(
+            _row_has(r, ('component', 'pattern', 'description'))
+            for r in (arch.get('patterns') or [])
+        )
+
+    if fragment == 'dataModel':
+        dm = d.get('dataModel') or {}
+        if _ne(dm.get('summary')) or _ne(dm.get('relationships')):
+            return True
+        return any(
+            _row_has(r, ('name', 'description', 'keyFields'))
+            for r in (dm.get('entities') or [])
+        )
+
+    if fragment == 'growthReadiness':
+        gr = d.get('growthReadiness') or {}
+        if _ne(gr.get('summary')):
+            return True
+        return any(
+            _row_has(r, ('dimension', 'preparation', 'evolution'))
+            for r in (gr.get('strategies') or [])
+        )
+
+    if fragment == 'epics':
+        epics = d.get('epics')
+        if not isinstance(epics, list):
+            return False
+        for ep in epics:
+            if not isinstance(ep, dict):
+                continue
+            if _ne(ep.get('title')) or _ne(ep.get('description')) or _ne(ep.get('epicKey')):
+                return True
+            if any(
+                _row_has(rq, ('title', 'description', 'configuration', 'usageFlow', 'flowKey'))
+                for rq in (ep.get('requirements') or [])
+            ):
+                return True
+        return False
+
+    if fragment == 'api':
+        if _ne(d.get('apiSummary')):
+            return True
+        domains = d.get('apiDomains')
+        return isinstance(domains, list) and any(
+            _row_has(r, ('domain', 'summary')) for r in domains
+        )
+
+    if fragment == 'integrations':
+        integ = d.get('integrations') or {}
+        if _ne(integ.get('notes')):
+            return True
+        return (
+            any(_row_has(r, ('service', 'provider', 'connection', 'dataExchange', 'accountOwner'))
+                for r in (integ.get('included') or []))
+            or any(_row_has(r, ('service', 'reason', 'availability'))
+                   for r in (integ.get('excluded') or []))
+        )
+
+    if fragment == 'environments':
+        if _ne(d.get('environmentsNote')):
+            return True
+        envs = d.get('environments')
+        return isinstance(envs, list) and any(
+            _row_has(r, ('name', 'purpose', 'url', 'database', 'whoAccesses')) for r in envs
+        )
+
+    if fragment == 'security':
+        sec = d.get('security')
+        return isinstance(sec, list) and any(
+            _row_has(r, ('aspect', 'implementation')) for r in sec
+        )
+
+    if fragment == 'performance':
+        pq = d.get('performanceQuality') or {}
+        return (
+            any(_row_has(r, ('metric', 'target', 'howMeasured'))
+                for r in (pq.get('metrics') or []))
+            or any(_row_has(r, ('strategy', 'description'))
+                   for r in (pq.get('practices') or []))
+        )
+
+    if fragment == 'backups':
+        return _ne(d.get('backupsNote'))
+
+    if fragment == 'quality':
+        q = d.get('quality') or {}
+        if _ne(q.get('criticalFlowsNote')):
+            return True
+        return (
+            any(_row_has(r, ('dimension', 'evaluates', 'standard'))
+                for r in (q.get('dimensions') or []))
+            or any(_row_has(r, ('type', 'validates', 'tool', 'whenRun'))
+                   for r in (q.get('testTypes') or []))
+        )
+
+    if fragment == 'decisions':
+        decs = d.get('decisions')
+        return isinstance(decs, list) and any(
+            _row_has(r, ('decision', 'alternative', 'reason')) for r in decs
+        )
+
+    return False
+
+
+_COMPUTED_ALERT_TYPES = frozenset({
+    'not_viewed',
+    'not_responded',
+    'expiring_soon',
+    'seller_inactive',
+    'zombie',
+    'zombie_draft',
+    'zombie_sent_stale',
+    'late_return',
+})
+_COMPUTED_ALERT_DISMISS_PREFIX = '__computed_dismissed__:'
+
+
+def _computed_alert_key(proposal_id, alert_type, ref_date):
+    return f'{proposal_id}-{alert_type}-{ref_date or ""}'
+
+
 def _dashboard_top_dropoff_allowlist():
     """Section types used for global top_dropoff KPI (excludes technical doc)."""
     return frozenset(
@@ -91,6 +248,137 @@ def _csv_analytics_section_group(section_type):
     return ''
 
 
+def _safe_decimal(value, default=Decimal('0')):
+    """Safely coerce unknown numeric input to Decimal."""
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return default
+
+
+def _selected_group_ids_from_modules(selected_modules):
+    """Normalize selected module ids to bare group ids."""
+    if not isinstance(selected_modules, list):
+        return set()
+
+    group_ids = set()
+    for raw in selected_modules:
+        if raw in (None, ''):
+            continue
+        mod_id = str(raw).strip()
+        if not mod_id:
+            continue
+        if mod_id.startswith('module-'):
+            group_ids.add(mod_id[7:])
+        elif mod_id.startswith('group-'):
+            group_ids.add(mod_id[6:])
+        else:
+            group_ids.add(mod_id)
+    return group_ids
+
+
+def _calculator_price_percent_by_group_id(fr_content_json):
+    """
+    Extract calculator-module price percentages from functional requirements JSON.
+    """
+    if not isinstance(fr_content_json, dict):
+        return {}
+
+    groups = list(fr_content_json.get('groups') or [])
+    additional = list(fr_content_json.get('additionalModules') or [])
+    price_by_group = {}
+
+    for group in groups + additional:
+        if not isinstance(group, dict):
+            continue
+        if not group.get('is_calculator_module'):
+            continue
+        group_id = str(group.get('id') or '').strip()
+        if not group_id:
+            continue
+        pct = _safe_decimal(group.get('price_percent'), default=None)
+        if pct is None or pct <= 0:
+            continue
+        price_by_group[group_id] = pct
+
+    return price_by_group
+
+
+def _calculate_effective_total_investment(
+    base_total,
+    selected_modules,
+    fr_content_json,
+):
+    """
+    Compute effective investment shown in panel metrics:
+    base investment + selected additional calculator modules.
+
+    When *selected_modules* is empty (client never confirmed in the
+    calculator), falls back to modules marked ``selected=True`` or
+    ``default_selected=True`` by the admin in the FR content JSON.
+    """
+    base = _safe_decimal(base_total).quantize(Decimal('0.01'))
+    selected_group_ids = _selected_group_ids_from_modules(selected_modules)
+
+    # Fallback: when no explicit client selections, use modules marked
+    # as selected/default_selected by the admin in FR content.
+    if not selected_group_ids and isinstance(fr_content_json, dict):
+        for arr_key in ('groups', 'additionalModules'):
+            for group in (fr_content_json.get(arr_key) or []):
+                if not isinstance(group, dict):
+                    continue
+                if not group.get('is_calculator_module'):
+                    continue
+                if group.get('selected') or group.get('default_selected'):
+                    gid = str(group.get('id') or '').strip()
+                    if gid:
+                        selected_group_ids.add(gid)
+
+    if not selected_group_ids:
+        return base
+
+    price_by_group = _calculator_price_percent_by_group_id(fr_content_json)
+    if not price_by_group:
+        return base
+
+    extras = Decimal('0')
+    for group_id in selected_group_ids:
+        pct = price_by_group.get(group_id)
+        if pct is None:
+            continue
+        extras += (base * pct / Decimal('100')).quantize(
+            Decimal('1'), rounding=ROUND_HALF_UP,
+        )
+
+    return (base + extras).quantize(Decimal('0.01'))
+
+
+def _build_effective_totals_map(proposals):
+    """Return {proposal_id: effective_total_decimal} for a proposal iterable."""
+    proposal_list = list(proposals)
+    if not proposal_list:
+        return {}
+
+    proposal_ids = [p.id for p in proposal_list]
+    fr_content_by_proposal = dict(
+        ProposalSection.objects
+        .filter(
+            proposal_id__in=proposal_ids,
+            section_type='functional_requirements',
+        )
+        .values_list('proposal_id', 'content_json')
+    )
+
+    return {
+        p.id: _calculate_effective_total_investment(
+            p.total_investment,
+            p.selected_modules,
+            fr_content_by_proposal.get(p.id),
+        )
+        for p in proposal_list
+    }
+
+
 # ---------------------------------------------------------------------------
 # Public endpoints (no auth required)
 # ---------------------------------------------------------------------------
@@ -105,7 +393,10 @@ def retrieve_public_proposal(request, proposal_uuid):
     updates status to VIEWED if currently SENT.
     Returns 410 Gone if expired.
     """
-    proposal = get_object_or_404(BusinessProposal, uuid=proposal_uuid)
+    proposal = get_object_or_404(
+        BusinessProposal.objects.select_related('client__user'),
+        uuid=proposal_uuid,
+    )
 
     if not proposal.is_active:
         return Response(
@@ -332,18 +623,25 @@ def list_proposals(request):
     Supports ?status= query parameter for filtering.
     Includes heat_score (1-10) for active non-draft proposals.
     """
-    qs = BusinessProposal.objects.all()
+    qs = BusinessProposal.objects.select_related('client__user').all()
     status_filter = request.query_params.get('status')
     if status_filter:
         qs = qs.filter(status=status_filter)
 
-    serializer = ProposalListSerializer(qs, many=True)
+    proposals = list(qs)
+    effective_totals = _build_effective_totals_map(proposals)
+
+    serializer = ProposalListSerializer(proposals, many=True)
     data = serializer.data
 
     # Use pre-computed cached_heat_score from the model instead of
     # computing on-the-fly (avoids N+1 queries on every list load).
     for item in data:
-        if item['status'] == 'accepted':
+        eff_total = effective_totals.get(item['id'])
+        item['effective_total_investment'] = (
+            str(eff_total) if eff_total is not None else item['total_investment']
+        )
+        if item['status'] in ('accepted', 'finished'):
             item['heat_score'] = 10
         elif item['status'] in ('sent', 'viewed') and item['is_active']:
             item['heat_score'] = item.get('cached_heat_score', 0) or 0
@@ -443,7 +741,12 @@ def retrieve_proposal(request, proposal_id):
     Retrieve full proposal detail for admin editing.
     Returns all sections (including disabled ones).
     """
-    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+    proposal = get_object_or_404(
+        BusinessProposal.objects
+        .select_related('client__user')
+        .prefetch_related('project_stages'),
+        pk=proposal_id,
+    )
     serializer = ProposalDetailSerializer(
         proposal, context={'request': request, 'is_admin': True}
     )
@@ -463,6 +766,11 @@ def create_proposal(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     proposal = serializer.save()
+    from content.services.proposal_service import ProposalService
+
+    if not proposal.expires_at:
+        proposal.expires_at = ProposalService.compute_default_expires_at(proposal.language)
+        proposal.save(update_fields=['expires_at'])
 
     # Log creation
     ProposalChangeLog.objects.create(
@@ -476,7 +784,6 @@ def create_proposal(request):
     )
 
     # Auto-create default sections
-    from content.services.proposal_service import ProposalService
     default_sections = ProposalService.get_default_sections(proposal.language)
     for section_cfg in default_sections:
         if section_cfg['section_type'] == 'greeting':
@@ -528,6 +835,25 @@ def create_proposal_from_json(request):
     data = serializer.validated_data
     sections_data = data.pop('sections')
 
+    from content.services.proposal_service import ProposalService
+
+    expires_at = data.get('expires_at')
+    if not expires_at:
+        expires_at = ProposalService.compute_default_expires_at(
+            data.get('language', 'es'),
+        )
+
+    # Resolve the canonical client (UserProfile, role=client) — auto-creates
+    # via placeholder when no email is provided so the FK is always populated.
+    from accounts.services import proposal_client_service
+
+    client_profile = proposal_client_service.get_or_create_client_for_proposal(
+        name=data.get('client_name', ''),
+        email=data.get('client_email', ''),
+        phone=data.get('client_phone', ''),
+        company=data.get('client_company', ''),
+    )
+
     # Create the BusinessProposal
     proposal = BusinessProposal.objects.create(
         title=data['title'],
@@ -539,14 +865,15 @@ def create_proposal_from_json(request):
         language=data.get('language', 'es'),
         total_investment=data.get('total_investment', 0),
         currency=data.get('currency', 'COP'),
-        expires_at=data.get('expires_at'),
+        expires_at=expires_at,
         reminder_days=data.get('reminder_days', 10),
         urgency_reminder_days=data.get('urgency_reminder_days', 15),
         discount_percent=data.get('discount_percent', 0),
+        client=client_profile,
     )
+    proposal_client_service.sync_snapshot(proposal)
 
     # Use DEFAULT_SECTIONS as a template for title/order/is_wide_panel
-    from content.services.proposal_service import ProposalService
     default_sections = ProposalService.get_default_sections(proposal.language)
     defaults_by_type = {s['section_type']: s for s in default_sections}
 
@@ -838,7 +1165,22 @@ def update_proposal_from_json(request, proposal_id):
         tracked_old['expires_at'] = str(proposal.expires_at or '')
         proposal.expires_at = data['expires_at']
 
+    from accounts.services import proposal_client_service
+
+    # When the JSON import includes client identity fields, route them through
+    # the service so we reuse/create a UserProfile and keep the FK consistent.
+    if data.get('client_name') or data.get('client_email'):
+        client_profile = proposal_client_service.get_or_create_client_for_proposal(
+            name=data.get('client_name', '') or proposal.client_name,
+            email=data.get('client_email', ''),
+            phone=data.get('client_phone', ''),
+            company=data.get('client_company', ''),
+        )
+        proposal.client = client_profile
+
     proposal.save()
+    if proposal.client_id:
+        proposal_client_service.sync_snapshot(proposal)
 
     # Log field-level changes
     for field in list(metadata_fields) + ['expires_at']:
@@ -1195,15 +1537,92 @@ def update_proposal_status(request, proposal_id):
         description=f'Status changed from {old_status} to {new_status} (inline).',
     )
 
-    if new_status == BusinessProposal.Status.ACCEPTED and old_status != BusinessProposal.Status.ACCEPTED:
-        from accounts.services.proposal_platform_onboarding import (
-            handle_proposal_accepted_for_platform,
+    if new_status == BusinessProposal.Status.FINISHED:
+        try:
+            from content.services.proposal_email_service import (
+                ProposalEmailService,
+            )
+
+            ProposalEmailService.send_finished_confirmation(proposal)
+        except Exception:
+            logger.exception(
+                'Failed to send finished confirmation for proposal %s',
+                proposal.id,
+            )
+
+    detail = ProposalDetailSerializer(
+        proposal, context={'request': request, 'is_admin': True}
+    )
+    return Response(detail.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def launch_to_platform(request, proposal_id):
+    """
+    Manually trigger platform onboarding for an accepted proposal.
+    Body: { "force": true }  (required for re-launch when already onboarded)
+
+    Creates project, deliverable, requirements, syncs documents, and sends
+    acceptance email on first launch. Re-launch deletes existing data first
+    and skips the email.
+    """
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+
+    if proposal.status != BusinessProposal.Status.ACCEPTED:
+        return Response(
+            {'error': 'La propuesta debe estar aceptada para lanzar a plataforma.'},
+            status=status.HTTP_400_BAD_REQUEST,
         )
 
-        handle_proposal_accepted_for_platform(
-            proposal, source='admin_panel', acting_user=request.user,
+    already_onboarded = proposal.platform_onboarding_completed_at is not None
+
+    if already_onboarded and not request.data.get('force'):
+        return Response(
+            {
+                'warning': 'already_onboarded',
+                'onboarded_at': str(proposal.platform_onboarding_completed_at),
+            },
+            status=status.HTTP_409_CONFLICT,
         )
 
+    from django.db import transaction
+
+    with transaction.atomic():
+        if already_onboarded:
+            from accounts.services.proposal_platform_onboarding import (
+                teardown_platform_for_proposal,
+            )
+
+            teardown_platform_for_proposal(proposal)
+            proposal.refresh_from_db()
+
+        proposal.platform_onboarding_status = BusinessProposal.ONBOARDING_PENDING
+        proposal.save(update_fields=['platform_onboarding_status'])
+
+        ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type=ProposalChangeLog.ChangeType.PLATFORM_LAUNCH,
+            field_name='platform_onboarding_status',
+            new_value='pending',
+            actor_type='seller',
+            description='Re-launched to platform.' if already_onboarded else 'Launched to platform.',
+        )
+
+    from content.tasks import run_platform_onboarding
+
+    try:
+        run_platform_onboarding(
+            proposal.id,
+            acting_user_id=request.user.id,
+            is_relaunch=already_onboarded,
+        )
+    except Exception:
+        logger.exception('Failed to queue platform onboarding for proposal %s.', proposal_id)
+        proposal.platform_onboarding_status = BusinessProposal.ONBOARDING_FAILED
+        proposal.save(update_fields=['platform_onboarding_status'])
+
+    proposal.refresh_from_db()
     detail = ProposalDetailSerializer(
         proposal, context={'request': request, 'is_admin': True}
     )
@@ -1633,21 +2052,15 @@ def respond_to_proposal(request, proposal_uuid):
     from content.services.proposal_email_service import ProposalEmailService
     ProposalEmailService.send_response_notification(proposal, action)
 
-    if action == 'accepted':
-        from accounts.services.proposal_platform_onboarding import (
-            handle_proposal_accepted_for_platform,
-        )
-
-        handle_proposal_accepted_for_platform(
-            proposal, source='client_response', acting_user=None,
-        )
-    elif action == 'rejected':
+    if action == 'rejected':
         ProposalEmailService.send_rejection_thank_you(proposal)
         # Schedule re-engagement email 48h later if rejection is budget-related
         _schedule_reengagement_if_budget(proposal)
     elif action == 'negotiating':
         ProposalEmailService.send_negotiation_notification(proposal, comment)
         ProposalEmailService.send_negotiation_confirmation(proposal)
+    elif action == 'accepted':
+        ProposalEmailService.send_acceptance_confirmation(proposal)
 
     return Response(
         {'status': action, 'message': f'Proposal {action} successfully.'},
@@ -1800,7 +2213,7 @@ def track_proposal_engagement(request, proposal_uuid):
     ip_address = _get_client_ip(request)
     user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]
     view_mode = request.data.get('view_mode', 'unknown')
-    if view_mode not in ('executive', 'detailed', 'technical'):
+    if view_mode not in VIEW_MODE_LABELS:
         view_mode = 'unknown'
 
     view_event, _created = ProposalViewEvent.objects.get_or_create(
@@ -1817,13 +2230,25 @@ def track_proposal_engagement(request, proposal_uuid):
         view_event.view_mode = view_mode
         view_event.save(update_fields=['view_mode'])
 
-    if _created and view_mode in VIEW_MODE_LABELS:
-        ProposalChangeLog.objects.create(
+    if _created:
+        recent_view_log = ProposalChangeLog.objects.filter(
             proposal=proposal,
-            change_type='viewed',
-            actor_type='client',
-            description=f'Vista en modo {VIEW_MODE_LABELS[view_mode]}.',
-        )
+            change_type=ProposalChangeLog.ChangeType.VIEWED,
+            actor_type=ProposalChangeLog.ActorType.CLIENT,
+            created_at__gt=timezone.now() - CLIENT_VIEW_ACTIVITY_COOLDOWN,
+        ).exists()
+        if not recent_view_log:
+            mode_label = VIEW_MODE_LABELS.get(view_mode)
+            ProposalChangeLog.objects.create(
+                proposal=proposal,
+                change_type=ProposalChangeLog.ChangeType.VIEWED,
+                actor_type=ProposalChangeLog.ActorType.CLIENT,
+                description=(
+                    f'Vista en modo {mode_label}.'
+                    if mode_label
+                    else 'El cliente visitó la propuesta.'
+                ),
+            )
 
     # --- Stakeholder detection ---
     # If this is a new session from a different IP than previous sessions,
@@ -2182,7 +2607,7 @@ def _compute_engagement_score(proposal, view_events, sections_data, unique_sessi
             score += 10
         elif days_since <= 7:
             score += 5
-    elif proposal.status == 'accepted':
+    elif proposal.status in ('accepted', 'finished'):
         score += 15
 
     # 5. Re-visits (sessions > 1) — max 15 pts
@@ -2564,7 +2989,7 @@ def retrieve_proposal_analytics(request, proposal_id):
     device breakdown, per-section engagement, session history, and
     change log timeline.
     """
-    from django.db.models import Sum, Count, Avg
+    from django.db.models import Sum, Count, Avg, Subquery, OuterRef
 
     proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
 
@@ -2780,14 +3205,15 @@ def retrieve_proposal_analytics(request, proposal_id):
             .annotate(reached_count=Count('view_event__session_id', distinct=True))
         )
     }
-    prev_tech_reached = technical_sessions_reached
+    tech_section = proposal.sections.filter(section_type='technical_document').first()
+    tech_doc = (tech_section.content_json if tech_section and tech_section.content_json else {})
     for fragment_key in _TECHNICAL_FRAGMENT_ORDER:
-        tech_reached = tech_reached_map.get(fragment_key, 0)
-        if tech_reached == 0:
+        if not _technical_fragment_has_content(fragment_key, tech_doc):
             continue
+        tech_reached = tech_reached_map.get(fragment_key, 0)
         tech_drop_off = round(
-            (1 - tech_reached / prev_tech_reached) * 100, 1
-        ) if prev_tech_reached > 0 else 0
+            (1 - tech_reached / technical_sessions_reached) * 100, 1
+        ) if technical_sessions_reached > 0 else 0
         funnel_data.append({
             'section_type': 'technical_document_public',
             'section_title': _TECHNICAL_FRAGMENT_TITLES[fragment_key],
@@ -2796,7 +3222,6 @@ def retrieve_proposal_analytics(request, proposal_id):
             'drop_off_percent': tech_drop_off,
             'in_executive_mode': False,
         })
-        prev_tech_reached = tech_reached
 
     # --- Comparison with global averages ---
     all_proposals = BusinessProposal.objects.all()
@@ -2846,43 +3271,55 @@ def retrieve_proposal_analytics(request, proposal_id):
     )
 
     # --- F6: View mode breakdown (executive / detailed / technical) ---
+    # Group by (section_type, subsection_key) so technical_document_public
+    # fragments stay split per subsection instead of collapsing into one row.
     by_view_mode = {}
-    for mode in ('executive', 'detailed', 'technical'):
-        mode_events = view_events.filter(view_mode=mode)
-        mode_sessions = mode_events.values('session_id').distinct().count()
+    for mode in VIEW_MODE_LABELS:
+        mode_sessions = (
+            view_events.filter(view_mode=mode)
+            .values('session_id').distinct().count()
+        )
+        latest_title_sq = (
+            ProposalSectionView.objects
+            .filter(
+                view_event__proposal=proposal,
+                view_mode=mode,
+                section_type=OuterRef('section_type'),
+                subsection_key=OuterRef('subsection_key'),
+            )
+            .order_by('-entered_at')
+            .values('section_title')[:1]
+        )
         mode_section_stats = (
             ProposalSectionView.objects
             .filter(view_event__proposal=proposal, view_mode=mode)
-            .values('section_type')
+            .values('section_type', 'subsection_key')
             .annotate(
                 visit_count=Count('id'),
                 total_time_seconds=Sum('time_spent_seconds'),
+                latest_title=Subquery(latest_title_sq),
             )
-            .order_by('section_type')
+            .order_by('section_type', 'subsection_key')
         )
-        mode_sections_enriched = []
-        for s in mode_section_stats:
-            latest_title = (
-                ProposalSectionView.objects
-                .filter(
-                    view_event__proposal=proposal,
-                    section_type=s['section_type'],
-                    view_mode=mode,
-                )
-                .order_by('-entered_at')
-                .values_list('section_title', flat=True)
-                .first()
-            )
-            mode_sections_enriched.append({
-                'section_type': s['section_type'],
-                'section_title': latest_title or s['section_type'],
-                'visit_count': s['visit_count'],
-                'total_time_seconds': round(s['total_time_seconds'] or 0, 1),
-            })
         by_view_mode[mode] = {
             'sessions': mode_sessions,
-            'sections': mode_sections_enriched,
+            'sections': [
+                {
+                    'section_type': s['section_type'],
+                    'subsection_key': s['subsection_key'],
+                    'section_title': s['latest_title'] or s['section_type'],
+                    'visit_count': s['visit_count'],
+                    'total_time_seconds': round(s['total_time_seconds'] or 0, 1),
+                }
+                for s in mode_section_stats
+            ],
         }
+
+    last_viewed_at = (
+        view_events.order_by('-viewed_at')
+        .values_list('viewed_at', flat=True)
+        .first()
+    )
 
     return Response({
         'total_views': total_views,
@@ -2890,6 +3327,10 @@ def retrieve_proposal_analytics(request, proposal_id):
         'first_viewed_at': (
             proposal.first_viewed_at.isoformat()
             if proposal.first_viewed_at else None
+        ),
+        'last_viewed_at': (
+            last_viewed_at.isoformat()
+            if last_viewed_at else None
         ),
         'responded_at': (
             proposal.responded_at.isoformat()
@@ -2928,25 +3369,42 @@ def proposal_dashboard(request):
     from django.db.models.functions import TruncMonth
 
     all_proposals = BusinessProposal.objects.all()
-    total = all_proposals.count()
-
-    # Pipeline value: sum of total_investment for active sent + viewed proposals
-    pipeline_qs = all_proposals.filter(
-        status__in=['sent', 'viewed'], is_active=True,
+    totals_input = list(
+        all_proposals.only(
+            'id', 'status', 'total_investment', 'selected_modules', 'is_active',
+        )
     )
-    pipeline_agg = pipeline_qs.aggregate(total=Sum('total_investment'))
-    pipeline_value = float(pipeline_agg['total'] or 0)
-    pipeline_count = pipeline_qs.count()
+    effective_totals = _build_effective_totals_map(totals_input)
+    total = len(totals_input)
 
-    # Counts by status
-    by_status = {}
-    for choice_val, _label in BusinessProposal.Status.choices:
-        by_status[choice_val] = all_proposals.filter(status=choice_val).count()
+    # Pipeline value: sum of effective investment for active sent + viewed proposals
+    pipeline_ids = {
+        p.id for p in totals_input
+        if p.status in ('sent', 'viewed') and p.is_active
+    }
+    pipeline_value = float(sum(
+        (effective_totals[pid] for pid in pipeline_ids if pid in effective_totals),
+        Decimal('0'),
+    ))
+    pipeline_count = len(pipeline_ids)
 
-    # Conversion rate
-    terminal = by_status.get('accepted', 0) + by_status.get('rejected', 0) + by_status.get('expired', 0)
+    # Counts by status (single aggregated query)
+    status_counts = dict(
+        all_proposals.values_list('status')
+        .annotate(c=Count('id'))
+        .values_list('status', 'c')
+    )
+    by_status = {
+        choice_val: status_counts.get(choice_val, 0)
+        for choice_val, _label in BusinessProposal.Status.choices
+    }
+
+    # Conversion rate — 'finished' is a post-acceptance terminal state and
+    # counts as a successful conversion alongside 'accepted'.
+    won_count = by_status.get('accepted', 0) + by_status.get('finished', 0)
+    terminal = won_count + by_status.get('rejected', 0) + by_status.get('expired', 0)
     conversion_rate = round(
-        (by_status.get('accepted', 0) / terminal * 100) if terminal > 0 else 0, 1
+        (won_count / terminal * 100) if terminal > 0 else 0, 1
     )
 
     # Avg time-to-first-view (hours) — only proposals that have both timestamps
@@ -2973,12 +3431,17 @@ def proposal_dashboard(request):
         )
         avg_ttr = round(total_seconds / ttr_qs.count() / 3600, 1)
 
-    # Avg proposal value by status
+    # Avg proposal value by status (single pass)
+    _status_buckets = {s: [] for s in ('accepted', 'finished', 'rejected', 'expired', 'sent', 'viewed')}
+    for p in totals_input:
+        if p.status in _status_buckets and p.id in effective_totals:
+            _status_buckets[p.status].append(effective_totals[p.id])
     avg_value_by_status = {}
-    for s in ('accepted', 'rejected', 'expired', 'sent', 'viewed'):
-        agg = all_proposals.filter(status=s).aggregate(avg=Avg('total_investment'))
-        val = agg['avg']
-        avg_value_by_status[s] = round(float(val), 2) if val else 0
+    for s, vals in _status_buckets.items():
+        if vals:
+            avg_value_by_status[s] = round(float(sum(vals, Decimal('0')) / Decimal(len(vals))), 2)
+        else:
+            avg_value_by_status[s] = 0
 
     # Top rejection reasons
     rejection_reasons = (
@@ -2999,8 +3462,9 @@ def proposal_dashboard(request):
         .values('month')
         .annotate(
             created=Count('id'),
-            sent=Count('id', filter=Q(status__in=['sent', 'viewed', 'accepted', 'rejected', 'expired'])),
-            accepted=Count('id', filter=Q(status='accepted')),
+            sent=Count('id', filter=Q(status__in=['sent', 'viewed', 'accepted', 'finished', 'rejected', 'expired'])),
+            accepted=Count('id', filter=Q(status__in=['accepted', 'finished'])),
+            finished=Count('id', filter=Q(status='finished')),
             rejected=Count('id', filter=Q(status='rejected')),
         )
         .order_by('month')
@@ -3011,6 +3475,7 @@ def proposal_dashboard(request):
             'created': row['created'],
             'sent': row['sent'],
             'accepted': row['accepted'],
+            'finished': row['finished'],
             'rejected': row['rejected'],
         }
         for row in monthly_qs
@@ -3019,7 +3484,7 @@ def proposal_dashboard(request):
     # --- New metrics ---
 
     # Proposals that have been meaningfully viewed (status advanced past sent)
-    viewed_statuses = ('viewed', 'accepted', 'rejected', 'expired')
+    viewed_statuses = ('viewed', 'accepted', 'finished', 'rejected', 'expired')
     viewed_proposals = all_proposals.filter(status__in=viewed_statuses)
     viewed_count = viewed_proposals.count()
 
@@ -3053,8 +3518,8 @@ def proposal_dashboard(request):
 
     # Discount vs no-discount close rate
     def _close_rate(qs):
-        t = qs.filter(status__in=('accepted', 'rejected', 'expired')).count()
-        a = qs.filter(status='accepted').count()
+        t = qs.filter(status__in=('accepted', 'finished', 'rejected', 'expired')).count()
+        a = qs.filter(status__in=('accepted', 'finished')).count()
         return round(a / t * 100, 1) if t > 0 else None
 
     with_discount_qs = all_proposals.filter(discount_percent__gt=0)
@@ -3062,25 +3527,26 @@ def proposal_dashboard(request):
     discount_close_rate = _close_rate(with_discount_qs)
     no_discount_close_rate = _close_rate(without_discount_qs)
 
-    # Detailed discount analysis
+    # Detailed discount analysis — finished proposals are accepted-and-delivered,
+    # so they count as 'accepted' for win/close-rate calculations.
     avg_discount_all = with_discount_qs.aggregate(
         avg=Avg('discount_percent')
     )['avg']
     avg_discount_accepted = with_discount_qs.filter(
-        status='accepted'
+        status__in=['accepted', 'finished']
     ).aggregate(avg=Avg('discount_percent'))['avg']
     discount_analysis = {
         'with_discount_count': with_discount_qs.filter(
-            status__in=['accepted', 'rejected', 'expired']
+            status__in=['accepted', 'finished', 'rejected', 'expired']
         ).count(),
         'with_discount_accepted': with_discount_qs.filter(
-            status='accepted'
+            status__in=['accepted', 'finished']
         ).count(),
         'without_discount_count': without_discount_qs.filter(
-            status__in=['accepted', 'rejected', 'expired']
+            status__in=['accepted', 'finished', 'rejected', 'expired']
         ).count(),
         'without_discount_accepted': without_discount_qs.filter(
-            status='accepted'
+            status__in=['accepted', 'finished']
         ).count(),
         'avg_discount_percent': round(float(avg_discount_all), 1) if avg_discount_all else None,
         'avg_discount_accepted': round(float(avg_discount_accepted), 1) if avg_discount_accepted else None,
@@ -3135,8 +3601,8 @@ def proposal_dashboard(request):
             .filter(**{f'{field_name}__gt': ''})
             .values(field_name)
             .annotate(
-                total=Count('id', filter=Q(status__in=['accepted', 'rejected', 'expired'])),
-                accepted=Count('id', filter=Q(status='accepted')),
+                total=Count('id', filter=Q(status__in=['accepted', 'finished', 'rejected', 'expired'])),
+                accepted=Count('id', filter=Q(status__in=['accepted', 'finished'])),
             )
             .order_by(f'-accepted')
         )
@@ -3161,8 +3627,8 @@ def proposal_dashboard(request):
         .filter(project_type__gt='', market_type__gt='')
         .values('project_type', 'market_type')
         .annotate(
-            total=Count('id', filter=Q(status__in=['accepted', 'rejected', 'expired'])),
-            accepted=Count('id', filter=Q(status='accepted')),
+            total=Count('id', filter=Q(status__in=['accepted', 'finished', 'rejected', 'expired'])),
+            accepted=Count('id', filter=Q(status__in=['accepted', 'finished'])),
         )
         .filter(total__gte=2)
         .order_by('-accepted')
@@ -3180,8 +3646,9 @@ def proposal_dashboard(request):
 
     # --- 3.3 Engagement / close-value correlation ---
     # Compare avg investment for high-engagement vs low-engagement accepted proposals
+    # (finished proposals were also accepted, so include them)
     engagement_value_insight = None
-    accepted_proposals = all_proposals.filter(status='accepted')
+    accepted_proposals = all_proposals.filter(status__in=['accepted', 'finished'])
     if accepted_proposals.count() >= 4:
         # Compute total engagement time per accepted proposal
         engagement_data = []
@@ -3239,7 +3706,7 @@ def proposal_dashboard(request):
     # --- Win rate by predominant view_mode (executive / detailed / technical) ---
     from content.models import ProposalViewEvent as _PVE_dm
     terminal_proposals = all_proposals.filter(
-        status__in=['accepted', 'rejected', 'expired'],
+        status__in=['accepted', 'finished', 'rejected', 'expired'],
     )
     view_mode_stats = {
         'executive': {'total': 0, 'accepted': 0},
@@ -3249,7 +3716,7 @@ def proposal_dashboard(request):
     for p in terminal_proposals:
         mode_counts = (
             _PVE_dm.objects
-            .filter(proposal=p, view_mode__in=['executive', 'detailed', 'technical'])
+            .filter(proposal=p, view_mode__in=list(VIEW_MODE_LABELS))
             .values('view_mode')
             .annotate(cnt=Count('id'))
         )
@@ -3257,7 +3724,7 @@ def proposal_dashboard(request):
             continue
         predominant = max(mode_counts, key=lambda m: m['cnt'])['view_mode']
         view_mode_stats[predominant]['total'] += 1
-        if p.status == 'accepted':
+        if p.status in ('accepted', 'finished'):
             view_mode_stats[predominant]['accepted'] += 1
     win_rate_by_view_mode = {}
     for mode, stats in view_mode_stats.items():
@@ -3412,8 +3879,12 @@ def list_clients(request):
     """
     Return a list of unique clients with their full proposal history.
 
-    Groups BusinessProposal records by client_email (falling back to
-    client_name when email is blank).  Each client entry contains:
+    Groups by a compound (resolved_email, client_name) key so that two
+    different clients sharing the same contact email stay separated, while
+    proposals with a blank email still merge into the email group of the
+    same client_name.  When no email exists anywhere for a name, the email
+    component of the key is empty and grouping falls back to name alone.
+    Each client entry contains:
     - client_name, client_email
     - total_proposals, accepted, rejected, pending counts
     - last_status, last_sent_at
@@ -3432,20 +3903,32 @@ def list_clients(request):
         )
     )
 
-    # Group by (email, name) compound key so two companies sharing the same
-    # contact email are kept as separate client entries.
+    proposals_list = list(proposals_qs)
+
+    # Pass 1: map each client name to its primary (first non-blank) email
+    name_to_email: dict[str, str] = {}
+    for p in proposals_list:
+        email = (p['client_email'] or '').strip().lower()
+        name = p['client_name'].strip().lower()
+        if email and name not in name_to_email:
+            name_to_email[name] = email
+
+    # Pass 2: group by (resolved_email, name) — see docstring for rationale.
     clients: dict = {}
-    for p in proposals_qs:
-        key = (
-            (p['client_email'] or '').strip().lower(),
-            p['client_name'].strip().lower(),
-        )
+    for p in proposals_list:
+        email = (p['client_email'] or '').strip().lower()
+        name = p['client_name'].strip().lower()
+        resolved_email = email if email else name_to_email.get(name, '')
+        key = (resolved_email, name)
+
         if key not in clients:
             clients[key] = {
                 'client_name': p['client_name'],
                 'client_email': p['client_email'] or '',
                 'proposals': [],
             }
+        if email and not clients[key]['client_email']:
+            clients[key]['client_email'] = p['client_email']
         clients[key]['proposals'].append(p)
 
     result = []
@@ -3458,7 +3941,7 @@ def list_clients(request):
             'client_name': client['client_name'],
             'client_email': client['client_email'],
             'total_proposals': len(props),
-            'accepted': statuses.count('accepted'),
+            'accepted': statuses.count('accepted') + statuses.count('finished'),
             'rejected': statuses.count('rejected'),
             'pending': sum(1 for s in statuses if s in ('draft', 'sent', 'viewed')),
             'last_status': last['status'],
@@ -3547,6 +4030,13 @@ def proposal_alerts(request):
     from datetime import timedelta
 
     alerts = []
+    dismissed_computed_keys = {
+        marker.removeprefix(_COMPUTED_ALERT_DISMISS_PREFIX)
+        for marker in ProposalAlert.objects.filter(
+            is_dismissed=True,
+            message__startswith=_COMPUTED_ALERT_DISMISS_PREFIX,
+        ).values_list('message', flat=True)
+    }
 
     # Sent but not viewed — stale
     stale = BusinessProposal.objects.filter(
@@ -3590,6 +4080,7 @@ def proposal_alerts(request):
         expires_at__gt=now,
     ).exclude(status__in=[
         BusinessProposal.Status.ACCEPTED,
+        BusinessProposal.Status.FINISHED,
         BusinessProposal.Status.REJECTED,
         BusinessProposal.Status.EXPIRED,
     ])
@@ -3612,16 +4103,19 @@ def proposal_alerts(request):
         first_viewed_at__isnull=False,
     )
     seller_activity_types = {'call', 'meeting', 'followup', 'note'}
+    # Pre-fetch IDs with recent seller activity to avoid N+1 queries
+    seller_inactive_ids = [p.id for p in seller_inactive_qs]
+    ids_with_recent_seller_activity = set(
+        ProposalChangeLog.objects.filter(
+            proposal_id__in=seller_inactive_ids,
+            change_type__in=seller_activity_types,
+            created_at__gte=now - timedelta(days=3),
+        ).values_list('proposal_id', flat=True).distinct()
+    ) if seller_inactive_ids else set()
     for p in seller_inactive_qs:
         ref_date = p.last_activity_at or p.sent_at
         if ref_date and (now - ref_date).days >= 3:
-            # Check there's no recent seller activity
-            has_recent = ProposalChangeLog.objects.filter(
-                proposal=p,
-                change_type__in=seller_activity_types,
-                created_at__gte=now - timedelta(days=3),
-            ).exists()
-            if not has_recent:
+            if p.id not in ids_with_recent_seller_activity:
                 days = (now - ref_date).days
                 alerts.append({
                     'id': p.id, 'uuid': str(p.uuid),
@@ -3641,12 +4135,16 @@ def proposal_alerts(request):
         sent_at__isnull=False,
         sent_at__lte=now - timedelta(days=7),
     )
-    for p in zombie_qs:
-        has_activity = ProposalChangeLog.objects.filter(
-            proposal=p,
+    # Pre-fetch IDs with any seller activity to avoid N+1 queries
+    zombie_ids = [p.id for p in zombie_qs]
+    ids_with_any_seller_activity = set(
+        ProposalChangeLog.objects.filter(
+            proposal_id__in=zombie_ids,
             change_type__in=seller_activity_types,
-        ).exists()
-        if not has_activity:
+        ).values_list('proposal_id', flat=True).distinct()
+    ) if zombie_ids else set()
+    for p in zombie_qs:
+        if p.id not in ids_with_any_seller_activity:
             days = (now - p.sent_at).days
             alerts.append({
                 'id': p.id, 'uuid': str(p.uuid),
@@ -3674,7 +4172,8 @@ def proposal_alerts(request):
             'message': f'Borrador abandonado — sin edición en {days} días.',
         })
 
-    # Zombie sent stale: sent >10 days, no views
+    # Zombie sent stale: sent >10 days, no views (exclude already-alerted zombies)
+    zombie_alerted_ids = {a['id'] for a in alerts if a['alert_type'] == 'zombie'}
     zombie_sent_stale_qs = BusinessProposal.objects.filter(
         status=BusinessProposal.Status.SENT,
         is_active=True,
@@ -3682,7 +4181,7 @@ def proposal_alerts(request):
         first_viewed_at__isnull=True,
         sent_at__isnull=False,
         sent_at__lte=now - timedelta(days=10),
-    )
+    ).exclude(id__in=zombie_alerted_ids)
     for p in zombie_sent_stale_qs:
         days = (now - p.sent_at).days
         alerts.append({
@@ -3695,17 +4194,31 @@ def proposal_alerts(request):
         })
 
     # Late return: client didn't visit for ≥5 days then came back in last 24h
+    # Pre-filter: only candidates with a recent view (last 24h) to reduce scope
     late_return_candidates = BusinessProposal.objects.filter(
         status__in=[BusinessProposal.Status.SENT, BusinessProposal.Status.VIEWED],
         is_active=True,
+    ).filter(
+        id__in=ProposalViewEvent.objects.filter(
+            viewed_at__gte=now - timedelta(hours=24),
+        ).values_list('proposal_id', flat=True).distinct()
     )
-    for p in late_return_candidates:
-        events = list(
+    # Batch-fetch the last 2 events per candidate
+    late_return_candidate_ids = [p.id for p in late_return_candidates]
+    candidate_events = {}
+    if late_return_candidate_ids:
+        all_events = (
             ProposalViewEvent.objects
-            .filter(proposal=p)
-            .order_by('-viewed_at')
-            .values_list('viewed_at', flat=True)[:2]
+            .filter(proposal_id__in=late_return_candidate_ids)
+            .order_by('proposal_id', '-viewed_at')
+            .values_list('proposal_id', 'viewed_at')
         )
+        for pid, viewed_at in all_events:
+            lst = candidate_events.setdefault(pid, [])
+            if len(lst) < 2:
+                lst.append(viewed_at)
+    for p in late_return_candidates:
+        events = candidate_events.get(p.id, [])
         if len(events) >= 2:
             latest, previous = events[0], events[1]
             gap_days = (latest - previous).days
@@ -3735,6 +4248,22 @@ def proposal_alerts(request):
             'alert_date': a.alert_date.isoformat(),
             'priority': a.priority,
         })
+
+    if dismissed_computed_keys:
+        kept_alerts = []
+        for alert in alerts:
+            if alert.get('manual_alert_id'):
+                kept_alerts.append(alert)
+                continue
+            key = _computed_alert_key(
+                alert.get('id'),
+                alert.get('alert_type'),
+                alert.get('ref_date') or alert.get('alert_date'),
+            )
+            if key in dismissed_computed_keys:
+                continue
+            kept_alerts.append(alert)
+        alerts = kept_alerts
 
     # Assign default priority to computed alerts that don't have one
     COMPUTED_PRIORITY = {
@@ -3777,8 +4306,40 @@ def create_proposal_alert(request):
 @permission_classes([IsAdminUser])
 def dismiss_proposal_alert(request, alert_id):
     """
-    Dismiss (hide) a manual alert by marking it as dismissed.
+    Dismiss an alert.
+
+    - Manual alert: pass only path param `alert_id` (ProposalAlert ID).
+    - Computed alert: pass payload
+      { computed_alert_type, ref_date } and path param `alert_id` as proposal ID.
     """
+    computed_alert_type = request.data.get('computed_alert_type')
+    if computed_alert_type:
+        if computed_alert_type not in _COMPUTED_ALERT_TYPES:
+            return Response(
+                {'error': 'Invalid computed_alert_type.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        proposal = get_object_or_404(BusinessProposal, pk=alert_id)
+        ref_date = request.data.get('ref_date', '')
+        marker_key = _computed_alert_key(proposal.id, computed_alert_type, ref_date)
+        marker_message = f'{_COMPUTED_ALERT_DISMISS_PREFIX}{marker_key}'
+        if not ProposalAlert.objects.filter(
+            proposal=proposal,
+            is_dismissed=True,
+            message=marker_message,
+        ).exists():
+            ProposalAlert.objects.create(
+                proposal=proposal,
+                alert_type='custom',
+                message=marker_message,
+                alert_date=timezone.now(),
+                is_dismissed=True,
+            )
+        return Response(
+            {'status': 'dismissed', 'computed_alert_key': marker_key},
+            status=status.HTTP_200_OK,
+        )
+
     alert = get_object_or_404(ProposalAlert, pk=alert_id)
     alert.is_dismissed = True
     alert.save(update_fields=['is_dismissed'])
@@ -3818,16 +4379,25 @@ def proposal_defaults(request):
             'id': None,
             'language': lang,
             'sections_json': hardcoded,
+            'expiration_days': ProposalService.DEFAULT_EXPIRATION_DAYS,
             'created_at': None,
             'updated_at': None,
         })
 
     # PUT
     config = ProposalDefaultConfig.objects.filter(language=lang).first()
+    payload = dict(request.data)
+    payload['language'] = lang
+    if 'sections_json' not in payload:
+        if config:
+            payload['sections_json'] = config.sections_json
+        else:
+            payload['sections_json'] = ProposalService.get_hardcoded_defaults(lang)
+
     if config:
-        serializer = ProposalDefaultConfigSerializer(config, data=request.data)
+        serializer = ProposalDefaultConfigSerializer(config, data=payload)
     else:
-        serializer = ProposalDefaultConfigSerializer(data=request.data)
+        serializer = ProposalDefaultConfigSerializer(data=payload)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     serializer.save()
@@ -4555,3 +5125,97 @@ def get_proposal_email_defaults(request, proposal_id):
 def list_proposal_emails(request, proposal_id):
     """List proposal emails sent for a proposal (paginated, 20 per page)."""
     return _list_emails_view(request, proposal_id, 'proposal_email')
+
+
+# ── Project schedule endpoints (Cronograma admin tab) ──
+#
+# Two endpoints power the admin "Cronograma" tab:
+#  - update_project_stage: PUT to set/update start_date + end_date for a stage
+#  - complete_project_stage: POST to mark a stage as completed (silences alerts)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAdminUser])
+def update_project_stage(request, proposal_id, stage_key):
+    """
+    Set or update start_date / end_date for a project stage.
+
+    The row is created lazily if it doesn't exist (first time the admin
+    schedules this stage). Date validation enforces start_date <= end_date.
+    """
+    from content.services.proposal_stage_tracker import ProposalStageTracker
+
+    if stage_key not in dict(ProposalStageTracker.STAGE_DEFINITIONS):
+        return Response(
+            {'detail': f'Etapa desconocida: {stage_key}'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+    stage = ProposalStageTracker.get_or_create_stage(proposal, stage_key)
+
+    serializer = ProposalProjectStageSerializer(
+        stage,
+        data=request.data,
+        partial=True,
+    )
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+
+    ProposalStageTracker.maybe_reset_warning_on_date_change(stage)
+
+    ProposalChangeLog.objects.create(
+        proposal=proposal,
+        change_type=ProposalChangeLog.ChangeType.UPDATED,
+        actor_type=ProposalChangeLog.ActorType.SELLER,
+        description=(
+            f'Cronograma — etapa "{stage.get_stage_key_display()}" '
+            f'actualizada (inicio={stage.start_date}, fin={stage.end_date}).'
+        ),
+    )
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def complete_project_stage(request, proposal_id, stage_key):
+    """
+    Mark a project stage as completed.
+
+    Sets `completed_at = now()` and clears the alert timestamps so future
+    runs of the daily Huey task skip this stage entirely.
+    """
+    from content.services.proposal_stage_tracker import ProposalStageTracker
+
+    if stage_key not in dict(ProposalStageTracker.STAGE_DEFINITIONS):
+        return Response(
+            {'detail': f'Etapa desconocida: {stage_key}'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
+    stage = ProposalStageTracker.get_or_create_stage(proposal, stage_key)
+
+    stage.completed_at = timezone.now()
+    stage.warning_sent_at = None
+    stage.last_overdue_reminder_at = None
+    stage.save(update_fields=[
+        'completed_at', 'warning_sent_at', 'last_overdue_reminder_at',
+        'updated_at',
+    ])
+
+    ProposalChangeLog.objects.create(
+        proposal=proposal,
+        change_type=ProposalChangeLog.ChangeType.STAGE_COMPLETED,
+        actor_type=ProposalChangeLog.ActorType.SELLER,
+        description=(
+            f'Cronograma — etapa "{stage.get_stage_key_display()}" '
+            f'marcada como completada.'
+        ),
+    )
+
+    return Response(
+        ProposalProjectStageSerializer(stage).data,
+        status=status.HTTP_200_OK,
+    )

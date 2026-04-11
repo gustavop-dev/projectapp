@@ -106,6 +106,38 @@ class TestServeNuxtPrerenderedRoutes:
         finally:
             views_mod.FRONTEND_DIR = original
 
+    def test_exact_file_match_serves_asset(self, rf, frontend_dir):
+        import projectapp.views as views_mod
+        original = views_mod.FRONTEND_DIR
+        views_mod.FRONTEND_DIR = frontend_dir
+        asset_path = os.path.join(frontend_dir, 'logo.txt')
+        with open(asset_path, 'w') as f:
+            f.write('plain asset')
+        try:
+            request = rf.get('/logo.txt')
+            response = serve_nuxt(request, path='logo.txt')
+            content = b''.join(response.streaming_content).decode()
+            assert response.status_code == 200
+            assert content == 'plain asset'
+        finally:
+            views_mod.FRONTEND_DIR = original
+
+    def test_root_index_is_last_resort_when_fallback_missing(self, rf, frontend_dir_no_fallback):
+        import projectapp.views as views_mod
+        original = views_mod.FRONTEND_DIR
+        views_mod.FRONTEND_DIR = frontend_dir_no_fallback
+        with open(os.path.join(frontend_dir_no_fallback, 'index.html'), 'w') as f:
+            f.write('<html><body>Root Index</body></html>')
+        try:
+            request = rf.get('/marketing/path')
+            response = serve_nuxt(request, path='marketing/path')
+            content = b''.join(response.streaming_content).decode()
+            assert response.status_code == 200
+            assert 'Root Index' in content
+            assert response['Cache-Control'] == 'no-cache'
+        finally:
+            views_mod.FRONTEND_DIR = original
+
 
 class TestServeNuxtMissingFallback:
     """Tests behavior when 200.html is missing."""
@@ -165,5 +197,19 @@ class TestServeNuxtRootRedirect:
             response = serve_nuxt(request, path='')
             assert response.status_code == 302
             assert response['Location'] == '/en-us/'
+        finally:
+            views_mod.FRONTEND_DIR = original
+
+
+class TestServeNuxtPathSecurity:
+    def test_path_traversal_raises_404(self, rf, frontend_dir):
+        import projectapp.views as views_mod
+        original = views_mod.FRONTEND_DIR
+        views_mod.FRONTEND_DIR = frontend_dir
+        try:
+            request = rf.get('/../../etc/passwd')
+            with pytest.raises(Exception) as exc_info:
+                serve_nuxt(request, path='../../etc/passwd')
+            assert 'Http404' in str(type(exc_info.value))
         finally:
             views_mod.FRONTEND_DIR = original

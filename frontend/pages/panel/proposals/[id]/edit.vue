@@ -28,17 +28,17 @@
       @cancel="handleSyncCancel"
     />
     <div class="mb-8">
-      <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-gray-500 hover:text-gray-700 transition-colors">
+      <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-gray-500 dark:text-green-light/60 hover:text-gray-700 dark:hover:text-white transition-colors">
         ← Volver a propuestas
       </NuxtLink>
     </div>
 
     <!-- Sticky header: title + investment + status -->
     <div v-if="proposal"
-         class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 transition-all">
+         class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 mb-6 bg-white/80 dark:bg-esmerald-dark/80 backdrop-blur-md border-b border-gray-100 dark:border-white/[0.06] transition-all">
       <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-        <h1 class="text-lg sm:text-xl font-light text-gray-900 dark:text-gray-100 truncate">{{ proposal.title }}</h1>
-        <span v-if="proposal.total_investment > 0" class="text-sm sm:text-base font-light text-gray-400 dark:text-gray-500 whitespace-nowrap">
+        <h1 class="text-lg sm:text-xl font-light text-gray-900 dark:text-white truncate">{{ proposal.title }}</h1>
+        <span v-if="proposal.total_investment > 0" class="text-sm sm:text-base font-light text-gray-400 dark:text-green-light/60 whitespace-nowrap">
           ({{ formatInvestment(proposal.total_investment, proposal.currency) }})
         </span>
         <span class="text-xs px-2.5 py-0.5 rounded-full font-medium" :class="statusClass(proposal.status)">
@@ -48,7 +48,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="proposalStore.isLoading" class="text-center py-12 text-gray-400 text-sm">
+    <div v-if="proposalStore.isLoading" class="text-center py-12 text-gray-400 dark:text-green-light/60 text-sm">
       Cargando...
     </div>
 
@@ -59,10 +59,10 @@
       <!-- Tab: General -->
       <div v-show="activeTab === 'general'" class="max-w-2xl">
         <!-- Read-only info -->
-        <div class="bg-gray-50 rounded-xl p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+        <div class="bg-gray-50 dark:bg-white/[0.03] rounded-xl p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
             <span class="text-gray-400 text-xs">UUID</span>
-            <p class="text-gray-700 font-mono text-xs mt-0.5">{{ proposal.uuid }}</p>
+            <p class="text-gray-700 dark:text-green-light/60 font-mono text-xs mt-0.5">{{ proposal.uuid }}</p>
           </div>
           <div>
             <div class="flex items-center gap-1">
@@ -71,12 +71,8 @@
                 :title="copied ? 'Copiado!' : 'Copiar URL'"
                 @click="copyUrl"
                 class="text-gray-400 hover:text-emerald-600 transition-colors">
-                <svg v-if="!copied" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
+                <DocumentDuplicateIcon v-if="!copied" class="w-3.5 h-3.5" />
+                <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
               </button>
             </div>
             <p class="mt-0.5">
@@ -91,12 +87,8 @@
                   :title="copiedMode === link.mode ? 'Copiado!' : 'Copiar URL'"
                   @click="copyModeUrl(link.mode)"
                   class="text-gray-400 hover:text-emerald-600 transition-colors">
-                  <svg v-if="copiedMode !== link.mode" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
+                  <DocumentDuplicateIcon v-if="copiedMode !== link.mode" class="w-3.5 h-3.5" />
+                  <CheckIcon v-else class="w-3.5 h-3.5 text-emerald-500" />
                 </button>
               </div>
               <p class="mt-0.5">
@@ -108,12 +100,18 @@
           </div>
           <div>
             <span class="text-gray-400 text-xs">Vistas</span>
-            <p class="text-gray-700 mt-0.5">{{ proposal.view_count }}</p>
+            <p class="text-gray-700 dark:text-green-light/60 mt-0.5">{{ proposal.view_count }}</p>
           </div>
           <div>
             <span class="text-gray-400 text-xs">Enviada</span>
-            <p class="text-gray-700 mt-0.5">
+            <p class="text-gray-700 dark:text-green-light/60 mt-0.5">
               {{ proposal.sent_at ? new Date(proposal.sent_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : '—' }}
+            </p>
+          </div>
+          <div v-if="proposal.platform_onboarding_completed_at">
+            <span class="text-gray-400 text-xs">Plataforma lanzada</span>
+            <p class="text-gray-700 dark:text-green-light/60 mt-0.5 text-xs">
+              {{ new Date(proposal.platform_onboarding_completed_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
             </p>
           </div>
           <div v-if="!hasDocumentsTab">
@@ -141,12 +139,20 @@
           <div class="sm:col-span-2">
             <div class="flex items-start gap-6 flex-wrap">
               <div>
-                <span class="text-gray-400 text-xs">Estado activo</span>
+                <div class="flex items-center gap-1">
+                  <span class="text-gray-400 text-xs">Estado activo</span>
+                  <UiTooltip position="right">
+                    <template #trigger>
+                      <QuestionMarkCircleIcon class="w-3 h-3 text-gray-300 hover:text-gray-500 transition-colors" />
+                    </template>
+                    {{ tt.activeStatus }}
+                  </UiTooltip>
+                </div>
                 <div class="flex items-center gap-2 mt-1">
                   <button
                     type="button"
                     class="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                    :class="proposal.is_active ? 'bg-emerald-600' : 'bg-gray-200'"
+                    :class="proposal.is_active ? 'bg-emerald-600' : 'bg-gray-200 dark:bg-white/[0.15]'"
                     @click="handleToggleActive"
                   >
                     <span
@@ -160,7 +166,15 @@
                 </div>
               </div>
               <div>
-                <span class="text-gray-400 text-xs">Automatizaciones</span>
+                <div class="flex items-center gap-1">
+                  <span class="text-gray-400 text-xs">Automatizaciones</span>
+                  <UiTooltip position="right">
+                    <template #trigger>
+                      <QuestionMarkCircleIcon class="w-3 h-3 text-gray-300 hover:text-gray-500 transition-colors" />
+                    </template>
+                    {{ tt.automations }}
+                  </UiTooltip>
+                </div>
                 <div class="flex items-center gap-2 mt-1">
                   <button
                     type="button"
@@ -184,32 +198,85 @@
         </div>
 
         <!-- Editable form -->
-        <form class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-8 space-y-6" @submit.prevent="handleUpdate">
+        <form class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06]" @submit.prevent="handleUpdate">
+          <div class="p-4 sm:p-8 space-y-6">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Título</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Título</label>
             <input v-model="form.title" type="text" required
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del cliente</label>
-            <input v-model="form.client_name" type="text" required
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Email del cliente</label>
-            <input v-model="form.client_email" type="email"
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono / WhatsApp</label>
-            <input v-model="form.client_phone" type="tel" placeholder="+57 300 123 4567"
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+          <!-- Client picker (autocomplete + snapshot fields) -->
+          <div class="space-y-4 border border-gray-100 dark:border-white/[0.06] rounded-xl p-4 bg-gray-50/30 dark:bg-white/[0.03]">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Cliente</label>
+              <ClientAutocomplete
+                v-model="form.client_id"
+                :initial-label="form.client_name"
+                test-id="proposal-edit-client-autocomplete"
+                @select="onClientSelected"
+                @create-new="onCreateInlineClient"
+              />
+              <p class="text-xs text-gray-400 mt-1">
+                Busca un cliente existente o escribe uno nuevo. Si no eliges email, se generará uno temporal y las automatizaciones quedarán pausadas.
+              </p>
+            </div>
+
+            <!-- Placeholder warning badge -->
+            <div
+              v-if="proposal?.client?.is_email_placeholder"
+              class="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20"
+            >
+              <span class="text-amber-700 dark:text-amber-300 text-xs font-medium">
+                📧 Email pendiente — las automatizaciones de correo están pausadas para este cliente.
+              </span>
+            </div>
+
+            <!-- Snapshot fields (still editable, but clearly subordinated) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Nombre snapshot</label>
+                <input id="edit-client-name" v-model="form.client_name" type="text" required
+                  data-testid="edit-client-name"
+                  class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Email snapshot</label>
+                <input id="edit-client-email" v-model="form.client_email" type="email"
+                  data-testid="edit-client-email"
+                  class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Teléfono / WhatsApp</label>
+                <input id="edit-client-phone" v-model="form.client_phone" type="tel" placeholder="+57 300 123 4567"
+                  data-testid="edit-client-phone"
+                  class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Empresa</label>
+                <input id="edit-client-company" v-model="form.client_company" type="text" placeholder="Acme Inc."
+                  data-testid="edit-client-company"
+                  class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              </div>
+            </div>
+
+            <!-- Propagate-to-profile checkbox -->
+            <label class="flex items-start gap-2 cursor-pointer">
+              <input
+                v-model="form.propagate_client_updates"
+                type="checkbox"
+                data-testid="edit-client-propagate"
+                class="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span class="text-xs text-gray-600 dark:text-green-light/60">
+                Actualizar el perfil del cliente con estos cambios (también se reflejarán en sus otras propuestas).
+              </span>
+            </label>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de proyecto</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Tipo de proyecto</label>
               <select v-model="form.project_type"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
                 <option value="">— Sin definir —</option>
                 <option value="website">Sitio Web</option>
                 <option value="ecommerce">E-commerce</option>
@@ -239,13 +306,13 @@
                 v-model="form.project_type_custom"
                 type="text"
                 placeholder="Especificar tipo de proyecto..."
-                class="mt-2 w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                class="mt-2 w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de mercado</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Tipo de mercado</label>
               <select v-model="form.market_type"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
                 <option value="">— Sin definir —</option>
                 <option value="b2b">B2B</option>
                 <option value="b2c">B2C</option>
@@ -280,14 +347,14 @@
                 v-model="form.market_type_custom"
                 type="text"
                 placeholder="Especificar tipo de mercado..."
-                class="mt-2 w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                class="mt-2 w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
               />
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Idioma</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Idioma</label>
             <select v-model="form.language"
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+              class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
               <option value="es">Español</option>
               <option value="en">English</option>
             </select>
@@ -295,24 +362,64 @@
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Inversión total</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Inversión total</label>
               <input v-model.number="form.total_investment" type="number" min="0" step="0.01"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Moneda</label>
               <select v-model="form.currency"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
                 <option value="COP">COP</option>
                 <option value="USD">USD</option>
               </select>
             </div>
           </div>
+          <div v-if="investmentSection" class="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+            <label class="block text-sm font-medium text-emerald-900 mb-2">Porcentajes de pago (sección Inversión)</label>
+            <div v-if="investmentPaymentPercentages.length" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label
+                v-for="(_, idx) in investmentPaymentPercentages"
+                :key="`payment-percent-${idx}`"
+                class="block"
+              >
+                <span class="block text-xs text-emerald-700 mb-1">Pago {{ idx + 1 }}</span>
+                <div class="flex items-center gap-2">
+                  <input
+                    v-model.number="investmentPaymentPercentages[idx]"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    class="w-full px-3 py-2 border border-emerald-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
+                    @blur="normalizeGeneralPaymentPercentage(idx)"
+                  />
+                  <span class="text-sm text-emerald-700">%</span>
+                </div>
+                <span
+                  v-if="form.total_investment > 0 && investmentPaymentPercentages[idx] > 0"
+                  class="block text-xs text-emerald-600 mt-1 font-medium"
+                >
+                  {{ paymentAmounts[idx] }}
+                </span>
+              </label>
+            </div>
+            <p v-else class="text-xs text-emerald-700">No se detectaron porcentajes en “Secciones → Inversión → Opciones de pago”.</p>
+            <p class="text-xs text-emerald-700 mt-2">Se sincroniza con los porcentajes definidos en “Secciones → Inversión → Opciones de pago”.</p>
+          </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Hosting (% de inversión total)</label>
+            <div class="flex items-center gap-1.5 mb-1">
+              <label class="block text-sm font-medium text-gray-700">Hosting (% de inversión total)</label>
+              <UiTooltip position="right">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                </template>
+                {{ tt.hostingPercent }}
+              </UiTooltip>
+            </div>
             <div class="flex items-center gap-3">
               <input v-model.number="form.hosting_percent" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               <span class="text-sm text-gray-500">%</span>
             </div>
             <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-blue-50 border border-blue-200 rounded-xl overflow-hidden">
@@ -357,96 +464,149 @@
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Dcto. semestral (%)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. semestral (%)</label>
               <input v-model.number="form.hosting_discount_semiannual" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Dcto. trimestral (%)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. trimestral (%)</label>
               <input v-model.number="form.hosting_discount_quarterly" type="number" min="0" max="100"
-                class="w-32 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de expiración</label>
+            <div class="flex items-center gap-1.5 mb-1">
+              <label class="block text-sm font-medium text-gray-700">Fecha de expiración</label>
+              <UiTooltip position="right">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                </template>
+                {{ tt.expirationDate }}
+              </UiTooltip>
+            </div>
             <input v-model="form.expires_at" type="datetime-local"
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Recordatorio (días después de enviar)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Recordatorio (días después de enviar)</label>
               <input v-model.number="form.reminder_days" type="number" min="1" max="30"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               <p class="text-xs text-gray-400 mt-1">Se enviará un email recordatorio al cliente X días después de enviar la propuesta.</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Urgencia (días después de enviar)</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Urgencia (días después de enviar)</label>
               <input v-model.number="form.urgency_reminder_days" type="number" min="1" max="30"
-                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               <p class="text-xs text-gray-400 mt-1">Se enviará un email de urgencia X días después de enviar (incluye descuento si % > 0).</p>
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Descuento (%)</label>
+            <div class="flex items-center gap-1.5 mb-1">
+              <label class="block text-sm font-medium text-gray-700">Descuento (%)</label>
+              <UiTooltip position="right">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                </template>
+                {{ tt.discount }}
+              </UiTooltip>
+            </div>
             <input v-model.number="form.discount_percent" type="number" min="0" max="100"
-              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             <p class="text-xs text-gray-400 mt-1">0 = sin descuento en email de urgencia.</p>
           </div>
 
           <div v-if="updateMsg" class="text-sm px-4 py-3 rounded-xl" :class="updateMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'">
             {{ updateMsg.text }}
           </div>
+          </div>
 
-          <div class="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
-            <button type="submit" :disabled="proposalStore.isUpdating"
-              class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 hover:shadow-lg hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50">
-              {{ proposalStore.isUpdating ? 'Guardando...' : 'Guardar Cambios' }}
-            </button>
-            <button
-              v-if="proposal.status === 'draft' && proposal.client_email"
-              type="button"
-              class="px-5 sm:px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-all shadow-md shadow-blue-100 hover:shadow-lg hover:shadow-blue-200 active:scale-[0.98]"
-              @click="handleSend"
-            >
-              Enviar al Cliente
-            </button>
-            <button
-              v-else-if="['sent', 'viewed'].includes(proposal.status) && proposal.client_email"
-              type="button"
-              class="px-5 sm:px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-all shadow-md shadow-blue-100 hover:shadow-lg hover:shadow-blue-200 active:scale-[0.98]"
-              @click="handleResend"
-            >
-              Re-enviar al Cliente
-            </button>
-            <!-- Status transition buttons -->
-            <button
-              v-if="(proposal.available_transitions || []).includes('negotiating')"
-              type="button"
-              class="px-5 sm:px-6 py-2.5 bg-amber-500 text-white rounded-xl font-medium text-sm hover:bg-amber-600 transition-all shadow-md shadow-amber-100 hover:shadow-lg hover:shadow-amber-200 active:scale-[0.98]"
-              @click="openContractModal(false)"
-            >
-              Pasar a Negociación
-            </button>
-            <button
-              v-if="(proposal.available_transitions || []).includes('accepted')"
-              type="button"
-              class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 hover:shadow-lg hover:shadow-emerald-200 active:scale-[0.98]"
-              @click="handleStatusChange('accepted')"
-            >
-              Aprobar
-            </button>
-            <button
-              v-if="(proposal.available_transitions || []).includes('rejected')"
-              type="button"
-              class="px-4 py-2.5 bg-red-100 text-red-700 border border-red-200 rounded-xl font-medium text-sm hover:bg-red-200 hover:border-red-300 transition-all shadow-sm hover:shadow-md hover:shadow-red-100 active:scale-[0.98]"
-              @click="handleStatusChange('rejected')"
-            >
-              Rechazar
-            </button>
-            <a :href="'/proposal/' + proposal.uuid + '?preview=1'" target="_blank"
-              class="inline-flex items-center gap-1 text-sm text-gray-500 px-4 py-2.5 border border-gray-200 rounded-xl hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 transition-all active:scale-[0.98]">
-              Preview →
-            </a>
+          <!-- Sticky action bar -->
+          <div class="sticky bottom-0 rounded-b-xl bg-white/95 dark:bg-esmerald/95 backdrop-blur-sm border-t border-gray-100 dark:border-white/[0.06] px-4 sm:px-5 py-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 pr-14 sm:pr-0">
+              <button type="submit" :disabled="proposalStore.isUpdating" data-testid="proposal-edit-submit"
+                class="px-4 sm:px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-100 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50">
+                {{ proposalStore.isUpdating ? 'Guardando...' : 'Guardar Cambios' }}
+              </button>
+
+              <div v-if="proposal.client_email || (proposal.available_transitions || []).length || proposal.status === 'accepted'"
+                   class="hidden sm:block w-px h-6 bg-gray-200 dark:bg-gray-600"></div>
+
+              <button
+                v-if="proposal.status === 'draft' && proposal.client_email"
+                type="button"
+                class="px-4 sm:px-5 py-2 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-all shadow-sm active:scale-[0.98]"
+                @click="handleSend"
+              >
+                Enviar al Cliente
+              </button>
+              <button
+                v-else-if="['sent', 'viewed'].includes(proposal.status) && proposal.client_email"
+                type="button"
+                class="px-4 sm:px-5 py-2 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-all shadow-sm active:scale-[0.98]"
+                @click="handleResend"
+              >
+                Re-enviar al Cliente
+              </button>
+
+              <button
+                v-if="(proposal.available_transitions || []).includes('negotiating')"
+                type="button"
+                class="px-4 sm:px-5 py-2 bg-amber-500 text-white rounded-xl font-medium text-sm hover:bg-amber-600 transition-all shadow-sm active:scale-[0.98]"
+                @click="openContractModal(false)"
+              >
+                <span class="sm:hidden">Negociación</span>
+                <span class="hidden sm:inline">Pasar a Negociación</span>
+              </button>
+
+              <button
+                v-if="(proposal.available_transitions || []).includes('accepted')"
+                type="button"
+                class="px-4 sm:px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-sm active:scale-[0.98]"
+                @click="handleStatusChange('accepted')"
+              >
+                Aprobar
+              </button>
+
+              <button
+                v-if="proposal.status === 'accepted'"
+                type="button"
+                :disabled="isLaunching || proposal.platform_onboarding_status === 'pending'"
+                class="px-4 sm:px-5 py-2 rounded-xl font-medium text-sm transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
+                :class="proposal.platform_onboarding_completed_at
+                  ? 'bg-amber-500 text-white hover:bg-amber-600'
+                  : 'bg-indigo-600 text-white hover:bg-indigo-700'"
+                @click="handleLaunchToPlatform"
+              >
+                {{ (isLaunching || proposal.platform_onboarding_status === 'pending') ? 'Lanzando...' : (proposal.platform_onboarding_completed_at ? 'Re-lanzar' : 'Lanzar') }}
+                <span class="hidden sm:inline"> a Plataforma</span>
+              </button>
+
+              <button
+                v-if="(proposal.available_transitions || []).includes('finished')"
+                type="button"
+                class="px-4 sm:px-5 py-2 bg-violet-600 text-white rounded-xl font-medium text-sm hover:bg-violet-700 transition-all shadow-sm active:scale-[0.98]"
+                @click="handleMarkAsFinished"
+              >
+                Marcar como finalizada
+              </button>
+
+              <div class="flex-1 min-w-0"></div>
+
+              <button
+                v-if="(proposal.available_transitions || []).includes('rejected')"
+                type="button"
+                class="px-3 sm:px-4 py-2 bg-red-100 text-red-700 border border-red-200 rounded-xl font-medium text-sm hover:bg-red-200 hover:border-red-300 transition-all shadow-sm active:scale-[0.98]"
+                @click="handleStatusChange('rejected')"
+              >
+                Rechazar
+              </button>
+
+              <a :href="'/proposal/' + proposal.uuid + '?preview=1'" target="_blank"
+                class="inline-flex items-center gap-1 text-sm text-gray-500 px-3 py-2 border border-gray-200 rounded-xl hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 transition-all active:scale-[0.98]">
+                Preview <span class="hidden sm:inline">→</span>
+              </a>
+            </div>
           </div>
         </form>
       </div>
@@ -467,6 +627,11 @@
         />
       </div>
 
+      <!-- Tab: Cronograma -->
+      <div v-show="activeTab === 'schedule'" class="max-w-4xl">
+        <ProjectScheduleEditor v-if="proposal" :proposal="proposal" />
+      </div>
+
       <!-- Tab: Prompt Proposal -->
       <div v-show="activeTab === 'prompt'" class="max-w-4xl">
         <PromptSubTabsPanel v-model="promptSubTab">
@@ -480,32 +645,32 @@
             <template v-if="!promptIsEditing">
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="startEditPrompt"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                <PencilIcon class="w-4 h-4" />
                 Editar
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="handleCopyPrompt"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                <DocumentDuplicateIcon class="w-4 h-4" />
                 {{ promptCopied ? '¡Copiado!' : 'Copiar' }}
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="promptDownload"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <ArrowDownTrayIcon class="w-4 h-4" />
                 Descargar .md
               </button>
               <button
                 v-if="promptText !== promptDefault"
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-gray-200 rounded-xl hover:bg-red-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                 @click="handleResetPrompt"
               >
                 Restaurar original
@@ -529,7 +694,7 @@
             </template>
           </div>
 
-          <div v-if="promptIsEditing" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div v-if="promptIsEditing" class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden">
             <textarea
               v-model="promptEditBuffer"
               rows="30"
@@ -537,7 +702,7 @@
             />
           </div>
 
-          <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div v-else class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden">
             <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
               <pre class="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap font-mono break-words">{{ promptText }}</pre>
             </div>
@@ -556,29 +721,32 @@
             <template v-if="!technicalPromptIsEditing">
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="startEditTechnicalPrompt"
               >
+                <PencilIcon class="w-4 h-4" />
                 Editar
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="handleCopyTechnicalPrompt"
               >
+                <DocumentDuplicateIcon class="w-4 h-4" />
                 {{ technicalPromptCopied ? '¡Copiado!' : 'Copiar' }}
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="technicalPromptDownload"
               >
+                <ArrowDownTrayIcon class="w-4 h-4" />
                 Descargar .md
               </button>
               <button
                 v-if="technicalPromptText !== technicalPromptDefault"
                 type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-gray-200 rounded-xl hover:bg-red-50 transition-colors"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                 @click="handleResetTechnicalPrompt"
               >
                 Restaurar original
@@ -601,14 +769,14 @@
               </button>
             </template>
           </div>
-          <div v-if="technicalPromptIsEditing" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div v-if="technicalPromptIsEditing" class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden">
             <textarea
               v-model="technicalPromptEditBuffer"
               rows="28"
               class="w-full px-4 sm:px-6 py-4 text-xs font-mono leading-relaxed text-gray-800 bg-transparent border-0 outline-none resize-y focus:ring-0"
             />
           </div>
-          <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div v-else class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden">
             <div class="px-4 sm:px-6 py-4 max-h-[70vh] overflow-y-auto">
               <pre class="text-xs leading-relaxed text-gray-700 whitespace-pre-wrap font-mono break-words">{{ technicalPromptText }}</pre>
             </div>
@@ -623,16 +791,16 @@
       <!-- Tab: JSON -->
       <div v-show="activeTab === 'json'" class="max-w-4xl">
         <!-- Current JSON (read-only) -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-6">
+        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6 mb-6">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
-              <h3 class="text-sm font-medium text-gray-900">JSON de la propuesta</h3>
-              <p class="text-xs text-gray-400 mt-0.5">Representación JSON completa — se actualiza al guardar cambios en otras pestañas.</p>
+              <h3 class="text-sm font-medium text-gray-900 dark:text-white">JSON de la propuesta</h3>
+              <p class="text-xs text-gray-400 dark:text-green-light/40 mt-0.5">Representación JSON completa — se actualiza al guardar cambios en otras pestañas.</p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <button
                 type="button"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 :disabled="jsonExportLoading"
                 @click="refreshExportJson"
               >
@@ -643,18 +811,18 @@
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="copyExportJson"
               >
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                <DocumentDuplicateIcon class="w-3.5 h-3.5" />
                 {{ jsonCopied ? '¡Copiado!' : 'Copiar' }}
               </button>
               <button
                 type="button"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-green-light bg-white dark:bg-esmerald-dark border border-gray-200 dark:border-white/[0.08] rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
                 @click="downloadExportJson"
               >
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <ArrowDownTrayIcon class="w-3.5 h-3.5" />
                 Descargar
               </button>
             </div>
@@ -668,20 +836,20 @@
             :value="exportJsonString"
             readonly
             rows="18"
-            class="w-full px-4 py-3 border border-gray-200 rounded-xl text-xs font-mono leading-relaxed
-                   bg-gray-50 text-gray-700 outline-none resize-y cursor-text select-all"
+            class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-mono leading-relaxed
+                   bg-gray-50 dark:bg-esmerald-dark text-gray-700 dark:text-gray-300 outline-none resize-y cursor-text select-all"
           />
         </div>
 
         <!-- Import JSON -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
-          <h3 class="text-sm font-medium text-gray-900 mb-1">Importar JSON</h3>
+        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6">
+          <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-1">Importar JSON</h3>
           <p class="text-xs text-gray-400 mb-4">Pega o sube un JSON para reemplazar el contenido de la propuesta (metadata + secciones).</p>
 
           <div class="flex items-center gap-3 mb-3">
             <label
-              class="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-xs
-                     text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
+              class="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-200 dark:border-white/[0.08] rounded-lg text-xs
+                     text-gray-700 dark:text-green-light hover:bg-gray-50 dark:hover:bg-white/[0.04] cursor-pointer transition-colors"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -689,30 +857,30 @@
               Subir .json
               <input type="file" accept=".json" class="hidden" @change="handleJsonFileUpload" />
             </label>
-            <span v-if="jsonImportFileName" class="text-xs text-gray-500">{{ jsonImportFileName }}</span>
+            <span v-if="jsonImportFileName" class="text-xs text-gray-500 dark:text-green-light/60">{{ jsonImportFileName }}</span>
           </div>
 
           <textarea
             v-model="jsonImportRaw"
             rows="10"
             placeholder='Pega aquí el JSON completo de la propuesta...'
-            class="w-full px-4 py-3 border border-gray-200 rounded-xl text-xs font-mono leading-relaxed
+            class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-xs font-mono leading-relaxed
                    focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y"
             @input="parseImportJson"
           />
 
           <!-- Parse error -->
-          <div v-if="jsonImportError" class="mt-2 text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">
+          <div v-if="jsonImportError" class="mt-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-lg">
             {{ jsonImportError }}
           </div>
 
           <!-- Preview -->
-          <div v-if="jsonImportParsed && !jsonImportError" class="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
+          <div v-if="jsonImportParsed && !jsonImportError" class="mt-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/30 rounded-lg px-4 py-3">
             <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-              <span><span class="text-gray-500">Cliente:</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.clientName }}</span></span>
-              <span><span class="text-gray-500">Secciones:</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.sectionCount }}</span></span>
-              <span v-if="jsonImportPreview.epicCount != null"><span class="text-gray-500">Módulos (téc.):</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.epicCount }}</span></span>
-              <span v-if="jsonImportPreview.investment"><span class="text-gray-500">Inversión:</span> <span class="font-medium text-gray-900">{{ jsonImportPreview.investment }}</span></span>
+              <span><span class="text-gray-500 dark:text-green-light/60">Cliente:</span> <span class="font-medium text-gray-900 dark:text-white">{{ jsonImportPreview.clientName }}</span></span>
+              <span><span class="text-gray-500 dark:text-green-light/60">Secciones:</span> <span class="font-medium text-gray-900 dark:text-white">{{ jsonImportPreview.sectionCount }}</span></span>
+              <span v-if="jsonImportPreview.epicCount != null"><span class="text-gray-500 dark:text-green-light/60">Módulos (téc.):</span> <span class="font-medium text-gray-900 dark:text-white">{{ jsonImportPreview.epicCount }}</span></span>
+              <span v-if="jsonImportPreview.investment"><span class="text-gray-500 dark:text-green-light/60">Inversión:</span> <span class="font-medium text-gray-900 dark:text-white">{{ jsonImportPreview.investment }}</span></span>
             </div>
           </div>
 
@@ -740,11 +908,11 @@
               </svg>
               {{ proposalStore.isUpdating ? 'Aplicando...' : 'Aplicar JSON' }}
             </button>
-            <p class="text-xs text-gray-400">Esto reemplazará la metadata y todas las secciones de la propuesta.</p>
+            <p class="text-xs text-gray-400 dark:text-green-light/40">Esto reemplazará la metadata y todas las secciones de la propuesta.</p>
           </div>
 
           <!-- Import result message -->
-          <div v-if="jsonImportMsg" class="mt-3 text-sm px-4 py-3 rounded-xl" :class="jsonImportMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'">
+          <div v-if="jsonImportMsg" class="mt-3 text-sm px-4 py-3 rounded-xl" :class="jsonImportMsg.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'">
             {{ jsonImportMsg.text }}
           </div>
         </div>
@@ -753,16 +921,24 @@
       <!-- Tab: Activity -->
       <div v-show="activeTab === 'activity'">
         <!-- Log activity form -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
-          <h3 class="text-sm font-semibold text-gray-700 mb-3">Registrar actividad</h3>
+        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-5 mb-6">
+          <div class="flex items-center gap-1.5 mb-3">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-white">Registrar actividad</h3>
+            <UiTooltip position="right">
+              <template #trigger>
+                <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+              </template>
+              {{ tt.logActivity }}
+            </UiTooltip>
+          </div>
           <div class="flex flex-col sm:flex-row gap-3">
-            <select v-model="activityForm.change_type" class="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:ring-1 focus:ring-emerald-500 outline-none sm:w-40">
+            <select v-model="activityForm.change_type" class="px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-xl text-sm bg-white focus:ring-1 focus:ring-emerald-500 outline-none sm:w-40">
               <option value="call">📞 Llamada</option>
               <option value="meeting">🤝 Reunión</option>
               <option value="followup">📩 Seguimiento</option>
               <option value="note">📝 Nota</option>
             </select>
-            <input v-model="activityForm.description" type="text" placeholder="Descripción de la actividad..." class="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-1 focus:ring-emerald-500 outline-none" @keydown.enter.prevent="submitActivity" />
+            <input v-model="activityForm.description" type="text" placeholder="Descripción de la actividad..." class="flex-1 px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-1 focus:ring-emerald-500 outline-none" @keydown.enter.prevent="submitActivity" />
             <button type="button" :disabled="!activityForm.description.trim() || isSubmittingActivity" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 whitespace-nowrap" @click="submitActivity">
               {{ isSubmittingActivity ? 'Guardando...' : 'Agregar' }}
             </button>
@@ -770,22 +946,30 @@
         </div>
 
         <!-- Timeline -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <h3 class="text-sm font-semibold text-gray-700 mb-4">Historial de actividad</h3>
-          <div v-if="!changeLogs.length" class="text-center py-8 text-sm text-gray-400">Sin actividad registrada.</div>
+        <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-5">
+          <div class="flex items-center gap-1.5 mb-4">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-white">Historial de actividad</h3>
+            <UiTooltip position="right">
+              <template #trigger>
+                <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+              </template>
+              {{ tt.activityHistory }}
+            </UiTooltip>
+          </div>
+          <div v-if="!changeLogs.length" class="text-center py-8 text-sm text-gray-400 dark:text-green-light/40">Sin actividad registrada.</div>
           <div v-else class="relative pl-6 space-y-0">
-            <div class="absolute left-[9px] top-2 bottom-2 w-px bg-gray-200" />
+            <div class="absolute left-[9px] top-2 bottom-2 w-px bg-gray-200 dark:bg-white/[0.08]" />
             <div v-for="log in changeLogs" :key="log.id" class="relative pb-5 last:pb-0">
-              <div class="absolute -left-6 top-1 w-[18px] h-[18px] rounded-full border-2 border-white shadow-sm flex items-center justify-center text-[10px]" :class="activityDotClass(log.change_type)">
+              <div class="absolute -left-6 top-1 w-[18px] h-[18px] rounded-full border-2 border-white dark:border-esmerald shadow-sm flex items-center justify-center text-[10px]" :class="activityDotClass(log.change_type)">
                 {{ activityIcon(log.change_type) }}
               </div>
               <div class="ml-2">
                 <div class="flex items-baseline gap-2">
                   <span class="text-xs font-semibold" :class="activityLabelClass(log.change_type)">{{ activityLabel(log.change_type) }}</span>
-                  <span class="text-[10px] text-gray-400">{{ formatLogDate(log.created_at) }}</span>
+                  <span class="text-[10px] text-gray-400 dark:text-green-light/40">{{ formatLogDate(log.created_at) }}</span>
                 </div>
                 <!-- eslint-disable-next-line vue/no-v-html -->
-                <p class="text-sm text-gray-600 mt-0.5" v-html="formatActivityDescription(log)"></p>
+                <p class="text-sm text-gray-600 dark:text-green-light/60 mt-0.5" v-html="formatActivityDescription(log)"></p>
               </div>
             </div>
           </div>
@@ -869,9 +1053,17 @@
       <!-- Tab: Sections -->
       <div v-show="activeTab === 'sections'">
         <!-- F10: Section completeness indicator -->
-        <div v-if="allSections.length" class="mb-4 bg-white rounded-xl shadow-sm border border-gray-100 px-5 py-4">
+        <div v-if="allSections.length" class="mb-4 bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] px-5 py-4">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Completitud de secciones</span>
+            <div class="flex items-center gap-1">
+              <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Completitud de secciones</span>
+              <UiTooltip position="right">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 transition-colors" />
+                </template>
+                {{ tt.sectionCompleteness }}
+              </UiTooltip>
+            </div>
             <span class="text-sm font-bold" :class="sectionCompleteness >= 80 ? 'text-emerald-600' : sectionCompleteness >= 50 ? 'text-amber-600' : 'text-red-500'">
               {{ sectionCompleteness }}%
             </span>
@@ -892,7 +1084,7 @@
           <div
             v-for="section in commercialSections"
             :key="section.id"
-            class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+            class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden"
           >
             <!-- Section header -->
             <div
@@ -1024,15 +1216,24 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import {
+  QuestionMarkCircleIcon,
+  PencilIcon,
+  DocumentDuplicateIcon,
+  ArrowDownTrayIcon,
+  CheckIcon,
+} from '@heroicons/vue/24/outline';
 import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue';
 import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
 import ProposalDocumentsTab from '~/components/BusinessProposal/admin/ProposalDocumentsTab.vue';
 import ProposalEmailsTab from '~/components/BusinessProposal/admin/ProposalEmailsTab.vue';
+import ProjectScheduleEditor from '~/components/BusinessProposal/admin/ProjectScheduleEditor.vue';
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
+import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
@@ -1041,6 +1242,7 @@ import { detectLegacyTechnicalFormat, downloadMigratedProposalJson, LEGACY_FIELD
 import LegacyFormatWarning from '~/components/panel/LegacyFormatWarning.vue';
 
 const localePath = useLocalePath();
+const { proposalEdit: tt } = useTooltipTexts();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const route = useRoute();
@@ -1083,6 +1285,10 @@ const technicalSection = computed(() =>
   allSections.value.find(s => s.section_type === 'technical_document') || null
 );
 
+const investmentSection = computed(() =>
+  allSections.value.find(s => s.section_type === 'investment') || null
+);
+
 const technicalModuleLinkOptions = computed(() =>
   buildProposalModuleLinkOptions(proposal.value?.sections || []),
 );
@@ -1107,7 +1313,7 @@ const sectionCompleteness = computed(() => {
   return Math.round(sectionsWithContent.value / enabledSectionsCount.value * 100);
 });
 
-const validTabs = ['general', 'emails', 'documents', 'sections', 'technical', 'prompt', 'json', 'activity', 'analytics'];
+const validTabs = ['general', 'emails', 'documents', 'schedule', 'sections', 'technical', 'prompt', 'json', 'activity', 'analytics'];
 const activeTab = ref(validTabs.includes(route.query.tab) ? route.query.tab : 'general');
 const technicalSubTab = ref('editor');
 const hasSendEmailTab = computed(() =>
@@ -1115,6 +1321,9 @@ const hasSendEmailTab = computed(() =>
 );
 const hasDocumentsTab = computed(() =>
   ['negotiating', 'accepted', 'rejected'].includes(proposal.value?.status),
+);
+const hasScheduleTab = computed(() =>
+  ['accepted', 'finished'].includes(proposal.value?.status),
 );
 
 const tabs = computed(() => {
@@ -1126,6 +1335,9 @@ const tabs = computed(() => {
   }
   if (hasDocumentsTab.value) {
     base.push({ id: 'documents', label: 'Documentos' });
+  }
+  if (hasScheduleTab.value) {
+    base.push({ id: 'schedule', label: 'Cronograma' });
   }
   base.push(
     { id: 'sections', label: 'Secciones' },
@@ -1164,6 +1376,80 @@ async function handleStatusChange(newStatus) {
   const result = await proposalStore.updateProposalStatus(proposal.value.id, newStatus);
   if (result.success) {
     proposal.value = result.data;
+  }
+}
+
+async function handleMarkAsFinished() {
+  const confirmed = await requestConfirm({
+    title: 'Marcar como finalizada',
+    message: 'El proyecto pasará al estado Finalizada y se notificará al cliente por correo. ¿Deseas continuar?',
+    variant: 'primary',
+    confirmText: 'Marcar como finalizada',
+    cancelText: 'Cancelar',
+  });
+  if (!confirmed) return;
+  await handleStatusChange('finished');
+}
+
+let cancelOnboardingPoll = null;
+
+async function handleLaunchToPlatform() {
+  const alreadyOnboarded = !!proposal.value.platform_onboarding_completed_at;
+
+  if (alreadyOnboarded) {
+    const confirmed = await requestConfirm({
+      title: 'Re-lanzar a Plataforma',
+      message: 'El proyecto, entregables, requerimientos y archivos existentes serán eliminados y recreados desde cero. ¿Deseas continuar?',
+      variant: 'danger',
+      confirmText: 'Re-lanzar',
+      cancelText: 'Cancelar',
+    });
+    if (!confirmed) return;
+  }
+
+  isLaunching.value = true;
+  const result = await proposalStore.launchToPlatform(proposal.value.id, alreadyOnboarded);
+  if (!result.success) {
+    isLaunching.value = false;
+    updateMsg.value = {
+      type: 'error',
+      text: result.errors?.error || 'Error al lanzar a la plataforma.',
+    };
+    return;
+  }
+
+  proposal.value = result.data;
+
+  if (result.data.platform_onboarding_status === 'pending') {
+    updateMsg.value = { type: 'success', text: 'Onboarding en progreso...' };
+    cancelOnboardingPoll = proposalStore.pollOnboardingStatus(
+      proposal.value.id,
+      (updated) => {
+        proposal.value = updated;
+        isLaunching.value = false;
+        cancelOnboardingPoll = null;
+        if (updated.platform_onboarding_status === 'completed') {
+          updateMsg.value = {
+            type: 'success',
+            text: alreadyOnboarded ? 'Plataforma re-lanzada exitosamente.' : 'Propuesta lanzada a la plataforma.',
+          };
+        } else {
+          updateMsg.value = {
+            type: 'error',
+            text: 'El onboarding falló. Revisa los logs del servidor.',
+          };
+        }
+      },
+    );
+  } else {
+    isLaunching.value = false;
+    const succeeded = result.data.platform_onboarding_status === 'completed';
+    updateMsg.value = {
+      type: succeeded ? 'success' : 'error',
+      text: succeeded
+        ? (alreadyOnboarded ? 'Plataforma re-lanzada exitosamente.' : 'Propuesta lanzada a la plataforma.')
+        : 'El onboarding falló. Revisa los logs del servidor.',
+    };
   }
 }
 
@@ -1289,16 +1575,21 @@ async function handleApplyTechnicalJson() {
 const isRefreshing = ref(false);
 const expandedSections = ref(new Set());
 const updateMsg = ref(null);
+const isLaunching = ref(false);
 const syncPreviewVisible = ref(false);
 const syncPreviewData = ref(null);
 const syncApplying = ref(false);
 const pendingSyncPayload = ref(null);
+const investmentPaymentPercentages = ref([]);
 
 const form = reactive({
   title: '',
+  client_id: null,
   client_name: '',
   client_email: '',
   client_phone: '',
+  client_company: '',
+  propagate_client_updates: false,
   project_type: '',
   market_type: '',
   project_type_custom: '',
@@ -1316,71 +1607,184 @@ const form = reactive({
   automations_paused: false,
 });
 
+function onClientSelected(client) {
+  if (!client) return;
+  form.client_id = client.id;
+  form.client_name = client.name || form.client_name;
+  // Empty input is friendlier than a fake placeholder address; the badge already signals it.
+  form.client_email = client.is_email_placeholder ? '' : client.email || '';
+  form.client_phone = client.phone || form.client_phone;
+  form.client_company = client.company || form.client_company;
+}
+
+function onCreateInlineClient(typedName) {
+  form.client_id = null;
+  if (typedName) {
+    form.client_name = typedName;
+  }
+}
+
+function parseSectionContentJson(section) {
+  if (!section?.content_json) return {};
+  if (typeof section.content_json === 'string') {
+    try {
+      return JSON.parse(section.content_json);
+    } catch {
+      return {};
+    }
+  }
+  return section.content_json;
+}
+
+function parsePercentFromLabel(label) {
+  if (!label) return null;
+  const match = String(label).match(/(\d+(?:[.,]\d+)?)\s*%/);
+  if (!match) return null;
+  const parsed = Number(match[1].replace(',', '.'));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizePercent(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  const clamped = Math.min(100, Math.max(0, numeric));
+  return Math.round(clamped * 100) / 100;
+}
+
+function formatPercent(value) {
+  const normalized = normalizePercent(value);
+  if (Number.isInteger(normalized)) return String(normalized);
+  return normalized.toFixed(2).replace(/\.?0+$/, '');
+}
+
+function extractInvestmentPercentages(contentJson) {
+  const paymentOptions = Array.isArray(contentJson?.paymentOptions) ? contentJson.paymentOptions : [];
+  return paymentOptions
+    .map(opt => parsePercentFromLabel(opt?.label))
+    .filter(percent => percent != null)
+    .map(percent => normalizePercent(percent));
+}
+
+function replaceOrPrefixPercent(label, percent, index) {
+  const percentText = `${formatPercent(percent)}%`;
+  const base = String(label || '').trim();
+  if (!base) return `${percentText} pago ${index + 1}`;
+  if (/(\d+(?:[.,]\d+)?)\s*%/.test(base)) {
+    return base.replace(/(\d+(?:[.,]\d+)?)\s*%/, percentText);
+  }
+  return `${percentText} ${base}`;
+}
+
+function buildPaymentDescription(percent) {
+  const total = Number(form.total_investment) || 0;
+  const amount = Math.round(total * normalizePercent(percent) / 100);
+  return `$${amount.toLocaleString('es-CO')} ${form.currency || 'COP'}`;
+}
+
+const paymentAmounts = computed(() =>
+  investmentPaymentPercentages.value.map(pct => buildPaymentDescription(pct))
+);
+
+function normalizeGeneralPaymentPercentage(index) {
+  const current = investmentPaymentPercentages.value[index];
+  investmentPaymentPercentages.value[index] = normalizePercent(current);
+}
+
+watch(
+  () => parseSectionContentJson(investmentSection.value)?.paymentOptions,
+  (paymentOptions) => {
+    investmentPaymentPercentages.value = extractInvestmentPercentages({ paymentOptions });
+  },
+  { immediate: true, deep: true },
+);
+
+async function syncInvestmentPercentagesFromGeneral() {
+  const section = investmentSection.value;
+  if (!section?.id) return { success: true, skipped: true };
+
+  const contentJson = parseSectionContentJson(section);
+  const paymentOptions = Array.isArray(contentJson.paymentOptions) ? contentJson.paymentOptions : [];
+  if (!paymentOptions.length || !investmentPaymentPercentages.value.length) {
+    return { success: true, skipped: true };
+  }
+
+  let editablePercentIdx = 0;
+  const nextPaymentOptions = paymentOptions.map((option, idx) => {
+    if (parsePercentFromLabel(option?.label) == null) return option;
+    const percent = investmentPaymentPercentages.value[editablePercentIdx];
+    editablePercentIdx += 1;
+    if (percent == null) return option;
+    const normalized = normalizePercent(percent);
+    return {
+      ...option,
+      label: replaceOrPrefixPercent(option?.label, normalized, idx),
+      description: buildPaymentDescription(normalized),
+    };
+  });
+
+  const changed = JSON.stringify(paymentOptions) !== JSON.stringify(nextPaymentOptions);
+  if (!changed) return { success: true, skipped: true };
+
+  const result = await proposalStore.updateSection(section.id, {
+    content_json: {
+      ...contentJson,
+      paymentOptions: nextPaymentOptions,
+    },
+  });
+  return result.success ? { success: true } : { success: false };
+}
+
+function hydrateFormFromProposal() {
+  if (!proposal.value) return;
+  Object.assign(form, {
+    title: proposal.value.title,
+    client_id: proposal.value.client?.id ?? null,
+    client_name: proposal.value.client_name,
+    client_email: proposal.value.client_email || '',
+    client_phone: proposal.value.client_phone || '',
+    client_company: proposal.value.client?.company || '',
+    propagate_client_updates: false,
+    project_type: proposal.value.project_type || '',
+    market_type: proposal.value.market_type || '',
+    project_type_custom: proposal.value.project_type_custom || '',
+    market_type_custom: proposal.value.market_type_custom || '',
+    language: proposal.value.language || 'es',
+    total_investment: Number(proposal.value.total_investment),
+    currency: proposal.value.currency,
+    hosting_percent: proposal.value.hosting_percent ?? 30,
+    hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
+    hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
+    expires_at: proposal.value.expires_at
+      ? proposal.value.expires_at.slice(0, 16)
+      : '',
+    reminder_days: proposal.value.reminder_days,
+    urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
+    discount_percent: proposal.value.discount_percent ?? 0,
+    automations_paused: proposal.value.automations_paused ?? false,
+  });
+}
+
 onMounted(async () => {
   const id = route.params.id;
   await proposalStore.fetchProposal(id);
   loadSavedPrompt();
   loadTechnicalPrompt();
-  if (proposal.value) {
-    Object.assign(form, {
-      title: proposal.value.title,
-      client_name: proposal.value.client_name,
-      client_email: proposal.value.client_email || '',
-      client_phone: proposal.value.client_phone || '',
-      project_type: proposal.value.project_type || '',
-      market_type: proposal.value.market_type || '',
-      project_type_custom: proposal.value.project_type_custom || '',
-      market_type_custom: proposal.value.market_type_custom || '',
-      language: proposal.value.language || 'es',
-      total_investment: Number(proposal.value.total_investment),
-      currency: proposal.value.currency,
-      hosting_percent: proposal.value.hosting_percent ?? 30,
-      hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
-      hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
-      expires_at: proposal.value.expires_at
-        ? proposal.value.expires_at.slice(0, 16)
-        : '',
-      reminder_days: proposal.value.reminder_days,
-      urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
-      discount_percent: proposal.value.discount_percent ?? 0,
-      automations_paused: proposal.value.automations_paused ?? false,
-    });
-  }
+  hydrateFormFromProposal();
 });
 
 async function refreshData() {
   isRefreshing.value = true;
   try {
     await proposalStore.fetchProposal(route.params.id);
-    if (proposal.value) {
-      Object.assign(form, {
-        title: proposal.value.title,
-        client_name: proposal.value.client_name,
-        client_email: proposal.value.client_email || '',
-        client_phone: proposal.value.client_phone || '',
-        project_type: proposal.value.project_type || '',
-        market_type: proposal.value.market_type || '',
-        project_type_custom: proposal.value.project_type_custom || '',
-        market_type_custom: proposal.value.market_type_custom || '',
-        language: proposal.value.language || 'es',
-        total_investment: Number(proposal.value.total_investment),
-        currency: proposal.value.currency,
-        hosting_percent: proposal.value.hosting_percent ?? 30,
-        hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
-        hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
-        expires_at: proposal.value.expires_at
-          ? proposal.value.expires_at.slice(0, 16)
-          : '',
-        reminder_days: proposal.value.reminder_days,
-        urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
-        discount_percent: proposal.value.discount_percent ?? 0,
-        automations_paused: proposal.value.automations_paused ?? false,
-      });
-    }
+    hydrateFormFromProposal();
   } finally {
     isRefreshing.value = false;
   }
 }
+
+onBeforeUnmount(() => {
+  if (cancelOnboardingPoll) cancelOnboardingPoll();
+});
 
 async function toggleAutomationsPaused() {
   form.automations_paused = !form.automations_paused;
@@ -1405,7 +1809,12 @@ async function handleUpdate() {
   }
   const result = await proposalStore.updateProposal(proposal.value.id, payload);
   if (result.success) {
-    updateMsg.value = { type: 'success', text: 'Propuesta actualizada.' };
+    const syncResult = await syncInvestmentPercentagesFromGeneral();
+    if (syncResult.success) {
+      updateMsg.value = { type: 'success', text: 'Propuesta actualizada.' };
+    } else {
+      updateMsg.value = { type: 'error', text: 'Se actualizó la propuesta, pero falló la sincronización de porcentajes de inversión.' };
+    }
   } else {
     const errors = result.errors;
     updateMsg.value = {
@@ -1584,14 +1993,14 @@ function formatInvestment(value, currency = 'COP') {
 
 function statusClass(status) {
   const map = {
-    draft: 'bg-gray-100 text-gray-600',
-    sent: 'bg-blue-50 text-blue-700',
-    viewed: 'bg-green-50 text-green-700',
-    accepted: 'bg-emerald-50 text-emerald-700',
-    rejected: 'bg-red-50 text-red-700',
-    expired: 'bg-yellow-50 text-yellow-700',
+    draft: 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light',
+    sent: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300',
+    viewed: 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300',
+    accepted: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    rejected: 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300',
+    expired: 'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
   };
-  return map[status] || 'bg-gray-100 text-gray-600';
+  return map[status] || 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light';
 }
 
 // --- JSON tab ---

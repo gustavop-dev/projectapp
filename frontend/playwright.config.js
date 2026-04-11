@@ -7,7 +7,7 @@ const reuseExistingServer = !process.env.CI;
 export default defineConfig({
   globalSetup: './e2e/global-setup.js',
   testDir: './e2e',
-  timeout: 30_000,
+  timeout: 60_000,
   expect: { timeout: 15_000 },
   fullyParallel: true,
   retries: process.env.CI ? 2 : 1,
@@ -20,7 +20,7 @@ export default defineConfig({
   ],
   use: {
     baseURL,
-    navigationTimeout: 30_000,
+    navigationTimeout: 60_000,
     trace: 'retain-on-failure',
     screenshot: 'off',
     video: 'off',

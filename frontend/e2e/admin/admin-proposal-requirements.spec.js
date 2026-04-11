@@ -176,7 +176,8 @@ test.describe('Functional Requirements — Form Mode', () => {
       page.waitForResponse(r => r.url().includes('sections') && r.url().includes('update')),
       editor.getByRole('button', { name: 'Guardar Sección' }).click(),
     ]);
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -196,7 +197,8 @@ test.describe('Functional Requirements — Form Mode', () => {
       page.waitForResponse(r => r.url().includes('sections') && r.url().includes('update')),
       editor.getByRole('button', { name: 'Guardar Sección' }).click(),
     ]);
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     const last = captured[captured.length - 1];
     expect(last.body.content_json.groups[0].id).toBe('views');
@@ -216,7 +218,8 @@ test.describe('Functional Requirements — Form Mode', () => {
       page.waitForResponse(r => r.url().includes('sections') && r.url().includes('update')),
       editor.getByRole('button', { name: 'Guardar Sección' }).click(),
     ]);
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -237,7 +240,8 @@ test.describe('Functional Requirements — Form Mode', () => {
       page.waitForResponse(r => r.url().includes('sections') && r.url().includes('update')),
       editor.getByRole('button', { name: 'Guardar Sección' }).click(),
     ]);
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -313,7 +317,8 @@ test.describe('Functional Requirements — Paste Content Mode', () => {
       page.waitForResponse(r => r.url().includes('sections') && r.url().includes('update')),
       editor.getByRole('button', { name: 'Guardar Sección' }).click(),
     ]);
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -342,7 +347,8 @@ test.describe('Functional Requirements — Paste Content Mode', () => {
       page.waitForResponse(r => r.url().includes('sections') && r.url().includes('update')),
       editor.getByRole('button', { name: 'Guardar Sección' }).click(),
     ]);
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];
@@ -397,7 +403,8 @@ test.describe('Functional Requirements — Paste Content Mode', () => {
       page.waitForResponse(r => r.url().includes('sections') && r.url().includes('update')),
       editor.getByRole('button', { name: 'Guardar Sección' }).click(),
     ]);
-    await expect(editor.getByText('✓ Guardado')).toBeVisible();
+    // After successful save, the parent auto-collapses the section editor
+    await expect(editor).toHaveCount(0);
 
     expect(captured.length).toBeGreaterThanOrEqual(1);
     const last = captured[captured.length - 1];

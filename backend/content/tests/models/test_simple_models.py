@@ -38,6 +38,16 @@ class TestPortfolioWork:
         assert pw1.slug == 'mismo-titulo'
         assert pw2.slug == 'mismo-titulo-1'
 
+    def test_save_preserves_existing_slug(self, db):
+        """Providing a slug bypasses auto-generation."""
+        portfolio_work = PortfolioWork.objects.create(
+            title_en='Same Title',
+            title_es='Mismo Titulo',
+            slug='manual-slug',
+            project_url='https://example.com/manual',
+        )
+        assert portfolio_work.slug == 'manual-slug'
+
     def test_delete_removes_cover_image(self, db, tmp_path, monkeypatch):
         """Verify cover image file is removed from disk on delete."""
         monkeypatch.setattr('django.conf.settings.MEDIA_ROOT', str(tmp_path))
@@ -52,3 +62,13 @@ class TestPortfolioWork:
         assert os.path.isfile(cover_path)
         pw.delete()
         assert not os.path.isfile(cover_path)
+
+    def test_delete_without_cover_image_succeeds(self, db):
+        """Deleting a record without a cover image skips file removal."""
+        portfolio_work = PortfolioWork.objects.create(
+            title_en='No Cover',
+            title_es='Sin Cover',
+            project_url='https://example.com/no-cover',
+        )
+        portfolio_work.delete()
+        assert PortfolioWork.objects.filter(pk=portfolio_work.pk).exists() is False

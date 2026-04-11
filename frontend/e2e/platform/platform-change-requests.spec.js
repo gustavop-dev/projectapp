@@ -109,3 +109,83 @@ test.describe('Platform Change Requests — Admin', () => {
     await expect(page.getByText('Agregar filtro de precio')).toBeVisible();
   });
 });
+
+// ── Unified cross-project view (/platform/changes) ──
+
+const mockProject2 = {
+  id: 2, name: 'Mobile App', status: 'active', progress: 20,
+  client_id: 9002, client_name: 'Client E2E', client_email: 'client@e2e-test.com',
+  client_company: 'ACME Corp', start_date: '2025-03-01', estimated_end_date: '2025-09-30',
+};
+
+const mockCRsCrossProject = [
+  { ...mockChangeRequests[0], project_id: 1, project_name: 'E-commerce Platform' },
+  { ...mockChangeRequests[1], project_id: 1, project_name: 'E-commerce Platform' },
+  {
+    id: 3, title: 'Add dark mode', description: 'Users want dark mode for the mobile app.',
+    module_or_screen: 'Settings', suggested_priority: 'medium', is_urgent: false,
+    status: 'pending', admin_response: '', estimated_cost: null, estimated_time: '',
+    created_by_name: 'Client E2E', created_by_email: 'client@e2e-test.com',
+    comments_count: 0, screenshot_url: null, created_at: '2025-02-05T10:00:00Z',
+    project_id: 2, project_name: 'Mobile App',
+  },
+];
+
+function setupUnifiedChangesMocks(page, { user, crs = mockCRsCrossProject }) {
+  return mockApi(page, async ({ apiPath, method }) => {
+    if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(user);
+    if (apiPath === 'accounts/projects/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProject, mockProject2]) };
+    }
+    if (apiPath.startsWith('accounts/change-requests/') && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(crs) };
+    }
+    if (apiPath === 'accounts/notifications/unread-count/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify({ unread_count: 0 }) };
+    }
+    return null;
+  });
+}
+
+test.describe('Platform Change Requests — Unified /platform/changes', () => {
+  test.setTimeout(60_000);
+
+  test('client sees change requests grouped by project', {
+    tag: [...PLATFORM_CHANGE_REQUESTS, '@role:platform-client'],
+  }, async ({ page }) => {
+    await setPlatformAuth(page, { user: mockPlatformClient });
+    await setupUnifiedChangesMocks(page, { user: mockPlatformClient });
+    await page.goto('/platform/changes', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /mis solicitudes/i }).waitFor({ state: 'visible', timeout: 30000 });
+
+    await expect(page.getByText('E-commerce Platform')).toBeVisible();
+    await expect(page.getByText('Agregar filtro de precio')).toBeVisible();
+    await expect(page.getByText('Mobile App')).toBeVisible();
+    await expect(page.getByText('Add dark mode')).toBeVisible();
+  });
+
+  test('admin sees all requests with archived toggle and summary pills', {
+    tag: [...PLATFORM_CHANGE_REQUESTS, '@role:platform-admin'],
+  }, async ({ page }) => {
+    await setPlatformAuth(page, { user: mockPlatformAdmin });
+    await setupUnifiedChangesMocks(page, { user: mockPlatformAdmin });
+    await page.goto('/platform/changes', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /solicitudes de cambio/i }).waitFor({ state: 'visible', timeout: 30000 });
+
+    await expect(page.getByText('Mostrar archivados')).toBeVisible();
+    await expect(page.getByText('Pendientes', { exact: true })).toBeVisible();
+    await expect(page.getByText('E-commerce Platform')).toBeVisible();
+    await expect(page.getByText('Mobile App')).toBeVisible();
+  });
+
+  test('shows empty state when no change requests exist', {
+    tag: [...PLATFORM_CHANGE_REQUESTS, '@role:platform-client'],
+  }, async ({ page }) => {
+    await setPlatformAuth(page, { user: mockPlatformClient });
+    await setupUnifiedChangesMocks(page, { user: mockPlatformClient, crs: [] });
+    await page.goto('/platform/changes', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /mis solicitudes/i }).waitFor({ state: 'visible', timeout: 30000 });
+
+    await expect(page.getByText('No hay solicitudes de cambio en este momento.')).toBeVisible();
+  });
+});

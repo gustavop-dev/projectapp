@@ -227,6 +227,7 @@ class Command(BaseCommand):
 
         proposal = BusinessProposal.objects.create(
             title='Propuesta Mi Huella — Plataforma de Adopción Animal',
+            client=client.profile,
             client_name='Laura Blanco',
             client_email=CLIENT_EMAIL,
             client_phone='+57 315 420 8899',

@@ -26,6 +26,7 @@ jest.mock('vue-router', () => ({
 let uuidCounter = 0;
 global.crypto = { randomUUID: () => `uuid-${++uuidCounter}` };
 
+import { nextTick } from 'vue';
 import { useProposalFilters } from '../../composables/useProposalFilters';
 
 describe('useProposalFilters', () => {
@@ -83,6 +84,43 @@ describe('useProposalFilters', () => {
 
       expect(activeTabId.value).toBe('all');
     });
+
+    it('loads the saved tab filters and opens the filter panel from the URL query', () => {
+      const tabs = [{
+        id: 'saved-2',
+        name: 'Saved',
+        filters: {
+          statuses: ['sent'],
+          projectTypes: [],
+          marketTypes: [],
+          currencies: [],
+          languages: [],
+          investmentMin: null,
+          investmentMax: null,
+          heatScoreMin: null,
+          heatScoreMax: null,
+          viewCountMin: null,
+          viewCountMax: null,
+          createdAfter: null,
+          createdBefore: null,
+          lastActivityAfter: null,
+          lastActivityBefore: null,
+          isActive: 'all',
+          technicalViewed: true,
+        },
+        createdAt: '',
+        updatedAt: '',
+      }];
+      localStorage.setItem('proposal_filter_tabs', JSON.stringify(tabs));
+      mockRoute.query = { tab: 'saved-2' };
+
+      const { activeTabId, currentFilters, isFilterPanelOpen } = useProposalFilters();
+
+      expect(activeTabId.value).toBe('saved-2');
+      expect(currentFilters.statuses).toEqual(['sent']);
+      expect(currentFilters.technicalViewed).toBe(true);
+      expect(isFilterPanelOpen.value).toBe(true);
+    });
   });
 
   // ── applyFilters — status ──────────────────────────────────────────────────
@@ -92,12 +130,13 @@ describe('useProposalFilters', () => {
       { status: 'draft', project_type: 'web', market_type: 'b2b', currency: 'COP', language: 'es', total_investment: '1000', heat_score: 5, view_count: 1, created_at: '2026-01-01', last_activity_at: '2026-01-01', is_active: true },
       { status: 'sent', project_type: 'app', market_type: 'b2c', currency: 'USD', language: 'en', total_investment: '5000', heat_score: 8, view_count: 10, created_at: '2026-02-01', last_activity_at: '2026-02-01', is_active: true },
       { status: 'viewed', project_type: 'web', market_type: 'b2b', currency: 'COP', language: 'es', total_investment: '10000', heat_score: 3, view_count: 20, created_at: '2026-03-01', last_activity_at: '2026-03-01', is_active: false },
+      { status: 'finished', project_type: 'web', market_type: 'b2b', currency: 'COP', language: 'es', total_investment: '15000', heat_score: 10, view_count: 30, created_at: '2026-03-15', last_activity_at: '2026-03-15', is_active: true },
     ];
 
     it('returns all proposals when no filters active', () => {
       const { applyFilters } = useProposalFilters();
 
-      expect(applyFilters(proposals)).toHaveLength(3);
+      expect(applyFilters(proposals)).toHaveLength(4);
     });
 
     it('filters by single status', () => {
@@ -113,6 +152,14 @@ describe('useProposalFilters', () => {
       currentFilters.statuses = ['draft', 'sent'];
 
       expect(applyFilters(proposals)).toHaveLength(2);
+    });
+
+    it('filters by finished status independently from accepted', () => {
+      const { currentFilters, applyFilters } = useProposalFilters();
+      currentFilters.statuses = ['finished'];
+
+      expect(applyFilters(proposals)).toHaveLength(1);
+      expect(applyFilters(proposals)[0].status).toBe('finished');
     });
   });
 
@@ -335,6 +382,125 @@ describe('useProposalFilters', () => {
       expect(result).toHaveLength(1);
       expect(result[0].total_investment).toBe('1000');
     });
+
+    it('uses cached heat score and created_at fallback for activity filtering', () => {
+      const { currentFilters, applyFilters } = useProposalFilters();
+      currentFilters.heatScoreMin = 7;
+      currentFilters.lastActivityAfter = '2026-04-01';
+
+      const result = applyFilters([
+        {
+          status: 'sent',
+          project_type: 'web',
+          market_type: 'b2b',
+          currency: 'COP',
+          language: 'es',
+          total_investment: '0',
+          cached_heat_score: 8,
+          view_count: 0,
+          created_at: '2026-04-10T12:00:00Z',
+          last_activity_at: null,
+          is_active: true,
+        },
+      ]);
+
+      expect(result).toHaveLength(1);
+    });
+
+    it('drops proposals without any activity date when an activity range is active', () => {
+      const { currentFilters, applyFilters } = useProposalFilters();
+      currentFilters.lastActivityAfter = '2026-04-01';
+
+      const result = applyFilters([
+        {
+          status: 'sent',
+          project_type: 'web',
+          market_type: 'b2b',
+          currency: 'COP',
+          language: 'es',
+          total_investment: '1200',
+          heat_score: 8,
+          view_count: 0,
+          created_at: null,
+          last_activity_at: null,
+          is_active: true,
+        },
+      ]);
+
+      expect(result).toEqual([]);
+    });
+
+    it('filters on technicalViewed when the engagement summary is missing', () => {
+      const { currentFilters, applyFilters } = useProposalFilters();
+      currentFilters.technicalViewed = true;
+
+      const result = applyFilters([
+        {
+          status: 'sent',
+          project_type: 'web',
+          market_type: 'b2b',
+          currency: 'COP',
+          language: 'es',
+          total_investment: '1200',
+          heat_score: 8,
+          view_count: 0,
+          created_at: '2026-04-10',
+          last_activity_at: '2026-04-10',
+          is_active: true,
+        },
+      ]);
+
+      expect(result).toEqual([]);
+    });
+
+    it('keeps proposals when technicalViewed is true and the engagement summary is true', () => {
+      const { currentFilters, applyFilters } = useProposalFilters();
+      currentFilters.technicalViewed = true;
+
+      const result = applyFilters([
+        {
+          status: 'sent',
+          project_type: 'web',
+          market_type: 'b2b',
+          currency: 'COP',
+          language: 'es',
+          total_investment: '1200',
+          heat_score: 8,
+          view_count: 0,
+          created_at: '2026-04-10',
+          last_activity_at: '2026-04-10',
+          is_active: true,
+          engagement_summary: { technical_viewed: true },
+        },
+      ]);
+
+      expect(result).toHaveLength(1);
+    });
+
+    it('falls back to zero for missing cached heat score and missing view count', () => {
+      const { currentFilters, applyFilters } = useProposalFilters();
+      currentFilters.heatScoreMax = 0;
+      currentFilters.viewCountMax = 0;
+
+      const result = applyFilters([
+        {
+          status: 'sent',
+          project_type: 'web',
+          market_type: 'b2b',
+          currency: 'COP',
+          language: 'es',
+          total_investment: '1200',
+          heat_score: null,
+          cached_heat_score: null,
+          view_count: undefined,
+          created_at: '2026-04-10',
+          last_activity_at: '2026-04-10',
+          is_active: true,
+        },
+      ]);
+
+      expect(result).toHaveLength(1);
+    });
   });
 
   // ── activeFilterCount ─────────────────────────────────────────────────────
@@ -367,6 +533,26 @@ describe('useProposalFilters', () => {
       currentFilters.isActive = 'active';
 
       expect(activeFilterCount.value).toBe(1);
+    });
+
+    it('counts technicalViewed and date ranges as active dimensions', () => {
+      const { currentFilters, activeFilterCount } = useProposalFilters();
+      currentFilters.createdAfter = '2026-01-01';
+      currentFilters.lastActivityBefore = '2026-01-31';
+      currentFilters.technicalViewed = true;
+
+      expect(activeFilterCount.value).toBe(3);
+    });
+
+    it('counts the remaining array and range dimensions', () => {
+      const { currentFilters, activeFilterCount } = useProposalFilters();
+      currentFilters.projectTypes = ['webapp'];
+      currentFilters.marketTypes = ['b2b'];
+      currentFilters.languages = ['es'];
+      currentFilters.heatScoreMin = 2;
+      currentFilters.viewCountMax = 9;
+
+      expect(activeFilterCount.value).toBe(5);
     });
   });
 
@@ -424,6 +610,15 @@ describe('useProposalFilters', () => {
       expect(savedTabs.value[0].id).toBe(activeTabId.value);
     });
 
+    it('persists the saved tabs to localStorage when tabs change', async () => {
+      const { saveTab } = useProposalFilters();
+
+      saveTab('Persisted');
+      await nextTick();
+
+      expect(JSON.parse(localStorage.getItem('proposal_filter_tabs'))).toHaveLength(1);
+    });
+
     it('deleteTab removes the tab', () => {
       const { savedTabs, saveTab, deleteTab } = useProposalFilters();
       saveTab('To Delete');
@@ -445,6 +640,15 @@ describe('useProposalFilters', () => {
       expect(activeTabId.value).toBe('all');
     });
 
+    it('does nothing when deleteTab receives an unknown id', () => {
+      const { savedTabs, saveTab, deleteTab } = useProposalFilters();
+      saveTab('Existing');
+
+      deleteTab('missing-tab');
+
+      expect(savedTabs.value).toHaveLength(1);
+    });
+
     it('renameTab changes the tab name', () => {
       const { savedTabs, saveTab, renameTab } = useProposalFilters();
       saveTab('Original');
@@ -453,6 +657,15 @@ describe('useProposalFilters', () => {
       renameTab(tabId, 'Renamed');
 
       expect(savedTabs.value[0].name).toBe('Renamed');
+    });
+
+    it('does nothing when renameTab receives an unknown id', () => {
+      const { savedTabs, saveTab, renameTab } = useProposalFilters();
+      saveTab('Original');
+
+      renameTab('missing-tab', 'Renamed');
+
+      expect(savedTabs.value[0].name).toBe('Original');
     });
 
     it('updateTab updates the filters of existing tab', () => {
@@ -464,6 +677,26 @@ describe('useProposalFilters', () => {
       updateTab(tabId);
 
       expect(savedTabs.value[0].filters.statuses).toEqual(['sent']);
+    });
+
+    it('does nothing when updateTab receives an unknown id', () => {
+      const { savedTabs, saveTab, updateTab } = useProposalFilters();
+      saveTab('Known');
+
+      const before = JSON.stringify(savedTabs.value);
+      updateTab('missing-tab');
+
+      expect(JSON.stringify(savedTabs.value)).toBe(before);
+    });
+
+    it('skips rewriting a tab when the filters are unchanged', () => {
+      const { savedTabs, saveTab, updateTab } = useProposalFilters();
+      saveTab('Stable');
+
+      const before = savedTabs.value[0].updatedAt;
+      updateTab(savedTabs.value[0].id);
+
+      expect(savedTabs.value[0].updatedAt).toBe(before);
     });
   });
 
@@ -488,6 +721,19 @@ describe('useProposalFilters', () => {
       resetFilters();
 
       expect(activeTabId.value).toBe('all');
+    });
+
+    it('removes the tab query param when resetting to all', async () => {
+      mockRoute.query = { tab: 'saved-1', search: 'keep-me' };
+      const tabs = [{ id: 'saved-1', name: 'Saved', filters: {}, createdAt: '', updatedAt: '' }];
+      localStorage.setItem('proposal_filter_tabs', JSON.stringify(tabs));
+
+      const { resetFilters } = useProposalFilters();
+
+      resetFilters();
+      await nextTick();
+
+      expect(mockReplace).toHaveBeenLastCalledWith({ query: { search: 'keep-me' } });
     });
   });
 
@@ -516,6 +762,16 @@ describe('useProposalFilters', () => {
 
       expect(activeTabId.value).toBe('tab-x');
       expect(currentFilters.statuses).toEqual(['sent']);
+    });
+
+    it('does not overwrite filters when selecting an unknown saved tab', () => {
+      const { currentFilters, activeTabId, selectTab } = useProposalFilters();
+      currentFilters.statuses = ['draft'];
+
+      selectTab('missing-tab');
+
+      expect(activeTabId.value).toBe('missing-tab');
+      expect(currentFilters.statuses).toEqual(['draft']);
     });
   });
 

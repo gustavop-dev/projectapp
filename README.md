@@ -10,7 +10,7 @@ Custom Software Development Company — full-stack web application with a dynami
 | **Frontend** | Nuxt 3, Pinia (Options API), TailwindCSS, GSAP |
 | **Task Queue** | Huey + Redis |
 | **Email** | SMTP via GoDaddy (`team@projectapp.co`) |
-| **Auth** | Django session + CSRF tokens (no JWT) |
+| **Auth** | Django session + CSRF (`/panel/`), JWT via SimpleJWT (`/platform/`) |
 | **Deployment** | Gunicorn + Nginx, systemd services |
 
 ---
@@ -28,8 +28,8 @@ cd projectapp
 
 ```bash
 cd backend
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 python3 manage.py migrate
 python3 manage.py createsuperuser
@@ -39,6 +39,7 @@ python3 manage.py create_fake_data 5
 ### 3. Start the backend server
 
 ```bash
+source .venv/bin/activate
 python3 manage.py runserver
 ```
 
@@ -59,6 +60,36 @@ python3 manage.py create_fake_proposals
 # Delete all fake data
 python3 manage.py delete_fake_data
 ```
+
+---
+
+## Codex Ecosystem
+
+ProjectApp uses a Codex-first methodology and automation stack:
+
+- Always-on runtime instructions:
+  - `AGENTS.md`
+  - `backend/AGENTS.md`
+  - `frontend/AGENTS.md`
+- Native repo skills: `.agents/skills/*`
+- Project config: `.codex/config.toml`
+- Compatibility surfaces: `CLAUDE.md`, `backend/CLAUDE.md`, `frontend/CLAUDE.md`, `.claude/`, `.windsurf/`
+
+Main references:
+
+- Methodology guide: `docs/CODEX_METHODOLOGY_GUIDE.md`
+- Setup & activation: `docs/CODEX_SETUP.md`
+- Migration history: `docs/CODEX_MIGRATION_MAP.md`
+
+Workflow naming policy:
+
+- Canonical debug workflow: `$debug`
+- Legacy alias kept for compatibility: `debugme`
+
+Sensitive operational skills are manual-only (`deploy-and-check`, `git-commit`, `git-sync`, `blog-ai-weekly`) and use dual safeguards:
+
+- `disable-model-invocation: true` in `SKILL.md`
+- `policy.allow_implicit_invocation: false` in `agents/openai.yaml`
 
 ---
 
@@ -187,19 +218,15 @@ DRAFT → SENT → VIEWED → ACCEPTED
 
 ## Deployment
 
-See [docs/deployment-guide.md](docs/deployment-guide.md) for full production deployment instructions.
+See [docs/deployment-guide.md](docs/deployment-guide.md) for initial setup and full documentation.
 
-Quick deploy:
+Quick deploy (on server):
 ```bash
-git push origin main
-# On server:
-cd /home/ryzepeck/webapps/projectapp && git pull origin main
-cd backend && source venv/bin/activate
-DJANGO_SETTINGS_MODULE=projectapp.settings_prod python manage.py migrate
-cd ../frontend && npm ci && npm run build:django
-cd ../backend && DJANGO_SETTINGS_MODULE=projectapp.settings_prod python manage.py collectstatic --noinput
-sudo systemctl restart projectapp && sudo systemctl restart projectapp-huey
+cd /home/ryzepeck/webapps/projectapp
+./scripts/deploy.sh
 ```
+
+Options: `--sync-configs` (sync systemd/nginx), `--skip-frontend`, `--dry-run`, `--yes`.
 
 ---
 

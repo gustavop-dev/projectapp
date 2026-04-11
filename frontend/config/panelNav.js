@@ -50,10 +50,24 @@ export function getPanelNavSections(localePath) {
       ],
     },
     {
+      id: 'emails',
+      label: 'Emails',
+      items: [
+        { label: 'Emails', href: lp('/panel/emails'), icon: 'mail' },
+      ],
+    },
+    {
       id: 'documents',
       label: 'Documents',
       items: [
         { label: 'PDF documents', href: lp('/panel/documents'), icon: 'file' },
+      ],
+    },
+    {
+      id: 'reference',
+      label: 'Reference',
+      items: [
+        { label: 'View map', href: lp('/panel/views'), icon: 'sitemap' },
       ],
     },
     {

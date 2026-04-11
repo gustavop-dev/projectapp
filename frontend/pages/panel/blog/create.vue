@@ -1,26 +1,26 @@
 <template>
   <div>
     <div class="flex items-center gap-4 mb-8">
-      <NuxtLink :to="localePath('/panel/blog')" class="text-gray-400 hover:text-gray-600 transition-colors">
+      <NuxtLink :to="localePath('/panel/blog')" class="text-gray-400 dark:text-green-light/60 hover:text-gray-600 dark:hover:text-white transition-colors">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
       </NuxtLink>
-      <h1 class="text-2xl font-light text-gray-900">Nuevo Blog Post</h1>
+      <h1 class="text-2xl font-light text-gray-900 dark:text-white">Nuevo Blog Post</h1>
     </div>
 
     <!-- Tab toggle -->
-    <div class="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 max-w-xs">
+    <div class="flex gap-1 mb-6 bg-gray-100 dark:bg-white/[0.06] rounded-xl p-1 max-w-xs">
       <button
         type="button"
-        :class="['flex-1 px-4 py-2 text-sm rounded-lg transition-all', mode === 'manual' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700']"
+        :class="['flex-1 px-4 py-2 text-sm rounded-lg transition-all', mode === 'manual' ? 'bg-white dark:bg-esmerald shadow-sm font-medium text-gray-900 dark:text-white' : 'text-gray-500 dark:text-green-light/60 hover:text-gray-700 dark:hover:text-white']"
         @click="mode = 'manual'"
       >
         Manual
       </button>
       <button
         type="button"
-        :class="['flex-1 px-4 py-2 text-sm rounded-lg transition-all', mode === 'json' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700']"
+        :class="['flex-1 px-4 py-2 text-sm rounded-lg transition-all', mode === 'json' ? 'bg-white dark:bg-esmerald shadow-sm font-medium text-gray-900 dark:text-white' : 'text-gray-500 dark:text-green-light/60 hover:text-gray-700 dark:hover:text-white']"
         @click="mode = 'json'"
       >
         Importar JSON
@@ -32,35 +32,35 @@
     <!-- ============================================================ -->
     <form v-if="mode === 'manual'" class="space-y-6 max-w-3xl" @submit.prevent="handleSubmit">
       <!-- Español Section -->
-      <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
-        <legend class="text-sm font-medium text-gray-700 px-2">Español</legend>
+      <fieldset class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+        <legend class="text-sm font-medium text-gray-700 dark:text-white/70 px-2">Español</legend>
         <div>
-          <label for="title_es" class="block text-sm font-medium text-gray-700 mb-1">Título (ES)</label>
-          <input id="title_es" v-model="form.title_es" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Título del artículo en español" />
+          <label for="title_es" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Título (ES)</label>
+          <input id="title_es" v-model="form.title_es" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Título del artículo en español" />
         </div>
         <div>
-          <label for="excerpt_es" class="block text-sm font-medium text-gray-700 mb-1">Resumen (ES)</label>
-          <textarea id="excerpt_es" v-model="form.excerpt_es" rows="2" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Resumen corto en español (1-2 oraciones)" />
+          <label for="excerpt_es" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Resumen (ES)</label>
+          <textarea id="excerpt_es" v-model="form.excerpt_es" rows="2" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Resumen corto en español (1-2 oraciones)" />
         </div>
         <div>
-          <label for="content_es" class="block text-sm font-medium text-gray-700 mb-1">Contenido HTML (ES)</label>
+          <label for="content_es" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Contenido HTML (ES)</label>
           <textarea id="content_es" v-model="form.content_es" rows="10" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="<h2>Subtítulo</h2><p>Contenido en español...</p>" />
         </div>
       </fieldset>
 
       <!-- English Section -->
-      <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
-        <legend class="text-sm font-medium text-gray-700 px-2">English</legend>
+      <fieldset class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+        <legend class="text-sm font-medium text-gray-700 dark:text-white/70 px-2">English</legend>
         <div>
-          <label for="title_en" class="block text-sm font-medium text-gray-700 mb-1">Title (EN)</label>
-          <input id="title_en" v-model="form.title_en" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Article title in English" />
+          <label for="title_en" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Title (EN)</label>
+          <input id="title_en" v-model="form.title_en" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Article title in English" />
         </div>
         <div>
-          <label for="excerpt_en" class="block text-sm font-medium text-gray-700 mb-1">Excerpt (EN)</label>
-          <textarea id="excerpt_en" v-model="form.excerpt_en" rows="2" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Short summary in English (1-2 sentences)" />
+          <label for="excerpt_en" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Excerpt (EN)</label>
+          <textarea id="excerpt_en" v-model="form.excerpt_en" rows="2" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="Short summary in English (1-2 sentences)" />
         </div>
         <div>
-          <label for="content_en" class="block text-sm font-medium text-gray-700 mb-1">Content HTML (EN)</label>
+          <label for="content_en" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Content HTML (EN)</label>
           <textarea id="content_en" v-model="form.content_en" rows="10" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-mono focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-y" placeholder="<h2>Subtitle</h2><p>Content in English...</p>" />
         </div>
       </fieldset>
@@ -68,67 +68,67 @@
       <!-- Metadata fields -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-          <select id="category" v-model="form.category" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white">
+          <label for="category" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Categoría</label>
+          <select id="category" v-model="form.category" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-white">
             <option value="">Sin categoría</option>
             <option v-for="cat in blogStore.availableCategories" :key="cat.slug" :value="cat.slug">{{ cat.label }}</option>
           </select>
         </div>
         <div>
-          <label for="read_time_minutes" class="block text-sm font-medium text-gray-700 mb-1">Tiempo lectura (min)</label>
-          <input id="read_time_minutes" v-model.number="form.read_time_minutes" type="number" min="0" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+          <label for="read_time_minutes" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Tiempo lectura (min)</label>
+          <input id="read_time_minutes" v-model.number="form.read_time_minutes" type="number" min="0" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
         </div>
         <div class="flex items-end">
           <label class="relative inline-flex items-center cursor-pointer gap-3">
             <input v-model="form.is_featured" type="checkbox" class="sr-only peer" />
-            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
-            <span class="text-sm text-gray-700">Destacado</span>
+            <div class="w-9 h-5 bg-gray-200 dark:bg-white/[0.15] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600" />
+            <span class="text-sm text-gray-700 dark:text-white/70">Destacado</span>
           </label>
         </div>
       </div>
 
       <!-- Cover image URL -->
       <div>
-        <label for="cover_image_url" class="block text-sm font-medium text-gray-700 mb-1">Imagen de portada (URL)</label>
-        <input id="cover_image_url" v-model="form.cover_image_url" type="url" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://example.com/image.jpg (opcional)" />
-        <p class="text-xs text-gray-400 mt-1">También puedes subir un archivo después de crear el post desde la vista de edición.</p>
+        <label for="cover_image_url" class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Imagen de portada (URL)</label>
+        <input id="cover_image_url" v-model="form.cover_image_url" type="url" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://example.com/image.jpg (opcional)" />
+        <p class="text-xs text-gray-400 dark:text-green-light/60 dark:text-green-light/60 mt-1">También puedes subir un archivo después de crear el post desde la vista de edición.</p>
       </div>
 
       <!-- Sources -->
       <div>
         <div class="flex items-center justify-between mb-2">
-          <label class="block text-sm font-medium text-gray-700">Fuentes</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-white/70">Fuentes</label>
           <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 transition-colors" @click="addSource">+ Agregar fuente</button>
         </div>
         <div v-for="(source, idx) in form.sources" :key="idx" class="flex gap-2 mb-2">
-          <input v-model="source.name" type="text" class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Nombre de la fuente" />
-          <input v-model="source.url" type="url" class="flex-[2] px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://..." />
+          <input v-model="source.name" type="text" class="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Nombre de la fuente" />
+          <input v-model="source.url" type="url" class="flex-[2] px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://..." />
           <button type="button" class="text-gray-400 hover:text-red-500 transition-colors px-2" @click="removeSource(idx)">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
-        <p v-if="form.sources.length === 0" class="text-xs text-gray-400">No hay fuentes agregadas.</p>
+        <p v-if="form.sources.length === 0" class="text-xs text-gray-400 dark:text-green-light/60">No hay fuentes agregadas.</p>
       </div>
 
       <!-- Publishing options -->
-      <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
-        <legend class="text-sm font-medium text-gray-700 px-2">Publicación</legend>
+      <fieldset class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+        <legend class="text-sm font-medium text-gray-700 dark:text-white/70 px-2">Publicación</legend>
         <div class="flex flex-col gap-3">
           <label class="flex items-center gap-3 cursor-pointer">
             <input v-model="publishMode" type="radio" value="draft" name="createPublishMode" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-            <span class="text-sm text-gray-700">Borrador</span>
+            <span class="text-sm text-gray-700 dark:text-white/70">Borrador</span>
           </label>
           <label class="flex items-center gap-3 cursor-pointer">
             <input v-model="publishMode" type="radio" value="now" name="createPublishMode" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-            <span class="text-sm text-gray-700">Publicar ahora</span>
+            <span class="text-sm text-gray-700 dark:text-white/70">Publicar ahora</span>
           </label>
           <label class="flex items-center gap-3 cursor-pointer">
             <input v-model="publishMode" type="radio" value="schedule" name="createPublishMode" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-            <span class="text-sm text-gray-700">Programar publicación</span>
+            <span class="text-sm text-gray-700 dark:text-white/70">Programar publicación</span>
           </label>
           <div v-if="publishMode === 'schedule'" class="ml-7">
-            <input v-model="scheduledDate" type="datetime-local" class="px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
-            <p class="text-xs text-gray-400 mt-1">El post se publicará automáticamente en la fecha seleccionada.</p>
+            <input v-model="scheduledDate" type="datetime-local" class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+            <p class="text-xs text-gray-400 dark:text-green-light/60 dark:text-green-light/60 mt-1">El post se publicará automáticamente en la fecha seleccionada.</p>
           </div>
         </div>
       </fieldset>
@@ -141,7 +141,7 @@
         <button type="submit" :disabled="blogStore.isUpdating" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
           {{ blogStore.isUpdating ? 'Creando...' : 'Crear Post' }}
         </button>
-        <NuxtLink :to="localePath('/panel/blog')" class="px-6 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition-colors">Cancelar</NuxtLink>
+        <NuxtLink :to="localePath('/panel/blog')" class="px-6 py-2.5 border border-gray-200 dark:border-white/[0.08] text-gray-600 dark:text-green-light rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors">Cancelar</NuxtLink>
       </div>
     </form>
 
@@ -151,11 +151,11 @@
     <div v-else class="max-w-3xl space-y-6">
 
       <!-- Download template -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+      <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h3 class="text-sm font-medium text-gray-900">Plantilla JSON</h3>
-            <p class="text-xs text-gray-400 mt-0.5">Descarga la plantilla con todas las secciones y campos de ejemplo.</p>
+            <h3 class="text-sm font-medium text-gray-900 dark:text-white">Plantilla JSON</h3>
+            <p class="text-xs text-gray-400 dark:text-green-light/60 dark:text-green-light/60 mt-0.5">Descarga la plantilla con todas las secciones y campos de ejemplo.</p>
           </div>
           <button type="button" :disabled="isDownloading" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50" @click="downloadTemplate">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -165,27 +165,27 @@
       </div>
 
       <!-- JSON input -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
-        <h3 class="text-sm font-medium text-gray-900 mb-3">Pegar o subir JSON</h3>
+      <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6">
+        <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-3">Pegar o subir JSON</h3>
         <div class="flex items-center gap-3 mb-3">
-          <label class="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors">
+          <label class="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-white/[0.08] rounded-lg text-sm text-gray-700 dark:text-white/70 hover:bg-gray-50 dark:hover:bg-white/[0.04] cursor-pointer transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
             Subir archivo .json
             <input type="file" accept=".json" class="hidden" @change="handleFileUpload" />
           </label>
-          <span v-if="uploadedFileName" class="text-xs text-gray-500">{{ uploadedFileName }}</span>
+          <span v-if="uploadedFileName" class="text-xs text-gray-500 dark:text-green-light/60">{{ uploadedFileName }}</span>
         </div>
         <textarea
           v-model="jsonRaw"
           rows="14"
           placeholder='{ "title_es": "...", "title_en": "...", "content_json_es": { "intro": "...", "sections": [...] }, ... }'
-          class="w-full px-4 py-3 border border-gray-200 rounded-xl text-xs font-mono leading-relaxed focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y"
+          class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-xs font-mono leading-relaxed focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y"
           @input="parseJson"
         />
 
-        <div v-if="jsonError" class="mt-2 text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">{{ jsonError }}</div>
+        <div v-if="jsonError" class="mt-2 text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-500/10 px-4 py-2 rounded-lg">{{ jsonError }}</div>
 
-        <div v-if="jsonParsed && !jsonError" class="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
+        <div v-if="jsonParsed && !jsonError" class="mt-3 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-lg px-4 py-3">
           <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
             <span><span class="text-gray-500">Título:</span> <span class="font-medium text-gray-900">{{ jsonParsed.title_es }}</span></span>
             <span><span class="text-gray-500">Categoría:</span> <span class="font-medium text-gray-900">{{ jsonParsed.category || '—' }}</span></span>
@@ -195,8 +195,8 @@
       </div>
 
       <!-- Metadata + submit -->
-      <form v-if="jsonParsed && !jsonError" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6" @submit.prevent="handleJsonSubmit">
-        <h3 class="text-sm font-medium text-gray-900 mb-4">Opciones de publicación</h3>
+      <form v-if="jsonParsed && !jsonError" class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6" @submit.prevent="handleJsonSubmit">
+        <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-4">Opciones de publicación</h3>
         <div class="space-y-4">
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
@@ -225,29 +225,29 @@
             <div class="flex flex-col gap-2">
               <label class="flex items-center gap-3 cursor-pointer">
                 <input v-model="jsonPublishMode" type="radio" value="draft" name="jsonPublishMode" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-                <span class="text-sm text-gray-700">Borrador</span>
+                <span class="text-sm text-gray-700 dark:text-white/70">Borrador</span>
               </label>
               <label class="flex items-center gap-3 cursor-pointer">
                 <input v-model="jsonPublishMode" type="radio" value="now" name="jsonPublishMode" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-                <span class="text-sm text-gray-700">Publicar ahora</span>
+                <span class="text-sm text-gray-700 dark:text-white/70">Publicar ahora</span>
               </label>
               <label class="flex items-center gap-3 cursor-pointer">
                 <input v-model="jsonPublishMode" type="radio" value="schedule" name="jsonPublishMode" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-                <span class="text-sm text-gray-700">Programar publicación</span>
+                <span class="text-sm text-gray-700 dark:text-white/70">Programar publicación</span>
               </label>
               <div v-if="jsonPublishMode === 'schedule'" class="ml-7">
-                <input v-model="jsonScheduledDate" type="datetime-local" class="px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+                <input v-model="jsonScheduledDate" type="datetime-local" class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
               </div>
             </div>
           </fieldset>
 
-          <div v-if="errorMsg" class="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl">{{ errorMsg }}</div>
+          <div v-if="errorMsg" class="text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-500/10 px-4 py-3 rounded-xl">{{ errorMsg }}</div>
 
           <div class="flex flex-wrap items-center gap-4 pt-2">
             <button type="submit" :disabled="blogStore.isUpdating" class="px-5 sm:px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
               {{ blogStore.isUpdating ? 'Creando...' : 'Crear desde JSON' }}
             </button>
-            <NuxtLink :to="localePath('/panel/blog')" class="text-sm text-gray-500 hover:text-gray-700">Cancelar</NuxtLink>
+            <NuxtLink :to="localePath('/panel/blog')" class="text-sm text-gray-500 dark:text-green-light/60 hover:text-gray-700 dark:hover:text-white">Cancelar</NuxtLink>
           </div>
         </div>
       </form>

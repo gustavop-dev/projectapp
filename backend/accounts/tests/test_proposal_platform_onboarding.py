@@ -248,3 +248,57 @@ def test_handle_logs_warning_when_sync_fails(_mock_sync, _mock_email, proposal_w
 
     assert result['skipped'] is False
     assert result['sync']['ok'] is False
+
+
+# -- _ensure_project_stages -------------------------------------------------
+
+
+@pytest.mark.django_db
+@patch('content.services.proposal_email_service.ProposalEmailService.send_acceptance_confirmation', return_value=True)
+@patch('accounts.services.proposal_platform_onboarding.sync_technical_requirements_for_deliverable')
+def test_handle_creates_design_and_development_stages(
+    _mock_sync, _mock_email, proposal_with_deliverable, admin_user,
+):
+    """Acceptance creates exactly two empty ProposalProjectStage rows."""
+    from content.models import ProposalProjectStage
+
+    _mock_sync.return_value = {'ok': True, 'detail': 'synced'}
+    proposal_with_deliverable.platform_onboarding_completed_at = None
+    proposal_with_deliverable.save(update_fields=['platform_onboarding_completed_at'])
+
+    handle_proposal_accepted_for_platform(
+        proposal_with_deliverable, source='admin_panel', acting_user=admin_user,
+    )
+
+    stages = ProposalProjectStage.objects.filter(proposal=proposal_with_deliverable)
+    assert stages.count() == 2
+    keys = set(stages.values_list('stage_key', flat=True))
+    assert keys == {'design', 'development'}
+
+
+@pytest.mark.django_db
+@patch('content.services.proposal_email_service.ProposalEmailService.send_acceptance_confirmation', return_value=True)
+@patch('accounts.services.proposal_platform_onboarding.sync_technical_requirements_for_deliverable')
+def test_handle_does_not_duplicate_stages_on_re_run(
+    _mock_sync, _mock_email, proposal_with_deliverable, admin_user,
+):
+    """Calling handle a second time does not create duplicate stage rows."""
+    from content.models import ProposalProjectStage
+
+    _mock_sync.return_value = {'ok': True, 'detail': 'synced'}
+    proposal_with_deliverable.platform_onboarding_completed_at = None
+    proposal_with_deliverable.save(update_fields=['platform_onboarding_completed_at'])
+
+    handle_proposal_accepted_for_platform(
+        proposal_with_deliverable, source='admin_panel', acting_user=admin_user,
+    )
+    # Pretend the proposal got re-processed by manually clearing the timestamp
+    proposal_with_deliverable.platform_onboarding_completed_at = None
+    proposal_with_deliverable.save(update_fields=['platform_onboarding_completed_at'])
+    handle_proposal_accepted_for_platform(
+        proposal_with_deliverable, source='admin_panel', acting_user=admin_user,
+    )
+
+    assert ProposalProjectStage.objects.filter(
+        proposal=proposal_with_deliverable,
+    ).count() == 2

@@ -1,11 +1,13 @@
 {
-  "version": "2.13.0",
-  "lastUpdated": "2026-04-05",
+  "version": "2.16.0",
+  "lastUpdated": "2026-04-10",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
       "module": "layout",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "Navigate between pages using the fixed top navbar.",
       "expectedSpecs": 1
@@ -13,7 +15,9 @@
     "layout-locale-switch": {
       "name": "Locale Switch",
       "module": "layout",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "Switch the application language between English and Spanish.",
       "expectedSpecs": 1
@@ -21,7 +25,9 @@
     "layout-footer-navigation": {
       "name": "Footer Navigation",
       "module": "layout",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P3",
       "description": "Navigate using footer links and social media links.",
       "expectedSpecs": 1
@@ -29,7 +35,9 @@
     "public-home": {
       "name": "Home Page",
       "module": "public",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P1",
       "description": "View the public home/landing page with hero, services, study cases and contact.",
       "expectedSpecs": 1
@@ -37,7 +45,9 @@
     "public-portfolio": {
       "name": "Portfolio Works",
       "module": "public",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Browse portfolio works and project showcases.",
       "expectedSpecs": 1
@@ -45,7 +55,9 @@
     "public-portfolio-detail": {
       "name": "Portfolio Case Study Detail",
       "module": "public",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "View a single portfolio case study with cover image, content sections, share button, and back navigation.",
       "expectedSpecs": 1
@@ -53,7 +65,9 @@
     "public-about-us": {
       "name": "About Us (archived)",
       "module": "public",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P3",
       "description": "ARCHIVED — page removed from navigation, no internal links. View the about us page with team and company information.",
       "expectedSpecs": 0,
@@ -62,7 +76,9 @@
     "public-landing-web-design": {
       "name": "Landing Web Design",
       "module": "public",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "View the web design landing page (marketing/conversion page).",
       "expectedSpecs": 1
@@ -70,7 +86,9 @@
     "public-contact-submit": {
       "name": "Contact Form Submit",
       "module": "public",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P1",
       "description": "Submit a contact form to reach the company.",
       "expectedSpecs": 1
@@ -78,7 +96,9 @@
     "blog-list": {
       "name": "Blog Listing",
       "module": "blog",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Browse the blog listing with search, category filters, featured hero post, and responsive grid/mobile cards.",
       "expectedSpecs": 1
@@ -86,7 +106,9 @@
     "blog-detail": {
       "name": "Blog Post Detail",
       "module": "blog",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Read a blog post with structured JSON content (sections, timelines, lists, subsections) or HTML fallback, sources, share, related posts.",
       "expectedSpecs": 1
@@ -94,7 +116,9 @@
     "proposal-view": {
       "name": "Proposal View",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P1",
       "description": "View a business proposal shared via unique UUID link with horizontal scroll.",
       "expectedSpecs": 1
@@ -102,7 +126,9 @@
     "proposal-respond": {
       "name": "Proposal Respond",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P1",
       "description": "Client responds to (accepts/rejects) a business proposal.",
       "expectedSpecs": 1
@@ -110,16 +136,22 @@
     "proposal-download-pdf": {
       "name": "Proposal PDF Download",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Client uses the floating PDF button; browser fetches GET /api/proposals/:uuid/pdf. E2E mocks a 200 PDF response.",
       "expectedSpecs": 1,
-      "knownGaps": ["Production may return 501 if PDF generation is disabled; E2E covers the UI path when the API succeeds."]
+      "knownGaps": [
+        "Production may return 501 if PDF generation is disabled; E2E covers the UI path when the API succeeds."
+      ]
     },
     "admin-login": {
       "name": "Admin Login",
       "module": "auth",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Admin authenticates to access the management panel.",
       "expectedSpecs": 1
@@ -127,7 +159,9 @@
     "admin-dashboard": {
       "name": "Admin Dashboard",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "View the admin dashboard with overview of proposals and blog posts.",
       "expectedSpecs": 1
@@ -135,7 +169,9 @@
     "admin-proposal-list": {
       "name": "Admin Proposal List",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "View the list of all business proposals.",
       "expectedSpecs": 1
@@ -143,7 +179,9 @@
     "admin-proposal-create": {
       "name": "Admin Proposal Create",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Create a new business proposal with sections and requirements.",
       "expectedSpecs": 1
@@ -151,7 +189,9 @@
     "admin-proposal-edit": {
       "name": "Admin Proposal Edit",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Edit an existing business proposal.",
       "expectedSpecs": 1
@@ -159,7 +199,9 @@
     "admin-proposal-delete": {
       "name": "Admin Proposal Delete",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Delete an existing business proposal.",
       "expectedSpecs": 1
@@ -167,7 +209,9 @@
     "admin-proposal-send": {
       "name": "Admin Proposal Send",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Send a proposal to a client via email.",
       "expectedSpecs": 1
@@ -175,7 +219,9 @@
     "admin-blog-list": {
       "name": "Admin Blog List",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "View the list of all blog posts (admin view with both languages).",
       "expectedSpecs": 1
@@ -183,7 +229,9 @@
     "admin-blog-create": {
       "name": "Admin Blog Create (Manual)",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Create a new bilingual blog post via manual form with category, readTime, featured, SEO fields.",
       "expectedSpecs": 1
@@ -191,7 +239,9 @@
     "admin-blog-create-from-json": {
       "name": "Admin Blog Create (JSON Import)",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Create a blog post by importing a structured JSON payload with content_json sections, template download, validation, and preview.",
       "expectedSpecs": 1
@@ -199,7 +249,9 @@
     "admin-blog-edit": {
       "name": "Admin Blog Edit",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Edit an existing blog post including new fields: category, readTime, isFeatured, content_json, SEO meta.",
       "expectedSpecs": 1
@@ -207,7 +259,9 @@
     "admin-proposal-section-edit-form": {
       "name": "Admin Proposal Section Edit (Form)",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Edit proposal sections using structured form fields for each of the 12 section types.",
       "expectedSpecs": 1
@@ -215,7 +269,9 @@
     "admin-proposal-section-edit-paste": {
       "name": "Admin Proposal Section Edit (Paste Content)",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Bulk-fill proposal section fields by pasting text and processing it into structured form data.",
       "expectedSpecs": 1
@@ -223,7 +279,9 @@
     "admin-proposal-section-reorder": {
       "name": "Admin Proposal Section Reorder",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Reorder sections within a proposal via drag or API.",
       "expectedSpecs": 1
@@ -231,7 +289,9 @@
     "admin-proposal-functional-requirements-form": {
       "name": "Admin Functional Requirements (Form)",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Manage requirement groups and items using the structured form interface.",
       "expectedSpecs": 1
@@ -239,7 +299,9 @@
     "admin-proposal-functional-requirements-paste": {
       "name": "Admin Functional Requirements (Paste Content)",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Bulk-fill requirement group items by pasting formatted text.",
       "expectedSpecs": 1
@@ -247,7 +309,9 @@
     "admin-blog-delete": {
       "name": "Admin Blog Delete",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P3",
       "description": "Delete an existing blog post.",
       "expectedSpecs": 1
@@ -255,7 +319,9 @@
     "proposal-share": {
       "name": "Proposal Share",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Client shares the proposal with a stakeholder via tracked share link.",
       "expectedSpecs": 1
@@ -263,7 +329,9 @@
     "proposal-engagement-tracking": {
       "name": "Proposal Engagement Tracking",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Automatic section-level engagement tracking with stakeholder detection and follow-up alerts.",
       "expectedSpecs": 1
@@ -271,7 +339,9 @@
     "admin-proposal-duplicate": {
       "name": "Admin Proposal Duplicate",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Duplicate an existing proposal to create a new draft copy.",
       "expectedSpecs": 1
@@ -279,7 +349,9 @@
     "admin-proposal-comment": {
       "name": "Admin Proposal Comment",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P3",
       "description": "Add internal comments to a proposal for team collaboration.",
       "expectedSpecs": 1
@@ -287,7 +359,9 @@
     "admin-proposal-analytics": {
       "name": "Admin Proposal Analytics",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "View detailed analytics for a single proposal: funnel, heatmap, sessions, CSV export.",
       "expectedSpecs": 1
@@ -295,7 +369,9 @@
     "admin-proposal-dashboard": {
       "name": "Admin Proposal Dashboard",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "View global KPI dashboard for all proposals: conversion rate, trends, rejection reasons.",
       "expectedSpecs": 1
@@ -303,15 +379,19 @@
     "admin-mini-crm-clients": {
       "name": "Admin Mini-CRM Clients",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
-      "description": "View client list grouped by email with proposal history and search.",
-      "expectedSpecs": 1
+      "description": "View client list with search, tab filtering (Todos/Activos/Huérfanos), expand client to see linked proposals, and empty state.",
+      "expectedSpecs": 3
     },
     "admin-portfolio-list": {
       "name": "Admin Portfolio List",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "View the list of all portfolio works with status, edit/duplicate/delete actions.",
       "expectedSpecs": 1
@@ -319,7 +399,9 @@
     "admin-portfolio-create": {
       "name": "Admin Portfolio Create",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Create a new portfolio work via manual form or JSON import.",
       "expectedSpecs": 1
@@ -327,7 +409,9 @@
     "admin-portfolio-edit": {
       "name": "Admin Portfolio Edit",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Edit an existing portfolio work including bilingual fields, cover image, content JSON, and SEO.",
       "expectedSpecs": 1
@@ -335,7 +419,9 @@
     "admin-portfolio-delete": {
       "name": "Admin Portfolio Delete",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Delete an existing portfolio work.",
       "expectedSpecs": 1
@@ -343,7 +429,9 @@
     "proposal-view-navigation": {
       "name": "Proposal View Navigation",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P1",
       "description": "Navigate between proposal sections using prev/next buttons and ProposalIndex panel.",
       "expectedSpecs": 1
@@ -351,7 +439,9 @@
     "proposal-view-onboarding": {
       "name": "Proposal View Onboarding",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P3",
       "description": "First-visit tutorial overlay with step-by-step tooltips and reading time popup.",
       "expectedSpecs": 1
@@ -359,7 +449,9 @@
     "admin-proposal-create-from-json": {
       "name": "Admin Proposal Create (JSON Import)",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Create a proposal by importing a pre-filled JSON payload with all 12 section content_json values.",
       "expectedSpecs": 1
@@ -367,7 +459,9 @@
     "admin-blog-calendar": {
       "name": "Admin Blog Calendar",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Weekly calendar view showing scheduled, published, and draft blog posts.",
       "expectedSpecs": 1
@@ -375,7 +469,9 @@
     "admin-proposal-manual-alerts": {
       "name": "Admin Proposal Manual Alerts",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Create, view, and dismiss manual seller alerts/reminders for proposals.",
       "expectedSpecs": 1
@@ -383,7 +479,9 @@
     "admin-proposal-win-rate-dashboard": {
       "name": "Admin Proposal Win Rate Dashboard",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Dashboard win rate segmented by project type, market type, and combination.",
       "expectedSpecs": 1
@@ -391,7 +489,9 @@
     "admin-proposal-engagement-score": {
       "name": "Admin Proposal Engagement Score",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Engagement score (0-100) per proposal in analytics tab with color-coded level and recommendation.",
       "expectedSpecs": 1
@@ -399,7 +499,9 @@
     "admin-proposal-metrics-manual": {
       "name": "Admin Proposal Metrics Manual",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P3",
       "description": "Floating ? button opens slide-over with searchable metric definitions.",
       "expectedSpecs": 1
@@ -407,7 +509,9 @@
     "proposal-welcome-back": {
       "name": "Proposal Welcome Back",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Returning client sees welcome-back overlay with name and last visited section.",
       "expectedSpecs": 1
@@ -415,7 +519,9 @@
     "proposal-process-methodology": {
       "name": "Proposal Process & Methodology",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "5-step visual pipeline section (Discovery → Diseño → Desarrollo → QA → Lanzamiento).",
       "expectedSpecs": 1
@@ -423,16 +529,22 @@
     "proposal-pre-expiration-discount-suggestion": {
       "name": "Pre-Expiration Discount Suggestion",
       "module": "admin",
-      "roles": ["system"],
+      "roles": [
+        "system"
+      ],
       "priority": "P2",
       "description": "Periodic task creates discount_suggestion alert for viewed proposals expiring within 5 days.",
       "expectedSpecs": 0,
-      "knownGaps": ["Backend-only periodic task, covered by backend unit tests"]
+      "knownGaps": [
+        "Backend-only periodic task, covered by backend unit tests"
+      ]
     },
     "admin-proposal-zombie-segment": {
       "name": "Admin Proposal Zombie Segment",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Dark-themed collapsible zombie alerts section for stale draft/sent proposals.",
       "expectedSpecs": 1
@@ -440,7 +552,9 @@
     "proposal-countdown-realtime": {
       "name": "Proposal Countdown Realtime",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P3",
       "description": "HH:MM countdown timer when proposal expires within 48 hours.",
       "expectedSpecs": 1
@@ -448,7 +562,9 @@
     "admin-proposal-create-and-send": {
       "name": "Admin Proposal Create & Send",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Create and send proposal in one step when client data is complete.",
       "expectedSpecs": 1
@@ -456,7 +572,9 @@
     "admin-proposal-create-preview": {
       "name": "Admin Proposal Create Preview",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Post-creation interstitial modal with preview, send, and edit options.",
       "expectedSpecs": 1
@@ -464,16 +582,22 @@
     "admin-seller-inactivity-escalation": {
       "name": "Admin Seller Inactivity Escalation",
       "module": "admin",
-      "roles": ["system"],
+      "roles": [
+        "system"
+      ],
       "priority": "P2",
       "description": "Periodic task sends escalation email for proposals with >=5 days no seller activity.",
       "expectedSpecs": 0,
-      "knownGaps": ["Backend-only periodic task, covered by backend unit tests"]
+      "knownGaps": [
+        "Backend-only periodic task, covered by backend unit tests"
+      ]
     },
     "admin-dashboard-pipeline-value": {
       "name": "Admin Dashboard Pipeline Value",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Pipeline Value KPI card showing sum of total_investment for active sent+viewed proposals.",
       "expectedSpecs": 1
@@ -481,7 +605,9 @@
     "proposal-rejection-optional-reason": {
       "name": "Proposal Rejection Optional Reason",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Rejection reason is optional with nudge text encouraging feedback.",
       "expectedSpecs": 1
@@ -489,7 +615,9 @@
     "proposal-calculator-timeline": {
       "name": "Proposal Calculator Dynamic Timeline",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P1",
       "description": "Investment calculator shows dynamic timeline changes: deselecting investment modules reduces weeks, selecting calculator modules adds ~1 week each.",
       "expectedSpecs": 1
@@ -497,7 +625,9 @@
     "admin-discount-analysis-enhanced": {
       "name": "Admin Discount Analysis Enhanced",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P3",
       "description": "Enhanced discount card with sample sizes, avg discount %, and delta warning.",
       "expectedSpecs": 1
@@ -505,7 +635,9 @@
     "proposal-negotiate": {
       "name": "Proposal Negotiate (Accept with Changes)",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P1",
       "description": "Client clicks 'Aceptar con cambios' → negotiate modal → required comment → submit → negotiating success state.",
       "expectedSpecs": 1
@@ -513,7 +645,9 @@
     "proposal-investment-calculator": {
       "name": "Proposal Investment Calculator",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P1",
       "description": "Client opens calculator modal, toggles optional modules, sees dynamic total/timeline, confirms selection.",
       "expectedSpecs": 1
@@ -521,7 +655,9 @@
     "admin-proposal-actions-modal": {
       "name": "Admin Proposal Actions Modal",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Admin opens actions modal from listing with edit, preview, send/resend, copy, WhatsApp, duplicate, toggle, delete actions.",
       "expectedSpecs": 1
@@ -529,7 +665,9 @@
     "proposal-comment-from-closing": {
       "name": "Proposal Comment from Closing",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Client submits written comments from the closing panel via comment modal.",
       "expectedSpecs": 1
@@ -537,7 +675,9 @@
     "proposal-rejection-smart-recovery": {
       "name": "Proposal Rejection Smart Recovery",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "After rejection, context-specific recovery cards render based on rejection reason with appropriate CTAs.",
       "expectedSpecs": 1
@@ -545,7 +685,9 @@
     "proposal-functional-requirements-modal": {
       "name": "Proposal Functional Requirements Modal",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Client clicks requirement group card to open detail modal showing items with icons and descriptions.",
       "expectedSpecs": 1
@@ -553,7 +695,9 @@
     "proposal-calculator-modules": {
       "name": "Proposal Calculator Modules (PWA, AI, Reports)",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P1",
       "description": "Calculator modal displays modules in order: PWA (40%), AI (invite-only), Smart Conversions (invite-only), Electronic Invoicing (60%), International Payments (20%), Regional Payments (20%), Email Marketing (10%), Reports & Alerts (20%, default selected), Multi-idioma (15%). Info badge at top of modal. Selecting modules adds ~1 week to timeline.",
       "expectedSpecs": 1
@@ -561,7 +705,9 @@
     "proposal-expired-graceful": {
       "name": "Proposal Expired Graceful",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P1",
       "description": "Expired proposal returns 410 with partial data; frontend renders ProposalExpired with client name, WhatsApp CTA, and email contact.",
       "expectedSpecs": 1
@@ -569,7 +715,9 @@
     "admin-proposal-batch-actions": {
       "name": "Admin Proposal Batch Actions",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Select multiple proposals via checkboxes and perform batch actions (re-send, expire, delete) with sticky action bar.",
       "expectedSpecs": 1
@@ -577,16 +725,22 @@
     "admin-proposal-quick-send": {
       "name": "Admin Proposal Quick Send",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Send or re-send a proposal directly from the proposals list without entering edit page.",
       "expectedSpecs": 1,
-      "knownGaps": ["Covered within admin-proposal-list.spec.js"]
+      "knownGaps": [
+        "Covered within admin-proposal-list.spec.js"
+      ]
     },
     "admin-proposal-quick-log": {
       "name": "Admin Proposal Quick Log Activity",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Register a seller activity (call, meeting, follow-up, note) directly from the proposals list via quick-log modal.",
       "expectedSpecs": 1
@@ -594,16 +748,22 @@
     "admin-proposal-json-import-warnings": {
       "name": "Admin Proposal JSON Import Warnings",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "JSON import returns warnings for unmapped section keys; warnings displayed in post-creation modal.",
       "expectedSpecs": 1,
-      "knownGaps": ["Covered within admin-proposal-create.spec.js"]
+      "knownGaps": [
+        "Covered within admin-proposal-create.spec.js"
+      ]
     },
     "proposal-summary-kpis": {
       "name": "Proposal Summary KPIs",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Proposal Summary section displays personalized KPI cards with value, label, and source citation.",
       "expectedSpecs": 1
@@ -611,7 +771,9 @@
     "proposal-calculator-new-modules": {
       "name": "Proposal Calculator New Default Modules",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Calculator displays Email Marketing (10%), i18n (15%), Gift Cards (20%) modules. KPI Dashboard removed from calculator (included by default like Analytics).",
       "expectedSpecs": 1
@@ -619,7 +781,9 @@
     "proposal-calculator-integrations": {
       "name": "Proposal Calculator Integration Modules",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Calculator displays integration groups as toggleable modules: International Payments (20%), Regional Payments (20%), Electronic Invoicing (60%), Conversion Tracking (invite-only, 0%).",
       "expectedSpecs": 1
@@ -627,7 +791,9 @@
     "proposal-discount-multi-section": {
       "name": "Proposal Discount Multi-Section",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Discount badge visible in Investment banner, Calculator footer, and ProposalClosing special price badge.",
       "expectedSpecs": 1
@@ -635,7 +801,9 @@
     "admin-proposal-log-activity": {
       "name": "Admin Proposal Log Activity (Edit Page)",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin logs seller activity from proposal edit page Activity tab.",
       "expectedSpecs": 1
@@ -643,34 +811,48 @@
     "admin-proposal-engagement-decay-alert": {
       "name": "Admin Proposal Engagement Decay Alert",
       "module": "admin",
-      "roles": ["system"],
+      "roles": [
+        "system"
+      ],
       "priority": "P2",
       "description": "System creates engagement_decay alert when client views fewer sections than average.",
       "expectedSpecs": 0,
-      "knownGaps": ["Backend-only, covered by backend unit tests"]
+      "knownGaps": [
+        "Backend-only, covered by backend unit tests"
+      ]
     },
     "admin-proposal-post-rejection-revisit": {
       "name": "Admin Proposal Post-Rejection Revisit",
       "module": "admin",
-      "roles": ["system"],
+      "roles": [
+        "system"
+      ],
       "priority": "P2",
       "description": "System creates post_rejection_revisit alert when rejected proposal is revisited.",
       "expectedSpecs": 0,
-      "knownGaps": ["Backend-only, covered by backend unit tests"]
+      "knownGaps": [
+        "Backend-only, covered by backend unit tests"
+      ]
     },
     "proposal-calculator-abandonment-tracking": {
       "name": "Proposal Calculator Abandonment Tracking",
       "module": "proposal",
-      "roles": ["system"],
+      "roles": [
+        "system"
+      ],
       "priority": "P2",
       "description": "Calculator tracks confirmed/abandoned module selections as ProposalChangeLog entries.",
       "expectedSpecs": 0,
-      "knownGaps": ["Backend-only, covered by backend unit tests"]
+      "knownGaps": [
+        "Backend-only, covered by backend unit tests"
+      ]
     },
     "proposal-onboarding-mobile-swipe": {
       "name": "Proposal Onboarding Mobile Viewport",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P3",
       "description": "Onboarding tooltip steps render correctly on mobile viewport with navigation buttons.",
       "expectedSpecs": 1
@@ -678,7 +860,9 @@
     "proposal-og-meta-personalized": {
       "name": "Proposal OG Meta Personalized",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P3",
       "description": "Personalized Open Graph meta tags for WhatsApp/social media previews.",
       "expectedSpecs": 1
@@ -686,7 +870,9 @@
     "admin-proposal-dashboard-auto-refresh": {
       "name": "Admin Proposal Dashboard Auto-Refresh",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P3",
       "description": "Dashboard KPI panel auto-refreshes every 60s with manual refresh button and last-updated label.",
       "expectedSpecs": 1
@@ -694,7 +880,9 @@
     "admin-proposal-inline-status-change": {
       "name": "Admin Proposal Inline Status Change",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Change proposal status directly from the proposals table via inline dropdown.",
       "expectedSpecs": 1
@@ -702,7 +890,9 @@
     "admin-proposal-defaults-config": {
       "name": "Admin Proposal Defaults Config",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Manage default section configurations for new proposals (ES/EN), with save and reset-to-hardcoded.",
       "expectedSpecs": 1
@@ -710,7 +900,9 @@
     "admin-email-templates-config": {
       "name": "Admin Email Templates Config",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Manage email template text customization with category filter, inline editing, HTML preview, active toggle, and reset to defaults.",
       "expectedSpecs": 1
@@ -718,7 +910,9 @@
     "admin-proposal-scorecard": {
       "name": "Admin Proposal Pre-Send Scorecard",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "View a 1-10 completeness scorecard with blockers before sending a proposal.",
       "expectedSpecs": 1
@@ -726,7 +920,9 @@
     "admin-proposal-section-completeness": {
       "name": "Admin Proposal Section Completeness",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P3",
       "description": "Progress bar showing percentage of enabled sections with content in the edit view.",
       "expectedSpecs": 1
@@ -734,52 +930,74 @@
     "admin-daily-pipeline-digest": {
       "name": "Admin Daily Pipeline Digest",
       "module": "admin",
-      "roles": ["system"],
+      "roles": [
+        "system"
+      ],
       "priority": "P2",
       "description": "Daily email digest with viewed yesterday, inactive, and expiring proposals.",
       "expectedSpecs": 0,
-      "knownGaps": ["Backend-only, covered by backend unit tests"]
+      "knownGaps": [
+        "Backend-only, covered by backend unit tests"
+      ]
     },
     "admin-high-engagement-alert": {
       "name": "Admin High Engagement Alert",
       "module": "admin",
-      "roles": ["system"],
+      "roles": [
+        "system"
+      ],
       "priority": "P2",
       "description": "System creates high_engagement_today alert when client has 3+ view sessions in one day.",
       "expectedSpecs": 0,
-      "knownGaps": ["Backend-only, covered by backend unit tests"]
+      "knownGaps": [
+        "Backend-only, covered by backend unit tests"
+      ]
     },
     "admin-calculator-followup-alert": {
       "name": "Admin Calculator Abandonment Follow-up",
       "module": "admin",
-      "roles": ["system"],
+      "roles": [
+        "system"
+      ],
       "priority": "P2",
       "description": "System creates calculator_followup alert 24h after calculator abandonment without confirmation.",
       "expectedSpecs": 0,
-      "knownGaps": ["Backend-only, covered by backend unit tests"]
+      "knownGaps": [
+        "Backend-only, covered by backend unit tests"
+      ]
     },
     "admin-whatsapp-suggestion": {
       "name": "Admin WhatsApp Suggestion",
       "module": "admin",
-      "roles": ["system"],
+      "roles": [
+        "system"
+      ],
       "priority": "P2",
       "description": "System creates whatsapp_suggestion alert with pre-drafted message based on top viewed section.",
       "expectedSpecs": 0,
-      "knownGaps": ["Backend-only, covered by backend unit tests"]
+      "knownGaps": [
+        "Backend-only, covered by backend unit tests"
+      ]
     },
     "admin-auto-archive-zombie": {
       "name": "Admin Auto-Archive Zombie Proposals",
       "module": "admin",
-      "roles": ["system"],
+      "roles": [
+        "system"
+      ],
       "priority": "P3",
       "description": "System auto-archives expired proposals with no activity in 30 days.",
       "expectedSpecs": 0,
-      "knownGaps": ["Backend-only, covered by backend unit tests"]
+      "knownGaps": [
+        "Backend-only, covered by backend unit tests"
+      ]
     },
     "proposal-calculator-selected-first": {
       "name": "Proposal Calculator Selected Modules First",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Calculator modal sorts groups with pre-selected modules to the top so the client sees included modules first.",
       "expectedSpecs": 1
@@ -787,7 +1005,9 @@
     "proposal-calculator-micro-feedback": {
       "name": "Proposal Calculator Micro-Feedback",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Transient +/- price badge when toggling calculator modules with prices.",
       "expectedSpecs": 1
@@ -795,7 +1015,9 @@
     "proposal-payment-plan-closing": {
       "name": "Proposal Payment Plan in Closing",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Display payment plan milestones near the accept button in the closing section.",
       "expectedSpecs": 1
@@ -803,7 +1025,9 @@
     "proposal-post-acceptance-welcome": {
       "name": "Proposal Post-Acceptance Welcome Kit",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P1",
       "description": "After acceptance: PDF download, onboarding timeline, and PM WhatsApp contact.",
       "expectedSpecs": 1
@@ -811,7 +1035,9 @@
     "proposal-structured-negotiation": {
       "name": "Proposal Structured Negotiation Modal",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Negotiate modal with structured checkbox reasons and tab toggle for adjust vs comment.",
       "expectedSpecs": 1
@@ -819,7 +1045,9 @@
     "proposal-conditional-acceptance": {
       "name": "Proposal Conditional Acceptance",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Accept with an optional condition note (Acepto, pero...).",
       "expectedSpecs": 1
@@ -827,7 +1055,9 @@
     "proposal-section-onboarding": {
       "name": "Proposal Section Onboarding",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P3",
       "description": "Per-section spotlight onboarding tutorials (Investment, Requirements, Executive Investment) that trigger on first visit to each section.",
       "expectedSpecs": 1
@@ -835,7 +1065,9 @@
     "proposal-executive-to-detailed": {
       "name": "Proposal Executive to Detailed View Switch",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Client switches from executive view to full detailed proposal via 'Ver Propuesta Completa' button with branded transition overlay.",
       "expectedSpecs": 1
@@ -843,7 +1075,9 @@
     "proposal-technical-view": {
       "name": "Proposal Technical View Mode",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Client opens public proposal with ?mode=technical to read the technical document (synthetic panels from technical_document) plus closing.",
       "expectedSpecs": 1
@@ -851,7 +1085,10 @@
     "platform-login": {
       "name": "Platform Login",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P1",
       "description": "Client or admin authenticates via JWT login form. Routes to /platform/verify (first login), /platform/complete-profile (profile incomplete), or /platform/dashboard (onboarded).",
       "expectedSpecs": 1
@@ -859,7 +1096,10 @@
     "platform-verify-onboarding": {
       "name": "Platform Verify & Onboarding",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P1",
       "description": "First-login OTP verification with 6-digit code input, new password set, and redirect to complete-profile or dashboard.",
       "expectedSpecs": 1
@@ -867,7 +1107,10 @@
     "platform-complete-profile": {
       "name": "Platform Complete Profile",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P1",
       "description": "Mandatory profile completion form with company, phone, cedula, date of birth, gender, education level, and optional avatar upload. Middleware gates dashboard access until completed.",
       "expectedSpecs": 1
@@ -875,7 +1118,10 @@
     "platform-kanban-board": {
       "name": "Platform Kanban Board",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P1",
       "description": "3-column kanban board (Por hacer, En progreso, En revisión) with collapsible Completados checklist. HTML5 drag & drop between columns, checkmark to complete, card detail modal with comments and history timeline. Admin has full control; client can only approve in_review cards.",
       "expectedSpecs": 1
@@ -883,7 +1129,10 @@
     "platform-dashboard": {
       "name": "Platform Dashboard",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "Admin dashboard shows KPI cards (active/pending/inactive clients), recent clients table, and upcoming modules. Client dashboard shows profile summary and upcoming modules.",
       "expectedSpecs": 1
@@ -891,7 +1140,10 @@
     "platform-sidebar-navigation": {
       "name": "Platform Sidebar Navigation",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "Left sidebar layout with collapsible navigation (Principal, Proyectos, Administración sections), mobile hamburger drawer, theme toggle (light/dark), profile link, and logout.",
       "expectedSpecs": 1
@@ -899,7 +1151,10 @@
     "platform-project-list": {
       "name": "Platform Project List",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "Admin sees all projects with status filters (Todos/Activos/Pausados/Completados/Archivados) and create button. Client sees only their assigned projects. Card grid with progress bars and estimated dates.",
       "expectedSpecs": 1
@@ -907,7 +1162,10 @@
     "platform-project-detail": {
       "name": "Platform Project Detail",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "Project detail hub with stats row (progress, client, dates), module cards (Tablero active, others 'Próximamente'), and admin edit modal for name, description, status, dates.",
       "expectedSpecs": 1
@@ -915,7 +1173,10 @@
     "platform-unified-board": {
       "name": "Platform Unified Board",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "Cross-project view showing active requirement cards (todo/in_progress/in_review) grouped by project with summary pills and links to per-project boards.",
       "expectedSpecs": 1
@@ -923,7 +1184,9 @@
     "platform-admin-client-list": {
       "name": "Platform Admin Client List",
       "module": "platform",
-      "roles": ["platform-admin"],
+      "roles": [
+        "platform-admin"
+      ],
       "priority": "P2",
       "description": "Admin-only client management table with invite modal (create + send credentials), status filters (Todos/Onboarded/Pendientes/Inactivos), search, resend invite, and deactivate actions.",
       "expectedSpecs": 1
@@ -931,7 +1194,9 @@
     "platform-admin-client-detail": {
       "name": "Platform Admin Client Detail",
       "module": "platform",
-      "roles": ["platform-admin"],
+      "roles": [
+        "platform-admin"
+      ],
       "priority": "P2",
       "description": "Admin-only client detail page with profile card, edit form (name, company, phone, active toggle), quick actions (resend invite, deactivate/reactivate).",
       "expectedSpecs": 1
@@ -939,7 +1204,10 @@
     "platform-profile-edit": {
       "name": "Platform Profile Edit",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "View and update personal profile fields (name, company, phone, cedula, DOB, gender, education) with avatar display and role badge.",
       "expectedSpecs": 1
@@ -947,7 +1215,9 @@
     "platform-admin-project-create": {
       "name": "Platform Admin Project Create",
       "module": "platform",
-      "roles": ["platform-admin"],
+      "roles": [
+        "platform-admin"
+      ],
       "priority": "P3",
       "description": "Admin creates a new project via modal form with name, description, client selector, start date, and estimated end date.",
       "expectedSpecs": 1
@@ -955,7 +1225,10 @@
     "platform-kanban-card-comments": {
       "name": "Platform Kanban Card Comments",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P3",
       "description": "Add public or internal (admin-only) comments on requirement cards via the card detail modal. Internal comments marked with amber border and 'Interno' label.",
       "expectedSpecs": 1
@@ -963,7 +1236,9 @@
     "proposal-view-paste-rendering": {
       "name": "Proposal View Paste Mode Rendering",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "Client views paste-mode sections rendered as RawContentSection with markdown in a styled card, while form-mode sections render structured Vue components.",
       "expectedSpecs": 1
@@ -971,16 +1246,23 @@
     "proposal-sticky-bar-accept": {
       "name": "Proposal Sticky Bar Accept (ARCHIVED)",
       "module": "proposal",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "ARCHIVED — ProposalResponseButtons component removed from production. Acceptance handled via ProposalClosing section buttons.",
       "expectedSpecs": 0,
-      "knownGaps": ["Feature removed from production. Flow archived."]
+      "knownGaps": [
+        "Feature removed from production. Flow archived."
+      ]
     },
     "platform-change-requests": {
       "name": "Platform Change Requests",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "Client creates change requests for a project. Admin evaluates (approve/reject/needs clarification) with estimated cost and time. Both roles can comment. Per-project view at /platform/projects/:id/changes and unified cross-project view at /platform/changes.",
       "expectedSpecs": 1
@@ -988,7 +1270,10 @@
     "platform-bug-reports": {
       "name": "Platform Bug Reports",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "Both roles report bugs with severity, steps to reproduce, expected/actual behavior, device/browser, screenshot. Admin evaluates with status changes and responses. Per-project view at /platform/projects/:id/bugs and unified cross-project view at /platform/bugs.",
       "expectedSpecs": 1
@@ -996,7 +1281,10 @@
     "platform-deliverables": {
       "name": "Platform Deliverables",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "Admin uploads deliverables (designs, documents, APKs, credentials) with version history. Client downloads files. Per-project view at /platform/projects/:id/deliverables and unified cross-project view at /platform/deliverables.",
       "expectedSpecs": 1
@@ -1004,7 +1292,10 @@
     "platform-hosting-subscription": {
       "name": "Platform Hosting Subscription",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P1",
       "description": "Client selects hosting plan (semiannual/quarterly/monthly) from project payments page, activates subscription, and pays via Wompi (card or widget). Admin sees subscription status. Netflix-style active state with next renewal date. Per-project view at /platform/projects/:id/payments and unified view at /platform/payments.",
       "expectedSpecs": 1
@@ -1012,7 +1303,10 @@
     "platform-notifications": {
       "name": "Platform Notifications",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "In-app notification center with unread count badge in sidebar, filter tabs (all/unread/read), mark-all-read, and click-to-navigate deep links to the relevant project module (board, changes, bugs, deliverables).",
       "expectedSpecs": 1
@@ -1020,7 +1314,9 @@
     "platform-kanban-json-upload": {
       "name": "Platform Kanban JSON Upload",
       "module": "platform",
-      "roles": ["platform-admin"],
+      "roles": [
+        "platform-admin"
+      ],
       "priority": "P2",
       "description": "Admin bulk-creates requirements by uploading a JSON file. Includes downloadable example template. Each requirement has title, description, configuration (roles/permissions), and flow (user flow). POST /api/accounts/projects/:projectId/deliverables/:deliverableId/requirements/bulk/.",
       "expectedSpecs": 1
@@ -1028,7 +1324,9 @@
     "platform-requirement-client-review": {
       "name": "Platform Requirement Client Review",
       "module": "platform",
-      "roles": ["platform-client"],
+      "roles": [
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "Client reviews completed requirements from the Kanban board. Clicking a done card shows three options: Approve (marks as accepted), Request Change (navigates to change requests with pre-filled data), or Report Bug (navigates to bugs with pre-filled data).",
       "expectedSpecs": 1
@@ -1036,7 +1334,9 @@
     "admin-document-list": {
       "name": "Admin Document List",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "View the list of admin documents with title, status, client association, and actions (edit, download PDF, duplicate, delete). Navigate to create or edit pages.",
       "expectedSpecs": 1
@@ -1044,7 +1344,9 @@
     "admin-document-create": {
       "name": "Admin Document Create",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Create a new admin document via Markdown paste mode or file upload mode, with title, optional client association, and live preview.",
       "expectedSpecs": 1
@@ -1052,7 +1354,9 @@
     "admin-document-edit": {
       "name": "Admin Document Edit",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Edit an existing admin document, change content, update status, and download as PDF.",
       "expectedSpecs": 1
@@ -1060,7 +1364,9 @@
     "admin-admin-management": {
       "name": "Admin User Management",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P3",
       "description": "Manage admin users: list with status filters (All/Active/Inactive), invite new admin via modal, view and deactivate existing admins.",
       "expectedSpecs": 1
@@ -1068,15 +1374,29 @@
     "admin-email-deliverability": {
       "name": "Admin Email Deliverability Dashboard",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P3",
       "description": "Dashboard tracking email send/delivery/bounce rates for all proposal-related automated emails. Accessible from /panel/proposals/email-deliverability.",
+      "expectedSpecs": 1
+    },
+    "admin-view-map": {
+      "name": "Admin View Map",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P4",
+      "description": "Open the panel route inventory, filter grouped views, and copy route references for support and QA communication.",
       "expectedSpecs": 1
     },
     "public-landing-software": {
       "name": "Landing Software Development",
       "module": "public",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P3",
       "description": "View the custom software development landing page with hero, features, CTA, and contact form section.",
       "expectedSpecs": 1
@@ -1084,7 +1404,9 @@
     "public-landing-apps": {
       "name": "Landing App Development",
       "module": "public",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P3",
       "description": "View the mobile app development landing page with hero, features, CTA, and contact form section.",
       "expectedSpecs": 1
@@ -1092,7 +1414,10 @@
     "platform-collection-accounts-list": {
       "name": "Platform Collection Accounts List",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "Browse collection accounts at /platform/collection-accounts: table, filters (admin), new draft (admin), Open links to detail.",
       "expectedSpecs": 1
@@ -1100,7 +1425,10 @@
     "platform-collection-account-detail": {
       "name": "Platform Collection Account Detail",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "View a single collection account: amounts, line items, Download PDF; admin Issue / Mark paid / Cancel when applicable.",
       "expectedSpecs": 1
@@ -1108,7 +1436,10 @@
     "platform-project-collection-accounts": {
       "name": "Platform Project Collection Accounts",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "List collection accounts scoped to a project at /platform/projects/:id/collection-accounts with links to detail.",
       "expectedSpecs": 1
@@ -1116,7 +1447,10 @@
     "platform-deliverable-detail": {
       "name": "Platform Deliverable Detail",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "View deliverable detail at /platform/projects/:id/deliverables/:deliverableId: linked proposal PDFs, main file, epic, board link; admin attachment upload.",
       "expectedSpecs": 1
@@ -1124,7 +1458,9 @@
     "admin-proposal-contract-generate": {
       "name": "Admin Proposal Contract Generate",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Admin generates a development contract from the proposal edit Documents tab. Two modes: 'Contrato por defecto' (fill contractor/client params form with auto-populated company settings) or 'Contrato personalizado' (paste/upload custom Markdown). Submit calls save-and-negotiate API. Visible only when proposal status is negotiating/accepted/rejected.",
       "expectedSpecs": 1
@@ -1132,7 +1468,9 @@
     "admin-proposal-contract-edit": {
       "name": "Admin Proposal Contract Edit",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin edits an existing contract's parameters via 'Editar parámetros' button in the Documents tab. Modal opens pre-filled with saved params. Submit calls contract update API.",
       "expectedSpecs": 1
@@ -1140,7 +1478,9 @@
     "admin-proposal-contract-download": {
       "name": "Admin Proposal Contract Download",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin downloads contract PDF (final version) or draft PDF from the Documents tab. Download links visible only when contract has been generated.",
       "expectedSpecs": 1
@@ -1148,7 +1488,9 @@
     "admin-proposal-documents-manage": {
       "name": "Admin Proposal Documents Manage",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin uploads additional documents (otrosí, legal annex, client document, other with custom label) to a proposal via the Documents tab. Lists existing documents with type badges. Delete non-generated documents.",
       "expectedSpecs": 1
@@ -1156,7 +1498,9 @@
     "admin-proposal-documents-send": {
       "name": "Admin Proposal Documents Send",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Admin selects documents to send (draft contract, commercial PDF, technical PDF, additional docs via checkboxes), clicks 'Enviar al cliente', edits email subject/greeting/body/footer/document descriptions in SendDocumentsModal, submits to send API. Disabled when no client email or no docs selected.",
       "expectedSpecs": 1
@@ -1164,7 +1508,9 @@
     "admin-send-branded-email": {
       "name": "Send Branded Email",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin sends a branded email from proposal edit page Correos tab. Composer with draggable sections, file attachments, branded preview, and paginated email history.",
       "expectedSpecs": 1
@@ -1172,7 +1518,9 @@
     "admin-send-proposal-email": {
       "name": "Send Proposal Email",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin sends a proposal email logged as activity from proposal edit page Enviar correo tab. Same composer UI, each send creates ProposalChangeLog entry.",
       "expectedSpecs": 1
@@ -1180,7 +1528,10 @@
     "platform-project-data-model": {
       "name": "Platform Project Data Model",
       "module": "platform",
-      "roles": ["platform-admin", "platform-client"],
+      "roles": [
+        "platform-admin",
+        "platform-client"
+      ],
       "priority": "P2",
       "description": "Admin uploads a JSON data model for a project (copy/download template, file upload or paste, validate, submit). Both roles see the entity table (name, description, keyFields, relationship). Empty state and error/retry state.",
       "expectedSpecs": 1
@@ -1188,7 +1539,9 @@
     "public-privacy-policy": {
       "name": "Privacy Policy Page",
       "module": "public",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P4",
       "description": "View the public privacy policy page with localized content (ES/EN).",
       "expectedSpecs": 1
@@ -1196,7 +1549,9 @@
     "public-terms-conditions": {
       "name": "Terms and Conditions Page",
       "module": "public",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P4",
       "description": "View the public terms and conditions page with localized content (ES/EN).",
       "expectedSpecs": 1
@@ -1204,18 +1559,114 @@
     "admin-blog-linkedin-connect": {
       "name": "Admin Blog LinkedIn Connect",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin connects LinkedIn account from blog post edit page via OAuth 2.0 popup flow. Popup opens at authorization URL, user authenticates, /auth/linkedin/callback exchanges code via POST /api/linkedin/callback/, popup notifies opener via postMessage, edit page updates to show connected profile.",
       "expectedSpecs": 1,
-      "knownGaps": ["OAuth popup requires real LinkedIn credentials — E2E should mock the callback URL and API endpoints"]
+      "knownGaps": [
+        "OAuth popup requires real LinkedIn credentials — E2E should mock the callback URL and API endpoints"
+      ]
     },
     "admin-blog-linkedin-publish": {
       "name": "Admin Blog LinkedIn Publish",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin fills LinkedIn summary (ES or EN, ≤1300 chars), selects language, clicks 'Publicar en LinkedIn' → POST /api/blog/admin/:id/publish-linkedin/. Success message renders. Publish button disabled when summary is empty. Last publish timestamp shown after success.",
+      "expectedSpecs": 1
+    },
+    "admin-standalone-email-composer": {
+      "name": "Admin Standalone Email Composer",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin composes and sends branded emails from /panel/emails (not tied to a proposal). Draggable sections, file attachments, branded preview, paginated email history. Uses standalone endpoints: emails/send/, emails/defaults/, emails/history/.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-advanced-filters": {
+      "name": "Admin Proposal Advanced Filters",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Filter proposals using custom saved tabs, status/type/market dropdowns, date range, and text search. Tab bar with add/rename/delete, URL deep-linking via ?tab=<tabId>.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-project-schedule": {
+      "name": "Admin Proposal Project Schedule (Cronograma)",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Admin sets per-stage start/end dates (design, development) for an accepted proposal in the Cronograma tab, sees proportional status badges, and marks stages as completed to silence deadline alerts.",
+      "expectedSpecs": 1
+    },
+    "admin-client-create-standalone": {
+      "name": "Admin Client Create Standalone",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Create a new client profile from /panel/clients via the modal form, with and without email.",
+      "expectedSpecs": 1
+    },
+    "admin-client-delete-orphan": {
+      "name": "Admin Client Delete Orphan",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Delete an orphan client (zero proposals + zero projects) via the trash icon and confirm modal.",
+      "expectedSpecs": 1
+    },
+    "admin-client-delete-protected": {
+      "name": "Admin Client Delete Protected",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Verify that active clients (with proposals or projects) do not expose the delete trash icon.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-client-autocomplete": {
+      "name": "Admin Proposal Client Autocomplete",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Client picker autocomplete in proposal create/edit: type to search, select a client to auto-fill snapshot fields, fallback \"Crear nuevo\" when no match.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-client-no-email": {
+      "name": "Admin Proposal Client No Email",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Create a proposal without a client email — backend generates a placeholder email and all automations are paused for that client.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-update-client": {
+      "name": "Admin Proposal Update Client",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Change the linked client on an existing proposal from the proposal edit page (/panel/proposals/:id/edit). Admin selects a different client via the autocomplete and saves; snapshot fields update to reflect the new client.",
       "expectedSpecs": 1
     }
   }

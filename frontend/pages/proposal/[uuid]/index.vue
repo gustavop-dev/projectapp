@@ -81,6 +81,7 @@
           @navigate="handleNavigate"
           @update:open="(val) => indexOpen = val"
           @switchToDetailed="handleSwitchToDetailed"
+          @backToGateway="handleBackToGateway"
         />
         <SectionCounter :current="currentIndex + 1" :total="totalSections" />
         <ExpirationBadge v-if="proposal.expires_at" :expiresAt="proposal.expires_at" />
@@ -586,7 +587,7 @@ watch(currentPanel, (panel) => {
 
 // Section engagement tracking
 const proposalUuidRef = computed(() => proposal.value?.uuid || route.params.uuid);
-useProposalTracking(proposalUuidRef, currentPanel, viewMode);
+const { flush: flushTracking } = useProposalTracking(proposalUuidRef, currentPanel, viewMode);
 
 function showReadingTimePopup() {
   readingPopupVisible.value = true;
@@ -987,6 +988,13 @@ function handleSwitchToDetailed() {
       switchOverlayVisible.value = false;
     }, 1200);
   }, 1000);
+}
+
+function handleBackToGateway() {
+  flushTracking();
+  viewMode.value = null;
+  currentIndex.value = 0;
+  window.scrollTo({ top: 0, behavior: 'auto' });
 }
 
 function onCustomTotalUpdate(total) {

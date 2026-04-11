@@ -19,6 +19,7 @@ export default async function globalSetup() {
   const warmupRoutes = [
     '/',                        // SSR — triggers initial Vite client build
     '/panel/login',             // SPA — admin panel
+    '/panel/views',             // SPA — admin view map (unique admin layout components)
     '/platform/login',          // SPA — platform module
     '/proposal/warmup-prefetch', // SPA — proposal viewer
   ];

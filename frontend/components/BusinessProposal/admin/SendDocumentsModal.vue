@@ -6,13 +6,13 @@
         <div class="absolute inset-0 bg-black/50" @click="$emit('cancel')" />
 
         <!-- Modal -->
-        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div class="relative bg-white dark:bg-esmerald rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
           <!-- Header with tabs -->
-          <div class="sticky top-0 bg-white border-b border-gray-100 px-6 pt-4 rounded-t-2xl z-10">
+          <div class="sticky top-0 bg-white dark:bg-esmerald border-b border-gray-100 dark:border-white/[0.06] px-6 pt-4 rounded-t-2xl z-10">
             <div class="mb-3">
-              <h2 class="text-lg font-semibold text-gray-900">Enviar documentos al cliente</h2>
-              <p class="text-xs text-gray-500 mt-0.5">
-                Se enviará a <span class="font-medium text-gray-700">{{ proposal.client_email }}</span>
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Enviar documentos al cliente</h2>
+              <p class="text-xs text-gray-500 dark:text-green-light/60 mt-0.5">
+                Se enviará a <span class="font-medium text-gray-700 dark:text-white/70">{{ proposal.client_email }}</span>
               </p>
             </div>
             <!-- Tab switcher -->
@@ -20,16 +20,16 @@
               <button type="button"
                 class="pb-2 text-sm transition-colors border-b-2"
                 :class="activeTab === 'preview'
-                  ? 'border-emerald-600 text-emerald-700 font-semibold'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'"
+                  ? 'border-emerald-600 text-emerald-700 dark:text-emerald-400 font-semibold'
+                  : 'border-transparent text-gray-500 dark:text-green-light/60 hover:text-gray-700 dark:hover:text-white/70'"
                 @click="activeTab = 'preview'">
                 Vista previa
               </button>
               <button type="button"
                 class="pb-2 text-sm transition-colors border-b-2"
                 :class="activeTab === 'edit'
-                  ? 'border-emerald-600 text-emerald-700 font-semibold'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'"
+                  ? 'border-emerald-600 text-emerald-700 dark:text-emerald-400 font-semibold'
+                  : 'border-transparent text-gray-500 dark:text-green-light/60 hover:text-gray-700 dark:hover:text-white/70'"
                 @click="activeTab = 'edit'">
                 Editar
               </button>
@@ -41,8 +41,8 @@
             <!-- Preview tab -->
             <div v-if="activeTab === 'preview'">
               <!-- Subject badge -->
-              <div class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 mb-4 text-xs text-gray-500">
-                <span class="font-medium text-gray-700">Asunto:</span>
+              <div class="flex items-center gap-2 bg-gray-50 dark:bg-white/[0.03] rounded-lg px-3 py-2 mb-4 text-xs text-gray-500 dark:text-green-light/60">
+                <span class="font-medium text-gray-700 dark:text-white/70">Asunto:</span>
                 <span>{{ emailForm.subject }}</span>
               </div>
 
@@ -120,30 +120,30 @@
             <form v-else id="send-documents-form" class="space-y-5" @submit.prevent="handleSend">
               <!-- Subject -->
               <div>
-                <label for="send-subject" class="block text-xs text-gray-500 mb-1">Asunto</label>
+                <label for="send-subject" class="block text-xs text-gray-500 dark:text-white/70 mb-1">Asunto</label>
                 <input id="send-subject" v-model="emailForm.subject" type="text" required class="send-modal-input" />
               </div>
 
               <!-- Greeting -->
               <div>
-                <label for="send-greeting" class="block text-xs text-gray-500 mb-1">Saludo</label>
+                <label for="send-greeting" class="block text-xs text-gray-500 dark:text-white/70 mb-1">Saludo</label>
                 <input id="send-greeting" v-model="emailForm.greeting" type="text" required class="send-modal-input" />
               </div>
 
               <!-- Body (intro text) -->
               <div>
-                <label for="send-body" class="block text-xs text-gray-500 mb-1">Texto introductorio</label>
+                <label for="send-body" class="block text-xs text-gray-500 dark:text-white/70 mb-1">Texto introductorio</label>
                 <textarea id="send-body" v-model="emailForm.body" rows="2" required class="send-modal-input resize-y" />
               </div>
 
               <!-- Document descriptions -->
               <div>
-                <p class="text-xs text-gray-500 mb-3">Descripción de cada documento (aparece en el cuerpo del correo)</p>
+                <p class="text-xs text-gray-500 dark:text-green-light/60 mb-3">Descripción de cada documento (aparece en el cuerpo del correo)</p>
                 <div class="space-y-3">
                   <div v-for="(doc, idx) in emailForm.documentDescriptions" :key="idx"
-                    class="bg-gray-50 rounded-lg p-3">
+                    class="bg-gray-50 dark:bg-white/[0.03] rounded-lg p-3">
                     <div class="flex items-center gap-2 mb-1.5">
-                      <span class="text-xs font-semibold text-gray-700">{{ doc.name }}</span>
+                      <span class="text-xs font-semibold text-gray-700 dark:text-white/70">{{ doc.name }}</span>
                     </div>
                     <textarea v-model="doc.description" rows="1"
                       class="send-modal-input text-xs py-1.5 resize-y" />
@@ -153,18 +153,18 @@
 
               <!-- Footer -->
               <div>
-                <label for="send-footer" class="block text-xs text-gray-500 mb-1">Texto de cierre</label>
+                <label for="send-footer" class="block text-xs text-gray-500 dark:text-white/70 mb-1">Texto de cierre</label>
                 <textarea id="send-footer" v-model="emailForm.footer" rows="2" class="send-modal-input resize-y" />
               </div>
             </form>
           </div>
 
           <!-- Sticky footer: error + actions -->
-          <div class="border-t border-gray-100 px-6 py-4 rounded-b-2xl bg-white">
+          <div class="border-t border-gray-100 dark:border-white/[0.06] px-6 py-4 rounded-b-2xl bg-white dark:bg-esmerald">
             <p v-if="sendError" class="text-xs text-red-500 mb-3">{{ sendError }}</p>
             <div class="flex items-center justify-end gap-3">
               <button type="button"
-                class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                class="px-4 py-2 text-sm text-gray-600 dark:text-green-light hover:text-gray-800 dark:hover:text-white transition-colors"
                 @click="$emit('cancel')">
                 Cancelar
               </button>
@@ -290,7 +290,7 @@ async function handleSend() {
 
 <style scoped>
 .send-modal-input {
-  @apply w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500;
+  @apply w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500;
 }
 
 .modal-fade-enter-active,

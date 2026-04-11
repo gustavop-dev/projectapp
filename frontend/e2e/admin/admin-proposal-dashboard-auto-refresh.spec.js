@@ -7,6 +7,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
+import { ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH } from '../helpers/flow-tags.js';
 
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
 
@@ -35,7 +36,7 @@ test.describe('Admin Proposal Dashboard Auto-Refresh', () => {
   });
 
   test('dashboard toggle shows KPI cards with metrics', {
-    tag: ['@flow:admin-proposal-dashboard-auto-refresh', '@module:admin', '@priority:P3', '@role:admin'],
+    tag: [...ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -46,17 +47,18 @@ test.describe('Admin Proposal Dashboard Auto-Refresh', () => {
     });
 
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
-    // Dashboard is open by default — KPI cards should render with data
-    await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 10000 });
+    // Dashboard is collapsed by default — open it to expose KPI cards
+    await page.getByRole('button', { name: /Mostrar Dashboard KPI/ }).click();
+
+    await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('12')).toBeVisible();
     await expect(page.getByText('Tasa conversión')).toBeVisible();
     await expect(page.getByText('42%')).toBeVisible();
   });
 
   test('clicking "Actualizar" refreshes dashboard data', {
-    tag: ['@flow:admin-proposal-dashboard-auto-refresh', '@module:admin', '@priority:P3', '@role:admin'],
+    tag: [...ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH, '@role:admin'],
   }, async ({ page }) => {
     let dashboardCalls = 0;
 
@@ -75,10 +77,10 @@ test.describe('Admin Proposal Dashboard Auto-Refresh', () => {
     });
 
     await page.goto('/panel/proposals');
-    await page.waitForLoadState('networkidle');
 
-    // Dashboard is open by default
-    await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 10000 });
+    // Dashboard is collapsed by default — open it
+    await page.getByRole('button', { name: /Mostrar Dashboard KPI/ }).click();
+    await expect(page.getByText('Total propuestas')).toBeVisible({ timeout: 15000 });
 
     // Click refresh
     await page.getByRole('button', { name: 'Actualizar', exact: true }).click();

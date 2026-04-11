@@ -7,13 +7,25 @@ from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.test import override_settings
 from django.utils import timezone
 from freezegun import freeze_time
 
-from content.models import BusinessProposal, EmailLog, EmailTemplateConfig, ProposalChangeLog, ProposalShareLink
+from content.models import (
+    BusinessProposal,
+    EmailLog,
+    EmailTemplateConfig,
+    ProposalChangeLog,
+    ProposalShareLink,
+)
 from content.services.proposal_email_service import ProposalEmailService
 
 pytestmark = pytest.mark.django_db
+
+
+def _stub_email():
+    """Return a MagicMock email instance for EmailMultiAlternatives stubs."""
+    return MagicMock()
 
 
 @pytest.fixture
@@ -48,7 +60,7 @@ class TestSendReminder:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_sends_reminder_email_successfully(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>Reminder</html>'
-        mock_email_instance = MagicMock()
+        mock_email_instance = _stub_email()
         mock_email_cls.return_value = mock_email_instance
 
         result = ProposalEmailService.send_reminder(email_proposal)
@@ -77,7 +89,7 @@ class TestSendReminder:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_reminder_subject_contains_client_name(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>content</html>'
-        mock_email_instance = MagicMock()
+        mock_email_instance = _stub_email()
         mock_email_cls.return_value = mock_email_instance
 
         ProposalEmailService.send_reminder(email_proposal)
@@ -93,7 +105,7 @@ class TestSendUrgencyEmail:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_sends_urgency_email_with_discount(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>Urgency</html>'
-        mock_email_instance = MagicMock()
+        mock_email_instance = _stub_email()
         mock_email_cls.return_value = mock_email_instance
 
         result = ProposalEmailService.send_urgency_email(email_proposal)
@@ -117,7 +129,7 @@ class TestSendUrgencyEmail:
         email_proposal.discount_percent = 0
         email_proposal.save()
         mock_render.return_value = '<html>No discount urgency</html>'
-        mock_email_instance = MagicMock()
+        mock_email_instance = _stub_email()
         mock_email_cls.return_value = mock_email_instance
 
         result = ProposalEmailService.send_urgency_email(email_proposal)
@@ -137,7 +149,7 @@ class TestSendUrgencyEmail:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_urgency_subject_contains_discount_percent(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>content</html>'
-        mock_email_instance = MagicMock()
+        mock_email_instance = _stub_email()
         mock_email_cls.return_value = mock_email_instance
 
         ProposalEmailService.send_urgency_email(email_proposal)
@@ -161,7 +173,7 @@ class TestSendResponseNotification:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_sends_accepted_notification(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>Accepted</html>'
-        mock_email_instance = MagicMock()
+        mock_email_instance = _stub_email()
         mock_email_cls.return_value = mock_email_instance
 
         result = ProposalEmailService.send_response_notification(email_proposal, 'accepted')
@@ -173,7 +185,7 @@ class TestSendResponseNotification:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_sends_rejected_notification(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>Rejected</html>'
-        mock_email_instance = MagicMock()
+        mock_email_instance = _stub_email()
         mock_email_cls.return_value = mock_email_instance
 
         result = ProposalEmailService.send_response_notification(email_proposal, 'rejected')
@@ -188,7 +200,7 @@ class TestSendResponseNotification:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_accepted_subject_contains_tag(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>content</html>'
-        mock_email_instance = MagicMock()
+        mock_email_instance = _stub_email()
         mock_email_cls.return_value = mock_email_instance
 
         ProposalEmailService.send_response_notification(email_proposal, 'accepted')
@@ -206,6 +218,27 @@ class TestSendResponseNotification:
         result = ProposalEmailService.send_response_notification(email_proposal, 'accepted')
 
         assert result is False
+
+    @override_settings(
+        NOTIFICATION_EMAIL='team@projectapp.co,carlos18bp@gmail.com'
+    )
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_sends_to_all_notification_recipients(
+        self, mock_render, mock_email_cls, email_proposal,
+    ):
+        mock_render.return_value = '<html>Accepted</html>'
+        mock_instance = _stub_email()
+        mock_email_cls.return_value = mock_instance
+
+        result = ProposalEmailService.send_response_notification(email_proposal, 'accepted')
+
+        assert result is True
+        call_kwargs = mock_email_cls.call_args[1]
+        assert call_kwargs['to'] == [
+            'team@projectapp.co',
+            'carlos18bp@gmail.com',
+        ]
 
 
 class TestGetFromEmail:
@@ -226,10 +259,12 @@ class TestGetFromEmail:
 class TestSendAcceptanceConfirmation:
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
     @patch('content.services.proposal_email_service.render_to_string')
+    @patch('content.services.platform_onboarding_pdf.generate_platform_onboarding_pdf', return_value=None)
+    @patch('content.services.technical_document_pdf.generate_technical_document_pdf', return_value=None)
     @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=b'%PDF-fake')
-    def test_sends_with_pdf_attachment(self, mock_pdf, mock_render, mock_email_cls, email_proposal):
+    def test_sends_with_pdf_attachment(self, mock_pdf, mock_tech, mock_guide, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>Accepted</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_acceptance_confirmation(email_proposal)
@@ -240,10 +275,12 @@ class TestSendAcceptanceConfirmation:
 
     @patch('content.services.proposal_email_service.EmailMultiAlternatives')
     @patch('content.services.proposal_email_service.render_to_string')
+    @patch('content.services.platform_onboarding_pdf.generate_platform_onboarding_pdf', return_value=None)
+    @patch('content.services.technical_document_pdf.generate_technical_document_pdf', return_value=None)
     @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=None)
-    def test_sends_without_pdf_when_generation_returns_none(self, mock_pdf, mock_render, mock_email_cls, email_proposal):
+    def test_sends_without_pdf_when_generation_returns_none(self, mock_pdf, mock_tech, mock_guide, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>Accepted</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_acceptance_confirmation(email_proposal)
@@ -256,7 +293,7 @@ class TestSendAcceptanceConfirmation:
     @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', side_effect=Exception('PDF error'))
     def test_sends_without_pdf_when_generation_fails(self, mock_pdf, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>Accepted</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_acceptance_confirmation(email_proposal)
@@ -283,7 +320,7 @@ class TestSendRejectionThankYou:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_sends_rejection_thank_you(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>Thank you</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_rejection_thank_you(email_proposal)
@@ -310,7 +347,7 @@ class TestSendFirstViewNotification:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_sends_first_view_notification(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>First view</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_first_view_notification(email_proposal)
@@ -335,7 +372,7 @@ class TestSendCommentNotification:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_sends_comment_notification(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>Comment</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_comment_notification(
@@ -364,7 +401,7 @@ class TestSendRejectionReengagement:
         email_proposal.discount_percent = 15
         email_proposal.save(update_fields=['discount_percent'])
         mock_render.return_value = '<html>Reengage</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_rejection_reengagement(email_proposal)
@@ -379,7 +416,7 @@ class TestSendRejectionReengagement:
         email_proposal.discount_percent = 0
         email_proposal.save(update_fields=['discount_percent'])
         mock_render.return_value = '<html>Reengage</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_rejection_reengagement(email_proposal)
@@ -406,7 +443,7 @@ class TestSendRevisitAlert:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_sends_revisit_alert(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>Alert</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_revisit_alert(
@@ -423,7 +460,7 @@ class TestSendRevisitAlert:
     def test_handles_empty_top_section(self, mock_render, mock_email_cls, email_proposal):
         """Revisit alert sends successfully when top_section is not provided."""
         mock_render.return_value = '<html>Alert</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_revisit_alert(email_proposal, visit_count=3)
@@ -446,7 +483,7 @@ class TestSendAbandonmentFollowup:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_sends_abandonment_followup(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>Abandoned</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_abandonment_followup(email_proposal)
@@ -475,7 +512,7 @@ class TestSendInvestmentInterestFollowup:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_sends_investment_interest_followup(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>Interest</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_investment_interest_followup(
@@ -513,7 +550,7 @@ class TestSendShareNotification:
             shared_by_email='alice@co.com',
         )
         mock_render.return_value = '<html>Shared</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_share_notification(email_proposal, share)
@@ -543,7 +580,7 @@ class TestSendScheduledFollowup:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_sends_scheduled_followup(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>Followup</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_scheduled_followup(email_proposal)
@@ -569,7 +606,7 @@ class TestSendStakeholderDetectedNotification:
     def test_sends_notification_successfully(self, mock_render, mock_email_cls, email_proposal):
         """Stakeholder notification sends email and returns True."""
         mock_render.return_value = '<html>Stakeholder</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_stakeholder_detected_notification(
@@ -608,7 +645,7 @@ class TestSendSellerInactivityEscalation:
     def test_sends_escalation_email_successfully(self, mock_render, mock_email_cls, email_proposal):
         """Escalation email sent to notification address with correct context."""
         mock_render.return_value = '<html>Escalation</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_seller_inactivity_escalation(email_proposal, 7)
@@ -630,7 +667,7 @@ class TestSendNegotiationNotification:
     def test_sends_notification_successfully(self, mock_render, mock_email_cls, email_proposal):
         """Negotiation notification sent to team with comment in context."""
         mock_render.return_value = '<html>Negotiate</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_negotiation_notification(
@@ -653,7 +690,7 @@ class TestSendNegotiationConfirmation:
     def test_sends_confirmation_to_client(self, mock_render, mock_email_cls, email_proposal):
         """Negotiation confirmation sent to client_email."""
         mock_render.return_value = '<html>Confirm</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_negotiation_confirmation(email_proposal)
@@ -679,7 +716,7 @@ class TestSendPostExpirationVisitAlert:
     def test_sends_alert_successfully(self, mock_render, mock_email_cls, email_proposal):
         """Post-expiration visit alert sent to notification address."""
         mock_render.return_value = '<html>Expired Visit</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_post_expiration_visit_alert(email_proposal)
@@ -701,7 +738,7 @@ class TestSendProposalToClient:
     def test_sends_email_successfully(self, mock_render, mock_email_cls, email_proposal):
         """Sends initial proposal email to client."""
         mock_render.return_value = '<html>Proposal</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService.send_proposal_to_client(email_proposal)
@@ -729,7 +766,7 @@ class TestSendPostRejectionRevisitAlert:
     def test_sends_alert_successfully(self, mock_render, mock_email_cls, email_proposal):
         """Post-rejection revisit alert sent to notification address."""
         mock_render.return_value = '<html>Revisit</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
         email_proposal.status = 'rejected'
         email_proposal.responded_at = timezone.now() - timezone.timedelta(days=10)
@@ -747,7 +784,7 @@ class TestSendPostRejectionRevisitAlert:
     def test_calculates_days_since_rejection(self, mock_render, mock_email_cls, email_proposal):
         """Days since rejection is computed from responded_at."""
         mock_render.return_value = '<html>Revisit</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
         email_proposal.responded_at = timezone.now() - timezone.timedelta(days=15)
         email_proposal.save(update_fields=['responded_at'])
@@ -772,7 +809,7 @@ class TestSendDailyPipelineDigest:
     def test_sends_digest_successfully(self, mock_render, mock_email_cls):
         """Daily pipeline digest sent to notification address."""
         mock_render.return_value = '<html>Digest</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
         digest_data = {
             'viewed_yesterday': [],
@@ -857,7 +894,7 @@ class TestSendDocumentsToClient:
     def test_sends_email_with_multiple_attachments(self, mock_render, mock_email_cls, email_proposal):
         """Email is sent successfully with each attachment appended."""
         mock_render.return_value = '<html>Docs</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         attachments = [
@@ -882,7 +919,7 @@ class TestSendDocumentsToClient:
     def test_uses_provided_subject_and_body_fields(self, mock_render, mock_email_cls, email_proposal):
         """Custom subject, greeting, body, footer are passed to the email constructor."""
         mock_render.return_value = 'plain text'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         ProposalEmailService.send_documents_to_client(
@@ -1035,7 +1072,7 @@ class TestSendComposedEmail:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_sends_email_with_html_and_text_alternatives(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>Test</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         result = ProposalEmailService._send_composed_email(
@@ -1051,7 +1088,7 @@ class TestSendComposedEmail:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_logs_email_on_success(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>OK</html>'
-        mock_email_cls.return_value = MagicMock()
+        mock_email_cls.return_value = _stub_email()
 
         ProposalEmailService._send_composed_email(
             'branded_email', email_proposal, 'test@example.com', 'Subject',
@@ -1068,7 +1105,7 @@ class TestSendComposedEmail:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_logs_email_on_failure(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>Fail</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_instance.send.side_effect = Exception('SMTP down')
         mock_email_cls.return_value = mock_instance
 
@@ -1086,7 +1123,7 @@ class TestSendComposedEmail:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_renders_templates_from_registry(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>T</html>'
-        mock_email_cls.return_value = MagicMock()
+        mock_email_cls.return_value = _stub_email()
 
         ProposalEmailService._send_composed_email(
             'branded_email', email_proposal, 'test@example.com', 'Sub',
@@ -1101,7 +1138,7 @@ class TestSendComposedEmail:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_attaches_files_when_provided(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>A</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         attachments = [
@@ -1120,7 +1157,7 @@ class TestSendComposedEmail:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_skips_attachments_when_none(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>N</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_email_cls.return_value = mock_instance
 
         ProposalEmailService._send_composed_email(
@@ -1135,7 +1172,7 @@ class TestSendComposedEmail:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_metadata_includes_attachment_names(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>M</html>'
-        mock_email_cls.return_value = MagicMock()
+        mock_email_cls.return_value = _stub_email()
 
         ProposalEmailService._send_composed_email(
             'branded_email', email_proposal, 'test@example.com', 'Sub',
@@ -1149,7 +1186,7 @@ class TestSendComposedEmail:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_returns_false_on_smtp_error(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>E</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_instance.send.side_effect = ConnectionError('refused')
         mock_email_cls.return_value = mock_instance
 
@@ -1168,7 +1205,7 @@ class TestSendBrandedEmail:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_delegates_with_branded_template_key(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>B</html>'
-        mock_email_cls.return_value = MagicMock()
+        mock_email_cls.return_value = _stub_email()
 
         result = ProposalEmailService.send_branded_email(
             email_proposal, 'test@example.com', 'Subject', 'Hi', ['Sec'],
@@ -1182,7 +1219,7 @@ class TestSendBrandedEmail:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_does_not_create_change_log(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>B</html>'
-        mock_email_cls.return_value = MagicMock()
+        mock_email_cls.return_value = _stub_email()
 
         ProposalEmailService.send_branded_email(
             email_proposal, 'test@example.com', 'Subject', 'Hi', ['Sec'],
@@ -1200,7 +1237,7 @@ class TestSendProposalEmailMethod:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_creates_change_log_on_success(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>P</html>'
-        mock_email_cls.return_value = MagicMock()
+        mock_email_cls.return_value = _stub_email()
 
         ProposalEmailService.send_proposal_email(
             email_proposal, 'test@example.com', 'Proposal Email', 'Hi', ['Sec'],
@@ -1216,7 +1253,7 @@ class TestSendProposalEmailMethod:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_updates_last_activity_at_on_success(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>P</html>'
-        mock_email_cls.return_value = MagicMock()
+        mock_email_cls.return_value = _stub_email()
         old_activity = email_proposal.last_activity_at
 
         ProposalEmailService.send_proposal_email(
@@ -1230,7 +1267,7 @@ class TestSendProposalEmailMethod:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_does_not_create_change_log_on_failure(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>F</html>'
-        mock_instance = MagicMock()
+        mock_instance = _stub_email()
         mock_instance.send.side_effect = Exception('fail')
         mock_email_cls.return_value = mock_instance
 
@@ -1246,7 +1283,7 @@ class TestSendProposalEmailMethod:
     @patch('content.services.proposal_email_service.render_to_string')
     def test_change_log_uses_enum_constants(self, mock_render, mock_email_cls, email_proposal):
         mock_render.return_value = '<html>E</html>'
-        mock_email_cls.return_value = MagicMock()
+        mock_email_cls.return_value = _stub_email()
 
         ProposalEmailService.send_proposal_email(
             email_proposal, 'test@example.com', 'Sub', 'Hi', ['Sec'],
@@ -1255,3 +1292,178 @@ class TestSendProposalEmailMethod:
         log = ProposalChangeLog.objects.get(proposal=email_proposal)
         assert log.change_type == ProposalChangeLog.ChangeType.EMAIL_SENT
         assert log.actor_type == ProposalChangeLog.ActorType.SELLER
+
+
+# ---------------------------------------------------------------------------
+# Project-stage notifications (internal team)
+# ---------------------------------------------------------------------------
+
+from datetime import date  # noqa: E402
+
+from content.models import ProposalProjectStage  # noqa: E402
+
+
+@pytest.fixture
+def stage_proposal(db):
+    """A proposal in `accepted` status with stage rows attached."""
+    proposal = BusinessProposal.objects.create(
+        title='Stage Test Proposal',
+        client_name='Stage Client',
+        client_email='stageclient@test.com',
+        language='es',
+        total_investment=Decimal('15000000'),
+        currency='COP',
+        status='accepted',
+        expires_at=timezone.now() + timezone.timedelta(days=10),
+    )
+    return proposal
+
+
+@pytest.fixture
+def design_stage(db, stage_proposal):
+    return ProposalProjectStage.objects.create(
+        proposal=stage_proposal,
+        stage_key='design',
+        order=0,
+        start_date=date(2026, 4, 1),
+        end_date=date(2026, 4, 11),
+    )
+
+
+class TestSendStageWarning:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_returns_true_on_successful_send(
+        self, mock_render, mock_email_cls, stage_proposal, design_stage,
+    ):
+        mock_render.return_value = '<html>warn</html>'
+        mock_email_cls.return_value = _stub_email()
+
+        result = ProposalEmailService.send_stage_warning(
+            stage_proposal, design_stage, days_remaining=2,
+        )
+
+        assert result is True
+        mock_email_cls.return_value.send.assert_called_once()
+
+    @override_settings(NOTIFICATION_EMAIL='team@projectapp.co,carlos18bp@gmail.com')
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_uses_notification_recipients_from_settings(
+        self, mock_render, mock_email_cls, stage_proposal, design_stage,
+    ):
+        mock_render.return_value = '<html>warn</html>'
+        mock_email_cls.return_value = _stub_email()
+
+        ProposalEmailService.send_stage_warning(
+            stage_proposal, design_stage, days_remaining=2,
+        )
+
+        call_kwargs = mock_email_cls.call_args[1]
+        assert call_kwargs['to'] == [
+            'team@projectapp.co',
+            'carlos18bp@gmail.com',
+        ]
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_subject_contains_stage_label_and_client(
+        self, mock_render, mock_email_cls, stage_proposal, design_stage,
+    ):
+        mock_render.return_value = '<html>warn</html>'
+        mock_email_cls.return_value = _stub_email()
+
+        ProposalEmailService.send_stage_warning(
+            stage_proposal, design_stage, days_remaining=2,
+        )
+
+        subject = mock_email_cls.call_args[1]['subject']
+        assert 'Diseño' in subject
+        assert stage_proposal.client_name in subject
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_attaches_html_alternative(
+        self, mock_render, mock_email_cls, stage_proposal, design_stage,
+    ):
+        mock_render.return_value = '<html>warn</html>'
+        mock_instance = _stub_email()
+        mock_email_cls.return_value = mock_instance
+
+        ProposalEmailService.send_stage_warning(
+            stage_proposal, design_stage, days_remaining=2,
+        )
+
+        mock_instance.attach_alternative.assert_called_once()
+        args = mock_instance.attach_alternative.call_args.args
+        assert args[1] == 'text/html'
+
+    def test_returns_false_when_template_disabled(
+        self, stage_proposal, design_stage,
+    ):
+        EmailTemplateConfig.objects.create(
+            template_key='proposal_stage_warning_notification',
+            is_active=False,
+        )
+        result = ProposalEmailService.send_stage_warning(
+            stage_proposal, design_stage, days_remaining=2,
+        )
+        assert result is False
+
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_returns_false_on_exception(
+        self, mock_render, stage_proposal, design_stage,
+    ):
+        mock_render.side_effect = Exception('boom')
+        result = ProposalEmailService.send_stage_warning(
+            stage_proposal, design_stage, days_remaining=2,
+        )
+        assert result is False
+
+
+class TestSendStageOverdue:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_subject_contains_vencida_marker(
+        self, mock_render, mock_email_cls, stage_proposal, design_stage,
+    ):
+        mock_render.return_value = '<html>overdue</html>'
+        mock_email_cls.return_value = _stub_email()
+
+        ProposalEmailService.send_stage_overdue(
+            stage_proposal, design_stage, days_overdue=3,
+        )
+
+        subject = mock_email_cls.call_args[1]['subject']
+        assert 'VENCIDA' in subject
+        assert 'Diseño' in subject
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string')
+    def test_text_body_includes_overdue_humanized_label(
+        self, mock_render, mock_email_cls, stage_proposal, design_stage,
+    ):
+        mock_render.return_value = '<html>overdue</html>'
+        mock_email_cls.return_value = _stub_email()
+
+        ProposalEmailService.send_stage_overdue(
+            stage_proposal, design_stage, days_overdue=8,
+        )
+
+        # The shared helper builds the context dict and passes it to
+        # render_to_string. Inspect the second positional arg of the first call.
+        first_call_context = mock_render.call_args_list[0].args[1]
+        assert first_call_context['days_overdue'] == 8
+        assert first_call_context['time_overdue_human'] == '1 semana 1 día'
+
+    def test_returns_false_when_template_disabled(
+        self, stage_proposal, design_stage,
+    ):
+        EmailTemplateConfig.objects.create(
+            template_key='proposal_stage_overdue_notification',
+            is_active=False,
+        )
+        result = ProposalEmailService.send_stage_overdue(
+            stage_proposal, design_stage, days_overdue=3,
+        )
+        assert result is False

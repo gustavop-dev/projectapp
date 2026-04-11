@@ -2,11 +2,43 @@
 
 ## Current State
 
-ProjectApp is in **production** at projectapp.co. All core features are implemented and deployed. Active branch: **`main`**. The Document System PDF (generic branded PDF on branch `generate-pdf-with-template`) is still in progress and not yet merged. Platform module has been significantly expanded with Bug Reports, Change Requests, Deliverables, Notifications, Payments modules, and a new Data Model Entities feature.
+ProjectApp is in **production** at projectapp.co. Core features are deployed. Active branch: **`feat/platform-launch-and-email-improvements`**. The Project Schedule Notification feature (Cronograma) shipped on Apr 9, 2026 and passed the post-merge simplification pass. The Real Client Entity for Proposals feature (`BusinessProposal.client` FK to `accounts.UserProfile` + autocomplete + orphan management + placeholder email skip + the `respond_to_proposal` accepted-branch bug fix) also shipped on Apr 9, 2026 with 69 new tests green and zero regression in the existing proposal regression slices. Codex-first methodology is documented via `AGENTS.md` scopes, native repo skills in `.agents/skills/`, and `.codex/config.toml`, with `CLAUDE.md`, `.claude/`, and `.windsurf/` retained only as compatibility surfaces. The Document System PDF work on branch `generate-pdf-with-template` is still the main unfinished documentation-visible feature area.
 
 ---
 
 ## Recent Focus Areas
+
+- **Real Client Entity for Proposals** (Apr 9, 2026):
+  - **Model**: New `BusinessProposal.client = ForeignKey('accounts.UserProfile', on_delete=PROTECT, limit_choices_to={'role':'client'}, null=True)`. Migration `0079_add_business_proposal_client_fk.py` (schema), `0080_backfill_proposal_clients.py` (data — dedups existing proposals by normalized email and creates UserProfile rows; empty emails get a placeholder via two-step save so the id can be embedded in `cliente_<id>@temp.example.com`). Legacy `client_name`/`client_email`/`client_phone` columns kept as **write-through snapshots**, never dropped.
+  - **Service**: New `backend/accounts/services/proposal_client_service.py` — silent variant of `accounts/services/onboarding.py:create_client` that does NOT send invitation emails. Public API: `get_or_create_client_for_proposal(name, email, phone, company)`, `update_client_profile(profile, ...)` (cascades snapshots to all linked proposals via single bulk `BusinessProposal.objects.filter(client=profile).update(...)` and bumps `updated_at` manually because `.update()` bypasses `auto_now`), `delete_orphan_client(profile)` (3 guards: zero proposals + zero projects + zero deliverables), `sync_snapshot(proposal)`, `generate_placeholder_email(profile_id)`, `build_client_display_name(profile)` (shared with serializer). Refuses to hijack existing admin accounts when an email collision is detected.
+  - **API**: 6 FBV endpoints under `proposals/client-profiles/*` — `list_proposal_clients` (with `?search=`, `?orphans=`, `?limit=`), `search_proposal_clients` (max 20 results, lightweight payload, AbortController-friendly), `retrieve_proposal_client` (with nested `proposals` history), `create_proposal_client` (standalone, no invite email), `update_proposal_client` (cascades snapshots), `delete_proposal_client` (returns 400 with `client_has_proposals` / `client_has_projects` codes when guard trips). All gated by `IsAdminUser`. Routes registered in `backend/content/urls.py`.
+  - **Serializers**: `backend/content/serializers/proposal_clients.py` — `ProposalClientSerializer` (full, with annotated `total_proposals` + `is_orphan` + `is_email_placeholder`) and `ProposalClientSearchSerializer` (lightweight). `ProposalListSerializer` and `ProposalDetailSerializer` now expose nested `client = ProposalClientSerializer(read_only=True)`. `ProposalCreateUpdateSerializer` accepts write-only `client_id` (FK), `client_company`, `propagate_client_updates` and routes `create()`/`update()` through the service + `sync_snapshot`.
+  - **Frontend**: `frontend/stores/proposalClients.js` — Pinia Options API with `fetchClients`, `searchClients` (uses `AbortController` + identity guard so rapid keystrokes don't race), `fetchClient`, `createClient`, `updateClient`, `deleteClient`. Getters: `orphanClients`, `activeClients`, `getClientById`. `frontend/components/ui/ClientAutocomplete.vue` — searchable dropdown with debounce 200ms (`useDebounceFn`), keyboard navigation, click-outside via `onClickOutside` from `@vueuse/core` (auto-cleanup on unmount), placeholder badge, "Crear nuevo" inline footer. `frontend/pages/panel/clients/index.vue` rewritten — tabs (Todos / Activos / Huérfanos), "+ Nuevo cliente" modal, trash icon visible only on orphans wired through `requestConfirm`, lazy-loaded proposals on row expand. `frontend/pages/panel/proposals/[id]/edit.vue` and `frontend/pages/panel/proposals/create.vue` use `<ClientAutocomplete>` + snapshot fields + propagate checkbox; the edit page extracted `hydrateFormFromProposal()` helper to dedup `onMounted` and `refreshData`. `frontend/stores/services/request_http.js` got an optional `config` arg on `get_request` (backward compatible) for AbortController support.
+  - **Email automation skip**: `_is_unsendable_client_email(email)` helper in `proposal_email_service.py` returns `True` for empty strings and any address ending in `UserProfile.PLACEHOLDER_EMAIL_DOMAIN` (`@temp.example.com`, RFC 2606 reserved TLD). All **13 client-facing email methods** in `ProposalEmailService` (acceptance, finished, rejection, reminder, urgency, abandonment, investment-interest, scheduled-followup, negotiation-confirmation, documents, etc.) now exit early when the helper returns `True`. The 4 huey tasks in `content/tasks.py` (`send_proposal_reminder`, `send_urgency_reminder`, `send_rejection_reengagement`, `send_scheduled_followup`) use the same gate. Two candidate-selection querysets in `process_engagement_alerts` exclude placeholders via `.exclude(client_email__iendswith=UserProfile.PLACEHOLDER_EMAIL_DOMAIN)`.
+  - **N+1 fixes**: `select_related('client__user')` added to `list_proposals` (admin dashboard hot path), `retrieve_proposal` (admin detail), `retrieve_public_proposal` (client view), and `retrieve_proposal_client` (the new client detail with nested proposals).
+  - **Bug fix**: `respond_to_proposal` in `backend/content/views/proposal.py` was missing the `elif action == 'accepted':` branch — clients accepting a proposal never received the confirmation email even though the docstring promised it. See `error-documentation.md` ERR-007 for the full incident.
+  - **Tests**: 15 (`accounts/tests/test_proposal_client_service.py`) + 19 (`content/tests/views/test_proposal_clients_views.py`) + 10 (`content/tests/services/test_proposal_email_service_placeholder_skip.py`) backend + 25 (`frontend/test/stores/proposalClients.test.js`) frontend = **69 new tests**, all green. Ran the full proposal regression slice afterwards (368 backend + 847 frontend tests) — zero regression.
+
+- **Project Schedule Notifications (Cronograma)** (Apr 9, 2026):
+  - New `ProposalProjectStage` child model on `BusinessProposal` (`backend/content/models/proposal_project_stage.py`) with `start_date`, `end_date`, `completed_at`, `warning_sent_at`, `last_overdue_reminder_at`. Migration `0081`, backfill `0082`, change-type enum `0083`.
+  - New `ProposalStageTracker` service (`backend/content/services/proposal_stage_tracker.py`) with `STAGE_DEFINITIONS` constant, `ensure_stages` / `get_or_create_stage` classmethods, `format_remaining_time(days)` ("hoy", "1 día", "1 semana 5 días", "2 semanas"), and `process(proposal)` decision logic
+  - Daily Huey periodic task `notify_proposal_stage_deadlines` at `crontab(hour='13', minute='30')` = 08:30 Bogotá. Filters by stage existence + dates + not-completed (NOT by proposal status), with `prefetch_related('project_stages')`.
+  - Two new internal-team email templates registered in `EmailTemplateRegistry`: `proposal_stage_warning_notification` (70% elapsed, sent once) + `proposal_stage_overdue_notification` (overdue, every 3 days while not completed). Both with HTML+TXT twins under `backend/content/templates/emails/`.
+  - Send methods `send_stage_warning` / `send_stage_overdue` in `ProposalEmailService` share a private `_send_stage_notification` helper. They use `_get_notification_recipients()` (CSV via `NOTIFICATION_EMAIL`) and do NOT call `_log_email` — internal team notifications use `logger.info` only, matching the convention of `send_first_view_notification`, `send_comment_notification`, etc.
+  - Admin UI: new "Cronograma" tab in proposal edit page (`frontend/pages/panel/proposals/[id]/edit.vue`), only visible when status is `accepted`/`finished`. Component: `frontend/components/BusinessProposal/admin/ProjectScheduleEditor.vue`. Composable: `frontend/composables/useStageStatus.js` (mirrors backend `format_remaining_time` + computes status badges in JS).
+  - Onboarding hook: `_ensure_project_stages` in `proposal_platform_onboarding.py` calls `ProposalStageTracker.ensure_stages` so accepted proposals get two empty stage rows automatically.
+  - 2 new endpoints: `PUT /api/proposals/<id>/stages/<stage_key>/` and `POST /api/proposals/<id>/stages/<stage_key>/complete/`.
+  - `ProposalDetailSerializer.get_project_stages` is gated by `is_admin` context — internal-only data is never exposed to public proposal views.
+  - Tests: 26 tracker + 9 email service + 13 view + 5 task + 2 onboarding (backend); 11 store + 22 composable + 16 component (frontend); 6 E2E (`admin-proposal-project-schedule.spec.js` registered in `flow-definitions.json` + `USER_FLOW_MAP.md`).
+  - Bogotá time helpers added to `backend/content/utils.py`: `now_bogota()`, `today_bogota()`, `to_bogota_date(dt)`. `format_bogota_date()` now accepts both `date` and `datetime`.
+  - **Ops action pending**: set `NOTIFICATION_EMAIL=team@projectapp.co,carlos18bp@gmail.com` in production environment. This is a single env var change; affects all internal team notifications, not just stage alerts.
+
+- **Codex Native Runtime Cleanup** (Apr 9, 2026):
+  - Replaced the plugin-based Codex runtime with native repo skills in `.agents/skills/`
+  - Added project-scoped Codex config in `.codex/config.toml`
+  - Rewrote `AGENTS.md` / `CLAUDE.md` scopes to match the actual repo conventions (FBV backend, JS-first Nuxt frontend, Pinia Options API, split HTTP clients)
+  - Kept `debug` canonical and `debugme` as the only legacy alias in the native skill inventory
+  - Rewrote Codex setup docs around the native runtime and marked Claude-only guidance as compatibility documentation
 
 1. **Proposal Advanced Filters & Saved Tabs** (Apr 5, 2026):
    - New composable `useProposalFilters.js` — 11 filter dimensions (status, project type, market type, currency, language, investment range, heat score range, view count range, created date range, last activity date range, active status), saveable named tabs with localStorage persistence, URL sync (`?tab=xxx`), max 12 tabs
@@ -50,7 +82,7 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
    - Dark mode removed from platform login, verify, complete-profile pages; `usePlatformTheme.js` simplified
 4. **Document System (branch `generate-pdf-with-template` — not yet merged)** — Generic branded PDF documents:
    - `Document` model in `content/models/document.py` — uuid, title, slug, status (draft/published/archived), language, cover_type
-   - Services: `document_pdf_service.py` (20K), `markdown_parser.py` (9K), `pdf_utils.py` (shared PDF utilities)
+   - Services: `document_pdf_service.py`, `markdown_parser.py`, `pdf_utils.py` (shared PDF utilities)
    - Panel pages: `/panel/documents/` (index, create, edit)
    - Store: `documents.js`
    - New composable: `useMarkdownPreview.js`
@@ -68,7 +100,7 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 4. **Panel Login** — Dedicated `panel/login.vue` page
 5. **Proposal → Project integration** — Link proposals to projects: auto-create Kanban requirements from `functional_requirements` section, extract payment milestones and hosting tiers, auto-renewal on payment approval
 6. **Platform E2E test fixes** — Fixed all platform Playwright spec files; removed `defineI18nRoute(false)`, fixed security bug in `platform-auth.js` middleware, replaced `networkidle` with `domcontentloaded`
-7. **E2E coverage audit & remediation** — 112 E2E spec files; Quality gate: **100/100** with **0 warnings**
+7. **E2E coverage audit & remediation** — current workspace carries 129 E2E spec files; Quality gate: **100/100** with **0 warnings**
 8. **CI/CD pipeline** — GitHub Actions with pytest, Jest, Playwright (5 shards), quality gate
 9. **SEO On-Page Optimization** — Comprehensive SEO improvements across main views and blog:
    - Enhanced `useSeoHead.js` composable: added canonical URL, `og:locale`, `twitter:site`
@@ -88,9 +120,13 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 
 - **FBV over CBV** — all views remain function-based; no plans to migrate
 - **Pinia Options API** — all stores use Options API pattern; no Composition API stores
+- **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
 - **Two Django apps** — `content` (proposals, blog, portfolio, contact) + `accounts` (platform auth, projects, kanban)
 - **Hybrid rendering** — SSR for SEO pages, SPA for admin, proposal, and platform views
 - **Dual auth strategy** — Session/CSRF for `/panel/` admin; JWT (SimpleJWT) for `/platform/`
+- **Stage tracking is admin-managed** — `ProposalProjectStage.start_date` / `end_date` are set manually from the Cronograma tab. We do NOT auto-derive them by parsing the free-text `timeline` proposal section ("1 semana", "2 weeks") because that text is sales/marketing copy, not project execution data.
+- **Internal team notifications use `_get_notification_recipients()` only** — recipient list lives in the `NOTIFICATION_EMAIL` env var (comma-separated). Do NOT add per-feature recipient settings. Internal sends are NOT logged to `EmailLog` (that table is for client-facing single-recipient sends).
+- **Internal-only model fields must be gated by `is_admin` in shared serializers** — when a model docstring says "internal-only" (e.g., `ProposalProjectStage`), the field on `ProposalDetailSerializer` must be a `SerializerMethodField` returning `[]` for non-admin context, never a nested `read_only=True` model serializer.
 
 ---
 
@@ -103,41 +139,45 @@ ProjectApp is in **production** at projectapp.co. All core features are implemen
 
 ---
 
-## Verified Codebase Metrics (April 5, 2026 — refreshed)
+## Verified Codebase Metrics (April 10, 2026 — refreshed)
 
 | Metric | Count |
 |--------|-------|
-| Backend test files | 83 |
-| Frontend unit tests | 60 |
-| E2E spec files | 125 |
-| Vue components | 111 |
-| Pages | 62 |
-| Pinia stores | 18 |
-| Composables | 31 |
+| Backend test files | 121 |
+| Frontend unit tests | 73 |
+| E2E spec files | 129 |
+| Vue components | 122 |
+| Pages | 64 |
+| Pinia stores | 20 |
+| Composables | 35 |
 | Content model files | 26 |
-| Accounts models | 21 |
+| Accounts model classes | 21 |
 | Accounts URL patterns | 65 |
-| Content URL patterns | 103 |
-| Email templates | 48 (24 HTML + 24 TXT) |
-| Content services | 16 |
-| Accounts services | 10 |
-| Quality gate score | 100/100 (0 warnings, 0 info) |
+| Content URL patterns | 115 |
+| Email templates | 57 (30 HTML + 27 TXT across `accounts` + `content`) |
+| Content services | 17 |
+| Accounts services | 11 |
+| Content migrations | 82 |
+| Quality gate score | 100/100 (0 errors, 2 warnings) |
 
 ---
 
 ## Next Steps
 
+- **Set `NOTIFICATION_EMAIL` in production env** to `team@projectapp.co,carlos18bp@gmail.com` so the new stage warning + overdue alerts reach the right inbox.
+- Consider extending `ProposalStageTracker.STAGE_DEFINITIONS` beyond design + development (e.g., QA, Lanzamiento, Entrega Final) — the model + service already support N stages, only the catalog constant needs an update.
 - Complete Document System PDF generation (branch `generate-pdf-with-template`): template rendering, preview, download flow
+- Keep Codex docs, native repo skills, and compatibility mirrors synchronized when adding or renaming recurring workflows
 - Add unit tests for `useProposalFilters.js` composable and `ProposalFilterPanel.vue` / `ProposalFilterTabs.vue` components
 - Add E2E coverage for Contract System (ContractParamsModal, SendDocumentsModal admin workflows)
 - Add E2E coverage for Platform Data Model page (`/platform/projects/[id]/data-model`)
 - Add backend test coverage for contract/document services (`contract_pdf_service.py`, `technical_document_pdf.py`)
-- Fix 4 failing `usePlatformApi.test.js` tests (`window.location.href` assertion issue in JSDOM)
+- ~~Fix 4 failing `usePlatformApi.test.js` tests~~ — all 56 tests pass (already resolved)
 - **Deferred E2E:** `platform-verify-onboarding` — requires OTP test infrastructure (mock OTP delivery or test bypass)
 - Add E2E coverage for new Platform modules (bug reports, change requests, deliverables, notifications, payments)
 - Increase backend test coverage (target areas: services edge cases, accounts app edge cases)
 - Increase frontend unit test coverage (target areas: remaining composables, components)
-- Consider splitting large files (proposal views 162K, proposal service 133K, email service 71K — shared utils already in `pdf_utils.py`)
+- Consider splitting the largest proposal/backend modules (`views/proposal.py`, `proposal_service.py`, `proposal_email_service.py`) now that the shared PDF helpers already live in `pdf_utils.py`
 - Credential rotation for production secrets exposed in git history
 - Explore API rate limiting for public endpoints
 - Kill rogue `kore_project` Next.js server on port 3000 permanently (respawns from Windsurf terminal)

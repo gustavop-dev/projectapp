@@ -1,0 +1,15 @@
+¡Lo logramos, {{ client_name }}! 🎯
+
+Queremos confirmarte que el proyecto correspondiente a la propuesta "{{ title }}" ha sido finalizado exitosamente.
+
+{% if project_name %}Proyecto: {{ project_name }}{% endif %}
+{% if deliverable_title %}Entregable principal: {{ deliverable_title }}{% endif %}
+Estado: Finalizado
+
+Gracias por tu confianza y por permitirnos acompañarte en este proceso.
+{% if platform_login_url %}
+Puedes seguir consultando documentos, reportes y entregables en tu espacio de la plataforma:
+{{ platform_login_url }}
+{% endif %}
+
+¿Necesitas algo más? Escríbenos a team@projectapp.co o WhatsApp +57 323 812 2373

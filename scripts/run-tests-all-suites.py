@@ -812,7 +812,10 @@ def run_backend(
     backend_cmd: list[str] = [
         sys.executable, "-m", "pytest",
         f"--cov={backend_root / 'content'}",
+        f"--cov={backend_root / 'accounts'}",
+        f"--cov={backend_root / 'projectapp'}",
         "--cov-branch",
+        f"--cov-config={backend_root / 'coverage.ini'}",
         "--override-ini=addopts=",
     ]
     if show_coverage:

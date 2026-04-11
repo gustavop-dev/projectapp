@@ -2072,14 +2072,51 @@ class ProposalService:
     """
     Business logic for proposal lifecycle management.
     """
+    DEFAULT_EXPIRATION_DAYS = 21
+
+    @staticmethod
+    def _require_valid_client_email(proposal):
+        """Raise ValueError if proposal lacks a deliverable client_email."""
+        if not proposal.client_email:
+            raise ValueError('Client email is required to send a proposal.')
+        from content.utils import validate_email_domain_mx
+        if not validate_email_domain_mx(proposal.client_email):
+            raise ValueError(
+                'El dominio del correo del cliente no puede recibir emails.'
+            )
+
+    @staticmethod
+    def get_default_expiration_days(language='es'):
+        """
+        Return the configured default expiration period (in days) for a language.
+
+        Falls back to 21 days when no DB config exists.
+        """
+        from content.models import ProposalDefaultConfig
+
+        config = ProposalDefaultConfig.objects.filter(language=language).first()
+        if config and config.expiration_days:
+            return int(config.expiration_days)
+        return ProposalService.DEFAULT_EXPIRATION_DAYS
+
+    @staticmethod
+    def compute_default_expires_at(language='es'):
+        """Return a timezone-aware datetime for the default expiration."""
+        from django.utils import timezone
+        from datetime import timedelta
+
+        return timezone.now() + timedelta(
+            days=ProposalService.get_default_expiration_days(language),
+        )
 
     @staticmethod
     def send_proposal(proposal):
         """
         Mark proposal as sent and schedule the Huey reminder tasks.
 
-        Sets status=SENT, sent_at=now(), auto-sets expires_at to 20 days
-        if not already set, and schedules reminder (day 10) and urgency
+        Sets status=SENT, sent_at=now(), auto-sets expires_at using the
+        configured default expiration days (21 by default) if not already
+        set, and schedules reminder (day 10) and urgency
         (day 15) emails.
 
         Args:
@@ -2088,8 +2125,7 @@ class ProposalService:
         Raises:
             ValueError: If client_email is not set.
         """
-        if not proposal.client_email:
-            raise ValueError('Client email is required to send a proposal.')
+        ProposalService._require_valid_client_email(proposal)
 
         now = timezone.now()
         proposal.status = 'sent'
@@ -2097,7 +2133,9 @@ class ProposalService:
         update_fields = ['status', 'sent_at']
 
         if not proposal.expires_at:
-            proposal.expires_at = now + timedelta(days=20)
+            proposal.expires_at = now + timedelta(
+                days=ProposalService.get_default_expiration_days(proposal.language),
+            )
             update_fields.append('expires_at')
 
         proposal.save(update_fields=update_fields)
@@ -2119,8 +2157,7 @@ class ProposalService:
         Raises:
             ValueError: If client_email is not set.
         """
-        if not proposal.client_email:
-            raise ValueError('Client email is required to send a proposal.')
+        ProposalService._require_valid_client_email(proposal)
 
         now = timezone.now()
         proposal.status = 'sent'

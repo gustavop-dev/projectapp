@@ -105,11 +105,24 @@ def ensure_deliverable_for_accepted_proposal(
     return d
 
 
+def teardown_platform_for_proposal(proposal) -> None:
+    """Delete linked project (cascading deliverables, requirements, files) and clear FK."""
+    if not proposal.deliverable_id:
+        return
+    deliverable = proposal.deliverable
+    project = deliverable.project
+    proposal.deliverable = None
+    proposal.platform_onboarding_completed_at = None
+    proposal.save(update_fields=['deliverable_id', 'platform_onboarding_completed_at'])
+    project.delete()
+
+
 def handle_proposal_accepted_for_platform(
     proposal,
     *,
     source: Source = 'client_response',
     acting_user=None,
+    send_email: bool = True,
 ) -> dict[str, Any]:
     """
     Idempotent: skips if platform_onboarding_completed_at is set.
@@ -137,9 +150,12 @@ def handle_proposal_accepted_for_platform(
     if d and actor:
         _sync_proposal_documents_to_deliverable(proposal, d, actor)
 
-    from content.services.proposal_email_service import ProposalEmailService
+    if send_email:
+        from content.services.proposal_email_service import ProposalEmailService
 
-    ProposalEmailService.send_acceptance_confirmation(proposal)
+        ProposalEmailService.send_acceptance_confirmation(proposal)
+
+    _ensure_project_stages(proposal)
 
     proposal.platform_onboarding_completed_at = timezone.now()
     proposal.save(update_fields=['platform_onboarding_completed_at'])
@@ -149,6 +165,22 @@ def handle_proposal_accepted_for_platform(
         'deliverable_id': d.id if d else None,
         'sync': sync_result,
     }
+
+
+def _ensure_project_stages(proposal) -> None:
+    """
+    Create empty `ProposalProjectStage` rows for the proposal if missing,
+    so the Cronograma admin tab has rows to populate. Delegates to
+    `ProposalStageTracker.ensure_stages` for the canonical stage catalog.
+    """
+    from content.services.proposal_stage_tracker import ProposalStageTracker
+
+    try:
+        ProposalStageTracker.ensure_stages(proposal)
+    except Exception:
+        logger.exception(
+            'Failed to ensure project stages for proposal %s', proposal.pk,
+        )
 
 
 def _sync_proposal_documents_to_deliverable(proposal, deliverable, acting_user):

@@ -11,7 +11,7 @@ Run these steps on the production server at `/home/ryzepeck/webapps/projectapp` 
 // turbo
 1. Quick status snapshot before deploy:
 ```bash
-bash ~/scripts/quick-status.sh
+bash /home/ryzepeck/webapps/ops/vps/scripts/diagnostics/quick-status.sh
 ```
 
 ## Deploy Steps
@@ -47,7 +47,7 @@ sudo systemctl restart projectapp && sudo systemctl restart projectapp-huey
 // turbo
 7. Run post-deploy check for projectapp:
 ```bash
-bash ~/scripts/post-deploy-check.sh projectapp
+bash /home/ryzepeck/webapps/ops/vps/scripts/deployment/post-deploy-check.sh projectapp
 ```
 Expected: PASS on all checks, FAIL=0.
 
@@ -79,6 +79,6 @@ rm -rf /home/ryzepeck/webapps/projectapp/frontend/node_modules
 
 ## Notes
 
-- `~/scripts` is a symlink to `/home/ryzepeck/webapps/ops/vps/`.
+- VPS operations scripts live in `/home/ryzepeck/webapps/ops/vps/scripts/`.
 - Frontend uses `npm run build:django` which runs `nuxi generate` with `NUXT_APP_CDN_URL=/static/frontend/` and copies output to `backend/static/frontend/`.
 - `DJANGO_SETTINGS_MODULE=projectapp.settings_prod` must be set for migrate and collectstatic commands (manage.py defaults to settings_dev).

@@ -110,3 +110,95 @@ test.describe('Platform Bug Reports — Admin', () => {
     await expect(page.getByText('Botón no responde en móvil')).toBeVisible();
   });
 });
+
+// ── Unified cross-project view (/platform/bugs) ──
+
+const mockProject2 = {
+  id: 2, name: 'Mobile App', status: 'active', progress: 20,
+  client_id: 9002, client_name: 'Client E2E', client_email: 'client@e2e-test.com',
+  client_company: 'ACME Corp', start_date: '2025-03-01', estimated_end_date: '2025-09-30',
+};
+
+const mockBugsCrossProject = [
+  { ...mockBugReports[0], project_id: 1, project_name: 'E-commerce Platform' },
+  { ...mockBugReports[1], project_id: 1, project_name: 'E-commerce Platform' },
+  {
+    id: 3, title: 'App crashes on login', description: 'Force close after entering password.',
+    severity: 'high', status: 'reported', steps_to_reproduce: ['Open app', 'Tap login'],
+    expected_behavior: 'Navigate to dashboard.', actual_behavior: 'App crashes.',
+    environment: 'production', device_browser: 'Android 14', is_recurring: false,
+    admin_response: '', linked_bug_id: null, screenshot_url: null,
+    reported_by_name: 'Client E2E', reported_by_email: 'client@e2e-test.com',
+    comments_count: 0, created_at: '2025-02-05T10:00:00Z', project_id: 2, project_name: 'Mobile App',
+  },
+];
+
+function setupUnifiedBugsMocks(page, { user, bugs = mockBugsCrossProject }) {
+  return mockApi(page, async ({ apiPath, method }) => {
+    if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(user);
+    if (apiPath === 'accounts/projects/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProject, mockProject2]) };
+    }
+    if (apiPath.startsWith('accounts/bug-reports/') && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(bugs) };
+    }
+    if (apiPath === 'accounts/notifications/unread-count/' && method === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify({ unread_count: 0 }) };
+    }
+    return null;
+  });
+}
+
+test.describe('Platform Bug Reports — Unified /platform/bugs', () => {
+  test.setTimeout(60_000);
+
+  test('client sees bugs grouped by project', {
+    tag: [...PLATFORM_BUG_REPORTS, '@role:platform-client'],
+  }, async ({ page }) => {
+    await setPlatformAuth(page, { user: mockPlatformClient });
+    await setupUnifiedBugsMocks(page, { user: mockPlatformClient });
+    await page.goto('/platform/bugs', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /mis bugs reportados/i }).waitFor({ state: 'visible', timeout: 30000 });
+
+    await expect(page.getByText('E-commerce Platform')).toBeVisible();
+    await expect(page.getByText('Botón no responde en móvil')).toBeVisible();
+    await expect(page.getByText('Mobile App')).toBeVisible();
+    await expect(page.getByText('App crashes on login')).toBeVisible();
+  });
+
+  test('admin sees all bugs with archived toggle', {
+    tag: [...PLATFORM_BUG_REPORTS, '@role:platform-admin'],
+  }, async ({ page }) => {
+    await setPlatformAuth(page, { user: mockPlatformAdmin });
+    await setupUnifiedBugsMocks(page, { user: mockPlatformAdmin });
+    await page.goto('/platform/bugs', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /reporte de bugs/i }).waitFor({ state: 'visible', timeout: 30000 });
+
+    await expect(page.getByText('Mostrar archivados')).toBeVisible();
+    await expect(page.getByText('E-commerce Platform')).toBeVisible();
+    await expect(page.getByText('Mobile App')).toBeVisible();
+  });
+
+  test('shows summary pills with status counts', {
+    tag: [...PLATFORM_BUG_REPORTS, '@role:platform-client'],
+  }, async ({ page }) => {
+    await setPlatformAuth(page, { user: mockPlatformClient });
+    await setupUnifiedBugsMocks(page, { user: mockPlatformClient });
+    await page.goto('/platform/bugs', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /mis bugs reportados/i }).waitFor({ state: 'visible', timeout: 30000 });
+
+    await expect(page.getByText('Reportados', { exact: true })).toBeVisible();
+    await expect(page.getByText('Confirmados', { exact: true })).toBeVisible();
+  });
+
+  test('shows empty state when no bugs exist', {
+    tag: [...PLATFORM_BUG_REPORTS, '@role:platform-client'],
+  }, async ({ page }) => {
+    await setPlatformAuth(page, { user: mockPlatformClient });
+    await setupUnifiedBugsMocks(page, { user: mockPlatformClient, bugs: [] });
+    await page.goto('/platform/bugs', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /mis bugs reportados/i }).waitFor({ state: 'visible', timeout: 30000 });
+
+    await expect(page.getByText('No hay bugs reportados en este momento.')).toBeVisible();
+  });
+});

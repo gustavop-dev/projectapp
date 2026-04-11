@@ -667,7 +667,7 @@ class TestAutoPublishToLinkedIn:
 
     def test_auto_publish_uses_cover_image_url_field_when_set(self, admin_client, draft_blog_post):
         """When post has cover_image_url set, it is passed to LinkedIn publish."""
-        from unittest.mock import patch, call
+        from unittest.mock import patch
 
         draft_blog_post.linkedin_summary_es = 'Resumen.'
         draft_blog_post.cover_image_url = 'https://example.com/image.jpg'

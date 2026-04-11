@@ -13,6 +13,9 @@ from django.utils import timezone
 from huey import crontab
 from huey.contrib.djhuey import periodic_task, task
 
+from accounts.models import UserProfile
+from content.services.proposal_email_service import _is_unsendable_client_email
+
 logger = logging.getLogger(__name__)
 
 
@@ -50,9 +53,9 @@ def send_proposal_reminder(proposal_id):
         )
         return
 
-    if not proposal.client_email:
-        logger.warning(
-            'Skipping reminder for proposal %s: no client_email',
+    if _is_unsendable_client_email(proposal.client_email):
+        logger.info(
+            'Skipping reminder for proposal %s: missing or placeholder client_email',
             proposal.uuid,
         )
         return
@@ -101,9 +104,9 @@ def send_urgency_reminder(proposal_id):
         )
         return
 
-    if not proposal.client_email:
-        logger.warning(
-            'Skipping urgency for proposal %s: no client_email',
+    if _is_unsendable_client_email(proposal.client_email):
+        logger.info(
+            'Skipping urgency for proposal %s: missing or placeholder client_email',
             proposal.uuid,
         )
         return
@@ -147,9 +150,9 @@ def send_rejection_reengagement(proposal_id):
         )
         return
 
-    if not proposal.client_email:
-        logger.warning(
-            'Skipping re-engagement for proposal %s: no client_email',
+    if _is_unsendable_client_email(proposal.client_email):
+        logger.info(
+            'Skipping re-engagement for proposal %s: missing or placeholder client_email',
             proposal.uuid,
         )
         return
@@ -371,7 +374,7 @@ def check_engagement_followups():
         abandonment_email_sent_at__isnull=True,
         first_viewed_at__isnull=False,
         first_viewed_at__lt=four_hours_ago,
-    )
+    ).exclude(client_email__iendswith=UserProfile.PLACEHOLDER_EMAIL_DOMAIN)
 
     for proposal in abandonment_candidates:
         visited_types = set(
@@ -401,7 +404,7 @@ def check_engagement_followups():
         client_email__gt='',
         investment_interest_email_sent_at__isnull=True,
         first_viewed_at__isnull=False,
-    )
+    ).exclude(client_email__iendswith=UserProfile.PLACEHOLDER_EMAIL_DOMAIN)
 
     for proposal in interest_candidates:
         last_event = (
@@ -462,9 +465,9 @@ def send_scheduled_followup(proposal_id):
         )
         return
 
-    if not proposal.client_email:
-        logger.warning(
-            'Skipping scheduled followup for proposal %s: no client_email',
+    if _is_unsendable_client_email(proposal.client_email):
+        logger.info(
+            'Skipping scheduled followup for proposal %s: missing or placeholder client_email',
             proposal.uuid,
         )
         return
@@ -555,6 +558,7 @@ def send_daily_pipeline_digest():
 
     from content.models import BusinessProposal, ProposalViewEvent
     from content.services.proposal_email_service import ProposalEmailService
+    from content.utils import format_bogota_date
 
     now = timezone.now()
     yesterday_start = (now - timedelta(days=1)).replace(
@@ -622,7 +626,7 @@ def send_daily_pipeline_digest():
         'inactive': inactive,
         'expiring_soon': expiring_soon,
         'total_active': active_proposals.count(),
-        'date': now.strftime('%Y-%m-%d'),
+        'date': format_bogota_date(now),
     }
 
     ProposalEmailService.send_daily_pipeline_digest(digest_data)
@@ -950,3 +954,103 @@ def notify_first_view(proposal_id):
         return
 
     ProposalEmailService.send_first_view_notification(proposal)
+
+
+@task()
+def run_platform_onboarding(proposal_id, acting_user_id=None, is_relaunch=False):
+    """
+    Huey task: run platform onboarding for an accepted proposal.
+
+    Creates project, deliverable, syncs requirements and documents,
+    and sends acceptance email (first launch only). Wrapped in
+    transaction.atomic() so partial failures roll back cleanly.
+
+    Updates platform_onboarding_status to 'completed' or 'failed'.
+    """
+    from django.db import transaction
+
+    from content.models import BusinessProposal
+
+    try:
+        proposal = BusinessProposal.objects.get(pk=proposal_id)
+    except BusinessProposal.DoesNotExist:
+        logger.warning(
+            'Proposal %s not found for platform onboarding task.',
+            proposal_id,
+        )
+        return
+
+    acting_user = None
+    if acting_user_id:
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        acting_user = User.objects.filter(pk=acting_user_id).first()
+
+    try:
+        with transaction.atomic():
+            from accounts.services.proposal_platform_onboarding import (
+                handle_proposal_accepted_for_platform,
+            )
+
+            handle_proposal_accepted_for_platform(
+                proposal,
+                source='admin_panel',
+                acting_user=acting_user,
+                send_email=not is_relaunch,
+            )
+
+        proposal.platform_onboarding_status = BusinessProposal.ONBOARDING_COMPLETED
+        proposal.save(update_fields=['platform_onboarding_status'])
+    except Exception:
+        logger.exception(
+            'Platform onboarding failed for proposal %s.', proposal_id,
+        )
+        proposal.platform_onboarding_status = BusinessProposal.ONBOARDING_FAILED
+        proposal.save(update_fields=['platform_onboarding_status'])
+
+
+# 13:30 UTC = 08:30 Bogotá. America/Bogota does not observe DST, so the
+# offset (UTC-5) is stable year-round. Pick the time so the team's inbox
+# has the email when they start the day.
+@periodic_task(crontab(hour='13', minute='30'))
+def notify_proposal_stage_deadlines():
+    """
+    Daily task: scan proposals with active project stages and send the team
+    pre-deadline warnings (70% elapsed) and overdue reminders (every 3 days).
+
+    Filter is by stage existence + dates + not-completed, NOT by proposal
+    status — that way an admin can pre-schedule stages while the proposal
+    is still in `negotiating` or `viewed`. Stages with NULL dates are
+    silently skipped by ProposalStageTracker.
+    """
+    from content.models import BusinessProposal
+    from content.services.proposal_stage_tracker import ProposalStageTracker
+
+    candidates = (
+        BusinessProposal.objects
+        .filter(
+            is_active=True,
+            automations_paused=False,
+            project_stages__start_date__isnull=False,
+            project_stages__end_date__isnull=False,
+            project_stages__completed_at__isnull=True,
+        )
+        .distinct()
+        .prefetch_related('project_stages')
+    )
+
+    processed = 0
+    for proposal in candidates:
+        try:
+            ProposalStageTracker.process(proposal)
+            processed += 1
+        except Exception:
+            logger.exception(
+                'notify_proposal_stage_deadlines: failed for proposal %s',
+                proposal.uuid,
+            )
+
+    if processed:
+        logger.info(
+            'notify_proposal_stage_deadlines: processed %d proposals', processed,
+        )

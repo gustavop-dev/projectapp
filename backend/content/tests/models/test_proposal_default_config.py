@@ -68,3 +68,7 @@ class TestProposalDefaultConfigDefaults:
     def test_sections_json_defaults_to_empty_list(self):
         config = ProposalDefaultConfig.objects.create(language='es')
         assert config.sections_json == []
+
+    def test_expiration_days_defaults_to_21(self):
+        config = ProposalDefaultConfig.objects.create(language='en')
+        assert config.expiration_days == 21

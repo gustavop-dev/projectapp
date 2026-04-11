@@ -24,6 +24,10 @@ class ProposalDefaultConfig(models.Model):
         default=list,
         help_text='Full array of default section dicts (same structure as DEFAULT_SECTIONS).',
     )
+    expiration_days = models.PositiveIntegerField(
+        default=21,
+        help_text='Default proposal expiration period in days.',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

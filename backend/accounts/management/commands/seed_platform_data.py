@@ -565,6 +565,7 @@ class Command(BaseCommand):
         proposal_title = 'Propuesta Plataforma E-commerce — TechStartup Co.'
         proposal = BusinessProposal.objects.create(
             title=proposal_title,
+            client=client_user.profile,
             client_name='TechStartup Co.',
             client_email=client_user.email,
             client_phone='+57 300 123 4567',

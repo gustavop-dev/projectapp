@@ -1,0 +1,17 @@
+⚠️ ETAPA DE {{ stage_label|upper }} CERCA DE VENCER — {{ proposal_title }}
+
+{{ intro }}
+
+Detalles:
+- Cliente: {{ client_name }}
+- Propuesta: {{ proposal_title }}
+- Etapa: {{ stage_label }}
+- Inicio: {{ start_date_human }}
+- Fin planeado: {{ end_date_human }}
+- Tiempo restante: {{ time_remaining_human }}
+
+Ver el cronograma en el panel:
+{{ edit_url }}
+
+---
+Notificación automática — ProjectApp.co

@@ -11,12 +11,12 @@
       @cancel="handleCancelled"
     />
     <div class="flex items-center justify-between mb-8">
-      <h1 class="text-2xl font-light text-gray-900">Blog Posts</h1>
+      <h1 class="text-2xl font-light text-gray-900 dark:text-white">Blog Posts</h1>
       <div class="flex items-center gap-3">
         <NuxtLink
           :to="localePath('/panel/blog/calendar')"
-          class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl
-                 font-medium text-sm hover:bg-gray-50 transition-colors"
+          class="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-green-light rounded-xl
+                 font-medium text-sm hover:bg-gray-50 dark:hover:bg-white/[0.06] transition-colors"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -43,7 +43,7 @@
 
     <!-- Table (desktop) / Cards (mobile) -->
     <div v-else>
-      <div v-if="posts.length === 0" class="bg-white rounded-xl shadow-sm border border-gray-100 px-6 py-12 text-center text-gray-400 text-sm">
+      <div v-if="posts.length === 0" class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] px-6 py-12 text-center text-gray-400 dark:text-green-light/60 text-sm">
         No hay posts aún. Crea el primero.
       </div>
 
@@ -52,12 +52,12 @@
         <div
           v-for="post in posts"
           :key="post.id"
-          class="bg-white rounded-xl shadow-sm border border-gray-100 p-4"
+          class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4"
         >
           <div class="flex items-start justify-between gap-3 mb-2">
             <NuxtLink
               :to="localePath(`/panel/blog/${post.id}/edit`)"
-              class="text-sm font-medium text-gray-900 hover:text-emerald-600 transition-colors leading-tight"
+              class="text-sm font-medium text-gray-900 dark:text-white hover:text-emerald-600 transition-colors leading-tight"
             >
               {{ post.title_es }}
             </NuxtLink>
@@ -68,7 +68,7 @@
               {{ statusLabel(post) }}
             </span>
           </div>
-          <p class="text-xs text-gray-400 mb-3">{{ post.slug }} · {{ formatDate(post.published_at || post.created_at) }}</p>
+          <p class="text-xs text-gray-400 dark:text-green-light/60 mb-3">{{ post.slug }} · {{ formatDate(post.published_at || post.created_at) }}</p>
           <div class="flex items-center gap-3">
             <NuxtLink
               :to="localePath(`/panel/blog/${post.id}/edit`)"
@@ -77,7 +77,7 @@
               Editar
             </NuxtLink>
             <button
-              class="text-xs text-gray-500 hover:text-emerald-600 transition-colors"
+              class="text-xs text-gray-500 dark:text-green-light/60 hover:text-emerald-600 dark:hover:text-white transition-colors"
               @click="handleDuplicate(post)"
             >
               Duplicar
@@ -93,27 +93,27 @@
       </div>
 
       <!-- Desktop table -->
-      <div class="hidden sm:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="hidden sm:block bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead>
-              <tr class="border-b border-gray-100 text-left">
-                <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
-                <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Acciones</th>
+              <tr class="border-b border-gray-100 dark:border-white/[0.06] text-left">
+                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider">Título</th>
+                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider">Estado</th>
+                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider">Fecha</th>
+                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
-              <tr v-for="post in posts" :key="post.id" class="hover:bg-gray-50 transition-colors">
+            <tbody class="divide-y divide-gray-50 dark:divide-white/[0.04]">
+              <tr v-for="post in posts" :key="post.id" class="hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors">
                 <td class="px-6 py-4">
                   <NuxtLink
                     :to="localePath(`/panel/blog/${post.id}/edit`)"
-                    class="text-sm font-medium text-gray-900 hover:text-emerald-600 transition-colors"
+                    class="text-sm font-medium text-gray-900 dark:text-white hover:text-emerald-600 transition-colors"
                   >
                     {{ post.title_es }}
                   </NuxtLink>
-                  <p class="text-xs text-gray-400 mt-0.5">{{ post.title_en }} · {{ post.slug }}</p>
+                  <p class="text-xs text-gray-400 dark:text-green-light/60 mt-0.5">{{ post.title_en }} · {{ post.slug }}</p>
                 </td>
                 <td class="px-6 py-4">
                   <span
@@ -123,19 +123,19 @@
                     {{ statusLabel(post) }}
                   </span>
                 </td>
-                <td class="px-6 py-4 text-sm text-gray-500">
+                <td class="px-6 py-4 text-sm text-gray-500 dark:text-green-light/60">
                   {{ formatDate(post.published_at || post.created_at) }}
                 </td>
                 <td class="px-6 py-4 text-right">
                   <div class="flex items-center justify-end gap-2">
                     <NuxtLink
                       :to="localePath(`/panel/blog/${post.id}/edit`)"
-                      class="text-xs text-gray-500 hover:text-emerald-600 transition-colors"
+                      class="text-xs text-gray-500 dark:text-green-light/60 hover:text-emerald-600 dark:hover:text-white transition-colors"
                     >
                       Editar
                     </NuxtLink>
                     <button
-                      class="text-xs text-gray-500 hover:text-emerald-600 transition-colors"
+                      class="text-xs text-gray-500 dark:text-green-light/60 hover:text-emerald-600 dark:hover:text-white transition-colors"
                       @click="handleDuplicate(post)"
                     >
                       Duplicar
@@ -155,12 +155,12 @@
       </div>
 
       <!-- Pagination controls -->
-      <div v-if="blogStore.adminPagination.totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-white rounded-b-xl">
-        <span class="text-xs text-gray-400">{{ blogStore.adminPagination.count }} posts · Página {{ blogStore.adminPagination.page }} de {{ blogStore.adminPagination.totalPages }}</span>
+      <div v-if="blogStore.adminPagination.totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-white/[0.06] bg-white dark:bg-esmerald rounded-b-xl">
+        <span class="text-xs text-gray-400 dark:text-green-light/60">{{ blogStore.adminPagination.count }} posts · Página {{ blogStore.adminPagination.page }} de {{ blogStore.adminPagination.totalPages }}</span>
         <div class="flex gap-1">
           <button
             :disabled="blogStore.adminPagination.page <= 1"
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-gray-200 hover:bg-gray-50 disabled:opacity-40"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-gray-200 dark:border-white/[0.08] dark:text-green-light/60 hover:bg-gray-50 dark:hover:bg-white/[0.06] disabled:opacity-40"
             @click="goToPage(blogStore.adminPagination.page - 1)"
           >
             ← Anterior
@@ -169,14 +169,14 @@
             v-for="page in visiblePages"
             :key="page"
             class="w-8 h-8 rounded-lg text-xs font-medium transition-colors"
-            :class="blogStore.adminPagination.page === page ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:bg-gray-100'"
+            :class="blogStore.adminPagination.page === page ? 'bg-emerald-600 text-white' : 'text-gray-500 dark:text-green-light/60 hover:bg-gray-100 dark:hover:bg-white/[0.06]'"
             @click="goToPage(page)"
           >
             {{ page }}
           </button>
           <button
             :disabled="blogStore.adminPagination.page >= blogStore.adminPagination.totalPages"
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-gray-200 hover:bg-gray-50 disabled:opacity-40"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-gray-200 dark:border-white/[0.08] dark:text-green-light/60 hover:bg-gray-50 dark:hover:bg-white/[0.06] disabled:opacity-40"
             @click="goToPage(blogStore.adminPagination.page + 1)"
           >
             Siguiente →
@@ -240,9 +240,9 @@ function statusLabel(post) {
 }
 
 function statusBadgeClass(post) {
-  if (post.is_published) return 'bg-emerald-50 text-emerald-700';
-  if (isScheduled(post)) return 'bg-blue-50 text-blue-700';
-  return 'bg-gray-100 text-gray-600';
+  if (post.is_published) return 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400';
+  if (isScheduled(post)) return 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300';
+  return 'bg-gray-100 dark:bg-white/[0.06] text-gray-600 dark:text-green-light';
 }
 
 function handleDuplicate(post) {

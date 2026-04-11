@@ -1,20 +1,20 @@
 <template>
   <div>
     <div class="flex items-center gap-4 mb-8">
-      <NuxtLink :to="localePath('/panel/portfolio')" class="text-gray-400 hover:text-gray-600 transition-colors">
+      <NuxtLink :to="localePath('/panel/portfolio')" class="text-gray-400 dark:text-green-light/60 hover:text-gray-600 dark:hover:text-white transition-colors">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
       </NuxtLink>
-      <h1 class="text-2xl font-light text-gray-900">Nuevo Proyecto</h1>
+      <h1 class="text-2xl font-light text-gray-900 dark:text-white">Nuevo Proyecto</h1>
     </div>
 
     <!-- Tab toggle -->
-    <div class="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 max-w-xs">
-      <button type="button" :class="['flex-1 px-4 py-2 text-sm rounded-lg transition-all', mode === 'manual' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700']" @click="mode = 'manual'">
+    <div class="flex gap-1 mb-6 bg-gray-100 dark:bg-white/[0.06] rounded-xl p-1 max-w-xs">
+      <button type="button" :class="['flex-1 px-4 py-2 text-sm rounded-lg transition-all', mode === 'manual' ? 'bg-white dark:bg-esmerald shadow-sm font-medium text-gray-900 dark:text-white' : 'text-gray-500 dark:text-green-light/60 hover:text-gray-700 dark:hover:text-white']" @click="mode = 'manual'">
         Manual
       </button>
-      <button type="button" :class="['flex-1 px-4 py-2 text-sm rounded-lg transition-all', mode === 'json' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700']" @click="mode = 'json'">
+      <button type="button" :class="['flex-1 px-4 py-2 text-sm rounded-lg transition-all', mode === 'json' ? 'bg-white dark:bg-esmerald shadow-sm font-medium text-gray-900 dark:text-white' : 'text-gray-500 dark:text-green-light/60 hover:text-gray-700 dark:hover:text-white']" @click="mode = 'json'">
         Importar JSON
       </button>
     </div>
@@ -22,59 +22,59 @@
     <!-- MANUAL MODE -->
     <form v-if="mode === 'manual'" class="space-y-6 max-w-3xl" @submit.prevent="handleSubmit">
       <!-- Español -->
-      <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
-        <legend class="text-sm font-medium text-gray-700 px-2">Español</legend>
+      <fieldset class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+        <legend class="text-sm font-medium text-gray-700 dark:text-white/70 px-2">Español</legend>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Título (ES)</label>
-          <input v-model="form.title_es" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Título del proyecto en español" />
+          <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Título (ES)</label>
+          <input v-model="form.title_es" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Título del proyecto en español" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Tagline (ES)</label>
-          <input v-model="form.excerpt_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Tagline corto en español" />
+          <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Tagline (ES)</label>
+          <input v-model="form.excerpt_es" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Tagline corto en español" />
         </div>
       </fieldset>
 
       <!-- English -->
-      <fieldset class="border border-gray-200 rounded-xl p-5 space-y-4">
-        <legend class="text-sm font-medium text-gray-700 px-2">English</legend>
+      <fieldset class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-5 space-y-4">
+        <legend class="text-sm font-medium text-gray-700 dark:text-white/70 px-2">English</legend>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Title (EN)</label>
-          <input v-model="form.title_en" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Project title in English" />
+          <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Title (EN)</label>
+          <input v-model="form.title_en" type="text" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Project title in English" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Tagline (EN)</label>
-          <input v-model="form.excerpt_en" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Short tagline in English" />
+          <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Tagline (EN)</label>
+          <input v-model="form.excerpt_en" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Short tagline in English" />
         </div>
       </fieldset>
 
       <!-- Project URL + Cover -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">URL del proyecto</label>
-          <input v-model="form.project_url" type="url" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://example.com" />
+          <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">URL del proyecto</label>
+          <input v-model="form.project_url" type="url" required class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://example.com" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Imagen de portada (URL)</label>
-          <input v-model="form.cover_image_url" type="url" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://... (opcional)" />
+          <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Imagen de portada (URL)</label>
+          <input v-model="form.cover_image_url" type="url" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://... (opcional)" />
         </div>
       </div>
 
       <!-- Order -->
       <div class="max-w-[200px]">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Orden</label>
-        <input v-model.number="form.order" type="number" min="0" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+        <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Orden</label>
+        <input v-model.number="form.order" type="number" min="0" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
       </div>
 
       <!-- Publishing -->
-      <fieldset class="border border-gray-200 rounded-xl p-5 space-y-3">
-        <legend class="text-sm font-medium text-gray-700 px-2">Publicación</legend>
+      <fieldset class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-5 space-y-3">
+        <legend class="text-sm font-medium text-gray-700 dark:text-white/70 px-2">Publicación</legend>
         <label class="flex items-center gap-3 cursor-pointer">
           <input v-model="publishMode" type="radio" value="draft" name="pm" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-          <span class="text-sm text-gray-700">Borrador</span>
+          <span class="text-sm text-gray-700 dark:text-white/70">Borrador</span>
         </label>
         <label class="flex items-center gap-3 cursor-pointer">
           <input v-model="publishMode" type="radio" value="now" name="pm" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-          <span class="text-sm text-gray-700">Publicar ahora</span>
+          <span class="text-sm text-gray-700 dark:text-white/70">Publicar ahora</span>
         </label>
       </fieldset>
 
@@ -84,18 +84,18 @@
         <button type="submit" :disabled="portfolioStore.isUpdating" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
           {{ portfolioStore.isUpdating ? 'Creando...' : 'Crear Proyecto' }}
         </button>
-        <NuxtLink :to="localePath('/panel/portfolio')" class="px-6 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition-colors">Cancelar</NuxtLink>
+        <NuxtLink :to="localePath('/panel/portfolio')" class="px-6 py-2.5 border border-gray-200 dark:border-white/[0.08] text-gray-600 dark:text-green-light rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors">Cancelar</NuxtLink>
       </div>
     </form>
 
     <!-- JSON IMPORT MODE -->
     <div v-else class="max-w-3xl space-y-6">
       <!-- Download template -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
+      <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h3 class="text-sm font-medium text-gray-900">Plantilla JSON</h3>
-            <p class="text-xs text-gray-400 mt-0.5">Descarga la plantilla con la estructura problem/solution/results.</p>
+            <h3 class="text-sm font-medium text-gray-900 dark:text-white">Plantilla JSON</h3>
+            <p class="text-xs text-gray-400 dark:text-green-light/60 mt-0.5">Descarga la plantilla con la estructura problem/solution/results.</p>
           </div>
           <button type="button" :disabled="isDownloading" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50" @click="downloadTemplate">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -105,10 +105,10 @@
       </div>
 
       <!-- JSON input -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
-        <h3 class="text-sm font-medium text-gray-900 mb-3">Pegar o subir JSON</h3>
+      <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6">
+        <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-3">Pegar o subir JSON</h3>
         <div class="flex items-center gap-3 mb-3">
-          <label class="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors">
+          <label class="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 dark:text-white/70 hover:bg-gray-50 cursor-pointer transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
             Subir archivo .json
             <input type="file" accept=".json" class="hidden" @change="handleFileUpload" />
@@ -126,18 +126,18 @@
       </div>
 
       <!-- Submit from JSON -->
-      <form v-if="jsonParsed && !jsonError" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6" @submit.prevent="handleJsonSubmit">
-        <h3 class="text-sm font-medium text-gray-900 mb-4">Opciones de publicación</h3>
+      <form v-if="jsonParsed && !jsonError" class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6" @submit.prevent="handleJsonSubmit">
+        <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-4">Opciones de publicación</h3>
         <div class="space-y-4">
           <fieldset class="border border-gray-200 rounded-xl p-4 space-y-3">
             <legend class="text-xs font-medium text-gray-600 px-2">Publicación</legend>
             <label class="flex items-center gap-3 cursor-pointer">
               <input v-model="jsonPublishMode" type="radio" value="draft" name="jpm" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-              <span class="text-sm text-gray-700">Borrador</span>
+              <span class="text-sm text-gray-700 dark:text-white/70">Borrador</span>
             </label>
             <label class="flex items-center gap-3 cursor-pointer">
               <input v-model="jsonPublishMode" type="radio" value="now" name="jpm" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-              <span class="text-sm text-gray-700">Publicar ahora</span>
+              <span class="text-sm text-gray-700 dark:text-white/70">Publicar ahora</span>
             </label>
           </fieldset>
           <div v-if="errorMsg" class="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl">{{ errorMsg }}</div>
@@ -145,7 +145,7 @@
             <button type="submit" :disabled="portfolioStore.isUpdating" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
               {{ portfolioStore.isUpdating ? 'Creando...' : 'Crear desde JSON' }}
             </button>
-            <NuxtLink :to="localePath('/panel/portfolio')" class="text-sm text-gray-500 hover:text-gray-700">Cancelar</NuxtLink>
+            <NuxtLink :to="localePath('/panel/portfolio')" class="text-sm text-gray-500 dark:text-green-light/60 hover:text-gray-700 dark:hover:text-white">Cancelar</NuxtLink>
           </div>
         </div>
       </form>

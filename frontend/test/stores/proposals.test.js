@@ -35,6 +35,7 @@ describe('useProposalStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     store = useProposalStore();
+    store._clearExpirationCache();
     jest.clearAllMocks();
     jest.restoreAllMocks();
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -1186,6 +1187,21 @@ describe('useProposalStore', () => {
       expect(result.success).toBe(true);
     });
 
+    it('dismisses computed alert with payload', async () => {
+      patch_request.mockResolvedValue({});
+
+      const result = await store.dismissAlert(17, {
+        computed_alert_type: 'not_viewed',
+        ref_date: '2026-03-10T12:00:00+00:00',
+      });
+
+      expect(patch_request).toHaveBeenCalledWith('proposals/alerts/17/dismiss/', {
+        computed_alert_type: 'not_viewed',
+        ref_date: '2026-03-10T12:00:00+00:00',
+      });
+      expect(result.success).toBe(true);
+    });
+
     it('returns success false on error', async () => {
       patch_request.mockRejectedValue(new Error('fail'));
 
@@ -1224,6 +1240,17 @@ describe('useProposalStore', () => {
 
       expect(result.success).toBe(false);
       expect(store.error).toBe('update_status_failed');
+    });
+
+    it('updates status to finished from accepted', async () => {
+      patch_request.mockResolvedValue({ data: { id: 7, status: 'finished' } });
+      store.proposals = [{ id: 7, status: 'accepted' }];
+
+      const result = await store.updateProposalStatus(7, 'finished');
+
+      expect(patch_request).toHaveBeenCalledWith('proposals/7/update-status/', { status: 'finished' });
+      expect(result.success).toBe(true);
+      expect(store.proposals[0].status).toBe('finished');
     });
   });
 
@@ -1297,6 +1324,57 @@ describe('useProposalStore', () => {
     });
   });
 
+  describe('fetchExpirationDays', () => {
+    it('returns expiration_days from API on cache miss', async () => {
+      get_request.mockResolvedValue({ data: { expiration_days: 30 } });
+
+      const days = await store.fetchExpirationDays('en');
+
+      expect(get_request).toHaveBeenCalledWith('proposals/defaults/?lang=en');
+      expect(days).toBe(30);
+    });
+
+    it('returns cached value on subsequent calls', async () => {
+      get_request.mockResolvedValue({ data: { expiration_days: 14 } });
+
+      await store.fetchExpirationDays('es');
+      get_request.mockClear();
+      const days = await store.fetchExpirationDays('es');
+
+      expect(get_request).not.toHaveBeenCalled();
+      expect(days).toBe(14);
+    });
+
+    it('caches per language independently', async () => {
+      get_request
+        .mockResolvedValueOnce({ data: { expiration_days: 21 } })
+        .mockResolvedValueOnce({ data: { expiration_days: 30 } });
+
+      const esDay = await store.fetchExpirationDays('es');
+      const enDay = await store.fetchExpirationDays('en');
+
+      expect(esDay).toBe(21);
+      expect(enDay).toBe(30);
+      expect(get_request).toHaveBeenCalledTimes(2);
+    });
+
+    it('returns null on API failure', async () => {
+      get_request.mockRejectedValue(new Error('network'));
+
+      const days = await store.fetchExpirationDays('es');
+
+      expect(days).toBeNull();
+    });
+
+    it('returns null when expiration_days is missing', async () => {
+      get_request.mockResolvedValue({ data: {} });
+
+      const days = await store.fetchExpirationDays('es');
+
+      expect(days).toBeNull();
+    });
+  });
+
   describe('saveProposalDefaults', () => {
     it('saves defaults and returns data', async () => {
       const data = { id: 1, language: 'es' };
@@ -1313,6 +1391,24 @@ describe('useProposalStore', () => {
       expect(result.data).toEqual(data);
     });
 
+    it('saves general defaults without sections_json when only expiration_days is provided', async () => {
+      const data = { id: 1, language: 'es', expiration_days: 21 };
+      put_request.mockResolvedValue({ data });
+
+      const result = await store.saveProposalDefaults(
+        'es',
+        null,
+        { expiration_days: 21 },
+      );
+
+      expect(put_request).toHaveBeenCalledWith('proposals/defaults/', {
+        language: 'es',
+        expiration_days: 21,
+      });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(data);
+    });
+
     it('sets error on failure', async () => {
       put_request.mockRejectedValue({
         response: { data: { sections_json: ['Required'] } },
@@ -1323,6 +1419,20 @@ describe('useProposalStore', () => {
       expect(result.success).toBe(false);
       expect(store.error).toBe('save_defaults_failed');
       expect(result.errors).toEqual({ sections_json: ['Required'] });
+    });
+
+    it('invalidates expiration cache for the saved language', async () => {
+      get_request.mockResolvedValue({ data: { expiration_days: 21 } });
+      await store.fetchExpirationDays('es');
+
+      put_request.mockResolvedValue({ data: { id: 1 } });
+      await store.saveProposalDefaults('es', null, { expiration_days: 30 });
+
+      get_request.mockResolvedValue({ data: { expiration_days: 30 } });
+      const days = await store.fetchExpirationDays('es');
+
+      expect(days).toBe(30);
+      expect(get_request).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -1353,6 +1463,20 @@ describe('useProposalStore', () => {
 
       expect(result.success).toBe(false);
       expect(store.error).toBe('reset_defaults_failed');
+    });
+
+    it('invalidates expiration cache for the reset language', async () => {
+      get_request.mockResolvedValue({ data: { expiration_days: 30 } });
+      await store.fetchExpirationDays('en');
+
+      create_request.mockResolvedValue({ data: { expiration_days: 21 } });
+      await store.resetProposalDefaults('en');
+
+      get_request.mockResolvedValue({ data: { expiration_days: 21 } });
+      const days = await store.fetchExpirationDays('en');
+
+      expect(days).toBe(21);
+      expect(get_request).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -1883,6 +2007,124 @@ describe('useProposalStore', () => {
       await store.fetchEmailHistory(1, 1, 'proposal-email');
 
       expect(get_request).toHaveBeenCalledWith('proposals/1/proposal-email/history/?page=1');
+    });
+  });
+
+  describe('project schedule actions', () => {
+    it('updateProjectStage calls PUT on the stage endpoint with the dates payload', async () => {
+      put_request.mockResolvedValueOnce({
+        data: {
+          id: 1,
+          stage_key: 'design',
+          stage_label: 'Diseño',
+          start_date: '2026-04-01',
+          end_date: '2026-04-15',
+          completed_at: null,
+        },
+      });
+
+      const result = await store.updateProjectStage(42, 'design', {
+        start_date: '2026-04-01',
+        end_date: '2026-04-15',
+      });
+
+      expect(put_request).toHaveBeenCalledWith(
+        'proposals/42/stages/design/',
+        { start_date: '2026-04-01', end_date: '2026-04-15' },
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it('updateProjectStage merges the returned stage into currentProposal.project_stages', async () => {
+      store.currentProposal = {
+        id: 42,
+        project_stages: [
+          { id: 1, stage_key: 'design', start_date: null, end_date: null },
+          { id: 2, stage_key: 'development', start_date: null, end_date: null },
+        ],
+      };
+      put_request.mockResolvedValueOnce({
+        data: {
+          id: 1,
+          stage_key: 'design',
+          start_date: '2026-04-01',
+          end_date: '2026-04-15',
+        },
+      });
+
+      await store.updateProjectStage(42, 'design', {
+        start_date: '2026-04-01',
+        end_date: '2026-04-15',
+      });
+
+      const updated = store.currentProposal.project_stages.find(
+        (s) => s.stage_key === 'design',
+      );
+      expect(updated.start_date).toBe('2026-04-01');
+      expect(updated.end_date).toBe('2026-04-15');
+    });
+
+    it('updateProjectStage returns success false when the request rejects', async () => {
+      put_request.mockRejectedValueOnce({
+        response: { data: { end_date: ['error'] } },
+      });
+
+      const result = await store.updateProjectStage(42, 'design', {
+        start_date: '2026-04-15',
+        end_date: '2026-04-01',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toEqual({ end_date: ['error'] });
+    });
+
+    it('completeProjectStage POSTs to the complete endpoint', async () => {
+      create_request.mockResolvedValueOnce({
+        data: {
+          id: 1,
+          stage_key: 'design',
+          completed_at: '2026-04-15T12:00:00Z',
+        },
+      });
+
+      const result = await store.completeProjectStage(42, 'design');
+
+      expect(create_request).toHaveBeenCalledWith(
+        'proposals/42/stages/design/complete/',
+        {},
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it('completeProjectStage updates the merged stage with completed_at', async () => {
+      store.currentProposal = {
+        id: 42,
+        project_stages: [
+          { id: 1, stage_key: 'design', completed_at: null },
+        ],
+      };
+      create_request.mockResolvedValueOnce({
+        data: {
+          id: 1,
+          stage_key: 'design',
+          completed_at: '2026-04-15T12:00:00Z',
+        },
+      });
+
+      await store.completeProjectStage(42, 'design');
+
+      const updated = store.currentProposal.project_stages.find(
+        (s) => s.stage_key === 'design',
+      );
+      expect(updated.completed_at).toBe('2026-04-15T12:00:00Z');
+    });
+
+    it('completeProjectStage returns success false when the request rejects', async () => {
+      create_request.mockRejectedValueOnce(new Error('boom'));
+
+      const result = await store.completeProjectStage(42, 'design');
+
+      expect(result.success).toBe(false);
     });
   });
 });

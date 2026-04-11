@@ -14,6 +14,7 @@ from .contact import Contact
 from .portfolio_works import PortfolioWork
 from .business_proposal import BusinessProposal, ProposalAlert
 from .proposal_section import ProposalSection
+from .proposal_project_stage import ProposalProjectStage
 from .proposal_requirement_group import ProposalRequirementGroup
 from .proposal_requirement_item import ProposalRequirementItem
 from .blog_post import BlogPost

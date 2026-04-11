@@ -3,7 +3,8 @@
 Covers: token exchange, encrypted storage, auto-refresh, publish,
 connection status, and encryption round-trip.
 """
-from datetime import datetime, timedelta, timezone as dt_tz
+from datetime import datetime, timedelta
+from datetime import timezone as dt_tz
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -361,3 +362,256 @@ class TestEncryptionHelpers:
             token.save()
 
             assert token.get_access_token() is None
+
+
+# ---------------------------------------------------------------------------
+# TestGetAuthorizationUrl
+# ---------------------------------------------------------------------------
+
+class TestGetAuthorizationUrl:
+
+    @override_settings(
+        LINKEDIN_CLIENT_ID='test-client-id',
+        LINKEDIN_REDIRECT_URI='https://example.com/callback',
+    )
+    def test_includes_state_in_url_when_provided(self):
+        url = linkedin_service.get_authorization_url(state='csrf-token-abc')
+
+        assert 'state=csrf-token-abc' in url
+
+    @override_settings(
+        LINKEDIN_CLIENT_ID='test-client-id',
+        LINKEDIN_REDIRECT_URI='https://example.com/callback',
+    )
+    def test_omits_state_param_when_empty(self):
+        url = linkedin_service.get_authorization_url()
+
+        assert 'state=' not in url
+        assert 'client_id=test-client-id' in url
+
+
+# ---------------------------------------------------------------------------
+# TestFetchProfileFromApi
+# ---------------------------------------------------------------------------
+
+class TestFetchProfileFromApi:
+
+    @patch('content.services.linkedin_service.requests.get')
+    def test_returns_profile_dict_on_success(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {'sub': 'user123', 'name': 'Ada Lovelace'}
+        mock_get.return_value = mock_resp
+
+        result = linkedin_service._fetch_profile_from_api('token-abc')
+
+        assert result['sub'] == 'user123'
+        mock_get.assert_called_once()
+
+    @patch('content.services.linkedin_service.requests.get')
+    def test_returns_none_on_non_200_response(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 401
+        mock_resp.text = 'Unauthorized'
+        mock_get.return_value = mock_resp
+
+        result = linkedin_service._fetch_profile_from_api('bad-token')
+
+        assert result is None
+        mock_get.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# TestCacheProfileInfo
+# ---------------------------------------------------------------------------
+
+class TestCacheProfileInfo:
+
+    def test_returns_without_update_when_no_access_token(self, fernet_key):
+        with override_settings(LINKEDIN_ENCRYPTION_KEY=fernet_key):
+            # Token exists but has no access token set
+            token = LinkedInToken.load()
+            token.save()
+
+            linkedin_service._cache_profile_info()
+
+            token.refresh_from_db()
+            assert token.member_sub == ''
+
+    @patch('content.services.linkedin_service._fetch_profile_from_api', return_value=None)
+    def test_returns_without_update_when_profile_fetch_fails(self, mock_fetch, fernet_key, token_with_access):
+        with override_settings(LINKEDIN_ENCRYPTION_KEY=fernet_key):
+            token_with_access.member_sub = ''
+            token_with_access.save()
+
+            linkedin_service._cache_profile_info()
+
+            token_with_access.refresh_from_db()
+            assert token_with_access.member_sub == ''
+
+    @patch('content.services.linkedin_service._fetch_profile_from_api')
+    def test_updates_token_with_profile_data_on_success(self, mock_fetch, fernet_key, token_with_access):
+        mock_fetch.return_value = {
+            'sub': 'new-sub-xyz',
+            'name': 'New Name',
+            'picture': 'https://pic.test/photo.jpg',
+            'email': 'new@test.com',
+        }
+        with override_settings(LINKEDIN_ENCRYPTION_KEY=fernet_key):
+            linkedin_service._cache_profile_info()
+
+            token_with_access.refresh_from_db()
+            assert token_with_access.member_sub == 'new-sub-xyz'
+            assert token_with_access.profile_name == 'New Name'
+            assert token_with_access.profile_email == 'new@test.com'
+
+
+# ---------------------------------------------------------------------------
+# TestGetMemberUrn
+# ---------------------------------------------------------------------------
+
+class TestGetMemberUrn:
+
+    def test_returns_cached_urn_when_member_sub_is_set(self, fernet_key, token_with_access):
+        with override_settings(LINKEDIN_ENCRYPTION_KEY=fernet_key):
+            result = linkedin_service.get_member_urn()
+
+            assert result == 'urn:li:person:abc123'
+
+    @patch('content.services.linkedin_service.get_access_token', return_value=None)
+    def test_returns_none_when_no_access_token_and_no_cached_sub(self, mock_token, fernet_key):
+        with override_settings(LINKEDIN_ENCRYPTION_KEY=fernet_key):
+            # Token has no member_sub
+            token = LinkedInToken.load()
+            token.member_sub = ''
+            token.save()
+
+            result = linkedin_service.get_member_urn()
+
+            assert result is None
+
+    @patch('content.services.linkedin_service._fetch_profile_from_api', return_value=None)
+    @patch('content.services.linkedin_service.get_access_token', return_value='token-xyz')
+    def test_returns_none_when_profile_fetch_fails(self, mock_token, mock_fetch, fernet_key):
+        with override_settings(LINKEDIN_ENCRYPTION_KEY=fernet_key):
+            token = LinkedInToken.load()
+            token.member_sub = ''
+            token.save()
+
+            result = linkedin_service.get_member_urn()
+
+            assert result is None
+
+    @patch('content.services.linkedin_service._fetch_profile_from_api')
+    @patch('content.services.linkedin_service.get_access_token', return_value='token-xyz')
+    def test_caches_and_returns_urn_when_fetched_from_api(self, mock_token, mock_fetch, fernet_key):
+        mock_fetch.return_value = {'sub': 'fetched-sub-999', 'name': 'Fetched User'}
+        with override_settings(LINKEDIN_ENCRYPTION_KEY=fernet_key):
+            token = LinkedInToken.load()
+            token.member_sub = ''
+            token.save()
+
+            result = linkedin_service.get_member_urn()
+
+            assert result == 'urn:li:person:fetched-sub-999'
+            token.refresh_from_db()
+            assert token.member_sub == 'fetched-sub-999'
+
+
+# ---------------------------------------------------------------------------
+# TestUploadImageToLinkedin
+# ---------------------------------------------------------------------------
+
+class TestUploadImageToLinkedin:
+
+    @patch('content.services.linkedin_service.get_access_token', return_value=None)
+    def test_returns_none_when_not_connected(self, mock_token):
+        result = linkedin_service._upload_image_to_linkedin('https://img.test/photo.jpg')
+
+        assert result is None
+
+    @patch('content.services.linkedin_service.get_member_urn', return_value=None)
+    @patch('content.services.linkedin_service.get_access_token', return_value='token')
+    def test_returns_none_when_no_member_urn(self, mock_token, mock_urn):
+        result = linkedin_service._upload_image_to_linkedin('https://img.test/photo.jpg')
+
+        assert result is None
+
+    @patch('content.services.linkedin_service.requests.get')
+    @patch('content.services.linkedin_service.get_member_urn', return_value='urn:li:person:x')
+    @patch('content.services.linkedin_service.get_access_token', return_value='token')
+    def test_returns_none_when_image_download_fails(self, mock_token, mock_urn, mock_get):
+        import requests as req_lib
+        mock_get.side_effect = req_lib.RequestException('timeout')
+
+        result = linkedin_service._upload_image_to_linkedin('https://img.test/photo.jpg')
+
+        assert result is None
+
+    @patch('content.services.linkedin_service.requests.post')
+    @patch('content.services.linkedin_service.requests.get')
+    @patch('content.services.linkedin_service.get_member_urn', return_value='urn:li:person:x')
+    @patch('content.services.linkedin_service.get_access_token', return_value='token')
+    def test_returns_none_when_init_upload_fails(self, mock_token, mock_urn, mock_get, mock_post):
+        img_resp = MagicMock()
+        img_resp.raise_for_status.return_value = None
+        img_resp.content = b'fake-image-bytes'
+        img_resp.headers = {'Content-Type': 'image/jpeg'}
+        mock_get.return_value = img_resp
+
+        init_resp = MagicMock()
+        init_resp.status_code = 500
+        init_resp.text = 'Internal Error'
+        mock_post.return_value = init_resp
+
+        result = linkedin_service._upload_image_to_linkedin('https://img.test/photo.jpg')
+
+        assert result is None
+
+    @patch('content.services.linkedin_service.requests.post')
+    @patch('content.services.linkedin_service.requests.get')
+    @patch('content.services.linkedin_service.get_member_urn', return_value='urn:li:person:x')
+    @patch('content.services.linkedin_service.get_access_token', return_value='token')
+    def test_returns_none_when_init_response_missing_upload_url(self, mock_token, mock_urn, mock_get, mock_post):
+        img_resp = MagicMock()
+        img_resp.raise_for_status.return_value = None
+        img_resp.content = b'bytes'
+        img_resp.headers = {}
+        mock_get.return_value = img_resp
+
+        init_resp = MagicMock()
+        init_resp.status_code = 200
+        init_resp.json.return_value = {'value': {'image': 'urn:li:image:123'}}  # uploadUrl missing
+        mock_post.return_value = init_resp
+
+        result = linkedin_service._upload_image_to_linkedin('https://img.test/photo.jpg')
+
+        assert result is None
+
+    @patch('content.services.linkedin_service.requests.put')
+    @patch('content.services.linkedin_service.requests.post')
+    @patch('content.services.linkedin_service.requests.get')
+    @patch('content.services.linkedin_service.get_member_urn', return_value='urn:li:person:x')
+    @patch('content.services.linkedin_service.get_access_token', return_value='token')
+    def test_returns_image_urn_on_successful_upload(self, mock_token, mock_urn, mock_get, mock_post, mock_put):
+        img_resp = MagicMock()
+        img_resp.raise_for_status.return_value = None
+        img_resp.content = b'fake-bytes'
+        img_resp.headers = {'Content-Type': 'image/jpeg'}
+        mock_get.return_value = img_resp
+
+        init_resp = MagicMock()
+        init_resp.status_code = 200
+        init_resp.json.return_value = {
+            'value': {'uploadUrl': 'https://uploads.li.com/v1/img', 'image': 'urn:li:image:ABC'},
+        }
+        mock_post.return_value = init_resp
+
+        upload_resp = MagicMock()
+        upload_resp.status_code = 201
+        mock_put.return_value = upload_resp
+
+        result = linkedin_service._upload_image_to_linkedin('https://img.test/photo.jpg')
+
+        assert result == 'urn:li:image:ABC'
+        mock_put.assert_called_once()

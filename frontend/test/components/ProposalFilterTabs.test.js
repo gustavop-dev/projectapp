@@ -1,190 +1,117 @@
-/**
- * Tests for ProposalFilterTabs logic.
- *
- * Covers: toggleMenu, startCreate, startRename, confirmInput, cancelInput,
- * handleDelete, and input validation.
- *
- * Following project convention: extract and test component logic directly
- * rather than mounting Vue components.
- */
+import { mount, flushPromises } from '@vue/test-utils';
+import ProposalFilterTabs from '../../components/proposals/ProposalFilterTabs.vue';
 
-// ── toggleMenu ─────────────────────────────────────────────────────────────
-
-function toggleMenu(openMenuId, tabId) {
-  return openMenuId === tabId ? null : tabId;
+function mountTabs(props = {}) {
+  return mount(ProposalFilterTabs, {
+    props: {
+      tabs: [
+        { id: 'tab-1', name: 'Tab Uno' },
+        { id: 'tab-2', name: 'Tab Dos' },
+      ],
+      activeTabId: 'all',
+      isTabLimitReached: false,
+      ...props,
+    },
+  });
 }
 
-describe('toggleMenu', () => {
-  it('opens menu when currently closed', () => {
-    expect(toggleMenu(null, 'tab-1')).toBe('tab-1');
+describe('ProposalFilterTabs', () => {
+  it('emits select when the mobile dropdown changes', async () => {
+    const wrapper = mountTabs();
+
+    await wrapper.get('select').setValue('tab-2');
+
+    expect(wrapper.emitted('select')).toEqual([['tab-2']]);
   });
 
-  it('closes menu when same tab is toggled', () => {
-    expect(toggleMenu('tab-1', 'tab-1')).toBeNull();
+  it('opens the create input and emits the trimmed tab name', async () => {
+    const wrapper = mountTabs();
+
+    await wrapper.get('[data-testid="filter-tabs-create"]').trigger('click');
+    await wrapper.get('[data-testid="filter-tabs-input"]').setValue('  Nuevo tab  ');
+    await wrapper.get('[data-testid="filter-tabs-confirm"]').trigger('click');
+
+    expect(wrapper.emitted('create')).toEqual([['Nuevo tab']]);
+    expect(wrapper.find('[data-testid="filter-tabs-input"]').exists()).toBe(false);
   });
 
-  it('switches to different tab when another is open', () => {
-    expect(toggleMenu('tab-1', 'tab-2')).toBe('tab-2');
-  });
-});
+  it('disables the create button when the tab limit is reached', () => {
+    const wrapper = mountTabs({ isTabLimitReached: true });
+    const button = wrapper.get('[data-testid="filter-tabs-create"]');
 
-
-// ── confirmInput logic ──────────────────────────────────────────────────────
-
-function confirmInput({ inputName, isRenaming, renameTargetId }) {
-  const name = inputName.trim();
-  if (!name) return null;
-  if (isRenaming && renameTargetId) {
-    return { action: 'rename', id: renameTargetId, name };
-  }
-  return { action: 'create', name };
-}
-
-describe('confirmInput', () => {
-  it('returns create action for new tab', () => {
-    const result = confirmInput({ inputName: 'My Tab', isRenaming: false, renameTargetId: null });
-    expect(result).toEqual({ action: 'create', name: 'My Tab' });
+    expect(button.attributes('disabled')).toBeDefined();
+    expect(button.attributes('title')).toBe('Máximo 2 pestañas');
   });
 
-  it('returns rename action for existing tab', () => {
-    const result = confirmInput({ inputName: 'New Name', isRenaming: true, renameTargetId: 'tab-1' });
-    expect(result).toEqual({ action: 'rename', id: 'tab-1', name: 'New Name' });
+  it('opens the tab menu and closes it from the overlay', async () => {
+    const wrapper = mountTabs();
+
+    await wrapper.get('[data-testid="filter-tabs-menu-tab-1"]').trigger('click');
+    expect(wrapper.get('[data-testid="filter-tabs-overlay"]').exists()).toBe(true);
+
+    await wrapper.get('[data-testid="filter-tabs-overlay"]').trigger('click');
+    expect(wrapper.find('[data-testid="filter-tabs-overlay"]').exists()).toBe(false);
   });
 
-  it('returns null for empty name', () => {
-    expect(confirmInput({ inputName: '', isRenaming: false, renameTargetId: null })).toBeNull();
+  it('closes the tab menu when the same menu trigger is clicked twice', async () => {
+    const wrapper = mountTabs();
+
+    await wrapper.get('[data-testid="filter-tabs-menu-tab-1"]').trigger('click');
+    await wrapper.get('[data-testid="filter-tabs-menu-tab-1"]').trigger('click');
+
+    expect(wrapper.find('[data-testid="filter-tabs-overlay"]').exists()).toBe(false);
   });
 
-  it('returns null for whitespace-only name', () => {
-    expect(confirmInput({ inputName: '   ', isRenaming: false, renameTargetId: null })).toBeNull();
+  it('starts rename mode from the context menu and emits the new tab name', async () => {
+    const wrapper = mountTabs();
+
+    await wrapper.get('[data-testid="filter-tabs-menu-tab-1"]').trigger('click');
+    await wrapper.get('[data-testid="filter-tabs-rename"]').trigger('click');
+    await flushPromises();
+    await wrapper.get('[data-testid="filter-tabs-input"]').setValue('  Renombrada  ');
+    await wrapper.get('[data-testid="filter-tabs-confirm"]').trigger('click');
+
+    expect(wrapper.emitted('rename')).toEqual([['tab-1', 'Renombrada']]);
   });
 
-  it('trims whitespace from name', () => {
-    const result = confirmInput({ inputName: '  Trimmed  ', isRenaming: false, renameTargetId: null });
-    expect(result.name).toBe('Trimmed');
-  });
-});
+  it('emits delete for the selected tab from the context menu', async () => {
+    const wrapper = mountTabs();
 
+    await wrapper.get('[data-testid="filter-tabs-menu-tab-2"]').trigger('click');
+    await wrapper.get('[data-testid="filter-tabs-delete"]').trigger('click');
 
-// ── cancelInput ─────────────────────────────────────────────────────────────
-
-function cancelInput() {
-  return { showInput: false, inputName: '', isRenaming: false, renameTargetId: null };
-}
-
-describe('cancelInput', () => {
-  it('resets all input state', () => {
-    const state = cancelInput();
-    expect(state.showInput).toBe(false);
-    expect(state.inputName).toBe('');
-    expect(state.isRenaming).toBe(false);
-    expect(state.renameTargetId).toBeNull();
-  });
-});
-
-
-// ── startCreate ─────────────────────────────────────────────────────────────
-
-function startCreate() {
-  return { isRenaming: false, renameTargetId: null, inputName: '', showInput: true };
-}
-
-describe('startCreate', () => {
-  it('sets up create mode state', () => {
-    const state = startCreate();
-    expect(state.isRenaming).toBe(false);
-    expect(state.renameTargetId).toBeNull();
-    expect(state.inputName).toBe('');
-    expect(state.showInput).toBe(true);
-  });
-});
-
-
-// ── startRename ─────────────────────────────────────────────────────────────
-
-function startRename(tab) {
-  return { openMenuId: null, isRenaming: true, renameTargetId: tab.id, inputName: tab.name, showInput: true };
-}
-
-describe('startRename', () => {
-  it('sets up rename mode with tab data', () => {
-    const tab = { id: 'tab-1', name: 'Old Name' };
-    const state = startRename(tab);
-    expect(state.openMenuId).toBeNull();
-    expect(state.isRenaming).toBe(true);
-    expect(state.renameTargetId).toBe('tab-1');
-    expect(state.inputName).toBe('Old Name');
-    expect(state.showInput).toBe(true);
-  });
-});
-
-
-// ── handleDelete ────────────────────────────────────────────────────────────
-
-function handleDelete(tabId) {
-  return { openMenuId: null, deletedTabId: tabId };
-}
-
-describe('handleDelete', () => {
-  it('clears menu and returns deleted tab id', () => {
-    const result = handleDelete('tab-1');
-    expect(result.openMenuId).toBeNull();
-    expect(result.deletedTabId).toBe('tab-1');
-  });
-});
-
-
-// ── Tab limit enforcement ───────────────────────────────────────────────────
-
-describe('tab limit enforcement', () => {
-  it('+ button should be disabled when limit is reached', () => {
-    const isTabLimitReached = true;
-    expect(isTabLimitReached).toBe(true);
+    expect(wrapper.emitted('delete')).toEqual([['tab-2']]);
+    expect(wrapper.find('[data-testid="filter-tabs-overlay"]').exists()).toBe(false);
   });
 
-  it('+ button should be enabled when under limit', () => {
-    const isTabLimitReached = false;
-    expect(isTabLimitReached).toBe(false);
-  });
-});
+  it('cancels the inline input on escape', async () => {
+    const wrapper = mountTabs();
 
+    await wrapper.get('[data-testid="filter-tabs-create"]').trigger('click');
+    await wrapper.get('[data-testid="filter-tabs-input"]').setValue('Temporal');
+    await wrapper.get('[data-testid="filter-tabs-input"]').trigger('keyup.escape');
 
-// ── Mobile select options ───────────────────────────────────────────────────
-
-describe('mobile select options', () => {
-  it('includes Todas as first option plus all saved tabs', () => {
-    const tabs = [
-      { id: 'tab-1', name: 'Tab A' },
-      { id: 'tab-2', name: 'Tab B' },
-    ];
-    const options = ['all', ...tabs.map(t => t.id)];
-    expect(options).toEqual(['all', 'tab-1', 'tab-2']);
+    expect(wrapper.find('[data-testid="filter-tabs-input"]').exists()).toBe(false);
+    expect(wrapper.emitted('create')).toBeUndefined();
   });
 
-  it('includes only Todas when no saved tabs exist', () => {
-    const tabs = [];
-    const options = ['all', ...tabs.map(t => t.id)];
-    expect(options).toEqual(['all']);
-  });
-});
+  it('ignores confirmation when the trimmed input is empty', async () => {
+    const wrapper = mountTabs();
 
+    await wrapper.get('[data-testid="filter-tabs-create"]').trigger('click');
+    await wrapper.get('[data-testid="filter-tabs-input"]').setValue('   ');
+    await wrapper.get('[data-testid="filter-tabs-input"]').trigger('keyup.enter');
 
-// ── Active tab class logic ──────────────────────────────────────────────────
-
-function isActiveTab(activeTabId, tabId) {
-  return activeTabId === tabId;
-}
-
-describe('active tab detection', () => {
-  it('returns true when tab matches active id', () => {
-    expect(isActiveTab('tab-1', 'tab-1')).toBe(true);
+    expect(wrapper.find('[data-testid="filter-tabs-input"]').exists()).toBe(true);
+    expect(wrapper.emitted('create')).toBeUndefined();
+    expect(wrapper.emitted('rename')).toBeUndefined();
   });
 
-  it('returns false when tab does not match active id', () => {
-    expect(isActiveTab('tab-1', 'tab-2')).toBe(false);
-  });
+  it('emits select when a desktop tab button is clicked', async () => {
+    const wrapper = mountTabs({ activeTabId: 'tab-1' });
 
-  it('identifies Todas tab as active when activeTabId is all', () => {
-    expect(isActiveTab('all', 'all')).toBe(true);
+    await wrapper.get('[data-testid="filter-tabs-tab-tab-2"]').trigger('click');
+
+    expect(wrapper.emitted('select')).toEqual([['tab-2']]);
   });
 });

@@ -6,16 +6,19 @@ days_remaining property, public_url property, and __str__.
 import datetime
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 from freezegun import freeze_time
 
 from content.models import (
     BusinessProposal,
+    ProposalAlert,
     ProposalChangeLog,
     ProposalSectionView,
     ProposalShareLink,
     ProposalViewEvent,
 )
+from accounts.models import UserProfile
 
 pytestmark = pytest.mark.django_db
 
@@ -63,6 +66,38 @@ class TestBusinessProposalCreation:
             client_name='Test Client',
         )
         assert prop.language == 'es'
+
+    def test_slug_uses_linked_client_full_name_when_client_name_empty(self, db):
+        user = get_user_model().objects.create_user(
+            username='proposal-client-fullname',
+            email='client.full@example.com',
+            first_name='Maria',
+            last_name='Lopez',
+        )
+        profile = UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+
+        proposal = BusinessProposal.objects.create(
+            title='Test',
+            client_name='',
+            client=profile,
+        )
+
+        assert proposal.slug == 'maria-lopez'
+
+    def test_slug_uses_linked_client_email_when_full_name_missing(self, db):
+        user = get_user_model().objects.create_user(
+            username='proposal-client-email',
+            email='fallback.slug@example.com',
+        )
+        profile = UserProfile.objects.create(user=user, role=UserProfile.ROLE_CLIENT)
+
+        proposal = BusinessProposal.objects.create(
+            title='Test',
+            client_name='',
+            client=profile,
+        )
+
+        assert proposal.slug == 'fallbackslugexamplecom'
 
 
 class TestBusinessProposalExpiration:
@@ -135,7 +170,8 @@ class TestBusinessProposalPublicUrl:
 
 class TestBusinessProposalStatusChoices:
     @pytest.mark.parametrize('status', [
-        'draft', 'sent', 'viewed', 'accepted', 'rejected', 'expired',
+        'draft', 'sent', 'viewed', 'accepted', 'rejected', 'negotiating',
+        'expired', 'finished',
     ])
     def test_valid_status_choices(self, status):
         prop = BusinessProposal.objects.create(
@@ -144,6 +180,22 @@ class TestBusinessProposalStatusChoices:
             status=status,
         )
         assert prop.status == status
+
+    def test_accepted_can_transition_to_finished(self):
+        prop = BusinessProposal.objects.create(
+            title='Test',
+            client_name='Client',
+            status='accepted',
+        )
+        assert 'finished' in prop.available_transitions
+
+    def test_finished_is_terminal(self):
+        prop = BusinessProposal.objects.create(
+            title='Test',
+            client_name='Client',
+            status='finished',
+        )
+        assert prop.available_transitions == []
 
 
 class TestProposalChangeLogStr:
@@ -199,3 +251,39 @@ class TestProposalShareLinkStr:
         )
         result = str(link)
         assert 'pending' in result
+
+
+@freeze_time('2026-04-10 12:00:00')
+class TestProposalAlertModel:
+    def test_save_auto_assigns_priority_from_alert_type(self, proposal):
+        alert = ProposalAlert.objects.create(
+            proposal=proposal,
+            alert_type='engagement_decay',
+            message='High urgency',
+            alert_date=timezone.now(),
+        )
+
+        assert alert.priority == 'critical'
+
+    def test_save_preserves_non_normal_priority(self, proposal):
+        alert = ProposalAlert.objects.create(
+            proposal=proposal,
+            alert_type='reminder',
+            priority='high',
+            message='Keep custom priority',
+            alert_date=timezone.now(),
+        )
+
+        assert alert.priority == 'high'
+
+    def test_str_contains_client_name_and_message_excerpt(self, proposal):
+        alert = ProposalAlert.objects.create(
+            proposal=proposal,
+            alert_type='reminder',
+            message='Follow up about pricing and next steps',
+            alert_date=timezone.now(),
+        )
+
+        result = str(alert)
+        assert proposal.client_name in result
+        assert 'Follow up about pricing' in result

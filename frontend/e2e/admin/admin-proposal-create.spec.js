@@ -30,7 +30,7 @@ test.describe('Admin Proposal Create', () => {
     });
   });
 
-  test('renders proposal creation form with Manual tab active by default', {
+  test('renders proposal creation form with Importar JSON tab active by default', {
     tag: [...ADMIN_PROPOSAL_CREATE, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
@@ -40,10 +40,14 @@ test.describe('Admin Proposal Create', () => {
     await page.goto('/panel/proposals/create');
 
     await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('button', { name: 'Manual' })).toBeVisible();
+    // All three tab buttons visible
     await expect(page.getByRole('button', { name: 'Importar JSON' })).toBeVisible();
-    // Title input visible in manual mode
-    await expect(page.getByLabel('Título')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Prompt IA' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Manual' })).toBeVisible();
+    // JSON tab is active by default — textarea is rendered
+    await expect(page.getByPlaceholder(/general/)).toBeVisible();
+    // Manual mode form is not rendered
+    await expect(page.locator('#create-client-name')).not.toBeVisible();
   });
 
   test('fills manual form and submits, verifying API payload', {
@@ -64,11 +68,12 @@ test.describe('Admin Proposal Create', () => {
 
     await page.goto('/panel/proposals/create');
     await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: 'Manual' }).click();
 
     // Fill required fields
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
-    await page.getByLabel('Nombre del cliente').fill('Carlos López');
-    await page.getByLabel('Email del cliente').fill('carlos@test.com');
+    await page.locator('#create-client-name').fill('Carlos López');
+    await page.locator('#create-client-email').fill('carlos@test.com');
 
     // Submit form — wait for the API response
     const [response] = await Promise.all([
@@ -84,7 +89,7 @@ test.describe('Admin Proposal Create', () => {
     expect(capturedPayload.client_email).toBe('carlos@test.com');
   });
 
-  test('switching to JSON import tab shows textarea', {
+  test('switching from Manual to JSON import tab hides manual form and shows textarea', {
     tag: [...ADMIN_PROPOSAL_CREATE, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
@@ -93,13 +98,18 @@ test.describe('Admin Proposal Create', () => {
     });
 
     await page.goto('/panel/proposals/create');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
+
+    // Start in Manual mode so we have something to switch FROM
+    await page.getByRole('button', { name: 'Manual' }).click();
+    await expect(page.getByLabel('Título')).toBeVisible();
 
     // Switch to JSON import tab
     await page.getByRole('button', { name: 'Importar JSON' }).click();
 
-    // Manual form fields should be hidden
+    // Manual form fields hidden, JSON textarea visible
     await expect(page.getByLabel('Título')).not.toBeVisible();
+    await expect(page.getByPlaceholder(/general/)).toBeVisible();
   });
 
   test('successful creation redirects to the new proposal edit page', {
@@ -114,10 +124,11 @@ test.describe('Admin Proposal Create', () => {
 
     await page.goto('/panel/proposals/create');
     await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: 'Manual' }).click();
 
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
-    await page.getByLabel('Nombre del cliente').fill('Carlos López');
-    await page.getByLabel('Email del cliente').fill('carlos@test.com');
+    await page.locator('#create-client-name').fill('Carlos López');
+    await page.locator('#create-client-email').fill('carlos@test.com');
 
     // Submit and wait for API response
     const [response] = await Promise.all([
@@ -142,7 +153,9 @@ test.describe('Admin Proposal Create', () => {
       return null;
     });
     await page.goto('/panel/proposals/create');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: 'Manual' }).click();
+    await expect(page.getByLabel('Título')).toBeVisible();
 
     const customInput = page.getByPlaceholder('Especificar tipo de proyecto...');
     await expect(customInput).not.toBeVisible();
@@ -176,10 +189,11 @@ test.describe('Admin Proposal Create from JSON', () => {
       return null;
     });
     await page.goto('/panel/proposals/create');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
 
-    await page.getByRole('button', { name: 'Importar JSON' }).click();
+    // JSON tab is active by default
     const textarea = page.getByPlaceholder(/general/);
+    await expect(textarea).toBeVisible();
     await textarea.fill(validJson);
     await textarea.dispatchEvent('input');
 
@@ -195,10 +209,10 @@ test.describe('Admin Proposal Create from JSON', () => {
       return null;
     });
     await page.goto('/panel/proposals/create');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
 
-    await page.getByRole('button', { name: 'Importar JSON' }).click();
     const textarea = page.getByPlaceholder(/general/);
+    await expect(textarea).toBeVisible();
     await textarea.fill(JSON.stringify({ executiveSummary: {} }));
     await textarea.dispatchEvent('input');
 
@@ -213,10 +227,10 @@ test.describe('Admin Proposal Create from JSON', () => {
       return null;
     });
     await page.goto('/panel/proposals/create');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
 
-    await page.getByRole('button', { name: 'Importar JSON' }).click();
     const textarea = page.getByPlaceholder(/general/);
+    await expect(textarea).toBeVisible();
     await textarea.fill('{ invalid json }');
     await textarea.dispatchEvent('input');
 
@@ -241,10 +255,10 @@ test.describe('Admin Proposal Create from JSON', () => {
     });
 
     await page.goto('/panel/proposals/create');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
 
-    await page.getByRole('button', { name: 'Importar JSON' }).click();
     const textarea = page.getByPlaceholder(/general/);
+    await expect(textarea).toBeVisible();
     await textarea.fill(validJson);
     await textarea.dispatchEvent('input');
 
@@ -287,15 +301,17 @@ test.describe('Admin Proposal Create & Send', () => {
       return null;
     });
     await page.goto('/panel/proposals/create');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: 'Manual' }).click();
+    await expect(page.getByLabel('Título')).toBeVisible();
 
     // Button should not be visible initially
     await expect(page.getByRole('button', { name: /Crear y Enviar/i })).not.toBeVisible();
 
     // Fill required fields for direct send
     await page.getByLabel('Título').fill('Propuesta Directa');
-    await page.getByLabel('Nombre del cliente').fill('Ana Test');
-    await page.getByLabel('Email del cliente').fill('ana@test.com');
+    await page.locator('#create-client-name').fill('Ana Test');
+    await page.locator('#create-client-email').fill('ana@test.com');
     await page.getByPlaceholder('3500000').fill('5000000');
 
     // Button should now be visible
@@ -323,11 +339,12 @@ test.describe('Admin Proposal Create & Send', () => {
     });
 
     await page.goto('/panel/proposals/create');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: 'Manual' }).click();
 
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
-    await page.getByLabel('Nombre del cliente').fill('Carlos López');
-    await page.getByLabel('Email del cliente').fill('carlos@test.com');
+    await page.locator('#create-client-name').fill('Carlos López');
+    await page.locator('#create-client-email').fill('carlos@test.com');
     await page.getByPlaceholder('3500000').fill('15000000');
 
     await page.getByRole('button', { name: /Crear y Enviar/i }).click();
@@ -362,11 +379,12 @@ test.describe('Admin Proposal Create Preview', () => {
     });
 
     await page.goto('/panel/proposals/create');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: 'Manual' }).click();
 
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
-    await page.getByLabel('Nombre del cliente').fill('Carlos López');
-    await page.getByLabel('Email del cliente').fill('carlos@test.com');
+    await page.locator('#create-client-name').fill('Carlos López');
+    await page.locator('#create-client-email').fill('carlos@test.com');
 
     const [response] = await Promise.all([
       page.waitForResponse(r => r.url().includes('proposals/create/')),
@@ -395,11 +413,12 @@ test.describe('Admin Proposal Create Preview', () => {
     });
 
     await page.goto('/panel/proposals/create');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: 'Manual' }).click();
 
     await page.getByLabel('Título').fill('Nueva Propuesta Web');
-    await page.getByLabel('Nombre del cliente').fill('Carlos López');
-    await page.getByLabel('Email del cliente').fill('carlos@test.com');
+    await page.locator('#create-client-name').fill('Carlos López');
+    await page.locator('#create-client-email').fill('carlos@test.com');
     await page.getByPlaceholder('3500000').fill('15000000');
 
     const [response] = await Promise.all([

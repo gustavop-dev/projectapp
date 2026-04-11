@@ -4,13 +4,13 @@ Covers: save_contract_and_negotiate, upload/delete/list proposal documents,
 download contract PDFs, company settings, default contract template,
 send documents to client.
 """
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from content.models import BusinessProposal, ProposalChangeLog, ProposalDocument
+from content.models import ProposalChangeLog
 
 pytestmark = pytest.mark.django_db
 
@@ -335,12 +335,11 @@ class TestSendDocumentsToClient:
         assert response.status_code == 500
 
     @patch('content.services.proposal_email_service.ProposalEmailService.send_documents_to_client', return_value=True)
-    def test_skips_missing_contract_gracefully(self, mock_email, admin_client, negotiating_proposal):
-        # draft_contract selected but no contract generated — should skip it
+    @patch('content.services.contract_pdf_service.generate_contract_pdf', return_value=None)
+    def test_skips_missing_contract_gracefully(self, mock_gen_pdf, mock_email, admin_client, negotiating_proposal):
+        # draft_contract selected but generate_contract_pdf fails — should skip it
         payload = self._base_payload()
         payload['documents'] = ['draft_contract']
-        # No generated_contract_document fixture → contract doc missing
-        # Email service gets called with empty attachments → returns 400
         response = admin_client.post(self._url(negotiating_proposal), payload, format='json')
         assert response.status_code == 400  # no attachments generated
 

@@ -1,35 +1,11 @@
 import pytest
 from django.contrib.auth import get_user_model
-from rest_framework.test import APIClient
 
 from accounts.models import UserProfile
 
 User = get_user_model()
 
-
-@pytest.fixture
-def api_client():
-    return APIClient()
-
-
-@pytest.fixture
-def admin_user():
-    user = User.objects.create_user(
-        username='admin@test.com', email='admin@test.com', password='adminpass1',
-    )
-    UserProfile.objects.create(user=user, role=UserProfile.ROLE_ADMIN, is_onboarded=True)
-    return user
-
-
-@pytest.fixture
-def admin_headers(api_client, admin_user):
-    resp = api_client.post(
-        '/api/accounts/login/',
-        {'email': 'admin@test.com', 'password': 'adminpass1'},
-        format='json',
-    )
-    token = resp.json()['tokens']['access']
-    return {'HTTP_AUTHORIZATION': f'Bearer {token}'}
+# api_client, admin_user, and admin_headers come from accounts/tests/conftest.py
 
 
 @pytest.fixture

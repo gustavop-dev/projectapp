@@ -1,6 +1,7 @@
 """Tests for preview_sync_section (with-project path) and apply_sync_section."""
-import pytest
 from unittest.mock import patch
+
+import pytest
 from django.urls import reverse
 from django.utils import timezone
 
@@ -11,7 +12,7 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def proposal_with_deliverable(proposal, admin_user):
-    from accounts.models import Project, Deliverable
+    from accounts.models import Deliverable, Project
     from django.contrib.auth import get_user_model
 
     User = get_user_model()

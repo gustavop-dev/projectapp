@@ -6,7 +6,7 @@ update_proposal_status (ACCEPTED transition), and _csv_analytics_section_group.
 import pytest
 from django.urls import reverse
 
-from content.models import BusinessProposal, ProposalChangeLog, ProposalSection
+from content.models import ProposalChangeLog, ProposalSection
 
 pytestmark = pytest.mark.django_db
 

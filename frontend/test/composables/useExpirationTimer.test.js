@@ -284,11 +284,13 @@ describe('useExpirationTimer', () => {
       useExpirationTimerWithHooks(expiresAt);
       mountedCbs[0](); // sets the interval
 
-      // Changing expiresAt triggers isCountdownMode watch → startInterval called again
+      const timersBefore = jest.getTimerCount();
+
+      // Changing expiresAt triggers isCountdownMode watch → clearInterval + setInterval
       expiresAt.value = '2026-03-02T00:00:00Z'; // ~36h away, triggers countdown mode
 
-      // Just asserting no errors thrown (the interval was cleared and recreated)
-      expect(true).toBe(true);
+      // Interval was cleared and recreated: count should remain the same
+      expect(jest.getTimerCount()).toBe(timersBefore);
     });
 
     it('handles unmount when no interval was set', () => {

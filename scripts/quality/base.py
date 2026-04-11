@@ -157,6 +157,7 @@ class Config:
     py_allowed_folders: frozenset[str] = frozenset(
         {
             "commands",
+            "management",
             "models",
             "permissions",
             "serializers",
@@ -171,7 +172,7 @@ class Config:
     js_e2e_suffixes: tuple[str, ...] = (".spec.js", ".spec.ts")
     
     # Frontend paths
-    frontend_unit_dir: str = "app/__tests__"
+    frontend_unit_dir: str = "test"
     frontend_e2e_dir: str = "e2e"
     frontend_unit_allowed_folders: frozenset[str] = frozenset({
         "stores", "composables", "router", "shared", "views", "components", "utils"

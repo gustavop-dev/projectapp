@@ -1,6 +1,5 @@
 """Tests for pdf_utils: TOC drawing helpers and justification."""
 import io
-from unittest.mock import MagicMock, patch
 
 import pytest
 from reportlab.lib.pagesizes import A4
@@ -132,7 +131,11 @@ class TestApplyTocLinks:
 class TestDrawLineWithLinksJustify:
     def test_justified_line_does_not_raise(self):
         """_draw_line_with_links with justify=True runs without error."""
-        from content.services.pdf_utils import _draw_line_with_links, _register_fonts, ESMERALD_80
+        from content.services.pdf_utils import (
+            ESMERALD_80,
+            _draw_line_with_links,
+            _register_fonts,
+        )
         _register_fonts()
         c, buf = _make_canvas()
         c.setFont('Helvetica', 11)
@@ -150,7 +153,11 @@ class TestDrawLineWithLinksJustify:
 
     def test_justify_with_single_word_does_not_add_extra_space(self):
         """A single-word token has no space gaps — extra should be 0."""
-        from content.services.pdf_utils import _draw_line_with_links, _register_fonts, ESMERALD_80
+        from content.services.pdf_utils import (
+            ESMERALD_80,
+            _draw_line_with_links,
+            _register_fonts,
+        )
         _register_fonts()
         c, buf = _make_canvas()
         c.setFont('Helvetica', 11)
@@ -169,7 +176,11 @@ class TestDrawLineWithLinksJustify:
 
     def test_bold_inline_token_rendered_in_justify_mode(self):
         """Bold **tokens** inside a justified line render without error."""
-        from content.services.pdf_utils import _draw_line_with_links, _register_fonts, ESMERALD_80
+        from content.services.pdf_utils import (
+            ESMERALD_80,
+            _draw_line_with_links,
+            _register_fonts,
+        )
         _register_fonts()
         c, buf = _make_canvas()
         c.setFont('Helvetica', 11)
@@ -192,6 +203,7 @@ class TestUtilityFunctions:
     def test_format_date_es_returns_spanish_format(self):
         """format_date_es formats a datetime as Spanish text."""
         import datetime
+
         from content.services.pdf_utils import format_date_es
 
         dt = datetime.datetime(2026, 4, 3)
@@ -528,6 +540,7 @@ class TestMdWrap:
     def test_no_bold_wraps_normally(self):
         """Text without markdown wraps like standard textwrap."""
         import textwrap
+
         from content.services.pdf_utils import _md_wrap
 
         text = 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor.'

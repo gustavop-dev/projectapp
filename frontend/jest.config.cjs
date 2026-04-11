@@ -7,6 +7,7 @@ module.exports = {
         ".+\\.(css|styl|less|sass|scss|png|jpg|webp|ttf|woff|woff2)$": "jest-transform-stub"
     },
     testEnvironment: 'jest-environment-jsdom',
+    setupFilesAfterEnv: ['<rootDir>/test/jest.setup.js'],
     coverageProvider: 'v8',
     coverageReporters: ['text', 'text-summary', 'json-summary'],
     resetModules: true,
@@ -32,8 +33,11 @@ module.exports = {
     collectCoverageFrom: [
         'stores/**/*.js',
         'composables/**/*.js',
+        'components/**/*.vue',
+        'components/**/*.js',
         'utils/**/*.js',
         '!**/node_modules/**',
+        '!components/**/index.js',
     ],
     coveragePathIgnorePatterns: [
         '/node_modules/',

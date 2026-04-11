@@ -1,9 +1,9 @@
 <template>
-  <div class="inline-block relative">
-    <!-- Trigger element -->
-    <div 
-      @mouseenter="showTooltip = true" 
-      @mouseleave="showTooltip = false"
+  <div ref="rootEl" class="inline-block relative">
+    <div
+      @pointerenter="handlePointerEnter"
+      @pointerleave="handlePointerLeave"
+      @click.stop="handleClick"
       class="cursor-help"
     >
       <slot name="trigger">
@@ -11,7 +11,6 @@
       </slot>
     </div>
 
-    <!-- Tooltip content with transition -->
     <transition
       enter-active-class="transition duration-200 ease-out"
       enter-from-class="transform scale-95 opacity-0"
@@ -23,21 +22,19 @@
       <div
         v-if="showTooltip"
         :class="[
-          'absolute z-10 px-3 py-2 text-sm rounded-lg shadow-lg',
+          'absolute z-10 px-3 py-2 text-sm rounded-lg shadow-lg whitespace-normal break-words',
           backgroundColor,
           textColor,
           width,
-          positionClasses // Dynamically computed classes
+          minWidth,
+          positionClasses
         ]"
       >
-        <!-- Default slot for tooltip content -->
         <slot />
-        
-        <!-- Arrow indicator -->
         <div
           :class="[
             'absolute w-2 h-2 transform rotate-45',
-            arrowPositionClasses, // Dynamically computed classes for arrow
+            arrowPositionClasses,
             backgroundColor
           ]"
         ></div>
@@ -48,9 +45,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { QuestionMarkCircleIcon } from '@heroicons/vue/24/solid'
+import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
+import { onClickOutside } from '@vueuse/core'
 
-// Define component props
 const props = defineProps({
   position: {
     type: String,
@@ -59,7 +56,7 @@ const props = defineProps({
   },
   backgroundColor: {
     type: String,
-    default: 'bg-esmerald',
+    default: 'bg-gray-800',
   },
   textColor: {
     type: String,
@@ -67,18 +64,38 @@ const props = defineProps({
   },
   width: {
     type: String,
-    default: 'max-w-xs', // ~20rem (320px)
+    default: 'max-w-2xl', // ~42rem (672px)
+  },
+  minWidth: {
+    type: String,
+    default: 'min-w-[260px] sm:min-w-[420px] lg:min-w-[560px]',
   },
 })
 
-// Reactive state to show/hide the tooltip
 const showTooltip = ref(false)
+const rootEl = ref(null)
+const touchActive = ref(false)
 
-/**
- * Computed classes for tooltip container based on the `position` prop.
- * - For top/bottom, we use `left-1/2 -translate-x-1/2` to center it horizontally over the trigger.
- * - For left/right, you can similarly adjust to center vertically.
- */
+const handlePointerEnter = (e) => {
+  if (e.pointerType !== 'touch') showTooltip.value = true
+}
+
+const handlePointerLeave = (e) => {
+  if (e.pointerType !== 'touch') showTooltip.value = false
+}
+
+const handleClick = () => {
+  touchActive.value = true
+  showTooltip.value = !showTooltip.value
+}
+
+onClickOutside(rootEl, () => {
+  if (touchActive.value && showTooltip.value) {
+    showTooltip.value = false
+    touchActive.value = false
+  }
+})
+
 const positionClasses = computed(() => {
   switch (props.position) {
     case 'top':
@@ -94,10 +111,6 @@ const positionClasses = computed(() => {
   }
 })
 
-/**
- * Computed classes for the arrow based on the `position` prop.
- * - Positions the small square (rotated 45 degrees) so it points toward the trigger.
- */
 const arrowPositionClasses = computed(() => {
   switch (props.position) {
     case 'top':
