@@ -310,3 +310,87 @@ class TestCheckCooldownReturnInEmailFunctions:
         result = ProposalEmailService.send_urgency_email(proposal)
 
         assert result is False
+
+    @patch('content.services.proposal_email_service.ProposalEmailService._check_cooldown', return_value=False)
+    def test_abandonment_followup_returns_false_when_cooldown_active(self, mock_cooldown, proposal):
+        """send_abandonment_followup returns False when cooldown is active (line 1076)."""
+        result = ProposalEmailService.send_abandonment_followup(proposal)
+
+        assert result is False
+
+    @patch('content.services.proposal_email_service.ProposalEmailService._check_cooldown', return_value=False)
+    def test_investment_interest_followup_returns_false_when_cooldown_active(self, mock_cooldown, proposal):
+        """send_investment_interest_followup returns False when cooldown is active (line 1152)."""
+        result = ProposalEmailService.send_investment_interest_followup(proposal)
+
+        assert result is False
+
+
+# ===========================================================================
+# send_finished_confirmation — template disabled
+# ===========================================================================
+
+class TestSendFinishedConfirmationTemplateDisabled:
+    @patch('content.services.proposal_email_service.ProposalEmailService._is_template_active', return_value=False)
+    def test_returns_false_when_template_disabled(self, mock_active, proposal):
+        """send_finished_confirmation returns False when template is disabled (lines 673-674)."""
+        result = ProposalEmailService.send_finished_confirmation(proposal)
+
+        assert result is False
+
+
+# ===========================================================================
+# send_acceptance_confirmation — tech PDF + guide PDF exception branches
+# ===========================================================================
+
+class TestSendAcceptanceConfirmationPdfBranches:
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string', return_value='html')
+    @patch('content.services.platform_onboarding_pdf.generate_platform_onboarding_pdf', return_value=None)
+    @patch('content.services.technical_document_pdf.generate_technical_document_pdf', return_value=b'%PDF-tech')
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=None)
+    def test_attaches_tech_pdf_when_generated(
+        self, mock_pdf, mock_tech, mock_guide, mock_render, mock_email_cls, proposal,
+    ):
+        """email.attach is called for tech PDF when generate_technical_document_pdf returns bytes (line 597)."""
+        mock_email = MagicMock()
+        mock_email_cls.return_value = mock_email
+
+        result = ProposalEmailService.send_acceptance_confirmation(proposal)
+
+        assert result is True
+        mock_email.attach.assert_called_once()
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string', return_value='html')
+    @patch('content.services.platform_onboarding_pdf.generate_platform_onboarding_pdf', return_value=None)
+    @patch('content.services.technical_document_pdf.generate_technical_document_pdf', side_effect=Exception('tech fail'))
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=None)
+    def test_continues_after_tech_pdf_exception(
+        self, mock_pdf, mock_tech, mock_guide, mock_render, mock_email_cls, proposal,
+    ):
+        """Exception in tech PDF generation is silenced and email still sends (lines 602-603)."""
+        mock_email = MagicMock()
+        mock_email_cls.return_value = mock_email
+
+        result = ProposalEmailService.send_acceptance_confirmation(proposal)
+
+        assert result is True
+        mock_email.send.assert_called_once()
+
+    @patch('content.services.proposal_email_service.EmailMultiAlternatives')
+    @patch('content.services.proposal_email_service.render_to_string', return_value='html')
+    @patch('content.services.platform_onboarding_pdf.generate_platform_onboarding_pdf', side_effect=Exception('guide fail'))
+    @patch('content.services.technical_document_pdf.generate_technical_document_pdf', return_value=None)
+    @patch('content.services.proposal_pdf_service.ProposalPdfService.generate', return_value=None)
+    def test_continues_after_guide_pdf_exception(
+        self, mock_pdf, mock_tech, mock_guide, mock_render, mock_email_cls, proposal,
+    ):
+        """Exception in platform guide PDF generation is silenced and email still sends (lines 628-629)."""
+        mock_email = MagicMock()
+        mock_email_cls.return_value = mock_email
+
+        result = ProposalEmailService.send_acceptance_confirmation(proposal)
+
+        assert result is True
+        mock_email.send.assert_called_once()
