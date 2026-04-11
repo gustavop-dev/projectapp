@@ -134,13 +134,23 @@ describe('ProposalFilterPanel', () => {
     );
   });
 
-  it('renders active chips for all filter groups', () => {
+  it('renders category filter chips for status, project type, and market type', () => {
     const wrapper = mountPanel({
-      filterCount: 12,
       modelValue: createModelValue({
         statuses: ['draft'],
         projectTypes: ['webapp'],
         marketTypes: ['b2b'],
+      }),
+    });
+
+    expect(wrapper.text()).toContain('Estado: Borrador');
+    expect(wrapper.text()).toContain('Tipo: Aplicación Web');
+    expect(wrapper.text()).toContain('Mercado: B2B');
+  });
+
+  it('renders currency, language, and numeric range filter chips', () => {
+    const wrapper = mountPanel({
+      modelValue: createModelValue({
         currencies: ['USD'],
         languages: ['en'],
         investmentMin: 1000,
@@ -149,6 +159,19 @@ describe('ProposalFilterPanel', () => {
         heatScoreMax: 8,
         viewCountMin: 1,
         viewCountMax: 9,
+      }),
+    });
+
+    expect(wrapper.text()).toContain('Moneda: USD');
+    expect(wrapper.text()).toContain('Idioma: EN');
+    expect(wrapper.text()).toContain('Inversión: 1000–5000');
+    expect(wrapper.text()).toContain('Heat Score: 2–8 / 10');
+    expect(wrapper.text()).toContain('Vistas: 1–9');
+  });
+
+  it('renders date range and boolean toggle filter chips', () => {
+    const wrapper = mountPanel({
+      modelValue: createModelValue({
         createdAfter: '2026-01-01',
         createdBefore: '2026-01-31',
         lastActivityAfter: '2026-02-01',
@@ -158,26 +181,29 @@ describe('ProposalFilterPanel', () => {
       }),
     });
 
-    expect(wrapper.text()).toContain('Estado: Borrador');
-    expect(wrapper.text()).toContain('Tipo: Aplicación Web');
-    expect(wrapper.text()).toContain('Mercado: B2B');
-    expect(wrapper.text()).toContain('Moneda: USD');
-    expect(wrapper.text()).toContain('Idioma: EN');
-    expect(wrapper.text()).toContain('Inversión: 1000–5000');
-    expect(wrapper.text()).toContain('Heat Score: 2–8 / 10');
-    expect(wrapper.text()).toContain('Vistas: 1–9');
     expect(wrapper.text()).toContain('Creación: 2026-01-01 → 2026-01-31');
     expect(wrapper.text()).toContain('Actividad: 2026-02-01 → 2026-02-28');
     expect(wrapper.text()).toContain('Solo activas');
     expect(wrapper.text()).toContain('Det. técnico visto');
   });
 
-  it('renders fallback labels and one-sided ranges for chip text', () => {
+  it('renders fallback labels for unknown status, type, and market filter values', () => {
     const wrapper = mountPanel({
       modelValue: createModelValue({
         statuses: ['custom-status'],
         projectTypes: ['custom-project'],
         marketTypes: ['custom-market'],
+      }),
+    });
+
+    expect(wrapper.text()).toContain('Estado: custom-status');
+    expect(wrapper.text()).toContain('Tipo: custom-project');
+    expect(wrapper.text()).toContain('Mercado: custom-market');
+  });
+
+  it('renders one-sided range chips and inactive toggle chip for partial filter values', () => {
+    const wrapper = mountPanel({
+      modelValue: createModelValue({
         investmentMin: 1000,
         heatScoreMax: 8,
         createdAfter: '2026-04-01',
@@ -186,9 +212,6 @@ describe('ProposalFilterPanel', () => {
       }),
     });
 
-    expect(wrapper.text()).toContain('Estado: custom-status');
-    expect(wrapper.text()).toContain('Tipo: custom-project');
-    expect(wrapper.text()).toContain('Mercado: custom-market');
     expect(wrapper.text()).toContain('Inversión: ≥ 1000');
     expect(wrapper.text()).toContain('Heat Score: ≤ 8 / 10');
     expect(wrapper.text()).toContain('Creación: desde 2026-04-01');

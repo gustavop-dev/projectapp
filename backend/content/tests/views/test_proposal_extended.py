@@ -854,3 +854,203 @@ class TestBlogSerializerSourceValidation:
         with pytest.raises(ValidationError) as exc_info:
             serializer.validate_sources(['not_a_dict'])
         assert 'JSON object' in str(exc_info.value.detail)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# content/views/proposal.py — heat score edge cases
+# ═══════════════════════════════════════════════════════════════════
+
+@freeze_time('2026-01-15T10:00:00Z')
+class TestHeatScoreEdgeCases:
+    """Cover remaining branches in _compute_heat_score_with_summary."""
+
+    def _make_proposal(self, db, **kwargs):
+        defaults = dict(
+            title='HS', client_name='Client', client_email='hs@hs.com',
+            status='viewed', total_investment=Decimal('5000.00'),
+            sent_at=FROZEN_NOW - timedelta(days=3),
+            first_viewed_at=FROZEN_NOW - timedelta(days=1),
+            view_count=1,
+            expires_at=FROZEN_NOW + timedelta(days=10),
+        )
+        defaults.update(kwargs)
+        return BusinessProposal.objects.create(**defaults)
+
+    def test_investment_time_15s_to_59s_adds_one_point(self, db):
+        """inv_time in [15, 59] seconds adds 1 point (not 2)."""
+        from content.views.proposal import _compute_heat_score_with_summary
+
+        p = self._make_proposal(db)
+        ev = ProposalViewEvent.objects.create(proposal=p, session_id='s1', viewed_at=FROZEN_NOW)
+        ProposalSectionView.objects.create(
+            view_event=ev, section_type='investment', section_title='Inv',
+            time_spent_seconds=30, entered_at=FROZEN_NOW,
+        )
+
+        base = _compute_heat_score_with_summary(p.id, FROZEN_NOW)
+        assert base['score'] >= 1
+
+    def test_view_count_2_to_4_adds_one_point(self, db):
+        """view_count in [2, 4] adds 1 point (not 2)."""
+        from content.views.proposal import _compute_heat_score_with_summary
+
+        p = self._make_proposal(db, view_count=3)
+        result = _compute_heat_score_with_summary(p.id, FROZEN_NOW)
+        assert result['score'] >= 1
+
+    def test_recent_first_view_within_3_days_adds_recency_point(self, db):
+        """first_viewed_at within 3 days adds 1 recency point."""
+        from content.views.proposal import _compute_heat_score_with_summary
+
+        p = self._make_proposal(db, first_viewed_at=FROZEN_NOW - timedelta(days=2))
+        result_recent = _compute_heat_score_with_summary(p.id, FROZEN_NOW)
+
+        p2 = self._make_proposal(db, first_viewed_at=FROZEN_NOW - timedelta(days=10))
+        result_old = _compute_heat_score_with_summary(p2.id, FROZEN_NOW)
+
+        assert result_recent['score'] >= result_old['score']
+
+    def test_engagement_declining_flag_reduces_score(self, db):
+        """engagement_declining=True subtracts 1 point from score."""
+        from content.views.proposal import _compute_heat_score_with_summary
+
+        p_normal = self._make_proposal(db, engagement_declining=False)
+        p_declining = self._make_proposal(db, engagement_declining=True)
+
+        score_normal = _compute_heat_score_with_summary(p_normal.id, FROZEN_NOW)['score']
+        score_declining = _compute_heat_score_with_summary(p_declining.id, FROZEN_NOW)['score']
+
+        assert score_declining <= score_normal
+
+    def test_nonexistent_proposal_returns_score_one(self, db):
+        """Non-existent proposal_id returns fallback score=1."""
+        from content.views.proposal import _compute_heat_score_with_summary
+
+        result = _compute_heat_score_with_summary(99999, FROZEN_NOW)
+        assert result['score'] == 1
+        assert result['engagement_summary'] is None
+
+    def test_last_activity_same_day_with_hours_shows_hours_string(self, db):
+        """last_activity_at hours ago (same day) shows 'hace Xh' string."""
+        from content.views.proposal import _compute_heat_score_with_summary
+
+        p = self._make_proposal(db, last_activity_at=FROZEN_NOW - timedelta(hours=3))
+        result = _compute_heat_score_with_summary(p.id, FROZEN_NOW)
+        assert result['engagement_summary']['last_activity'] == 'hace 3h'
+
+    def test_last_activity_within_one_hour_shows_less_than_one(self, db):
+        """last_activity_at < 1h ago shows 'hace menos de 1h'."""
+        from content.views.proposal import _compute_heat_score_with_summary
+
+        p = self._make_proposal(db, last_activity_at=FROZEN_NOW - timedelta(minutes=30))
+        result = _compute_heat_score_with_summary(p.id, FROZEN_NOW)
+        assert result['engagement_summary']['last_activity'] == 'hace menos de 1h'
+
+    def test_last_activity_days_ago_shows_days_string(self, db):
+        """last_activity_at days ago shows 'hace Xd' string."""
+        from content.views.proposal import _compute_heat_score_with_summary
+
+        p = self._make_proposal(db, last_activity_at=FROZEN_NOW - timedelta(days=2))
+        result = _compute_heat_score_with_summary(p.id, FROZEN_NOW)
+        assert result['engagement_summary']['last_activity'] == 'hace 2d'
+
+
+# ═══════════════════════════════════════════════════════════════════
+# content/views/proposal.py — calculator interaction admin skip
+# ═══════════════════════════════════════════════════════════════════
+
+@freeze_time('2026-01-15T10:00:00Z')
+class TestCalculatorInteractionAdminSkip:
+
+    def test_staff_user_gets_skipped_response(self, admin_user, db):
+        """track_calculator_interaction returns skipped status for staff using session auth."""
+        import json as _json
+        from django.test import Client
+
+        p = BusinessProposal.objects.create(
+            title='Calc', client_name='C', client_email='c@c.com',
+            status='sent', is_active=True, total_investment=Decimal('5000.00'),
+            expires_at=FROZEN_NOW + timedelta(days=10),
+        )
+        url = reverse('track-calculator-interaction', kwargs={'proposal_uuid': p.uuid})
+
+        # Use Django session client so get_user(request._request) resolves the staff user
+        session_client = Client()
+        session_client.login(username='admin_test', password='testpass123')
+        response = session_client.post(
+            url,
+            data=_json.dumps({'event': 'confirmed', 'selected': []}),
+            content_type='application/json',
+        )
+        assert response.status_code == 200
+        assert _json.loads(response.content)['status'] == 'skipped'
+
+
+# ═══════════════════════════════════════════════════════════════════
+# content/views/proposal.py — engagement score status branches
+# ═══════════════════════════════════════════════════════════════════
+
+@freeze_time('2026-01-15T10:00:00Z')
+class TestEngagementScoreStatusBranches:
+    """Cover status and days-without-response branches in _compute_engagement_score."""
+
+    def test_accepted_status_adds_max_response_score(self, db):
+        """accepted status contributes max points for the response-time factor."""
+        from content.views.proposal import _compute_engagement_score
+
+        p = BusinessProposal.objects.create(
+            title='Acc', client_name='C', client_email='c@c.com',
+            status='accepted', total_investment=Decimal('5000.00'),
+            sent_at=FROZEN_NOW - timedelta(days=5),
+            first_viewed_at=FROZEN_NOW - timedelta(days=3),
+            expires_at=FROZEN_NOW + timedelta(days=10),
+        )
+        view_events = ProposalViewEvent.objects.filter(proposal=p)
+        score = _compute_engagement_score(p, view_events, [], 1)
+        assert score >= 15
+
+    def test_viewed_one_day_ago_adds_max_response_pts(self, db):
+        """days_since first_view <= 1 adds 15 response-time points."""
+        from content.views.proposal import _compute_engagement_score
+
+        p = BusinessProposal.objects.create(
+            title='Day1', client_name='C', client_email='c@c.com',
+            status='viewed', total_investment=Decimal('5000.00'),
+            sent_at=FROZEN_NOW - timedelta(days=2),
+            first_viewed_at=FROZEN_NOW - timedelta(hours=12),
+            expires_at=FROZEN_NOW + timedelta(days=10),
+        )
+        view_events = ProposalViewEvent.objects.filter(proposal=p)
+        score = _compute_engagement_score(p, view_events, [], 1)
+        assert score >= 15
+
+    def test_viewed_three_days_ago_adds_mid_response_pts(self, db):
+        """days_since first_view <= 3 adds 10 response-time points."""
+        from content.views.proposal import _compute_engagement_score
+
+        p = BusinessProposal.objects.create(
+            title='Day3', client_name='C', client_email='c@c.com',
+            status='viewed', total_investment=Decimal('5000.00'),
+            sent_at=FROZEN_NOW - timedelta(days=4),
+            first_viewed_at=FROZEN_NOW - timedelta(days=2),
+            expires_at=FROZEN_NOW + timedelta(days=10),
+        )
+        view_events = ProposalViewEvent.objects.filter(proposal=p)
+        score = _compute_engagement_score(p, view_events, [], 1)
+        assert score >= 10
+
+    def test_multiple_revisit_sessions_add_score(self, db):
+        """unique_sessions > 1 contributes revisit bonus points."""
+        from content.views.proposal import _compute_engagement_score
+
+        p = BusinessProposal.objects.create(
+            title='Revisit', client_name='C', client_email='c@c.com',
+            status='viewed', total_investment=Decimal('5000.00'),
+            sent_at=FROZEN_NOW - timedelta(days=5),
+            first_viewed_at=FROZEN_NOW - timedelta(days=3),
+            expires_at=FROZEN_NOW + timedelta(days=10),
+        )
+        view_events = ProposalViewEvent.objects.filter(proposal=p)
+        score_single = _compute_engagement_score(p, view_events, [], 1)
+        score_revisit = _compute_engagement_score(p, view_events, [], 3)
+        assert score_revisit > score_single

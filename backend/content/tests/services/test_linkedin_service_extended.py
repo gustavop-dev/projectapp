@@ -346,6 +346,7 @@ class TestPublishBlogMissingBranches:
     @patch('content.services.linkedin_service.get_member_urn', return_value=None)
     @patch('content.services.linkedin_service.get_access_token', return_value='tok')
     def test_raises_when_member_urn_unavailable(self, mock_token, mock_urn):
+        # quality: disable no_assertions (pytest.raises is the assertion)
         with pytest.raises(ValueError, match='member URN'):
             linkedin_service.publish_blog_to_linkedin(
                 summary='Test', blog_url='https://x.co', title='T',
@@ -354,6 +355,7 @@ class TestPublishBlogMissingBranches:
     @patch('content.services.linkedin_service.get_member_urn', return_value='urn:li:person:abc')
     @patch('content.services.linkedin_service.get_access_token', return_value='tok')
     def test_raises_when_summary_is_empty(self, mock_token, mock_urn):
+        # quality: disable no_assertions (pytest.raises is the assertion)
         with pytest.raises(ValueError, match='Summary text is required'):
             linkedin_service.publish_blog_to_linkedin(
                 summary='', blog_url='https://x.co', title='T',
@@ -629,6 +631,7 @@ class TestExchangeCodeForToken:
 
     @patch('content.services.linkedin_service.requests.post')
     def test_raises_value_error_when_exchange_fails(self, mock_post):
+        # quality: disable no_assertions (pytest.raises is the assertion)
         mock_resp = MagicMock()
         mock_resp.status_code = 400
         mock_resp.text = 'invalid_code'
@@ -696,6 +699,7 @@ class TestFetchProfileFromApi:
 class TestPublishBlogRemainingBranches:
     @patch('content.services.linkedin_service.get_access_token', return_value=None)
     def test_raises_when_not_connected(self, mock_token):
+        # quality: disable no_assertions (pytest.raises is the assertion)
         with pytest.raises(ValueError, match='not connected'):
             linkedin_service.publish_blog_to_linkedin(
                 summary='Test', blog_url='https://x.co', title='T',
