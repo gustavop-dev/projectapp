@@ -71,15 +71,21 @@ def check_domain_mx(domain):
     return False
 
 
+_PLACEHOLDER_EMAIL_DOMAIN = 'temp.example.com'
+
+
 def validate_email_domain_mx(email):
     """Return True if the email domain can receive mail (has MX or A records).
 
     Returns True on empty/blank input so optional fields pass through.
+    Placeholder addresses ending in @temp.example.com are always allowed.
     """
     if not email or '@' not in email:
         return True
     domain = email.rsplit('@', 1)[1].lower().strip()
     if not domain:
+        return True
+    if domain == _PLACEHOLDER_EMAIL_DOMAIN:
         return True
     try:
         return check_domain_mx(domain)

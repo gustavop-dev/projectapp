@@ -162,6 +162,7 @@ export const PLATFORM_DELIVERABLE_DETAIL = ['@flow:platform-deliverable-detail',
 export const ADMIN_DOCUMENT_LIST = ['@flow:admin-document-list', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_CREATE = ['@flow:admin-document-create', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_EDIT = ['@flow:admin-document-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_FOLDERS = ['@flow:admin-document-folders', '@module:admin', '@priority:P2'];
 export const ADMIN_ADMIN_MANAGEMENT = ['@flow:admin-admin-management', '@module:admin', '@priority:P3'];
 export const ADMIN_EMAIL_DELIVERABILITY = ['@flow:admin-email-deliverability', '@module:admin', '@priority:P3'];
 export const ADMIN_VIEW_MAP = ['@flow:admin-view-map', '@module:admin', '@priority:P4'];
@@ -205,3 +206,10 @@ export const ADMIN_CLIENT_DELETE_PROTECTED = ['@flow:admin-client-delete-protect
 export const ADMIN_PROPOSAL_CLIENT_AUTOCOMPLETE = ['@flow:admin-proposal-client-autocomplete', '@module:admin', '@priority:P1'];
 export const ADMIN_PROPOSAL_CLIENT_NO_EMAIL = ['@flow:admin-proposal-client-no-email', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_UPDATE_CLIENT = ['@flow:admin-proposal-update-client', '@module:admin', '@priority:P2'];
+
+// ── Kanban tasks (internal panel) ──
+export const ADMIN_KANBAN_TASKS = ['@flow:admin-kanban-tasks', '@module:admin', '@priority:P2'];
+
+// ── v2.17.0 — document PDF + OG meta ──
+export const ADMIN_DOCUMENT_PDF_DOWNLOAD = ['@flow:admin-document-pdf-download', '@module:admin', '@priority:P2'];
+export const PROPOSAL_OG_META_PERSONALIZED = ['@flow:proposal-og-meta-personalized', '@module:proposal', '@priority:P3'];

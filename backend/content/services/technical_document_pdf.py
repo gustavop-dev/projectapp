@@ -73,6 +73,10 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
     from content.services.technical_document_filter import (
         filter_technical_document_by_module_selection,
     )
+    from content.services.proposal_module_links import (
+        build_proposal_module_link_catalog,
+        normalize_technical_document_module_links,
+    )
 
     sec = (
         proposal.sections.filter(is_enabled=True, section_type='technical_document').first()
@@ -80,7 +84,20 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
     if not sec:
         return None
     data = sec.content_json if isinstance(sec.content_json, dict) else {}
-    data = filter_technical_document_by_module_selection(data, selected_modules)
+    section_payloads = [
+        {
+            'section_type': section.section_type,
+            'content_json': section.content_json if isinstance(section.content_json, dict) else {},
+        }
+        for section in proposal.sections.all()
+    ]
+    data = normalize_technical_document_module_links(data, section_payloads)
+    link_catalog = build_proposal_module_link_catalog(section_payloads)
+    data = filter_technical_document_by_module_selection(
+        data,
+        selected_modules,
+        always_included_ids=link_catalog['always_included_ids'],
+    )
 
     try:
         _register_fonts()

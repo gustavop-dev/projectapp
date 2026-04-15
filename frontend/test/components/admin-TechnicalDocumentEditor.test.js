@@ -60,12 +60,49 @@ describe('TechnicalDocumentEditor', () => {
       moduleLinkOptions: [{ id: 'mod-1', label: 'E-commerce' }],
     });
 
-    expect(wrapper.text()).toContain('Plantilla genérica por módulo opcional');
+    expect(wrapper.text()).toContain('Plantilla genérica por módulo comercial');
   });
 
   it('does not show stub selector when moduleLinkOptions is empty', () => {
     const wrapper = mountTechnicalDocumentEditor({ moduleLinkOptions: [] });
 
-    expect(wrapper.text()).not.toContain('Plantilla genérica por módulo opcional');
+    expect(wrapper.text()).not.toContain('Plantilla genérica por módulo comercial');
+  });
+
+  it('emits canonical linked_module_ids when the source content uses legacy ids', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            {
+              epicKey: 'legacy-epic',
+              title: 'Legacy Epic',
+              linked_module_ids: ['views'],
+              requirements: [
+                { title: 'Legacy Req', linked_module_ids: ['pwa_module'] },
+              ],
+            },
+          ],
+        },
+      },
+      moduleLinkOptions: [
+        { id: 'group-views', label: 'Vistas', aliases: ['group-views', 'views'] },
+        { id: 'module-pwa_module', label: 'PWA', aliases: ['module-pwa_module', 'pwa_module'] },
+      ],
+    });
+
+    const saveButton = wrapper.findAll('button').find((button) =>
+      button.text().includes('Guardar detalle técnico'),
+    );
+    expect(saveButton).toBeTruthy();
+    await saveButton.trigger('click');
+
+    const emitted = wrapper.emitted('save');
+    expect(emitted).toHaveLength(1);
+    const payload = emitted[0][0].payload.content_json;
+    expect(payload.epics[0].linked_module_ids).toEqual(['group-views']);
+    expect(payload.epics[0].requirements[0].linked_module_ids).toEqual(['module-pwa_module']);
   });
 });

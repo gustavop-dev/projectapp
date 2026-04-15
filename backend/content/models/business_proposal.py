@@ -87,7 +87,7 @@ class BusinessProposal(models.Model):
     discount_percent = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     automations_paused = models.BooleanField(
-        default=False,
+        default=True,
         help_text='When true, no automatic emails (reminder, urgency, inactivity) are sent for this proposal.',
     )
     reminder_sent_at = models.DateTimeField(null=True, blank=True)
@@ -267,6 +267,12 @@ class BusinessProposal(models.Model):
     def available_transitions(self):
         """Return sorted list of valid manual status transitions from current status."""
         return sorted(self.ALLOWED_TRANSITIONS.get(self.status, frozenset()))
+
+    @property
+    def has_confirmed_module_selection(self):
+        return self.change_logs.filter(
+            change_type='calc_confirmed',
+        ).exists()
 
     def save(self, *args, **kwargs):
         if not self.slug:

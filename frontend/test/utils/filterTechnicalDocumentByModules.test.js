@@ -164,4 +164,37 @@ describe('filterTechnicalDocumentByModules', () => {
     expect(out.epics).toHaveLength(1);
     expect(out.epics[0].requirements).toEqual([]);
   });
+
+  it('keeps epic linked to always-included base group when selection is empty', () => {
+    const d = {
+      epics: [
+        {
+          title: 'Base epic',
+          linked_module_ids: ['group-views'],
+          requirements: [{ title: 'Base req', linked_module_ids: ['group-views'] }],
+        },
+      ],
+    };
+
+    const out = filterTechnicalDocumentByModules(d, [], ['group-views']);
+
+    expect(out.epics).toHaveLength(1);
+    expect(out.epics[0].requirements).toHaveLength(1);
+  });
+
+  it('still filters optional ids when selection is explicitly empty', () => {
+    const d = {
+      epics: [
+        {
+          title: 'Optional epic',
+          linked_module_ids: ['module-pwa_module'],
+          requirements: [{ title: 'Req', linked_module_ids: ['module-pwa_module'] }],
+        },
+      ],
+    };
+
+    const out = filterTechnicalDocumentByModules(d, [], ['group-views']);
+
+    expect(out.epics).toEqual([]);
+  });
 });

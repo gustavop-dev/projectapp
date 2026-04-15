@@ -71,6 +71,85 @@ describe('useDocumentStore', () => {
       expect(store.error).toBe('fetch_failed')
       expect(result.errors).toEqual({ detail: 'x' })
     })
+
+    it('calls documents/ with no query params when no filters active', async () => {
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.fetchDocuments()
+      expect(get_request).toHaveBeenCalledWith('documents/')
+    })
+
+    it('sends folder query param when activeFolderId is a numeric id', async () => {
+      store.activeFolderId = 7
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.fetchDocuments()
+      expect(get_request).toHaveBeenCalledWith('documents/?folder=7')
+    })
+
+    it('sends folder=none when activeFolderId is "none"', async () => {
+      store.activeFolderId = 'none'
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.fetchDocuments()
+      expect(get_request).toHaveBeenCalledWith('documents/?folder=none')
+    })
+
+    it('sends tags query param when activeTagIds has values', async () => {
+      store.activeTagIds = [3, 5]
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.fetchDocuments()
+      expect(get_request).toHaveBeenCalledWith('documents/?tags=3%2C5')
+    })
+
+    it('accepts override params without mutating store filters', async () => {
+      store.activeFolderId = 'all'
+      store.activeTagIds = []
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.fetchDocuments({ folder: 2, tags: [9] })
+      expect(get_request).toHaveBeenCalledWith('documents/?folder=2&tags=9')
+      expect(store.activeFolderId).toBe('all')
+      expect(store.activeTagIds).toEqual([])
+    })
+  })
+
+  describe('setFilters', () => {
+    it('updates folder and triggers refetch', async () => {
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.setFilters({ folder: 4 })
+      expect(store.activeFolderId).toBe(4)
+      expect(get_request).toHaveBeenCalledWith('documents/?folder=4')
+    })
+
+    it('updates tags array by cloning input', async () => {
+      get_request.mockResolvedValueOnce({ data: [] })
+      const inputTags = [1, 2]
+      await store.setFilters({ tags: inputTags })
+      expect(store.activeTagIds).toEqual([1, 2])
+      expect(store.activeTagIds).not.toBe(inputTags)
+    })
+
+    it('supports clearing tags with empty array', async () => {
+      store.activeTagIds = [1]
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.setFilters({ tags: [] })
+      expect(store.activeTagIds).toEqual([])
+      expect(get_request).toHaveBeenCalledWith('documents/')
+    })
+  })
+
+  describe('toggleTagFilter', () => {
+    it('adds a tag id when absent and refetches', async () => {
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.toggleTagFilter(8)
+      expect(store.activeTagIds).toEqual([8])
+      expect(get_request).toHaveBeenCalledWith('documents/?tags=8')
+    })
+
+    it('removes a tag id when already present', async () => {
+      store.activeTagIds = [1, 2, 3]
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.toggleTagFilter(2)
+      expect(store.activeTagIds).toEqual([1, 3])
+      expect(get_request).toHaveBeenCalledWith('documents/?tags=1%2C3')
+    })
   })
 
   describe('fetchDocument', () => {

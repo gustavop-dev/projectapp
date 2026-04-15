@@ -63,9 +63,20 @@ from content.views.document import (
     upload_document_markdown, retrieve_document, update_document,
     delete_document, duplicate_document, download_document_pdf,
 )
+from content.views.document_folder import (
+    list_document_folders, create_document_folder,
+    update_document_folder, delete_document_folder,
+)
+from content.views.document_tag import (
+    list_document_tags, create_document_tag,
+    update_document_tag, delete_document_tag,
+)
 from content.views.proposal_clients import (
     list_proposal_clients, search_proposal_clients, retrieve_proposal_client,
     create_proposal_client, update_proposal_client, delete_proposal_client,
+)
+from content.views.task import (
+    list_tasks, create_task, update_task, reorder_task, delete_task,
 )
 
 urlpatterns = [
@@ -207,6 +218,25 @@ urlpatterns = [
     path('documents/<int:document_id>/delete/', delete_document, name='delete-document'),
     path('documents/<int:document_id>/duplicate/', duplicate_document, name='duplicate-document'),
     path('documents/<int:document_id>/pdf/', download_document_pdf, name='download-document-pdf'),
+
+    # Document folders (flat, inline-managed)
+    path('document-folders/', list_document_folders, name='list-document-folders'),
+    path('document-folders/create/', create_document_folder, name='create-document-folder'),
+    path('document-folders/<int:folder_id>/update/', update_document_folder, name='update-document-folder'),
+    path('document-folders/<int:folder_id>/delete/', delete_document_folder, name='delete-document-folder'),
+
+    # Kanban tasks (admin panel)
+    path('tasks/', list_tasks, name='list-tasks'),
+    path('tasks/create/', create_task, name='create-task'),
+    path('tasks/<int:task_id>/update/', update_task, name='update-task'),
+    path('tasks/<int:task_id>/reorder/', reorder_task, name='reorder-task'),
+    path('tasks/<int:task_id>/delete/', delete_task, name='delete-task'),
+
+    # Document tags (M2M, inline-managed)
+    path('document-tags/', list_document_tags, name='list-document-tags'),
+    path('document-tags/create/', create_document_tag, name='create-document-tag'),
+    path('document-tags/<int:tag_id>/update/', update_document_tag, name='update-document-tag'),
+    path('document-tags/<int:tag_id>/delete/', delete_document_tag, name='delete-document-tag'),
 
     # Portfolio — admin CRUD (must come before slug catch-all)
     path('portfolio/admin/', list_admin_portfolio_works, name='list-admin-portfolio-works'),

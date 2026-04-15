@@ -1,0 +1,150 @@
+"""Tests for content/views/task.py — Kanban task CRUD + reorder."""
+import pytest
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+
+from content.models import Task
+
+pytestmark = pytest.mark.django_db
+
+User = get_user_model()
+
+
+@pytest.fixture
+def non_admin_client(api_client, db):
+    user = User.objects.create_user(
+        username='regular', email='regular@test.com',
+        password='pw', is_staff=False,
+    )
+    api_client.force_authenticate(user=user)
+    return api_client
+
+
+@pytest.fixture
+def todo_task(db):
+    return Task.objects.create(title='T1', status=Task.Status.TODO, position=0)
+
+
+@pytest.fixture
+def in_progress_task(db):
+    return Task.objects.create(
+        title='T2', status=Task.Status.IN_PROGRESS, position=0,
+    )
+
+
+class TestListTasks:
+    def test_groups_by_status(self, admin_client, todo_task, in_progress_task):
+        url = reverse('list-tasks')
+        response = admin_client.get(url)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert set(data.keys()) == {'todo', 'in_progress', 'blocked', 'done'}
+        assert [t['title'] for t in data['todo']] == ['T1']
+        assert [t['title'] for t in data['in_progress']] == ['T2']
+        assert data['blocked'] == []
+        assert data['done'] == []
+
+    def test_requires_admin(self, non_admin_client):
+        url = reverse('list-tasks')
+        response = non_admin_client.get(url)
+        assert response.status_code == 403
+
+
+class TestCreateTask:
+    def test_defaults_to_todo_and_appends_position(self, admin_client, todo_task):
+        url = reverse('create-task')
+        response = admin_client.post(
+            url, {'title': 'Second'}, format='json',
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data['status'] == 'todo'
+        assert data['priority'] == 'medium'
+        assert data['position'] == todo_task.position + 1
+
+    def test_honors_provided_status_and_priority(self, admin_client):
+        url = reverse('create-task')
+        response = admin_client.post(
+            url,
+            {'title': 'Urgent', 'status': 'blocked', 'priority': 'high'},
+            format='json',
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data['status'] == 'blocked'
+        assert data['priority'] == 'high'
+
+    def test_rejects_missing_title(self, admin_client):
+        url = reverse('create-task')
+        response = admin_client.post(url, {}, format='json')
+        assert response.status_code == 400
+
+
+class TestUpdateTask:
+    def test_changes_status_and_repositions(self, admin_client, todo_task, in_progress_task):
+        url = reverse('update-task', kwargs={'task_id': todo_task.id})
+        response = admin_client.patch(
+            url, {'status': 'in_progress'}, format='json',
+        )
+
+        assert response.status_code == 200
+        todo_task.refresh_from_db()
+        assert todo_task.status == 'in_progress'
+        # Appended after in_progress_task
+        assert todo_task.position == in_progress_task.position + 1
+
+    def test_updates_title(self, admin_client, todo_task):
+        url = reverse('update-task', kwargs={'task_id': todo_task.id})
+        response = admin_client.patch(
+            url, {'title': 'Renamed'}, format='json',
+        )
+        assert response.status_code == 200
+        todo_task.refresh_from_db()
+        assert todo_task.title == 'Renamed'
+
+
+class TestReorderTask:
+    def test_reassigns_positions_within_column(self, admin_client):
+        a = Task.objects.create(title='A', status=Task.Status.TODO, position=0)
+        b = Task.objects.create(title='B', status=Task.Status.TODO, position=1)
+        c = Task.objects.create(title='C', status=Task.Status.TODO, position=2)
+
+        url = reverse('reorder-task', kwargs={'task_id': c.id})
+        response = admin_client.patch(
+            url, {'status': 'todo', 'position': 0}, format='json',
+        )
+
+        assert response.status_code == 200
+        titles = [t['title'] for t in response.json()['todo']]
+        assert titles == ['C', 'A', 'B']
+        for obj in (a, b, c):
+            obj.refresh_from_db()
+        assert (c.position, a.position, b.position) == (0, 1, 2)
+
+    def test_moves_between_columns(self, admin_client, todo_task):
+        url = reverse('reorder-task', kwargs={'task_id': todo_task.id})
+        response = admin_client.patch(
+            url, {'status': 'done', 'position': 0}, format='json',
+        )
+        assert response.status_code == 200
+        todo_task.refresh_from_db()
+        assert todo_task.status == 'done'
+        assert todo_task.position == 0
+
+    def test_rejects_invalid_status(self, admin_client, todo_task):
+        url = reverse('reorder-task', kwargs={'task_id': todo_task.id})
+        response = admin_client.patch(
+            url, {'status': 'not_a_status', 'position': 0}, format='json',
+        )
+        assert response.status_code == 400
+
+
+class TestDeleteTask:
+    def test_removes_task(self, admin_client, todo_task):
+        url = reverse('delete-task', kwargs={'task_id': todo_task.id})
+        response = admin_client.delete(url)
+        assert response.status_code == 204
+        assert not Task.objects.filter(pk=todo_task.id).exists()

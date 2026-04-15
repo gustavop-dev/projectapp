@@ -89,7 +89,7 @@ python3 manage.py run_huey              # Requires Redis running
 
 | Command | Description |
 |---------|-------------|
-| `create_fake_data <N>` | Create N contacts + portfolio works + proposals + blog posts |
+| `create_fake_data <N>` | Create N contacts + portfolio works + proposals + blog posts + seed tasks |
 | `create_fake_proposals` | Create fake proposals with sections and requirements |
 | `create_fake_blog_posts` | Create fake blog posts with structured JSON content |
 | `create_contacts` | Create sample contact entries |
@@ -193,7 +193,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `backend/content/tests/`, `backend/accounts/tests/`, `backend/tests/`
 - Structure: `models/`, `serializers/`, `views/`, `services/`, `tasks/`, `utils/`, `management/`
-- Test files: **121 total**
+- Test files: **124 total**
 - Fixtures: `conftest.py` at root and `content/tests/conftest.py` (provides `proposal`, `accepted_proposal`, `admin_user`, `admin_client`, etc.)
 - Coverage: custom terminal report with per-file bars and Top-N focus
 - Config: `backend/pytest.ini`
@@ -203,7 +203,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `frontend/test/`
 - Structure: `components/`, `composables/`, `stores/` (incl. services), `utils/`
-- Test files: **73 total**
+- Test files: **77 total**
 - Config: `frontend/jest.config.cjs`
 - Run: `npm test -- test/<specific_file>.test.js`
 
@@ -211,7 +211,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - Location: `frontend/e2e/`
 - Structure: `admin/`, `auth/`, `blog/`, `layout/`, `platform/`, `proposal/`, `public/`
-- Spec files: **129 total**
+- Spec files: **131 total**
 - Flow definitions: `frontend/e2e/flow-definitions.json` (must be updated for every new flow)
 - Flow tags: `frontend/e2e/helpers/flow-tags.js` (constants imported by spec files)
 - Config: `frontend/playwright.config.js`
@@ -256,30 +256,31 @@ projectapp/
 │   │   ├── tests/               # 28 test files
 │   │   └── urls.py              # 65 URL patterns
 │   ├── content/                 # Main Django app
-│   │   ├── models/              # 26 model files (proposal, blog, portfolio, contact, document, email, contract, proposal_project_stage, etc.)
+│   │   ├── models/              # 29 model files (proposal, blog, portfolio, contact, document, email, contract, proposal_project_stage, task, etc.)
 │   │   ├── serializers/         # DRF serializers (proposal, blog, portfolio, contact, proposal_clients)
 │   │   ├── views/               # FBV views (proposal is the dominant module; blog, portfolio, email_templates, document, contact, and proposal_clients are split separately)
 │   │   ├── services/            # 17 service/support modules (proposal_service, proposal_email_service, proposal_pdf_service, proposal_stage_tracker, email_template_registry, contract_pdf_service, document_pdf_service, markdown_parser, linkedin_service, collection_account*, technical_document*, document_type_*, platform_onboarding_pdf)
 │   │   ├── tasks.py             # Huey async tasks (incl. notify_proposal_stage_deadlines daily at 13:30 UTC = 08:30 Bogotá)
 │   │   ├── templates/emails/    # 54 content email templates (27 HTML + 27 TXT)
-│   │   ├── migrations/          # 82 migrations (latest: 0083_add_stage_change_types.py)
+│   │   ├── migrations/          # 87 migrations (latest: 0087_task.py)
 │   │   ├── management/commands/ # 8 management commands
 │   │   ├── tests/               # 61 test files (models, serializers, views, services, tasks, utils)
-│   │   └── urls.py              # 115 URL patterns
+│   │   └── urls.py              # 128 URL patterns
 │   ├── projectapp/              # Django project (settings, urls, wsgi, views, 1 test file)
 │   ├── tests/                   # Root-level tests (test_document_pdf_service.py, test_markdown_parser.py)
 │   ├── static/                  # Static files (Nuxt build output in prod)
 │   └── media/                   # User uploads
 ├── frontend/
 │   ├── pages/                   # Nuxt file-based routing (64 pages)
-│   │   ├── panel/               # Admin pages (proposals, blog, portfolio, clients, documents, admins). Proposal edit page has Cronograma tab.
+│   │   ├── panel/               # Admin pages (proposals, blog, portfolio, clients, documents, admins, tareas). Proposal edit page has Cronograma tab. `/panel/tareas` is the internal Kanban board.
 │   │   ├── platform/            # Platform pages (dashboard, board, projects, kanban, bugs, changes, deliverables, notifications, payments, clients, collection-accounts, profile, data-model)
 │   │   ├── blog/                # Blog listing + detail
 │   │   ├── portfolio-works/     # Portfolio listing + detail
 │   │   └── proposal/            # Client proposal view
-│   ├── components/              # Vue components (122 files)
-│   │   └── BusinessProposal/    # 50 proposal component/source files. Admin-only under `admin/` (incl. `ProjectScheduleEditor.vue`)
-│   ├── stores/                  # 20 Pinia stores (proposals, blog, portfolio_works, contacts, language, documents, emails, panel_admins, proposalClients, platform-auth, platform-clients, platform-projects, platform-requirements, platform-bug-reports, platform-change-requests, platform-deliverables, platform-notifications, platform-payments, platform-collection-accounts, platform-data-model)
+│   ├── components/              # Vue components (130 files)
+│   │   ├── BusinessProposal/    # 50 proposal component/source files. Admin-only under `admin/` (incl. `ProjectScheduleEditor.vue`)
+│   │   └── Tasks/               # TaskCard.vue, TaskColumn.vue (vuedraggable), TaskFormModal.vue — internal Kanban board
+│   ├── stores/                  # 23 Pinia stores (proposals, blog, portfolio_works, contacts, language, documents, document_folders, document_tags, tasks, emails, panel_admins, proposalClients, platform-auth, platform-clients, platform-projects, platform-requirements, platform-bug-reports, platform-change-requests, platform-deliverables, platform-notifications, platform-payments, platform-collection-accounts, platform-data-model)
 │   ├── composables/             # 35 composables (incl. useStageStatus.js)
 │   ├── e2e/                     # Playwright E2E tests (129 spec files)
 │   ├── test/                    # Jest unit tests (73 test files)

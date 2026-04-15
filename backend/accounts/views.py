@@ -2043,7 +2043,7 @@ def _build_proposal_pdf_http_response(proposal, doc_variant: str):
     if doc_variant == 'technical':
         from content.services.technical_document_pdf import generate_technical_document_pdf
 
-        sel = proposal.selected_modules or None
+        sel = proposal.selected_modules if proposal.has_confirmed_module_selection else None
         pdf_bytes = generate_technical_document_pdf(
             proposal, selected_modules=sel,
         )
@@ -2055,7 +2055,9 @@ def _build_proposal_pdf_http_response(proposal, doc_variant: str):
     else:
         from content.services.proposal_pdf_service import ProposalPdfService
 
-        selected_modules = proposal.selected_modules or None
+        selected_modules = (
+            proposal.selected_modules if proposal.has_confirmed_module_selection else None
+        )
         pdf_bytes = ProposalPdfService.generate(
             proposal, selected_modules=selected_modules,
         )

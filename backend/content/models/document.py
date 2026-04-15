@@ -40,6 +40,18 @@ class Document(models.Model):
         null=True,
         blank=True,
     )
+    folder = models.ForeignKey(
+        'content.DocumentFolder',
+        on_delete=models.SET_NULL,
+        related_name='documents',
+        null=True,
+        blank=True,
+    )
+    tags = models.ManyToManyField(
+        'content.DocumentTag',
+        related_name='documents',
+        blank=True,
+    )
     project = models.ForeignKey(
         'accounts.Project',
         on_delete=models.SET_NULL,

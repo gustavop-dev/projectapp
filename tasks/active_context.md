@@ -8,6 +8,35 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ## Recent Focus Areas
 
+- **Proposal Admin & Public — 4 UX Improvements** (Apr 15, 2026):
+  - **Expiry days input** (create + edit proposal pages): Number input placed inline beside the `datetime-local` field. Bidirectionally synced via two `watch()` calls — datetime change → days update; days change → date update while **preserving the existing time component** (`form.expires_at.slice(11, 16)`) so a custom hour is not overwritten when only the day count changes. Helpers: `getExpiryDaysFromStr()` in both pages; `create.vue` reuses existing `pad` + `buildDefaultExpiryStr`; `edit.vue` adds `padDate` + `DEFAULT_EXPIRY_DAYS`. Days watcher in `create.vue` also syncs `jsonForm.expires_at` (consistent with the existing cross-mode sync comment at line 1021). Timer stacking in `edit.vue` prevented via `updateMsgTimer` ref + `clearTimeout`.
+  - **Smooth back-to-gateway transition** (`proposal/[uuid]/index.vue`): `handleBackToGateway()` now triggers the existing `switch-mode-overlay` `<Transition>` with `switchOverlayMode = 'gateway'` before resetting state. Overlay template gained a 4th case: grid icon, "Seleccionar vista" / "Select view" heading, bilingual subtitle. Timing mirrors `handleViewModeSelect`: 1 s hold → state reset + 1.2 s overlay hide.
+  - **`@temp.example.com` email bypass** (`backend/content/utils.py`): `validate_email_domain_mx()` now short-circuits with `True` when `domain == 'temp.example.com'`, before any DNS lookup. `_PLACEHOLDER_EMAIL_DOMAIN = 'temp.example.com'` constant is local to `utils.py` (avoids cross-app import). `jsonForm.client_email` default in `create.vue` changed from `''` to `'usuario@temp.example.com'` so the JSON-import form is pre-filled with a valid placeholder address.
+  - **Save toast notification** (`edit.vue`): Inline `updateMsg` div (inside the form, often scrolled away) replaced with a `<Teleport to="body">` toast fixed bottom-right. Uses Tailwind `<Transition>` enter/leave classes. Green = success, red = error; auto-dismisses in 5 s; `clearTimeout` + `updateMsgTimer` ref prevents timer stacking on rapid saves; manual ✕ button for immediate dismiss.
+
+- **Admin Panel — Internal Kanban Task Board** (Apr 15, 2026):
+  - **Backend model**: `backend/content/models/task.py` — `Task` with `Status` / `Priority` TextChoices (todo/in_progress/blocked/done; low/medium/high), `assignee` FK (SET_NULL to `AUTH_USER_MODEL`), `due_date`, `position` (ordering within column), `created_at`, `updated_at`. Migration `0087_task.py` (manual, no venv available). Registered in `content/models/__init__.py`.
+  - **Serializers**: `TaskListSerializer` — read-side with `assignee_name` (`get_full_name() or username`) and `is_overdue` (reads `today` from serializer context — computed once per request via `_serializer_context()`). `TaskCreateUpdateSerializer` — write-side, `assignee_id` PrimaryKeyRelatedField.
+  - **Views** (`backend/content/views/task.py`): `_next_position(status_value, exclude_pk=None)` helper (used by both create + update); `_serializer_context()` (hoists `timezone.localdate()` once per request); `_grouped_tasks()` (always returns all 4 status keys via `select_related('assignee')`). FBVs: `list_tasks` (GET), `create_task` (POST), `update_task` (PATCH — injects computed position into `serializer.validated_data` before single `serializer.save()` to eliminate double-save), `reorder_task` (PATCH `tasks/<id>/reorder/` — `transaction.atomic`, renumbers full column), `delete_task` (DELETE). 5 URL patterns in `content/urls.py`.
+  - **Frontend store** (`frontend/stores/tasks.js`): Pinia Options API. State: `{ columns: {todo,in_progress,blocked,done}, isLoading, isUpdating, error }`. Actions: `fetchTasks`, `createTask` (appends optimistically), `updateTask` (replaces in-place, refetches only if status changed), `moveTask` (replaces board from API response; on error: fetches then sets `this.error` so fetchTasks reset doesn't overwrite it), `deleteTask`, `replaceTaskInPlace`.
+  - **Components** (`frontend/components/Tasks/`): `TaskCard.vue` (priority badge gray/blue/red, due_date formatted `es-CO`, red if `is_overdue`); `TaskColumn.vue` (wraps vuedraggable with `group: { name:'tasks' }`, `handleChange(evt)` dispatches move for both `evt.added` and `evt.moved`); `TaskFormModal.vue` (create/edit, unified `buildForm()`, single dep watch on `modelValue`, emits `submit` + `delete`).
+  - **Page** (`frontend/pages/panel/tareas/index.vue`): `definePageMeta({ layout:'admin', middleware:['admin-auth'] })`; 4 `TaskColumn` components in a responsive grid; `TaskFormModal`; delete gated through `useConfirmModal` + `ConfirmModal`.
+  - **Navigation**: Added `{ id:'tasks', label:'Tareas', items:[{label:'Kanban', href:lp('/panel/tareas'), icon:'board'}] }` as first section in `frontend/config/panelNav.js`.
+  - **Tests**: 11 backend (`test_task_views.py` — CRUD, non-admin 403, reorder within/across columns, position logic); 9 frontend unit (`tasks.test.js` — all actions + replaceTaskInPlace); 2 E2E (`admin-tasks-kanban.spec.js` — 4-column render + create, edit title). Flow tag `ADMIN_KANBAN_TASKS` registered in `flow-tags.js` + `flow-definitions.json`.
+  - **Pending ops**: `python manage.py migrate` to apply `0087_task.py` in production.
+
+- **Document System — Folders & Tags** (Apr 15, 2026):
+  - **Backend models**: `DocumentFolder` (flat, slug auto-generated with collision avoidance, `order` sort field) and `DocumentTag` (M2M, 6 `Color` enum choices: gray/emerald/blue/yellow/red/purple). Both in `backend/content/models/`. `Document` model gained `folder` (FK `SET_NULL`) and `tags` (M2M). Migration `0086_document_folders_and_tags.py`.
+  - **Serializers** (`backend/content/serializers/`): `DocumentFolderSerializer` reads `document_count` from `Count` annotation when available (N+1 free). `DocumentTagSerializer` (simple). `DocumentListSerializer` exposes `folder`, `folder_name`, `tag_details`. `DocumentCreateUpdateSerializer` accepts writable `folder_id` (PrimaryKeyRelatedField) and `tag_ids` (sets M2M via `.set()`). `DocumentFromMarkdownSerializer` extended with same fields.
+  - **Views** (`backend/content/views/`): `document_folder.py` and `document_tag.py` — full CRUD FBV with `@api_view` + `IsAdminUser`. `list_document_folders` annotates `Count('documents')`. `list_documents` in `document.py` now accepts `?folder=<id|none>` and `?tags=<id,id,...>` (OR with `.distinct()`), prefetches tags and folder via `prefetch_related`/`select_related`.
+  - **URLs**: 8 new patterns for `/api/document-folders/` and `/api/document-tags/` registered in `backend/content/urls.py`.
+  - **Frontend stores**: `frontend/stores/document_folders.js` and `frontend/stores/document_tags.js` — Pinia Options API, snake_case filenames, CRUD with local mutation (no re-fetch after mutate). `frontend/stores/documents.js` extended: `activeFolderId`, `activeTagIds` state; `fetchDocuments(overrides={})` builds query params; `setFilters({folder,tags})`; `toggleTagFilter(tagId)`.
+  - **Shared utility**: `frontend/utils/documentTagColors.js` — single source of truth for all tag Tailwind classes (`TAG_BADGE_CLASS`, `TAG_ACTIVE_CLASS`, `TAG_DOT_CLASS`, `TAG_IDLE_CHIP_CLASS`) + helper functions `tagBadgeClass()`, `tagActiveClass()`, `tagDotClass()`. Eliminates duplicate color maps that had existed across components.
+  - **Components** (all new in `frontend/components/panel/documents/`): `FolderSidebar.vue` (pure `<script setup>`), `TagFilterChips.vue` (pure `<script setup>`), `TagSelector.vue` (v-model, pure `<script setup>`), `FolderManagerModal.vue`, `TagManagerModal.vue`.
+  - **Pages updated**: `frontend/pages/panel/documents/index.vue` — 2-column layout (`lg:grid-cols-[240px_1fr]`), FolderSidebar left, tag chips + table right; table has folder badge on title and "Etiquetas" column. `create.vue` and `[id]/edit.vue` — folder dropdown + `<TagSelector>`, pre-populated from `?folder=` query param on create.
+  - **Tests**: 25 backend tests across `test_document_folder_views.py` and `test_document_tag_views.py` (CRUD + SET_NULL + filter coverage). Frontend unit: `document_folders.test.js` (8), `document_tags.test.js` (8), `documents.test.js` extended (filter params, setFilters, toggleTagFilter). E2E: `e2e/admin/admin-document-folders.spec.js` (3 specs: sidebar filter, tag chip filter, "Sin carpeta" filter).
+  - **Key patterns**: `?folder=none` → `filter(folder__isnull=True)`; M2M OR filter via `tags__id__in=[...].distinct()`; modal mutations emit `@changed` → parent only refreshes document list (folder/tag stores self-maintain local state after mutations).
+
 - **Real Client Entity for Proposals** (Apr 9, 2026):
   - **Model**: New `BusinessProposal.client = ForeignKey('accounts.UserProfile', on_delete=PROTECT, limit_choices_to={'role':'client'}, null=True)`. Migration `0079_add_business_proposal_client_fk.py` (schema), `0080_backfill_proposal_clients.py` (data — dedups existing proposals by normalized email and creates UserProfile rows; empty emails get a placeholder via two-step save so the id can be embedded in `cliente_<id>@temp.example.com`). Legacy `client_name`/`client_email`/`client_phone` columns kept as **write-through snapshots**, never dropped.
   - **Service**: New `backend/accounts/services/proposal_client_service.py` — silent variant of `accounts/services/onboarding.py:create_client` that does NOT send invitation emails. Public API: `get_or_create_client_for_proposal(name, email, phone, company)`, `update_client_profile(profile, ...)` (cascades snapshots to all linked proposals via single bulk `BusinessProposal.objects.filter(client=profile).update(...)` and bumps `updated_at` manually because `.update()` bypasses `auto_now`), `delete_orphan_client(profile)` (3 guards: zero proposals + zero projects + zero deliverables), `sync_snapshot(proposal)`, `generate_placeholder_email(profile_id)`, `build_client_display_name(profile)` (shared with serializer). Refuses to hijack existing admin accounts when an email collision is detected.
@@ -139,34 +168,35 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ---
 
-## Verified Codebase Metrics (April 10, 2026 — refreshed)
+## Verified Codebase Metrics (April 15, 2026 — refreshed post-Kanban)
 
 | Metric | Count |
 |--------|-------|
-| Backend test files | 121 |
-| Frontend unit tests | 73 |
-| E2E spec files | 129 |
-| Vue components | 122 |
-| Pages | 64 |
-| Pinia stores | 20 |
+| Backend test files | 124 |
+| Frontend unit tests | 77 |
+| E2E spec files | 132 |
+| Vue components | 130 |
+| Pages | 65 |
+| Pinia stores | 23 |
 | Composables | 35 |
-| Content model files | 26 |
+| Content model files | 29 |
 | Accounts model classes | 21 |
 | Accounts URL patterns | 65 |
-| Content URL patterns | 115 |
+| Content URL patterns | 128 |
 | Email templates | 57 (30 HTML + 27 TXT across `accounts` + `content`) |
 | Content services | 17 |
 | Accounts services | 11 |
-| Content migrations | 82 |
+| Content migrations | 87 |
 | Quality gate score | 100/100 (0 errors, 2 warnings) |
 
 ---
 
 ## Next Steps
 
+- **Apply `0087_task.py` migration in production** — `python manage.py migrate` — required before the Kanban board at `/panel/tareas` is usable.
 - **Set `NOTIFICATION_EMAIL` in production env** to `team@projectapp.co,carlos18bp@gmail.com` so the new stage warning + overdue alerts reach the right inbox.
 - Consider extending `ProposalStageTracker.STAGE_DEFINITIONS` beyond design + development (e.g., QA, Lanzamiento, Entrega Final) — the model + service already support N stages, only the catalog constant needs an update.
-- Complete Document System PDF generation (branch `generate-pdf-with-template`): template rendering, preview, download flow
+- Complete Document System PDF generation (branch `generate-pdf-with-template`): template rendering, preview, download flow — **folders & tags layer is now in place**
 - Keep Codex docs, native repo skills, and compatibility mirrors synchronized when adding or renaming recurring workflows
 - Add unit tests for `useProposalFilters.js` composable and `ProposalFilterPanel.vue` / `ProposalFilterTabs.vue` components
 - Add E2E coverage for Contract System (ContractParamsModal, SendDocumentsModal admin workflows)

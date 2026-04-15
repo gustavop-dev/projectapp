@@ -26,18 +26,30 @@ def _norm_module_ids(raw: Any) -> list[str]:
     return []
 
 
-def _requirement_visible(req: dict, selected_set: set[str] | None) -> bool:
+def _requirement_visible(
+    req: dict,
+    selected_set: set[str] | None,
+    always_included_set: set[str] | None = None,
+) -> bool:
     ids = _norm_module_ids(req.get('linked_module_ids') or req.get('linkedModuleIds'))
     if not ids:
+        return True
+    if always_included_set and bool(always_included_set.intersection(ids)):
         return True
     if selected_set is None:
         return True
     return bool(selected_set.intersection(ids))
 
 
-def _epic_gated_out(epic: dict, selected_set: set[str] | None) -> bool:
+def _epic_gated_out(
+    epic: dict,
+    selected_set: set[str] | None,
+    always_included_set: set[str] | None = None,
+) -> bool:
     ids = _norm_module_ids(epic.get('linked_module_ids') or epic.get('linkedModuleIds'))
     if not ids or selected_set is None:
+        return False
+    if always_included_set and bool(always_included_set.intersection(ids)):
         return False
     return not bool(selected_set.intersection(ids))
 
@@ -53,6 +65,7 @@ def _epic_meaningful_header(epic: dict) -> bool:
 def filter_technical_document_by_module_selection(
     content_json: dict[str, Any] | None,
     selected_module_ids: list[str] | None,
+    always_included_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     """
     Return a deep copy of content_json with epics/requirements filtered.
@@ -65,6 +78,9 @@ def filter_technical_document_by_module_selection(
         return {}
     out = copy.deepcopy(content_json)
     selected_set: set[str] | None = None if selected_module_ids is None else set(selected_module_ids)
+    always_included_set: set[str] | None = (
+        None if always_included_ids is None else set(always_included_ids)
+    )
 
     epics = out.get('epics')
     if not isinstance(epics, list):
@@ -74,14 +90,16 @@ def filter_technical_document_by_module_selection(
     for epic in epics:
         if not isinstance(epic, dict):
             continue
-        if _epic_gated_out(epic, selected_set):
+        if _epic_gated_out(epic, selected_set, always_included_set):
             continue
         reqs_in = epic.get('requirements') or []
         if not isinstance(reqs_in, list):
             reqs_in = []
         filtered_reqs = [
             r for r in reqs_in
-            if isinstance(r, dict) and _requirement_visible(r, selected_set)
+            if isinstance(r, dict) and _requirement_visible(
+                r, selected_set, always_included_set,
+            )
         ]
         if filtered_reqs:
             ne = copy.deepcopy(epic)

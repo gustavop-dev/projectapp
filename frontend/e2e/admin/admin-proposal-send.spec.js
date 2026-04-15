@@ -108,8 +108,9 @@ test.describe('Admin Proposal Send', () => {
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
     await page.waitForLoadState('networkidle');
 
-    // For sent proposals, re-send button appears instead of send
-    await expect(page.getByRole('button', { name: /Re-enviar al Cliente/i })).toBeVisible({ timeout: 10000 });
+    // For sent proposals, the resend action lives inside the actions menu.
+    await page.getByTestId('proposal-actions-menu').click();
+    await expect(page.getByTestId('proposal-action-resend')).toBeVisible({ timeout: 10000 });
   });
 
   test('"Enviar al Cliente" is hidden when client email is empty', {

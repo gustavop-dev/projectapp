@@ -59,6 +59,25 @@
             />
           </div>
 
+          <!-- Folder + Tags -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carpeta</label>
+              <select
+                v-model="form.folder_id"
+                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white
+                       dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+              >
+                <option :value="null">Sin carpeta</option>
+                <option v-for="folder in folderStore.folders" :key="folder.id" :value="folder.id">
+                  {{ folder.name }}
+                </option>
+              </select>
+            </div>
+            <TagSelector v-model="form.tag_ids" :tags="tagStore.tags" />
+          </div>
+
           <!-- Language + Cover toggles + Status -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
@@ -210,6 +229,7 @@
 
 <script setup>
 import { reactive, ref, computed, onMounted } from 'vue';
+import TagSelector from '~/components/panel/documents/TagSelector.vue';
 const { parseMarkdown } = useMarkdownPreview();
 
 const localePath = useLocalePath();
@@ -217,6 +237,8 @@ const route = useRoute();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const documentStore = useDocumentStore();
+const folderStore = useDocumentFolderStore();
+const tagStore = useDocumentTagStore();
 const errorMsg = ref('');
 const saveSuccess = ref(false);
 const loadError = ref(false);
@@ -232,13 +254,19 @@ const form = reactive({
   include_contraportada: true,
   status: 'draft',
   content_markdown: '',
+  folder_id: null,
+  tag_ids: [],
 });
 
 const previewHtml = computed(() => parseMarkdown(form.content_markdown));
 
 onMounted(async () => {
   const id = route.params.id;
-  const result = await documentStore.fetchDocument(id);
+  const [result] = await Promise.all([
+    documentStore.fetchDocument(id),
+    folderStore.fetchFolders(),
+    tagStore.fetchTags(),
+  ]);
   if (result.success && result.data) {
     form.title = result.data.title || '';
     form.client_name = result.data.client_name || '';
@@ -248,6 +276,8 @@ onMounted(async () => {
     form.include_contraportada = result.data.include_contraportada !== undefined ? result.data.include_contraportada : true;
     form.status = result.data.status || 'draft';
     form.content_markdown = result.data.content_markdown || '';
+    form.folder_id = result.data.folder || null;
+    form.tag_ids = Array.isArray(result.data.tag_ids) ? [...result.data.tag_ids] : [];
   } else {
     loadError.value = true;
   }
@@ -275,6 +305,8 @@ async function handleSave() {
     include_contraportada: form.include_contraportada,
     status: form.status,
     content_markdown: form.content_markdown,
+    folder_id: form.folder_id,
+    tag_ids: form.tag_ids,
   };
 
   const result = await documentStore.updateDocument(route.params.id, payload);

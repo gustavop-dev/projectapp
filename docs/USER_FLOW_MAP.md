@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.16.0
-> **Last updated:** 2026-04-10
+> **Version:** 2.18.0
+> **Last updated:** 2026-04-15
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -1854,6 +1854,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
 | `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
+| `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
 | `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
 | `admin-email-deliverability` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-email-deliverability.spec.js` |
 | `admin-view-map` | admin | admin | P4 | ✅ Covered | `e2e/admin/admin-view-map.spec.js` |
@@ -2572,6 +2573,49 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-edit.spec.js`
 
+#### FLOW: `admin-document-folders`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **Description:** Organize admin documents with a folder sidebar and tag filter chips. Admin selects a folder to filter the list, toggles tag chips for multi-tag OR filtering, opens the FolderManagerModal to create/rename/delete folders, and opens the TagManagerModal to create/rename/delete tags with color coding.
+- **Steps:**
+  1. Admin loads `/panel/documents` — left sidebar renders all folders; tag chips appear above the table.
+  2. Admin clicks a folder entry (e.g., "Cuentas de cobro") → list refreshes with `?folder=<id>`.
+  3. Admin clicks "Sin carpeta" → list refreshes with `?folder=none`.
+  4. Admin clicks "Todos" → list refreshes without folder param.
+  5. Admin clicks a tag chip → list refreshes with `?tags=<id>` (OR logic; multiple chips additive).
+  6. Admin clicks "Limpiar" → tag filter cleared, list refreshes.
+  7. Admin clicks "Gestionar" / "Gestionar etiquetas" → modal opens for inline CRUD.
+  8. Admin creates, renames, or deletes a folder/tag → modal emits `@changed` → document list refreshes.
+- **Branches:**
+  - [Branch A — Empty folders] No folders yet → "Sin carpeta" and "Todos" entries only; "Crear la primera →" prompt for tags.
+  - [Branch B — Create folder] Admin fills name + submits in FolderManagerModal → folder added to sidebar.
+  - [Branch C — Delete folder with SET_NULL] Deleting a folder leaves documents with `folder = null` (not deleted).
+  - [Branch D — Assign on create] Creating a document from `?folder=<id>` pre-selects that folder.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-document-folders.spec.js`
+
+#### FLOW: `admin-document-pdf-download`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents/:id/edit`
+- **API:** `GET /api/content/documents/<id>/pdf/`
+- **Description:** Admin downloads a Document entity as a branded PDF from the document edit page. The "Descargar PDF" button triggers `documentStore.downloadPdf()` which calls the backend generation endpoint.
+- **Steps:**
+  1. Admin opens `/panel/documents/:id/edit`.
+  2. Admin clicks "Descargar PDF".
+  3. `isDownloading` state activates (button shows "Descargando...").
+  4. Backend generates the PDF and returns a blob.
+  5. Browser downloads the file named after the document title.
+- **Branches:**
+  - [Branch A — Generation in progress] If PDF backend is still being developed, the endpoint may return an error; UI should handle gracefully.
+- **Coverage:** ⬜ Missing
+- **E2E Spec:** *(not yet written — Document PDF generation feature is in progress)*
+
 ### 9.2 Admin User Management
 
 #### FLOW: `admin-admin-management`
@@ -2661,6 +2705,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
 | `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
+| `admin-document-folders` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folders.spec.js` |
+| `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
 | `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
 | `admin-email-deliverability` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-email-deliverability.spec.js` |
 | `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
@@ -3221,3 +3267,58 @@ No active browser flow is registered for client profile editing at this time.
   4. Admin clicks the copy button on a view row and sees copied feedback.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-view-map.spec.js`
+
+#### FLOW: `admin-kanban-tasks`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/tareas`
+- **Description:** Internal Kanban task board for the admin team. Admin creates, edits, moves, and deletes tasks across four columns (Todo, In Progress, Blocked, Done). Tasks have priority labels (low/medium/high), optional assignee, and optional due date shown in red when overdue.
+- **Steps:**
+  1. Admin navigates to `/panel/tareas` from the "Tareas → Kanban" sidebar entry.
+  2. Board renders four columns loaded from `GET /api/content/tasks/`.
+  3. Admin clicks "+ Nueva Tarea" → `TaskFormModal` opens.
+  4. Admin fills title, priority, optional assignee, due date → submits → task appears in the "Todo" column.
+  5. Admin clicks a task card → modal reopens for editing; saves → card updates in place.
+  6. Admin drags a task card to another column → `PATCH /api/content/tasks/<id>/update/` fires with new status; board updates.
+  7. Admin deletes a task via the modal → `DELETE /api/content/tasks/<id>/delete/` → card removed from column.
+- **Branches:**
+  - [Branch A — Overdue] Tasks with a past `due_date` render the date in red.
+  - [Branch B — Empty column] Columns with no tasks show a ghost-style drop target.
+  - [Branch C — Reorder] Dragging a task within the same column calls `PATCH tasks/<id>/reorder/` to renumber positions.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-tasks-kanban.spec.js`
+
+### 13.3 Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `admin-dashboard-pipeline-value` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
+| `admin-proposal-create-and-send` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
+| `admin-proposal-create-preview` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-create.spec.js` |
+| `admin-discount-analysis-enhanced` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-discount-analysis.spec.js` |
+| `admin-proposal-inline-status-change` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-inline-status.spec.js` |
+| `admin-proposal-scorecard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-scorecard.spec.js` |
+| `admin-proposal-section-completeness` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-section-completeness.spec.js` |
+| `admin-proposal-zombie-segment` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-zombie-segment.spec.js` |
+| `admin-view-map` | admin | admin | P4 | ✅ Covered | `e2e/admin/admin-view-map.spec.js` |
+| `admin-kanban-tasks` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-tasks-kanban.spec.js` |
+
+---
+
+## 14. New Feature Flows (v2.17.0)
+
+> Flows registered during the v2.17.0 audit. Covers the Document PDF download action (feature in progress) and the Admin UX improvements shipped with the Business Proposal admin panel.
+
+### 14.1 Document PDF Download
+
+#### FLOW: `admin-document-pdf-download`
+
+*(See Section 9.1 for full flow detail — this section tracks coverage status only.)*
+
+### 14.2 New Flows Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (Document PDF generation in progress) |

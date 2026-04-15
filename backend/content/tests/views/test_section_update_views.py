@@ -680,3 +680,39 @@ class TestUpdateSectionEdgeCases:
         section.refresh_from_db()
         assert section.title == 'Only Title Changed'
         assert section.content_json['clientName'] == 'Keep Me'
+
+    def test_canonicalizes_technical_document_linked_module_ids(self, admin_client, prop):
+        fr = _create_section(prop, 'functional_requirements')
+        fr.content_json = {
+            'groups': [
+                {'id': 'views', 'title': 'Vistas', 'items': [{'name': 'Home'}]},
+            ],
+            'additionalModules': [
+                {'id': 'pwa_module', 'title': 'PWA', 'is_calculator_module': True, 'price_percent': 40},
+            ],
+        }
+        fr.save(update_fields=['content_json'])
+        section = _create_section(prop, 'technical_document', order=1)
+        url = reverse('update-proposal-section', kwargs={'section_id': section.id})
+        payload = {
+            'content_json': {
+                'purpose': 'Doc',
+                'epics': [
+                    {
+                        'title': 'Mobile',
+                        'linked_module_ids': ['views'],
+                        'requirements': [
+                            {'title': 'Installable', 'linked_module_ids': ['pwa_module']},
+                        ],
+                    },
+                ],
+            },
+        }
+
+        response = admin_client.patch(url, payload, format='json')
+
+        assert response.status_code == 200
+        section.refresh_from_db()
+        epic = section.content_json['epics'][0]
+        assert epic['linked_module_ids'] == ['group-views']
+        assert epic['requirements'][0]['linked_module_ids'] == ['module-pwa_module']

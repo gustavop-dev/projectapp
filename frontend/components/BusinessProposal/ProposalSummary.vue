@@ -34,6 +34,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import {
+  hasStoredConfirmedProposalModuleSelection,
+  readStoredProposalModuleSelection,
+} from '~/utils/proposalModuleSelectionStorage';
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
@@ -73,10 +77,11 @@ onMounted(() => {
       if (storedTotal != null) {
         customTotal.value = Math.max(0, parseInt(storedTotal, 10) || 0);
       }
-      const raw = localStorage.getItem(`proposal-${props.proposalUuid}-modules`);
-      if (raw) {
-        const selectedIds = JSON.parse(raw);
-        selectedModuleCount.value = selectedIds.length;
+      if (hasStoredConfirmedProposalModuleSelection(props.proposalUuid)) {
+        const { hasStoredSelection, selectedIds } = readStoredProposalModuleSelection(props.proposalUuid);
+        if (hasStoredSelection) {
+          selectedModuleCount.value = selectedIds.length;
+        }
       }
     } catch (_e) { /* ignore */ }
   }

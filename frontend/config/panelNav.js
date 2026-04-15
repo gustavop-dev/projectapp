@@ -30,6 +30,13 @@ export function getPanelNavSections(localePath) {
       ],
     },
     {
+      id: 'tasks',
+      label: 'Tareas',
+      items: [
+        { label: 'Kanban', href: lp('/panel/tareas'), icon: 'board' },
+      ],
+    },
+    {
       id: 'commercial',
       label: 'Sales',
       items: [

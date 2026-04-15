@@ -209,7 +209,7 @@ function parseInvestment(str) {
   return parseInt(cleaned, 10) || 0;
 }
 
-const emit = defineEmits(['close', 'update:selection', 'navigateToRequirements', 'updateCalculatorModules']);
+const emit = defineEmits(['close', 'update:selection', 'navigateToRequirements', 'updateCalculatorModules', 'selectionConfirmed']);
 
 const hasInteracted = ref(false);
 const confirmed = ref(false);
@@ -506,11 +506,13 @@ function confirmSelection() {
   const storageKey = `proposal-${props.proposalUuid}-modules`;
   try {
     localStorage.setItem(storageKey, JSON.stringify(selectedIds));
+    localStorage.setItem(`proposal-${props.proposalUuid}-modules-confirmed`, '1');
   } catch (_e) { /* ignore */ }
   confirmed.value = true;
   trackCalculatorEvent('confirmed');
   emit('update:selection', { selectedIds, total: dynamicTotal.value, weeks: dynamicWeeks.value });
   emit('updateCalculatorModules', selectedIds);
+  emit('selectionConfirmed', { selectedIds, total: dynamicTotal.value, weeks: dynamicWeeks.value });
   emit('close');
 }
 

@@ -22,9 +22,16 @@ function reqVisible(req, selectedSet) {
   return ids.some((id) => selectedSet.has(id));
 }
 
-function epicGatedOut(epic, selectedSet) {
+function reqAlwaysVisible(req, alwaysIncludedSet) {
+  if (!alwaysIncludedSet?.size) return false;
+  const ids = normIds(req.linked_module_ids || req.linkedModuleIds);
+  return ids.some((id) => alwaysIncludedSet.has(id));
+}
+
+function epicGatedOut(epic, selectedSet, alwaysIncludedSet) {
   const ids = normIds(epic.linked_module_ids || epic.linkedModuleIds);
   if (!ids.length || selectedSet == null) return false;
+  if (alwaysIncludedSet?.size && ids.some((id) => alwaysIncludedSet.has(id))) return false;
   return !ids.some((id) => selectedSet.has(id));
 }
 
@@ -36,12 +43,16 @@ function epicMeaningfulHeader(epic) {
 /**
  * @param {Record<string, unknown>} contentJson
  * @param {string[]|null|undefined} selectedModuleIds - null/undefined = no filtering (legacy)
+ * @param {string[]|Set<string>} [alwaysIncludedIds=[]] - commercial ids that should remain visible even when the client selection is empty
  * @returns {Record<string, unknown>}
  */
-export function filterTechnicalDocumentByModules(contentJson, selectedModuleIds) {
+export function filterTechnicalDocumentByModules(contentJson, selectedModuleIds, alwaysIncludedIds = []) {
   if (!contentJson || typeof contentJson !== 'object') return {};
   const out = JSON.parse(JSON.stringify(contentJson));
   const selectedSet = selectedModuleIds == null ? null : new Set(selectedModuleIds);
+  const alwaysIncludedSet = alwaysIncludedIds instanceof Set
+    ? alwaysIncludedIds
+    : new Set(alwaysIncludedIds || []);
 
   const epics = out.epics;
   if (!Array.isArray(epics)) return out;
@@ -49,10 +60,12 @@ export function filterTechnicalDocumentByModules(contentJson, selectedModuleIds)
   const newEpics = [];
   for (const epic of epics) {
     if (!epic || typeof epic !== 'object') continue;
-    if (epicGatedOut(epic, selectedSet)) continue;
+    if (epicGatedOut(epic, selectedSet, alwaysIncludedSet)) continue;
     const reqsIn = Array.isArray(epic.requirements) ? epic.requirements : [];
     const filteredReqs = reqsIn.filter(
-      (r) => r && typeof r === 'object' && reqVisible(r, selectedSet),
+      (r) => r && typeof r === 'object' && (
+        reqAlwaysVisible(r, alwaysIncludedSet) || reqVisible(r, selectedSet)
+      ),
     );
     if (filteredReqs.length) {
       newEpics.push({ ...epic, requirements: filteredReqs });

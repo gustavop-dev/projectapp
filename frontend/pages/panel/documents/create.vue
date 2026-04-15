@@ -63,6 +63,25 @@
           />
         </div>
 
+        <!-- Folder + Tags -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Carpeta</label>
+            <select
+              v-model="form.folder_id"
+              class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white
+                     dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+            >
+              <option :value="null">Sin carpeta</option>
+              <option v-for="folder in folderStore.folders" :key="folder.id" :value="folder.id">
+                {{ folder.name }}
+              </option>
+            </select>
+          </div>
+          <TagSelector v-model="form.tag_ids" :tags="tagStore.tags" />
+        </div>
+
         <!-- Language + Cover toggles -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -214,17 +233,21 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed } from 'vue';
+import { reactive, ref, computed, onMounted } from 'vue';
+import TagSelector from '~/components/panel/documents/TagSelector.vue';
 const { parseMarkdown } = useMarkdownPreview();
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const documentStore = useDocumentStore();
+const folderStore = useDocumentFolderStore();
+const tagStore = useDocumentTagStore();
 const errorMsg = ref('');
 const mode = ref('paste');
 const uploadedFileName = ref('');
 const showPreview = ref(true);
+const route = useRoute();
 
 const form = reactive({
   title: '',
@@ -234,6 +257,17 @@ const form = reactive({
   include_subportada: true,
   include_contraportada: true,
   content_markdown: '',
+  folder_id: null,
+  tag_ids: [],
+});
+
+onMounted(async () => {
+  await Promise.all([folderStore.fetchFolders(), tagStore.fetchTags()]);
+  const preselectFolder = route.query.folder;
+  if (preselectFolder && preselectFolder !== 'all' && preselectFolder !== 'none') {
+    const numeric = Number(preselectFolder);
+    if (!Number.isNaN(numeric)) form.folder_id = numeric;
+  }
 });
 
 const previewHtml = computed(() => parseMarkdown(form.content_markdown));
@@ -268,6 +302,8 @@ async function handleSubmit() {
     include_subportada: form.include_subportada,
     include_contraportada: form.include_contraportada,
     markdown: form.content_markdown,
+    folder_id: form.folder_id,
+    tag_ids: form.tag_ids,
   };
 
   const result = await documentStore.createFromMarkdown(payload);

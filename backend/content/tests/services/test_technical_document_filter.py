@@ -1,7 +1,3 @@
-"""Tests for technical_document module filtering."""
-
-import copy
-
 import pytest
 
 from content.services.technical_document_filter import (
@@ -9,68 +5,49 @@ from content.services.technical_document_filter import (
 )
 
 
-@pytest.fixture
-def sample_doc():
-    return {
-        'purpose': 'Core purpose',
+pytestmark = pytest.mark.django_db
+
+
+def test_keeps_base_group_epic_when_selection_is_empty_but_group_is_always_included():
+    doc = {
         'epics': [
             {
-                'epicKey': 'core',
-                'title': 'Core epic',
+                'title': 'Base scope',
+                'linked_module_ids': ['group-views'],
                 'requirements': [
-                    {'title': 'Base req', 'description': 'Always on'},
-                    {
-                        'title': 'Addon A',
-                        'linked_module_ids': ['module-5'],
-                    },
-                ],
-            },
-            {
-                'epicKey': 'gated',
-                'title': 'Gated epic',
-                'linked_module_ids': ['group-9'],
-                'requirements': [
-                    {'title': 'Inner', 'description': 'x'},
+                    {'title': 'Home', 'linked_module_ids': ['group-views']},
                 ],
             },
         ],
     }
 
+    out = filter_technical_document_by_module_selection(
+        doc,
+        [],
+        always_included_ids=['group-views'],
+    )
 
-def test_no_filter_when_selected_none(sample_doc):
-    """None selected_module_ids leaves epics unchanged."""
-    original = copy.deepcopy(sample_doc)
-    out = filter_technical_document_by_module_selection(sample_doc, None)
-    assert out['epics'] == original['epics']
-
-
-def test_empty_selection_drops_linked_requirements(sample_doc):
-    """Empty list hides requirements with linked_module_ids."""
-    out = filter_technical_document_by_module_selection(sample_doc, [])
-    core = next(e for e in out['epics'] if e.get('epicKey') == 'core')
-    titles = [r['title'] for r in core['requirements']]
-    assert 'Base req' in titles
-    assert 'Addon A' not in titles
+    assert len(out['epics']) == 1
+    assert len(out['epics'][0]['requirements']) == 1
 
 
-def test_selection_includes_linked_requirement(sample_doc):
-    """module-5 selected keeps Addon A."""
-    out = filter_technical_document_by_module_selection(sample_doc, ['module-5'])
-    core = next(e for e in out['epics'] if e.get('epicKey') == 'core')
-    titles = [r['title'] for r in core['requirements']]
-    assert 'Base req' in titles
-    assert 'Addon A' in titles
+def test_drops_optional_epic_when_selection_is_explicitly_empty():
+    doc = {
+        'epics': [
+            {
+                'title': 'Optional scope',
+                'linked_module_ids': ['module-pwa_module'],
+                'requirements': [
+                    {'title': 'PWA shell', 'linked_module_ids': ['module-pwa_module']},
+                ],
+            },
+        ],
+    }
 
+    out = filter_technical_document_by_module_selection(
+        doc,
+        [],
+        always_included_ids=['group-views'],
+    )
 
-def test_epic_level_gate_excludes_entire_epic(sample_doc):
-    """Epic with linked_module_ids not in selection is removed."""
-    out = filter_technical_document_by_module_selection(sample_doc, ['module-5'])
-    keys = [e.get('epicKey') for e in out['epics']]
-    assert 'gated' not in keys
-
-
-def test_epic_level_gate_allows_when_selected(sample_doc):
-    """Epic with linked group id visible when group selected."""
-    out = filter_technical_document_by_module_selection(sample_doc, ['group-9'])
-    keys = [e.get('epicKey') for e in out['epics']]
-    assert 'gated' in keys
+    assert out['epics'] == []

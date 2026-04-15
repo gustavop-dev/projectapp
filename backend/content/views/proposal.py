@@ -567,7 +567,7 @@ def download_proposal_pdf(request, proposal_uuid):
             if selected_modules_param
             else None
         )
-        if selected_modules is None and proposal.selected_modules:
+        if selected_modules is None and proposal.has_confirmed_module_selection:
             selected_modules = proposal.selected_modules
 
         pdf_bytes = generate_technical_document_pdf(
@@ -586,7 +586,7 @@ def download_proposal_pdf(request, proposal_uuid):
             else None
         )
         # Fallback to persisted selections from the model
-        if selected_modules is None and proposal.selected_modules:
+        if selected_modules is None and proposal.has_confirmed_module_selection:
             selected_modules = proposal.selected_modules
 
         from content.services.proposal_pdf_service import ProposalPdfService
@@ -875,16 +875,20 @@ def create_proposal_from_json(request):
 
     # Use DEFAULT_SECTIONS as a template for title/order/is_wide_panel
     default_sections = ProposalService.get_default_sections(proposal.language)
-    defaults_by_type = {s['section_type']: s for s in default_sections}
+    from content.services.proposal_module_links import (
+        normalize_technical_document_module_links,
+    )
+
+    resolved_sections = []
 
     for section_cfg in default_sections:
         section_type = section_cfg['section_type']
         json_key = SECTION_TYPE_TO_KEY.get(section_type)
 
         if json_key and json_key in sections_data:
-            content_json = sections_data[json_key]
+            content_json = copy.deepcopy(sections_data[json_key])
         else:
-            content_json = section_cfg['content_json']
+            content_json = copy.deepcopy(section_cfg['content_json'])
 
         # Special handling for greeting — ensure clientName and proposalTitle are set
         if section_type == 'greeting':
@@ -955,14 +959,30 @@ def create_proposal_from_json(request):
                     final_groups.append(g)
             content_json['groups'] = final_groups
 
-        ProposalSection.objects.create(
-            proposal=proposal,
-            section_type=section_type,
-            title=section_cfg['title'],
-            order=section_cfg['order'],
-            is_wide_panel=section_cfg.get('is_wide_panel', False),
-            content_json=content_json,
+        resolved_sections.append({
+            'section_type': section_type,
+            'title': section_cfg['title'],
+            'order': section_cfg['order'],
+            'is_wide_panel': section_cfg.get('is_wide_panel', False),
+            'content_json': content_json,
+        })
+
+    technical_section = next(
+        (
+            section
+            for section in resolved_sections
+            if section['section_type'] == ProposalSection.SectionType.TECHNICAL_DOCUMENT
+        ),
+        None,
+    )
+    if technical_section:
+        technical_section['content_json'] = normalize_technical_document_module_links(
+            technical_section['content_json'],
+            resolved_sections,
         )
+
+    for section in resolved_sections:
+        ProposalSection.objects.create(proposal=proposal, **section)
 
     # Detect unrecognized section keys (silent bug prevention)
     known_keys = set(SECTION_KEY_MAP.keys()) | {'_meta', '_seller_prompt'}

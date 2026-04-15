@@ -3,16 +3,16 @@
     <p class="text-xs text-gray-500 dark:text-green-light/60">
       Detalle técnico: cómo se construye el sistema. Módulos del producto y requerimientos con <code class="text-[10px] bg-gray-100 dark:bg-white/[0.06] px-1 rounded">epicKey</code> /
       <code class="text-[10px] bg-gray-100 dark:bg-white/[0.06] px-1 rounded">flowKey</code> para enlazar después con el tablero en plataforma.
-      Opcional: <code class="text-[10px] bg-gray-100 dark:bg-white/[0.06] px-1 rounded">linked_module_ids</code> alinea el detalle técnico con módulos opcionales de la propuesta comercial (solo visibles si el cliente los incluye).
+      Opcional: <code class="text-[10px] bg-gray-100 dark:bg-white/[0.06] px-1 rounded">linked_module_ids</code> alinea el detalle técnico con módulos comerciales de la propuesta. Los ids legacy se normalizan automáticamente al guardar.
     </p>
 
     <div
       v-if="moduleLinkOptions.length"
       class="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/40 p-4 space-y-2"
     >
-      <p class="text-xs font-medium text-gray-700 dark:text-white/70">Plantilla genérica por módulo opcional</p>
+      <p class="text-xs font-medium text-gray-700 dark:text-white/70">Plantilla genérica por módulo comercial</p>
       <p class="text-[11px] text-gray-500 dark:text-green-light/60">
-        Inserta un módulo con texto neutro y vínculo al módulo comercial. El cliente solo lo verá en modo técnico si ese módulo forma parte de su selección.
+        Inserta un módulo con texto neutro y vínculo al alcance comercial. Si el vínculo apunta a alcance opcional, solo será visible cuando el cliente lo incluya.
       </p>
       <div class="flex flex-wrap items-end gap-2">
         <label class="text-xs text-gray-600 dark:text-green-light/60 flex flex-col gap-1">
@@ -164,7 +164,7 @@
         </div>
         <textarea v-model="epic.description" v-auto-resize class="w-full px-2 py-1.5 border dark:border-white/[0.08] rounded-lg text-sm dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" placeholder="Descripción del módulo" />
         <div v-if="moduleLinkOptions.length" class="space-y-1">
-          <p class="text-[11px] text-gray-500 dark:text-green-light/60">Mostrar este módulo solo si el cliente incluye (modo técnico / PDF técnico):</p>
+          <p class="text-[11px] text-gray-500 dark:text-green-light/60">Vincular este módulo técnico con alcance comercial (modo técnico / PDF técnico):</p>
           <div class="flex flex-wrap gap-x-3 gap-y-1">
             <label
               v-for="opt in moduleLinkOptions"
@@ -206,7 +206,7 @@
             <textarea v-model="req.configuration" v-auto-resize class="w-full px-2 py-1 border dark:border-white/[0.08] rounded text-xs dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" placeholder="Configuración (roles, permisos...)" />
             <textarea v-model="req.usageFlow" v-auto-resize class="w-full px-2 py-1 border dark:border-white/[0.08] rounded text-xs dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40" placeholder="Flujo de uso (ej. Login → Dashboard → ...)" />
             <div v-if="moduleLinkOptions.length" class="space-y-1 pt-1">
-              <p class="text-[10px] text-gray-500 dark:text-green-light/60">Vincular a módulo opcional (vacío = alcance base, siempre visible):</p>
+              <p class="text-[10px] text-gray-500 dark:text-green-light/60">Vincular a alcance comercial (vacío = alcance base, siempre visible):</p>
               <div class="flex flex-wrap gap-x-2 gap-y-1">
                 <label
                   v-for="opt in moduleLinkOptions"
@@ -424,8 +424,12 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { createGenericTechnicalEpicStub } from '~/utils/technicalModuleStub';
+import {
+  buildProposalModuleIdAliasMapFromOptions,
+  normalizeLinkedModuleIds,
+} from '~/utils/proposalModuleLinkOptions';
 
 const vAutoResize = {
   mounted(el) {
@@ -476,13 +480,12 @@ const isSaving = ref(false);
 const savedMsg = ref('');
 const validationError = ref('');
 const stubModuleId = ref('');
+const moduleAliasMap = computed(() =>
+  buildProposalModuleIdAliasMapFromOptions(props.moduleLinkOptions),
+);
 
 function normLinkedIds(raw) {
-  if (!raw) return [];
-  if (Array.isArray(raw)) {
-    return raw.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim());
-  }
-  return [];
+  return normalizeLinkedModuleIds(raw, moduleAliasMap.value);
 }
 
 function toggleLinkedId(arr, id) {

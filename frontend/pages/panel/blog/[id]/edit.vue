@@ -220,8 +220,8 @@
                 Seleccionar imagen
                 <input type="file" accept="image/*" class="hidden" @change="handleCoverUpload" />
               </label>
-              <span v-if="uploadFileName" class="text-xs text-gray-500">{{ uploadFileName }}</span>
-              <span v-if="isUploading" class="text-xs text-emerald-600">Subiendo...</span>
+              <span v-if="uploadFileName" class="text-xs text-gray-500 dark:text-white/50">{{ uploadFileName }}</span>
+              <span v-if="isUploading" class="text-xs text-emerald-600 dark:text-emerald-400">Subiendo...</span>
             </div>
           </div>
 
@@ -239,7 +239,7 @@
           </div>
 
           <!-- Preview -->
-          <div v-if="coverImagePreview" class="mt-2 rounded-xl overflow-hidden border border-gray-200 max-w-md">
+          <div v-if="coverImagePreview" class="mt-2 rounded-xl overflow-hidden border border-gray-200 dark:border-white/[0.08] max-w-md">
             <img :src="coverImagePreview" alt="Preview" class="w-full h-auto" @error="imgError = true" />
             <p v-if="imgError" class="text-xs text-red-400 p-2">No se pudo cargar la imagen.</p>
           </div>
@@ -261,12 +261,12 @@
         <div>
           <div class="flex items-center justify-between mb-2">
             <label class="block text-sm font-medium text-gray-700 dark:text-white/70">Fuentes</label>
-            <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 transition-colors" @click="addSource">+ Agregar fuente</button>
+            <button type="button" class="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors" @click="addSource">+ Agregar fuente</button>
           </div>
           <div v-for="(source, idx) in form.sources" :key="idx" class="flex gap-2 mb-2">
             <input v-model="source.name" type="text" class="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Nombre de la fuente" />
             <input v-model="source.url" type="url" class="flex-[2] px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="https://..." />
-            <button type="button" class="text-gray-400 hover:text-red-500 transition-colors px-2" @click="removeSource(idx)">
+            <button type="button" class="text-gray-400 hover:text-red-500 dark:text-white/30 dark:hover:text-red-400 transition-colors px-2" @click="removeSource(idx)">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>

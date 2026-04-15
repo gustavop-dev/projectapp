@@ -46,6 +46,6 @@ EMPTY_TECHNICAL_DOCUMENT_JSON = {
 # Copy hints for admin when inserting optional-module stubs (editor uses JS template;
 # kept here for backend/docs parity).
 OPTIONAL_MODULE_TECHNICAL_STUB_HINT_ES = (
-    'Bloque técnico genérico ligado a un módulo opcional (linked_module_ids). '
-    'Visible en modo técnico y PDF técnico solo si el cliente incluye ese módulo en la propuesta.'
+    'Bloque técnico genérico ligado al alcance comercial de la propuesta (linked_module_ids). '
+    'Si apunta a alcance opcional, solo será visible en modo técnico y PDF técnico cuando el cliente lo incluya.'
 )

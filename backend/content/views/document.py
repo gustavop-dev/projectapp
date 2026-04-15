@@ -26,8 +26,33 @@ logger = logging.getLogger(__name__)
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def list_documents(request):
-    """List all documents."""
-    documents = Document.objects.all()
+    """List all documents, optionally filtered by folder and/or tags."""
+    documents = Document.objects.all().prefetch_related('tags').select_related('folder')
+
+    folder_param = request.query_params.get('folder')
+    if folder_param == 'none':
+        documents = documents.filter(folder__isnull=True)
+    elif folder_param not in (None, '', 'all'):
+        try:
+            documents = documents.filter(folder_id=int(folder_param))
+        except (TypeError, ValueError):
+            return Response(
+                {'folder': 'Invalid folder id.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    tags_param = request.query_params.get('tags')
+    if tags_param:
+        try:
+            tag_ids = [int(t) for t in tags_param.split(',') if t.strip()]
+        except ValueError:
+            return Response(
+                {'tags': 'Invalid tag id list.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if tag_ids:
+            documents = documents.filter(tags__id__in=tag_ids).distinct()
+
     serializer = DocumentListSerializer(documents, many=True)
     return Response(serializer.data)
 
@@ -80,6 +105,7 @@ def create_document_from_markdown(request):
     document = Document.objects.create(
         title=data['title'],
         document_type=get_markdown_document_type(),
+        folder=data.get('folder_id'),
         client_name=data.get('client_name', ''),
         language=data.get('language', 'es'),
         cover_type=data.get('cover_type', 'generic'),
@@ -99,6 +125,9 @@ def create_document_from_markdown(request):
             'blocks': blocks,
         },
     )
+    tag_ids = data.get('tag_ids')
+    if tag_ids:
+        document.tags.set(tag_ids)
 
     detail = DocumentDetailSerializer(document)
     return Response(detail.data, status=status.HTTP_201_CREATED)
@@ -142,9 +171,16 @@ def upload_document_markdown(request):
     include_subportada = _to_bool(request.data.get('include_subportada'), default=True)
     include_contraportada = _to_bool(request.data.get('include_contraportada'), default=True)
 
+    folder_id = request.data.get('folder_id') or None
+    folder = None
+    if folder_id not in (None, '', 'null'):
+        from content.models import DocumentFolder
+        folder = DocumentFolder.objects.filter(pk=folder_id).first()
+
     document = Document.objects.create(
         title=title,
         document_type=get_markdown_document_type(),
+        folder=folder,
         client_name=client_name,
         language=language,
         cover_type=cover_type,
@@ -164,6 +200,20 @@ def upload_document_markdown(request):
             'blocks': blocks,
         },
     )
+
+    tag_ids_raw = request.data.get('tag_ids')
+    if tag_ids_raw:
+        if isinstance(tag_ids_raw, str):
+            try:
+                tag_id_list = [int(t) for t in tag_ids_raw.split(',') if t.strip()]
+            except ValueError:
+                tag_id_list = []
+        elif isinstance(tag_ids_raw, (list, tuple)):
+            tag_id_list = [int(t) for t in tag_ids_raw if str(t).strip()]
+        else:
+            tag_id_list = []
+        if tag_id_list:
+            document.tags.set(tag_id_list)
 
     detail = DocumentDetailSerializer(document)
     return Response(detail.data, status=status.HTTP_201_CREATED)

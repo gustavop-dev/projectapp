@@ -20,6 +20,7 @@ const mockProposal = {
   total_investment: '5000000',
   currency: 'COP',
   view_count: 0,
+  has_confirmed_module_selection: true,
   sent_at: '2026-01-01T00:00:00Z',
   expires_at: null,
   selected_modules: [],

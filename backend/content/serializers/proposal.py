@@ -2,6 +2,9 @@ from rest_framework import serializers
 
 from accounts.models import UserProfile
 from accounts.services import proposal_client_service
+from content.services.proposal_module_links import (
+    normalize_technical_document_module_links,
+)
 from content.models import (
     BusinessProposal,
     EmailTemplateConfig,
@@ -152,6 +155,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
     is_expired = serializers.SerializerMethodField()
     public_url = serializers.SerializerMethodField()
     discounted_investment = serializers.SerializerMethodField()
+    has_confirmed_module_selection = serializers.ReadOnlyField()
     available_transitions = serializers.SerializerMethodField()
     proposal_documents = serializers.SerializerMethodField()
     client = ProposalClientSerializer(read_only=True)
@@ -176,6 +180,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
             'sections', 'requirement_groups', 'project_stages', 'change_logs',
             'days_remaining', 'is_expired', 'public_url',
             'discounted_investment', 'selected_modules',
+            'has_confirmed_module_selection',
             'contract_params', 'available_transitions', 'proposal_documents',
             'platform_onboarding_completed_at',
             'platform_onboarding_status',
@@ -455,6 +460,18 @@ class ProposalSectionUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'content_json must be a JSON object (dict).'
             )
+        if (
+            self.instance
+            and self.instance.section_type == ProposalSection.SectionType.TECHNICAL_DOCUMENT
+        ):
+            sections = [
+                {
+                    'section_type': section.section_type,
+                    'content_json': value if section.pk == self.instance.pk else section.content_json,
+                }
+                for section in self.instance.proposal.sections.all()
+            ]
+            return normalize_technical_document_module_links(value, sections)
         return value
 
 
@@ -613,6 +630,31 @@ class ProposalDefaultConfigSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     f'Section at index {i} is missing keys: {missing}'
                 )
+        normalized_sections = []
+        technical_content = None
+        for section in value:
+            cloned = dict(section)
+            content_json = cloned.get('content_json')
+            cloned['content_json'] = content_json if isinstance(content_json, dict) else {}
+            if cloned.get('section_type') == ProposalSection.SectionType.TECHNICAL_DOCUMENT:
+                technical_content = cloned['content_json']
+            normalized_sections.append(cloned)
+
+        if technical_content is not None:
+            canonical_technical = normalize_technical_document_module_links(
+                technical_content,
+                normalized_sections,
+            )
+            normalized_sections = [
+                {
+                    **section,
+                    'content_json': canonical_technical
+                    if section.get('section_type') == ProposalSection.SectionType.TECHNICAL_DOCUMENT
+                    else section['content_json'],
+                }
+                for section in normalized_sections
+            ]
+            return normalized_sections
         return value
 
     def validate_expiration_days(self, value):

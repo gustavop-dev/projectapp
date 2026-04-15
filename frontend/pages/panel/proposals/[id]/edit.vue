@@ -1,5 +1,24 @@
 <template>
   <div>
+    <!-- Save toast notification -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-all duration-300 ease-out"
+        leave-active-class="transition-all duration-200 ease-in"
+        enter-from-class="opacity-0 translate-y-4"
+        leave-to-class="opacity-0 translate-y-4"
+      >
+        <div
+          v-if="updateMsg"
+          class="fixed bottom-6 right-6 z-[9999] max-w-sm w-full px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-3"
+          :class="updateMsg.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'"
+        >
+          <span class="flex-1">{{ updateMsg.text }}</span>
+          <button type="button" class="opacity-70 hover:opacity-100 transition-opacity" @click="updateMsg = null">✕</button>
+        </div>
+      </Transition>
+    </Teleport>
+
     <ConfirmModal
       v-model="confirmState.open"
       :title="confirmState.title"
@@ -17,6 +36,18 @@
       :is-editing="contractModalEditing"
       @confirm="handleContractConfirm"
       @cancel="showContractModal = false"
+    />
+    <ProposalActionsModal
+      :visible="showActionsModal"
+      :proposal="proposal || {}"
+      @close="showActionsModal = false"
+      @send="handleSend"
+      @resend="handleResend"
+      @negotiate="openContractModal(false)"
+      @approve="handleStatusChange('accepted')"
+      @launch="handleLaunchToPlatform"
+      @finish="handleMarkAsFinished"
+      @reject="handleStatusChange('rejected')"
     />
     <BusinessProposalAdminSyncPreviewModal
       :visible="syncPreviewVisible"
@@ -375,15 +406,15 @@
               </select>
             </div>
           </div>
-          <div v-if="investmentSection" class="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
-            <label class="block text-sm font-medium text-emerald-900 mb-2">Porcentajes de pago (sección Inversión)</label>
+          <div v-if="investmentSection" class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/30 rounded-xl px-4 py-3">
+            <label class="block text-sm font-medium text-emerald-900 dark:text-emerald-200 mb-2">Porcentajes de pago (sección Inversión)</label>
             <div v-if="investmentPaymentPercentages.length" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <label
                 v-for="(_, idx) in investmentPaymentPercentages"
                 :key="`payment-percent-${idx}`"
                 class="block"
               >
-                <span class="block text-xs text-emerald-700 mb-1">Pago {{ idx + 1 }}</span>
+                <span class="block text-xs text-emerald-700 dark:text-emerald-300 mb-1">Pago {{ idx + 1 }}</span>
                 <div class="flex items-center gap-2">
                   <input
                     v-model.number="investmentPaymentPercentages[idx]"
@@ -391,21 +422,21 @@
                     min="0"
                     max="100"
                     step="0.01"
-                    class="w-full px-3 py-2 border border-emerald-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white"
+                    class="w-full px-3 py-2 border border-emerald-200 dark:border-emerald-700/30 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white dark:bg-esmerald-dark dark:text-white"
                     @blur="normalizeGeneralPaymentPercentage(idx)"
                   />
-                  <span class="text-sm text-emerald-700">%</span>
+                  <span class="text-sm text-emerald-700 dark:text-emerald-300">%</span>
                 </div>
                 <span
                   v-if="form.total_investment > 0 && investmentPaymentPercentages[idx] > 0"
-                  class="block text-xs text-emerald-600 mt-1 font-medium"
+                  class="block text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium"
                 >
                   {{ paymentAmounts[idx] }}
                 </span>
               </label>
             </div>
-            <p v-else class="text-xs text-emerald-700">No se detectaron porcentajes en “Secciones → Inversión → Opciones de pago”.</p>
-            <p class="text-xs text-emerald-700 mt-2">Se sincroniza con los porcentajes definidos en “Secciones → Inversión → Opciones de pago”.</p>
+            <p v-else class="text-xs text-emerald-700 dark:text-emerald-300">No se detectaron porcentajes en "Secciones → Inversión → Opciones de pago".</p>
+            <p class="text-xs text-emerald-700 dark:text-emerald-300 mt-2">Se sincroniza con los porcentajes definidos en "Secciones → Inversión → Opciones de pago".</p>
           </div>
           <div>
             <div class="flex items-center gap-1.5 mb-1">
@@ -422,40 +453,40 @@
                 class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               <span class="text-sm text-gray-500">%</span>
             </div>
-            <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-blue-50 border border-blue-200 rounded-xl overflow-hidden">
-              <div class="grid grid-cols-[1fr_auto] gap-x-4 text-sm divide-y divide-blue-100">
-                <div class="px-4 py-2 text-blue-700 font-medium">Mensual</div>
-                <div class="px-4 py-2 text-blue-800 font-semibold text-right">
+            <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-700/30 rounded-xl overflow-hidden">
+              <div class="grid grid-cols-[1fr_auto] gap-x-4 text-sm divide-y divide-blue-100 dark:divide-blue-900/30">
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Mensual</div>
+                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right">
                   ${{ Math.round(form.total_investment * form.hosting_percent / 100 / 12).toLocaleString() }} {{ form.currency }}
                 </div>
-                <div class="px-4 py-2 text-blue-700 font-medium">Trimestral</div>
-                <div class="px-4 py-2 text-blue-800 font-semibold text-right">
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Trimestral</div>
+                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right">
                   ${{ Math.round(form.total_investment * form.hosting_percent / 100 / 12 * 3).toLocaleString() }} {{ form.currency }}
                 </div>
                 <template v-if="form.hosting_discount_quarterly">
-                  <div class="px-4 py-2 text-blue-700 font-medium">
+                  <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
                     Trimestral
-                    <span class="ml-1 text-xs text-emerald-600 font-normal">({{ form.hosting_discount_quarterly }}% dcto)</span>
+                    <span class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_quarterly }}% dcto)</span>
                   </div>
-                  <div class="px-4 py-2 text-emerald-700 font-semibold text-right">
+                  <div class="px-4 py-2 text-emerald-700 dark:text-emerald-300 font-semibold text-right">
                     ${{ Math.round(Math.round(form.total_investment * form.hosting_percent / 100 / 12) * (100 - form.hosting_discount_quarterly) / 100 * 3).toLocaleString() }} {{ form.currency }}
                   </div>
                 </template>
-                <div class="px-4 py-2 text-blue-700 font-medium">Semestral</div>
-                <div class="px-4 py-2 text-blue-800 font-semibold text-right">
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Semestral</div>
+                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right">
                   ${{ Math.round(form.total_investment * form.hosting_percent / 100 / 12 * 6).toLocaleString() }} {{ form.currency }}
                 </div>
                 <template v-if="form.hosting_discount_semiannual">
-                  <div class="px-4 py-2 text-blue-700 font-medium">
+                  <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
                     Semestral
-                    <span class="ml-1 text-xs text-emerald-600 font-normal">({{ form.hosting_discount_semiannual }}% dcto)</span>
+                    <span class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_semiannual }}% dcto)</span>
                   </div>
-                  <div class="px-4 py-2 text-emerald-700 font-semibold text-right">
+                  <div class="px-4 py-2 text-emerald-700 dark:text-emerald-300 font-semibold text-right">
                     ${{ Math.round(Math.round(form.total_investment * form.hosting_percent / 100 / 12) * (100 - form.hosting_discount_semiannual) / 100 * 6).toLocaleString() }} {{ form.currency }}
                   </div>
                 </template>
-                <div class="px-4 py-2 text-blue-700 font-medium">☁️ Anual</div>
-                <div class="px-4 py-2 text-blue-800 font-semibold text-right">
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">☁️ Anual</div>
+                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right">
                   ${{ Math.round(form.total_investment * form.hosting_percent / 100).toLocaleString() }} {{ form.currency }}
                 </div>
               </div>
@@ -484,8 +515,13 @@
                 {{ tt.expirationDate }}
               </UiTooltip>
             </div>
-            <input v-model="form.expires_at" type="datetime-local"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+            <div class="flex items-center gap-2">
+              <input v-model="form.expires_at" type="datetime-local"
+                class="flex-1 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              <input v-model.number="expiryDaysInput" type="number" min="1" max="365"
+                class="w-20 px-3 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-xl text-sm text-center focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              <span class="text-xs text-gray-400 dark:text-green-light/60 whitespace-nowrap">días</span>
+            </div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -516,9 +552,6 @@
             <p class="text-xs text-gray-400 mt-1">0 = sin descuento en email de urgencia.</p>
           </div>
 
-          <div v-if="updateMsg" class="text-sm px-4 py-3 rounded-xl" :class="updateMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'">
-            {{ updateMsg.text }}
-          </div>
           </div>
 
           <!-- Sticky action bar -->
@@ -529,83 +562,31 @@
                 {{ proposalStore.isUpdating ? 'Guardando...' : 'Guardar Cambios' }}
               </button>
 
-              <div v-if="proposal.client_email || (proposal.available_transitions || []).length || proposal.status === 'accepted'"
-                   class="hidden sm:block w-px h-6 bg-gray-200 dark:bg-gray-600"></div>
-
               <button
-                v-if="proposal.status === 'draft' && proposal.client_email"
                 type="button"
-                class="px-4 sm:px-5 py-2 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-all shadow-sm active:scale-[0.98]"
-                @click="handleSend"
+                data-testid="proposal-actions-menu"
+                aria-label="Acciones de la propuesta"
+                title="Más acciones"
+                class="inline-flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 dark:border-white/[0.08] text-gray-500 dark:text-green-light hover:text-gray-700 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-all"
+                @click="showActionsModal = true"
               >
-                Enviar al Cliente
-              </button>
-              <button
-                v-else-if="['sent', 'viewed'].includes(proposal.status) && proposal.client_email"
-                type="button"
-                class="px-4 sm:px-5 py-2 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-all shadow-sm active:scale-[0.98]"
-                @click="handleResend"
-              >
-                Re-enviar al Cliente
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                  <circle cx="5" cy="12" r="1.8" />
+                  <circle cx="12" cy="12" r="1.8" />
+                  <circle cx="19" cy="12" r="1.8" />
+                </svg>
               </button>
 
               <button
-                v-if="(proposal.available_transitions || []).includes('negotiating')"
+                v-if="nextAction"
                 type="button"
-                class="px-4 sm:px-5 py-2 bg-amber-500 text-white rounded-xl font-medium text-sm hover:bg-amber-600 transition-all shadow-sm active:scale-[0.98]"
-                @click="openContractModal(false)"
+                :disabled="nextAction.disabled"
+                :data-testid="'proposal-next-action-' + nextAction.key"
+                :class="['px-4 sm:px-5 py-2 rounded-xl font-medium text-sm transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 ml-auto', nextAction.colorClass]"
+                @click="handleNextAction"
               >
-                <span class="sm:hidden">Negociación</span>
-                <span class="hidden sm:inline">Pasar a Negociación</span>
+                {{ nextAction.label }}
               </button>
-
-              <button
-                v-if="(proposal.available_transitions || []).includes('accepted')"
-                type="button"
-                class="px-4 sm:px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-sm active:scale-[0.98]"
-                @click="handleStatusChange('accepted')"
-              >
-                Aprobar
-              </button>
-
-              <button
-                v-if="proposal.status === 'accepted'"
-                type="button"
-                :disabled="isLaunching || proposal.platform_onboarding_status === 'pending'"
-                class="px-4 sm:px-5 py-2 rounded-xl font-medium text-sm transition-all shadow-sm active:scale-[0.98] disabled:opacity-50"
-                :class="proposal.platform_onboarding_completed_at
-                  ? 'bg-amber-500 text-white hover:bg-amber-600'
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700'"
-                @click="handleLaunchToPlatform"
-              >
-                {{ (isLaunching || proposal.platform_onboarding_status === 'pending') ? 'Lanzando...' : (proposal.platform_onboarding_completed_at ? 'Re-lanzar' : 'Lanzar') }}
-                <span class="hidden sm:inline"> a Plataforma</span>
-              </button>
-
-              <button
-                v-if="(proposal.available_transitions || []).includes('finished')"
-                type="button"
-                class="px-4 sm:px-5 py-2 bg-violet-600 text-white rounded-xl font-medium text-sm hover:bg-violet-700 transition-all shadow-sm active:scale-[0.98]"
-                @click="handleMarkAsFinished"
-              >
-                Marcar como finalizada
-              </button>
-
-              <div class="flex-1 min-w-0"></div>
-
-              <button
-                v-if="(proposal.available_transitions || []).includes('rejected')"
-                type="button"
-                class="px-3 sm:px-4 py-2 bg-red-100 text-red-700 border border-red-200 rounded-xl font-medium text-sm hover:bg-red-200 hover:border-red-300 transition-all shadow-sm active:scale-[0.98]"
-                @click="handleStatusChange('rejected')"
-              >
-                Rechazar
-              </button>
-
-              <a :href="'/proposal/' + proposal.uuid + '?preview=1'" target="_blank"
-                class="inline-flex items-center gap-1 text-sm text-gray-500 px-3 py-2 border border-gray-200 rounded-xl hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 transition-all active:scale-[0.98]">
-                Preview <span class="hidden sm:inline">→</span>
-              </a>
             </div>
           </div>
         </form>
@@ -1006,7 +987,7 @@
           </button>
         </div>
         <div v-show="technicalSubTab === 'editor'">
-          <p v-if="!technicalSection" class="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+          <p v-if="!technicalSection" class="text-sm text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-700/30 rounded-lg px-4 py-3">
             No se encontró la sección «Detalle técnico». Ejecuta migraciones o crea la propuesta de nuevo.
           </p>
           <template v-else>
@@ -1028,16 +1009,16 @@
           </template>
         </div>
         <div v-show="technicalSubTab === 'json'" class="space-y-4">
-          <p class="text-xs text-gray-500">
-            Solo el objeto <code class="bg-gray-100 px-1 rounded">content_json</code> del detalle técnico. Debe ser JSON válido (mismo esquema que el editor).
+          <p class="text-xs text-gray-500 dark:text-white/40">
+            Solo el objeto <code class="bg-gray-100 dark:bg-white/[0.06] px-1 rounded">content_json</code> del detalle técnico. Debe ser JSON válido (mismo esquema que el editor).
           </p>
           <textarea
             v-model="technicalJsonRaw"
             rows="22"
-            class="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-xs font-mono bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 resize-y outline-none focus:ring-2 focus:ring-emerald-500"
+            class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-mono bg-white dark:bg-esmerald-dark text-gray-800 dark:text-white resize-y outline-none focus:ring-2 focus:ring-emerald-500"
           />
-          <div v-if="technicalJsonError" class="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">{{ technicalJsonError }}</div>
-          <div v-if="technicalJsonMsg" class="text-sm px-4 py-2 rounded-lg" :class="technicalJsonMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'">
+          <div v-if="technicalJsonError" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-4 py-2 rounded-lg">{{ technicalJsonError }}</div>
+          <div v-if="technicalJsonMsg" class="text-sm px-4 py-2 rounded-lg" :class="technicalJsonMsg.type === 'success' ? 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'">
             {{ technicalJsonMsg.text }}
           </div>
           <button
@@ -1089,7 +1070,7 @@
             <!-- Section header -->
             <div
               :data-testid="`section-header-${section.section_type}`"
-              class="px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-gray-50 transition-colors"
+              class="px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
               @click="toggleSection(section.id)"
             >
               <div class="flex items-center gap-4">
@@ -1160,32 +1141,32 @@
     <!-- Pre-send scorecard modal -->
     <Teleport to="body">
       <div v-if="showSendChecklist" class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="showSendChecklist = false">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 sm:p-8">
+        <div class="bg-white dark:bg-esmerald rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 sm:p-8">
           <div class="flex items-center justify-between mb-1">
             <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Scorecard pre-envío</h3>
             <span v-if="scorecardData" class="text-sm font-bold px-2.5 py-1 rounded-full"
-              :class="scorecardData.score >= 8 ? 'bg-emerald-100 text-emerald-700' : scorecardData.score >= 5 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'">
+              :class="scorecardData.score >= 8 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : scorecardData.score >= 5 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'">
               {{ scorecardData.score }}/10
             </span>
           </div>
-          <p class="text-sm text-gray-500 mb-5">{{ scorecardLoading ? 'Verificando...' : 'Verifica que todo esté listo antes de enviar.' }}</p>
+          <p class="text-sm text-gray-500 dark:text-white/50 mb-5">{{ scorecardLoading ? 'Verificando...' : 'Verifica que todo esté listo antes de enviar.' }}</p>
           <ul v-if="!scorecardLoading" class="space-y-3 mb-6">
             <li v-for="(item, idx) in sendChecklist" :key="idx" class="flex items-center gap-3">
               <span class="w-6 h-6 rounded-full flex items-center justify-center text-sm flex-shrink-0"
-                :class="item.pass ? 'bg-emerald-100 text-emerald-600' : item.blocker ? 'bg-red-100 text-red-500' : 'bg-amber-100 text-amber-500'">
+                :class="item.pass ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : item.blocker ? 'bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-500 dark:text-amber-400'">
                 {{ item.pass ? '✓' : '✗' }}
               </span>
               <div class="flex-1 min-w-0">
-                <span class="text-sm" :class="item.pass ? 'text-gray-700' : item.blocker ? 'text-red-600 font-medium' : 'text-amber-600'">{{ item.label }}</span>
+                <span class="text-sm" :class="item.pass ? 'text-gray-700 dark:text-white/70' : item.blocker ? 'text-red-600 dark:text-red-400 font-medium' : 'text-amber-600 dark:text-amber-400'">{{ item.label }}</span>
                 <span v-if="!item.pass && item.blocker" class="ml-1 text-[10px] text-red-400 font-semibold uppercase">bloqueante</span>
               </div>
             </li>
           </ul>
           <div v-else class="flex items-center justify-center py-8">
-            <span class="text-sm text-gray-400">Cargando scorecard...</span>
+            <span class="text-sm text-gray-400 dark:text-white/40">Cargando scorecard...</span>
           </div>
           <div class="flex gap-3 justify-end">
-            <button class="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" @click="showSendChecklist = false">
+            <button class="px-5 py-2.5 bg-gray-100 dark:bg-white/[0.08] text-gray-600 dark:text-white/70 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-white/[0.12] transition-colors" @click="showSendChecklist = false">
               Cancelar
             </button>
             <button
@@ -1228,6 +1209,7 @@ import SectionEditor from '~/components/BusinessProposal/admin/SectionEditor.vue
 import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
+import ProposalActionsModal from '~/components/BusinessProposal/admin/ProposalActionsModal.vue';
 import ProposalDocumentsTab from '~/components/BusinessProposal/admin/ProposalDocumentsTab.vue';
 import ProposalEmailsTab from '~/components/BusinessProposal/admin/ProposalEmailsTab.vue';
 import ProjectScheduleEditor from '~/components/BusinessProposal/admin/ProjectScheduleEditor.vue';
@@ -1238,6 +1220,7 @@ import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
 import { buildProposalModuleLinkOptions } from '~/utils/proposalModuleLinkOptions';
+import { getProposalNextAction } from '~/utils/proposalNextAction';
 import { detectLegacyTechnicalFormat, downloadMigratedProposalJson, LEGACY_FIELD_LABELS } from '~/utils/proposalJsonMigration';
 import LegacyFormatWarning from '~/components/panel/LegacyFormatWarning.vue';
 
@@ -1349,6 +1332,31 @@ const tabs = computed(() => {
   );
   return base;
 });
+
+// ── Actions menu (modal) ──
+const showActionsModal = ref(false);
+const nextAction = computed(() => {
+  const base = getProposalNextAction(proposal.value);
+  if (!base) return null;
+  const launchPending = base.key === 'launch'
+    && (isLaunching.value || proposal.value?.platform_onboarding_status === 'pending');
+  return {
+    ...base,
+    disabled: launchPending,
+    label: launchPending ? 'Lanzando...' : base.label,
+  };
+});
+function handleNextAction() {
+  if (!nextAction.value || nextAction.value.disabled) return;
+  const handlers = {
+    send: handleSend,
+    negotiate: () => openContractModal(false),
+    approve: () => handleStatusChange('accepted'),
+    launch: handleLaunchToPlatform,
+    finish: handleMarkAsFinished,
+  };
+  handlers[nextAction.value.key]?.();
+}
 
 // ── Contract modal state ──
 const showContractModal = ref(false);
@@ -1575,6 +1583,7 @@ async function handleApplyTechnicalJson() {
 const isRefreshing = ref(false);
 const expandedSections = ref(new Set());
 const updateMsg = ref(null);
+const updateMsgTimer = ref(null);
 const isLaunching = ref(false);
 const syncPreviewVisible = ref(false);
 const syncPreviewData = ref(null);
@@ -1604,7 +1613,26 @@ const form = reactive({
   reminder_days: 10,
   urgency_reminder_days: 15,
   discount_percent: 0,
-  automations_paused: false,
+  automations_paused: true,
+});
+
+const DEFAULT_EXPIRY_DAYS = 21;
+const padDate = (n) => String(n).padStart(2, '0');
+function getExpiryDaysFromStr(datetimeStr) {
+  if (!datetimeStr) return DEFAULT_EXPIRY_DAYS;
+  const diff = new Date(datetimeStr) - Date.now();
+  return Math.max(1, Math.round(diff / (24 * 60 * 60 * 1000)));
+}
+const expiryDaysInput = ref(getExpiryDaysFromStr(form.expires_at));
+watch(() => form.expires_at, (val) => {
+  expiryDaysInput.value = getExpiryDaysFromStr(val);
+});
+watch(expiryDaysInput, (days) => {
+  const safeDays = Number.isInteger(days) && days > 0 ? days : DEFAULT_EXPIRY_DAYS;
+  const expiry = new Date(Date.now() + safeDays * 24 * 60 * 60 * 1000);
+  const dateStr = `${expiry.getFullYear()}-${padDate(expiry.getMonth() + 1)}-${padDate(expiry.getDate())}`;
+  const timeStr = form.expires_at ? form.expires_at.slice(11, 16) : `${padDate(expiry.getHours())}:${padDate(expiry.getMinutes())}`;
+  form.expires_at = `${dateStr}T${timeStr}`;
 });
 
 function onClientSelected(client) {
@@ -1760,7 +1788,7 @@ function hydrateFormFromProposal() {
     reminder_days: proposal.value.reminder_days,
     urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
     discount_percent: proposal.value.discount_percent ?? 0,
-    automations_paused: proposal.value.automations_paused ?? false,
+    automations_paused: proposal.value.automations_paused ?? true,
   });
 }
 
@@ -1824,6 +1852,8 @@ async function handleUpdate() {
         : 'Error al actualizar.',
     };
   }
+  clearTimeout(updateMsgTimer.value);
+  updateMsgTimer.value = setTimeout(() => { updateMsg.value = null; }, 5000);
 }
 
 const showSendChecklist = ref(false);
@@ -2192,7 +2222,7 @@ function handleApplyImportJson() {
             reminder_days: proposal.value.reminder_days,
             urgency_reminder_days: proposal.value.urgency_reminder_days ?? 15,
             discount_percent: proposal.value.discount_percent ?? 0,
-            automations_paused: proposal.value.automations_paused ?? false,
+            automations_paused: proposal.value.automations_paused ?? true,
           });
         }
 
@@ -2251,36 +2281,50 @@ async function submitActivity() {
   }
 }
 
+const AC = {
+  gray:    { dot: 'bg-gray-200 dark:bg-gray-700',    text: 'text-gray-500 dark:text-white/50' },
+  grayMd:  { dot: 'bg-gray-200 dark:bg-gray-700',    text: 'text-gray-600 dark:text-white/60' },
+  blue:    { dot: 'bg-blue-100 dark:bg-blue-900/30',    text: 'text-blue-600 dark:text-blue-400' },
+  green:   { dot: 'bg-green-100 dark:bg-green-900/30',   text: 'text-green-600 dark:text-green-400' },
+  emerald: { dot: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-600 dark:text-emerald-400' },
+  red:     { dot: 'bg-red-100 dark:bg-red-900/30',     text: 'text-red-600 dark:text-red-400' },
+  yellow:  { dot: 'bg-yellow-100 dark:bg-yellow-900/30',  text: 'text-yellow-600 dark:text-yellow-400' },
+  purple:  { dot: 'bg-purple-100 dark:bg-purple-900/30',  text: 'text-purple-600 dark:text-purple-400' },
+  indigo:  { dot: 'bg-indigo-100 dark:bg-indigo-900/30',  text: 'text-indigo-600 dark:text-indigo-400' },
+  orange:  { dot: 'bg-orange-100 dark:bg-orange-900/30',  text: 'text-orange-600 dark:text-orange-400' },
+  sky:     { dot: 'bg-sky-100 dark:bg-sky-900/30',     text: 'text-sky-600 dark:text-sky-400' },
+  amber:   { dot: 'bg-amber-100 dark:bg-amber-900/30',   text: 'text-amber-600 dark:text-amber-400' },
+};
 const activityMeta = {
-  created: { icon: '✨', label: 'Creada', dot: 'bg-gray-200', text: 'text-gray-500' },
-  updated: { icon: '✏️', label: 'Editada', dot: 'bg-gray-200', text: 'text-gray-500' },
-  sent: { icon: '📤', label: 'Enviada', dot: 'bg-blue-100', text: 'text-blue-600' },
-  viewed: { icon: '👁', label: 'Vista', dot: 'bg-green-100', text: 'text-green-600' },
-  accepted: { icon: '✅', label: 'Aceptada', dot: 'bg-emerald-100', text: 'text-emerald-600' },
-  rejected: { icon: '❌', label: 'Rechazada', dot: 'bg-red-100', text: 'text-red-600' },
-  resent: { icon: '🔁', label: 'Re-enviada', dot: 'bg-blue-100', text: 'text-blue-600' },
-  expired: { icon: '⏰', label: 'Expirada', dot: 'bg-yellow-100', text: 'text-yellow-600' },
-  duplicated: { icon: '📋', label: 'Duplicada', dot: 'bg-gray-200', text: 'text-gray-500' },
-  commented: { icon: '💬', label: 'Comentario', dot: 'bg-purple-100', text: 'text-purple-600' },
-  negotiating: { icon: '🤝', label: 'Negociando', dot: 'bg-indigo-100', text: 'text-indigo-600' },
-  reengagement: { icon: '🔔', label: 'Reengagement', dot: 'bg-orange-100', text: 'text-orange-600' },
-  call: { icon: '📞', label: 'Llamada', dot: 'bg-sky-100', text: 'text-sky-600' },
-  meeting: { icon: '🤝', label: 'Reunión', dot: 'bg-indigo-100', text: 'text-indigo-600' },
-  followup: { icon: '📩', label: 'Seguimiento', dot: 'bg-amber-100', text: 'text-amber-600' },
-  note: { icon: '📝', label: 'Nota', dot: 'bg-gray-200', text: 'text-gray-600' },
-  calc_confirmed: { icon: '🧮', label: 'Calculadora confirmada', dot: 'bg-emerald-100', text: 'text-emerald-600' },
-  calc_abandoned: { icon: '🧮', label: 'Calculadora abandonada', dot: 'bg-red-100', text: 'text-red-600' },
-  calc_followup: { icon: '🧮', label: 'Seguimiento calculadora', dot: 'bg-orange-100', text: 'text-orange-600' },
-  auto_archived: { icon: '📦', label: 'Auto-archivada', dot: 'bg-gray-200', text: 'text-gray-500' },
-  status_change: { icon: '🔄', label: 'Cambio de estado', dot: 'bg-blue-100', text: 'text-blue-600' },
-  cond_accepted: { icon: '⚠️', label: 'Aceptación condicional', dot: 'bg-amber-100', text: 'text-amber-600' },
-  req_clicked: { icon: '🔗', label: 'Requerimiento consultado', dot: 'bg-sky-100', text: 'text-sky-600' },
-  email_sent: { icon: '📧', label: 'Correo enviado', dot: 'bg-emerald-100', text: 'text-emerald-600' },
+  created:       { icon: '✨', label: 'Creada',                   ...AC.gray },
+  updated:       { icon: '✏️', label: 'Editada',                  ...AC.gray },
+  sent:          { icon: '📤', label: 'Enviada',                  ...AC.blue },
+  viewed:        { icon: '👁',  label: 'Vista',                    ...AC.green },
+  accepted:      { icon: '✅', label: 'Aceptada',                 ...AC.emerald },
+  rejected:      { icon: '❌', label: 'Rechazada',                ...AC.red },
+  resent:        { icon: '🔁', label: 'Re-enviada',               ...AC.blue },
+  expired:       { icon: '⏰', label: 'Expirada',                 ...AC.yellow },
+  duplicated:    { icon: '📋', label: 'Duplicada',                ...AC.gray },
+  commented:     { icon: '💬', label: 'Comentario',               ...AC.purple },
+  negotiating:   { icon: '🤝', label: 'Negociando',               ...AC.indigo },
+  reengagement:  { icon: '🔔', label: 'Reengagement',             ...AC.orange },
+  call:          { icon: '📞', label: 'Llamada',                  ...AC.sky },
+  meeting:       { icon: '🤝', label: 'Reunión',                  ...AC.indigo },
+  followup:      { icon: '📩', label: 'Seguimiento',              ...AC.amber },
+  note:          { icon: '📝', label: 'Nota',                     ...AC.grayMd },
+  calc_confirmed:{ icon: '🧮', label: 'Calculadora confirmada',   ...AC.emerald },
+  calc_abandoned:{ icon: '🧮', label: 'Calculadora abandonada',   ...AC.red },
+  calc_followup: { icon: '🧮', label: 'Seguimiento calculadora',  ...AC.orange },
+  auto_archived: { icon: '📦', label: 'Auto-archivada',           ...AC.gray },
+  status_change: { icon: '🔄', label: 'Cambio de estado',         ...AC.blue },
+  cond_accepted: { icon: '⚠️', label: 'Aceptación condicional',   ...AC.amber },
+  req_clicked:   { icon: '🔗', label: 'Requerimiento consultado', ...AC.sky },
+  email_sent:    { icon: '📧', label: 'Correo enviado',           ...AC.emerald },
 };
 function activityIcon(type) { return activityMeta[type]?.icon || '•'; }
 function activityLabel(type) { return activityMeta[type]?.label || type; }
-function activityDotClass(type) { return activityMeta[type]?.dot || 'bg-gray-200'; }
-function activityLabelClass(type) { return activityMeta[type]?.text || 'text-gray-500'; }
+function activityDotClass(type) { return activityMeta[type]?.dot || AC.gray.dot; }
+function activityLabelClass(type) { return activityMeta[type]?.text || AC.gray.text; }
 
 function escapeHtml(str) {
   if (!str) return '';

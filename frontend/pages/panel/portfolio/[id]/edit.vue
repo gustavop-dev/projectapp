@@ -7,7 +7,7 @@
         </svg>
       </NuxtLink>
       <h1 class="text-2xl font-light text-gray-900 dark:text-white">Editar Proyecto</h1>
-      <a v-if="work?.slug" :href="`/portfolio-works/${work.slug}`" target="_blank" class="text-xs text-emerald-600 hover:text-emerald-700 transition-colors ml-auto">
+      <a v-if="work?.slug" :href="`/portfolio-works/${work.slug}`" target="_blank" class="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors ml-auto">
         Ver en público →
       </a>
     </div>
@@ -127,8 +127,8 @@
       </fieldset>
 
       <!-- Error + actions -->
-      <p v-if="errorMsg" class="text-sm text-red-500">{{ errorMsg }}</p>
-      <p v-if="successMsg" class="text-sm text-emerald-600">{{ successMsg }}</p>
+      <p v-if="errorMsg" class="text-sm text-red-500 dark:text-red-400">{{ errorMsg }}</p>
+      <p v-if="successMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ successMsg }}</p>
 
       <div class="flex gap-3 pt-4">
         <button type="submit" :disabled="portfolioStore.isUpdating" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">

@@ -44,6 +44,9 @@
 | Platform — Sidebar & Layout | ✅ Done | Collapsible sidebar, mobile drawer, theme toggle, role-based nav |
 | Platform — E2E Coverage | ✅ Done | Platform flows are registered and covered across auth, dashboard, projects, kanban, clients, collection accounts, data model, notifications, payments, and related routes |
 | Document System — Model + Admin CRUD | ✅ Done | `Document` model (uuid, title, slug, status, language, cover_type); panel pages (index, create, edit); `documents.js` store |
+| Document System — Folders & Tags | ✅ Done | `DocumentFolder` + `DocumentTag` models (migration `0086`); CRUD FBV views + 8 URL patterns; `document_folders.js` + `document_tags.js` stores; `FolderSidebar`, `TagFilterChips`, `TagSelector`, `FolderManagerModal`, `TagManagerModal` components; `documentTagColors.js` shared util; `index.vue` 2-col layout + `create.vue`/`edit.vue` selectors; `?folder=<id|none>` + `?tags=<ids>` OR filtering; 25 backend + ~24 unit + 3 E2E tests |
+| Admin Panel — Internal Kanban Task Board | ✅ Done | `Task` model (status/priority TextChoices, position, assignee FK SET_NULL, due_date); migration `0087_task.py`; 5 FBV endpoints (`tasks/`, `tasks/create/`, `tasks/<id>/update/`, `tasks/<id>/reorder/`, `tasks/<id>/delete/`); `TaskListSerializer` (assignee_name, is_overdue via context today) + `TaskCreateUpdateSerializer`; `tasks.js` Pinia Options API store (fetchTasks, createTask, updateTask, moveTask, deleteTask, replaceTaskInPlace); `TaskCard.vue` (priority badge, due_date red if overdue), `TaskColumn.vue` (vuedraggable cross-column DnD), `TaskFormModal.vue`; `/panel/tareas` page with `useConfirmModal`; panel nav entry "Tareas" / "Kanban" as first section; 11 backend tests + 9 frontend unit tests + 2 E2E specs; `ADMIN_KANBAN_TASKS` flow tag registered |
+| Business Proposal — Admin UX Improvements | ✅ Done | Inline "days" number input beside `datetime-local` on create + edit pages (bidirectional sync, time-preserving); `@temp.example.com` domain bypass in `validate_email_domain_mx` + `jsonForm` default; fixed bottom-right save toast with Tailwind `<Transition>`, `clearTimeout` guard, 5 s auto-dismiss |
 | Document System — PDF Generation | 🔄 In Progress | `document_pdf_service.py`, `markdown_parser.py`, and shared `pdf_utils.py`; branch `generate-pdf-with-template` |
 | Panel — Admins Management | ✅ Done | `panel/admins/index.vue` + `panel_admins.js` store |
 | Panel — Dedicated Login | ✅ Done | `panel/login.vue` page |
@@ -82,9 +85,9 @@
 
 | Suite | Location | Approximate Count | Status |
 |-------|----------|-------------------|--------|
-| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 121 test files | Active |
-| Frontend Unit (Jest) | `frontend/test/` | 73 test files | Active |
-| Frontend E2E (Playwright) | `frontend/e2e/` | 129 spec files across admin, auth, blog, layout, proposal, public, platform | Active |
+| Backend (pytest) | `backend/content/tests/` + `backend/accounts/tests/` + `backend/tests/` | 124 test files | Active |
+| Frontend Unit (Jest) | `frontend/test/` | 77 test files | Active |
+| Frontend E2E (Playwright) | `frontend/e2e/` | 132 spec files across admin, auth, blog, layout, proposal, public, platform | Active |
 | Quality Gate | `scripts/test_quality_gate.py` | 100/100, 0 warnings/info | Active |
 
 ---

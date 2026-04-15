@@ -81,4 +81,39 @@ test.describe('Admin Proposal Edit', () => {
     await expect(page.getByText('Propuesta E2E')).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('input[type="text"][required]').nth(1)).toHaveValue('Cliente Edit E2E');
   });
+
+  test('shows expiry days number input beside Fecha de expiración field', {
+    tag: [...ADMIN_PROPOSAL_EDIT, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildMockHandler());
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`, { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByText('Propuesta E2E')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('input[type="number"][min="1"][max="365"]')).toBeVisible();
+  });
+
+  test('shows success toast after saving proposal changes', {
+    tag: [...ADMIN_PROPOSAL_EDIT, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
+      }
+      if (apiPath === 'proposals/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProposal]) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/update/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
+      }
+      return null;
+    });
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`, { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByText('Propuesta E2E')).toBeVisible({ timeout: 20_000 });
+    await page.locator('[data-testid="proposal-edit-submit"]').click();
+    await expect(page.getByText('Propuesta actualizada.')).toBeVisible({ timeout: 10_000 });
+  });
 });

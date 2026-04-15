@@ -1,10 +1,10 @@
 <template>
   <div>
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Documentos</h1>
       <NuxtLink
-        :to="localePath('/panel/documents/create')"
+        :to="createLink"
         class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
                font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm
                dark:bg-emerald-700 dark:hover:bg-emerald-600"
@@ -15,6 +15,28 @@
         Nuevo Documento
       </NuxtLink>
     </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
+      <FolderSidebar
+        :folders="folderStore.folders"
+        :active-id="documentStore.activeFolderId"
+        :total-count="documentStore.documents.length + otherFoldersCount"
+        @select="handleSelectFolder"
+        @create="openFolderManager"
+        @manage="openFolderManager"
+      />
+
+      <section class="min-w-0">
+        <!-- Tag filter chips -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-3 mb-4 dark:bg-gray-800 dark:border-gray-700" data-testid="doc-tag-filters">
+          <TagFilterChips
+            :tags="tagStore.tags"
+            :active-ids="documentStore.activeTagIds"
+            @toggle="handleToggleTag"
+            @clear="handleClearTagFilters"
+            @manage="showTagManager = true"
+          />
+        </div>
 
     <!-- Loading -->
     <div v-if="documentStore.isLoading" class="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">
@@ -44,6 +66,7 @@
         <thead>
           <tr class="border-b border-gray-100 dark:border-gray-700 text-left">
             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Titulo</th>
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Etiquetas</th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Creado</th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
@@ -57,8 +80,31 @@
             @click="navigateTo(localePath(`/panel/documents/${doc.id}/edit`))"
           >
             <td class="px-6 py-4">
-              <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ doc.title }}</div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ doc.title }}</span>
+                <span
+                  v-if="doc.folder_name"
+                  class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 flex-shrink-0"
+                  :title="`Carpeta: ${doc.folder_name}`"
+                >
+                  📁 {{ doc.folder_name }}
+                </span>
+              </div>
               <div v-if="doc.client_name" class="text-xs text-gray-400 mt-0.5">{{ doc.client_name }}</div>
+            </td>
+            <td class="px-6 py-4">
+              <div class="flex flex-wrap gap-1">
+                <span
+                  v-for="tag in doc.tag_details"
+                  :key="tag.id"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                  :class="tagBadgeClass(tag.color)"
+                >
+                  <span class="w-1.5 h-1.5 rounded-full" :class="tagDotClass(tag.color)"></span>
+                  {{ tag.name }}
+                </span>
+                <span v-if="!doc.tag_details || doc.tag_details.length === 0" class="text-xs text-gray-400 dark:text-gray-500">—</span>
+              </div>
             </td>
             <td class="px-6 py-4">
               <span
@@ -177,6 +223,12 @@
       </div>
     </div>
 
+      </section>
+    </div>
+
+    <FolderManagerModal v-model="showFolderManager" @changed="handleFoldersChanged" />
+    <TagManagerModal v-model="showTagManager" @changed="handleTagsChanged" />
+
     <!-- Delete confirmation modal -->
     <Teleport to="body">
       <Transition name="fade-modal">
@@ -215,17 +267,70 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import FolderSidebar from '~/components/panel/documents/FolderSidebar.vue';
+import TagFilterChips from '~/components/panel/documents/TagFilterChips.vue';
+import FolderManagerModal from '~/components/panel/documents/FolderManagerModal.vue';
+import TagManagerModal from '~/components/panel/documents/TagManagerModal.vue';
+import { tagBadgeClass, tagDotClass } from '~/utils/documentTagColors.js';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const documentStore = useDocumentStore();
+const folderStore = useDocumentFolderStore();
+const tagStore = useDocumentTagStore();
 const documents = computed(() => documentStore.documents);
 const deleteConfirm = ref(null);
+const showFolderManager = ref(false);
+const showTagManager = ref(false);
+
+const createLink = computed(() => {
+  const folder = documentStore.activeFolderId;
+  if (folder && folder !== 'all' && folder !== 'none') {
+    return localePath(`/panel/documents/create?folder=${folder}`);
+  }
+  return localePath('/panel/documents/create');
+});
+
+const otherFoldersCount = computed(() => {
+  return folderStore.folders.reduce((sum, f) => sum + (f.document_count || 0), 0);
+});
 
 onMounted(async () => {
-  await documentStore.fetchDocuments();
+  await Promise.all([
+    documentStore.fetchDocuments(),
+    folderStore.fetchFolders(),
+    tagStore.fetchTags(),
+  ]);
 });
+
+function handleSelectFolder(id) {
+  documentStore.setFilters({ folder: id });
+}
+
+function handleToggleTag(id) {
+  documentStore.toggleTagFilter(id);
+}
+
+function handleClearTagFilters() {
+  documentStore.setFilters({ tags: [] });
+}
+
+function openFolderManager() {
+  showFolderManager.value = true;
+}
+
+async function handleFoldersChanged() {
+  // Folder mutations can change documents' folder_name or detach them on delete,
+  // so refetch documents. The folder store keeps its own list in sync locally.
+  await documentStore.fetchDocuments();
+}
+
+async function handleTagsChanged() {
+  // Tag mutations can change tag_details on documents (color/name) or detach
+  // them on delete; the tag store keeps its own list in sync locally.
+  await documentStore.fetchDocuments();
+}
 
 function statusBadgeClass(status) {
   const map = {

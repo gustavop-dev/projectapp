@@ -1,6 +1,6 @@
 {
-  "version": "2.16.0",
-  "lastUpdated": "2026-04-10",
+  "version": "2.17.0",
+  "lastUpdated": "2026-04-15",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1361,6 +1361,16 @@
       "description": "Edit an existing admin document, change content, update status, and download as PDF.",
       "expectedSpecs": 1
     },
+    "admin-document-folders": {
+      "name": "Admin Document Folders and Tags",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Organize admin documents with folders and tags: sidebar folder navigation, tag filter chips, and folder/tag management modals.",
+      "expectedSpecs": 1
+    },
     "admin-admin-management": {
       "name": "Admin User Management",
       "module": "admin",
@@ -1668,6 +1678,27 @@
       "priority": "P2",
       "description": "Change the linked client on an existing proposal from the proposal edit page (/panel/proposals/:id/edit). Admin selects a different client via the autocomplete and saves; snapshot fields update to reflect the new client.",
       "expectedSpecs": 1
+    },
+    "admin-kanban-tasks": {
+      "name": "Admin Kanban Tasks",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Internal Kanban board at /panel/tareas. Admin can create, edit, move across TO DO/In Progress/Blocked/Done columns, and delete tasks.",
+      "expectedSpecs": 1
+    },
+    "admin-document-pdf-download": {
+      "name": "Admin Document PDF Download",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin downloads a Document entity as a branded PDF from the document edit page via the 'Descargar PDF' button.",
+      "expectedSpecs": 0,
+      "knownGaps": ["Document PDF generation feature is in progress — endpoint exists (documents/<id>/pdf/) and UI button is present, but E2E spec not yet written."]
     }
   }
 }

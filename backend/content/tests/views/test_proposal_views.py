@@ -99,6 +99,20 @@ class TestRetrievePublicProposal:
         proposal.refresh_from_db()
         assert proposal.status == 'draft'
 
+    def test_includes_confirmed_module_selection_flag(self, api_client, sent_proposal):
+        ProposalChangeLog.objects.create(
+            proposal=sent_proposal,
+            change_type=ProposalChangeLog.ChangeType.CALCULATOR_CONFIRMED,
+            actor_type=ProposalChangeLog.ActorType.CLIENT,
+            description='{}',
+        )
+
+        url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': sent_proposal.uuid})
+        response = api_client.get(url)
+
+        assert response.status_code == 200
+        assert response.data['has_confirmed_module_selection'] is True
+
 
 class TestDownloadProposalPdf:
     """Tests for the download_proposal_pdf endpoint."""
@@ -731,6 +745,38 @@ class TestCreateProposalFromJSON:
         assert td['purpose'] == 'Doc de arquitectura'
         assert len(td['epics']) == 1
         assert td['epics'][0]['epicKey'] == 'core'
+
+    def test_normalizes_legacy_technical_document_module_ids_from_json(self, admin_client):
+        url = reverse('create-proposal-from-json')
+        payload = self._minimal_payload()
+        payload['sections']['functionalRequirements'] = {
+            'groups': [
+                {'id': 'views', 'title': 'Vistas', 'items': [{'name': 'Home'}]},
+            ],
+            'additionalModules': [
+                {'id': 'pwa_module', 'title': 'PWA', 'is_calculator_module': True, 'price_percent': 40},
+            ],
+        }
+        payload['sections']['technicalDocument'] = {
+            'purpose': 'Doc de arquitectura',
+            'epics': [
+                {
+                    'title': 'Scope',
+                    'linked_module_ids': ['views'],
+                    'requirements': [
+                        {'title': 'Installable', 'linked_module_ids': ['pwa_module']},
+                    ],
+                },
+            ],
+        }
+
+        response = admin_client.post(url, payload, format='json')
+
+        assert response.status_code == 201
+        sections = {s['section_type']: s for s in response.data['sections']}
+        epic = sections['technical_document']['content_json']['epics'][0]
+        assert epic['linked_module_ids'] == ['group-views']
+        assert epic['requirements'][0]['linked_module_ids'] == ['module-pwa_module']
 
     def test_greeting_section_has_client_name(self, admin_client):
         url = reverse('create-proposal-from-json')

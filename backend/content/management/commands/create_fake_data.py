@@ -50,6 +50,10 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Creating fake blog posts...'))
         call_command('create_fake_blog_posts', '--count', str(number_of_records))
 
+        # Seed Kanban tasks
+        self.stdout.write(self.style.SUCCESS('Seeding Kanban tasks...'))
+        call_command('create_fake_tasks')
+
         self.stdout.write(self.style.SUCCESS('All fake data has been created'))
 
         self.stdout.write(self.style.SUCCESS('Running seed_platform_data (platform graph)...'))

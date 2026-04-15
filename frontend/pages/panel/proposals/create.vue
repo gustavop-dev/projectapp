@@ -311,13 +311,25 @@
         <!-- Expires at -->
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Fecha de expiración</label>
-          <input
-            v-model="form.expires_at"
-            type="datetime-local"
-            class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] rounded-xl text-sm
-                   focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
-                   dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
-          />
+          <div class="flex items-center gap-2">
+            <input
+              v-model="form.expires_at"
+              type="datetime-local"
+              class="flex-1 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] rounded-xl text-sm
+                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
+                     dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
+            />
+            <input
+              v-model.number="expiryDaysInput"
+              type="number"
+              min="1"
+              max="365"
+              class="w-20 px-3 py-2.5 border border-gray-200 dark:border-white/[0.08] rounded-xl text-sm text-center
+                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
+                     dark:bg-esmerald-dark dark:text-white"
+            />
+            <span class="text-xs text-gray-400 dark:text-green-light/60 whitespace-nowrap">días</span>
+          </div>
         </div>
 
         <!-- Reminder days -->
@@ -1016,7 +1028,14 @@ function buildDefaultExpiryStr(days = defaultExpirationDays.value) {
   return `${expiry.getFullYear()}-${pad(expiry.getMonth() + 1)}-${pad(expiry.getDate())}T${pad(expiry.getHours())}:${pad(expiry.getMinutes())}`;
 }
 
+function getExpiryDaysFromStr(datetimeStr) {
+  if (!datetimeStr) return DEFAULT_EXPIRATION_DAYS;
+  const diff = new Date(datetimeStr) - Date.now();
+  return Math.max(1, Math.round(diff / (24 * 60 * 60 * 1000)));
+}
+
 const defaultExpiryStr = buildDefaultExpiryStr();
+const expiryDaysInput = ref(getExpiryDaysFromStr(defaultExpiryStr));
 
 // Updates both form.expires_at and jsonForm.expires_at regardless of active mode.
 // This cross-mode sync is intentional: only one mode is visible at a time, and
@@ -1153,7 +1172,7 @@ const legacyFormatIssues = ref([]);
 
 const jsonForm = reactive({
   title: '',
-  client_email: '',
+  client_email: 'usuario@temp.example.com',
   client_phone: '',
   project_type: '',
   market_type: '',
@@ -1189,6 +1208,20 @@ watch(
     if (changed) loadExpirationDefaults(changed);
   },
 );
+
+watch(() => form.expires_at, (val) => {
+  expiryDaysInput.value = getExpiryDaysFromStr(val);
+});
+
+watch(expiryDaysInput, (days) => {
+  const safeDays = Number.isInteger(days) && days > 0 ? days : DEFAULT_EXPIRATION_DAYS;
+  const expiry = new Date(Date.now() + safeDays * 24 * 60 * 60 * 1000);
+  const dateStr = `${expiry.getFullYear()}-${pad(expiry.getMonth() + 1)}-${pad(expiry.getDate())}`;
+  const timeStr = form.expires_at ? form.expires_at.slice(11, 16) : `${pad(expiry.getHours())}:${pad(expiry.getMinutes())}`;
+  const str = `${dateStr}T${timeStr}`;
+  form.expires_at = str;
+  jsonForm.expires_at = str;
+});
 
 function parseJson() {
   jsonError.value = '';

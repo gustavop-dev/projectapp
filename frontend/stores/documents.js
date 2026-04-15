@@ -19,6 +19,9 @@ export const useDocumentStore = defineStore('documents', {
     isLoading: false,
     isUpdating: false,
     error: null,
+    // Filters: 'all' | 'none' | <folder id>
+    activeFolderId: 'all',
+    activeTagIds: [],
   }),
 
   getters: {
@@ -31,13 +34,27 @@ export const useDocumentStore = defineStore('documents', {
 
   actions: {
     /**
-     * fetchDocuments: List all documents (admin).
+     * fetchDocuments: List all documents (admin), applying current filters.
+     * Pass `{ folder, tags }` to override the stored filters for this call.
      */
-    async fetchDocuments() {
+    async fetchDocuments(overrides = {}) {
       this.isLoading = true;
       this.error = null;
       try {
-        const response = await get_request('documents/');
+        const folder = overrides.folder !== undefined ? overrides.folder : this.activeFolderId;
+        const tags = overrides.tags !== undefined ? overrides.tags : this.activeTagIds;
+
+        const params = new URLSearchParams();
+        if (folder && folder !== 'all') {
+          params.set('folder', folder === 'none' ? 'none' : String(folder));
+        }
+        if (Array.isArray(tags) && tags.length > 0) {
+          params.set('tags', tags.join(','));
+        }
+        const query = params.toString();
+        const url = query ? `documents/?${query}` : 'documents/';
+
+        const response = await get_request(url);
         this.documents = response.data;
         return { success: true, data: response.data };
       } catch (error) {
@@ -48,6 +65,26 @@ export const useDocumentStore = defineStore('documents', {
       } finally {
         this.isLoading = false;
       }
+    },
+
+    /**
+     * setFilters: Update active filters and refetch the list.
+     * @param {object} filters - { folder?, tags? }
+     */
+    async setFilters({ folder, tags } = {}) {
+      if (folder !== undefined) this.activeFolderId = folder;
+      if (tags !== undefined) this.activeTagIds = Array.isArray(tags) ? [...tags] : [];
+      return this.fetchDocuments();
+    },
+
+    /**
+     * toggleTagFilter: Toggle a tag id in the current filter set and refetch.
+     */
+    async toggleTagFilter(tagId) {
+      const idx = this.activeTagIds.indexOf(tagId);
+      if (idx === -1) this.activeTagIds.push(tagId);
+      else this.activeTagIds.splice(idx, 1);
+      return this.fetchDocuments();
     },
 
     /**

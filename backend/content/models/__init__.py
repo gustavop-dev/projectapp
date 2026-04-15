@@ -27,6 +27,8 @@ from .email_template_config import EmailTemplateConfig
 from .email_log import EmailLog
 from .document import Document
 from .document_type import DocumentType
+from .document_folder import DocumentFolder
+from .document_tag import DocumentTag
 from .issuer_profile import IssuerProfile
 from .document_number_sequence import DocumentNumberSequence
 from .document_collection_account import DocumentCollectionAccount
@@ -36,3 +38,4 @@ from .company_settings import CompanySettings
 from .proposal_document import ProposalDocument
 from .contract_template import ContractTemplate
 from .linkedin_token import LinkedInToken
+from .task import Task

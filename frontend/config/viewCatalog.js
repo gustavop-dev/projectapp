@@ -316,6 +316,22 @@ export const viewCatalogSections = [
         audience: 'admin',
         viewType: 'config',
       },
+      {
+        label: 'Emails',
+        url: '/panel/emails',
+        file: 'frontend/pages/panel/emails/index.vue',
+        reference: 'vista de envío de emails con branding del panel',
+        audience: 'admin',
+        viewType: 'config',
+      },
+      {
+        label: 'Tareas',
+        url: '/panel/tareas',
+        file: 'frontend/pages/panel/tareas/index.vue',
+        reference: 'vista de tablero kanban de tareas internas del panel',
+        audience: 'admin',
+        viewType: 'list',
+      },
     ],
   },
   {

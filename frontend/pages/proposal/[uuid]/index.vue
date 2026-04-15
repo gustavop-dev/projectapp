@@ -165,6 +165,9 @@
                 <svg v-else-if="switchOverlayMode === 'technical'" class="w-8 h-8 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                 </svg>
+                <svg v-else-if="switchOverlayMode === 'gateway'" class="w-8 h-8 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
                 <svg v-else class="w-8 h-8 text-esmerald" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -174,14 +177,18 @@
                   ? (pLang === 'es' ? 'Vista Ejecutiva' : 'Executive View')
                   : switchOverlayMode === 'technical'
                     ? (pLang === 'es' ? 'Detalle técnico' : 'Technical detail')
-                    : (pLang === 'es' ? 'Propuesta Completa' : 'Full Proposal') }}
+                    : switchOverlayMode === 'gateway'
+                      ? (pLang === 'es' ? 'Seleccionar vista' : 'Select view')
+                      : (pLang === 'es' ? 'Propuesta Completa' : 'Full Proposal') }}
               </h2>
               <p class="text-sm text-lemon/70 font-light max-w-xs mx-auto">
                 {{ switchOverlayMode === 'executive'
                   ? (pLang === 'es' ? 'Lo esencial de tu proyecto en un vistazo' : 'The essentials of your project at a glance')
                   : switchOverlayMode === 'technical'
                     ? (pLang === 'es' ? 'Arquitectura, stack y requerimientos técnicos' : 'Architecture, stack, and technical requirements')
-                    : (pLang === 'es' ? 'Ahora verás todos los detalles de tu proyecto' : 'Now you\'ll see all the details of your project') }}
+                    : switchOverlayMode === 'gateway'
+                      ? (pLang === 'es' ? 'Elige cómo quieres ver la propuesta' : 'Choose how to view the proposal')
+                      : (pLang === 'es' ? 'Ahora verás todos los detalles de tu proyecto' : 'Now you\'ll see all the details of your project') }}
               </p>
             </div>
           </div>
@@ -329,8 +336,17 @@ import WhatsAppFloatingButton from '~/components/BusinessProposal/WhatsAppFloati
 import ProposalViewGateway from '~/components/BusinessProposal/ProposalViewGateway.vue';
 import TechnicalDocumentPublicPanel from '~/components/BusinessProposal/TechnicalDocumentPublicPanel.vue';
 import { buildSyntheticTechnicalPanels } from '~/utils/technicalProposalPanels';
+import {
+  buildProposalModuleLinkCatalog,
+  normalizeTechnicalDocumentModuleLinks,
+} from '~/utils/proposalModuleLinkOptions';
 import { filterTechnicalDocumentByModules } from '~/utils/filterTechnicalDocumentByModules';
 import { useProposalDarkMode } from '~/composables/useProposalDarkMode';
+import {
+  hasStoredConfirmedProposalModuleSelection,
+  readStoredProposalModuleSelection,
+  writeStoredProposalModuleSelectionConfirmation,
+} from '~/utils/proposalModuleSelectionStorage';
 
 definePageMeta({ layout: false });
 
@@ -421,11 +437,21 @@ const hasTechnicalDocument = computed(() =>
   enabledSections.value.some((s) => s.section_type === 'technical_document'),
 );
 
+const technicalModuleLinkCatalog = computed(() =>
+  buildProposalModuleLinkCatalog(enabledSections.value),
+);
+
+const hasConfirmedModuleSelection = ref(false);
+
 function effectiveSelectedModuleIdsForTechnical() {
+  if (!hasConfirmedModuleSelection.value) return null;
+  const uuid = proposal.value?.uuid || '';
+  const stored = readStoredProposalModuleSelection(uuid);
+  if (stored.hasStoredSelection) return stored.selectedIds;
   const fromUi = [...selectedCalculatorModuleIds.value];
   if (fromUi.length) return fromUi;
   const persisted = proposal.value?.selected_modules;
-  if (Array.isArray(persisted) && persisted.length) return [...persisted];
+  if (Array.isArray(persisted)) return [...persisted];
   return [];
 }
 
@@ -445,9 +471,14 @@ const displayPanels = computed(() => {
     const tech = enabledSections.value.find((s) => s.section_type === 'technical_document');
     if (!tech) return [];
     const rawDoc = tech.content_json && typeof tech.content_json === 'object' ? tech.content_json : {};
-    const docForPanels = filterTechnicalDocumentByModules(
+    const normalizedDoc = normalizeTechnicalDocumentModuleLinks(
       rawDoc,
+      technicalModuleLinkCatalog.value.aliasMap,
+    );
+    const docForPanels = filterTechnicalDocumentByModules(
+      normalizedDoc,
       effectiveSelectedModuleIdsForTechnical(),
+      technicalModuleLinkCatalog.value.alwaysIncludedIds,
     );
     const panels = buildSyntheticTechnicalPanels({ ...tech, content_json: docForPanels }, lang);
     if (enabledSections.value.length > 0) {
@@ -672,17 +703,6 @@ function recomputePaymentOptions(paymentOptions, baseTotalStr, customTotal) {
   });
 }
 
-function computeAllModuleIds() {
-  const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
-  if (!investmentSection) return [];
-  const content = investmentSection.content_json || {};
-  const investmentIds = (content.modules || []).map(m => m.id).filter(Boolean);
-  const defaultSelectedGroupIds = allGroupCalculatorItems.value
-    .filter(m => m.default_selected)
-    .map(m => m.id);
-  return [...investmentIds, ...defaultSelectedGroupIds];
-}
-
 const prevPanelTitle = computed(() => {
   const prev = displayPanels.value[currentIndex.value - 1];
   return prev?.title || '';
@@ -722,7 +742,7 @@ function getSectionProps(section) {
       whatsappLink: extractedWhatsappLink.value,
       paymentOptions: recomputePaymentOptions(rawPaymentOptions, investContent.totalInvestment, customizedTotal.value),
       customizedTotal: customizedTotal.value,
-      selectedModuleIds: [...selectedCalculatorModuleIds.value],
+      selectedModuleIds: effectiveSelectedModuleIdsForTechnical() || [],
       viewMode: viewMode.value || 'detailed',
     };
   }
@@ -897,6 +917,7 @@ function getSectionListeners(section) {
     listeners.navigateToRequirements = handleNavigateToRequirements;
     listeners.updateCalculatorModules = onCalculatorModulesUpdate;
     listeners.updateCustomTotal = onCustomTotalUpdate;
+    listeners.selectionConfirmed = onModuleSelectionConfirmed;
     listeners.switchToDetailed = handleSwitchToDetailed;
   }
   return listeners;
@@ -992,9 +1013,16 @@ function handleSwitchToDetailed() {
 
 function handleBackToGateway() {
   flushTracking();
-  viewMode.value = null;
-  currentIndex.value = 0;
-  window.scrollTo({ top: 0, behavior: 'auto' });
+  switchOverlayMode.value = 'gateway';
+  switchOverlayVisible.value = true;
+  setTimeout(() => {
+    viewMode.value = null;
+    currentIndex.value = 0;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => {
+      switchOverlayVisible.value = false;
+    }, 1200);
+  }, 1000);
 }
 
 function onCustomTotalUpdate(total) {
@@ -1006,6 +1034,14 @@ function onCalculatorModulesUpdate(selectedIds) {
   const allIds = allGroupCalculatorItems.value.map(m => m.id);
   const selected = new Set(allIds.filter(id => selectedIds.includes(id)));
   selectedCalculatorModuleIds.value = selected;
+}
+
+function onModuleSelectionConfirmed({ selectedIds } = {}) {
+  hasConfirmedModuleSelection.value = true;
+  selectedCalculatorModuleIds.value = new Set(
+    Array.isArray(selectedIds) ? selectedIds : [],
+  );
+  writeStoredProposalModuleSelectionConfirmation(proposal.value?.uuid || '', true);
 }
 
 function goNext() {
@@ -1051,17 +1087,6 @@ function onTouchEnd(e) {
 // --- Lifecycle ---
 const onAnimationComplete = () => {
   if (loadError.value) return;
-  // Clear stale module selections and pre-populate with "all selected" default
-  try {
-    const uuid = proposal.value?.uuid;
-    if (uuid) {
-      localStorage.removeItem(`proposal-${uuid}-modules`);
-      const allIds = computeAllModuleIds();
-      if (allIds.length) {
-        localStorage.setItem(`proposal-${uuid}-modules`, JSON.stringify(allIds));
-      }
-    }
-  } catch (_e) { /* ignore */ }
   // Initialize customizedTotal from localStorage (returning visitor with prior calculator customization)
   try {
     const uuid = proposal.value?.uuid;
@@ -1072,9 +1097,19 @@ const onAnimationComplete = () => {
       }
     }
   } catch (_e) { /* ignore */ }
-  // Initialize selection: prefer persisted backend selections, then default_selected
+  // Initialize selection state: preserve confirmed selections, otherwise keep UI defaults.
+  const uuid = proposal.value?.uuid || '';
   const persistedIds = proposal.value?.selected_modules;
-  if (Array.isArray(persistedIds) && persistedIds.length) {
+  const confirmedByBackend = proposal.value?.has_confirmed_module_selection === true;
+  const confirmedByStorage = hasStoredConfirmedProposalModuleSelection(uuid);
+  hasConfirmedModuleSelection.value = confirmedByBackend || confirmedByStorage;
+
+  if (confirmedByStorage) {
+    const stored = readStoredProposalModuleSelection(uuid);
+    selectedCalculatorModuleIds.value = new Set(
+      stored.hasStoredSelection ? stored.selectedIds : [],
+    );
+  } else if (confirmedByBackend && Array.isArray(persistedIds)) {
     selectedCalculatorModuleIds.value = new Set(persistedIds);
   } else {
     const defaultSelectedIds = allGroupCalculatorItems.value

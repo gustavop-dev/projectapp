@@ -205,6 +205,7 @@ Building on the base Platform (auth, projects, kanban), these modules extend cli
 
 - **Panel Login** (`/panel/login`) — dedicated login page for admin panel
 - **Panel Admins** (`/panel/admins`) — admin user management (invite, list, manage admin accounts)
+- **Internal Kanban Task Board** (`/panel/tareas`) — admin-only Kanban board for managing internal ProjectApp team work. Four columns: TO DO, In Progress, Blocked, Done. Tasks have title, description, status, priority (low/medium/high), assignee (FK to any admin User, optional), and due_date (optional). Cards display priority badge and due_date highlighted in red when overdue. Drag-and-drop between columns and reorder within columns via vuedraggable. Create/edit modal with confirm-guarded delete. Tasks are independent — no FK link to proposals or documents.
 
 ### 3.12 Internationalization (i18n)
 

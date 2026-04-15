@@ -441,6 +441,8 @@ When a feature lets users create rows quickly without committing real contact de
 
 5. **A model property `is_email_placeholder`** — exposed to the frontend via the serializer so the UI can render a "placeholder, automations paused" badge inline.
 
+6. **MX validator whitelists the placeholder domain** — `validate_email_domain_mx()` in `backend/content/utils.py` short-circuits with `True` when `domain == _PLACEHOLDER_EMAIL_DOMAIN`, before any DNS lookup. This prevents the "El dominio de este correo no puede recibir emails (sin registros MX)." error when an admin manually types a `@temp.example.com` address. The constant `_PLACEHOLDER_EMAIL_DOMAIN = 'temp.example.com'` is local to `utils.py`; it does **not** import from `accounts/models.py` to avoid a cross-app import cycle.
+
 **Why this matters**: vendors creating test/draft proposals at speed never accidentally email real recipients (because the address is a reserved TLD), AND multiple placeholder rows never collapse into a single dedup'd row (because each placeholder is keyed on a unique profile id). The model also exposes `is_email_placeholder` so the UI can warn the user that they need to enter a real email before automations resume.
 
 **Reference implementation**:
@@ -449,3 +451,69 @@ When a feature lets users create rows quickly without committing real contact de
 - `backend/content/services/proposal_email_service.py` — `_is_unsendable_client_email` helper + 13 client-facing methods gated
 - `backend/content/tasks.py` — 4 huey task gates + 2 candidate-queryset excludes
 - `backend/content/migrations/0079_add_business_proposal_client_fk.py` + `0080_backfill_proposal_clients.py` — schema + dedup backfill
+- `backend/content/utils.py:validate_email_domain_mx` — domain whitelist so manually-typed placeholder addresses pass MX validation
+
+---
+
+## 17. Frontend Admin UX Patterns
+
+### Bidirectional Date / Duration Input Sync
+
+When two inputs must stay in sync (e.g., a `datetime-local` + a "number of days" field), use two separate `watch()` calls rather than a single computed getter/setter. The key invariant is:
+
+- **Date → Days**: compute `Math.round(diff / 86_400_000)`, always safe to recalculate.
+- **Days → Date**: rebuild from `Date.now() + safeDays × 86_400_000` **but preserve the existing time component** (`form.expires_at.slice(11, 16)`) so a user who set a specific hour does not lose it when they only intend to adjust the day count.
+
+```js
+// Days watcher — preserves user's chosen time
+watch(expiryDaysInput, (days) => {
+  const safeDays = Number.isInteger(days) && days > 0 ? days : DEFAULT_EXPIRATION_DAYS;
+  const expiry = new Date(Date.now() + safeDays * 24 * 60 * 60 * 1000);
+  const dateStr = `${expiry.getFullYear()}-${pad(expiry.getMonth() + 1)}-${pad(expiry.getDate())}`;
+  const timeStr = form.expires_at ? form.expires_at.slice(11, 16)
+                                  : `${pad(expiry.getHours())}:${pad(expiry.getMinutes())}`;
+  form.expires_at = `${dateStr}T${timeStr}`;
+});
+```
+
+Vue reactivity short-circuits when `expiryDaysInput` produces the same integer twice in a row, so the two-watcher pattern does not create an infinite loop.
+
+**Implemented in**: `create.vue` + `[id]/edit.vue` for the proposal expiration date field.
+
+### Toast Notifications for Admin Save Feedback
+
+The standard UX pattern for save confirmation in the admin edit page is a **fixed bottom-right toast** (not an inline div inside the form, which may be scrolled out of view at submission time).
+
+**Template pattern**:
+```html
+<Teleport to="body">
+  <Transition
+    enter-active-class="transition-all duration-300 ease-out"
+    leave-active-class="transition-all duration-200 ease-in"
+    enter-from-class="opacity-0 translate-y-4"
+    leave-to-class="opacity-0 translate-y-4"
+  >
+    <div v-if="updateMsg" class="fixed bottom-6 right-6 z-[9999] ...">
+      {{ updateMsg.text }}
+      <button @click="updateMsg = null">✕</button>
+    </div>
+  </Transition>
+</Teleport>
+```
+
+**Auto-dismiss without timer stacking** — store the timer id and `clearTimeout` before scheduling:
+```js
+const updateMsgTimer = ref(null);
+clearTimeout(updateMsgTimer.value);
+updateMsgTimer.value = setTimeout(() => { updateMsg.value = null; }, 5000);
+```
+
+Use `<Teleport to="body">` so the toast renders above all panel layout layers (sticky headers, sidebars) without z-index conflicts. Use Tailwind `transition-all` classes inline on `<Transition>` to avoid a separate `<style>` block.
+
+**Implemented in**: `frontend/pages/panel/proposals/[id]/edit.vue`.
+
+### Reusing Existing Transition Infrastructure for New Navigation Events
+
+Before adding a new CSS transition, check whether an existing overlay/transition already covers the visual effect you need. The `switch-mode-overlay` in `proposal/[uuid]/index.vue` was designed for gateway → mode transitions but works equally well for mode → gateway by adding a new sentinel value (`'gateway'`) to the icon/heading/subtitle ternary chain. No new CSS needed — the bouncy-scale enter/leave keyframes are reused as-is.
+
+**Pattern**: add a new `v-else-if` case to the overlay template, update `handleBackToGateway` to set `switchOverlayMode = 'gateway'` and `switchOverlayVisible = true` before resetting state, then mirror the timing of the existing `handleViewModeSelect` function (1 s hold → state reset → 1.2 s overlay hide).

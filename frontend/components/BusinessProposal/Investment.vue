@@ -272,6 +272,7 @@
       @update:selection="onSelectionUpdate"
       @navigateToRequirements="$emit('navigateToRequirements'); calculatorOpen = false"
       @updateCalculatorModules="(ids) => $emit('updateCalculatorModules', ids)"
+      @selectionConfirmed="(payload) => $emit('selectionConfirmed', payload)"
     />
   </section>
 </template>
@@ -283,8 +284,12 @@ import { useExpirationTimer } from '~/composables/useExpirationTimer';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import InvestmentCalculatorModal from './InvestmentCalculatorModal.vue';
 import InvestmentDetailedTeaser from './InvestmentDetailedTeaser.vue';
+import {
+  hasStoredConfirmedProposalModuleSelection,
+  readStoredProposalModuleSelection,
+} from '~/utils/proposalModuleSelectionStorage';
 
-const emit = defineEmits(['navigateToRequirements', 'updateCalculatorModules', 'switchToDetailed', 'updateCustomTotal']);
+const emit = defineEmits(['navigateToRequirements', 'updateCalculatorModules', 'switchToDetailed', 'updateCustomTotal', 'selectionConfirmed']);
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
@@ -418,25 +423,26 @@ function parseInvestment(str) {
 onMounted(() => {
   if (props.proposalUuid && props.modules?.length) {
     try {
-      const raw = localStorage.getItem(`proposal-${props.proposalUuid}-modules`);
-      if (raw) {
-        const selectedIds = JSON.parse(raw);
-        const base = parseInvestment(props.totalInvestment);
-        const deselectedSum = props.modules
-          .filter(m => {
-            const locked = m.is_required === true;
-            if (locked) return false;
-            if (m._source === 'calculator_module') return false;
-            return !selectedIds.includes(m.id);
-          })
-          .reduce((sum, m) => sum + (m.price || 0), 0);
-        const addedSum = props.modules
-          .filter(m => m._source === 'calculator_module' && selectedIds.includes(m.id) && m.price)
-          .reduce((sum, m) => sum + (m.price || 0), 0);
-        if (deselectedSum > 0 || addedSum > 0) {
-          customTotal.value = base - deselectedSum + addedSum;
-          try { localStorage.setItem(`proposal-${props.proposalUuid}-total`, String(customTotal.value)); } catch { /* noop */ }
-          emit('updateCustomTotal', customTotal.value);
+      if (hasStoredConfirmedProposalModuleSelection(props.proposalUuid)) {
+        const { hasStoredSelection, selectedIds } = readStoredProposalModuleSelection(props.proposalUuid);
+        if (hasStoredSelection) {
+          const base = parseInvestment(props.totalInvestment);
+          const deselectedSum = props.modules
+            .filter(m => {
+              const locked = m.is_required === true;
+              if (locked) return false;
+              if (m._source === 'calculator_module') return false;
+              return !selectedIds.includes(m.id);
+            })
+            .reduce((sum, m) => sum + (m.price || 0), 0);
+          const addedSum = props.modules
+            .filter(m => m._source === 'calculator_module' && selectedIds.includes(m.id) && m.price)
+            .reduce((sum, m) => sum + (m.price || 0), 0);
+          if (deselectedSum > 0 || addedSum > 0) {
+            customTotal.value = base - deselectedSum + addedSum;
+            try { localStorage.setItem(`proposal-${props.proposalUuid}-total`, String(customTotal.value)); } catch { /* noop */ }
+            emit('updateCustomTotal', customTotal.value);
+          }
         }
       }
     } catch (_e) { /* ignore */ }

@@ -195,6 +195,13 @@ class TestValidateEmailDomainMx:
         mock_check_domain_mx.assert_called_once_with('example.com')
         mock_warning.assert_called_once()
 
+    @patch('content.utils.check_domain_mx')
+    def test_returns_true_for_temp_example_com_domain_without_dns_lookup(self, mock_check_domain_mx):
+        result = validate_email_domain_mx('cliente_18@temp.example.com')
+
+        assert result is True
+        mock_check_domain_mx.assert_not_called()
+
 
 class TestSendWhatsappNotification:
     @patch('content.utils.requests.get')
