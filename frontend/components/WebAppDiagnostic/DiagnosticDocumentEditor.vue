@@ -57,7 +57,7 @@
         type="button"
         class="px-2 py-0.5 rounded bg-white border border-gray-300 hover:bg-emerald-50 hover:border-emerald-300"
         @click="copyVar(v)"
-      >{{ '{{' }}{{ v }}{{ '}}' }}</button>
+      >{{ wrapVar(v) }}</button>
     </footer>
   </div>
 </template>
@@ -98,6 +98,8 @@ const availableVars = [
   'modules_count',
   'modules_list',
 ];
+
+function wrapVar(name) { return '{{' + name + '}}'; }
 
 async function copyVar(name) {
   const token = `{{${name}}}`;
