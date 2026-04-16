@@ -1,11 +1,12 @@
 """Admin + public DRF views for the WebAppDiagnostic feature.
 
-All admin endpoints use Django session auth + IsAdminUser. The 3 public
-endpoints (`retrieve`, `track`, `respond`) use AllowAny + UUID lookup.
+Admin endpoints use Django session auth + IsAdminUser. The 3 public endpoints
+(`retrieve`, `track`, `respond`) use AllowAny + UUID lookup.
 """
 
 import logging
 
+from django.db.models import Avg, Count, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status as http_status
@@ -15,18 +16,25 @@ from rest_framework.response import Response
 
 from accounts.models import UserProfile
 from content.models import (
-    DiagnosticAttachment, DiagnosticDocument, WebAppDiagnostic,
+    DiagnosticAttachment,
+    DiagnosticChangeLog,
+    DiagnosticSection,
+    DiagnosticSectionView,
+    DiagnosticViewEvent,
+    WebAppDiagnostic,
 )
 from content.serializers.diagnostic import (
+    DiagnosticChangeLogSerializer,
     DiagnosticDetailSerializer,
-    DiagnosticDocumentSerializer,
-    DiagnosticDocumentUpdateSerializer,
     DiagnosticListSerializer,
+    DiagnosticSectionSerializer,
+    DiagnosticSectionUpdateSerializer,
     DiagnosticUpdateSerializer,
     PublicDiagnosticSerializer,
     serialize_diagnostic_attachment,
 )
 from content.services import diagnostic_service
+from content.utils import get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +43,7 @@ def _admin_qs(include_attachments=False):
     qs = (
         WebAppDiagnostic.objects
         .select_related('client__user')
-        .prefetch_related('documents')
+        .prefetch_related('sections', 'change_logs')
     )
     if include_attachments:
         qs = qs.prefetch_related('attachments')
@@ -113,6 +121,12 @@ def update_diagnostic(request, diagnostic_id):
         return Response(serializer.errors,
                         status=http_status.HTTP_400_BAD_REQUEST)
     serializer.save()
+    diagnostic_service.log_change(
+        diagnostic,
+        change_type=DiagnosticChangeLog.ChangeType.UPDATED,
+        description='Datos generales actualizados.',
+        actor_type=DiagnosticChangeLog.ActorType.SELLER,
+    )
     diagnostic = _admin_qs(include_attachments=True).get(pk=diagnostic.pk)
     return Response(DiagnosticDetailSerializer(diagnostic).data)
 
@@ -126,35 +140,199 @@ def delete_diagnostic(request, diagnostic_id):
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# Admin — per-document edits
+# Admin — sections CRUD
 # ──────────────────────────────────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def list_diagnostic_sections(request, diagnostic_id):
+    diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
+    return Response(DiagnosticSectionSerializer(
+        diagnostic.sections.all(), many=True,
+    ).data)
+
 
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
-def update_diagnostic_document(request, diagnostic_id, doc_id):
-    doc = get_object_or_404(
-        DiagnosticDocument.objects.select_related('diagnostic'),
-        pk=doc_id, diagnostic_id=diagnostic_id,
+def update_diagnostic_section(request, diagnostic_id, section_id):
+    section = get_object_or_404(
+        DiagnosticSection.objects.select_related('diagnostic'),
+        pk=section_id, diagnostic_id=diagnostic_id,
     )
-    serializer = DiagnosticDocumentUpdateSerializer(
-        doc, data=request.data, partial=True,
+    serializer = DiagnosticSectionUpdateSerializer(
+        section, data=request.data, partial=True,
     )
     if not serializer.is_valid():
         return Response(serializer.errors,
                         status=http_status.HTTP_400_BAD_REQUEST)
     serializer.save()
-    return Response(DiagnosticDocumentSerializer(doc).data)
+    diagnostic_service.log_change(
+        section.diagnostic,
+        change_type=DiagnosticChangeLog.ChangeType.SECTION_UPDATED,
+        field_name=section.section_type,
+        description=f'Sección «{section.title}» actualizada.',
+        actor_type=DiagnosticChangeLog.ActorType.SELLER,
+    )
+    return Response(DiagnosticSectionSerializer(section).data)
 
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
-def restore_diagnostic_document(request, diagnostic_id, doc_id):
-    doc = get_object_or_404(
-        DiagnosticDocument.objects.select_related('diagnostic'),
-        pk=doc_id, diagnostic_id=diagnostic_id,
+def bulk_update_diagnostic_sections(request, diagnostic_id):
+    """Accept a list of ``{id, ...fields}`` entries and update in one call."""
+    diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
+    payload = request.data.get('sections') or []
+    if not isinstance(payload, list):
+        return Response(
+            {'error': 'sections_must_be_list'},
+            status=http_status.HTTP_400_BAD_REQUEST,
+        )
+
+    updated_ids = []
+    for entry in payload:
+        if not isinstance(entry, dict) or 'id' not in entry:
+            continue
+        section = DiagnosticSection.objects.filter(
+            pk=entry['id'], diagnostic_id=diagnostic.id,
+        ).first()
+        if section is None:
+            continue
+        serializer = DiagnosticSectionUpdateSerializer(
+            section, data=entry, partial=True,
+        )
+        if serializer.is_valid():
+            serializer.save()
+            updated_ids.append(section.id)
+
+    if updated_ids:
+        diagnostic_service.log_change(
+            diagnostic,
+            change_type=DiagnosticChangeLog.ChangeType.SECTION_UPDATED,
+            description=f'{len(updated_ids)} secciones actualizadas en bloque.',
+            actor_type=DiagnosticChangeLog.ActorType.SELLER,
+        )
+
+    diagnostic = _admin_qs(include_attachments=True).get(pk=diagnostic.pk)
+    return Response(DiagnosticDetailSerializer(diagnostic).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def reset_diagnostic_section(request, diagnostic_id, section_id):
+    section = get_object_or_404(
+        DiagnosticSection.objects.select_related('diagnostic'),
+        pk=section_id, diagnostic_id=diagnostic_id,
     )
-    diagnostic_service.restore_document_from_template(doc)
-    return Response(DiagnosticDocumentSerializer(doc).data)
+    diagnostic_service.reset_section(section)
+    diagnostic_service.log_change(
+        section.diagnostic,
+        change_type=DiagnosticChangeLog.ChangeType.SECTION_UPDATED,
+        field_name=section.section_type,
+        description=f'Sección «{section.title}» restaurada al contenido por defecto.',
+        actor_type=DiagnosticChangeLog.ActorType.SELLER,
+    )
+    return Response(DiagnosticSectionSerializer(section).data)
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Admin — activity (change log)
+# ──────────────────────────────────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def list_diagnostic_activity(request, diagnostic_id):
+    diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
+    logs = diagnostic.change_logs.all()
+    return Response(DiagnosticChangeLogSerializer(logs, many=True).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def create_diagnostic_activity(request, diagnostic_id):
+    diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
+    change_type = (request.data.get('change_type') or 'note').strip()
+    valid = {c[0] for c in DiagnosticChangeLog.ChangeType.choices}
+    if change_type not in valid:
+        return Response(
+            {'error': 'invalid_change_type'},
+            status=http_status.HTTP_400_BAD_REQUEST,
+        )
+    description = (request.data.get('description') or '').strip()
+    if not description:
+        return Response(
+            {'error': 'description_required'},
+            status=http_status.HTTP_400_BAD_REQUEST,
+        )
+    log = diagnostic_service.log_change(
+        diagnostic,
+        change_type=change_type,
+        description=description,
+        actor_type=DiagnosticChangeLog.ActorType.SELLER,
+    )
+    return Response(
+        DiagnosticChangeLogSerializer(log).data,
+        status=http_status.HTTP_201_CREATED,
+    )
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Admin — analytics
+# ──────────────────────────────────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def diagnostic_analytics(request, diagnostic_id):
+    diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
+
+    section_stats = (
+        DiagnosticSectionView.objects
+        .filter(view_event__diagnostic=diagnostic)
+        .values('section_type', 'section_title')
+        .annotate(
+            total_seconds=Sum('time_spent_seconds'),
+            avg_seconds=Avg('time_spent_seconds'),
+            visits=Count('id'),
+        )
+        .order_by('-total_seconds')
+    )
+    total_sessions = diagnostic.view_events.count()
+    total_time = (
+        DiagnosticSectionView.objects
+        .filter(view_event__diagnostic=diagnostic)
+        .aggregate(total=Sum('time_spent_seconds'))['total'] or 0
+    )
+
+    return Response({
+        'view_count': diagnostic.view_count,
+        'last_viewed_at': (
+            diagnostic.last_viewed_at.isoformat()
+            if diagnostic.last_viewed_at else None
+        ),
+        'total_sessions': total_sessions,
+        'total_time_spent_seconds': float(total_time or 0),
+        'sections': [
+            {
+                'section_type': row['section_type'],
+                'section_title': row['section_title'],
+                'total_seconds': float(row['total_seconds'] or 0),
+                'avg_seconds': float(row['avg_seconds'] or 0),
+                'visits': row['visits'],
+            }
+            for row in section_stats
+        ],
+        'initial_sent_at': (
+            diagnostic.initial_sent_at.isoformat()
+            if diagnostic.initial_sent_at else None
+        ),
+        'final_sent_at': (
+            diagnostic.final_sent_at.isoformat()
+            if diagnostic.final_sent_at else None
+        ),
+        'responded_at': (
+            diagnostic.responded_at.isoformat()
+            if diagnostic.responded_at else None
+        ),
+    })
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -162,17 +340,10 @@ def restore_diagnostic_document(request, diagnostic_id, doc_id):
 # ──────────────────────────────────────────────────────────────────────────
 
 def _send_and_transition(diagnostic, kind: str):
-    """Run email + status transition. Returns (ok: bool, error_response).
-
-    Email errors are logged but do not abort the transition — the public link
-    works regardless of email delivery (admin can resend manually).
-    """
     from content.services.diagnostic_email_service import (
         DiagnosticEmailService,
     )
 
-    # Both the initial and final sends land on Status.SENT; the service
-    # distinguishes them by checking whether `initial_sent_at` is already set.
     if kind == 'initial':
         target = WebAppDiagnostic.Status.SENT
         email_fn = DiagnosticEmailService.send_initial_to_client
@@ -184,32 +355,44 @@ def _send_and_transition(diagnostic, kind: str):
                                status=http_status.HTTP_400_BAD_REQUEST)
 
     try:
-        diagnostic_service.transition_status(diagnostic, target)
+        diagnostic_service.transition_status(
+            diagnostic, target,
+            actor_type=DiagnosticChangeLog.ActorType.SELLER,
+        )
     except ValueError as exc:
         return False, Response(
-            {'error': str(exc).split(':')[0],
-             'message': str(exc)},
+            {'error': str(exc).split(':')[0], 'message': str(exc)},
             status=http_status.HTTP_400_BAD_REQUEST,
         )
 
     try:
-        email_fn(diagnostic)
+        email_ok = email_fn(diagnostic)
     except Exception:
         logger.exception('Email send failed for diagnostic %s (%s)',
                          diagnostic.uuid, kind)
+        email_ok = False
 
-    return True, None
+    if email_ok:
+        diagnostic_service.log_change(
+            diagnostic,
+            change_type=DiagnosticChangeLog.ChangeType.EMAIL_SENT,
+            description=f'Email «{kind}» enviado al cliente.',
+            actor_type=DiagnosticChangeLog.ActorType.SYSTEM,
+        )
+    return True, email_ok
 
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def send_initial(request, diagnostic_id):
     diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
-    ok, err = _send_and_transition(diagnostic, 'initial')
+    ok, email_ok = _send_and_transition(diagnostic, 'initial')
     if not ok:
-        return err
+        return email_ok
     diagnostic = _admin_qs(include_attachments=True).get(pk=diagnostic.pk)
-    return Response(DiagnosticDetailSerializer(diagnostic).data)
+    body = DiagnosticDetailSerializer(diagnostic).data
+    body['email_ok'] = bool(email_ok)
+    return Response(body)
 
 
 @api_view(['POST'])
@@ -220,6 +403,7 @@ def mark_in_analysis(request, diagnostic_id):
     try:
         diagnostic_service.transition_status(
             diagnostic, WebAppDiagnostic.Status.NEGOTIATING,
+            actor_type=DiagnosticChangeLog.ActorType.SELLER,
         )
     except ValueError as exc:
         return Response(
@@ -234,11 +418,13 @@ def mark_in_analysis(request, diagnostic_id):
 @permission_classes([IsAdminUser])
 def send_final(request, diagnostic_id):
     diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
-    ok, err = _send_and_transition(diagnostic, 'final')
+    ok, email_ok = _send_and_transition(diagnostic, 'final')
     if not ok:
-        return err
+        return email_ok
     diagnostic = _admin_qs(include_attachments=True).get(pk=diagnostic.pk)
-    return Response(DiagnosticDetailSerializer(diagnostic).data)
+    body = DiagnosticDetailSerializer(diagnostic).data
+    body['email_ok'] = bool(email_ok)
+    return Response(body)
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -250,7 +436,7 @@ def send_final(request, diagnostic_id):
 def retrieve_public_diagnostic(request, diagnostic_uuid):
     diagnostic = get_object_or_404(
         WebAppDiagnostic.objects.select_related('client__user')
-        .prefetch_related('documents'),
+        .prefetch_related('sections'),
         uuid=diagnostic_uuid,
     )
     if diagnostic.status in diagnostic_service.PUBLIC_VISIBLE_STATUSES:
@@ -258,12 +444,88 @@ def retrieve_public_diagnostic(request, diagnostic_uuid):
     return Response(PublicDiagnosticSerializer(diagnostic).data)
 
 
+def _ensure_view_event(diagnostic, request, session_id):
+    """Return the existing ViewEvent for (diagnostic, session) or create one."""
+    existing = (
+        DiagnosticViewEvent.objects
+        .filter(diagnostic=diagnostic, session_id=session_id)
+        .order_by('-viewed_at')
+        .first()
+    )
+    if existing is not None:
+        return existing
+    return DiagnosticViewEvent.objects.create(
+        diagnostic=diagnostic,
+        session_id=session_id,
+        ip_address=get_client_ip(request),
+        user_agent=request.META.get('HTTP_USER_AGENT', '')[:2000],
+    )
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def track_public_diagnostic(request, diagnostic_uuid):
+    """Create (or reuse) a DiagnosticViewEvent for this public visit."""
     diagnostic = get_object_or_404(WebAppDiagnostic, uuid=diagnostic_uuid)
+    session_id = (request.data.get('session_id') or '')[:64] or 'anonymous'
+    _ensure_view_event(diagnostic, request, session_id)
     diagnostic_service.register_view(diagnostic)
     return Response({'view_count': diagnostic.view_count})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def track_diagnostic_section_view(request, diagnostic_uuid):
+    """Record per-section time spent during a public visit."""
+    diagnostic = get_object_or_404(WebAppDiagnostic, uuid=diagnostic_uuid)
+    session_id = (request.data.get('session_id') or '')[:64]
+    section_type = (request.data.get('section_type') or '')[:50]
+    section_title = (request.data.get('section_title') or '')[:255]
+    time_spent = float(request.data.get('time_spent_seconds') or 0)
+
+    if not session_id or not section_type:
+        return Response(
+            {'error': 'session_id_and_section_type_required'},
+            status=http_status.HTTP_400_BAD_REQUEST,
+        )
+
+    view_event = _ensure_view_event(diagnostic, request, session_id)
+    DiagnosticSectionView.objects.create(
+        view_event=view_event,
+        section_type=section_type,
+        section_title=section_title,
+        time_spent_seconds=max(0.0, time_spent),
+        entered_at=timezone.now(),
+    )
+    return Response({'ok': True})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def respond_public_diagnostic(request, diagnostic_uuid):
+    diagnostic = get_object_or_404(WebAppDiagnostic, uuid=diagnostic_uuid)
+    decision = (request.data.get('decision') or '').strip().lower()
+    if decision not in ('accept', 'reject'):
+        return Response(
+            {'error': 'invalid_decision'},
+            status=http_status.HTTP_400_BAD_REQUEST,
+        )
+    target = (
+        WebAppDiagnostic.Status.ACCEPTED
+        if decision == 'accept'
+        else WebAppDiagnostic.Status.REJECTED
+    )
+    try:
+        diagnostic_service.transition_status(
+            diagnostic, target,
+            actor_type=DiagnosticChangeLog.ActorType.CLIENT,
+        )
+    except ValueError as exc:
+        return Response(
+            {'error': str(exc).split(':')[0], 'message': str(exc)},
+            status=http_status.HTTP_409_CONFLICT,
+        )
+    return Response(PublicDiagnosticSerializer(diagnostic).data)
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -383,6 +645,12 @@ def send_diagnostic_attachments(request, diagnostic_id):
             {'error': error or 'Error al enviar.'},
             status=http_status.HTTP_400_BAD_REQUEST,
         )
+    diagnostic_service.log_change(
+        diagnostic,
+        change_type=DiagnosticChangeLog.ChangeType.EMAIL_SENT,
+        description='Adjuntos enviados al cliente.',
+        actor_type=DiagnosticChangeLog.ActorType.SELLER,
+    )
     return Response({'message': 'Documentos enviados.'})
 
 
@@ -397,11 +665,6 @@ _COMPOSED_EMAIL_MAX_FILE = 15 * 1024 * 1024  # 15 MB
 
 
 def _parse_diagnostic_email(request, diagnostic):
-    """Validate/parse a composed-email multipart request for diagnostics.
-
-    Enforces a 1-minute-per-diagnostic rate limit in addition to field
-    validation so any caller (not just the view) is protected.
-    """
     import json
     import mimetypes
     from datetime import timedelta
@@ -516,6 +779,12 @@ def send_diagnostic_email(request, diagnostic_id):
         attachments=parsed['attachments'],
     )
     if ok:
+        diagnostic_service.log_change(
+            diagnostic,
+            change_type=DiagnosticChangeLog.ChangeType.EMAIL_SENT,
+            description=f'Correo enviado a {parsed["recipient_email"]}.',
+            actor_type=DiagnosticChangeLog.ActorType.SELLER,
+        )
         return Response({'message': f'Correo enviado a {parsed["recipient_email"]}.'})
     return Response(
         {'error': 'Error al enviar el correo. Intenta de nuevo.'},
@@ -543,28 +812,3 @@ def list_diagnostic_emails(request, diagnostic_id):
     except (ValueError, TypeError):
         page = 1
     return Response(DiagnosticEmailService.list_emails(diagnostic, page=page))
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def respond_public_diagnostic(request, diagnostic_uuid):
-    diagnostic = get_object_or_404(WebAppDiagnostic, uuid=diagnostic_uuid)
-    decision = (request.data.get('decision') or '').strip().lower()
-    if decision not in ('accept', 'reject'):
-        return Response(
-            {'error': 'invalid_decision'},
-            status=http_status.HTTP_400_BAD_REQUEST,
-        )
-    target = (
-        WebAppDiagnostic.Status.ACCEPTED
-        if decision == 'accept'
-        else WebAppDiagnostic.Status.REJECTED
-    )
-    try:
-        diagnostic_service.transition_status(diagnostic, target)
-    except ValueError as exc:
-        return Response(
-            {'error': str(exc).split(':')[0], 'message': str(exc)},
-            status=http_status.HTTP_409_CONFLICT,
-        )
-    return Response(PublicDiagnosticSerializer(diagnostic).data)

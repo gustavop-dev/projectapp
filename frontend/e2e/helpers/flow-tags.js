@@ -232,3 +232,9 @@ export const ADMIN_DOCUMENT_MOVE_FOLDER = ['@flow:admin-document-move-folder', '
 export const ADMIN_TASK_ALERT_MANAGEMENT = ['@flow:admin-task-alert-management', '@module:admin', '@priority:P1'];
 export const ADMIN_DIAGNOSTIC_EDIT       = ['@flow:admin-diagnostic-edit', '@module:admin', '@priority:P2'];
 export const ADMIN_DIAGNOSTIC_DELETE     = ['@flow:admin-diagnostic-delete', '@module:admin', '@priority:P2'];
+
+// ── Diagnostic — JSON section rewrite (Apr 16, 2026) ──
+export const ADMIN_DIAGNOSTIC_SECTIONS  = ['@flow:admin-diagnostic-sections',  '@module:admin', '@priority:P1'];
+export const ADMIN_DIAGNOSTIC_ACTIVITY  = ['@flow:admin-diagnostic-activity',  '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_ANALYTICS = ['@flow:admin-diagnostic-analytics', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_PROMPT    = ['@flow:admin-diagnostic-prompt',    '@module:admin', '@priority:P2'];

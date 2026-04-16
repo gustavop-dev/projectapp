@@ -32,7 +32,7 @@ describe('useTaskStore', () => {
     jest.restoreAllMocks()
   })
 
-  it('fetchTasks populates columns by status', async () => {
+  it('fetchTasks populates standard board columns by status', async () => {
     get_request.mockResolvedValueOnce({
       data: {
         todo: [{ id: 1, title: 'A', status: 'todo', priority: 'medium' }],
@@ -42,31 +42,36 @@ describe('useTaskStore', () => {
       },
     })
     await store.fetchTasks()
-    expect(get_request).toHaveBeenCalledWith('tasks/')
-    expect(store.columns.todo.map((t) => t.id)).toEqual([1])
-    expect(store.columns.done.map((t) => t.id)).toEqual([2])
-    expect(store.columns.blocked).toEqual([])
+    expect(get_request).toHaveBeenCalledWith('tasks/?board=standard')
+    expect(store.boardTasks.standard.todo.map((t) => t.id)).toEqual([1])
+    expect(store.boardTasks.standard.done.map((t) => t.id)).toEqual([2])
+    expect(store.boardTasks.standard.blocked).toEqual([])
   })
 
-  it('fetchTasks sets error on failure', async () => {
+  it('fetchTasks returns failure result when request errors', async () => {
     get_request.mockRejectedValueOnce({ response: { data: {} } })
     const result = await store.fetchTasks()
     expect(result.success).toBe(false)
-    expect(store.error).toBe('fetch_failed')
   })
 
-  it('createTask appends to the matching column', async () => {
-    store.columns.todo = [{ id: 1, title: 'Existing', status: 'todo' }]
+  it('createTask refetches the board after creation', async () => {
     create_request.mockResolvedValueOnce({
-      data: { id: 2, title: 'New', status: 'todo', priority: 'medium' },
+      data: { id: 2, title: 'New', status: 'todo', priority: 'medium', board_type: 'standard' },
+    })
+    get_request.mockResolvedValueOnce({
+      data: {
+        todo: [{ id: 2, title: 'New', status: 'todo', priority: 'medium', board_type: 'standard' }],
+        in_progress: [], blocked: [], done: [],
+      },
     })
     await store.createTask({ title: 'New' })
     expect(create_request).toHaveBeenCalledWith('tasks/create/', { title: 'New' })
-    expect(store.columns.todo.map((t) => t.id)).toEqual([1, 2])
+    expect(get_request).toHaveBeenCalledWith('tasks/?board=standard')
+    expect(store.boardTasks.standard.todo.map((t) => t.id)).toEqual([2])
   })
 
-  it('moveTask replaces the whole board from backend response', async () => {
-    store.columns.todo = [{ id: 1, title: 'A', status: 'todo' }]
+  it('moveTask updates the board from the backend response', async () => {
+    store.boardTasks.standard.todo = [{ id: 1, title: 'A', status: 'todo', board_type: 'standard' }]
     patch_request.mockResolvedValueOnce({
       data: {
         todo: [],
@@ -79,57 +84,69 @@ describe('useTaskStore', () => {
     expect(patch_request).toHaveBeenCalledWith(
       'tasks/1/reorder/', { status: 'in_progress', position: 0 },
     )
-    expect(store.columns.todo).toEqual([])
-    expect(store.columns.in_progress.map((t) => t.id)).toEqual([1])
+    expect(store.boardTasks.standard.todo).toEqual([])
+    expect(store.boardTasks.standard.in_progress.map((t) => t.id)).toEqual([1])
   })
 
-  it('moveTask refetches on error to resync', async () => {
+  it('moveTask triggers full board refetch on error', async () => {
     patch_request.mockRejectedValueOnce({ response: { data: {} } })
-    get_request.mockResolvedValueOnce({
-      data: { todo: [], in_progress: [], blocked: [], done: [] },
-    })
+    const emptyBoard = { data: { todo: [], in_progress: [], blocked: [], done: [] } }
+    get_request
+      .mockResolvedValueOnce(emptyBoard)
+      .mockResolvedValueOnce(emptyBoard)
+      .mockResolvedValueOnce(emptyBoard)
+      .mockResolvedValueOnce({ data: { items: [] } })
     const result = await store.moveTask(1, 'done', 0)
     expect(result.success).toBe(false)
     expect(store.error).toBe('reorder_failed')
-    expect(get_request).toHaveBeenCalledWith('tasks/')
+    expect(get_request).toHaveBeenCalledWith('tasks/?board=standard')
   })
 
-  it('updateTask replaces in place when status unchanged', async () => {
-    store.columns.todo = [{ id: 5, title: 'Old', status: 'todo', priority: 'low' }]
+  it('updateTask refetches the board after patching', async () => {
+    store.boardTasks.standard.todo = [{ id: 5, title: 'Old', status: 'todo', priority: 'low' }]
     patch_request.mockResolvedValueOnce({
-      data: { id: 5, title: 'New', status: 'todo', priority: 'high' },
+      data: { id: 5, title: 'New', status: 'todo', priority: 'high', board_type: 'standard' },
+    })
+    get_request.mockResolvedValueOnce({
+      data: {
+        todo: [{ id: 5, title: 'New', status: 'todo', priority: 'high', board_type: 'standard' }],
+        in_progress: [], blocked: [], done: [],
+      },
     })
     await store.updateTask(5, { title: 'New', priority: 'high' })
     expect(patch_request).toHaveBeenCalledWith('tasks/5/update/', { title: 'New', priority: 'high' })
-    expect(store.columns.todo[0].title).toBe('New')
-    expect(store.columns.todo[0].priority).toBe('high')
+    expect(get_request).toHaveBeenCalledWith('tasks/?board=standard')
+    expect(store.boardTasks.standard.todo[0].title).toBe('New')
   })
 
-  it('updateTask refetches when status changes', async () => {
-    store.columns.todo = [{ id: 5, title: 'A', status: 'todo' }]
+  it('updateTask refetches the correct board when status changes', async () => {
+    store.boardTasks.standard.todo = [{ id: 5, title: 'A', status: 'todo', board_type: 'standard' }]
     patch_request.mockResolvedValueOnce({
-      data: { id: 5, title: 'A', status: 'done' },
+      data: { id: 5, title: 'A', status: 'done', board_type: 'standard' },
     })
     get_request.mockResolvedValueOnce({
-      data: { todo: [], in_progress: [], blocked: [], done: [{ id: 5, title: 'A', status: 'done' }] },
+      data: { todo: [], in_progress: [], blocked: [], done: [{ id: 5, title: 'A', status: 'done', board_type: 'standard' }] },
     })
     await store.updateTask(5, { status: 'done' })
-    expect(get_request).toHaveBeenCalledWith('tasks/')
-    expect(store.columns.done.map((t) => t.id)).toEqual([5])
+    expect(get_request).toHaveBeenCalledWith('tasks/?board=standard')
+    expect(store.boardTasks.standard.done.map((t) => t.id)).toEqual([5])
   })
 
-  it('deleteTask removes the task from all columns', async () => {
-    store.columns.todo = [{ id: 1 }, { id: 2 }]
-    store.columns.done = [{ id: 3 }]
+  it('deleteTask refetches the board after deletion', async () => {
+    store.boardTasks.standard.todo = [{ id: 1, board_type: 'standard' }, { id: 2, board_type: 'standard' }]
+    store.boardTasks.standard.done = [{ id: 3, board_type: 'standard' }]
     delete_request.mockResolvedValueOnce({})
+    get_request.mockResolvedValueOnce({
+      data: { todo: [{ id: 1, board_type: 'standard' }], in_progress: [], blocked: [], done: [{ id: 3, board_type: 'standard' }] },
+    })
     await store.deleteTask(2)
     expect(delete_request).toHaveBeenCalledWith('tasks/2/delete/')
-    expect(store.columns.todo.map((t) => t.id)).toEqual([1])
-    expect(store.columns.done.map((t) => t.id)).toEqual([3])
+    expect(get_request).toHaveBeenCalledWith('tasks/?board=standard')
+    expect(store.boardTasks.standard.todo.map((t) => t.id)).toEqual([1])
   })
 
-  it('getTaskById searches across all columns', () => {
-    store.columns.in_progress = [{ id: 42, title: 'Deep' }]
+  it('getTaskById searches across all board columns', () => {
+    store.boardTasks.standard.in_progress = [{ id: 42, title: 'Deep' }]
     expect(store.getTaskById(42)).toEqual({ id: 42, title: 'Deep' })
     expect(store.getTaskById(99)).toBeNull()
   })

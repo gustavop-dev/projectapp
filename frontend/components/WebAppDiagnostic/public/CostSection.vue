@@ -1,0 +1,56 @@
+<template>
+  <section>
+    <SectionHeader :index="content.index" :title="content.title" fallback="Costo y Formas de Pago" />
+    <p v-if="content.intro" class="text-gray-700">{{ content.intro }}</p>
+
+    <div
+      v-if="investmentFormatted"
+      class="my-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center"
+    >
+      <div class="text-xs font-medium text-emerald-700 uppercase tracking-wide">Inversión</div>
+      <div class="text-3xl font-semibold text-emerald-900 mt-1">{{ investmentFormatted }} {{ diagnostic.currency || '' }}</div>
+    </div>
+
+    <ul v-if="paymentItems.length" class="space-y-2 text-gray-700">
+      <li
+        v-for="(item, idx) in paymentItems"
+        :key="idx"
+        class="flex gap-3 items-baseline"
+      >
+        <span class="shrink-0 font-semibold text-emerald-700">{{ item.pct }}% {{ item.label }}</span>
+        <span class="text-gray-600">{{ item.detail }}</span>
+      </li>
+    </ul>
+
+    <blockquote v-if="content.note" class="mt-6 border-l-4 border-amber-400 bg-amber-50 text-amber-900 italic px-4 py-3 rounded-r-lg text-sm">
+      <strong class="not-italic">Nota:</strong> {{ content.note }}
+    </blockquote>
+  </section>
+</template>
+
+<script setup>
+import { computed } from 'vue';
+import SectionHeader from './SectionHeader.vue';
+
+const props = defineProps({
+  content: { type: Object, required: true },
+  diagnostic: { type: Object, required: true },
+});
+
+const investmentFormatted = computed(() => {
+  const n = Number(props.diagnostic?.investment_amount);
+  if (!n) return '';
+  return new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(n);
+});
+
+const paymentItems = computed(() => {
+  const desc = props.content.paymentDescription || [];
+  const terms = props.diagnostic?.payment_terms || {};
+  const pctValues = [terms.initial_pct, terms.final_pct].filter((v) => v !== undefined && v !== null);
+  return desc.map((item, idx) => ({
+    label: item.label,
+    detail: item.detail,
+    pct: pctValues[idx] ?? '',
+  }));
+});
+</script>

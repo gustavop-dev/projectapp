@@ -19,14 +19,24 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
     getById: (state) => (id) =>
       state.diagnostics.find((d) => Number(d.id) === Number(id)),
 
-    visibleDocuments: (state) => {
-      const docs = state.current?.documents || [];
-      return [...docs].sort((a, b) => a.order - b.order);
+    enabledSections: (state) => {
+      const sections = state.current?.sections || [];
+      return [...sections]
+        .filter((s) => s.is_enabled)
+        .sort((a, b) => a.order - b.order);
+    },
+
+    sectionsByPhase: (state) => (phase) => {
+      const sections = state.current?.sections || [];
+      const allowed = new Set([phase, 'both']);
+      return [...sections]
+        .filter((s) => s.is_enabled && allowed.has(s.visibility))
+        .sort((a, b) => a.order - b.order);
     },
   },
 
   actions: {
-    // ── Admin ────────────────────────────────────────────────────────
+    // ── Admin CRUD ──────────────────────────────────────────────────
     async fetchAll(params = {}) {
       this.isLoading = true;
       this.error = null;
@@ -109,48 +119,115 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
       }
     },
 
-    async updateDocument(diagnosticId, docId, payload) {
+    // ── Sections ────────────────────────────────────────────────────
+    async updateSection(diagnosticId, sectionId, payload) {
       this.isUpdating = true;
       try {
         const response = await patch_request(
-          `diagnostics/${diagnosticId}/documents/${docId}/update/`,
+          `diagnostics/${diagnosticId}/sections/${sectionId}/update/`,
           payload
         );
         if (this.current?.id === diagnosticId) {
-          const docs = this.current.documents || [];
-          const idx = docs.findIndex((d) => d.id === docId);
-          if (idx >= 0) docs[idx] = { ...docs[idx], ...response.data };
+          const sections = this.current.sections || [];
+          const idx = sections.findIndex((s) => s.id === sectionId);
+          if (idx >= 0) sections[idx] = { ...sections[idx], ...response.data };
         }
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = error?.response?.data?.error || 'update_doc_failed';
+        this.error = error?.response?.data?.error || 'update_section_failed';
         return { success: false, error: this.error };
       } finally {
         this.isUpdating = false;
       }
     },
 
-    async restoreDocument(diagnosticId, docId) {
+    async bulkUpdateSections(diagnosticId, sections) {
       this.isUpdating = true;
       try {
         const response = await create_request(
-          `diagnostics/${diagnosticId}/documents/${docId}/restore/`,
-          {}
+          `diagnostics/${diagnosticId}/sections/bulk-update/`,
+          { sections }
         );
-        if (this.current?.id === diagnosticId) {
-          const docs = this.current.documents || [];
-          const idx = docs.findIndex((d) => d.id === docId);
-          if (idx >= 0) docs[idx] = { ...docs[idx], ...response.data };
-        }
+        this.current = response.data;
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = error?.response?.data?.error || 'restore_failed';
+        this.error = error?.response?.data?.error || 'bulk_update_failed';
         return { success: false, error: this.error };
       } finally {
         this.isUpdating = false;
       }
     },
 
+    async resetSection(diagnosticId, sectionId) {
+      try {
+        const response = await create_request(
+          `diagnostics/${diagnosticId}/sections/${sectionId}/reset/`,
+          {}
+        );
+        if (this.current?.id === diagnosticId) {
+          const sections = this.current.sections || [];
+          const idx = sections.findIndex((s) => s.id === sectionId);
+          if (idx >= 0) sections[idx] = { ...sections[idx], ...response.data };
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          error: error?.response?.data?.error || 'reset_failed',
+        };
+      }
+    },
+
+    // ── Activity (change log) ───────────────────────────────────────
+    async fetchActivity(id) {
+      try {
+        const response = await get_request(`diagnostics/${id}/activity/`);
+        if (this.current?.id === id) {
+          this.current = { ...this.current, change_logs: response.data };
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          error: error?.response?.data?.error || 'fetch_failed',
+        };
+      }
+    },
+
+    async logActivity(id, change_type, description) {
+      try {
+        const response = await create_request(
+          `diagnostics/${id}/activity/create/`,
+          { change_type, description }
+        );
+        if (this.current?.id === id) {
+          const next = [response.data, ...(this.current.change_logs || [])];
+          this.current = { ...this.current, change_logs: next };
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          error: error?.response?.data?.error || 'log_failed',
+        };
+      }
+    },
+
+    // ── Analytics ───────────────────────────────────────────────────
+    async fetchAnalytics(id) {
+      try {
+        const response = await get_request(`diagnostics/${id}/analytics/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          data: null,
+          error: error?.response?.data?.error || 'fetch_failed',
+        };
+      }
+    },
+
+    // ── Status transitions ──────────────────────────────────────────
     async _postTransition(id, slug, defaultError) {
       this.isUpdating = true;
       try {
@@ -305,11 +382,26 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
       }
     },
 
-    async trackView(uuid) {
+    async trackView(uuid, session_id = '') {
       try {
-        await create_request(`diagnostics/public/${uuid}/track/`, {});
+        await create_request(`diagnostics/public/${uuid}/track/`, {
+          session_id,
+        });
       } catch (_) {
-        // tracking is best-effort
+        // best-effort
+      }
+    },
+
+    async trackSectionView(uuid, { session_id, section_type, section_title, time_spent_seconds }) {
+      try {
+        await create_request(`diagnostics/public/${uuid}/track-section/`, {
+          session_id,
+          section_type,
+          section_title,
+          time_spent_seconds,
+        });
+      } catch (_) {
+        // best-effort
       }
     },
 

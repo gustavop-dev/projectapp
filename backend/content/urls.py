@@ -79,19 +79,24 @@ from content.views.proposal_clients import (
 from content.views.task import (
     list_tasks, create_task, update_task, reorder_task, delete_task,
     list_task_assignees,
+    archive_task, unarchive_task, list_archived_tasks,
+    list_task_comments, create_task_comment, delete_task_comment,
     list_task_alerts, create_task_alert, delete_task_alert,
 )
 from content.views.diagnostic import (
     list_diagnostics, create_diagnostic, retrieve_diagnostic,
     update_diagnostic, delete_diagnostic,
-    update_diagnostic_document, restore_diagnostic_document,
+    list_diagnostic_sections, update_diagnostic_section,
+    bulk_update_diagnostic_sections, reset_diagnostic_section,
+    list_diagnostic_activity, create_diagnostic_activity,
+    diagnostic_analytics,
     send_initial, mark_in_analysis, send_final,
     list_diagnostic_attachments, upload_diagnostic_attachment,
     delete_diagnostic_attachment, send_diagnostic_attachments,
     send_diagnostic_email, get_diagnostic_email_defaults,
     list_diagnostic_emails,
     retrieve_public_diagnostic, track_public_diagnostic,
-    respond_public_diagnostic,
+    track_diagnostic_section_view, respond_public_diagnostic,
 )
 
 urlpatterns = [
@@ -245,9 +250,15 @@ urlpatterns = [
     path('tasks/', list_tasks, name='list-tasks'),
     path('tasks/create/', create_task, name='create-task'),
     path('tasks/assignees/', list_task_assignees, name='list-task-assignees'),
+    path('tasks/archived/', list_archived_tasks, name='list-archived-tasks'),
     path('tasks/<int:task_id>/update/', update_task, name='update-task'),
     path('tasks/<int:task_id>/reorder/', reorder_task, name='reorder-task'),
     path('tasks/<int:task_id>/delete/', delete_task, name='delete-task'),
+    path('tasks/<int:task_id>/archive/', archive_task, name='archive-task'),
+    path('tasks/<int:task_id>/unarchive/', unarchive_task, name='unarchive-task'),
+    path('tasks/<int:task_id>/comments/', list_task_comments, name='list-task-comments'),
+    path('tasks/<int:task_id>/comments/create/', create_task_comment, name='create-task-comment'),
+    path('tasks/<int:task_id>/comments/<int:comment_id>/delete/', delete_task_comment, name='delete-task-comment'),
     path('tasks/<int:task_id>/alerts/', list_task_alerts, name='list-task-alerts'),
     path('tasks/<int:task_id>/alerts/create/', create_task_alert, name='create-task-alert'),
     path('tasks/<int:task_id>/alerts/<int:alert_id>/delete/', delete_task_alert, name='delete-task-alert'),
@@ -262,6 +273,7 @@ urlpatterns = [
     # Public (UUID-based)
     path('diagnostics/public/<uuid:diagnostic_uuid>/', retrieve_public_diagnostic, name='retrieve-public-diagnostic'),
     path('diagnostics/public/<uuid:diagnostic_uuid>/track/', track_public_diagnostic, name='track-public-diagnostic'),
+    path('diagnostics/public/<uuid:diagnostic_uuid>/track-section/', track_diagnostic_section_view, name='track-diagnostic-section-view'),
     path('diagnostics/public/<uuid:diagnostic_uuid>/respond/', respond_public_diagnostic, name='respond-public-diagnostic'),
 
     # Admin CRUD
@@ -273,8 +285,19 @@ urlpatterns = [
     path('diagnostics/<int:diagnostic_id>/send-initial/', send_initial, name='send-initial-diagnostic'),
     path('diagnostics/<int:diagnostic_id>/mark-in-analysis/', mark_in_analysis, name='mark-in-analysis-diagnostic'),
     path('diagnostics/<int:diagnostic_id>/send-final/', send_final, name='send-final-diagnostic'),
-    path('diagnostics/<int:diagnostic_id>/documents/<int:doc_id>/update/', update_diagnostic_document, name='update-diagnostic-document'),
-    path('diagnostics/<int:diagnostic_id>/documents/<int:doc_id>/restore/', restore_diagnostic_document, name='restore-diagnostic-document'),
+
+    # Sections (JSON-driven content)
+    path('diagnostics/<int:diagnostic_id>/sections/', list_diagnostic_sections, name='list-diagnostic-sections'),
+    path('diagnostics/<int:diagnostic_id>/sections/bulk-update/', bulk_update_diagnostic_sections, name='bulk-update-diagnostic-sections'),
+    path('diagnostics/<int:diagnostic_id>/sections/<int:section_id>/update/', update_diagnostic_section, name='update-diagnostic-section'),
+    path('diagnostics/<int:diagnostic_id>/sections/<int:section_id>/reset/', reset_diagnostic_section, name='reset-diagnostic-section'),
+
+    # Activity (change log)
+    path('diagnostics/<int:diagnostic_id>/activity/', list_diagnostic_activity, name='list-diagnostic-activity'),
+    path('diagnostics/<int:diagnostic_id>/activity/create/', create_diagnostic_activity, name='create-diagnostic-activity'),
+
+    # Analytics
+    path('diagnostics/<int:diagnostic_id>/analytics/', diagnostic_analytics, name='diagnostic-analytics'),
 
     # Attachments (files uploaded to a diagnostic)
     path('diagnostics/<int:diagnostic_id>/attachments/', list_diagnostic_attachments, name='list-diagnostic-attachments'),

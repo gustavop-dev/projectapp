@@ -1725,7 +1725,7 @@
       "module": "admin",
       "roles": ["admin"],
       "priority": "P1",
-      "description": "Admin creates a new WebAppDiagnostic from /panel/diagnostics/create: searches for a client via autocomplete, selects language, submits → redirected to edit page with 3 documents loaded from templates.",
+      "description": "Admin creates a new WebAppDiagnostic from /panel/diagnostics/create: searches for a client via autocomplete, selects language, submits → redirected to edit page with 8 JSON sections seeded from the default template.",
       "expectedSpecs": 3
     },
     "admin-diagnostic-send-initial": {
@@ -1733,7 +1733,7 @@
       "module": "admin",
       "roles": ["admin"],
       "priority": "P1",
-      "description": "Admin sends the initial proposal (Doc 1) from the diagnostic edit page via 'Enviar Doc 1 al cliente', transitioning status from DRAFT to INITIAL_SENT, then marks as IN_ANALYSIS.",
+      "description": "Admin sends the initial-phase diagnostic from the edit page via 'Enviar envío inicial' (SENT, initial_sent_at stamped), and later promotes it to NEGOTIATING via 'Marcar en análisis'. Public view exposes only sections with visibility ∈ {initial, both}.",
       "expectedSpecs": 2
     },
     "admin-diagnostic-send-final": {
@@ -1741,7 +1741,7 @@
       "module": "admin",
       "roles": ["admin"],
       "priority": "P1",
-      "description": "Admin sends the full diagnostic package (Docs 1+2+3) via 'Enviar diagnóstico final' from IN_ANALYSIS state, transitioning status to FINAL_SENT.",
+      "description": "Admin sends the final-phase diagnostic from NEGOTIATING via 'Enviar diagnóstico final' (SENT again, final_sent_at stamped). Public view now also exposes sections with visibility ∈ {final}.",
       "expectedSpecs": 2
     },
     "diagnostic-public-view": {
@@ -1749,8 +1749,41 @@
       "module": "diagnostic",
       "roles": ["guest"],
       "priority": "P1",
-      "description": "Client accesses the public diagnostic page via UUID link, views documents per workflow status (1 doc in INITIAL_SENT, 3 in FINAL_SENT), and responds (accept/reject).",
+      "description": "Client accesses the public diagnostic page via UUID link, navigates the JSON-driven section components (Purpose/Radiography/Categories/DeliveryStructure/ExecutiveSummary/Cost/Timeline/Scope), and responds (accept/reject) when in final-phase SENT.",
       "expectedSpecs": 3
+    },
+    "admin-diagnostic-sections": {
+      "name": "Admin Diagnostic Sections Editor",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Admin edits the 8 JSON sections from the Secciones tab of the diagnostic edit page. Each section type has a typed form (paragraphs, severity levels, 14-category findings, radiography table, timeline rows, etc.). Changes are debounced and PATCHed to /sections/<id>/update/. Plantillas tab shows the raw JSON with copy + bulk save.",
+      "expectedSpecs": 1
+    },
+    "admin-diagnostic-activity": {
+      "name": "Admin Diagnostic Activity Timeline",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin records notes / call / meeting / followup events from the Actividad tab (POST /activity/create/). Timeline shows auto-logged events (created, status change, section updated, email sent, accepted, rejected) alongside manual notes.",
+      "expectedSpecs": 1
+    },
+    "admin-diagnostic-analytics": {
+      "name": "Admin Diagnostic Analytics Dashboard",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin reviews view_count, session count, per-section time heatbar, and lifecycle timestamps from the Analítica tab (GET /analytics/). Metrics accumulate from public DiagnosticViewEvent / DiagnosticSectionView rows created as the client navigates the public page.",
+      "expectedSpecs": 1
+    },
+    "admin-diagnostic-prompt": {
+      "name": "Admin Diagnostic Prompt Editor",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin copies / edits / downloads the two diagnostic prompts (commercial and technical) from the Prompt tab. State is persisted in localStorage per browser via usePromptState({storageKey, defaultPrompt}).",
+      "expectedSpecs": 0,
+      "knownGaps": ["Spec not yet written — edit/copy/reset is tested manually."]
     },
     "admin-diagnostic-email": {
       "name": "Admin Diagnostic Email Composer",
@@ -1781,9 +1814,8 @@
       "module": "admin",
       "roles": ["admin"],
       "priority": "P2",
-      "description": "Admin edits an existing WebAppDiagnostic: updates title, client, language, investment amount, and document body text (markdown template variables). Changes are saved via PATCH /api/diagnostics/:id/update/.",
-      "expectedSpecs": 1,
-      "knownGaps": ["Spec not yet written."]
+      "description": "Admin edits top-level metadata of an existing WebAppDiagnostic (title, client, language, pricing, radiography). Changes are saved via PATCH /api/diagnostics/:id/update/. Section content is edited separately under admin-diagnostic-sections.",
+      "expectedSpecs": 1
     },
     "admin-diagnostic-delete": {
       "name": "Admin Diagnostic Delete",

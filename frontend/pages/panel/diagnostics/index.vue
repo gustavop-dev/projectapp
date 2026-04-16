@@ -12,11 +12,14 @@
     />
 
     <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
-      <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Diagnósticos de aplicaciones</h1>
+      <div>
+        <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Diagnósticos de aplicaciones</h1>
+        <p class="text-sm text-gray-400 dark:text-gray-500 mt-0.5">Seguimiento de diagnósticos técnicos por cliente</p>
+      </div>
       <NuxtLink
         :to="localePath('/panel/diagnostics/create')"
         class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
-               font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm
+               font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm shrink-0
                dark:bg-emerald-700 dark:hover:bg-emerald-600"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,29 +97,51 @@
       v-else
       class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto dark:bg-gray-800 dark:border-gray-700"
     >
-      <table class="w-full min-w-[800px]">
-        <thead>
+      <table class="w-full min-w-[900px]">
+        <thead class="sticky top-0 z-10 bg-white dark:bg-gray-800">
           <tr class="border-b border-gray-100 dark:border-gray-700 text-left">
             <th class="px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12">ID</th>
             <th
-              class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-emerald-600"
+              class="px-6 py-3 text-xs font-medium uppercase tracking-wider cursor-pointer select-none transition-colors"
+              :class="sortKey === 'client_name' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400 hover:text-emerald-600'"
               @click="toggleSort('client_name')"
             >
-              Cliente <span v-if="sortKey === 'client_name'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+              <span class="inline-flex items-center gap-1">
+                Cliente
+                <SortIcon :active="sortKey === 'client_name'" :asc="sortDir === 'asc'" />
+              </span>
             </th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Título</th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
             <th
-              class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-emerald-600"
+              class="px-6 py-3 text-xs font-medium uppercase tracking-wider cursor-pointer select-none transition-colors"
+              :class="sortKey === 'investment_amount' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400 hover:text-emerald-600'"
               @click="toggleSort('investment_amount')"
             >
-              Inversión <span v-if="sortKey === 'investment_amount'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+              <span class="inline-flex items-center gap-1">
+                Inversión
+                <SortIcon :active="sortKey === 'investment_amount'" :asc="sortDir === 'asc'" />
+              </span>
             </th>
             <th
-              class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-emerald-600"
+              class="px-6 py-3 text-xs font-medium uppercase tracking-wider cursor-pointer select-none transition-colors hidden sm:table-cell"
+              :class="sortKey === 'created_at' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400 hover:text-emerald-600'"
+              @click="toggleSort('created_at')"
+            >
+              <span class="inline-flex items-center gap-1">
+                Creado
+                <SortIcon :active="sortKey === 'created_at'" :asc="sortDir === 'asc'" />
+              </span>
+            </th>
+            <th
+              class="px-6 py-3 text-xs font-medium uppercase tracking-wider cursor-pointer select-none transition-colors"
+              :class="sortKey === 'last_viewed_at' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400 hover:text-emerald-600'"
               @click="toggleSort('last_viewed_at')"
             >
-              Última vista <span v-if="sortKey === 'last_viewed_at'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+              <span class="inline-flex items-center gap-1">
+                Última vista
+                <SortIcon :active="sortKey === 'last_viewed_at'" :asc="sortDir === 'asc'" />
+              </span>
             </th>
             <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
           </tr>
@@ -142,6 +167,10 @@
               <span v-if="d.investment_amount">{{ formatMoney(d.investment_amount) }} {{ d.currency }}</span>
               <span v-else class="text-gray-300 dark:text-gray-500">—</span>
             </td>
+            <td class="px-6 py-4 text-xs text-gray-500 dark:text-gray-400 hidden sm:table-cell">
+              <span v-if="d.created_at">{{ formatDate(d.created_at) }}</span>
+              <span v-else class="text-gray-300 dark:text-gray-500">—</span>
+            </td>
             <td class="px-6 py-4 text-xs text-gray-500 dark:text-gray-400">
               <span v-if="d.last_viewed_at">
                 {{ formatDate(d.last_viewed_at) }}
@@ -164,9 +193,11 @@
       </table>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-gray-700">
-        <span class="text-xs text-gray-400 dark:text-gray-500">{{ sortedDiagnostics.length }} diagnóstico(s)</span>
-        <div class="flex gap-1">
+      <div v-if="sortedDiagnostics.length" class="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-gray-700">
+        <span class="text-xs text-gray-400 dark:text-gray-500">
+          Mostrando {{ paginationStart }}–{{ paginationEnd }} de {{ sortedDiagnostics.length }} diagnóstico{{ sortedDiagnostics.length !== 1 ? 's' : '' }}
+        </span>
+        <div v-if="totalPages > 1" class="flex gap-1">
           <button
             v-for="page in totalPages"
             :key="page"
@@ -198,6 +229,9 @@
                 </h3>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   {{ actionsModalDiagnostic.client?.name || '—' }}
+                  <span v-if="actionsModalDiagnostic.created_at" class="ml-1 text-gray-400">
+                    · {{ formatDate(actionsModalDiagnostic.created_at) }}
+                  </span>
                 </p>
               </div>
               <button
@@ -273,6 +307,18 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
+
+/** Inline sort icon — chevron up/down SVG */
+const SortIcon = {
+  props: { active: Boolean, asc: Boolean },
+  template: `
+    <svg class="w-3 h-3 shrink-0 transition-opacity" :class="active ? 'opacity-100' : 'opacity-30'"
+         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path v-if="!active || asc" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/>
+      <path v-if="active && !asc" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+    </svg>
+  `,
+};
 
 const moneyFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
 const dateTimeFormatter = new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
@@ -364,6 +410,9 @@ const sortedDiagnostics = computed(() => {
     } else if (sk === 'last_viewed_at') {
       va = a.last_viewed_at ? new Date(a.last_viewed_at).getTime() : 0;
       vb = b.last_viewed_at ? new Date(b.last_viewed_at).getTime() : 0;
+    } else if (sk === 'created_at') {
+      va = a.created_at ? new Date(a.created_at).getTime() : 0;
+      vb = b.created_at ? new Date(b.created_at).getTime() : 0;
     } else {
       va = a[sk] || '';
       vb = b[sk] || '';
@@ -380,6 +429,10 @@ const paginatedDiagnostics = computed(() => {
   const start = (currentPage.value - 1) * pageSize;
   return sortedDiagnostics.value.slice(start, start + pageSize);
 });
+const paginationStart = computed(() => (currentPage.value - 1) * pageSize + 1);
+const paginationEnd = computed(() =>
+  Math.min(currentPage.value * pageSize, sortedDiagnostics.value.length),
+);
 
 function toggleSort(key) {
   if (sortKey.value === key) {

@@ -8,7 +8,8 @@ class WebAppDiagnostic(models.Model):
     """Diagnóstico técnico ofrecido a clientes que ya tienen una aplicación web.
 
     Cada diagnóstico se ata a un cliente (UserProfile, role='client') y
-    contiene tres documentos (DiagnosticDocument). Comparte el vocabulario
+    se presenta al cliente como una secuencia de ``DiagnosticSection`` con
+    ``content_json`` (paridad con propuestas). Comparte el vocabulario
     de estados con BusinessProposal; la distinción entre envío inicial y
     final se preserva en los timestamps `initial_sent_at` / `final_sent_at`.
 
@@ -122,43 +123,3 @@ class WebAppDiagnostic(models.Model):
 
     def can_transition_to(self, new_status):
         return new_status in self.ALLOWED_TRANSITIONS.get(self.status, frozenset())
-
-
-class DiagnosticDocument(models.Model):
-    """Uno de los tres documentos del diagnóstico (cargado desde un .md)."""
-
-    class DocType(models.TextChoices):
-        INITIAL_PROPOSAL = 'initial_proposal', 'Propuesta de Diagnóstico'
-        TECHNICAL_PROPOSAL = 'technical_proposal', 'Propuesta de Diagnóstico Técnico'
-        SIZING_ANNEX = 'sizing_annex', 'Anexo de Dimensionamiento Preliminar'
-
-    DOC_TYPE_ORDER = {
-        DocType.INITIAL_PROPOSAL: 1,
-        DocType.TECHNICAL_PROPOSAL: 2,
-        DocType.SIZING_ANNEX: 3,
-    }
-
-    diagnostic = models.ForeignKey(
-        WebAppDiagnostic,
-        on_delete=models.CASCADE,
-        related_name='documents',
-    )
-    doc_type = models.CharField(max_length=30, choices=DocType.choices)
-    title = models.CharField(max_length=255)
-    content_md = models.TextField()
-    is_ready = models.BooleanField(
-        default=False,
-        help_text='Marca el documento como listo para incluir en el envío final.',
-    )
-    order = models.PositiveSmallIntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = [('diagnostic', 'doc_type')]
-        ordering = ['order', 'id']
-        verbose_name = 'Diagnostic Document'
-        verbose_name_plural = 'Diagnostic Documents'
-
-    def __str__(self):
-        return f'{self.diagnostic.title} — {self.get_doc_type_display()}'

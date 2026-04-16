@@ -2,55 +2,86 @@ import { defineStore } from 'pinia';
 import { get_request, create_request, patch_request, delete_request } from './services/request_http';
 
 const EMPTY_COLUMNS = () => ({ todo: [], in_progress: [], blocked: [], done: [] });
+const BOARD_KEYS = ['standard', 'weekly', 'monthly', 'macro'];
 
 export const useTaskStore = defineStore('tasks', {
-  /**
-   * State of the Kanban Task store.
-   *
-   * Properties:
-   * - columns (Object): Tasks grouped by status ({todo, in_progress, blocked, done}).
-   * - isLoading (Boolean): Fetch operation in progress.
-   * - isUpdating (Boolean): Mutation operation in progress.
-   * - error (String|null): Last error code.
-   */
   state: () => ({
-    columns: EMPTY_COLUMNS(),
+    boardTasks: {
+      standard: EMPTY_COLUMNS(),
+      weekly: EMPTY_COLUMNS(),
+      monthly: EMPTY_COLUMNS(),
+      macro: [],
+    },
+    archivedTasks: [],
+    archivedLoading: false,
     isLoading: false,
     isUpdating: false,
     error: null,
     assignees: [],
     taskAlerts: {},
     alertsLoading: false,
+    comments: {},
+    commentsLoading: false,
   }),
 
   getters: {
+    /** Backward-compat alias used by existing tests. */
+    columns: (state) => state.boardTasks.standard,
+
     getTaskById: (state) => (id) => {
-      for (const list of Object.values(state.columns)) {
+      for (const boardKey of BOARD_KEYS) {
+        const board = state.boardTasks[boardKey];
+        const list = Array.isArray(board) ? board : Object.values(board).flat();
         const found = list.find((t) => t.id === id);
         if (found) return found;
       }
       return null;
     },
-    taskCount: (state) => (status) => (state.columns[status] || []).length,
+
+    taskCount: (state) => (status) => (state.boardTasks.standard[status] || []).length,
   },
 
   actions: {
-    /** Fetch all tasks grouped by status. */
-    async fetchTasks() {
+    /** Fetch tasks for a single board and update boardTasks in place. */
+    async fetchBoardTasks(board) {
+      try {
+        const response = await get_request(`tasks/?board=${board}`);
+        if (board === 'macro') {
+          this.boardTasks.macro = response.data.items || [];
+        } else {
+          this.boardTasks[board] = { ...EMPTY_COLUMNS(), ...response.data };
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error(`Error fetching board ${board}:`, error);
+        return { success: false, errors: error.response?.data };
+      }
+    },
+
+    /** Fetch all 4 boards in parallel. */
+    async fetchAllBoards() {
       this.isLoading = true;
       this.error = null;
       try {
-        const response = await get_request('tasks/');
-        this.columns = { ...EMPTY_COLUMNS(), ...response.data };
-        return { success: true, data: response.data };
+        await Promise.all(BOARD_KEYS.map((b) => this.fetchBoardTasks(b)));
+        return { success: true };
       } catch (error) {
         this.error = 'fetch_failed';
-        console.error('Error fetching tasks:', error);
-        return { success: false, errors: error.response?.data };
+        return { success: false };
       /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
       }
+    },
+
+    /** Backward-compat alias used by tests and existing consumers. */
+    async fetchTasks() {
+      return this.fetchBoardTasks('standard');
+    },
+
+    /** Refetch a single board after a mutation (create/update/delete). */
+    async refetchBoard(boardType) {
+      return this.fetchBoardTasks(boardType || 'standard');
     },
 
     /** Create a new task. Backend places it at the end of its status column. */
@@ -60,7 +91,8 @@ export const useTaskStore = defineStore('tasks', {
       try {
         const response = await create_request('tasks/create/', payload);
         const task = response.data;
-        this.columns[task.status].push(task);
+        const board = task.board_type || 'standard';
+        await this.refetchBoard(board);
         return { success: true, data: task };
       } catch (error) {
         this.error = 'create_failed';
@@ -72,17 +104,14 @@ export const useTaskStore = defineStore('tasks', {
       }
     },
 
-    /** Patch task fields. If status changes, refetch to keep columns consistent. */
+    /** Patch task fields. Refetches the affected board after changes. */
     async updateTask(id, patch) {
       this.isUpdating = true;
       this.error = null;
       try {
         const response = await patch_request(`tasks/${id}/update/`, patch);
         const updated = response.data;
-        const statusChanged = this.replaceTaskInPlace(updated);
-        if (statusChanged) {
-          await this.fetchTasks();
-        }
+        await this.refetchBoard(updated.board_type || 'standard');
         return { success: true, data: updated };
       } catch (error) {
         this.error = 'update_failed';
@@ -99,15 +128,21 @@ export const useTaskStore = defineStore('tasks', {
       this.isUpdating = true;
       this.error = null;
       try {
+        const task = this.getTaskById(id);
         const response = await patch_request(
           `tasks/${id}/reorder/`,
           { status: newStatus, position: newPosition },
         );
-        this.columns = { ...EMPTY_COLUMNS(), ...response.data };
+        const board = task?.board_type || 'standard';
+        if (board === 'macro') {
+          this.boardTasks.macro = response.data.items || [];
+        } else {
+          this.boardTasks[board] = { ...EMPTY_COLUMNS(), ...response.data };
+        }
         return { success: true, data: response.data };
       } catch (error) {
         console.error('Error reordering task:', error);
-        await this.fetchTasks();
+        await this.fetchAllBoards();
         this.error = 'reorder_failed';
         return { success: false, errors: error.response?.data };
       /* c8 ignore next 3 */
@@ -133,11 +168,11 @@ export const useTaskStore = defineStore('tasks', {
     async deleteTask(id) {
       this.isUpdating = true;
       this.error = null;
+      const task = this.getTaskById(id);
+      const board = task?.board_type || 'standard';
       try {
         await delete_request(`tasks/${id}/delete/`);
-        for (const key of Object.keys(this.columns)) {
-          this.columns[key] = this.columns[key].filter((t) => t.id !== id);
-        }
+        await this.refetchBoard(board);
         return { success: true };
       } catch (error) {
         this.error = 'delete_failed';
@@ -146,6 +181,105 @@ export const useTaskStore = defineStore('tasks', {
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
+      }
+    },
+
+    /** Archive a task with an optional reason. */
+    async archiveTask(id, reason) {
+      this.isUpdating = true;
+      this.error = null;
+      const task = this.getTaskById(id);
+      const board = task?.board_type || 'standard';
+      try {
+        await patch_request(`tasks/${id}/archive/`, { archive_reason: reason || '' });
+        await this.refetchBoard(board);
+        return { success: true };
+      } catch (error) {
+        this.error = 'archive_failed';
+        console.error('Error archiving task:', error);
+        return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /** Restore an archived task to its board. */
+    async unarchiveTask(id) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await patch_request(`tasks/${id}/unarchive/`, {});
+        const task = response.data;
+        this.archivedTasks = this.archivedTasks.filter((t) => t.id !== id);
+        await this.refetchBoard(task.board_type || 'standard');
+        return { success: true };
+      } catch (error) {
+        this.error = 'unarchive_failed';
+        console.error('Error unarchiving task:', error);
+        return { success: false, errors: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /** Fetch all archived tasks (lazy — called when the accordion first opens). */
+    async fetchArchivedTasks() {
+      this.archivedLoading = true;
+      try {
+        const response = await get_request('tasks/archived/');
+        this.archivedTasks = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching archived tasks:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.archivedLoading = false;
+      }
+    },
+
+    /** Fetch comments for a task. */
+    async fetchTaskComments(taskId) {
+      this.commentsLoading = true;
+      try {
+        const response = await get_request(`tasks/${taskId}/comments/`);
+        this.comments = { ...this.comments, [taskId]: response.data };
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching task comments:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.commentsLoading = false;
+      }
+    },
+
+    /** Add a comment to a task. */
+    async addTaskComment(taskId, text) {
+      try {
+        const response = await create_request(`tasks/${taskId}/comments/create/`, { text });
+        const comment = response.data;
+        const current = this.comments[taskId] ?? [];
+        this.comments = { ...this.comments, [taskId]: [...current, comment] };
+        return { success: true, data: comment };
+      } catch (error) {
+        console.error('Error adding task comment:', error);
+        return { success: false, errors: error.response?.data };
+      }
+    },
+
+    /** Delete a comment from a task. */
+    async deleteTaskComment(taskId, commentId) {
+      try {
+        await delete_request(`tasks/${taskId}/comments/${commentId}/delete/`);
+        const current = this.comments[taskId] ?? [];
+        this.comments = { ...this.comments, [taskId]: current.filter((c) => c.id !== commentId) };
+        return { success: true };
+      } catch (error) {
+        console.error('Error deleting task comment:', error);
+        return { success: false };
       }
     },
 
@@ -193,18 +327,29 @@ export const useTaskStore = defineStore('tasks', {
     },
 
     /**
-     * Replace a task within its current column.
+     * Replace a task within its current column (searches all boards).
      * Returns true if the task moved to a different column (caller should refetch).
      */
     replaceTaskInPlace(updated) {
-      for (const key of Object.keys(this.columns)) {
-        const idx = this.columns[key].findIndex((t) => t.id === updated.id);
-        if (idx === -1) continue;
-        if (key === updated.status) {
-          this.columns[key].splice(idx, 1, updated);
-          return false;
+      for (const boardKey of BOARD_KEYS) {
+        const board = this.boardTasks[boardKey];
+        if (Array.isArray(board)) {
+          const idx = board.findIndex((t) => t.id === updated.id);
+          if (idx !== -1) {
+            this.boardTasks[boardKey].splice(idx, 1, updated);
+            return false;
+          }
+        } else {
+          for (const key of Object.keys(board)) {
+            const idx = board[key].findIndex((t) => t.id === updated.id);
+            if (idx === -1) continue;
+            if (key === updated.status) {
+              this.boardTasks[boardKey][key].splice(idx, 1, updated);
+              return false;
+            }
+            return true;
+          }
         }
-        return true;
       }
       return true;
     },

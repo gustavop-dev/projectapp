@@ -5,9 +5,48 @@ from rest_framework import serializers
 from accounts.models import UserProfile
 from accounts.services.proposal_client_service import build_client_display_name
 from content.models import (
-    DiagnosticAttachment, DiagnosticDocument, WebAppDiagnostic,
+    DiagnosticAttachment,
+    DiagnosticChangeLog,
+    DiagnosticSection,
+    WebAppDiagnostic,
 )
 from content.services import diagnostic_service
+
+# Whitelist of render_context keys that are safe to expose on the public
+# client-facing endpoint. Everything else (e.g. controllers_disconnected,
+# *_count raw numbers used only for admin-facing hints) stays admin-only.
+PUBLIC_RENDER_CONTEXT_KEYS = frozenset({
+    'client_name',
+    'investment_amount',
+    'currency',
+    'payment_initial_pct',
+    'payment_final_pct',
+    'duration_label',
+    'size_category_label',
+    'stack_backend_name',
+    'stack_backend_version',
+    'stack_frontend_name',
+    'stack_frontend_version',
+    'entities_count', 'entities_size',
+    'routes_total', 'routes_size',
+    'frontend_routes_count', 'frontend_routes_size',
+    'components_count', 'components_size',
+    'external_integrations', 'integrations_size',
+    'modules_count', 'modules_size', 'modules_list',
+})
+
+
+def _render_context_for(serializer, diagnostic):
+    """Build-or-reuse the render_context dict scoped to one serializer instance.
+
+    Avoids recomputing ``build_render_context`` for multiple SerializerMethodFields
+    on the same detail response.
+    """
+    cached = getattr(serializer, '_cached_render_context', None)
+    if cached is None:
+        cached = diagnostic_service.build_render_context(diagnostic)
+        serializer._cached_render_context = cached
+    return cached
 
 
 class _ClientSummarySerializer(serializers.ModelSerializer):
@@ -26,23 +65,37 @@ class _ClientSummarySerializer(serializers.ModelSerializer):
         return profile.user.email or ''
 
 
-class DiagnosticDocumentSerializer(serializers.ModelSerializer):
-    rendered_md = serializers.SerializerMethodField()
-
+class DiagnosticSectionSerializer(serializers.ModelSerializer):
     class Meta:
-        model = DiagnosticDocument
+        model = DiagnosticSection
         fields = [
-            'id', 'doc_type', 'title', 'content_md', 'rendered_md',
-            'is_ready', 'order', 'created_at', 'updated_at',
+            'id', 'section_type', 'title', 'order', 'is_enabled',
+            'visibility', 'content_json',
         ]
-        read_only_fields = ['doc_type', 'order', 'rendered_md',
-                            'created_at', 'updated_at']
+        read_only_fields = ['section_type']
 
-    def get_rendered_md(self, doc):
-        # Reuse a context cached on the serializer context when batching docs
-        # for the same diagnostic (see DiagnosticDetailSerializer).
-        context = self.context.get('render_context')
-        return diagnostic_service.render_document(doc, context=context)
+
+class DiagnosticSectionUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DiagnosticSection
+        fields = ['title', 'order', 'is_enabled', 'visibility', 'content_json']
+        extra_kwargs = {
+            'title': {'required': False},
+            'order': {'required': False},
+            'is_enabled': {'required': False},
+            'visibility': {'required': False},
+            'content_json': {'required': False},
+        }
+
+
+class DiagnosticChangeLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DiagnosticChangeLog
+        fields = [
+            'id', 'change_type', 'field_name', 'old_value', 'new_value',
+            'description', 'actor_type', 'created_at',
+        ]
+        read_only_fields = ['id', 'created_at']
 
 
 def serialize_diagnostic_attachment(att):
@@ -85,21 +138,24 @@ class DiagnosticListSerializer(serializers.ModelSerializer):
 
 
 class DiagnosticDetailSerializer(DiagnosticListSerializer):
-    documents = serializers.SerializerMethodField()
+    sections = serializers.SerializerMethodField()
     attachments = serializers.SerializerMethodField()
+    change_logs = serializers.SerializerMethodField()
     payment_terms = serializers.JSONField()
     radiography = serializers.JSONField()
+    render_context = serializers.SerializerMethodField()
 
     class Meta(DiagnosticListSerializer.Meta):
         fields = DiagnosticListSerializer.Meta.fields + [
-            'payment_terms', 'radiography', 'documents', 'attachments',
+            'payment_terms', 'radiography',
+            'sections', 'attachments', 'change_logs', 'render_context',
         ]
 
-    def get_documents(self, diagnostic):
-        render_context = diagnostic_service.build_render_context(diagnostic)
-        docs = sorted(diagnostic.documents.all(), key=lambda d: d.order)
-        return DiagnosticDocumentSerializer(
-            docs, many=True, context={'render_context': render_context},
+    def get_sections(self, diagnostic):
+        # Model Meta.ordering = ['order'] already sorts; use list() to consume
+        # the prefetched cache.
+        return DiagnosticSectionSerializer(
+            list(diagnostic.sections.all()), many=True,
         ).data
 
     def get_attachments(self, diagnostic):
@@ -108,12 +164,27 @@ class DiagnosticDetailSerializer(DiagnosticListSerializer):
             for att in diagnostic.attachments.all()
         ]
 
+    def get_change_logs(self, diagnostic):
+        # Slice the prefetched list in Python to keep the cache intact; an
+        # upstream `RelatedManager[:60]` would issue a fresh SQL query.
+        return DiagnosticChangeLogSerializer(
+            list(diagnostic.change_logs.all())[:60], many=True,
+        ).data
+
+    def get_render_context(self, diagnostic):
+        return _render_context_for(self, diagnostic)
+
 
 class DiagnosticUpdateSerializer(serializers.ModelSerializer):
-    """Admin update payload — supports pricing/radiography edits.
+    """Admin update payload — pricing/radiography/client edits."""
 
-    Status is changed via dedicated send-initial/send-final endpoints.
-    """
+    client_id = serializers.PrimaryKeyRelatedField(
+        queryset=UserProfile.objects.filter(role=UserProfile.ROLE_CLIENT),
+        source='client',
+        write_only=True,
+        required=False,
+        allow_null=False,
+    )
 
     class Meta:
         model = WebAppDiagnostic
@@ -121,6 +192,7 @@ class DiagnosticUpdateSerializer(serializers.ModelSerializer):
             'title', 'language',
             'investment_amount', 'currency', 'payment_terms',
             'duration_label', 'size_category', 'radiography',
+            'client_id',
         ]
         extra_kwargs = {
             'title': {'required': False},
@@ -128,44 +200,30 @@ class DiagnosticUpdateSerializer(serializers.ModelSerializer):
         }
 
 
-class DiagnosticDocumentUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DiagnosticDocument
-        fields = ['title', 'content_md', 'is_ready']
-        extra_kwargs = {
-            'title': {'required': False},
-            'content_md': {'required': False},
-            'is_ready': {'required': False},
-        }
-
-
 class PublicDiagnosticSerializer(serializers.ModelSerializer):
     client_name = serializers.SerializerMethodField()
-    documents = serializers.SerializerMethodField()
+    sections = serializers.SerializerMethodField()
+    render_context = serializers.SerializerMethodField()
 
     class Meta:
         model = WebAppDiagnostic
         fields = [
             'uuid', 'title', 'status', 'language',
             'client_name', 'investment_amount', 'currency',
-            'duration_label', 'size_category', 'documents',
+            'duration_label', 'size_category',
+            'initial_sent_at', 'final_sent_at', 'responded_at',
+            'sections', 'render_context',
         ]
 
     def get_client_name(self, diagnostic):
         return build_client_display_name(diagnostic.client)
 
-    def get_documents(self, diagnostic):
-        docs = diagnostic_service.visible_documents(diagnostic)
-        if not docs:
-            return []
-        render_context = diagnostic_service.build_render_context(diagnostic)
-        return [
-            {
-                'id': d.id,
-                'doc_type': d.doc_type,
-                'title': d.title,
-                'order': d.order,
-                'rendered_md': diagnostic_service.render_document(d, context=render_context),
-            }
-            for d in docs
-        ]
+    def get_sections(self, diagnostic):
+        return DiagnosticSectionSerializer(
+            diagnostic_service.visible_sections(diagnostic),
+            many=True,
+        ).data
+
+    def get_render_context(self, diagnostic):
+        full = _render_context_for(self, diagnostic)
+        return {k: v for k, v in full.items() if k in PUBLIC_RENDER_CONTEXT_KEYS}

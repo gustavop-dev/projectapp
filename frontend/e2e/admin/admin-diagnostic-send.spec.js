@@ -68,7 +68,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     });
   });
 
-  test('edit page renders all 6 navigation tabs', {
+  test('edit page renders all 10 navigation tabs', {
     tag: [...ADMIN_DIAGNOSTIC_SEND_INITIAL, '@role:admin'],
   }, async ({ page }) => {
     const diagnostic = buildMockDiagnostic();
@@ -78,12 +78,16 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await expect(page.getByRole('button', { name: 'Resumen' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('button', { name: 'Pricing' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Radiografía' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Secciones' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Plantillas' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Prompt' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Actividad' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Analítica' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Correos' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
   });
 
-  test('"Enviar Doc 1 al cliente" button POSTs to send-initial/ in DRAFT state', {
+  test('"Enviar envío inicial" button POSTs to send-initial/ in DRAFT state', {
     tag: [...ADMIN_DIAGNOSTIC_SEND_INITIAL, '@role:admin'],
   }, async ({ page }) => {
     const diagnostic = buildMockDiagnostic({ status: 'draft' });
@@ -116,8 +120,8 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     });
 
     await page.goto('/panel/diagnostics/7/edit');
-    await expect(page.getByRole('button', { name: /enviar doc 1/i })).toBeVisible({ timeout: 15000 });
-    await page.getByRole('button', { name: /enviar doc 1/i }).click();
+    await expect(page.getByRole('button', { name: /enviar envío inicial/i })).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: /enviar envío inicial/i }).click();
     await page.getByRole('button', { name: 'Enviar', exact: true }).click();
 
     await expect(() => expect(sendCalled).toBe(true)).toPass({ timeout: 5000 });

@@ -61,6 +61,19 @@
               </div>
             </div>
 
+            <div>
+              <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Tablero</label>
+              <select
+                v-model="form.board_type"
+                class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100"
+              >
+                <option value="standard">Sin periodicidad</option>
+                <option value="weekly">Semanal</option>
+                <option value="monthly">Mensual</option>
+                <option value="macro">Macro-tarea</option>
+              </select>
+            </div>
+
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Due date</label>
@@ -154,6 +167,93 @@
               </div>
             </div>
 
+            <!-- Comment thread (edit mode only) -->
+            <div v-if="isEditing" class="pt-1">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Comentarios</span>
+                <span
+                  v-if="comments.length"
+                  class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                >{{ comments.length }}</span>
+              </div>
+
+              <div v-if="store.commentsLoading" class="text-xs text-gray-400 py-1">Cargando…</div>
+
+              <ul v-else-if="comments.length" class="space-y-2 mb-3 max-h-40 overflow-y-auto">
+                <li
+                  v-for="comment in comments"
+                  :key="comment.id"
+                  class="flex items-start gap-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-sm"
+                >
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2">
+                      <span class="font-medium text-gray-800 dark:text-gray-200 text-xs">{{ comment.author_name }}</span>
+                      <span class="text-[10px] text-gray-400">{{ formatCommentDate(comment.created_at) }}</span>
+                    </div>
+                    <p class="mt-0.5 text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{{ comment.text }}</p>
+                  </div>
+                  <button
+                    type="button"
+                    class="text-gray-300 hover:text-red-500 dark:hover:text-red-400 flex-shrink-0 mt-0.5 text-xs"
+                    @click="handleDeleteComment(comment.id)"
+                  >✕</button>
+                </li>
+              </ul>
+              <p v-else class="text-xs text-gray-400 dark:text-gray-500 mb-3">Sin comentarios aún.</p>
+
+              <div class="flex gap-2">
+                <input
+                  v-model="newComment"
+                  type="text"
+                  placeholder="Agregar comentario…"
+                  class="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  @keydown.enter.prevent="handleAddComment"
+                />
+                <button
+                  type="button"
+                  :disabled="!newComment.trim() || isAddingComment"
+                  class="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 flex-shrink-0"
+                  @click="handleAddComment"
+                >{{ isAddingComment ? '…' : '+ Agregar' }}</button>
+              </div>
+            </div>
+
+            <!-- Archive section (edit mode only) -->
+            <div v-if="isEditing" class="pt-1">
+              <!-- Already archived: show badge + reason -->
+              <div v-if="props.task?.is_archived" class="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/40">
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 flex-shrink-0">Archivada</span>
+                <p v-if="props.task.archive_reason" class="text-xs text-amber-700 dark:text-amber-400 flex-1">{{ props.task.archive_reason }}</p>
+                <p v-else class="text-xs text-gray-400 italic flex-1">Sin motivo registrado.</p>
+              </div>
+              <!-- Not archived: show archive trigger / form -->
+              <div v-else-if="!showArchiveForm" class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400 underline"
+                  @click="showArchiveForm = true"
+                >Archivar tarea</button>
+              </div>
+              <div v-else class="space-y-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/40">
+                <label class="block text-xs font-medium text-amber-700 dark:text-amber-400">Motivo del archivo <span class="text-gray-400">(opcional)</span></label>
+                <textarea
+                  v-model="archiveReason"
+                  rows="2"
+                  placeholder="Ej: Descartada por cambio de prioridades…"
+                  class="w-full px-3 py-2 border border-amber-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-amber-500"
+                ></textarea>
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    :disabled="busy"
+                    class="px-3 py-1.5 text-xs rounded-lg bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50"
+                    @click="handleArchive"
+                  >Confirmar archivo</button>
+                  <button type="button" class="text-xs text-gray-500 hover:text-gray-700" @click="showArchiveForm = false">Cancelar</button>
+                </div>
+              </div>
+            </div>
+
             <div class="flex items-center justify-between pt-3">
               <button
                 v-if="isEditing"
@@ -198,16 +298,18 @@ const props = defineProps({
   modelValue: { type: Boolean, default: false },
   task: { type: Object, default: null },
   defaultStatus: { type: String, default: 'todo' },
+  defaultBoardType: { type: String, default: 'standard' },
   busy: { type: Boolean, default: false },
   assignees: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(['update:modelValue', 'submit', 'delete']);
+const emit = defineEmits(['update:modelValue', 'submit', 'delete', 'archive']);
 
 const store = useTaskStore();
 
 const isEditing = computed(() => Boolean(props.task?.id));
 const alerts = computed(() => store.taskAlerts[props.task?.id] ?? []);
+const comments = computed(() => store.comments[props.task?.id] ?? []);
 
 const form = ref(buildForm(props.task, props.defaultStatus));
 
@@ -215,13 +317,20 @@ const newAlert = ref({ notify_at: '', note: '' });
 const isAddingAlert = ref(false);
 const deletingAlertId = ref(null);
 
-function buildForm(task, defaultStatus) {
+const newComment = ref('');
+const isAddingComment = ref(false);
+
+const showArchiveForm = ref(false);
+const archiveReason = ref('');
+
+function buildForm(task, defaultStatus, defaultBoardType) {
   if (task) {
     return {
       title: task.title || '',
       description: task.description || '',
       status: task.status || 'todo',
       priority: task.priority || 'medium',
+      board_type: task.board_type || 'standard',
       due_date: task.due_date || '',
       assignee_id: task.assignee || '',
     };
@@ -231,6 +340,7 @@ function buildForm(task, defaultStatus) {
     description: '',
     status: defaultStatus || 'todo',
     priority: 'medium',
+    board_type: props.defaultBoardType || 'standard',
     due_date: '',
     assignee_id: '',
   };
@@ -240,10 +350,14 @@ watch(
   () => props.modelValue,
   (open) => {
     if (open) {
-      form.value = buildForm(props.task, props.defaultStatus);
+      form.value = buildForm(props.task, props.defaultStatus, props.defaultBoardType);
       newAlert.value = { notify_at: '', note: '' };
+      newComment.value = '';
+      showArchiveForm.value = false;
+      archiveReason.value = '';
       if (props.task?.id) {
         store.fetchTaskAlerts(props.task.id);
+        store.fetchTaskComments(props.task.id);
       }
     }
   },
@@ -267,12 +381,37 @@ function handleSubmit() {
     description: form.value.description,
     status: form.value.status,
     priority: form.value.priority,
+    board_type: form.value.board_type,
   };
   if (form.value.due_date) payload.due_date = form.value.due_date;
   else payload.due_date = null;
   if (form.value.assignee_id) payload.assignee_id = Number(form.value.assignee_id);
   else payload.assignee_id = null;
   emit('submit', payload);
+}
+
+async function handleAddComment() {
+  const text = newComment.value.trim();
+  if (!text) return;
+  isAddingComment.value = true;
+  const result = await store.addTaskComment(props.task.id, text);
+  if (result.success) newComment.value = '';
+  isAddingComment.value = false;
+}
+
+async function handleDeleteComment(commentId) {
+  await store.deleteTaskComment(props.task.id, commentId);
+}
+
+async function handleArchive() {
+  emit('archive', props.task, archiveReason.value.trim());
+}
+
+function formatCommentDate(dateStr) {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('es-CO', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
 }
 
 function handleDelete() {

@@ -4,10 +4,8 @@ from django.db import models
 class DiagnosticAttachment(models.Model):
     """Files attached to a WebAppDiagnostic for admin → client sharing.
 
-    Distinct from ``DiagnosticDocument`` (markdown templates rendered into
-    the public view). Attachments are arbitrary uploaded files (annexes,
-    client-provided docs, auxiliary PDFs) that can be emailed via the
-    "Enviar documentos" modal.
+    Attachments are arbitrary uploaded files (annexes, client-provided docs,
+    auxiliary PDFs) that can be emailed via the "Enviar documentos" modal.
     """
 
     DOC_TYPE_AMENDMENT = 'amendment'

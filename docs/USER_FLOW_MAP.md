@@ -1748,7 +1748,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/diagnostics/create` → `/panel/diagnostics/:id/edit`
-- **Description:** Admin creates a new WebAppDiagnostic by searching for an existing client via autocomplete (reuses `/api/proposals/client-profiles/search/`), selecting language, and submitting. The service loads 3 markdown documents from templates and redirects to the edit page.
+- **Description:** Admin creates a new WebAppDiagnostic by searching for an existing client via autocomplete (reuses `/api/proposals/client-profiles/search/`), selecting language, and submitting. The service seeds 8 JSON sections (`purpose`, `radiography`, `categories`, `delivery_structure`, `executive_summary`, `cost`, `timeline`, `scope`) from `content.seeds.diagnostic_template` and redirects to the edit page.
 - **Steps:**
   1. Admin navigates to `/panel/diagnostics/create`.
   2. Types in the client search input (autocomplete fetches from `client-profiles/search`).
@@ -1767,13 +1767,13 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/diagnostics/:id/edit`
-- **Description:** Admin sends the initial diagnostic proposal (Doc 1, no pricing yet) to the client from the edit page, transitioning status DRAFT → INITIAL_SENT. Then marks the diagnostic as IN_ANALYSIS once the client authorises the work.
+- **Description:** Admin sends the initial-phase diagnostic to the client from the edit page, transitioning status DRAFT → SENT (stamps `initial_sent_at`). Then promotes the diagnostic to NEGOTIATING once the client authorises the work. Public view exposes only sections whose `visibility ∈ {initial, both}`.
 - **Steps:**
   1. Admin navigates to `/panel/diagnostics/:id/edit` (status: DRAFT).
-  2. Clicks "Enviar Doc 1 al cliente" → POST `/api/diagnostics/:id/send-initial/`.
-  3. Status transitions to `initial_sent`; email is sent to client.
+  2. Clicks "Enviar envío inicial" → POST `/api/diagnostics/:id/send-initial/`.
+  3. Status transitions to SENT; `initial_sent_at` stamped; client email dispatched; response body carries `email_ok` flag.
   4. After client confirmation, admin clicks "Marcar en análisis" → POST `/api/diagnostics/:id/mark-in-analysis/`.
-  5. Status transitions to `in_analysis`.
+  5. Status transitions to NEGOTIATING.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-diagnostic-send.spec.js`
 
@@ -1785,14 +1785,85 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/diagnostics/:id/edit`
-- **Description:** Admin completes pricing and radiography data, marks all 3 documents as ready, and sends the full diagnostic package (Docs 1+2+3) from IN_ANALYSIS state, transitioning to FINAL_SENT.
+- **Description:** Admin completes pricing and radiography data, finalises the `categories` section with findings/recommendations + the `executive_summary` section with severity counts, then sends the final-phase diagnostic from NEGOTIATING state, transitioning back to SENT with `final_sent_at` stamped. Public view now also exposes sections whose `visibility = final`.
 - **Steps:**
   1. Admin edits Pricing and Radiografía tabs in `/panel/diagnostics/:id/edit`.
-  2. Marks all 3 DiagnosticDocuments as `is_ready` in the Documentos tab.
-  3. Clicks "Enviar diagnóstico final" → POST `/api/diagnostics/:id/send-final/`.
-  4. Status transitions to `final_sent`; email sent to client with link to all 3 docs.
+  2. Fills findings, strengths, and recommendations for each of the 14 categories in the Secciones tab.
+  3. Completes the Resumen Ejecutivo section with severity counts + narrative.
+  4. Clicks "Enviar diagnóstico final" → POST `/api/diagnostics/:id/send-final/`.
+  5. Status returns to SENT; `final_sent_at` stamped; email sent to client with the public link.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-diagnostic-send.spec.js`
+
+---
+
+### FLOW: `admin-diagnostic-sections`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/diagnostics/:id/edit` (Secciones tab + Plantillas tab)
+- **Description:** Admin edits each of the 8 JSON sections through typed form components. Each section has its own form (paragraphs, severity scale, 14-category findings/recommendations, radiography table, timeline day distribution, cost payment description, etc.). Edits are debounced 600 ms and PATCHed to `/sections/:id/update/`. Plantillas tab shows the raw JSON of all sections with copy + bulk save (`/sections/bulk-update/`), and a "Restaurar contenido por defecto" action per section that reloads from the seed.
+- **Steps:**
+  1. Admin opens the Secciones tab — the 8 seeded section cards render (collapsed).
+  2. Expands a section, edits its typed form (e.g., appends a finding in the Categorías section).
+  3. After 600 ms of inactivity the change PATCHes; saving indicator flips to "Guardado HH:MM".
+  4. Alternatively opens the Plantillas tab, edits the raw JSON, clicks "Guardar cambios" → bulk PATCH.
+  5. A `section_updated` entry appears in the Actividad timeline.
+- **Branches:**
+  - [Visibility toggle] Changing `visibility` between `initial` / `final` / `both` changes what the public page shows per phase.
+  - [Disable] Unchecking "Activa en la vista pública" hides the section without deleting it.
+  - [Reset] "Restaurar contenido por defecto" restores the section from `content.seeds.diagnostic_template.default_sections()`.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-diagnostic-sections.spec.js`
+
+---
+
+### FLOW: `admin-diagnostic-activity`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/diagnostics/:id/edit` (Actividad tab)
+- **Description:** Admin reviews the `DiagnosticChangeLog` timeline for a diagnostic and logs manual notes (note / call / meeting / followup). Automated entries are appended by the backend on creation, status transitions, section edits, email sends, and client responses.
+- **Steps:**
+  1. Admin navigates to the Actividad tab.
+  2. Selects a change_type, types a description, clicks "Registrar" → POST `/activity/create/`.
+  3. New entry appears at the top of the timeline with icon + color + timestamp.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-diagnostic-sections.spec.js`
+
+---
+
+### FLOW: `admin-diagnostic-analytics`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/diagnostics/:id/edit` (Analítica tab)
+- **Description:** Admin reviews engagement KPIs for a diagnostic: `view_count`, total sessions, aggregated time spent, per-section heat bar (sorted by `total_seconds`), and lifecycle timestamps (`initial_sent_at`, `final_sent_at`, `responded_at`). Metrics are sourced from `DiagnosticViewEvent` + `DiagnosticSectionView` rows created by the public page's per-section dwell tracker.
+- **Steps:**
+  1. Admin navigates to the Analítica tab — GET `/analytics/` fires on mount.
+  2. KPIs render: total views, sessions, total time, respuesta status.
+  3. Heat bar lists sections sorted by total seconds with visit counts.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-diagnostic-sections.spec.js`
+
+---
+
+### FLOW: `admin-diagnostic-prompt`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/diagnostics/:id/edit` (Prompt tab)
+- **Description:** Admin copies / edits / downloads the two diagnostic prompts used with an LLM to draft content — "Propuesta comercial" (fills the 8-section JSON narrative) and "Detalle técnico" (fills the `categories` section with per-category findings at the 4 severity levels). State is persisted per browser via `localStorage` using `usePromptState({storageKey, defaultPrompt})`.
+- **Steps:**
+  1. Admin navigates to the Prompt tab.
+  2. Selects a sub-tab (Comercial / Técnico).
+  3. Clicks Copiar / Editar / Descargar / Restaurar — prompt text round-trips through `localStorage`.
+- **Coverage:** 🟡 Manual only
+- **E2E Spec:** _Not written — prompt copy/reset is covered by manual QA._
 
 ---
 
@@ -1848,16 +1919,18 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** guest (via UUID link in email)
 - **Priority:** P1
 - **Routes:** `/diagnostic/:uuid`
-- **Description:** Client opens the public diagnostic link, views rendered markdown documents (1 in INITIAL_SENT, 3 in FINAL_SENT), and responds (accept/reject) via the footer buttons.
+- **Description:** Client opens the public diagnostic link and navigates the 8 JSON-driven section components (Purpose / Radiography / Categories / DeliveryStructure / ExecutiveSummary / Cost / Timeline / Scope). Server-side filtering returns only sections whose `visibility ∈ {phase, both}` where `phase = 'final' if final_sent_at else 'initial'`. Per-section dwell time is recorded via `DiagnosticViewEvent` + `DiagnosticSectionView`; the final row is flushed via `navigator.sendBeacon` on tab unload.
 - **Steps:**
   1. Client navigates to `/diagnostic/:uuid` (no auth required).
-  2. Page fetches GET `/api/diagnostics/public/:uuid/` and auto-increments `view_count`.
-  3. [Branch: `INITIAL_SENT`] — Only Doc 1 is visible; no tab nav rendered.
-  4. [Branch: `FINAL_SENT`] — All 3 documents visible as tabs; footer shows accept/reject buttons.
-  5. Client clicks "Aceptar propuesta" → POST `/api/diagnostics/public/:uuid/respond/` with `decision: 'accept'`.
-  6. Status transitions to `accepted`; acceptance footer replaces the CTA.
+  2. Page fetches GET `/api/diagnostics/public/:uuid/` (auto-increments `view_count`) and generates a client-side `session_id`.
+  3. POST `/track/` with `session_id` creates a `DiagnosticViewEvent`.
+  4. [Branch: SENT + no `final_sent_at`] — Only `initial`/`both` sections render in the tab nav.
+  5. [Branch: SENT + `final_sent_at`] — Sections with `final` visibility (e.g. `executive_summary`) also render; footer shows accept/reject buttons.
+  6. Client navigates sections → each change POSTs `/track-section/` with elapsed seconds.
+  7. Client clicks "Aceptar propuesta" → POST `/api/diagnostics/public/:uuid/respond/` with `decision: 'accept'`.
+  8. Status transitions to `accepted`; acceptance footer replaces the CTA.
 - **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/public/diagnostic-public-view.spec.js`
+- **E2E Spec:** `e2e/public/diagnostic-public-view.spec.js` + `e2e/admin/admin-diagnostic-sections.spec.js` (initial-phase visibility filter)
 
 ---
 
@@ -2857,7 +2930,11 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-diagnostic-send-final` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` |
 | `admin-diagnostic-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-email-documents.spec.js` |
 | `admin-diagnostic-documents` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-email-documents.spec.js` |
-| `diagnostic-public-view` | diagnostic | guest | P1 | ✅ Covered | `e2e/public/diagnostic-public-view.spec.js` |
+| `admin-diagnostic-sections` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
+| `admin-diagnostic-activity` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
+| `admin-diagnostic-analytics` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
+| `admin-diagnostic-prompt` | admin | admin | P2 | 🟡 Manual only | _not written_ |
+| `diagnostic-public-view` | diagnostic | guest | P1 | ✅ Covered | `e2e/public/diagnostic-public-view.spec.js` + `e2e/admin/admin-diagnostic-sections.spec.js` |
 | `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
 | `admin-email-deliverability` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-email-deliverability.spec.js` |
 | `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
@@ -3497,7 +3574,11 @@ No active browser flow is registered for client profile editing at this time.
 | `admin-diagnostic-send-final` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` |
 | `admin-diagnostic-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-email-documents.spec.js` |
 | `admin-diagnostic-documents` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-email-documents.spec.js` |
-| `diagnostic-public-view` | diagnostic | guest | P1 | ✅ Covered | `e2e/public/diagnostic-public-view.spec.js` |
+| `admin-diagnostic-sections` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
+| `admin-diagnostic-activity` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
+| `admin-diagnostic-analytics` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
+| `admin-diagnostic-prompt` | admin | admin | P2 | 🟡 Manual only | _not written_ |
+| `diagnostic-public-view` | diagnostic | guest | P1 | ✅ Covered | `e2e/public/diagnostic-public-view.spec.js` + `e2e/admin/admin-diagnostic-sections.spec.js` |
 
 ---
 

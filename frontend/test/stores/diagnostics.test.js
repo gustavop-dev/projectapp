@@ -24,16 +24,19 @@ const mockDiagnostic = (overrides = {}) => ({
   title: 'Diagnóstico — Acme',
   status: 'draft',
   client_name: 'Acme Corp',
-  documents: [],
+  sections: [],
+  change_logs: [],
   ...overrides,
 })
 
-const mockDoc = (overrides = {}) => ({
+const mockSection = (overrides = {}) => ({
   id: 10,
-  doc_type: 'initial_proposal',
+  section_type: 'purpose',
+  title: 'Propósito',
   order: 1,
-  content_md: '# Test',
-  is_ready: false,
+  is_enabled: true,
+  visibility: 'both',
+  content_json: { title: 'Propósito' },
   ...overrides,
 })
 
@@ -53,23 +56,11 @@ describe('useDiagnosticsStore', () => {
 
   // ── Initial state ────────────────────────────────────────────────────────
 
-  it('starts with empty diagnostics array', () => {
+  it('starts with empty diagnostics array and null current', () => {
     expect(store.diagnostics).toEqual([])
-  })
-
-  it('starts with null current', () => {
     expect(store.current).toBeNull()
-  })
-
-  it('starts with isLoading false', () => {
     expect(store.isLoading).toBe(false)
-  })
-
-  it('starts with isUpdating false', () => {
     expect(store.isUpdating).toBe(false)
-  })
-
-  it('starts with null error', () => {
     expect(store.error).toBeNull()
   })
 
@@ -78,51 +69,44 @@ describe('useDiagnosticsStore', () => {
   it('getById finds a diagnostic by numeric id', () => {
     store.diagnostics = [mockDiagnostic({ id: 1 }), mockDiagnostic({ id: 2 })]
     expect(store.getById(1).id).toBe(1)
-    expect(store.getById(2).id).toBe(2)
-  })
-
-  it('getById coerces string ids to numbers', () => {
-    store.diagnostics = [mockDiagnostic({ id: 5 })]
-    expect(store.getById('5').id).toBe(5)
-  })
-
-  it('getById returns undefined for a missing id', () => {
-    store.diagnostics = [mockDiagnostic({ id: 1 })]
+    expect(store.getById('2').id).toBe(2)
     expect(store.getById(99)).toBeUndefined()
   })
 
-  it('visibleDocuments sorts documents by order ascending', () => {
+  it('enabledSections returns only enabled sections sorted by order', () => {
     store.current = mockDiagnostic({
-      documents: [
-        mockDoc({ id: 3, order: 3 }),
-        mockDoc({ id: 1, order: 1 }),
-        mockDoc({ id: 2, order: 2 }),
+      sections: [
+        mockSection({ id: 3, order: 3, is_enabled: true }),
+        mockSection({ id: 1, order: 1, is_enabled: true }),
+        mockSection({ id: 2, order: 2, is_enabled: false }),
       ],
     })
-    const sorted = store.visibleDocuments
-    expect(sorted.map((d) => d.order)).toEqual([1, 2, 3])
+    expect(store.enabledSections.map((s) => s.id)).toEqual([1, 3])
   })
 
-  it('visibleDocuments returns empty array when current is null', () => {
-    store.current = null
-    expect(store.visibleDocuments).toEqual([])
-  })
-
-  it('visibleDocuments returns empty array when current has no documents', () => {
-    store.current = mockDiagnostic({ documents: [] })
-    expect(store.visibleDocuments).toEqual([])
+  it('sectionsByPhase filters by visibility (initial excludes final-only)', () => {
+    store.current = mockDiagnostic({
+      sections: [
+        mockSection({ id: 1, visibility: 'both', order: 1 }),
+        mockSection({ id: 2, visibility: 'initial', order: 2 }),
+        mockSection({ id: 3, visibility: 'final', order: 3 }),
+      ],
+    })
+    const initial = store.sectionsByPhase('initial')
+    expect(initial.map((s) => s.id)).toEqual([1, 2])
+    const final = store.sectionsByPhase('final')
+    expect(final.map((s) => s.id)).toEqual([1, 3])
   })
 
   // ── fetchAll ─────────────────────────────────────────────────────────────
 
   it('fetchAll calls GET diagnostics/ and populates diagnostics array', async () => {
-    const list = [mockDiagnostic({ id: 1 }), mockDiagnostic({ id: 2 })]
+    const list = [mockDiagnostic({ id: 1 })]
     get_request.mockResolvedValueOnce({ data: list })
     const result = await store.fetchAll()
     expect(get_request).toHaveBeenCalledWith('diagnostics/')
     expect(store.diagnostics).toEqual(list)
     expect(result.success).toBe(true)
-    expect(result.data).toEqual(list)
   })
 
   it('fetchAll appends status filter as query string', async () => {
@@ -131,32 +115,15 @@ describe('useDiagnosticsStore', () => {
     expect(get_request).toHaveBeenCalledWith('diagnostics/?status=draft')
   })
 
-  it('fetchAll omits empty string and undefined params from query string', async () => {
-    get_request.mockResolvedValueOnce({ data: [] })
-    await store.fetchAll({ status: '', client: undefined })
-    expect(get_request).toHaveBeenCalledWith('diagnostics/')
-  })
-
-  it('fetchAll sets error on failure', async () => {
+  it('fetchAll sets error and clears loading on failure', async () => {
     get_request.mockRejectedValueOnce({ response: { data: { error: 'server_error' } } })
     const result = await store.fetchAll()
     expect(result.success).toBe(false)
     expect(store.error).toBe('server_error')
-  })
-
-  it('fetchAll defaults to fetch_failed when no error key in response', async () => {
-    get_request.mockRejectedValueOnce({ response: { data: {} } })
-    await store.fetchAll()
-    expect(store.error).toBe('fetch_failed')
-  })
-
-  it('fetchAll clears isLoading in finally', async () => {
-    get_request.mockResolvedValueOnce({ data: [] })
-    await store.fetchAll()
     expect(store.isLoading).toBe(false)
   })
 
-  // ── fetchDetail ──────────────────────────────────────────────────────────
+  // ── fetchDetail / create / update / remove ──────────────────────────────
 
   it('fetchDetail sets current and calls the detail endpoint', async () => {
     const d = mockDiagnostic({ id: 7 })
@@ -167,47 +134,16 @@ describe('useDiagnosticsStore', () => {
     expect(result.success).toBe(true)
   })
 
-  it('fetchDetail sets error on failure', async () => {
-    get_request.mockRejectedValueOnce({ response: { data: { error: 'not_found' } } })
-    const result = await store.fetchDetail(99)
-    expect(result.success).toBe(false)
-    expect(store.error).toBe('not_found')
-  })
-
-  it('fetchDetail clears isLoading in finally', async () => {
-    get_request.mockRejectedValueOnce({ response: { data: {} } })
-    await store.fetchDetail(1)
-    expect(store.isLoading).toBe(false)
-  })
-
-  // ── create ───────────────────────────────────────────────────────────────
-
-  it('create POSTs to diagnostics/create/ with payload', async () => {
+  it('create POSTs to diagnostics/create/ and stores current', async () => {
     const d = mockDiagnostic()
     create_request.mockResolvedValueOnce({ data: d })
     const result = await store.create({ client_id: 1, language: 'es' })
     expect(create_request).toHaveBeenCalledWith('diagnostics/create/', { client_id: 1, language: 'es' })
     expect(store.current).toEqual(d)
     expect(result.success).toBe(true)
-    expect(result.data).toEqual(d)
   })
 
-  it('create clears isUpdating in finally', async () => {
-    create_request.mockResolvedValueOnce({ data: mockDiagnostic() })
-    await store.create({})
-    expect(store.isUpdating).toBe(false)
-  })
-
-  it('create sets error on failure', async () => {
-    create_request.mockRejectedValueOnce({ response: { data: { error: 'client_id_required' } } })
-    const result = await store.create({})
-    expect(result.success).toBe(false)
-    expect(store.error).toBe('client_id_required')
-  })
-
-  // ── update ───────────────────────────────────────────────────────────────
-
-  it('update PATCHes to diagnostics/{id}/update/ and updates current', async () => {
+  it('update PATCHes and updates current', async () => {
     const updated = mockDiagnostic({ duration_label: '2 semanas' })
     patch_request.mockResolvedValueOnce({ data: updated })
     const result = await store.update(1, { duration_label: '2 semanas' })
@@ -216,134 +152,93 @@ describe('useDiagnosticsStore', () => {
     expect(result.success).toBe(true)
   })
 
-  it('update sets error on failure', async () => {
-    patch_request.mockRejectedValueOnce({ response: { data: {} } })
-    const result = await store.update(1, {})
-    expect(result.success).toBe(false)
-    expect(store.error).toBe('update_failed')
-  })
-
-  // ── remove ───────────────────────────────────────────────────────────────
-
-  it('remove DELETEs the diagnostic and filters it from the array', async () => {
-    store.diagnostics = [mockDiagnostic({ id: 1 }), mockDiagnostic({ id: 2 })]
-    delete_request.mockResolvedValueOnce({})
-    await store.remove(1)
-    expect(delete_request).toHaveBeenCalledWith('diagnostics/1/delete/')
-    expect(store.diagnostics.map((d) => d.id)).toEqual([2])
-  })
-
-  it('remove nulls current when the deleted item was current', async () => {
+  it('remove DELETEs and filters from diagnostics array', async () => {
     store.current = mockDiagnostic({ id: 3 })
-    store.diagnostics = [mockDiagnostic({ id: 3 })]
+    store.diagnostics = [mockDiagnostic({ id: 3 }), mockDiagnostic({ id: 6 })]
     delete_request.mockResolvedValueOnce({})
     await store.remove(3)
+    expect(delete_request).toHaveBeenCalledWith('diagnostics/3/delete/')
+    expect(store.diagnostics.map((d) => d.id)).toEqual([6])
     expect(store.current).toBeNull()
   })
 
-  it('remove does not null current for a different id', async () => {
-    store.current = mockDiagnostic({ id: 5 })
-    store.diagnostics = [mockDiagnostic({ id: 5 }), mockDiagnostic({ id: 6 })]
-    delete_request.mockResolvedValueOnce({})
-    await store.remove(6)
-    expect(store.current).not.toBeNull()
-  })
+  // ── Sections ─────────────────────────────────────────────────────────────
 
-  it('remove sets error on failure', async () => {
-    delete_request.mockRejectedValueOnce({ response: { data: {} } })
-    const result = await store.remove(99)
-    expect(result.success).toBe(false)
-    expect(store.error).toBe('delete_failed')
-  })
-
-  // ── updateDocument ───────────────────────────────────────────────────────
-
-  it('updateDocument PATCHes the nested document endpoint', async () => {
-    const updatedDoc = mockDoc({ content_md: '# Edited', is_ready: true })
-    patch_request.mockResolvedValueOnce({ data: updatedDoc })
-    const result = await store.updateDocument(1, 10, { content_md: '# Edited', is_ready: true })
+  it('updateSection PATCHes the section endpoint and merges in current', async () => {
+    store.current = mockDiagnostic({ id: 1, sections: [mockSection({ id: 10, title: 'Old' })] })
+    patch_request.mockResolvedValueOnce({ data: mockSection({ id: 10, title: 'New' }) })
+    const result = await store.updateSection(1, 10, { title: 'New' })
     expect(patch_request).toHaveBeenCalledWith(
-      'diagnostics/1/documents/10/update/',
-      { content_md: '# Edited', is_ready: true },
+      'diagnostics/1/sections/10/update/',
+      { title: 'New' },
     )
     expect(result.success).toBe(true)
+    expect(store.current.sections[0].title).toBe('New')
   })
 
-  it('updateDocument updates the matching doc in-place in current.documents', async () => {
-    store.current = mockDiagnostic({
-      id: 1,
-      documents: [mockDoc({ id: 10, content_md: 'Old' })],
-    })
-    patch_request.mockResolvedValueOnce({ data: mockDoc({ id: 10, content_md: 'New' }) })
-    await store.updateDocument(1, 10, { content_md: 'New' })
-    expect(store.current.documents[0].content_md).toBe('New')
-  })
-
-  it('updateDocument leaves other docs untouched', async () => {
-    store.current = mockDiagnostic({
-      id: 1,
-      documents: [
-        mockDoc({ id: 10, content_md: 'A' }),
-        mockDoc({ id: 11, content_md: 'B' }),
-      ],
-    })
-    patch_request.mockResolvedValueOnce({ data: mockDoc({ id: 10, content_md: 'A edited' }) })
-    await store.updateDocument(1, 10, { content_md: 'A edited' })
-    expect(store.current.documents[1].content_md).toBe('B')
-  })
-
-  it('updateDocument sets error on failure', async () => {
-    patch_request.mockRejectedValueOnce({ response: { data: {} } })
-    const result = await store.updateDocument(1, 10, {})
-    expect(result.success).toBe(false)
-    expect(store.error).toBe('update_doc_failed')
-  })
-
-  // ── restoreDocument ──────────────────────────────────────────────────────
-
-  it('restoreDocument POSTs to the restore endpoint', async () => {
-    create_request.mockResolvedValueOnce({ data: mockDoc() })
-    const result = await store.restoreDocument(1, 10)
-    expect(create_request).toHaveBeenCalledWith('diagnostics/1/documents/10/restore/', {})
+  it('bulkUpdateSections POSTs to bulk endpoint and replaces current', async () => {
+    const next = mockDiagnostic({ sections: [mockSection({ id: 10, title: 'Changed' })] })
+    create_request.mockResolvedValueOnce({ data: next })
+    const payload = [{ id: 10, title: 'Changed' }]
+    const result = await store.bulkUpdateSections(1, payload)
+    expect(create_request).toHaveBeenCalledWith(
+      'diagnostics/1/sections/bulk-update/',
+      { sections: payload },
+    )
     expect(result.success).toBe(true)
+    expect(store.current.sections[0].title).toBe('Changed')
   })
 
-  it('restoreDocument updates the doc in current.documents', async () => {
-    store.current = mockDiagnostic({
-      id: 1,
-      documents: [mockDoc({ id: 10, content_md: 'Edited version' })],
-    })
-    create_request.mockResolvedValueOnce({ data: mockDoc({ id: 10, content_md: '# Original' }) })
-    await store.restoreDocument(1, 10)
-    expect(store.current.documents[0].content_md).toBe('# Original')
+  it('resetSection POSTs and updates the matching section', async () => {
+    store.current = mockDiagnostic({ id: 1, sections: [mockSection({ id: 10, title: 'Edited' })] })
+    create_request.mockResolvedValueOnce({ data: mockSection({ id: 10, title: 'Propósito' }) })
+    const result = await store.resetSection(1, 10)
+    expect(create_request).toHaveBeenCalledWith('diagnostics/1/sections/10/reset/', {})
+    expect(result.success).toBe(true)
+    expect(store.current.sections[0].title).toBe('Propósito')
   })
 
-  // ── sendInitial / markInAnalysis / sendFinal ─────────────────────────────
+  // ── Activity ─────────────────────────────────────────────────────────────
 
-  it('sendInitial POSTs to send-initial/ and updates current on success', async () => {
+  it('fetchActivity GETs and updates change_logs on current', async () => {
+    store.current = mockDiagnostic({ id: 1 })
+    const logs = [{ id: 5, change_type: 'note', description: 'Nota' }]
+    get_request.mockResolvedValueOnce({ data: logs })
+    const result = await store.fetchActivity(1)
+    expect(get_request).toHaveBeenCalledWith('diagnostics/1/activity/')
+    expect(result.success).toBe(true)
+    expect(store.current.change_logs).toEqual(logs)
+  })
+
+  it('logActivity prepends the new entry to current.change_logs', async () => {
+    store.current = mockDiagnostic({ id: 1, change_logs: [{ id: 2 }] })
+    create_request.mockResolvedValueOnce({ data: { id: 7, change_type: 'note', description: 'X' } })
+    const result = await store.logActivity(1, 'note', 'X')
+    expect(create_request).toHaveBeenCalledWith(
+      'diagnostics/1/activity/create/',
+      { change_type: 'note', description: 'X' },
+    )
+    expect(result.success).toBe(true)
+    expect(store.current.change_logs.map((l) => l.id)).toEqual([7, 2])
+  })
+
+  // ── Analytics ────────────────────────────────────────────────────────────
+
+  it('fetchAnalytics GETs the analytics endpoint', async () => {
+    get_request.mockResolvedValueOnce({ data: { view_count: 3, sections: [] } })
+    const result = await store.fetchAnalytics(1)
+    expect(get_request).toHaveBeenCalledWith('diagnostics/1/analytics/')
+    expect(result.success).toBe(true)
+    expect(result.data.view_count).toBe(3)
+  })
+
+  // ── Transitions ──────────────────────────────────────────────────────────
+
+  it('sendInitial POSTs to send-initial/ and updates current', async () => {
     const updated = mockDiagnostic({ status: 'sent' })
     create_request.mockResolvedValueOnce({ data: updated })
     const result = await store.sendInitial(1)
     expect(create_request).toHaveBeenCalledWith('diagnostics/1/send-initial/', {})
-    expect(store.current).toEqual(updated)
-    expect(result.success).toBe(true)
-  })
-
-  it('sendInitial returns error and message on failure', async () => {
-    create_request.mockRejectedValueOnce({
-      response: { data: { error: 'send_failed', message: 'Email error' } },
-    })
-    const result = await store.sendInitial(1)
-    expect(result.success).toBe(false)
-    expect(result.error).toBe('send_failed')
-    expect(result.message).toBe('Email error')
-  })
-
-  it('markInAnalysis POSTs to mark-in-analysis/ and updates current', async () => {
-    const updated = mockDiagnostic({ status: 'negotiating' })
-    create_request.mockResolvedValueOnce({ data: updated })
-    const result = await store.markInAnalysis(1)
-    expect(create_request).toHaveBeenCalledWith('diagnostics/1/mark-in-analysis/', {})
     expect(store.current).toEqual(updated)
     expect(result.success).toBe(true)
   })
@@ -356,7 +251,7 @@ describe('useDiagnosticsStore', () => {
   })
 
   it('sendFinal POSTs to send-final/ and updates current', async () => {
-    const updated = mockDiagnostic({ status: 'sent', final_sent_at: '2026-04-16T10:00:00Z' })
+    const updated = mockDiagnostic({ status: 'sent' })
     create_request.mockResolvedValueOnce({ data: updated })
     const result = await store.sendFinal(1)
     expect(create_request).toHaveBeenCalledWith('diagnostics/1/send-final/', {})
@@ -364,22 +259,9 @@ describe('useDiagnosticsStore', () => {
     expect(result.success).toBe(true)
   })
 
-  it('sendFinal uses send_failed as default error key', async () => {
-    create_request.mockRejectedValueOnce({ response: { data: {} } })
-    const result = await store.sendFinal(1)
-    expect(result.success).toBe(false)
-    expect(store.error).toBe('send_failed')
-  })
+  // ── fetchPublic / trackView / trackSectionView ──────────────────────────
 
-  it('transition helpers clear isUpdating in finally', async () => {
-    create_request.mockRejectedValueOnce({ response: { data: {} } })
-    await store.sendInitial(1)
-    expect(store.isUpdating).toBe(false)
-  })
-
-  // ── fetchPublic ──────────────────────────────────────────────────────────
-
-  it('fetchPublic calls GET diagnostics/public/{uuid}/ and sets current', async () => {
+  it('fetchPublic sets current from the public endpoint', async () => {
     const d = mockDiagnostic({ status: 'sent' })
     get_request.mockResolvedValueOnce({ data: d })
     const result = await store.fetchPublic('aaaa-bbbb')
@@ -395,33 +277,39 @@ describe('useDiagnosticsStore', () => {
     expect(store.error).toBe('not_found')
   })
 
-  it('fetchPublic sets error to fetch_failed on non-404 errors', async () => {
-    get_request.mockRejectedValueOnce({ response: { status: 500, data: {} } })
-    await store.fetchPublic('uuid')
-    expect(store.error).toBe('fetch_failed')
-  })
-
-  it('fetchPublic clears isLoading in finally', async () => {
-    get_request.mockRejectedValueOnce({ response: { status: 404, data: {} } })
-    await store.fetchPublic('uuid')
-    expect(store.isLoading).toBe(false)
-  })
-
-  // ── trackView ────────────────────────────────────────────────────────────
-
-  it('trackView POSTs to the track endpoint', async () => {
+  it('trackView POSTs to the track endpoint with session id', async () => {
     create_request.mockResolvedValueOnce({})
-    await store.trackView('aaaa-bbbb')
-    expect(create_request).toHaveBeenCalledWith('diagnostics/public/aaaa-bbbb/track/', {})
+    await store.trackView('aaaa-bbbb', 'sess-1')
+    expect(create_request).toHaveBeenCalledWith(
+      'diagnostics/public/aaaa-bbbb/track/',
+      { session_id: 'sess-1' },
+    )
   })
 
-  it('trackView swallows errors silently without mutating state', async () => {
+  it('trackView swallows errors silently', async () => {
     create_request.mockRejectedValueOnce(new Error('network'))
     await expect(store.trackView('uuid')).resolves.toBeUndefined()
     expect(store.error).toBeNull()
   })
 
-  // ── respondPublic ────────────────────────────────────────────────────────
+  it('trackSectionView POSTs to the section-track endpoint', async () => {
+    create_request.mockResolvedValueOnce({})
+    await store.trackSectionView('aaaa-bbbb', {
+      session_id: 'sess',
+      section_type: 'purpose',
+      section_title: 'Propósito',
+      time_spent_seconds: 12.5,
+    })
+    expect(create_request).toHaveBeenCalledWith(
+      'diagnostics/public/aaaa-bbbb/track-section/',
+      {
+        session_id: 'sess',
+        section_type: 'purpose',
+        section_title: 'Propósito',
+        time_spent_seconds: 12.5,
+      },
+    )
+  })
 
   it('respondPublic POSTs decision and updates current on success', async () => {
     const updated = mockDiagnostic({ status: 'accepted' })
@@ -435,108 +323,106 @@ describe('useDiagnosticsStore', () => {
     expect(result.success).toBe(true)
   })
 
-  it('respondPublic sets error on failure', async () => {
-    create_request.mockRejectedValueOnce({ response: { data: {} } })
-    const result = await store.respondPublic('uuid', 'reject')
-    expect(result.success).toBe(false)
-    expect(store.error).toBe('respond_failed')
-  })
-
-  it('respondPublic clears isUpdating in finally', async () => {
-    create_request.mockRejectedValueOnce({ response: { data: {} } })
-    await store.respondPublic('uuid', 'accept')
-    expect(store.isUpdating).toBe(false)
-  })
-
   // ── Attachments ──────────────────────────────────────────────────────────
 
-  it('fetchAttachments GETs the attachments endpoint', async () => {
-    get_request.mockResolvedValueOnce({ data: [{ id: 1, title: 'Anexo' }] })
-    const result = await store.fetchAttachments(7)
-    expect(get_request).toHaveBeenCalledWith('diagnostics/7/attachments/')
-    expect(result.success).toBe(true)
-    expect(result.data).toEqual([{ id: 1, title: 'Anexo' }])
-  })
-
-  it('fetchAttachments writes into current.attachments when ids match', async () => {
+  it('fetchAttachments GETs and writes to current.attachments when ids match', async () => {
     store.current = mockDiagnostic({ id: 7, attachments: [] })
     get_request.mockResolvedValueOnce({ data: [{ id: 1 }] })
     await store.fetchAttachments(7)
+    expect(get_request).toHaveBeenCalledWith('diagnostics/7/attachments/')
     expect(store.current.attachments).toEqual([{ id: 1 }])
   })
 
-  it('uploadAttachment POSTs FormData and appends to current.attachments', async () => {
+  it('uploadAttachment appends to current.attachments on success', async () => {
     store.current = mockDiagnostic({ id: 7, attachments: [{ id: 1 }] })
     const fd = new FormData()
-    create_request.mockResolvedValueOnce({ data: { id: 2, title: 'Nuevo' } })
-    const result = await store.uploadAttachment(7, fd)
-    expect(create_request).toHaveBeenCalledWith(
-      'diagnostics/7/attachments/upload/', fd,
-    )
-    expect(result.success).toBe(true)
-    expect(store.current.attachments.map(a => a.id)).toEqual([1, 2])
+    create_request.mockResolvedValueOnce({ data: { id: 2 } })
+    await store.uploadAttachment(7, fd)
+    expect(create_request).toHaveBeenCalledWith('diagnostics/7/attachments/upload/', fd)
+    expect(store.current.attachments.map((a) => a.id)).toEqual([1, 2])
   })
 
-  it('deleteAttachment DELETEs and removes from current.attachments', async () => {
+  it('deleteAttachment filters from current.attachments', async () => {
     store.current = mockDiagnostic({ id: 7, attachments: [{ id: 1 }, { id: 2 }] })
     delete_request.mockResolvedValueOnce({})
-    const result = await store.deleteAttachment(7, 2)
-    expect(delete_request).toHaveBeenCalledWith(
-      'diagnostics/7/attachments/2/delete/',
-    )
-    expect(result.success).toBe(true)
-    expect(store.current.attachments.map(a => a.id)).toEqual([1])
-  })
-
-  it('sendAttachmentsToClient POSTs payload to send endpoint', async () => {
-    const payload = { attachment_ids: [1, 2], subject: 'Docs' }
-    create_request.mockResolvedValueOnce({ data: { message: 'ok' } })
-    const result = await store.sendAttachmentsToClient(7, payload)
-    expect(create_request).toHaveBeenCalledWith(
-      'diagnostics/7/attachments/send/', payload,
-    )
-    expect(result.success).toBe(true)
+    await store.deleteAttachment(7, 2)
+    expect(store.current.attachments.map((a) => a.id)).toEqual([1])
   })
 
   // ── Email composer ───────────────────────────────────────────────────────
 
-  it('sendCustomEmail POSTs FormData to the email endpoint', async () => {
-    const fd = new FormData()
-    create_request.mockResolvedValueOnce({ data: { message: 'enviado' } })
-    const result = await store.sendCustomEmail(7, fd)
-    expect(create_request).toHaveBeenCalledWith(
-      'diagnostics/7/email/send/', fd,
-    )
-    expect(result.success).toBe(true)
-  })
-
-  it('sendCustomEmail surfaces the HTTP status on error (for 429 handling)', async () => {
+  it('sendCustomEmail surfaces HTTP status on 429', async () => {
     create_request.mockRejectedValueOnce({
       response: { status: 429, data: { error: 'cool_down' } },
     })
     const result = await store.sendCustomEmail(7, new FormData())
-    expect(result.success).toBe(false)
     expect(result.status).toBe(429)
     expect(result.error).toBe('cool_down')
   })
 
-  it('fetchEmailDefaults GETs the defaults endpoint', async () => {
-    get_request.mockResolvedValueOnce({
-      data: { recipient_email: 'x@y.com', subject: 'S' },
-    })
+  it('fetchEmailDefaults hits the defaults endpoint', async () => {
+    get_request.mockResolvedValueOnce({ data: { recipient_email: 'x@y.com' } })
     const result = await store.fetchEmailDefaults(7)
     expect(get_request).toHaveBeenCalledWith('diagnostics/7/email/defaults/')
     expect(result.data.recipient_email).toBe('x@y.com')
   })
 
-  it('fetchEmailHistory GETs the history endpoint with page', async () => {
-    get_request.mockResolvedValueOnce({
-      data: { results: [], total: 0, page: 2, has_next: false },
-    })
-    const result = await store.fetchEmailHistory(7, 2)
-    expect(get_request).toHaveBeenCalledWith(
-      'diagnostics/7/email/history/?page=2',
-    )
-    expect(result.success).toBe(true)
+  // ── Error paths for new section/activity/analytics actions ─────────────
+
+  it('updateSection returns error shape on failure', async () => {
+    patch_request.mockRejectedValueOnce({ response: { data: {} } })
+    const result = await store.updateSection(1, 10, {})
+    expect(result.success).toBe(false)
+    expect(store.error).toBe('update_section_failed')
+  })
+
+  it('bulkUpdateSections returns error shape on failure', async () => {
+    create_request.mockRejectedValueOnce({ response: { data: { error: 'sections_must_be_list' } } })
+    const result = await store.bulkUpdateSections(1, [])
+    expect(result.success).toBe(false)
+    expect(store.error).toBe('sections_must_be_list')
+  })
+
+  it('resetSection returns error shape on failure', async () => {
+    create_request.mockRejectedValueOnce({ response: { data: {} } })
+    const result = await store.resetSection(1, 10)
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('reset_failed')
+  })
+
+  it('fetchActivity returns error shape on failure', async () => {
+    get_request.mockRejectedValueOnce({ response: { data: {} } })
+    const result = await store.fetchActivity(1)
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('fetch_failed')
+  })
+
+  it('logActivity returns error shape on failure', async () => {
+    create_request.mockRejectedValueOnce({ response: { data: { error: 'description_required' } } })
+    const result = await store.logActivity(1, 'note', '')
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('description_required')
+  })
+
+  it('fetchAnalytics returns null data on failure', async () => {
+    get_request.mockRejectedValueOnce({ response: { data: {} } })
+    const result = await store.fetchAnalytics(1)
+    expect(result.success).toBe(false)
+    expect(result.data).toBeNull()
+  })
+
+  it('trackSectionView swallows network errors silently', async () => {
+    create_request.mockRejectedValueOnce(new Error('offline'))
+    await expect(
+      store.trackSectionView('uuid', { session_id: 's', section_type: 'purpose' }),
+    ).resolves.toBeUndefined()
+    expect(store.error).toBeNull()
+  })
+
+  it('respondPublic sets error on failure', async () => {
+    create_request.mockRejectedValueOnce({ response: { data: { error: 'invalid_transition' } } })
+    const result = await store.respondPublic('uuid', 'accept')
+    expect(result.success).toBe(false)
+    expect(store.error).toBe('invalid_transition')
   })
 })

@@ -40,5 +40,9 @@ from .contract_template import ContractTemplate
 from .linkedin_token import LinkedInToken
 from .task import Task
 from .task_alert import TaskAlert
-from .web_app_diagnostic import WebAppDiagnostic, DiagnosticDocument
+from .task_comment import TaskComment
+from .web_app_diagnostic import WebAppDiagnostic
 from .diagnostic_attachment import DiagnosticAttachment
+from .diagnostic_section import DiagnosticSection
+from .diagnostic_change_log import DiagnosticChangeLog
+from .diagnostic_view_event import DiagnosticViewEvent, DiagnosticSectionView

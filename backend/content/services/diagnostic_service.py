@@ -1,69 +1,28 @@
-"""Service layer for the WebAppDiagnostic feature."""
+"""Service layer for the WebAppDiagnostic feature.
+
+Diagnostics are modeled as a sequence of JSON-driven ``DiagnosticSection``
+rows (one per section_type). A seed from ``content.seeds.diagnostic_template``
+populates a new diagnostic with the default narrative; from there the admin
+edits each section through the section editor.
+"""
 
 from __future__ import annotations
-
-import re
-from functools import lru_cache
-from pathlib import Path
 
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
 from accounts.services.proposal_client_service import build_client_display_name
-from content.models import DiagnosticDocument, WebAppDiagnostic
+from content.models import (
+    DiagnosticChangeLog,
+    DiagnosticSection,
+    WebAppDiagnostic,
+)
+from content.seeds.diagnostic_template import default_sections
 from content.utils import format_cop_email
 
 
-TEMPLATES_DIR = (
-    Path(__file__).resolve().parent.parent / 'templates' / 'diagnostics'
-)
-
-# doc_type → (filename pattern, default title, order)
-DOC_TEMPLATES = {
-    DiagnosticDocument.DocType.INITIAL_PROPOSAL: (
-        'initial_proposal_{lang}.md',
-        'Propuesta de Diagnóstico',
-        1,
-    ),
-    DiagnosticDocument.DocType.TECHNICAL_PROPOSAL: (
-        'technical_proposal_{lang}.md',
-        'Propuesta de Diagnóstico Técnico',
-        2,
-    ),
-    DiagnosticDocument.DocType.SIZING_ANNEX: (
-        'sizing_annex_{lang}.md',
-        'Anexo de Dimensionamiento Preliminar',
-        3,
-    ),
-}
-
-PLACEHOLDER = '_por definir_'
-
-# Variables that must be filled by the human; empty → render PLACEHOLDER
-# instead of an empty string so the document still reads sensibly.
-PLACEHOLDER_KEYS = frozenset({
-    'investment_amount',
-    'duration_label',
-    'payment_initial_pct',
-    'payment_final_pct',
-    'size_category_label',
-})
-
-_VAR_RE = re.compile(r'\{\{\s*([a-zA-Z0-9_]+)\s*\}\}')
-
-
-@lru_cache(maxsize=12)
-def _load_template(doc_type: str, language: str) -> str:
-    pattern, _title, _order = DOC_TEMPLATES[doc_type]
-    try:
-        return (TEMPLATES_DIR / pattern.format(lang=language)).read_text(encoding='utf-8')
-    except FileNotFoundError:
-        return (TEMPLATES_DIR / pattern.format(lang='es')).read_text(encoding='utf-8')
-
-
 def _classify_size(value: int, thresholds: tuple[int, int]) -> str:
-    """Return 'Pequeña' | 'Mediana' | 'Grande' for a numeric metric."""
     low, high = thresholds
     if value <= 0:
         return ''
@@ -75,7 +34,12 @@ def _classify_size(value: int, thresholds: tuple[int, int]) -> str:
 
 
 def build_render_context(diagnostic: WebAppDiagnostic) -> dict:
-    """Build the variable map used to substitute `{{vars}}` in templates."""
+    """Build the variable map used by section components to hydrate headings.
+
+    Kept for backward compatibility with email templates and for the
+    radiography section renderer which shows pricing/metrics pulled from
+    ``diagnostic.radiography`` + pricing fields.
+    """
     radiography = diagnostic.radiography or {}
     payment = diagnostic.payment_terms or {}
     stack = radiography.get('stack', {}) or {}
@@ -142,22 +106,35 @@ def build_render_context(diagnostic: WebAppDiagnostic) -> dict:
     }
 
 
-def render_document(doc: DiagnosticDocument, context: dict | None = None) -> str:
-    """Substitute `{{var}}` in `doc.content_md` with diagnostic data.
+def seed_sections(diagnostic: WebAppDiagnostic) -> list[DiagnosticSection]:
+    """Create the default 8 sections for a diagnostic from the JSON seed."""
+    return DiagnosticSection.objects.bulk_create([
+        DiagnosticSection(
+            diagnostic=diagnostic,
+            section_type=spec['section_type'],
+            title=spec['title'],
+            order=spec['order'],
+            is_enabled=spec['is_enabled'],
+            visibility=spec['visibility'],
+            content_json=spec['content_json'],
+        )
+        for spec in default_sections()
+    ])
 
-    `context` may be passed in to avoid rebuilding it across multiple docs of
-    the same diagnostic in a single response.
-    """
-    ctx = context if context is not None else build_render_context(doc.diagnostic)
 
-    def _replace(match: re.Match) -> str:
-        key = match.group(1)
-        value = ctx.get(key)
-        if value is None or value == '':
-            return PLACEHOLDER if key in PLACEHOLDER_KEYS else ''
-        return str(value)
-
-    return _VAR_RE.sub(_replace, doc.content_md)
+def reset_section(section: DiagnosticSection) -> DiagnosticSection:
+    """Restore a single section's ``content_json`` from the JSON seed."""
+    for spec in default_sections():
+        if spec['section_type'] == section.section_type:
+            section.content_json = spec['content_json']
+            section.title = spec['title']
+            section.visibility = spec['visibility']
+            section.is_enabled = spec['is_enabled']
+            section.save(update_fields=[
+                'content_json', 'title', 'visibility', 'is_enabled',
+            ])
+            return section
+    return section
 
 
 @transaction.atomic
@@ -168,7 +145,7 @@ def create_diagnostic(
     title: str = '',
     created_by=None,
 ) -> WebAppDiagnostic:
-    """Create a diagnostic and load the 3 documents from markdown templates."""
+    """Create a diagnostic and seed its 8 JSON sections."""
     if not title:
         title = f'Diagnóstico — {build_client_display_name(client)}'
 
@@ -178,48 +155,33 @@ def create_diagnostic(
         title=title,
         created_by=created_by,
     )
-
-    for doc_type, (_pattern, default_title, order) in DOC_TEMPLATES.items():
-        DiagnosticDocument.objects.create(
-            diagnostic=diagnostic,
-            doc_type=doc_type,
-            title=default_title,
-            content_md=_load_template(doc_type, language),
-            order=order,
-        )
-
+    seed_sections(diagnostic)
+    log_change(
+        diagnostic,
+        change_type=DiagnosticChangeLog.ChangeType.CREATED,
+        description='Diagnóstico creado desde plantilla.',
+        actor_type=DiagnosticChangeLog.ActorType.SELLER,
+    )
     return diagnostic
-
-
-def restore_document_from_template(doc: DiagnosticDocument) -> DiagnosticDocument:
-    """Reload a document's `content_md` from its source markdown template."""
-    doc.content_md = _load_template(doc.doc_type, doc.diagnostic.language)
-    doc.is_ready = False
-    doc.save(update_fields=['content_md', 'is_ready', 'updated_at'])
-    return doc
 
 
 def transition_status(
     diagnostic: WebAppDiagnostic,
     new_status: str,
+    *,
+    actor_type: str = '',
 ) -> WebAppDiagnostic:
-    """Validate transition + stamp the matching timestamp.
-
-    Raises ValueError when the transition is not allowed.
-    """
+    """Validate transition + stamp the matching timestamp."""
     if not diagnostic.can_transition_to(new_status):
         raise ValueError(
             f'invalid_transition: {diagnostic.status} → {new_status}'
         )
 
     update_fields = ['status', 'updated_at']
+    old_status = diagnostic.status
     diagnostic.status = new_status
     now = timezone.now()
 
-    # SENT is re-used for both the initial send and the final send. We
-    # distinguish them via the timestamp fields: the first transition to
-    # SENT stamps `initial_sent_at`; a later return to SENT from NEGOTIATING
-    # stamps `final_sent_at`.
     if new_status == WebAppDiagnostic.Status.SENT:
         if diagnostic.initial_sent_at is None:
             diagnostic.initial_sent_at = now
@@ -235,6 +197,16 @@ def transition_status(
         update_fields.append('responded_at')
 
     diagnostic.save(update_fields=update_fields)
+
+    log_change(
+        diagnostic,
+        change_type=DiagnosticChangeLog.ChangeType.STATUS_CHANGE,
+        field_name='status',
+        old_value=old_status,
+        new_value=new_status,
+        description=f'Estado: {old_status} → {new_status}',
+        actor_type=actor_type or DiagnosticChangeLog.ActorType.SYSTEM,
+    )
     return diagnostic
 
 
@@ -248,6 +220,28 @@ def register_view(diagnostic: WebAppDiagnostic) -> WebAppDiagnostic:
     return diagnostic
 
 
+def log_change(
+    diagnostic: WebAppDiagnostic,
+    *,
+    change_type: str,
+    description: str = '',
+    field_name: str = '',
+    old_value: str = '',
+    new_value: str = '',
+    actor_type: str = '',
+) -> DiagnosticChangeLog:
+    """Append a DiagnosticChangeLog entry for this diagnostic."""
+    return DiagnosticChangeLog.objects.create(
+        diagnostic=diagnostic,
+        change_type=change_type,
+        description=description or '',
+        field_name=field_name or '',
+        old_value=str(old_value or ''),
+        new_value=str(new_value or ''),
+        actor_type=actor_type or '',
+    )
+
+
 PUBLIC_VISIBLE_STATUSES = frozenset({
     WebAppDiagnostic.Status.SENT,
     WebAppDiagnostic.Status.VIEWED,
@@ -257,17 +251,14 @@ PUBLIC_VISIBLE_STATUSES = frozenset({
 })
 
 
-def visible_documents(diagnostic: WebAppDiagnostic):
-    """Return the documents visible to the public client given the status.
-
-    Filters in Python so a prefetched `documents` cache is not invalidated.
-    The initial-vs-final send distinction now lives in the timestamps rather
-    than the status enum, so we gate on `final_sent_at`.
-    """
-    docs = sorted(diagnostic.documents.all(), key=lambda d: d.order)
+def visible_sections(diagnostic: WebAppDiagnostic):
+    """Return sections to expose on the public client view."""
     if diagnostic.status not in PUBLIC_VISIBLE_STATUSES:
         return []
-    if diagnostic.final_sent_at is None:
-        return [d for d in docs if d.doc_type == DiagnosticDocument.DocType.INITIAL_PROPOSAL]
-    ready = [d for d in docs if d.is_ready]
-    return ready or docs
+    sections = sorted(
+        diagnostic.sections.filter(is_enabled=True),
+        key=lambda s: s.order,
+    )
+    phase = 'final' if diagnostic.final_sent_at else 'initial'
+    allowed = {phase, 'both'}
+    return [s for s in sections if s.visibility in allowed]

@@ -16,6 +16,12 @@ class Task(models.Model):
         MEDIUM = 'medium', 'Medium'
         HIGH = 'high', 'High'
 
+    class BoardType(models.TextChoices):
+        STANDARD = 'standard', 'Principal'
+        WEEKLY = 'weekly', 'Semanal'
+        MONTHLY = 'monthly', 'Mensual'
+        MACRO = 'macro', 'Macro-Tareas'
+
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, default='')
     status = models.CharField(
@@ -26,12 +32,18 @@ class Task(models.Model):
         max_length=10, choices=Priority.choices,
         default=Priority.MEDIUM,
     )
+    board_type = models.CharField(
+        max_length=20, choices=BoardType.choices,
+        default=BoardType.STANDARD, db_index=True,
+    )
     assignee = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='assigned_tasks',
     )
     due_date = models.DateField(null=True, blank=True)
     position = models.PositiveIntegerField(default=0)
+    is_archived = models.BooleanField(default=False, db_index=True)
+    archive_reason = models.CharField(max_length=500, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

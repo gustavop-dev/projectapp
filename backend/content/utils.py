@@ -20,6 +20,14 @@ def now_bogota() -> datetime:
     return dj_timezone.now().astimezone(_BOGOTA_TZ)
 
 
+def get_client_ip(request):
+    """Extract client IP from request, checking X-Forwarded-For first."""
+    xff = request.META.get('HTTP_X_FORWARDED_FOR')
+    if xff:
+        return xff.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR')
+
+
 def today_bogota() -> date:
     """Return today's calendar date in America/Bogota."""
     return now_bogota().date()

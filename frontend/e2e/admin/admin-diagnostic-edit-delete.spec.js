@@ -2,7 +2,7 @@
  * E2E tests for admin Web App Diagnostics — edit page render (admin-diagnostic-edit)
  * and delete flow from the list page (admin-diagnostic-delete).
  *
- * Covers: edit page renders 6 tabs and Resumen read-only data; list page 3-dot
+ * Covers: edit page renders 10 tabs and Resumen read-only data; list page 3-dot
  * menu opens, Eliminar triggers ConfirmModal, and DELETE API is called on confirm.
  */
 import { test, expect } from '../helpers/test.js';
@@ -73,7 +73,11 @@ test.describe('Admin Diagnostic — Edit page', () => {
     await expect(page.getByRole('button', { name: 'Resumen' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('button', { name: 'Pricing' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Radiografía' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Secciones' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Plantillas' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Prompt' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Actividad' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Analítica' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Correos' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
   });

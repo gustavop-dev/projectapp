@@ -23,7 +23,7 @@ from .models import (
     ProposalProjectStage,
     ProposalShareLink,
     WebAppDiagnostic,
-    DiagnosticDocument,
+    DiagnosticSection,
     EmailLog,
     LinkedInToken,
     Task,
@@ -294,7 +294,7 @@ class ProjectAppAdminSite(admin.AdminSite):
                 'name': _('Diagnostics'),
                 'app_label': 'diagnostics',
                 'models': [m for m in content_models if m['object_name'] in [
-                    'WebAppDiagnostic', 'DiagnosticDocument',
+                    'WebAppDiagnostic', 'DiagnosticSection',
                 ]],
             },
             {
@@ -366,7 +366,7 @@ admin_site.register(ProposalAlert)
 admin_site.register(ProposalProjectStage)
 admin_site.register(ProposalShareLink)
 admin_site.register(WebAppDiagnostic)
-admin_site.register(DiagnosticDocument)
+admin_site.register(DiagnosticSection)
 admin_site.register(EmailLog)
 admin_site.register(LinkedInToken)
 
