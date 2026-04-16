@@ -1,6 +1,17 @@
 <template>
   <div>
-    <header class="flex items-center justify-between mb-8">
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      @confirm="handleConfirmed"
+      @cancel="handleCancelled"
+    />
+
+    <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
       <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Diagnósticos de aplicaciones</h1>
       <NuxtLink
         :to="localePath('/panel/diagnostics/create')"
@@ -19,7 +30,7 @@
     <div class="flex flex-col sm:flex-row gap-3 mb-4">
       <div class="relative flex-1 max-w-sm">
         <svg
-          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -33,7 +44,7 @@
           data-testid="diagnostics-search-input"
           class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm
                  focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none
-                 dark:border-white/[0.08] dark:bg-gray-800 dark:text-white"
+                 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
         />
       </div>
       <UiFilterToggleButton
@@ -41,11 +52,6 @@
         :count="activeFilterCount"
         @click="isFilterPanelOpen = !isFilterPanelOpen"
       />
-      <button
-        type="button"
-        class="text-sm text-gray-500 hover:text-gray-700 underline"
-        @click="reload"
-      >Actualizar</button>
     </div>
 
     <!-- Filter panel -->
@@ -57,81 +63,233 @@
       @reset="handleResetFilters"
     />
 
-    <div v-if="store.isLoading" class="text-gray-500 text-sm">Cargando…</div>
+    <!-- Loading -->
+    <div v-if="store.isLoading" class="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">
+      Cargando…
+    </div>
 
+    <!-- Empty state -->
     <div
-      v-else-if="!filteredDiagnostics.length"
-      class="text-center py-16 bg-gray-50 rounded-xl border border-dashed"
+      v-else-if="!sortedDiagnostics.length"
+      class="text-center py-16 dark:text-gray-400"
     >
-      <p class="text-gray-600">
-        {{ hasActiveFilters || searchQuery ? 'No hay diagnósticos que coincidan con los filtros.' : 'Aún no has creado diagnósticos.' }}
+      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-white/[0.06] flex items-center justify-center">
+        <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      </div>
+      <p class="text-gray-500 dark:text-gray-400 text-sm">
+        {{ activeFilterCount || searchQuery ? 'No hay diagnósticos que coincidan con los filtros.' : 'Aún no has creado diagnósticos.' }}
       </p>
       <NuxtLink
         v-if="!store.diagnostics.length"
         :to="localePath('/panel/diagnostics/create')"
-        class="inline-block mt-3 text-emerald-600 hover:underline text-sm"
+        class="inline-block mt-3 text-emerald-600 hover:underline text-sm dark:text-emerald-400"
       >Crear el primero</NuxtLink>
     </div>
 
-    <table v-else class="min-w-full bg-white border rounded-xl overflow-hidden text-sm">
-      <thead class="bg-gray-50">
-        <tr class="text-left text-gray-600">
-          <th class="px-4 py-3">Cliente</th>
-          <th class="px-4 py-3">Título</th>
-          <th class="px-4 py-3">Estado</th>
-          <th class="px-4 py-3">Inversión</th>
-          <th class="px-4 py-3">Última vista</th>
-          <th class="px-4 py-3"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="d in filteredDiagnostics"
-          :key="d.id"
-          class="border-t hover:bg-gray-50"
-          :data-testid="`diagnostic-row-${d.id}`"
+    <!-- Table -->
+    <div
+      v-else
+      class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto dark:bg-gray-800 dark:border-gray-700"
+    >
+      <table class="w-full min-w-[800px]">
+        <thead>
+          <tr class="border-b border-gray-100 dark:border-gray-700 text-left">
+            <th class="px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12">ID</th>
+            <th
+              class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-emerald-600"
+              @click="toggleSort('client_name')"
+            >
+              Cliente <span v-if="sortKey === 'client_name'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Título</th>
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
+            <th
+              class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-emerald-600"
+              @click="toggleSort('investment_amount')"
+            >
+              Inversión <span v-if="sortKey === 'investment_amount'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th
+              class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-emerald-600"
+              @click="toggleSort('last_viewed_at')"
+            >
+              Última vista <span v-if="sortKey === 'last_viewed_at'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+            </th>
+            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
+          <tr
+            v-for="d in paginatedDiagnostics"
+            :key="d.id"
+            class="transition-colors cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
+            :data-testid="`diagnostic-row-${d.id}`"
+            @click="navigateToDiagnostic(d.id, $event)"
+          >
+            <td class="px-4 py-4 text-xs text-gray-400 dark:text-gray-500 tabular-nums">#{{ d.id }}</td>
+            <td class="px-6 py-4">
+              <div class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ d.client?.name || '—' }}</div>
+              <div v-if="d.client?.email" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ d.client.email }}</div>
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ d.title }}</td>
+            <td class="px-6 py-4">
+              <DiagnosticStatusBadge :status="d.status" />
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 tabular-nums">
+              <span v-if="d.investment_amount">{{ formatMoney(d.investment_amount) }} {{ d.currency }}</span>
+              <span v-else class="text-gray-300 dark:text-gray-500">—</span>
+            </td>
+            <td class="px-6 py-4 text-xs text-gray-500 dark:text-gray-400">
+              <span v-if="d.last_viewed_at">
+                {{ formatDate(d.last_viewed_at) }}
+                <span class="text-[10px] text-gray-400 dark:text-gray-500 ml-1">({{ d.view_count }} vistas)</span>
+              </span>
+              <span v-else class="text-gray-300 dark:text-gray-500">—</span>
+            </td>
+            <td class="px-6 py-4" @click.stop>
+              <button
+                class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-white"
+                @click.stop="actionsModalDiagnostic = d"
+              >
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                </svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-gray-700">
+        <span class="text-xs text-gray-400 dark:text-gray-500">{{ sortedDiagnostics.length }} diagnóstico(s)</span>
+        <div class="flex gap-1">
+          <button
+            v-for="page in totalPages"
+            :key="page"
+            class="w-8 h-8 rounded-lg text-xs font-medium transition-colors"
+            :class="currentPage === page
+              ? 'bg-emerald-600 text-white dark:bg-emerald-500'
+              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.04]'"
+            @click="currentPage = page"
+          >
+            {{ page }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions modal -->
+    <Teleport to="body">
+      <Transition name="fade-modal">
+        <div
+          v-if="actionsModalDiagnostic"
+          class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          @click.self="actionsModalDiagnostic = null"
         >
-          <td class="px-4 py-3">
-            <div class="font-medium text-gray-900">{{ d.client?.name || '—' }}</div>
-            <div class="text-xs text-gray-500">{{ d.client?.email }}</div>
-          </td>
-          <td class="px-4 py-3 text-gray-700">{{ d.title }}</td>
-          <td class="px-4 py-3">
-            <DiagnosticStatusBadge :status="d.status" />
-          </td>
-          <td class="px-4 py-3 text-gray-700">
-            <span v-if="d.investment_amount">{{ formatMoney(d.investment_amount) }} {{ d.currency }}</span>
-            <span v-else class="text-gray-400">—</span>
-          </td>
-          <td class="px-4 py-3 text-gray-500 text-xs">
-            <span v-if="d.last_viewed_at">{{ formatDate(d.last_viewed_at) }} ({{ d.view_count }} vistas)</span>
-            <span v-else>—</span>
-          </td>
-          <td class="px-4 py-3 text-right">
-            <NuxtLink
-              :to="localePath(`/panel/diagnostics/${d.id}/edit`)"
-              class="text-emerald-600 hover:underline text-sm"
-            >Abrir</NuxtLink>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full dark:bg-gray-800 dark:border dark:border-white/[0.06]">
+            <div class="px-6 py-4 border-b border-gray-100 dark:border-white/[0.06] flex items-center justify-between">
+              <div class="min-w-0">
+                <h3 class="text-base font-bold text-gray-900 dark:text-white truncate">
+                  {{ actionsModalDiagnostic.title }}
+                </h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {{ actionsModalDiagnostic.client?.name || '—' }}
+                </p>
+              </div>
+              <button
+                class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.04] transition-colors"
+                @click="actionsModalDiagnostic = null"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div class="p-3 space-y-1 max-h-[60vh] overflow-y-auto">
+              <NuxtLink
+                :to="localePath(`/panel/diagnostics/${actionsModalDiagnostic.id}/edit`)"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                @click="actionsModalDiagnostic = null"
+              >
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-gray-100 dark:bg-white/[0.06]">✏️</span>
+                <span class="text-sm font-medium text-gray-800 dark:text-white">Abrir editor</span>
+              </NuxtLink>
+
+              <a
+                v-if="actionsModalDiagnostic.public_url"
+                :href="actionsModalDiagnostic.public_url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+              >
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400">👁️</span>
+                <span class="text-sm font-medium text-purple-700 dark:text-purple-300">Ver vista pública</span>
+              </a>
+
+              <button
+                v-if="actionsModalDiagnostic.public_url"
+                type="button"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.04]"
+                @click="handleCopyLink(actionsModalDiagnostic)"
+              >
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg"
+                  :class="copiedId === actionsModalDiagnostic.id
+                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
+                    : 'bg-gray-100 dark:bg-white/[0.06]'"
+                >{{ copiedId === actionsModalDiagnostic.id ? '✅' : '🔗' }}</span>
+                <span class="text-sm font-medium"
+                  :class="copiedId === actionsModalDiagnostic.id
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-gray-800 dark:text-white'"
+                >{{ copiedId === actionsModalDiagnostic.id ? '¡Enlace copiado!' : 'Copiar enlace' }}</span>
+              </button>
+
+              <button
+                type="button"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-red-50 dark:hover:bg-red-500/10"
+                @click="handleDelete(actionsModalDiagnostic)"
+              >
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-red-50 text-red-500 dark:bg-red-500/10 dark:text-red-400">🗑️</span>
+                <span class="text-sm font-medium text-red-600 dark:text-red-400">Eliminar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 import DiagnosticStatusBadge from '~/components/WebAppDiagnostic/DiagnosticStatusBadge.vue';
 import DiagnosticFilterPanel from '~/components/WebAppDiagnostic/DiagnosticFilterPanel.vue';
+import ConfirmModal from '~/components/ConfirmModal.vue';
+import { useConfirmModal } from '~/composables/useConfirmModal';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
+const moneyFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
+const dateTimeFormatter = new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+
 const localePath = useLocalePath();
+const router = useRouter();
 const store = useDiagnosticsStore();
+const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
 const searchQuery = ref('');
 const isFilterPanelOpen = ref(false);
+const actionsModalDiagnostic = ref(null);
+const copiedId = ref(null);
+const sortKey = ref('created_at');
+const sortDir = ref('desc');
+const currentPage = ref(1);
+const pageSize = 15;
 
 const DEFAULT_FILTERS = {
   statuses: [],
@@ -151,8 +309,6 @@ const activeFilterCount = computed(() => {
   if (currentFilters.createdBefore) count += 1;
   return count;
 });
-
-const hasActiveFilters = computed(() => activeFilterCount.value > 0);
 
 function handleResetFilters() {
   Object.assign(currentFilters, DEFAULT_FILTERS);
@@ -191,19 +347,102 @@ const filteredDiagnostics = computed(() => {
   });
 });
 
-function reload() {
-  store.fetchAll();
+const sortedDiagnostics = computed(() => {
+  const list = [...filteredDiagnostics.value];
+  const sk = sortKey.value;
+  const asc = sortDir.value === 'asc';
+
+  list.sort((a, b) => {
+    let va;
+    let vb;
+    if (sk === 'investment_amount') {
+      va = Number(a.investment_amount || 0);
+      vb = Number(b.investment_amount || 0);
+    } else if (sk === 'client_name') {
+      va = (a.client?.name || '').toLowerCase();
+      vb = (b.client?.name || '').toLowerCase();
+    } else if (sk === 'last_viewed_at') {
+      va = a.last_viewed_at ? new Date(a.last_viewed_at).getTime() : 0;
+      vb = b.last_viewed_at ? new Date(b.last_viewed_at).getTime() : 0;
+    } else {
+      va = a[sk] || '';
+      vb = b[sk] || '';
+    }
+    if (va < vb) return asc ? -1 : 1;
+    if (va > vb) return asc ? 1 : -1;
+    return 0;
+  });
+  return list;
+});
+
+const totalPages = computed(() => Math.ceil(sortedDiagnostics.value.length / pageSize));
+const paginatedDiagnostics = computed(() => {
+  const start = (currentPage.value - 1) * pageSize;
+  return sortedDiagnostics.value.slice(start, start + pageSize);
+});
+
+function toggleSort(key) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortKey.value = key;
+    sortDir.value = 'desc';
+  }
+  currentPage.value = 1;
+}
+
+watch([searchQuery, currentFilters], () => { currentPage.value = 1; }, { deep: true });
+
+function navigateToDiagnostic(id, event) {
+  const path = localePath(`/panel/diagnostics/${id}/edit`);
+  if (event?.ctrlKey || event?.metaKey) {
+    window.open(path, '_blank');
+  } else {
+    router.push(path);
+  }
+}
+
+function handleCopyLink(d) {
+  if (!d?.public_url) return;
+  navigator.clipboard.writeText(d.public_url).then(() => {
+    copiedId.value = d.id;
+    setTimeout(() => { copiedId.value = null; }, 1500);
+  });
+}
+
+function handleDelete(d) {
+  const target = d;
+  actionsModalDiagnostic.value = null;
+  requestConfirm({
+    title: 'Eliminar diagnóstico',
+    message: `¿Eliminar el diagnóstico "${target.title}"? Esta acción no se puede deshacer.`,
+    variant: 'danger',
+    confirmText: 'Eliminar',
+    onConfirm: () => store.remove(target.id),
+  });
 }
 
 function formatMoney(amount) {
   const n = Number(amount);
   if (Number.isNaN(n)) return amount;
-  return new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 }).format(n);
-}
-function formatDate(iso) {
-  if (!iso) return '';
-  return new Date(iso).toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+  return moneyFormatter.format(n);
 }
 
-onMounted(reload);
+function formatDate(iso) {
+  if (!iso) return '';
+  return dateTimeFormatter.format(new Date(iso));
+}
+
+onMounted(() => store.fetchAll());
 </script>
+
+<style scoped>
+.fade-modal-enter-active,
+.fade-modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-modal-enter-from,
+.fade-modal-leave-to {
+  opacity: 0;
+}
+</style>

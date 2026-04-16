@@ -33,6 +33,7 @@ function buildMockDiagnostic(overrides = {}) {
     view_count: 0,
     last_viewed_at: null,
     documents: [],
+    attachments: [],
     public_url: '/diagnostic/7777-8888-9999-aaaa',
     ...overrides,
   };
@@ -67,7 +68,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     });
   });
 
-  test('edit page renders all 4 navigation tabs', {
+  test('edit page renders all 6 navigation tabs', {
     tag: [...ADMIN_DIAGNOSTIC_SEND_INITIAL, '@role:admin'],
   }, async ({ page }) => {
     const diagnostic = buildMockDiagnostic();
@@ -77,6 +78,8 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await expect(page.getByRole('button', { name: 'Resumen' })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('button', { name: 'Pricing' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Radiografía' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Plantillas' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Correos' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
   });
 
@@ -115,6 +118,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await page.goto('/panel/diagnostics/7/edit');
     await expect(page.getByRole('button', { name: /enviar doc 1/i })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: /enviar doc 1/i }).click();
+    await page.getByRole('button', { name: 'Enviar', exact: true }).click();
 
     await expect(() => expect(sendCalled).toBe(true)).toPass({ timeout: 5000 });
   });
@@ -148,6 +152,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await page.goto('/panel/diagnostics/7/edit');
     await expect(page.getByRole('button', { name: /marcar en análisis/i })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: /marcar en análisis/i }).click();
+    await page.getByRole('button', { name: 'Confirmar', exact: true }).click();
 
     await expect(() => expect(called).toBe(true)).toPass({ timeout: 5000 });
   });
@@ -179,6 +184,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await page.goto('/panel/diagnostics/7/edit');
     await expect(page.getByRole('button', { name: /enviar diagnóstico final/i })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: /enviar diagnóstico final/i }).click();
+    await page.getByRole('button', { name: 'Enviar', exact: true }).click();
 
     await expect(() => expect(called).toBe(true)).toPass({ timeout: 5000 });
   });

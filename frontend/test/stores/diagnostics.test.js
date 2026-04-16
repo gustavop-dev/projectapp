@@ -447,4 +447,96 @@ describe('useDiagnosticsStore', () => {
     await store.respondPublic('uuid', 'accept')
     expect(store.isUpdating).toBe(false)
   })
+
+  // ── Attachments ──────────────────────────────────────────────────────────
+
+  it('fetchAttachments GETs the attachments endpoint', async () => {
+    get_request.mockResolvedValueOnce({ data: [{ id: 1, title: 'Anexo' }] })
+    const result = await store.fetchAttachments(7)
+    expect(get_request).toHaveBeenCalledWith('diagnostics/7/attachments/')
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual([{ id: 1, title: 'Anexo' }])
+  })
+
+  it('fetchAttachments writes into current.attachments when ids match', async () => {
+    store.current = mockDiagnostic({ id: 7, attachments: [] })
+    get_request.mockResolvedValueOnce({ data: [{ id: 1 }] })
+    await store.fetchAttachments(7)
+    expect(store.current.attachments).toEqual([{ id: 1 }])
+  })
+
+  it('uploadAttachment POSTs FormData and appends to current.attachments', async () => {
+    store.current = mockDiagnostic({ id: 7, attachments: [{ id: 1 }] })
+    const fd = new FormData()
+    create_request.mockResolvedValueOnce({ data: { id: 2, title: 'Nuevo' } })
+    const result = await store.uploadAttachment(7, fd)
+    expect(create_request).toHaveBeenCalledWith(
+      'diagnostics/7/attachments/upload/', fd,
+    )
+    expect(result.success).toBe(true)
+    expect(store.current.attachments.map(a => a.id)).toEqual([1, 2])
+  })
+
+  it('deleteAttachment DELETEs and removes from current.attachments', async () => {
+    store.current = mockDiagnostic({ id: 7, attachments: [{ id: 1 }, { id: 2 }] })
+    delete_request.mockResolvedValueOnce({})
+    const result = await store.deleteAttachment(7, 2)
+    expect(delete_request).toHaveBeenCalledWith(
+      'diagnostics/7/attachments/2/delete/',
+    )
+    expect(result.success).toBe(true)
+    expect(store.current.attachments.map(a => a.id)).toEqual([1])
+  })
+
+  it('sendAttachmentsToClient POSTs payload to send endpoint', async () => {
+    const payload = { attachment_ids: [1, 2], subject: 'Docs' }
+    create_request.mockResolvedValueOnce({ data: { message: 'ok' } })
+    const result = await store.sendAttachmentsToClient(7, payload)
+    expect(create_request).toHaveBeenCalledWith(
+      'diagnostics/7/attachments/send/', payload,
+    )
+    expect(result.success).toBe(true)
+  })
+
+  // ── Email composer ───────────────────────────────────────────────────────
+
+  it('sendCustomEmail POSTs FormData to the email endpoint', async () => {
+    const fd = new FormData()
+    create_request.mockResolvedValueOnce({ data: { message: 'enviado' } })
+    const result = await store.sendCustomEmail(7, fd)
+    expect(create_request).toHaveBeenCalledWith(
+      'diagnostics/7/email/send/', fd,
+    )
+    expect(result.success).toBe(true)
+  })
+
+  it('sendCustomEmail surfaces the HTTP status on error (for 429 handling)', async () => {
+    create_request.mockRejectedValueOnce({
+      response: { status: 429, data: { error: 'cool_down' } },
+    })
+    const result = await store.sendCustomEmail(7, new FormData())
+    expect(result.success).toBe(false)
+    expect(result.status).toBe(429)
+    expect(result.error).toBe('cool_down')
+  })
+
+  it('fetchEmailDefaults GETs the defaults endpoint', async () => {
+    get_request.mockResolvedValueOnce({
+      data: { recipient_email: 'x@y.com', subject: 'S' },
+    })
+    const result = await store.fetchEmailDefaults(7)
+    expect(get_request).toHaveBeenCalledWith('diagnostics/7/email/defaults/')
+    expect(result.data.recipient_email).toBe('x@y.com')
+  })
+
+  it('fetchEmailHistory GETs the history endpoint with page', async () => {
+    get_request.mockResolvedValueOnce({
+      data: { results: [], total: 0, page: 2, has_next: false },
+    })
+    const result = await store.fetchEmailHistory(7, 2)
+    expect(get_request).toHaveBeenCalledWith(
+      'diagnostics/7/email/history/?page=2',
+    )
+    expect(result.success).toBe(true)
+  })
 })

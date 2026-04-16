@@ -1,6 +1,6 @@
 # User Flow Map
 
-> **Version:** 2.20.0
+> **Version:** 2.21.0
 > **Last updated:** 2026-04-16
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
@@ -1796,6 +1796,52 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 
 ---
 
+### FLOW: `admin-diagnostic-email`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/diagnostics/:id/edit` → Correos tab
+- **Description:** Admin sends a follow-up branded email to the client from the Correos tab of the diagnostic detail page. The composer supports a recipient address, subject, greeting, draggable body sections, footer, and optional file attachments. Email history shows previous sends with expandable metadata.
+- **Steps:**
+  1. Admin navigates to `/panel/diagnostics/:id/edit`.
+  2. Clicks the "Correos" tab → composer loads with defaults from `GET /api/diagnostics/:id/email/defaults/`.
+  3. Fills in sections and clicks "Enviar correo" → `POST /api/diagnostics/:id/email/send/` (FormData).
+  4. On success, history list refreshes and shows the new send.
+  5. Email is logged in `EmailLog` with `metadata.diagnostic_uuid`.
+- **Branches:**
+  - [Error] If client has no email, send button is disabled.
+  - [Rate limit] Backend enforces 1 send/minute; 429 surfaces as an error message.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-diagnostic-email-documents.spec.js`
+
+---
+
+### FLOW: `admin-diagnostic-documents`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/diagnostics/:id/edit` → Documentos tab
+- **Description:** Admin uploads, manages, and sends file attachments (PDF, Word, Excel, images) to the client from the Documentos tab of the diagnostic detail page. Supports document types: amendment, legal_annex, client_document, other.
+- **Steps:**
+  1. Admin navigates to `/panel/diagnostics/:id/edit`.
+  2. Clicks the "Documentos" tab.
+  3. Fills in the upload form (title, type, file) and clicks upload → `POST /api/diagnostics/:id/attachments/upload/`.
+  4. The new attachment appears in the list.
+  5. Admin selects one or more attachments via checkboxes and clicks "Enviar al cliente".
+  6. `SendDiagnosticDocumentsModal` opens to compose the send email.
+  7. Admin submits → `POST /api/diagnostics/:id/attachments/send/`.
+  8. Email is logged in `EmailLog` with `metadata.diagnostic_uuid` and `metadata.attached_doc_ids`.
+- **Branches:**
+  - [No email] Send button disabled when no client email configured.
+  - [No selection] Send button disabled until at least one checkbox is checked.
+  - [Delete] Admin clicks delete on an attachment → `DELETE /api/diagnostics/:id/attachments/:att_id/delete/` → row removed.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-diagnostic-email-documents.spec.js`
+
+---
+
 ### FLOW: `diagnostic-public-view`
 
 - **Module:** diagnostic
@@ -2809,6 +2855,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-diagnostic-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-create.spec.js` |
 | `admin-diagnostic-send-initial` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` |
 | `admin-diagnostic-send-final` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` |
+| `admin-diagnostic-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-email-documents.spec.js` |
+| `admin-diagnostic-documents` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-email-documents.spec.js` |
 | `diagnostic-public-view` | diagnostic | guest | P1 | ✅ Covered | `e2e/public/diagnostic-public-view.spec.js` |
 | `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
 | `admin-email-deliverability` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-email-deliverability.spec.js` |
@@ -3447,4 +3495,92 @@ No active browser flow is registered for client profile editing at this time.
 | `admin-diagnostic-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-create.spec.js` |
 | `admin-diagnostic-send-initial` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` |
 | `admin-diagnostic-send-final` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` |
+| `admin-diagnostic-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-email-documents.spec.js` |
+| `admin-diagnostic-documents` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-email-documents.spec.js` |
 | `diagnostic-public-view` | diagnostic | guest | P1 | ✅ Covered | `e2e/public/diagnostic-public-view.spec.js` |
+
+---
+
+## Section 15 — v2.21.0 Gaps (Task Alerts + Diagnostic Lifecycle)
+
+> Flows registered during the v2.21.0 audit cycle. Covers manual task alert management, diagnostic edit, and diagnostic delete.
+
+### 15.1 Task Alert Management
+
+#### FLOW: `admin-task-alert-management`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-task-alert-management` |
+| **Module** | tasks |
+| **Role** | admin |
+| **Priority** | P1 |
+| **Status** | ⬜ Missing spec |
+
+**Steps:**
+1. Admin navigates to `/panel/tasks`.
+2. Admin clicks a task card to open `TaskFormModal` in edit mode.
+3. Admin sees the **Alertas** section below the due-date/assignee row.
+4. Admin enters a date in the "Fecha" input and an optional note.
+5. Admin clicks **+ Agregar** — alert appears in the list with "Pendiente" badge.
+6. Admin clicks the **✕** delete button on an alert — alert is removed from the list.
+7. Admin closes the modal.
+
+**Expected outcome:** Alerts persist to backend via POST `tasks/{id}/alerts/create/` and DELETE `tasks/{id}/alerts/{alertId}/delete/`.
+
+---
+
+### 15.2 Diagnostic Edit
+
+#### FLOW: `admin-diagnostic-edit`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-edit` |
+| **Module** | diagnostics |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ⬜ Missing spec |
+
+**Steps:**
+1. Admin navigates to `/panel/diagnostics`.
+2. Admin clicks **Edit** on a diagnostic card.
+3. Admin is taken to `/panel/diagnostics/{id}/edit`.
+4. Admin modifies one or more fields (title, status, investment amount, etc.).
+5. Admin clicks **Guardar** — PATCH sent to `diagnostics/{id}/update/`.
+6. Admin sees success feedback; the updated values are reflected in the form.
+
+**Expected outcome:** Diagnostic fields are updated in the backend and reflected in the UI.
+
+---
+
+### 15.3 Diagnostic Delete
+
+#### FLOW: `admin-diagnostic-delete`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-delete` |
+| **Module** | diagnostics |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ⬜ Missing spec |
+
+**Steps:**
+1. Admin navigates to `/panel/diagnostics`.
+2. Admin clicks **Delete** (or trash icon) on a diagnostic card.
+3. A confirmation modal appears asking the admin to confirm deletion.
+4. Admin confirms — DELETE sent to `diagnostics/{id}/delete/`.
+5. The diagnostic is removed from the list.
+
+**Expected outcome:** Diagnostic is deleted in the backend and removed from the list without a page reload.
+
+---
+
+### 15.4 New Flows Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `admin-task-alert-management` | tasks | admin | P1 | ✅ Covered | `e2e/admin/admin-task-alerts.spec.js` |
+| `admin-diagnostic-edit` | diagnostics | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-edit-delete.spec.js` |
+| `admin-diagnostic-delete` | diagnostics | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-edit-delete.spec.js` |

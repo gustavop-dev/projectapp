@@ -173,6 +173,121 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
     sendInitial(id)    { return this._postTransition(id, 'send-initial',     'send_failed'); },
     sendFinal(id)      { return this._postTransition(id, 'send-final',       'send_failed'); },
 
+    // ── Attachments (file uploads) ──────────────────────────────────
+    async fetchAttachments(id) {
+      try {
+        const response = await get_request(`diagnostics/${id}/attachments/`);
+        if (this.current?.id === id) {
+          this.current = { ...this.current, attachments: response.data };
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          error: error?.response?.data?.error || 'fetch_failed',
+        };
+      }
+    },
+
+    async uploadAttachment(id, formData) {
+      try {
+        const response = await create_request(
+          `diagnostics/${id}/attachments/upload/`,
+          formData,
+        );
+        if (this.current?.id === id) {
+          const next = [...(this.current.attachments || []), response.data];
+          this.current = { ...this.current, attachments: next };
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          error: error?.response?.data?.error || 'upload_failed',
+        };
+      }
+    },
+
+    async deleteAttachment(id, attachmentId) {
+      try {
+        await delete_request(
+          `diagnostics/${id}/attachments/${attachmentId}/delete/`,
+        );
+        if (this.current?.id === id) {
+          const next = (this.current.attachments || []).filter(
+            (a) => a.id !== attachmentId,
+          );
+          this.current = { ...this.current, attachments: next };
+        }
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: error?.response?.data?.error || 'delete_failed',
+        };
+      }
+    },
+
+    async sendAttachmentsToClient(id, payload) {
+      try {
+        const response = await create_request(
+          `diagnostics/${id}/attachments/send/`,
+          payload,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          error: error?.response?.data?.error || 'send_failed',
+        };
+      }
+    },
+
+    // ── Email composer ──────────────────────────────────────────────
+    async sendCustomEmail(id, formData) {
+      try {
+        const response = await create_request(
+          `diagnostics/${id}/email/send/`,
+          formData,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          error: error?.response?.data?.error || 'send_failed',
+          status: error?.response?.status,
+        };
+      }
+    },
+
+    async fetchEmailDefaults(id) {
+      try {
+        const response = await get_request(`diagnostics/${id}/email/defaults/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          data: {},
+          error: error?.response?.data?.error || 'fetch_failed',
+        };
+      }
+    },
+
+    async fetchEmailHistory(id, page = 1) {
+      try {
+        const response = await get_request(
+          `diagnostics/${id}/email/history/?page=${page}`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          data: { results: [], total: 0, page: 1, has_next: false },
+          error: error?.response?.data?.error || 'fetch_failed',
+        };
+      }
+    },
+
     // ── Public ──────────────────────────────────────────────────────
     async fetchPublic(uuid) {
       this.isLoading = true;

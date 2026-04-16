@@ -1,6 +1,6 @@
 {
-  "version": "2.17.0",
-  "lastUpdated": "2026-04-15",
+  "version": "2.21.0",
+  "lastUpdated": "2026-04-16",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1751,6 +1751,48 @@
       "priority": "P1",
       "description": "Client accesses the public diagnostic page via UUID link, views documents per workflow status (1 doc in INITIAL_SENT, 3 in FINAL_SENT), and responds (accept/reject).",
       "expectedSpecs": 3
+    },
+    "admin-diagnostic-email": {
+      "name": "Admin Diagnostic Email Composer",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin sends a follow-up branded email from the Correos tab of the diagnostic edit page. Composer includes recipient, subject, draggable body sections, footer, and optional attachments. History lists previous sends.",
+      "expectedSpecs": 1
+    },
+    "admin-diagnostic-documents": {
+      "name": "Admin Diagnostic Attachment Management",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin uploads, manages, and sends file attachments (PDF, Word, Excel, images) from the Documentos tab of the diagnostic edit page. Checkbox selection enables the send-to-client button.",
+      "expectedSpecs": 1
+    },
+    "admin-task-alert-management": {
+      "name": "Admin Task Alert Management",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Admin defines one or more manual date-based email alerts per task from the TaskFormModal Alertas section. Supports add (date + optional note), list with sent/pending badge, and delete. Alerts fire via Huey daily at 08:10.",
+      "expectedSpecs": 1
+    },
+    "admin-diagnostic-edit": {
+      "name": "Admin Diagnostic Edit",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin edits an existing WebAppDiagnostic: updates title, client, language, investment amount, and document body text (markdown template variables). Changes are saved via PATCH /api/diagnostics/:id/update/.",
+      "expectedSpecs": 1,
+      "knownGaps": ["Spec not yet written."]
+    },
+    "admin-diagnostic-delete": {
+      "name": "Admin Diagnostic Delete",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin deletes an existing WebAppDiagnostic from the diagnostics list or edit page via confirm modal. DELETE /api/diagnostics/:id/delete/.",
+      "expectedSpecs": 1,
+      "knownGaps": ["Spec not yet written."]
     }
   }
 }

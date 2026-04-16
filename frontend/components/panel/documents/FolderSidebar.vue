@@ -44,24 +44,51 @@
 
       <li v-if="folders.length" class="my-1 border-t border-gray-100 dark:border-gray-700"></li>
 
-      <!-- Folder entries — each is a drop target -->
-      <li v-for="folder in folders" :key="folder.id">
-        <button
-          type="button"
-          class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm text-left transition-all"
-          :class="[entryClass(folder.id), dropZoneClass(folder.id)]"
-          @click="$emit('select', folder.id)"
-          @dragover.prevent="dragOverId = folder.id"
-          @dragleave="dragOverId = null"
-          @drop.prevent="onDrop(folder.id)"
-        >
-          <span class="truncate flex-1">{{ folder.name }}</span>
-          <span v-if="!isDragging || dragOverId !== folder.id" class="text-xs text-gray-400 ml-1">{{ folder.document_count }}</span>
-          <svg v-else class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-      </li>
+      <!-- Folder entries — draggable to reorder, also drop targets for documents -->
+      <draggable
+        v-model="localFolders"
+        item-key="id"
+        handle=".folder-drag-handle"
+        ghost-class="opacity-40"
+        chosen-class="ring-1 ring-emerald-300"
+        :disabled="isDragging"
+        tag="div"
+        @start="isFolderDragging = true"
+        @end="handleFolderReorder"
+      >
+        <template #item="{ element: folder }">
+          <li :key="folder.id" class="group">
+            <div
+              class="flex items-center rounded-lg transition-all"
+              :class="[entryClass(folder.id), dropZoneClass(folder.id)]"
+              @dragover.prevent="onFolderDragOver(folder.id)"
+              @dragleave="dragOverId = null"
+              @drop.prevent="onFolderDrop(folder.id)"
+            >
+              <div
+                v-if="!isDragging"
+                class="folder-drag-handle flex-shrink-0 w-5 flex items-center justify-center ml-1 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
+                title="Arrastrar para reordenar"
+              >
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 13.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 21a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" />
+                </svg>
+              </div>
+              <button
+                type="button"
+                class="flex-1 flex items-center justify-between px-3 py-2 text-sm text-left min-w-0"
+                @click="$emit('select', folder.id)"
+              >
+                <span class="truncate flex-1">{{ folder.name }}</span>
+                <span v-if="!isDragging || dragOverId !== folder.id" class="text-xs text-gray-400 ml-1 flex-shrink-0">{{ folder.document_count }}</span>
+                <svg v-else class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+          </li>
+        </template>
+      </draggable>
     </ul>
 
     <div class="p-3 border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
@@ -81,7 +108,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
+import draggable from 'vuedraggable';
 
 const props = defineProps({
   folders: { type: Array, default: () => [] },
@@ -92,7 +120,14 @@ const props = defineProps({
 
 const emit = defineEmits(['select', 'manage', 'folder-drop']);
 
+const folderStore = useDocumentFolderStore();
 const dragOverId = ref(null);
+const localFolders = ref([]);
+const isFolderDragging = ref(false);
+
+watch(() => props.folders, (v) => {
+  localFolders.value = [...v];
+}, { immediate: true });
 
 const ACTIVE_CLASS = 'bg-emerald-50 text-emerald-700 font-medium dark:bg-emerald-900/30 dark:text-emerald-300';
 const INACTIVE_CLASS = 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50';
@@ -102,7 +137,7 @@ function entryClass(id) {
 }
 
 function dropZoneClass(id) {
-  if (!props.isDragging) return '';
+  if (!props.isDragging || isFolderDragging.value) return '';
   if (dragOverId.value === id) {
     return 'ring-2 ring-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 !text-emerald-700 dark:!text-emerald-300';
   }
@@ -112,5 +147,24 @@ function dropZoneClass(id) {
 function onDrop(folderId) {
   dragOverId.value = null;
   emit('folder-drop', folderId);
+}
+
+function onFolderDragOver(folderId) {
+  if (!isFolderDragging.value) dragOverId.value = folderId;
+}
+
+function onFolderDrop(folderId) {
+  if (!isFolderDragging.value) onDrop(folderId);
+}
+
+async function handleFolderReorder() {
+  isFolderDragging.value = false;
+  const newIds = localFolders.value.map((f) => f.id);
+  const unchanged = newIds.every((id, i) => id === props.folders[i]?.id);
+  if (unchanged) return;
+  const result = await folderStore.reorderFolders(newIds);
+  if (!result.success) {
+    await folderStore.fetchFolders();
+  }
 }
 </script>

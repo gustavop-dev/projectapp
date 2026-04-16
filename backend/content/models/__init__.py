@@ -39,4 +39,6 @@ from .proposal_document import ProposalDocument
 from .contract_template import ContractTemplate
 from .linkedin_token import LinkedInToken
 from .task import Task
+from .task_alert import TaskAlert
 from .web_app_diagnostic import WebAppDiagnostic, DiagnosticDocument
+from .diagnostic_attachment import DiagnosticAttachment

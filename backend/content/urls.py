@@ -79,12 +79,17 @@ from content.views.proposal_clients import (
 from content.views.task import (
     list_tasks, create_task, update_task, reorder_task, delete_task,
     list_task_assignees,
+    list_task_alerts, create_task_alert, delete_task_alert,
 )
 from content.views.diagnostic import (
     list_diagnostics, create_diagnostic, retrieve_diagnostic,
     update_diagnostic, delete_diagnostic,
     update_diagnostic_document, restore_diagnostic_document,
     send_initial, mark_in_analysis, send_final,
+    list_diagnostic_attachments, upload_diagnostic_attachment,
+    delete_diagnostic_attachment, send_diagnostic_attachments,
+    send_diagnostic_email, get_diagnostic_email_defaults,
+    list_diagnostic_emails,
     retrieve_public_diagnostic, track_public_diagnostic,
     respond_public_diagnostic,
 )
@@ -243,6 +248,9 @@ urlpatterns = [
     path('tasks/<int:task_id>/update/', update_task, name='update-task'),
     path('tasks/<int:task_id>/reorder/', reorder_task, name='reorder-task'),
     path('tasks/<int:task_id>/delete/', delete_task, name='delete-task'),
+    path('tasks/<int:task_id>/alerts/', list_task_alerts, name='list-task-alerts'),
+    path('tasks/<int:task_id>/alerts/create/', create_task_alert, name='create-task-alert'),
+    path('tasks/<int:task_id>/alerts/<int:alert_id>/delete/', delete_task_alert, name='delete-task-alert'),
 
     # Document tags (M2M, inline-managed)
     path('document-tags/', list_document_tags, name='list-document-tags'),
@@ -267,6 +275,17 @@ urlpatterns = [
     path('diagnostics/<int:diagnostic_id>/send-final/', send_final, name='send-final-diagnostic'),
     path('diagnostics/<int:diagnostic_id>/documents/<int:doc_id>/update/', update_diagnostic_document, name='update-diagnostic-document'),
     path('diagnostics/<int:diagnostic_id>/documents/<int:doc_id>/restore/', restore_diagnostic_document, name='restore-diagnostic-document'),
+
+    # Attachments (files uploaded to a diagnostic)
+    path('diagnostics/<int:diagnostic_id>/attachments/', list_diagnostic_attachments, name='list-diagnostic-attachments'),
+    path('diagnostics/<int:diagnostic_id>/attachments/upload/', upload_diagnostic_attachment, name='upload-diagnostic-attachment'),
+    path('diagnostics/<int:diagnostic_id>/attachments/send/', send_diagnostic_attachments, name='send-diagnostic-attachments'),
+    path('diagnostics/<int:diagnostic_id>/attachments/<int:attachment_id>/delete/', delete_diagnostic_attachment, name='delete-diagnostic-attachment'),
+
+    # Email composer (history + send)
+    path('diagnostics/<int:diagnostic_id>/email/send/', send_diagnostic_email, name='send-diagnostic-email'),
+    path('diagnostics/<int:diagnostic_id>/email/defaults/', get_diagnostic_email_defaults, name='diagnostic-email-defaults'),
+    path('diagnostics/<int:diagnostic_id>/email/history/', list_diagnostic_emails, name='list-diagnostic-emails'),
 
     # Portfolio — admin CRUD (must come before slug catch-all)
     path('portfolio/admin/', list_admin_portfolio_works, name='list-admin-portfolio-works'),

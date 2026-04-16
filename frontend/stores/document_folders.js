@@ -87,6 +87,8 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
       this.error = null;
       try {
         await create_request('document-folders/reorder/', { ids: orderedIds });
+        const reordered = orderedIds.map((id) => this.folders.find((f) => f.id === id)).filter(Boolean);
+        if (reordered.length === this.folders.length) this.folders = reordered;
         return { success: true };
       } catch (error) {
         console.error('Error reordering folders:', error);

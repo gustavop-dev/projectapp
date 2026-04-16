@@ -1227,3 +1227,81 @@ def _check_single_task_deadlines(task, today):
 
     if update_fields:
         task.save(update_fields=update_fields)
+
+
+# ── Manual task alert notifications ─────────────────────────────────────────
+# 08:10 AM diario. Slight offset from the 08:05 deadline task.
+
+def _send_task_alert_email(alert):
+    """Send a manual-alert email for a single TaskAlert instance."""
+    from django.core.mail import EmailMultiAlternatives
+    from django.template.loader import render_to_string
+    from content.models import Task
+
+    task = alert.task
+    subject = f'[ProjectApp] Alerta de tarea: {task.title}'
+    note_text = alert.note.strip() if alert.note else 'Alerta manual programada para esta tarea.'
+
+    assignee_name = None
+    if task.assignee:
+        full = (task.assignee.get_full_name() or '').strip()
+        assignee_name = full or task.assignee.username
+
+    due_date_str = task.due_date.strftime('%d/%m/%Y') if task.due_date else 'No definida'
+
+    context = {
+        'email_subject': subject,
+        'header_color': '#7c3aed',   # violet-600
+        'header_icon': '🔔',
+        'header_title': 'Alerta manual de tarea',
+        'header_subtitle': f'Programada para el {alert.notify_at.strftime("%d/%m/%Y")}',
+        'intro_text': note_text,
+        'task_title': task.title,
+        'task_status': Task.Status(task.status).label,
+        'task_priority': _PRIORITY_LABELS.get(task.priority, task.priority),
+        'task_assignee': assignee_name,
+        'task_due_date': due_date_str,
+        'days_overdue': None,
+    }
+
+    html_body = render_to_string('emails/task_deadline_notification.html', context)
+    txt_body = render_to_string('emails/task_deadline_notification.txt', context)
+
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=txt_body,
+        from_email='team@projectapp.co',
+        to=TASK_NOTIFICATION_RECIPIENTS,
+    )
+    msg.attach_alternative(html_body, 'text/html')
+    msg.send(fail_silently=False)
+
+
+@periodic_task(crontab(hour='8', minute='10'))
+def check_task_alert_notifications():
+    """
+    Daily at 08:10: fire any pending manual task alerts whose notify_at <= today.
+    Marks each alert as sent after the email is dispatched.
+    """
+    from content.models import TaskAlert
+
+    today = timezone.localdate()
+    pending = (
+        TaskAlert.objects.filter(notify_at__lte=today, sent=False)
+        .select_related('task', 'task__assignee')
+    )
+
+    processed = 0
+    for alert in pending:
+        try:
+            _send_task_alert_email(alert)
+            alert.sent = True
+            alert.save(update_fields=['sent'])
+            processed += 1
+        except Exception:
+            logger.exception(
+                'check_task_alert_notifications: failed for alert %s', alert.pk,
+            )
+
+    if processed:
+        logger.info('check_task_alert_notifications: processed %d alerts', processed)

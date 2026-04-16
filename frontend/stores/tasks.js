@@ -19,6 +19,8 @@ export const useTaskStore = defineStore('tasks', {
     isUpdating: false,
     error: null,
     assignees: [],
+    taskAlerts: {},
+    alertsLoading: false,
   }),
 
   getters: {
@@ -144,6 +146,49 @@ export const useTaskStore = defineStore('tasks', {
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
+      }
+    },
+
+    /** Fetch manual alerts for a task. */
+    async fetchTaskAlerts(taskId) {
+      this.alertsLoading = true;
+      try {
+        const response = await get_request(`tasks/${taskId}/alerts/`);
+        this.taskAlerts = { ...this.taskAlerts, [taskId]: response.data };
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching task alerts:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.alertsLoading = false;
+      }
+    },
+
+    /** Create a manual alert for a task. */
+    async createTaskAlert(taskId, payload) {
+      try {
+        const response = await create_request(`tasks/${taskId}/alerts/create/`, payload);
+        const alert = response.data;
+        const current = this.taskAlerts[taskId] ?? [];
+        this.taskAlerts = { ...this.taskAlerts, [taskId]: [...current, alert] };
+        return { success: true, data: alert };
+      } catch (error) {
+        console.error('Error creating task alert:', error);
+        return { success: false, errors: error.response?.data };
+      }
+    },
+
+    /** Delete a manual alert from a task. */
+    async deleteTaskAlert(taskId, alertId) {
+      try {
+        await delete_request(`tasks/${taskId}/alerts/${alertId}/delete/`);
+        const current = this.taskAlerts[taskId] ?? [];
+        this.taskAlerts = { ...this.taskAlerts, [taskId]: current.filter((a) => a.id !== alertId) };
+        return { success: true };
+      } catch (error) {
+        console.error('Error deleting task alert:', error);
+        return { success: false };
       }
     },
 

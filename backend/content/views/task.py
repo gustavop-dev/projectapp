@@ -10,8 +10,10 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
-from content.models import Task
+from content.models import Task, TaskAlert
 from content.serializers.task import (
+    TaskAlertCreateSerializer,
+    TaskAlertSerializer,
     TaskCreateUpdateSerializer,
     TaskListSerializer,
 )
@@ -155,3 +157,35 @@ def list_task_assignees(request):
         for u in users
     ]
     return Response(data)
+
+
+# ── Task Alerts ──────────────────────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def list_task_alerts(request, task_id):
+    """Return all alerts for a task, ordered by notify_at."""
+    task = get_object_or_404(Task, pk=task_id)
+    alerts = task.alerts.all()
+    return Response(TaskAlertSerializer(alerts, many=True).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def create_task_alert(request, task_id):
+    """Create a manual alert for a task."""
+    task = get_object_or_404(Task, pk=task_id)
+    serializer = TaskAlertCreateSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    alert = serializer.save(task=task)
+    return Response(TaskAlertSerializer(alert).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def delete_task_alert(request, task_id, alert_id):
+    """Delete a manual alert."""
+    alert = get_object_or_404(TaskAlert, pk=alert_id, task_id=task_id)
+    alert.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)

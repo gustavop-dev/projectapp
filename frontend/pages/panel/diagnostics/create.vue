@@ -1,45 +1,71 @@
 <template>
   <div class="max-w-2xl mx-auto">
-    <h1 class="text-2xl font-light text-gray-900 mb-6">Nuevo diagnóstico de aplicación</h1>
+    <header class="mb-6">
+      <NuxtLink
+        :to="localePath('/panel/diagnostics')"
+        class="text-sm text-gray-500 dark:text-gray-400 hover:underline"
+      >← Diagnósticos</NuxtLink>
+      <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100 mt-1">Nuevo diagnóstico de aplicación</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        Crea un diagnóstico para un cliente existente. Podrás completar pricing, radiografía y documentos después.
+      </p>
+    </header>
 
-    <form class="space-y-6 bg-white rounded-xl border p-6" @submit.prevent="submit">
+    <form
+      class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6
+             dark:bg-gray-800 dark:border-gray-700"
+      @submit.prevent="submit"
+    >
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cliente</label>
         <ClientAutocomplete
           v-model="selectedClientId"
           placeholder="Buscar cliente por nombre, email o empresa..."
           test-id="diagnostic-client-autocomplete"
           @select="onClientSelected"
         />
-        <p class="text-xs text-gray-500 mt-1">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
           Busca por nombre, email o empresa. Solo clientes existentes pueden recibir un diagnóstico.
         </p>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Idioma</label>
-        <select v-model="language" class="w-full border rounded px-3 py-2">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Idioma</label>
+        <select
+          v-model="language"
+          class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white outline-none
+                 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500
+                 dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200"
+        >
           <option value="es">Español</option>
           <option value="en">English</option>
         </select>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Título (opcional)</label>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Título (opcional)</label>
         <input
           v-model="title"
           type="text"
-          class="w-full border rounded px-3 py-2"
+          class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm outline-none
+                 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500
+                 dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
           placeholder="Se generará automáticamente si lo dejas vacío"
         />
       </div>
 
-      <div v-if="errorMsg" class="text-sm text-rose-600">{{ errorMsg }}</div>
+      <div
+        v-if="errorMsg"
+        class="rounded-xl bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 text-sm
+               dark:bg-rose-900/20 dark:border-rose-700 dark:text-rose-300"
+      >{{ errorMsg }}</div>
 
       <div class="text-right">
         <button
           type="submit"
-          class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50"
+          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl
+                 font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50
+                 dark:bg-emerald-700 dark:hover:bg-emerald-600"
           :disabled="!selectedClientId || store.isUpdating"
           data-testid="diagnostic-submit-btn"
         >

@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import serializers
 
-from content.models import Task
+from content.models import Task, TaskAlert
 
 User = get_user_model()
 
@@ -56,4 +56,24 @@ class TaskCreateUpdateSerializer(serializers.ModelSerializer):
             'title': {'required': True},
             'status': {'required': False},
             'priority': {'required': False},
+        }
+
+
+class TaskAlertSerializer(serializers.ModelSerializer):
+    """Read-only representation of a task alert."""
+
+    class Meta:
+        model = TaskAlert
+        fields = ('id', 'notify_at', 'note', 'sent', 'created_at')
+
+
+class TaskAlertCreateSerializer(serializers.ModelSerializer):
+    """Write-side serializer for creating a task alert."""
+
+    class Meta:
+        model = TaskAlert
+        fields = ('notify_at', 'note')
+        extra_kwargs = {
+            'notify_at': {'required': True},
+            'note': {'required': False},
         }

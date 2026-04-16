@@ -4,7 +4,9 @@ from rest_framework import serializers
 
 from accounts.models import UserProfile
 from accounts.services.proposal_client_service import build_client_display_name
-from content.models import DiagnosticDocument, WebAppDiagnostic
+from content.models import (
+    DiagnosticAttachment, DiagnosticDocument, WebAppDiagnostic,
+)
 from content.services import diagnostic_service
 
 
@@ -43,6 +45,28 @@ class DiagnosticDocumentSerializer(serializers.ModelSerializer):
         return diagnostic_service.render_document(doc, context=context)
 
 
+def serialize_diagnostic_attachment(att):
+    display = (
+        att.custom_type_label
+        if att.document_type == DiagnosticAttachment.DOC_TYPE_OTHER
+        and att.custom_type_label
+        else att.get_document_type_display()
+    )
+    return {
+        'id': att.id,
+        'document_type': att.document_type,
+        'document_type_display': display,
+        'custom_type_label': att.custom_type_label,
+        'title': att.title,
+        'file': att.file.url if att.file else None,
+        'uploaded_by_name': (
+            att.uploaded_by.get_full_name() or att.uploaded_by.username
+            if att.uploaded_by else ''
+        ),
+        'created_at': att.created_at.isoformat(),
+    }
+
+
 class DiagnosticListSerializer(serializers.ModelSerializer):
     client = _ClientSummarySerializer(read_only=True)
     public_url = serializers.CharField(read_only=True)
@@ -62,12 +86,13 @@ class DiagnosticListSerializer(serializers.ModelSerializer):
 
 class DiagnosticDetailSerializer(DiagnosticListSerializer):
     documents = serializers.SerializerMethodField()
+    attachments = serializers.SerializerMethodField()
     payment_terms = serializers.JSONField()
     radiography = serializers.JSONField()
 
     class Meta(DiagnosticListSerializer.Meta):
         fields = DiagnosticListSerializer.Meta.fields + [
-            'payment_terms', 'radiography', 'documents',
+            'payment_terms', 'radiography', 'documents', 'attachments',
         ]
 
     def get_documents(self, diagnostic):
@@ -76,6 +101,12 @@ class DiagnosticDetailSerializer(DiagnosticListSerializer):
         return DiagnosticDocumentSerializer(
             docs, many=True, context={'render_context': render_context},
         ).data
+
+    def get_attachments(self, diagnostic):
+        return [
+            serialize_diagnostic_attachment(att)
+            for att in diagnostic.attachments.all()
+        ]
 
 
 class DiagnosticUpdateSerializer(serializers.ModelSerializer):

@@ -219,9 +219,16 @@ export const ADMIN_DIAGNOSTIC_CREATE       = ['@flow:admin-diagnostic-create', '
 export const ADMIN_DIAGNOSTIC_SEND_INITIAL = ['@flow:admin-diagnostic-send-initial', '@module:admin', '@priority:P1'];
 export const ADMIN_DIAGNOSTIC_SEND_FINAL   = ['@flow:admin-diagnostic-send-final', '@module:admin', '@priority:P1'];
 export const DIAGNOSTIC_PUBLIC_VIEW        = ['@flow:diagnostic-public-view', '@module:diagnostic', '@priority:P1'];
+export const ADMIN_DIAGNOSTIC_EMAIL        = ['@flow:admin-diagnostic-email', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_DOCUMENTS    = ['@flow:admin-diagnostic-documents', '@module:admin', '@priority:P2'];
 
 // ── Proposal — Mobile Onboarding ──
 export const PROPOSAL_ONBOARDING_MOBILE_SWIPE = ['@flow:proposal-onboarding-mobile-swipe', '@module:proposal', '@priority:P3'];
 
 // ── Documents — Move Folder ──
 export const ADMIN_DOCUMENT_MOVE_FOLDER = ['@flow:admin-document-move-folder', '@module:admin', '@priority:P1'];
+
+// ── v2.21.0 — Task Alerts + Diagnostic lifecycle gaps ──
+export const ADMIN_TASK_ALERT_MANAGEMENT = ['@flow:admin-task-alert-management', '@module:admin', '@priority:P1'];
+export const ADMIN_DIAGNOSTIC_EDIT       = ['@flow:admin-diagnostic-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_DELETE     = ['@flow:admin-diagnostic-delete', '@module:admin', '@priority:P2'];
