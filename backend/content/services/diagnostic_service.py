@@ -216,12 +216,17 @@ def transition_status(
     diagnostic.status = new_status
     now = timezone.now()
 
-    if new_status == WebAppDiagnostic.Status.INITIAL_SENT:
-        diagnostic.initial_sent_at = now
-        update_fields.append('initial_sent_at')
-    elif new_status == WebAppDiagnostic.Status.FINAL_SENT:
-        diagnostic.final_sent_at = now
-        update_fields.append('final_sent_at')
+    # SENT is re-used for both the initial send and the final send. We
+    # distinguish them via the timestamp fields: the first transition to
+    # SENT stamps `initial_sent_at`; a later return to SENT from NEGOTIATING
+    # stamps `final_sent_at`.
+    if new_status == WebAppDiagnostic.Status.SENT:
+        if diagnostic.initial_sent_at is None:
+            diagnostic.initial_sent_at = now
+            update_fields.append('initial_sent_at')
+        else:
+            diagnostic.final_sent_at = now
+            update_fields.append('final_sent_at')
     elif new_status in (
         WebAppDiagnostic.Status.ACCEPTED,
         WebAppDiagnostic.Status.REJECTED,
@@ -244,8 +249,9 @@ def register_view(diagnostic: WebAppDiagnostic) -> WebAppDiagnostic:
 
 
 PUBLIC_VISIBLE_STATUSES = frozenset({
-    WebAppDiagnostic.Status.INITIAL_SENT,
-    WebAppDiagnostic.Status.FINAL_SENT,
+    WebAppDiagnostic.Status.SENT,
+    WebAppDiagnostic.Status.VIEWED,
+    WebAppDiagnostic.Status.NEGOTIATING,
     WebAppDiagnostic.Status.ACCEPTED,
     WebAppDiagnostic.Status.REJECTED,
 })
@@ -255,11 +261,13 @@ def visible_documents(diagnostic: WebAppDiagnostic):
     """Return the documents visible to the public client given the status.
 
     Filters in Python so a prefetched `documents` cache is not invalidated.
+    The initial-vs-final send distinction now lives in the timestamps rather
+    than the status enum, so we gate on `final_sent_at`.
     """
     docs = sorted(diagnostic.documents.all(), key=lambda d: d.order)
-    if diagnostic.status == WebAppDiagnostic.Status.INITIAL_SENT:
+    if diagnostic.status not in PUBLIC_VISIBLE_STATUSES:
+        return []
+    if diagnostic.final_sent_at is None:
         return [d for d in docs if d.doc_type == DiagnosticDocument.DocType.INITIAL_PROPOSAL]
-    if diagnostic.status in PUBLIC_VISIBLE_STATUSES:
-        ready = [d for d in docs if d.is_ready]
-        return ready or docs
-    return []
+    ready = [d for d in docs if d.is_ready]
+    return ready or docs

@@ -165,11 +165,13 @@ def _send_and_transition(diagnostic, kind: str):
         DiagnosticEmailService,
     )
 
+    # Both the initial and final sends land on Status.SENT; the service
+    # distinguishes them by checking whether `initial_sent_at` is already set.
     if kind == 'initial':
-        target = WebAppDiagnostic.Status.INITIAL_SENT
+        target = WebAppDiagnostic.Status.SENT
         email_fn = DiagnosticEmailService.send_initial_to_client
     elif kind == 'final':
-        target = WebAppDiagnostic.Status.FINAL_SENT
+        target = WebAppDiagnostic.Status.SENT
         email_fn = DiagnosticEmailService.send_final_to_client
     else:
         return False, Response({'error': 'unknown_kind'},
@@ -207,11 +209,11 @@ def send_initial(request, diagnostic_id):
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def mark_in_analysis(request, diagnostic_id):
-    """Manual transition INITIAL_SENT → IN_ANALYSIS once the client authorized."""
+    """Manual transition SENT → NEGOTIATING once the client authorized."""
     diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
     try:
         diagnostic_service.transition_status(
-            diagnostic, WebAppDiagnostic.Status.IN_ANALYSIS,
+            diagnostic, WebAppDiagnostic.Status.NEGOTIATING,
         )
     except ValueError as exc:
         return Response(

@@ -61,25 +61,25 @@
 
       <div class="border-t pt-4 flex flex-wrap gap-2">
         <button
-          v-if="status === DIAGNOSTIC_STATUS.DRAFT"
+          v-if="canSendInitial"
           class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           :disabled="store.isUpdating"
           @click="onSendInitial"
         >Enviar Doc 1 al cliente</button>
         <button
-          v-if="status === DIAGNOSTIC_STATUS.INITIAL_SENT"
+          v-if="canMarkAnalysis"
           class="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700"
           :disabled="store.isUpdating"
           @click="onMarkAnalysis"
         >Marcar en análisis</button>
         <button
-          v-if="status === DIAGNOSTIC_STATUS.IN_ANALYSIS"
+          v-if="canSendFinal"
           class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
           :disabled="store.isUpdating"
           @click="onSendFinal"
         >Enviar diagnóstico final</button>
         <button
-          v-if="status !== DIAGNOSTIC_STATUS.ACCEPTED && status !== DIAGNOSTIC_STATUS.REJECTED"
+          v-if="canDelete"
           class="px-4 py-2 border border-rose-300 text-rose-700 rounded hover:bg-rose-50"
           :disabled="store.isUpdating"
           @click="onDelete"
@@ -140,6 +140,25 @@ const store = useDiagnosticsStore();
 
 const id = computed(() => Number(route.params.id));
 const status = computed(() => store.current?.status);
+const finalSentAt = computed(() => store.current?.final_sent_at);
+
+const canSendInitial = computed(
+  () => status.value === DIAGNOSTIC_STATUS.DRAFT,
+);
+const canMarkAnalysis = computed(
+  () => status.value === DIAGNOSTIC_STATUS.SENT && !finalSentAt.value,
+);
+const canSendFinal = computed(
+  () => status.value === DIAGNOSTIC_STATUS.NEGOTIATING,
+);
+const canDelete = computed(() => {
+  const terminal = [
+    DIAGNOSTIC_STATUS.ACCEPTED,
+    DIAGNOSTIC_STATUS.REJECTED,
+    DIAGNOSTIC_STATUS.FINISHED,
+  ];
+  return !terminal.includes(status.value);
+});
 const activeTab = ref('summary');
 const tabs = [
   { id: 'summary', label: 'Resumen' },
@@ -218,16 +237,16 @@ async function onDocRestore(doc) {
 }
 
 async function onSendInitial() {
-  if (!confirm('Enviar Doc 1 al cliente por email y mover el diagnóstico a "Inicial enviada"?')) return;
+  if (!confirm('Enviar Doc 1 al cliente por email y mover el diagnóstico a "Enviada"?')) return;
   const r = await store.sendInitial(id.value);
   actionMsgOk.value = r.success;
   actionMsg.value = r.success ? 'Doc 1 enviado.' : (r.message || r.error);
 }
 async function onMarkAnalysis() {
-  if (!confirm('¿Confirmar que el cliente autorizó? Se moverá a "En análisis".')) return;
+  if (!confirm('¿Confirmar que el cliente autorizó? Se moverá a "En negociación".')) return;
   const r = await store.markInAnalysis(id.value);
   actionMsgOk.value = r.success;
-  actionMsg.value = r.success ? 'Diagnóstico en análisis.' : (r.message || r.error);
+  actionMsg.value = r.success ? 'Diagnóstico en negociación.' : (r.message || r.error);
 }
 async function onSendFinal() {
   if (!confirm('Enviar el diagnóstico final (3 documentos) al cliente?')) return;

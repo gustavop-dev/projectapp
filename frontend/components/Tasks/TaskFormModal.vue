@@ -9,14 +9,14 @@
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full p-6" data-testid="task-form-modal">
           <div class="flex items-center justify-between mb-5">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {{ isEditing ? 'Editar tarea' : 'Nueva tarea' }}
+              {{ isEditing ? 'Edit task' : 'New task' }}
             </h3>
             <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" @click="close">✕</button>
           </div>
 
           <form class="space-y-4" @submit.prevent="handleSubmit">
             <div>
-              <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Título</label>
+              <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Title</label>
               <input
                 v-model="form.title"
                 required
@@ -27,7 +27,7 @@
             </div>
 
             <div>
-              <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Descripción</label>
+              <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Description</label>
               <textarea
                 v-model="form.description"
                 rows="3"
@@ -37,7 +37,7 @@
 
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Estado</label>
+                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Status</label>
                 <select
                   v-model="form.status"
                   class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100"
@@ -49,21 +49,21 @@
                 </select>
               </div>
               <div>
-                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Prioridad</label>
+                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Priority</label>
                 <select
                   v-model="form.priority"
                   class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100"
                 >
-                  <option value="low">Baja</option>
-                  <option value="medium">Media</option>
-                  <option value="high">Alta</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
                 </select>
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Fecha límite</label>
+                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Due date</label>
                 <input
                   v-model="form.due_date"
                   type="date"
@@ -71,12 +71,12 @@
                 />
               </div>
               <div>
-                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Asignado a</label>
+                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Assigned to</label>
                 <select
                   v-model="form.assignee_id"
                   class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100"
                 >
-                  <option value="">Sin asignar</option>
+                  <option value="">Unassigned</option>
                   <option v-for="user in assignees" :key="user.id" :value="user.id">
                     {{ user.name }}
                   </option>
@@ -92,7 +92,7 @@
                 :disabled="busy"
                 @click="handleDelete"
               >
-                Eliminar
+                Delete
               </button>
               <span v-else></span>
               <div class="flex gap-2">
@@ -101,7 +101,7 @@
                   class="px-4 py-2 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200"
                   @click="close"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -109,7 +109,7 @@
                   class="px-4 py-2 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
                   data-testid="task-submit-btn"
                 >
-                  {{ busy ? 'Guardando...' : (isEditing ? 'Guardar' : 'Crear') }}
+                  {{ busy ? 'Saving...' : (isEditing ? 'Save' : 'Create') }}
                 </button>
               </div>
             </div>

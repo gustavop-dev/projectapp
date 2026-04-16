@@ -168,7 +168,7 @@ const t = computed(() => i18n[props.language] || i18n.es);
 @keyframes gatewayItemIn {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(22px);
   }
   to {
     opacity: 1;
@@ -177,17 +177,17 @@ const t = computed(() => i18n[props.language] || i18n.es);
 }
 
 .gateway-header {
-  animation: gatewayItemIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: 0.05s;
+  animation: gatewayItemIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.08s;
 }
 
 .gateway-card {
-  animation: gatewayItemIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: gatewayItemIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
-.gateway-card:nth-child(1) { animation-delay: 0.12s; }
-.gateway-card:nth-child(2) { animation-delay: 0.22s; }
-.gateway-card:nth-child(3) { animation-delay: 0.32s; }
+.gateway-card:nth-child(1) { animation-delay: 0.18s; }
+.gateway-card:nth-child(2) { animation-delay: 0.36s; }
+.gateway-card:nth-child(3) { animation-delay: 0.54s; }
 
 .gateway-card:hover {
   transform: translateY(-4px);

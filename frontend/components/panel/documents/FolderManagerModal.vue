@@ -3,20 +3,23 @@
     <Transition name="fade-modal">
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+        class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
         @click.self="close"
       >
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg dark:bg-gray-800 flex flex-col max-h-[90vh]">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl dark:bg-gray-800 flex flex-col max-h-[88vh]">
 
           <!-- Header -->
-          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center">
-                <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+          <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-amber-500 dark:text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
                 </svg>
               </div>
-              <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Gestionar carpetas</h3>
+              <div>
+                <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">Gestionar carpetas</h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Crea, renombra, elimina o reordena arrastrando</p>
+              </div>
             </div>
             <button
               type="button"
@@ -30,7 +33,7 @@
           </div>
 
           <!-- New folder form -->
-          <div class="px-6 pt-4 pb-3 flex-shrink-0">
+          <div class="px-6 pt-5 pb-4 flex-shrink-0">
             <form class="flex gap-2" @submit.prevent="handleCreate">
               <div class="relative flex-1">
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,104 +42,139 @@
                 <input
                   v-model="newName"
                   type="text"
-                  placeholder="Nombre de la nueva carpeta"
-                  class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500"
+                  placeholder="Nombre de la nueva carpeta..."
+                  class="w-full pl-9 pr-3 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-500 transition-colors"
                 />
               </div>
               <button
                 type="submit"
                 :disabled="!newName.trim() || folderStore.isUpdating"
-                class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 flex-shrink-0"
+                class="px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 flex-shrink-0"
               >
                 Crear
               </button>
             </form>
           </div>
 
+          <div v-if="localFolders.length" class="px-6 pb-2 flex-shrink-0">
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                {{ localFolders.length }} carpeta{{ localFolders.length !== 1 ? 's' : '' }}
+              </span>
+              <div class="flex-1 h-px bg-gray-100 dark:bg-gray-700"></div>
+              <span class="text-[10px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+                Arrastra para reordenar
+              </span>
+            </div>
+          </div>
+
           <!-- Folder list -->
           <div class="flex-1 overflow-y-auto px-6 pb-2">
-            <div v-if="!folderStore.folders.length" class="flex flex-col items-center justify-center py-10 text-center">
-              <div class="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
-                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div v-if="!localFolders.length" class="flex flex-col items-center justify-center py-12 text-center">
+              <div class="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3">
+                <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
                 </svg>
               </div>
-              <p class="text-sm text-gray-500 dark:text-gray-400">No hay carpetas todavía.</p>
-              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Crea una usando el campo de arriba.</p>
+              <p class="text-sm font-medium text-gray-600 dark:text-gray-300">Sin carpetas todavía</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Usa el campo de arriba para crear la primera.</p>
             </div>
 
-            <div v-else class="space-y-1.5 py-1">
-              <div
-                v-for="folder in folderStore.folders"
-                :key="folder.id"
-                class="group flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
-              >
-                <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0">
-                  <svg class="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-                  </svg>
-                </div>
-
-                <input
-                  v-if="editingId === folder.id"
-                  v-model="editingName"
-                  type="text"
-                  class="flex-1 min-w-0 px-2.5 py-1 border border-emerald-300 dark:border-emerald-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none"
-                  @keyup.enter="commitRename(folder)"
-                  @keyup.esc="cancelRename"
-                />
-                <span v-else class="flex-1 min-w-0 text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
-                  {{ folder.name }}
-                </span>
-
-                <span
-                  v-if="editingId !== folder.id"
-                  class="flex-shrink-0 inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1.5 rounded-full bg-gray-100 dark:bg-gray-600 text-xs font-medium text-gray-500 dark:text-gray-300"
+            <draggable
+              v-else
+              v-model="localFolders"
+              item-key="id"
+              handle=".drag-handle"
+              ghost-class="opacity-40"
+              chosen-class="ring-2 ring-emerald-400 shadow-lg"
+              drag-class="rotate-1"
+              class="space-y-1.5 py-1"
+              @end="handleReorder"
+            >
+              <template #item="{ element: folder }">
+                <div
+                  :key="folder.id"
+                  class="group flex items-center gap-3 px-3 py-3 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all"
                 >
-                  {{ folder.document_count }}
-                </span>
-
-                <div v-if="editingId === folder.id" class="flex items-center gap-1.5 flex-shrink-0">
-                  <button
-                    type="button"
-                    class="px-3 py-1 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-                    @click="commitRename(folder)"
+                  <div
+                    class="drag-handle flex-shrink-0 w-5 h-5 flex items-center justify-center text-gray-300 dark:text-gray-600 hover:text-gray-400 dark:hover:text-gray-500 cursor-grab active:cursor-grabbing transition-colors"
+                    title="Arrastrar para reordenar"
                   >
-                    Guardar
-                  </button>
-                  <button
-                    type="button"
-                    class="px-3 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                    @click="cancelRename"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-
-                <div v-else class="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    type="button"
-                    class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors"
-                    title="Renombrar"
-                    @click="startRename(folder)"
-                  >
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 13.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 21a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" />
                     </svg>
-                  </button>
-                  <button
-                    type="button"
-                    class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-                    title="Eliminar carpeta"
-                    @click="askDelete(folder)"
-                  >
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </div>
+
+                  <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
                     </svg>
-                  </button>
+                  </div>
+
+                  <input
+                    v-if="editingId === folder.id"
+                    v-model="editingName"
+                    type="text"
+                    class="flex-1 min-w-0 px-2.5 py-1.5 border border-emerald-300 dark:border-emerald-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-emerald-500 outline-none"
+                    @keyup.enter="commitRename(folder)"
+                    @keyup.esc="cancelRename"
+                  />
+                  <span v-else class="flex-1 min-w-0 text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                    {{ folder.name }}
+                  </span>
+
+                  <span
+                    v-if="editingId !== folder.id"
+                    class="flex-shrink-0 inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1.5 rounded-full bg-gray-100 dark:bg-gray-600/80 text-xs font-medium text-gray-500 dark:text-gray-300"
+                  >
+                    {{ folder.document_count }}
+                  </span>
+
+                  <div v-if="editingId === folder.id" class="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      type="button"
+                      class="px-3 py-1 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                      @click="commitRename(folder)"
+                    >
+                      Guardar
+                    </button>
+                    <button
+                      type="button"
+                      class="px-3 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                      @click="cancelRename"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+
+                  <div v-else class="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors"
+                      title="Renombrar"
+                      @click="startRename(folder)"
+                    >
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                      title="Eliminar carpeta"
+                      @click="askDelete(folder)"
+                    >
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </template>
+            </draggable>
           </div>
 
           <div v-if="errorMsg" class="px-6 pb-2 flex-shrink-0">
@@ -192,7 +230,7 @@
           <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end flex-shrink-0">
             <button
               type="button"
-              class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              class="px-5 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
               @click="close"
             >
               Cerrar
@@ -207,6 +245,7 @@
 
 <script setup>
 import { ref, watch } from 'vue';
+import draggable from 'vuedraggable';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -219,6 +258,11 @@ const editingId = ref(null);
 const editingName = ref('');
 const deletingFolder = ref(null);
 const errorMsg = ref('');
+const localFolders = ref([]);
+
+watch(() => folderStore.folders, (v) => {
+  localFolders.value = [...v];
+}, { immediate: true });
 
 watch(() => props.modelValue, async (open) => {
   if (open) {
@@ -226,6 +270,7 @@ watch(() => props.modelValue, async (open) => {
     deletingFolder.value = null;
     editingId.value = null;
     await folderStore.fetchFolders();
+    // folderStore.folders watcher syncs localFolders automatically
   }
 });
 
@@ -286,6 +331,15 @@ async function confirmDelete() {
     emit('changed');
   } else {
     errorMsg.value = formatErr(result.errors) || 'No se pudo eliminar.';
+  }
+}
+
+async function handleReorder() {
+  const orderedIds = localFolders.value.map((f) => f.id);
+  const result = await folderStore.reorderFolders(orderedIds);
+  if (!result.success) {
+    errorMsg.value = 'Error al reordenar. Vuelve a intentarlo.';
+    await folderStore.fetchFolders();
   }
 }
 

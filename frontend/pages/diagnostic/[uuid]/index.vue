@@ -85,7 +85,10 @@ const responseMsg = ref('');
 
 const docs = computed(() => store.current?.documents || []);
 
-const canRespond = computed(() => store.current?.status === DIAGNOSTIC_STATUS.FINAL_SENT);
+const canRespond = computed(() => (
+  store.current?.status === DIAGNOSTIC_STATUS.SENT
+  && !!store.current?.final_sent_at
+));
 
 async function respond(decision) {
   responseMsg.value = '';

@@ -26,7 +26,7 @@
       <span v-if="task.assignee_name" class="truncate" :title="task.assignee_email || ''">
         👤 {{ task.assignee_name }}
       </span>
-      <span v-else class="text-gray-300 dark:text-gray-600">Sin asignar</span>
+      <span v-else class="text-gray-300 dark:text-gray-600">Unassigned</span>
 
       <span
         v-if="task.due_date"
@@ -46,7 +46,7 @@ const props = defineProps({
 });
 
 const priorityLabel = computed(() => {
-  const map = { low: 'Baja', medium: 'Media', high: 'Alta' };
+  const map = { low: 'Low', medium: 'Medium', high: 'High' };
   return map[props.task.priority] || props.task.priority;
 });
 
@@ -62,6 +62,6 @@ const priorityBadgeClass = computed(() => {
 function formatDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(`${dateStr}T00:00:00`);
-  return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+  return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
 }
 </script>

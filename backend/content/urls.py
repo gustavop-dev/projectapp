@@ -66,6 +66,7 @@ from content.views.document import (
 from content.views.document_folder import (
     list_document_folders, create_document_folder,
     update_document_folder, delete_document_folder,
+    reorder_document_folders,
 )
 from content.views.document_tag import (
     list_document_tags, create_document_tag,
@@ -231,6 +232,7 @@ urlpatterns = [
     # Document folders (flat, inline-managed)
     path('document-folders/', list_document_folders, name='list-document-folders'),
     path('document-folders/create/', create_document_folder, name='create-document-folder'),
+    path('document-folders/reorder/', reorder_document_folders, name='reorder-document-folders'),
     path('document-folders/<int:folder_id>/update/', update_document_folder, name='update-document-folder'),
     path('document-folders/<int:folder_id>/delete/', delete_document_folder, name='delete-document-folder'),
 

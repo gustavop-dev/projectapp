@@ -1,0 +1,46 @@
+from content.admin import admin_site
+from .models import (
+    UserProfile,
+    VerificationCode,
+    Project,
+    Requirement,
+    RequirementComment,
+    RequirementHistory,
+    ChangeRequest,
+    ChangeRequestComment,
+    BugReport,
+    BugComment,
+    Deliverable,
+    DataModelEntity,
+    ProjectDataModelEntity,
+    DeliverableVersion,
+    DeliverableFile,
+    DeliverableClientFolder,
+    DeliverableClientUpload,
+    Notification,
+    HostingSubscription,
+    Payment,
+    PaymentHistory,
+)
+
+admin_site.register(UserProfile)
+admin_site.register(VerificationCode)
+admin_site.register(Project)
+admin_site.register(Requirement)
+admin_site.register(RequirementComment)
+admin_site.register(RequirementHistory)
+admin_site.register(ChangeRequest)
+admin_site.register(ChangeRequestComment)
+admin_site.register(BugReport)
+admin_site.register(BugComment)
+admin_site.register(Deliverable)
+admin_site.register(DataModelEntity)
+admin_site.register(ProjectDataModelEntity)
+admin_site.register(DeliverableVersion)
+admin_site.register(DeliverableFile)
+admin_site.register(DeliverableClientFolder)
+admin_site.register(DeliverableClientUpload)
+admin_site.register(Notification)
+admin_site.register(HostingSubscription)
+admin_site.register(Payment)
+admin_site.register(PaymentHistory)

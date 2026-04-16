@@ -31,9 +31,9 @@ export function getPanelNavSections(localePath) {
     },
     {
       id: 'tasks',
-      label: 'Tareas',
+      label: 'Tasks',
       items: [
-        { label: 'Kanban', href: lp('/panel/tareas'), icon: 'board' },
+        { label: 'Kanban', href: lp('/panel/tasks'), icon: 'board' },
       ],
     },
     {

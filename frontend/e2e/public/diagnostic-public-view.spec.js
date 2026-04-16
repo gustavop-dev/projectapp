@@ -1,7 +1,8 @@
 /**
  * E2E tests for the public-facing Web App Diagnostic view.
  *
- * Covers: INITIAL_SENT shows 1 document, FINAL_SENT shows 3 document tabs,
+ * Covers: initial-send state shows 1 document (final_sent_at null),
+ * final-send state shows 3 document tabs (final_sent_at set),
  * and responding with 'accept' posts to the respond endpoint.
  */
 import { test, expect } from '../helpers/test.js';
@@ -26,7 +27,9 @@ function buildPublicDiagnostic(overrides = {}) {
   return {
     uuid: TEST_UUID,
     client_name: 'TechCorp',
-    status: 'initial_sent',
+    status: 'sent',
+    initial_sent_at: '2026-04-16T10:00:00Z',
+    final_sent_at: null,
     documents: [buildDoc()],
     ...overrides,
   };
@@ -35,10 +38,12 @@ function buildPublicDiagnostic(overrides = {}) {
 test.describe('Diagnostic Public View', () => {
   test.setTimeout(60_000);
 
-  test('INITIAL_SENT state shows only one document — no tab nav rendered', {
+  test('initial-send state shows only one document — no tab nav rendered', {
     tag: [...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
   }, async ({ page }) => {
-    const diagnostic = buildPublicDiagnostic({ status: 'initial_sent', documents: [buildDoc()] });
+    const diagnostic = buildPublicDiagnostic({
+      status: 'sent', final_sent_at: null, documents: [buildDoc()],
+    });
 
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === `diagnostics/public/${TEST_UUID}/`) {
@@ -60,11 +65,12 @@ test.describe('Diagnostic Public View', () => {
     await expect(page.getByRole('button', { name: 'Propuesta de Diagnóstico' })).not.toBeVisible();
   });
 
-  test('FINAL_SENT state with 3 documents shows tab navigation', {
+  test('final-send state with 3 documents shows tab navigation', {
     tag: [...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
   }, async ({ page }) => {
     const diagnostic = buildPublicDiagnostic({
-      status: 'final_sent',
+      status: 'sent',
+      final_sent_at: '2026-04-16T11:00:00Z',
       documents: [
         buildDoc({ id: 1, title: 'Propuesta de Diagnóstico', order: 1 }),
         buildDoc({ id: 2, doc_type: 'technical_proposal', title: 'Propuesta Técnica', order: 2 }),
@@ -96,7 +102,11 @@ test.describe('Diagnostic Public View', () => {
   test('clicking "Aceptar propuesta" POSTs accept decision and shows acceptance footer', {
     tag: [...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
   }, async ({ page }) => {
-    const diagnostic = buildPublicDiagnostic({ status: 'final_sent', documents: [buildDoc()] });
+    const diagnostic = buildPublicDiagnostic({
+      status: 'sent',
+      final_sent_at: '2026-04-16T11:00:00Z',
+      documents: [buildDoc()],
+    });
     let respondCalled = false;
 
     await mockApi(page, async ({ apiPath, method }) => {

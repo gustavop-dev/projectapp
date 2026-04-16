@@ -83,16 +83,17 @@ def test_render_document_substitutes_pricing_and_falls_back_to_placeholder(diagn
 
 def test_transition_status_validates_and_stamps_timestamp(diagnostic):
     diagnostic_service.transition_status(
-        diagnostic, WebAppDiagnostic.Status.INITIAL_SENT,
+        diagnostic, WebAppDiagnostic.Status.SENT,
     )
     diagnostic.refresh_from_db()
-    assert diagnostic.status == WebAppDiagnostic.Status.INITIAL_SENT
+    assert diagnostic.status == WebAppDiagnostic.Status.SENT
     assert diagnostic.initial_sent_at is not None
 
-    # Invalid jump (INITIAL_SENT → ACCEPTED) should raise.
+    # Invalid jump (SENT → FINISHED) should raise — FINISHED is only
+    # reachable from ACCEPTED.
     with pytest.raises(ValueError):
         diagnostic_service.transition_status(
-            diagnostic, WebAppDiagnostic.Status.ACCEPTED,
+            diagnostic, WebAppDiagnostic.Status.FINISHED,
         )
 
 
@@ -108,20 +109,20 @@ def test_visible_documents_respects_status(diagnostic):
     # DRAFT → no visible docs.
     assert diagnostic_service.visible_documents(diagnostic) == []
 
-    # INITIAL_SENT → only the initial proposal.
+    # Initial SENT (no final_sent_at) → only the initial proposal.
     diagnostic_service.transition_status(
-        diagnostic, WebAppDiagnostic.Status.INITIAL_SENT,
+        diagnostic, WebAppDiagnostic.Status.SENT,
     )
     visible = diagnostic_service.visible_documents(diagnostic)
     assert len(visible) == 1
     assert visible[0].doc_type == DiagnosticDocument.DocType.INITIAL_PROPOSAL
 
-    # FINAL_SENT with no docs marked ready → falls back to all 3.
+    # Final SENT (final_sent_at stamped) with no docs marked ready → falls back to all 3.
     diagnostic_service.transition_status(
-        diagnostic, WebAppDiagnostic.Status.IN_ANALYSIS,
+        diagnostic, WebAppDiagnostic.Status.NEGOTIATING,
     )
     diagnostic_service.transition_status(
-        diagnostic, WebAppDiagnostic.Status.FINAL_SENT,
+        diagnostic, WebAppDiagnostic.Status.SENT,
     )
     visible = diagnostic_service.visible_documents(diagnostic)
     assert len(visible) == 3
@@ -153,7 +154,7 @@ def test_send_initial_transitions_status(admin_client, diagnostic, mailoutbox):
     )
     assert response.status_code == 200
     diagnostic.refresh_from_db()
-    assert diagnostic.status == 'initial_sent'
+    assert diagnostic.status == 'sent'
     assert diagnostic.initial_sent_at is not None
     # Email actually went through (real client email exists in fixture).
     assert len(mailoutbox) == 1
@@ -162,7 +163,7 @@ def test_send_initial_transitions_status(admin_client, diagnostic, mailoutbox):
 
 def test_public_retrieve_increments_view_count(api_client, diagnostic):
     diagnostic_service.transition_status(
-        diagnostic, WebAppDiagnostic.Status.INITIAL_SENT,
+        diagnostic, WebAppDiagnostic.Status.SENT,
     )
     # Public GET both returns the doc and bumps view_count atomically.
     response = api_client.get(f'/api/diagnostics/public/{diagnostic.uuid}/')
@@ -181,10 +182,10 @@ def test_public_retrieve_increments_view_count(api_client, diagnostic):
 
 
 def test_public_respond_accept_finalizes_status(api_client, diagnostic):
-    # Walk forward to FINAL_SENT first.
-    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.INITIAL_SENT)
-    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.IN_ANALYSIS)
-    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.FINAL_SENT)
+    # Walk forward to the final-sent state first (SENT → NEGOTIATING → SENT).
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.NEGOTIATING)
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
 
     response = api_client.post(
         f'/api/diagnostics/public/{diagnostic.uuid}/respond/',

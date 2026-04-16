@@ -65,7 +65,7 @@ test.describe('Admin Kanban Tasks', () => {
       return null;
     });
 
-    await page.goto('/panel/tareas');
+    await page.goto('/panel/tasks');
     await page.waitForLoadState('domcontentloaded');
 
     await expect(page.getByTestId('column-todo')).toBeVisible();
@@ -108,7 +108,7 @@ test.describe('Admin Kanban Tasks', () => {
       return null;
     });
 
-    await page.goto('/panel/tareas');
+    await page.goto('/panel/tasks');
     await page.waitForLoadState('domcontentloaded');
 
     await page.getByText('Old title').click();
@@ -149,16 +149,16 @@ test.describe('Admin Kanban Tasks', () => {
       return null;
     });
 
-    await page.goto('/panel/tareas');
+    await page.goto('/panel/tasks');
     await page.waitForLoadState('domcontentloaded');
 
     await page.getByTestId('new-task-btn').click();
     await expect(page.getByTestId('task-form-modal')).toBeVisible();
 
     await page.getByTestId('task-title-input').fill('Full-field task');
-    await page.getByLabel('Descripción').fill('Detailed description here');
-    await page.getByLabel('Prioridad').selectOption('high');
-    await page.getByLabel('Fecha límite').fill('2026-12-31');
+    await page.getByLabel('Description').fill('Detailed description here');
+    await page.getByLabel('Priority').selectOption('high');
+    await page.getByLabel('Due date').fill('2026-12-31');
     await page.getByTestId('task-submit-btn').click();
 
     await expect(() => expect(postBody).not.toBeNull()).toPass({ timeout: 5000 });

@@ -1,6 +1,6 @@
 <template>
   <section
-    class="flex flex-col bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-200 dark:border-gray-700 min-w-[280px] max-w-[320px] w-full"
+    class="flex flex-col bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-200 dark:border-gray-700 min-w-[260px] flex-1"
     :data-testid="`column-${status}`"
   >
     <header class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
@@ -12,7 +12,7 @@
       <button
         type="button"
         class="text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
-        :aria-label="`Nueva tarea en ${label}`"
+        :aria-label="`New task in ${label}`"
         :data-testid="`add-task-${status}`"
         @click="$emit('add')"
       >
@@ -22,18 +22,37 @@
       </button>
     </header>
 
-    <draggable
-      :model-value="tasks"
-      :group="{ name: 'tasks' }"
-      item-key="id"
-      class="flex-1 flex flex-col gap-2 p-3 min-h-[120px]"
-      ghost-class="opacity-30"
-      @change="handleChange"
-    >
-      <template #item="{ element }">
-        <TaskCard :task="element" @click="$emit('edit', element)" />
-      </template>
-    </draggable>
+    <div class="flex-1 flex flex-col gap-3 p-3 overflow-y-auto">
+      <draggable
+        v-if="!tasks.length"
+        :model-value="[]"
+        :group="{ name: 'tasks' }"
+        item-key="id"
+        class="min-h-[80px]"
+        ghost-class="opacity-30"
+        @change="(e) => handleGroupChange(e, 0)"
+      >
+        <template #item="{}"></template>
+      </draggable>
+
+      <div v-for="([name, groupTasks, groupOffset]) in groupedTasks" :key="name">
+        <div class="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 px-1 mb-1">
+          {{ name }}
+        </div>
+        <draggable
+          :model-value="groupTasks"
+          :group="{ name: 'tasks' }"
+          item-key="id"
+          class="flex flex-col gap-2 min-h-[36px]"
+          ghost-class="opacity-30"
+          @change="(e) => handleGroupChange(e, groupOffset)"
+        >
+          <template #item="{ element }">
+            <TaskCard :task="element" @click="$emit('edit', element)" />
+          </template>
+        </draggable>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -60,18 +79,39 @@ const dotClass = computed(() => {
   return map[props.status] || 'bg-gray-400';
 });
 
-function handleChange(evt) {
+const groupedTasks = computed(() => {
+  const sorted = [...props.tasks].sort((a, b) => {
+    if (!a.assignee_name && !b.assignee_name) return 0;
+    if (!a.assignee_name) return 1;
+    if (!b.assignee_name) return -1;
+    return a.assignee_name.localeCompare(b.assignee_name);
+  });
+  const groups = {};
+  for (const task of sorted) {
+    const key = task.assignee_name || 'Unassigned';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(task);
+  }
+  let offset = 0;
+  return Object.entries(groups).map(([name, list]) => {
+    const entry = [name, list, offset];
+    offset += list.length;
+    return entry;
+  });
+});
+
+function handleGroupChange(evt, offset) {
   if (evt.added) {
     emit('move', {
       taskId: evt.added.element.id,
       status: props.status,
-      position: evt.added.newIndex,
+      position: offset + evt.added.newIndex,
     });
   } else if (evt.moved) {
     emit('move', {
       taskId: evt.moved.element.id,
       status: props.status,
-      position: evt.moved.newIndex,
+      position: offset + evt.moved.newIndex,
     });
   }
 }

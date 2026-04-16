@@ -8,28 +8,36 @@ class WebAppDiagnostic(models.Model):
     """Diagnóstico técnico ofrecido a clientes que ya tienen una aplicación web.
 
     Cada diagnóstico se ata a un cliente (UserProfile, role='client') y
-    contiene tres documentos (DiagnosticDocument). El flujo es:
+    contiene tres documentos (DiagnosticDocument). Comparte el vocabulario
+    de estados con BusinessProposal; la distinción entre envío inicial y
+    final se preserva en los timestamps `initial_sent_at` / `final_sent_at`.
 
         DRAFT
-          → INITIAL_SENT     (Doc 1 enviado al cliente, sin precios todavía)
-          → IN_ANALYSIS      (cliente aceptó, equipo está analizando el repo)
-          → FINAL_SENT       (Docs 1+2+3 con pricing y radiografía completa)
+          → SENT            (Doc 1 enviado al cliente, sin precios todavía —
+                             initial_sent_at se sella)
+          → NEGOTIATING     (cliente aceptó, equipo está analizando el repo)
+          → SENT            (Docs 1+2+3 con pricing completo — final_sent_at
+                             se sella, estado vuelve a SENT)
           → ACCEPTED | REJECTED
+          → FINISHED        (tras ACCEPTED, cuando el proyecto se cierra)
     """
 
     class Status(models.TextChoices):
         DRAFT = 'draft', 'Draft'
-        INITIAL_SENT = 'initial_sent', 'Initial sent'
-        IN_ANALYSIS = 'in_analysis', 'In analysis'
-        FINAL_SENT = 'final_sent', 'Final sent'
+        SENT = 'sent', 'Sent'
+        VIEWED = 'viewed', 'Viewed'
         ACCEPTED = 'accepted', 'Accepted'
         REJECTED = 'rejected', 'Rejected'
+        NEGOTIATING = 'negotiating', 'Negotiating'
+        EXPIRED = 'expired', 'Expired'
+        FINISHED = 'finished', 'Finished'
 
     ALLOWED_TRANSITIONS = {
-        Status.DRAFT:        frozenset({Status.INITIAL_SENT}),
-        Status.INITIAL_SENT: frozenset({Status.IN_ANALYSIS, Status.REJECTED}),
-        Status.IN_ANALYSIS:  frozenset({Status.FINAL_SENT, Status.REJECTED}),
-        Status.FINAL_SENT:   frozenset({Status.ACCEPTED, Status.REJECTED}),
+        Status.DRAFT:       frozenset({Status.SENT}),
+        Status.SENT:        frozenset({Status.NEGOTIATING, Status.ACCEPTED, Status.REJECTED}),
+        Status.VIEWED:      frozenset({Status.NEGOTIATING, Status.REJECTED}),
+        Status.NEGOTIATING: frozenset({Status.SENT, Status.ACCEPTED, Status.REJECTED}),
+        Status.ACCEPTED:    frozenset({Status.FINISHED}),
     }
 
     class Currency(models.TextChoices):

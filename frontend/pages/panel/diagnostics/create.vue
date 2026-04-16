@@ -5,34 +5,15 @@
     <form class="space-y-6 bg-white rounded-xl border p-6" @submit.prevent="submit">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
-        <input
-          v-model="search"
-          type="text"
-          class="w-full border rounded px-3 py-2"
-          placeholder="Buscar por nombre, email o empresa…"
-          @input="onSearchInput"
+        <ClientAutocomplete
+          v-model="selectedClientId"
+          placeholder="Buscar cliente por nombre, email o empresa..."
+          test-id="diagnostic-client-autocomplete"
+          @select="onClientSelected"
         />
-        <ul
-          v-if="results.length && !selectedClient"
-          class="mt-2 border rounded bg-white shadow max-h-60 overflow-auto divide-y"
-        >
-          <li
-            v-for="c in results"
-            :key="c.id"
-            class="px-3 py-2 cursor-pointer hover:bg-emerald-50"
-            @click="selectClient(c)"
-          >
-            <div class="font-medium">{{ clientLabel(c) }}</div>
-            <div class="text-xs text-gray-500">{{ c.email || c.user?.email }}</div>
-          </li>
-        </ul>
-        <div v-if="selectedClient" class="mt-2 p-3 bg-emerald-50 border border-emerald-200 rounded text-sm">
-          <div class="font-medium">{{ clientLabel(selectedClient) }}</div>
-          <div class="text-xs text-gray-600">{{ selectedClient.email || selectedClient.user?.email }}</div>
-          <button type="button" class="mt-1 text-xs text-emerald-700 underline" @click="clearClient">
-            Cambiar
-          </button>
-        </div>
+        <p class="text-xs text-gray-500 mt-1">
+          Busca por nombre, email o empresa. Solo clientes existentes pueden recibir un diagnóstico.
+        </p>
       </div>
 
       <div>
@@ -59,7 +40,8 @@
         <button
           type="submit"
           class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50"
-          :disabled="!selectedClient || store.isUpdating"
+          :disabled="!selectedClientId || store.isUpdating"
+          data-testid="diagnostic-submit-btn"
         >
           {{ store.isUpdating ? 'Creando…' : 'Crear diagnóstico' }}
         </button>
@@ -69,9 +51,9 @@
 </template>
 
 <script setup>
-import { ref, onBeforeUnmount } from 'vue';
+import { ref } from 'vue';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
-import { get_request } from '~/stores/services/request_http';
+import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -79,57 +61,38 @@ const localePath = useLocalePath();
 const router = useRouter();
 const store = useDiagnosticsStore();
 
-const search = ref('');
-const results = ref([]);
-const selectedClient = ref(null);
+const selectedClientId = ref(null);
 const language = ref('es');
 const title = ref('');
 const errorMsg = ref('');
 
-let searchTimer = null;
-function onSearchInput() {
-  clearTimeout(searchTimer);
-  if (!search.value.trim()) {
-    results.value = [];
-    return;
+const BACKEND_ERROR_MESSAGES = {
+  client_id_required: 'Selecciona un cliente antes de continuar.',
+  client_not_found: 'El cliente seleccionado no existe o no tiene rol de cliente.',
+  create_failed: 'No se pudo crear el diagnóstico. Verifica tu sesión e inténtalo de nuevo.',
+};
+
+function onClientSelected(client) {
+  errorMsg.value = '';
+  if (client && !title.value.trim()) {
+    const clientName = client.name || client.company || client.email || '';
+    if (clientName) title.value = `Diagnóstico — ${clientName}`;
   }
-  searchTimer = setTimeout(async () => {
-    try {
-      const response = await get_request(
-        `proposals/client-profiles/search/?q=${encodeURIComponent(search.value)}`
-      );
-      results.value = response.data || [];
-    } catch (_) {
-      results.value = [];
-    }
-  }, 250);
-}
-
-onBeforeUnmount(() => clearTimeout(searchTimer));
-
-function selectClient(c) {
-  selectedClient.value = c;
-  results.value = [];
-  search.value = '';
-}
-function clearClient() {
-  selectedClient.value = null;
-  search.value = '';
-}
-
-function clientLabel(c) {
-  return c.name || c.full_name || c.company || c.user?.email || '—';
 }
 
 async function submit() {
   errorMsg.value = '';
+  if (!selectedClientId.value) {
+    errorMsg.value = BACKEND_ERROR_MESSAGES.client_id_required;
+    return;
+  }
   const result = await store.create({
-    client_id: selectedClient.value.id,
+    client_id: selectedClientId.value,
     language: language.value,
     title: title.value.trim(),
   });
   if (!result.success) {
-    errorMsg.value = result.error || 'No se pudo crear el diagnóstico.';
+    errorMsg.value = BACKEND_ERROR_MESSAGES[result.error] || result.error || BACKEND_ERROR_MESSAGES.create_failed;
     return;
   }
   router.push(localePath(`/panel/diagnostics/${result.data.id}/edit`));

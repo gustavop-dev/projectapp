@@ -44,3 +44,17 @@ def delete_document_folder(request, folder_id):
     folder = get_object_or_404(DocumentFolder, pk=folder_id)
     folder.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def reorder_document_folders(request):
+    ids = request.data.get('ids', [])
+    if not isinstance(ids, list):
+        return Response({'ids': 'Must be a list.'}, status=status.HTTP_400_BAD_REQUEST)
+    folders_by_id = {f.id: f for f in DocumentFolder.objects.filter(pk__in=ids)}
+    for order, folder_id in enumerate(ids):
+        if folder_id in folders_by_id:
+            folders_by_id[folder_id].order = order
+    DocumentFolder.objects.bulk_update(folders_by_id.values(), ['order'])
+    return Response({'status': 'ok'})

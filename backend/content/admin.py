@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.contrib.auth.models import User, Group
+from django.contrib.auth.admin import UserAdmin, GroupAdmin
 from django.utils.translation import gettext_lazy as _
 from .models import (
     Contact, PortfolioWork,
@@ -7,10 +9,24 @@ from .models import (
     ProposalDefaultConfig, EmailTemplateConfig,
     Document,
     DocumentType,
+    DocumentFolder,
+    DocumentItem,
+    DocumentCollectionAccount,
+    DocumentTag,
+    DocumentNumberSequence,
+    DocumentPaymentMethod,
     IssuerProfile,
     CompanySettings,
     ProposalDocument,
     ContractTemplate,
+    ProposalAlert,
+    ProposalProjectStage,
+    ProposalShareLink,
+    WebAppDiagnostic,
+    DiagnosticDocument,
+    EmailLog,
+    LinkedInToken,
+    Task,
 )
 
 class PortfolioWorkAdmin(admin.ModelAdmin):
@@ -218,65 +234,105 @@ class ProjectAppAdminSite(admin.AdminSite):
 
     def get_app_list(self, request):
         app_dict = self._build_app_dict(request)
+        content_models = app_dict.get('content', {}).get('models', [])
+        auth_models = app_dict.get('auth', {}).get('models', [])
+
         custom_app_list = [
             {
                 'name': _('Contact Management'),
                 'app_label': 'contact_management',
-                'models': [
-                    model for model in app_dict.get('content', {}).get('models', [])
-                    if model['object_name'] == 'Contact'
-                ]
+                'models': [m for m in content_models if m['object_name'] == 'Contact'],
             },
             {
                 'name': _('Portfolio Works Management'),
                 'app_label': 'portfolio_works_management',
-                'models': [
-                    model for model in app_dict.get('content', {}).get('models', [])
-                    if model['object_name'] == 'PortfolioWork'
-                ]
+                'models': [m for m in content_models if m['object_name'] == 'PortfolioWork'],
             },
             {
                 'name': _('Business Proposals'),
                 'app_label': 'business_proposals',
-                'models': [
-                    model for model in app_dict.get('content', {}).get('models', [])
-                    if model['object_name'] in [
-                        'BusinessProposal', 'ProposalSection',
-                        'ProposalRequirementGroup', 'ProposalRequirementItem',
-                        'ProposalViewEvent', 'ProposalSectionView',
-                        'ProposalChangeLog', 'ProposalDefaultConfig',
-                        'EmailTemplateConfig',
-                    ]
-                ]
+                'models': [m for m in content_models if m['object_name'] in [
+                    'BusinessProposal', 'ProposalSection',
+                    'ProposalRequirementGroup', 'ProposalRequirementItem',
+                    'ProposalViewEvent', 'ProposalSectionView',
+                    'ProposalChangeLog', 'ProposalDefaultConfig',
+                    'EmailTemplateConfig',
+                ]],
+            },
+            {
+                'name': _('Proposals (Extended)'),
+                'app_label': 'proposals_extended',
+                'models': [m for m in content_models if m['object_name'] in [
+                    'ProposalAlert', 'ProposalProjectStage', 'ProposalShareLink',
+                ]],
             },
             {
                 'name': _('Blog'),
                 'app_label': 'blog',
-                'models': [
-                    model for model in app_dict.get('content', {}).get('models', [])
-                    if model['object_name'] == 'BlogPost'
-                ]
+                'models': [m for m in content_models if m['object_name'] == 'BlogPost'],
             },
             {
                 'name': _('Documents'),
                 'app_label': 'documents',
-                'models': [
-                    model for model in app_dict.get('content', {}).get('models', [])
-                    if model['object_name'] == 'Document'
-                ]
+                'models': [m for m in content_models if m['object_name'] == 'Document'],
+            },
+            {
+                'name': _('Document Management'),
+                'app_label': 'document_management',
+                'models': [m for m in content_models if m['object_name'] in [
+                    'DocumentFolder', 'DocumentItem', 'DocumentCollectionAccount',
+                    'DocumentTag', 'DocumentNumberSequence', 'DocumentPaymentMethod',
+                    'DocumentType', 'IssuerProfile',
+                ]],
+            },
+            {
+                'name': _('Tasks'),
+                'app_label': 'tasks',
+                'models': [m for m in content_models if m['object_name'] == 'Task'],
+            },
+            {
+                'name': _('Diagnostics'),
+                'app_label': 'diagnostics',
+                'models': [m for m in content_models if m['object_name'] in [
+                    'WebAppDiagnostic', 'DiagnosticDocument',
+                ]],
             },
             {
                 'name': _('Contract Settings'),
                 'app_label': 'contract_settings',
-                'models': [
-                    model for model in app_dict.get('content', {}).get('models', [])
-                    if model['object_name'] in [
-                        'CompanySettings', 'ContractTemplate', 'ProposalDocument',
-                    ]
-                ]
+                'models': [m for m in content_models if m['object_name'] in [
+                    'CompanySettings', 'ContractTemplate', 'ProposalDocument',
+                ]],
+            },
+            {
+                'name': _('System'),
+                'app_label': 'system',
+                'models': [m for m in content_models if m['object_name'] in [
+                    'EmailLog', 'LinkedInToken',
+                ]],
+            },
+            {
+                'name': _('Users & Auth'),
+                'app_label': 'users_auth',
+                'models': auth_models,
             },
         ]
-        return custom_app_list
+
+        # Catch-all: any registered model not yet shown (e.g. accounts models)
+        shown = {m['object_name'] for sec in custom_app_list for m in sec['models']}
+        remaining = []
+        for app_data in app_dict.values():
+            for model in app_data.get('models', []):
+                if model['object_name'] not in shown:
+                    remaining.append(model)
+        if remaining:
+            custom_app_list.append({
+                'name': _('Platform'),
+                'app_label': 'platform',
+                'models': remaining,
+            })
+
+        return [s for s in custom_app_list if s['models']]
 
 admin_site = ProjectAppAdminSite(name='myadmin')
 
@@ -293,8 +349,27 @@ admin_site.register(ProposalChangeLog)
 admin_site.register(ProposalDefaultConfig, ProposalDefaultConfigAdmin)
 admin_site.register(EmailTemplateConfig, EmailTemplateConfigAdmin)
 admin_site.register(Document, DocumentAdmin)
-admin_site.register(DocumentType, admin.ModelAdmin)
-admin_site.register(IssuerProfile, admin.ModelAdmin)
-admin_site.register(CompanySettings, admin.ModelAdmin)
-admin_site.register(ProposalDocument, admin.ModelAdmin)
-admin_site.register(ContractTemplate, admin.ModelAdmin)
+admin_site.register(DocumentType)
+admin_site.register(IssuerProfile)
+admin_site.register(CompanySettings)
+admin_site.register(ProposalDocument)
+admin_site.register(ContractTemplate)
+
+admin_site.register(DocumentFolder)
+admin_site.register(DocumentItem)
+admin_site.register(DocumentCollectionAccount)
+admin_site.register(DocumentTag)
+admin_site.register(DocumentNumberSequence)
+admin_site.register(DocumentPaymentMethod)
+admin_site.register(Task)
+admin_site.register(ProposalAlert)
+admin_site.register(ProposalProjectStage)
+admin_site.register(ProposalShareLink)
+admin_site.register(WebAppDiagnostic)
+admin_site.register(DiagnosticDocument)
+admin_site.register(EmailLog)
+admin_site.register(LinkedInToken)
+
+# Auth models
+admin_site.register(User, UserAdmin)
+admin_site.register(Group, GroupAdmin)

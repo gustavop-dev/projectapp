@@ -321,7 +321,7 @@ describe('useDiagnosticsStore', () => {
   // ── sendInitial / markInAnalysis / sendFinal ─────────────────────────────
 
   it('sendInitial POSTs to send-initial/ and updates current on success', async () => {
-    const updated = mockDiagnostic({ status: 'initial_sent' })
+    const updated = mockDiagnostic({ status: 'sent' })
     create_request.mockResolvedValueOnce({ data: updated })
     const result = await store.sendInitial(1)
     expect(create_request).toHaveBeenCalledWith('diagnostics/1/send-initial/', {})
@@ -340,7 +340,7 @@ describe('useDiagnosticsStore', () => {
   })
 
   it('markInAnalysis POSTs to mark-in-analysis/ and updates current', async () => {
-    const updated = mockDiagnostic({ status: 'in_analysis' })
+    const updated = mockDiagnostic({ status: 'negotiating' })
     create_request.mockResolvedValueOnce({ data: updated })
     const result = await store.markInAnalysis(1)
     expect(create_request).toHaveBeenCalledWith('diagnostics/1/mark-in-analysis/', {})
@@ -356,7 +356,7 @@ describe('useDiagnosticsStore', () => {
   })
 
   it('sendFinal POSTs to send-final/ and updates current', async () => {
-    const updated = mockDiagnostic({ status: 'final_sent' })
+    const updated = mockDiagnostic({ status: 'sent', final_sent_at: '2026-04-16T10:00:00Z' })
     create_request.mockResolvedValueOnce({ data: updated })
     const result = await store.sendFinal(1)
     expect(create_request).toHaveBeenCalledWith('diagnostics/1/send-final/', {})
@@ -380,7 +380,7 @@ describe('useDiagnosticsStore', () => {
   // ── fetchPublic ──────────────────────────────────────────────────────────
 
   it('fetchPublic calls GET diagnostics/public/{uuid}/ and sets current', async () => {
-    const d = mockDiagnostic({ status: 'initial_sent' })
+    const d = mockDiagnostic({ status: 'sent' })
     get_request.mockResolvedValueOnce({ data: d })
     const result = await store.fetchPublic('aaaa-bbbb')
     expect(get_request).toHaveBeenCalledWith('diagnostics/public/aaaa-bbbb/')

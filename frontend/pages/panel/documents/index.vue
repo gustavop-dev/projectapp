@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="flex flex-col min-h-full">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
       <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Documentos</h1>
@@ -39,17 +39,19 @@
       </button>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 items-stretch flex-1">
       <FolderSidebar
         :folders="folderStore.folders"
         :active-id="documentStore.activeFolderId"
         :total-count="documentStore.documents.length + otherFoldersCount"
+        :is-dragging="!!draggingDoc"
         @select="handleSelectFolder"
         @create="openFolderManager"
         @manage="openFolderManager"
+        @folder-drop="handleDropOnFolder"
       />
 
-      <section class="min-w-0">
+      <section class="min-w-0 flex flex-col">
         <!-- Tag filter chips -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-3 mb-4 dark:bg-gray-800 dark:border-gray-700" data-testid="doc-tag-filters">
           <TagFilterChips
@@ -115,8 +117,12 @@
               <tr
                 v-for="doc in filteredDocuments"
                 :key="doc.id"
-                class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-grab active:cursor-grabbing select-none"
+                :class="{ 'opacity-50': draggingDoc?.id === doc.id }"
+                draggable="true"
                 @click="navigateTo(localePath(`/panel/documents/${doc.id}/edit`))"
+                @dragstart="handleDragStart($event, doc)"
+                @dragend="handleDragEnd"
               >
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-2">
@@ -354,6 +360,7 @@ const deleteConfirm = ref(null);
 const showFolderManager = ref(false);
 const showTagManager = ref(false);
 const movingDoc = ref(null);
+const draggingDoc = ref(null);
 const showMoveModal = computed({
   get: () => !!movingDoc.value,
   set: (v) => { if (!v) movingDoc.value = null; },
@@ -412,6 +419,24 @@ async function handleMoved() {
     documentStore.fetchDocuments(),
     folderStore.fetchFolders(),
   ]);
+}
+
+function handleDragStart(event, doc) {
+  draggingDoc.value = doc;
+  event.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragEnd() {
+  draggingDoc.value = null;
+}
+
+async function handleDropOnFolder(folderId) {
+  if (!draggingDoc.value) return;
+  const doc = draggingDoc.value;
+  draggingDoc.value = null;
+  if (doc.folder_id === folderId) return;
+  await documentStore.updateDocument(doc.id, { folder_id: folderId });
+  await Promise.all([documentStore.fetchDocuments(), folderStore.fetchFolders()]);
 }
 
 function statusBadgeClass(status) {

@@ -91,7 +91,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
         method: 'POST',
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(buildMockDiagnostic({ status: 'initial_sent' })),
+        body: JSON.stringify(buildMockDiagnostic({ status: 'sent' })),
         _handler: () => { sendCalled = true; },
       },
     }));
@@ -106,7 +106,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
         return {
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify(buildMockDiagnostic({ status: 'initial_sent' })),
+          body: JSON.stringify(buildMockDiagnostic({ status: 'sent' })),
         };
       }
       return null;
@@ -119,10 +119,14 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await expect(() => expect(sendCalled).toBe(true)).toPass({ timeout: 5000 });
   });
 
-  test('"Marcar en análisis" button POSTs to mark-in-analysis/ in INITIAL_SENT state', {
+  test('"Marcar en análisis" button POSTs to mark-in-analysis/ when initial has been sent', {
     tag: [...ADMIN_DIAGNOSTIC_SEND_INITIAL, '@role:admin'],
   }, async ({ page }) => {
-    const diagnostic = buildMockDiagnostic({ status: 'initial_sent' });
+    const diagnostic = buildMockDiagnostic({
+      status: 'sent',
+      initial_sent_at: '2026-04-16T10:00:00Z',
+      final_sent_at: null,
+    });
     let called = false;
 
     await mockApi(page, async ({ apiPath, method }) => {
@@ -135,7 +139,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
         return {
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify(buildMockDiagnostic({ status: 'in_analysis' })),
+          body: JSON.stringify(buildMockDiagnostic({ status: 'negotiating' })),
         };
       }
       return null;
@@ -148,10 +152,10 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await expect(() => expect(called).toBe(true)).toPass({ timeout: 5000 });
   });
 
-  test('"Enviar diagnóstico final" button POSTs to send-final/ in IN_ANALYSIS state', {
+  test('"Enviar diagnóstico final" button POSTs to send-final/ in NEGOTIATING state', {
     tag: [...ADMIN_DIAGNOSTIC_SEND_FINAL, '@role:admin'],
   }, async ({ page }) => {
-    const diagnostic = buildMockDiagnostic({ status: 'in_analysis' });
+    const diagnostic = buildMockDiagnostic({ status: 'negotiating' });
     let called = false;
 
     await mockApi(page, async ({ apiPath, method }) => {
@@ -164,7 +168,9 @@ test.describe('Admin Diagnostic — Send Flows', () => {
         return {
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify(buildMockDiagnostic({ status: 'final_sent' })),
+          body: JSON.stringify(buildMockDiagnostic({
+            status: 'sent', final_sent_at: '2026-04-16T10:00:00Z',
+          })),
         };
       }
       return null;

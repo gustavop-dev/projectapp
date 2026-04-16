@@ -81,5 +81,20 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
         this.isUpdating = false;
       }
     },
+
+    async reorderFolders(orderedIds) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        await create_request('document-folders/reorder/', { ids: orderedIds });
+        return { success: true };
+      } catch (error) {
+        console.error('Error reordering folders:', error);
+        return { success: false };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
   },
 });

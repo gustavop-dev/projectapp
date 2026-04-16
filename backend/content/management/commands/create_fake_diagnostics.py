@@ -100,16 +100,19 @@ _RADIOGRAPHY = {
     },
 }
 
-# Ordered list of statuses to walk through for --with-states
+# Ordered list of statuses to walk through for --with-states. SENT appears
+# twice per path because it encodes both the initial send (first SENT) and
+# the final send (second SENT after NEGOTIATING); the service distinguishes
+# them by stamping `initial_sent_at` / `final_sent_at` in order.
 _STATE_PATHS = [
-    [WebAppDiagnostic.Status.INITIAL_SENT],
-    [WebAppDiagnostic.Status.INITIAL_SENT, WebAppDiagnostic.Status.IN_ANALYSIS],
-    [WebAppDiagnostic.Status.INITIAL_SENT, WebAppDiagnostic.Status.IN_ANALYSIS,
-     WebAppDiagnostic.Status.FINAL_SENT],
-    [WebAppDiagnostic.Status.INITIAL_SENT, WebAppDiagnostic.Status.IN_ANALYSIS,
-     WebAppDiagnostic.Status.FINAL_SENT, WebAppDiagnostic.Status.ACCEPTED],
-    [WebAppDiagnostic.Status.INITIAL_SENT, WebAppDiagnostic.Status.IN_ANALYSIS,
-     WebAppDiagnostic.Status.FINAL_SENT, WebAppDiagnostic.Status.REJECTED],
+    [WebAppDiagnostic.Status.SENT],
+    [WebAppDiagnostic.Status.SENT, WebAppDiagnostic.Status.NEGOTIATING],
+    [WebAppDiagnostic.Status.SENT, WebAppDiagnostic.Status.NEGOTIATING,
+     WebAppDiagnostic.Status.SENT],
+    [WebAppDiagnostic.Status.SENT, WebAppDiagnostic.Status.NEGOTIATING,
+     WebAppDiagnostic.Status.SENT, WebAppDiagnostic.Status.ACCEPTED],
+    [WebAppDiagnostic.Status.SENT, WebAppDiagnostic.Status.NEGOTIATING,
+     WebAppDiagnostic.Status.SENT, WebAppDiagnostic.Status.REJECTED],
 ]
 
 
