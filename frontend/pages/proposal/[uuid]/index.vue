@@ -61,13 +61,15 @@
       </div>
 
       <!-- View mode gateway: shown when user hasn't chosen a view yet -->
-      <ProposalViewGateway
-        v-if="!viewMode"
-        :language="pLang"
-        :clientName="proposal.client_name || ''"
-        :show-technical="hasTechnicalDocument"
-        @select="handleViewModeSelect"
-      />
+      <Transition name="gateway-reveal">
+        <ProposalViewGateway
+          v-if="!viewMode"
+          :language="pLang"
+          :clientName="proposal.client_name || ''"
+          :show-technical="hasTechnicalDocument"
+          @select="handleViewModeSelect"
+        />
+      </Transition>
 
       <!-- Proposal sections: shown after view mode is chosen -->
       <template v-if="viewMode">
@@ -977,52 +979,31 @@ function handleNavigateToRequirements() {
 }
 
 
-function handleViewModeSelect(mode) {
-  // Show branded transition overlay before switching view mode
-  switchOverlayMode.value = mode;
+const OVERLAY_TRANSITION_MS = 1000;
+
+function switchMode(overlayMode, newViewMode, { scrollToTop = false, beforeSwitch = null, startOnboarding = false } = {}) {
+  switchOverlayMode.value = overlayMode;
   switchOverlayVisible.value = true;
   setTimeout(() => {
-    viewMode.value = mode;
+    if (beforeSwitch) beforeSwitch();
+    viewMode.value = newViewMode;
     currentIndex.value = 0;
-    // Hide overlay after content has rendered
-    setTimeout(() => {
-      switchOverlayVisible.value = false;
-      // Show welcome-back toast if returning client, otherwise start onboarding
-      if (welcomeBack.value) return;
-      nextTick(() => {
-        onboardingRef.value?.start();
-      });
-    }, 1200);
-  }, 1000);
+    if (scrollToTop) window.scrollTo({ top: 0, behavior: 'auto' });
+    switchOverlayVisible.value = false;
+    if (startOnboarding && !welcomeBack.value) nextTick(() => onboardingRef.value?.start());
+  }, OVERLAY_TRANSITION_MS);
+}
+
+function handleViewModeSelect(mode) {
+  switchMode(mode, mode, { startOnboarding: true });
 }
 
 function handleSwitchToDetailed() {
-  // Show transition overlay so user understands they're switching to the full proposal
-  switchOverlayMode.value = 'detailed';
-  switchOverlayVisible.value = true;
-  setTimeout(() => {
-    viewMode.value = 'detailed';
-    currentIndex.value = 0;
-    window.scrollTo({ top: 0, behavior: 'auto' });
-    // Hide overlay after content has rendered
-    setTimeout(() => {
-      switchOverlayVisible.value = false;
-    }, 1200);
-  }, 1000);
+  switchMode('detailed', 'detailed', { scrollToTop: true });
 }
 
 function handleBackToGateway() {
-  flushTracking();
-  switchOverlayMode.value = 'gateway';
-  switchOverlayVisible.value = true;
-  setTimeout(() => {
-    viewMode.value = null;
-    currentIndex.value = 0;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setTimeout(() => {
-      switchOverlayVisible.value = false;
-    }, 1200);
-  }, 1000);
+  switchMode('gateway', null, { scrollToTop: true, beforeSwitch: flushTracking });
 }
 
 function onCustomTotalUpdate(total) {
@@ -1247,20 +1228,36 @@ onBeforeUnmount(() => {
   opacity: 0;
 }
 
-/* Switch-to-detailed overlay transition */
+/* Gateway reveal — enters while overlay fades out, creating a crossfade.
+   transition-delay staggers the reveal slightly behind the overlay fade-out start. */
+.gateway-reveal-enter-active {
+  transition: opacity 0.7s ease-out, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: 0.15s;
+}
+.gateway-reveal-leave-active {
+  transition: opacity 0.25s ease-in;
+}
+.gateway-reveal-enter-from {
+  opacity: 0;
+  transform: translateY(28px);
+}
+.gateway-reveal-leave-to {
+  opacity: 0;
+}
+
+/* Mode switch overlay — clean scale+fade in, slow fade-out to crossfade with incoming content */
 .switch-mode-overlay-enter-active {
-  transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: opacity 0.35s ease-out, transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .switch-mode-overlay-leave-active {
-  transition: opacity 0.6s ease, transform 0.6s ease;
+  transition: opacity 0.55s ease-in-out;
 }
 .switch-mode-overlay-enter-from {
   opacity: 0;
-  transform: scale(1.05);
+  transform: scale(1.04);
 }
 .switch-mode-overlay-leave-to {
   opacity: 0;
-  transform: scale(0.95);
 }
 
 /* ── Proposal Dark Mode Overrides ── */

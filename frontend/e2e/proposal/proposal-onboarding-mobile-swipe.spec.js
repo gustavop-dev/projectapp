@@ -6,6 +6,7 @@
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
+import { PROPOSAL_ONBOARDING_MOBILE_SWIPE } from '../helpers/flow-tags.js';
 
 const MOCK_UUID = 'onb-mobile-uuid-1234-abcdef';
 
@@ -50,7 +51,7 @@ test.describe('Proposal Onboarding Mobile Swipe', () => {
   });
 
   test('mobile onboarding tooltip renders with first step and navigation buttons', {
-    tag: ['@flow:proposal-onboarding-mobile-swipe', '@module:proposal', '@priority:P3', '@role:guest'],
+    tag: [...PROPOSAL_ONBOARDING_MOBILE_SWIPE, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
@@ -64,7 +65,7 @@ test.describe('Proposal Onboarding Mobile Swipe', () => {
   });
 
   test('tapping "Siguiente" advances to next onboarding step', {
-    tag: ['@flow:proposal-onboarding-mobile-swipe', '@module:proposal', '@priority:P3', '@role:guest'],
+    tag: [...PROPOSAL_ONBOARDING_MOBILE_SWIPE, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
@@ -81,7 +82,7 @@ test.describe('Proposal Onboarding Mobile Swipe', () => {
   });
 
   test('tapping "Omitir" dismisses onboarding', {
-    tag: ['@flow:proposal-onboarding-mobile-swipe', '@module:proposal', '@priority:P3', '@role:guest'],
+    tag: [...PROPOSAL_ONBOARDING_MOBILE_SWIPE, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);

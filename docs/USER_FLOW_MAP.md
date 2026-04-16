@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.18.0
-> **Last updated:** 2026-04-15
+> **Version:** 2.20.0
+> **Last updated:** 2026-04-16
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -1742,6 +1742,79 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 
 ---
 
+### FLOW: `admin-diagnostic-create`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/diagnostics/create` → `/panel/diagnostics/:id/edit`
+- **Description:** Admin creates a new WebAppDiagnostic by searching for an existing client via autocomplete (reuses `/api/proposals/client-profiles/search/`), selecting language, and submitting. The service loads 3 markdown documents from templates and redirects to the edit page.
+- **Steps:**
+  1. Admin navigates to `/panel/diagnostics/create`.
+  2. Types in the client search input (autocomplete fetches from `client-profiles/search`).
+  3. Selects a client from the dropdown — submit button becomes enabled.
+  4. Optionally sets a custom title.
+  5. Clicks "Crear diagnóstico" → POST `/api/diagnostics/create/`.
+  6. Redirected to `/panel/diagnostics/:id/edit`.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-diagnostic-create.spec.js`
+
+---
+
+### FLOW: `admin-diagnostic-send-initial`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/diagnostics/:id/edit`
+- **Description:** Admin sends the initial diagnostic proposal (Doc 1, no pricing yet) to the client from the edit page, transitioning status DRAFT → INITIAL_SENT. Then marks the diagnostic as IN_ANALYSIS once the client authorises the work.
+- **Steps:**
+  1. Admin navigates to `/panel/diagnostics/:id/edit` (status: DRAFT).
+  2. Clicks "Enviar Doc 1 al cliente" → POST `/api/diagnostics/:id/send-initial/`.
+  3. Status transitions to `initial_sent`; email is sent to client.
+  4. After client confirmation, admin clicks "Marcar en análisis" → POST `/api/diagnostics/:id/mark-in-analysis/`.
+  5. Status transitions to `in_analysis`.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-diagnostic-send.spec.js`
+
+---
+
+### FLOW: `admin-diagnostic-send-final`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/diagnostics/:id/edit`
+- **Description:** Admin completes pricing and radiography data, marks all 3 documents as ready, and sends the full diagnostic package (Docs 1+2+3) from IN_ANALYSIS state, transitioning to FINAL_SENT.
+- **Steps:**
+  1. Admin edits Pricing and Radiografía tabs in `/panel/diagnostics/:id/edit`.
+  2. Marks all 3 DiagnosticDocuments as `is_ready` in the Documentos tab.
+  3. Clicks "Enviar diagnóstico final" → POST `/api/diagnostics/:id/send-final/`.
+  4. Status transitions to `final_sent`; email sent to client with link to all 3 docs.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-diagnostic-send.spec.js`
+
+---
+
+### FLOW: `diagnostic-public-view`
+
+- **Module:** diagnostic
+- **Role:** guest (via UUID link in email)
+- **Priority:** P1
+- **Routes:** `/diagnostic/:uuid`
+- **Description:** Client opens the public diagnostic link, views rendered markdown documents (1 in INITIAL_SENT, 3 in FINAL_SENT), and responds (accept/reject) via the footer buttons.
+- **Steps:**
+  1. Client navigates to `/diagnostic/:uuid` (no auth required).
+  2. Page fetches GET `/api/diagnostics/public/:uuid/` and auto-increments `view_count`.
+  3. [Branch: `INITIAL_SENT`] — Only Doc 1 is visible; no tab nav rendered.
+  4. [Branch: `FINAL_SENT`] — All 3 documents visible as tabs; footer shows accept/reject buttons.
+  5. Client clicks "Aceptar propuesta" → POST `/api/diagnostics/public/:uuid/respond/` with `decision: 'accept'`.
+  6. Status transitions to `accepted`; acceptance footer replaces the CTA.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/public/diagnostic-public-view.spec.js`
+
+---
+
 ## 7. E2E Coverage Index
 
 | Flow ID | Module | Role | Priority | Coverage | E2E Spec |
@@ -1855,6 +1928,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
+| `admin-document-move-folder` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-move-folder.spec.js` |
+| `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
 | `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
 | `admin-email-deliverability` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-email-deliverability.spec.js` |
 | `admin-view-map` | admin | admin | P4 | ✅ Covered | `e2e/admin/admin-view-map.spec.js` |
@@ -2616,6 +2691,28 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ⬜ Missing
 - **E2E Spec:** *(not yet written — Document PDF generation feature is in progress)*
 
+#### FLOW: `admin-document-move-folder`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/documents`
+- **API:** `PATCH /api/content/documents/<id>/update/`
+- **Description:** Admin moves a document to a different folder (or removes it from any folder) via MoveFolderModal from the documents list page. The modal shows all folders from `document-folders/`; clicking a folder PATCHes the document with `folder_id`; "Sin carpeta" sets `folder_id: null`.
+- **Steps:**
+  1. Admin loads `/panel/documents`.
+  2. Admin clicks "Mover a carpeta" button on a document row → `MoveFolderModal` opens.
+  3. Modal renders "Sin carpeta" option and all available folder buttons.
+  4. Admin clicks a target folder → `documentStore.updateDocument(id, { folder_id })` is called.
+  5. On success, modal closes and document list + folder counts refresh.
+- **Branches:**
+  - [Branch A — Move to folder] Admin selects a named folder → PATCH with `folder_id: <id>`.
+  - [Branch B — Remove from folder] Admin clicks "Sin carpeta" → PATCH with `folder_id: null`.
+  - [Branch C — Same folder] Clicking the current folder → no PATCH, modal closes.
+  - [Branch D — Error] PATCH fails → modal shows "No se pudo mover el documento." error message.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-document-move-folder.spec.js`
+
 ### 9.2 Admin User Management
 
 #### FLOW: `admin-admin-management`
@@ -2707,6 +2804,12 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-folders` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folders.spec.js` |
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |
+| `admin-document-move-folder` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-move-folder.spec.js` |
+| `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
+| `admin-diagnostic-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-create.spec.js` |
+| `admin-diagnostic-send-initial` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` |
+| `admin-diagnostic-send-final` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` |
+| `diagnostic-public-view` | diagnostic | guest | P1 | ✅ Covered | `e2e/public/diagnostic-public-view.spec.js` |
 | `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
 | `admin-email-deliverability` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-email-deliverability.spec.js` |
 | `admin-send-branded-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-email.spec.js` |
@@ -3290,6 +3393,22 @@ No active browser flow is registered for client profile editing at this time.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-tasks-kanban.spec.js`
 
+#### FLOW: `admin-task-deadline-notification`
+
+- **Module:** admin
+- **Role:** system (no browser interaction)
+- **Priority:** P2
+- **Routes:** N/A — backend-only
+- **API:** Huey periodic task; `PATCH /api/content/tasks/<id>/update/` (internal); Django email backend
+- **Description:** Automated email notifications sent to task assignees at 40%, 70%, and 100% of deadline elapsed, and again for overdue tasks. Notification state is tracked via `notified_40`, `notified_70`, `notified_100`, `last_overdue_notified_at` fields added in migration `0089_task_notification_fields.py`. The Huey task runs periodically and skips tasks that have already been notified at each threshold.
+- **Steps:**
+  1. Huey scheduler triggers the deadline-notification task.
+  2. Task queries all `Task` records with a `due_date` and an assignee email.
+  3. For each task, time-to-deadline % is computed; if threshold crossed and not yet notified, an email is sent.
+  4. The corresponding `notified_*` field is set to `True` to prevent duplicate notifications.
+  5. Overdue tasks send a daily reminder until `last_overdue_notified_at` is today.
+- **Coverage:** ⬜ Backend-only — no E2E spec needed (expectedSpecs: 0)
+
 ### 13.3 Coverage Index
 
 | Flow ID | Module | Role | Priority | Status | Spec |
@@ -3304,12 +3423,13 @@ No active browser flow is registered for client profile editing at this time.
 | `admin-proposal-zombie-segment` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-zombie-segment.spec.js` |
 | `admin-view-map` | admin | admin | P4 | ✅ Covered | `e2e/admin/admin-view-map.spec.js` |
 | `admin-kanban-tasks` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-tasks-kanban.spec.js` |
+| `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
 
 ---
 
-## 14. New Feature Flows (v2.17.0)
+## 14. New Feature Flows (v2.17.0–v2.20.0)
 
-> Flows registered during the v2.17.0 audit. Covers the Document PDF download action (feature in progress) and the Admin UX improvements shipped with the Business Proposal admin panel.
+> Flows registered during the v2.17.0–v2.20.0 audit cycles. Covers Document PDF download (in progress), Web App Diagnostics, document move-folder modal, and task deadline notifications.
 
 ### 14.1 Document PDF Download
 
@@ -3322,3 +3442,9 @@ No active browser flow is registered for client profile editing at this time.
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (Document PDF generation in progress) |
+| `admin-document-move-folder` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-move-folder.spec.js` |
+| `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |
+| `admin-diagnostic-create` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-create.spec.js` |
+| `admin-diagnostic-send-initial` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` |
+| `admin-diagnostic-send-final` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` |
+| `diagnostic-public-view` | diagnostic | guest | P1 | ✅ Covered | `e2e/public/diagnostic-public-view.spec.js` |

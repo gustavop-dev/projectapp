@@ -122,4 +122,49 @@ test.describe('Admin Kanban Tasks', () => {
       page.getByTestId('column-todo').getByText('Brand new title'),
     ).toBeVisible({ timeout: 10_000 });
   });
+
+  test('creates a task with description, priority and due_date — all sent in POST body', {
+    tag: [...ADMIN_KANBAN_TASKS, '@role:admin'],
+  }, async ({ page }) => {
+    let postBody = null;
+
+    await mockApi(page, async ({ apiPath, method, route }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'tasks/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(board()) };
+      }
+      if (apiPath === 'tasks/assignees/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      if (apiPath === 'tasks/create/' && method === 'POST') {
+        postBody = route.request().postDataJSON();
+        const created = {
+          id: 200, title: postBody.title, description: postBody.description || '',
+          status: postBody.status || 'todo', priority: postBody.priority || 'medium',
+          assignee: null, assignee_name: null,
+          due_date: postBody.due_date || null, is_overdue: false, position: 0,
+        };
+        return { status: 201, contentType: 'application/json', body: JSON.stringify(created) };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/tareas');
+    await page.waitForLoadState('domcontentloaded');
+
+    await page.getByTestId('new-task-btn').click();
+    await expect(page.getByTestId('task-form-modal')).toBeVisible();
+
+    await page.getByTestId('task-title-input').fill('Full-field task');
+    await page.getByLabel('Descripción').fill('Detailed description here');
+    await page.getByLabel('Prioridad').selectOption('high');
+    await page.getByLabel('Fecha límite').fill('2026-12-31');
+    await page.getByTestId('task-submit-btn').click();
+
+    await expect(() => expect(postBody).not.toBeNull()).toPass({ timeout: 5000 });
+    expect(postBody.title).toBe('Full-field task');
+    expect(postBody.description).toBe('Detailed description here');
+    expect(postBody.priority).toBe('high');
+    expect(postBody.due_date).toBe('2026-12-31');
+  });
 });

@@ -1,0 +1,17 @@
+Hola {{ client_name }},
+
+Tu diagnóstico técnico está completo. Encontrarás los tres documentos ahí:
+la propuesta de servicio, el detalle técnico por categoría y el anexo con la
+radiografía medida directamente en el repositorio.
+
+{% if investment_amount %}Inversión: ${{ investment_amount }} {{ currency }}
+{% if duration_label %}Duración estimada: {{ duration_label }}{% endif %}
+{% endif %}
+
+Revisar diagnóstico completo:
+{{ diagnostic_url }}
+
+Desde el enlace puedes aceptar o rechazar la propuesta. Si quieres conversarla
+antes, responde este correo.
+
+— Equipo Project App

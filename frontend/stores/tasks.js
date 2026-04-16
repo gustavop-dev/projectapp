@@ -18,6 +18,7 @@ export const useTaskStore = defineStore('tasks', {
     isLoading: false,
     isUpdating: false,
     error: null,
+    assignees: [],
   }),
 
   getters: {
@@ -110,6 +111,19 @@ export const useTaskStore = defineStore('tasks', {
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
+      }
+    },
+
+    /** Fetch staff users for the assignee dropdown. */
+    async fetchAssignees() {
+      try {
+        const response = await get_request('tasks/assignees/');
+        this.assignees = response.data;
+        return { success: true };
+      /* c8 ignore next 4 */
+      } catch (error) {
+        console.error('Error fetching task assignees:', error);
+        return { success: false };
       }
     },
 

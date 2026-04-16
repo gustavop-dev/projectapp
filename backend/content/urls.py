@@ -77,6 +77,15 @@ from content.views.proposal_clients import (
 )
 from content.views.task import (
     list_tasks, create_task, update_task, reorder_task, delete_task,
+    list_task_assignees,
+)
+from content.views.diagnostic import (
+    list_diagnostics, create_diagnostic, retrieve_diagnostic,
+    update_diagnostic, delete_diagnostic,
+    update_diagnostic_document, restore_diagnostic_document,
+    send_initial, mark_in_analysis, send_final,
+    retrieve_public_diagnostic, track_public_diagnostic,
+    respond_public_diagnostic,
 )
 
 urlpatterns = [
@@ -228,6 +237,7 @@ urlpatterns = [
     # Kanban tasks (admin panel)
     path('tasks/', list_tasks, name='list-tasks'),
     path('tasks/create/', create_task, name='create-task'),
+    path('tasks/assignees/', list_task_assignees, name='list-task-assignees'),
     path('tasks/<int:task_id>/update/', update_task, name='update-task'),
     path('tasks/<int:task_id>/reorder/', reorder_task, name='reorder-task'),
     path('tasks/<int:task_id>/delete/', delete_task, name='delete-task'),
@@ -237,6 +247,24 @@ urlpatterns = [
     path('document-tags/create/', create_document_tag, name='create-document-tag'),
     path('document-tags/<int:tag_id>/update/', update_document_tag, name='update-document-tag'),
     path('document-tags/<int:tag_id>/delete/', delete_document_tag, name='delete-document-tag'),
+
+    # ── Web App Diagnostics ───────────────────────────────────────
+    # Public (UUID-based)
+    path('diagnostics/public/<uuid:diagnostic_uuid>/', retrieve_public_diagnostic, name='retrieve-public-diagnostic'),
+    path('diagnostics/public/<uuid:diagnostic_uuid>/track/', track_public_diagnostic, name='track-public-diagnostic'),
+    path('diagnostics/public/<uuid:diagnostic_uuid>/respond/', respond_public_diagnostic, name='respond-public-diagnostic'),
+
+    # Admin CRUD
+    path('diagnostics/', list_diagnostics, name='list-diagnostics'),
+    path('diagnostics/create/', create_diagnostic, name='create-diagnostic'),
+    path('diagnostics/<int:diagnostic_id>/detail/', retrieve_diagnostic, name='retrieve-diagnostic'),
+    path('diagnostics/<int:diagnostic_id>/update/', update_diagnostic, name='update-diagnostic'),
+    path('diagnostics/<int:diagnostic_id>/delete/', delete_diagnostic, name='delete-diagnostic'),
+    path('diagnostics/<int:diagnostic_id>/send-initial/', send_initial, name='send-initial-diagnostic'),
+    path('diagnostics/<int:diagnostic_id>/mark-in-analysis/', mark_in_analysis, name='mark-in-analysis-diagnostic'),
+    path('diagnostics/<int:diagnostic_id>/send-final/', send_final, name='send-final-diagnostic'),
+    path('diagnostics/<int:diagnostic_id>/documents/<int:doc_id>/update/', update_diagnostic_document, name='update-diagnostic-document'),
+    path('diagnostics/<int:diagnostic_id>/documents/<int:doc_id>/restore/', restore_diagnostic_document, name='restore-diagnostic-document'),
 
     # Portfolio — admin CRUD (must come before slug catch-all)
     path('portfolio/admin/', list_admin_portfolio_works, name='list-admin-portfolio-works'),

@@ -1050,3 +1050,180 @@ def notify_proposal_stage_deadlines():
         logger.info(
             'notify_proposal_stage_deadlines: processed %d proposals', processed,
         )
+
+
+# ── Task deadline notifications ────────────────────────────────────────────
+# 08:05 AM diario. Slight offset from the 08:00 tasks to avoid contention.
+TASK_NOTIFICATION_RECIPIENTS = ['team@projectapp.co', 'carlos18bp@gmail.com']
+
+# Priority labels in Spanish (model stores English labels: Low/Medium/High).
+_PRIORITY_LABELS = {
+    'low': 'Baja',
+    'medium': 'Media',
+    'high': 'Alta',
+}
+
+# Per-threshold email config. intro uses {title} as a placeholder for task.title.
+_THRESHOLD_CONFIGS = {
+    40: {
+        'color': '#d97706',    # amber-600
+        'icon': '📋',
+        'title': 'Tarea al 40% de su tiempo límite',
+        'subtitle': 'Quedan aprox. 60% del tiempo disponible',
+        'intro': 'La tarea "{title}" ha consumido el 40% de su tiempo límite. Revisa el avance y ajusta las prioridades si es necesario.',
+    },
+    70: {
+        'color': '#ea580c',    # orange-600
+        'icon': '⚠️',
+        'title': 'Tarea al 70% de su tiempo límite',
+        'subtitle': 'Solo queda el 30% del tiempo disponible',
+        'intro': 'La tarea "{title}" ha consumido el 70% de su tiempo límite. Se recomienda revisar el estado y tomar acciones correctivas.',
+    },
+    100: {
+        'color': '#dc2626',    # red-600
+        'icon': '🚨',
+        'title': 'Tarea llegó a su fecha límite',
+        'subtitle': 'La fecha límite se cumple hoy',
+        'intro': 'La tarea "{title}" alcanzó su fecha límite. Ciérrala o actualiza la fecha si el trabajo continúa.',
+    },
+}
+
+
+def _send_task_deadline_email(task, threshold_pct=None, days_overdue=None):
+    """Send a deadline notification email for a single task.
+
+    threshold_pct: 40, 70, or 100 (percentage of time elapsed).
+    days_overdue: number of days past due_date (for recurring overdue reminders).
+    """
+    from django.core.mail import EmailMultiAlternatives
+    from django.template.loader import render_to_string
+    from content.models import Task
+
+    if threshold_pct is not None:
+        cfg = _THRESHOLD_CONFIGS[threshold_pct]
+        header_color = cfg['color']
+        header_icon = cfg['icon']
+        header_title = cfg['title']
+        header_subtitle = cfg['subtitle']
+        intro_text = cfg['intro'].format(title=task.title)
+        subject = f'[ProjectApp] {header_title}: {task.title}'
+        days_overdue_ctx = None
+    else:
+        header_color = '#7f1d1d'   # red-900
+        header_icon = '🔴'
+        header_title = 'Tarea vencida — Recordatorio'
+        header_subtitle = f'Lleva {days_overdue} día(s) sin completarse'
+        intro_text = (
+            f'La tarea "{task.title}" sigue sin completarse {days_overdue} día(s) '
+            'después de su fecha límite.'
+        )
+        subject = f'[ProjectApp] Tarea vencida ({days_overdue}d): {task.title}'
+        days_overdue_ctx = days_overdue
+
+    assignee_name = None
+    if task.assignee:
+        full = (task.assignee.get_full_name() or '').strip()
+        assignee_name = full or task.assignee.username
+
+    context = {
+        'email_subject': subject,
+        'header_color': header_color,
+        'header_icon': header_icon,
+        'header_title': header_title,
+        'header_subtitle': header_subtitle,
+        'intro_text': intro_text,
+        'task_title': task.title,
+        'task_status': Task.Status(task.status).label,
+        'task_priority': _PRIORITY_LABELS.get(task.priority, task.priority),
+        'task_assignee': assignee_name,
+        'task_due_date': task.due_date.strftime('%d/%m/%Y'),
+        'days_overdue': days_overdue_ctx,
+    }
+
+    html_body = render_to_string('emails/task_deadline_notification.html', context)
+    txt_body = render_to_string('emails/task_deadline_notification.txt', context)
+
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=txt_body,
+        from_email='team@projectapp.co',
+        to=TASK_NOTIFICATION_RECIPIENTS,
+    )
+    msg.attach_alternative(html_body, 'text/html')
+    msg.send(fail_silently=False)
+
+
+@periodic_task(crontab(hour='8', minute='5'))
+def check_task_deadline_notifications():
+    """
+    Daily at 08:05: scan non-done tasks with a due_date and send email
+    notifications at 40%, 70%, 100% of elapsed time, and every 2 days
+    after the due date passes.
+
+    Recipients: team@projectapp.co and carlos18bp@gmail.com
+    """
+    from django.db.models import Q
+    from content.models import Task
+
+    today = timezone.localdate()
+    candidates = Task.objects.filter(
+        due_date__isnull=False,
+    ).exclude(
+        status=Task.Status.DONE,
+    ).filter(
+        Q(notified_40=False) | Q(notified_70=False) | Q(notified_100=False)
+        | Q(last_overdue_notified_at__isnull=True)
+        | Q(last_overdue_notified_at__lt=today - timedelta(days=2))
+    ).select_related('assignee')
+
+    processed = 0
+    for task in candidates:
+        try:
+            _check_single_task_deadlines(task, today)
+            processed += 1
+        except Exception:
+            logger.exception(
+                'check_task_deadline_notifications: failed for task %s', task.pk,
+            )
+
+    if processed:
+        logger.info('check_task_deadline_notifications: processed %d tasks', processed)
+
+
+def _check_single_task_deadlines(task, today):
+    """Evaluate and send deadline notifications for one task."""
+    created_date = task.created_at.date()
+    total_days = (task.due_date - created_date).days
+    update_fields = []
+
+    if total_days > 0:
+        pct = (today - created_date).days / total_days * 100
+
+        if pct >= 40 and not task.notified_40:
+            _send_task_deadline_email(task, threshold_pct=40)
+            task.notified_40 = True
+            update_fields.append('notified_40')
+
+        if pct >= 70 and not task.notified_70:
+            _send_task_deadline_email(task, threshold_pct=70)
+            task.notified_70 = True
+            update_fields.append('notified_70')
+
+    if today >= task.due_date and not task.notified_100:
+        _send_task_deadline_email(task, threshold_pct=100)
+        task.notified_100 = True
+        update_fields.append('notified_100')
+
+    if today > task.due_date:
+        days_overdue = (today - task.due_date).days
+        needs_overdue = (
+            task.last_overdue_notified_at is None
+            or (today - task.last_overdue_notified_at).days >= 2
+        )
+        if needs_overdue:
+            _send_task_deadline_email(task, days_overdue=days_overdue)
+            task.last_overdue_notified_at = today
+            update_fields.append('last_overdue_notified_at')
+
+    if update_fields:
+        task.save(update_fields=update_fields)

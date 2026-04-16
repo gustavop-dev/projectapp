@@ -57,9 +57,7 @@
         isDark ? 'text-gray-200' : 'text-gray-900',
       ]"
     >
-      <div class="mx-auto max-w-7xl">
-        <slot />
-      </div>
+      <slot />
     </main>
   </div>
 </template>

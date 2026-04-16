@@ -2,7 +2,7 @@
   <section class="proposal-gateway min-h-screen flex items-center justify-center bg-white px-4 py-12 sm:py-16">
     <div class="max-w-6xl w-full mx-auto">
       <!-- Header -->
-      <div class="text-center mb-10 sm:mb-14">
+      <div class="gateway-header text-center mb-10 sm:mb-14">
         <h2 class="text-esmerald font-light leading-tight text-3xl sm:text-4xl md:text-5xl mb-3">
           {{ t.heading }}
         </h2>
@@ -165,9 +165,30 @@ const t = computed(() => i18n[props.language] || i18n.es);
 </script>
 
 <style scoped>
-.gateway-card {
-  transition: all 0.3s ease;
+@keyframes gatewayItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+
+.gateway-header {
+  animation: gatewayItemIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.05s;
+}
+
+.gateway-card {
+  animation: gatewayItemIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.gateway-card:nth-child(1) { animation-delay: 0.12s; }
+.gateway-card:nth-child(2) { animation-delay: 0.22s; }
+.gateway-card:nth-child(3) { animation-delay: 0.32s; }
+
 .gateway-card:hover {
   transform: translateY(-4px);
 }

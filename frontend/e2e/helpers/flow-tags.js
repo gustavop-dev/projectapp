@@ -213,3 +213,15 @@ export const ADMIN_KANBAN_TASKS = ['@flow:admin-kanban-tasks', '@module:admin', 
 // ── v2.17.0 — document PDF + OG meta ──
 export const ADMIN_DOCUMENT_PDF_DOWNLOAD = ['@flow:admin-document-pdf-download', '@module:admin', '@priority:P2'];
 export const PROPOSAL_OG_META_PERSONALIZED = ['@flow:proposal-og-meta-personalized', '@module:proposal', '@priority:P3'];
+
+// ── Web App Diagnostics ──
+export const ADMIN_DIAGNOSTIC_CREATE       = ['@flow:admin-diagnostic-create', '@module:admin', '@priority:P1'];
+export const ADMIN_DIAGNOSTIC_SEND_INITIAL = ['@flow:admin-diagnostic-send-initial', '@module:admin', '@priority:P1'];
+export const ADMIN_DIAGNOSTIC_SEND_FINAL   = ['@flow:admin-diagnostic-send-final', '@module:admin', '@priority:P1'];
+export const DIAGNOSTIC_PUBLIC_VIEW        = ['@flow:diagnostic-public-view', '@module:diagnostic', '@priority:P1'];
+
+// ── Proposal — Mobile Onboarding ──
+export const PROPOSAL_ONBOARDING_MOBILE_SWIPE = ['@flow:proposal-onboarding-mobile-swipe', '@module:proposal', '@priority:P3'];
+
+// ── Documents — Move Folder ──
+export const ADMIN_DOCUMENT_MOVE_FOLDER = ['@flow:admin-document-move-folder', '@module:admin', '@priority:P1'];

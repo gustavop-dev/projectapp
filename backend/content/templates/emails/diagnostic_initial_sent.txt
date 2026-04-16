@@ -1,0 +1,15 @@
+Hola {{ client_name }},
+
+Te compartimos la propuesta inicial del diagnóstico técnico para tu aplicación.
+En este documento encontrarás el alcance, las categorías de evaluación y la estructura
+de la entrega.
+
+El costo y el cronograma definitivos se definen tras el análisis preliminar del
+repositorio, que ejecutamos sin costo una vez recibida tu autorización.
+
+Ver propuesta de diagnóstico:
+{{ diagnostic_url }}
+
+Si tienes preguntas, simplemente responde a este correo.
+
+— Equipo Project App

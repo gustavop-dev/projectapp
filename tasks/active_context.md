@@ -8,6 +8,16 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ## Recent Focus Areas
 
+- **Web App Diagnostics Module** (Apr 15, 2026):
+  - **Models** (`backend/content/models/web_app_diagnostic.py`): `WebAppDiagnostic` (UUID, `client FK → UserProfile(role='client')`, Status choices DRAFT/INITIAL_SENT/IN_ANALYSIS/FINAL_SENT/ACCEPTED/REJECTED, `ALLOWED_TRANSITIONS`, pricing fields, `radiography` JSON, `view_count`, lifecycle timestamps, `can_transition_to()`, `public_url` property) + `DiagnosticDocument` (FK to diagnostic, `doc_type` enum INITIAL_PROPOSAL/TECHNICAL_PROPOSAL/SIZING_ANNEX, `content_md`, `is_ready`, `order`; `unique_together = [('diagnostic', 'doc_type')]`). Migration `0090_web_app_diagnostic.py`.
+  - **Service** (`backend/content/services/diagnostic_service.py`): `@lru_cache(maxsize=12)` on `_load_template` (3 doc types × languages with Spanish fallback); `build_render_context` (pricing + radiography vars including COP format via `format_cop_email`); `render_document(doc, context=None)` (builds context once, `PLACEHOLDER_KEYS` frozenset for fields that fall back to `_por definir_` when absent); `transition_status` (validates via `ALLOWED_TRANSITIONS`, stamps timestamps); `visible_documents` (returns Python list — honors prefetch cache; INITIAL_SENT → only Doc 1, PUBLIC_VISIBLE → ready docs or all 3 as fallback); `register_view` (atomic increment). Render context shared across docs via `render_document(doc, context=ctx)`.
+  - **Email service** (`backend/content/services/diagnostic_email_service.py`): `send_initial_to_client` + `send_final_to_client`; reuses `_is_unsendable_client_email`, `ProposalEmailService._log_email`, `build_client_display_name`. 4 email templates (`diagnostic_initial_sent.html/txt`, `diagnostic_final_sent.html/txt`).
+  - **Serializers** (`backend/content/serializers/diagnostic.py`): `DiagnosticDetailSerializer.get_documents()` and `PublicDiagnosticSerializer.get_documents()` both build render context once and pass it via `context={'render_context': ctx}` to avoid N renders per request.
+  - **Views** (`backend/content/views/diagnostic.py`): 10 FBV endpoints — list, create, detail, update, update_document, send-initial, send-final, mark-in-analysis (admin-auth); public retrieve (auto-increments view_count on GET), track, respond (AllowAny). URL patterns added to `backend/content/urls.py`.
+  - **Frontend**: `diagnostics.js` Pinia Options API store + `diagnostics_constants.js` (`DIAGNOSTIC_STATUS`, `STATUS_META`, `STATUS_FILTER_OPTIONS`); 5 components in `frontend/components/WebAppDiagnostic/` (DiagnosticDocumentEditor with variable chips + split preview, DiagnosticDocumentViewer, DiagnosticStatusBadge, DiagnosticPricingForm, DiagnosticRadiographyForm); 3 admin pages (`panel/diagnostics/index.vue`, `create.vue`, `[id]/edit.vue` — 4 tabs: Resumen/Pricing/Radiografía/Documentos) + 1 public page (`diagnostic/[uuid]/index.vue`); `Map<docId, timeoutId>` for debounce timers (avoids store reactive mutation); `onBeforeUnmount` cleanup in create + edit pages; all status checks use `DIAGNOSTIC_STATUS` constants; navigation entry "Diagnostics" + "New diagnostic" in commercial group.
+  - **MD Templates** (`backend/content/templates/diagnostics/`): `initial_proposal_es.md` (261 lines, `## Índice` with 33 anchor links, all 14 category `---` separators), `technical_proposal_es.md` (427 lines, `## Índice` with 28 anchor links), `sizing_annex_es.md` (existing index preserved). Placeholders: `{{investment_amount}}`, `{{currency}}`, `{{payment_initial_pct}}`, `{{payment_final_pct}}`, `{{duration_label}}` + radiography vars.
+  - **Tests**: 11 backend tests in `test_web_app_diagnostic.py` — all pass. Covers: template loading (3 docs, `len > 500`, `## Índice`), render substitution + placeholder fallback, status transitions + timestamps, view_count increment, visible_documents filtering, all 5 API endpoints. Client search/creation reuses existing `/api/proposals/client-profiles/search/` endpoint — no duplication.
+
 - **Proposal Admin & Public — 4 UX Improvements** (Apr 15, 2026):
   - **Expiry days input** (create + edit proposal pages): Number input placed inline beside the `datetime-local` field. Bidirectionally synced via two `watch()` calls — datetime change → days update; days change → date update while **preserving the existing time component** (`form.expires_at.slice(11, 16)`) so a custom hour is not overwritten when only the day count changes. Helpers: `getExpiryDaysFromStr()` in both pages; `create.vue` reuses existing `pad` + `buildDefaultExpiryStr`; `edit.vue` adds `padDate` + `DEFAULT_EXPIRY_DAYS`. Days watcher in `create.vue` also syncs `jsonForm.expires_at` (consistent with the existing cross-mode sync comment at line 1021). Timer stacking in `edit.vue` prevented via `updateMsgTimer` ref + `clearTimeout`.
   - **Smooth back-to-gateway transition** (`proposal/[uuid]/index.vue`): `handleBackToGateway()` now triggers the existing `switch-mode-overlay` `<Transition>` with `switchOverlayMode = 'gateway'` before resetting state. Overlay template gained a 4th case: grid icon, "Seleccionar vista" / "Select view" heading, bilingual subtitle. Timing mirrors `handleViewModeSelect`: 1 s hold → state reset + 1.2 s overlay hide.
@@ -168,32 +178,32 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ---
 
-## Verified Codebase Metrics (April 15, 2026 — refreshed post-Kanban)
+## Verified Codebase Metrics (April 15, 2026 — refreshed post-WebApp-Diagnostics)
 
 | Metric | Count |
 |--------|-------|
-| Backend test files | 124 |
+| Backend test files | 125 |
 | Frontend unit tests | 77 |
 | E2E spec files | 132 |
-| Vue components | 130 |
-| Pages | 65 |
-| Pinia stores | 23 |
+| Vue components | 135 |
+| Pages | 69 |
+| Pinia stores | 24 |
 | Composables | 35 |
-| Content model files | 29 |
+| Content model files | 30 |
 | Accounts model classes | 21 |
 | Accounts URL patterns | 65 |
-| Content URL patterns | 128 |
-| Email templates | 57 (30 HTML + 27 TXT across `accounts` + `content`) |
-| Content services | 17 |
+| Content URL patterns | ~138 |
+| Email templates | 61 (32 HTML + 29 TXT across `accounts` + `content`) |
+| Content services | 19 |
 | Accounts services | 11 |
-| Content migrations | 87 |
+| Content migrations | 90 |
 | Quality gate score | 100/100 (0 errors, 2 warnings) |
 
 ---
 
 ## Next Steps
 
-- **Apply `0087_task.py` migration in production** — `python manage.py migrate` — required before the Kanban board at `/panel/tareas` is usable.
+- **Apply pending migrations in production** — `python manage.py migrate` — required to activate the Kanban board (`0087_task.py`) and the Web App Diagnostics module (`0090_web_app_diagnostic.py`).
 - **Set `NOTIFICATION_EMAIL` in production env** to `team@projectapp.co,carlos18bp@gmail.com` so the new stage warning + overdue alerts reach the right inbox.
 - Consider extending `ProposalStageTracker.STAGE_DEFINITIONS` beyond design + development (e.g., QA, Lanzamiento, Entrega Final) — the model + service already support N stages, only the catalog constant needs an update.
 - Complete Document System PDF generation (branch `generate-pdf-with-template`): template rendering, preview, download flow — **folders & tags layer is now in place**

@@ -1689,6 +1689,26 @@
       "description": "Internal Kanban board at /panel/tareas. Admin can create, edit, move across TO DO/In Progress/Blocked/Done columns, and delete tasks.",
       "expectedSpecs": 1
     },
+    "admin-task-deadline-notification": {
+      "name": "Admin Task Deadline Notification",
+      "module": "admin",
+      "roles": [
+        "system"
+      ],
+      "priority": "P2",
+      "description": "Huey periodic task sends email notifications to task assignees at 40%, 70%, 100% of deadline and for overdue tasks. Backend-only — no browser interaction.",
+      "expectedSpecs": 0
+    },
+    "admin-document-move-folder": {
+      "name": "Admin Document Move Folder",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Admin moves a document to a different folder (or removes it from any folder) via MoveFolderModal from the documents page. PATCHes documents/{id}/update/ with folder_id.",
+      "expectedSpecs": 3
+    },
     "admin-document-pdf-download": {
       "name": "Admin Document PDF Download",
       "module": "admin",
@@ -1699,6 +1719,38 @@
       "description": "Admin downloads a Document entity as a branded PDF from the document edit page via the 'Descargar PDF' button.",
       "expectedSpecs": 0,
       "knownGaps": ["Document PDF generation feature is in progress — endpoint exists (documents/<id>/pdf/) and UI button is present, but E2E spec not yet written."]
+    },
+    "admin-diagnostic-create": {
+      "name": "Admin Diagnostic Create",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Admin creates a new WebAppDiagnostic from /panel/diagnostics/create: searches for a client via autocomplete, selects language, submits → redirected to edit page with 3 documents loaded from templates.",
+      "expectedSpecs": 3
+    },
+    "admin-diagnostic-send-initial": {
+      "name": "Admin Diagnostic Send Initial",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Admin sends the initial proposal (Doc 1) from the diagnostic edit page via 'Enviar Doc 1 al cliente', transitioning status from DRAFT to INITIAL_SENT, then marks as IN_ANALYSIS.",
+      "expectedSpecs": 2
+    },
+    "admin-diagnostic-send-final": {
+      "name": "Admin Diagnostic Send Final",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Admin sends the full diagnostic package (Docs 1+2+3) via 'Enviar diagnóstico final' from IN_ANALYSIS state, transitioning status to FINAL_SENT.",
+      "expectedSpecs": 2
+    },
+    "diagnostic-public-view": {
+      "name": "Diagnostic Public View",
+      "module": "diagnostic",
+      "roles": ["guest"],
+      "priority": "P1",
+      "description": "Client accesses the public diagnostic page via UUID link, views documents per workflow status (1 doc in INITIAL_SENT, 3 in FINAL_SENT), and responds (accept/reject).",
+      "expectedSpecs": 3
     }
   }
 }

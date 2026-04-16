@@ -35,6 +35,12 @@ class Task(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Deadline notification tracking — set by check_task_deadline_notifications()
+    notified_40 = models.BooleanField(default=False)
+    notified_70 = models.BooleanField(default=False)
+    notified_100 = models.BooleanField(default=False)
+    last_overdue_notified_at = models.DateField(null=True, blank=True)
+
     class Meta:
         ordering = ['status', 'position', '-created_at']
 

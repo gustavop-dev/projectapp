@@ -644,13 +644,25 @@
           <!-- Expires at -->
           <div>
             <label class="block text-xs font-medium text-gray-600 dark:text-white/70 mb-1">Fecha de expiración</label>
-            <input
-              v-model="jsonForm.expires_at"
-              type="datetime-local"
-              class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] rounded-xl text-sm
-                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
-                     dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
-            />
+            <div class="flex items-center gap-2">
+              <input
+                v-model="jsonForm.expires_at"
+                type="datetime-local"
+                class="flex-1 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] rounded-xl text-sm
+                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
+                       dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40"
+              />
+              <input
+                v-model.number="expiryDaysInput"
+                type="number"
+                min="1"
+                max="365"
+                class="w-20 px-3 py-2.5 border border-gray-200 dark:border-white/[0.08] rounded-xl text-sm text-center
+                       focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none
+                       dark:bg-esmerald-dark dark:text-white"
+              />
+              <span class="text-xs text-gray-400 dark:text-green-light/60 whitespace-nowrap">días</span>
+            </div>
           </div>
 
           <!-- Reminder / Urgency / Discount -->
@@ -1210,6 +1222,10 @@ watch(
 );
 
 watch(() => form.expires_at, (val) => {
+  expiryDaysInput.value = getExpiryDaysFromStr(val);
+});
+
+watch(() => jsonForm.expires_at, (val) => {
   expiryDaysInput.value = getExpiryDaysFromStr(val);
 });
 

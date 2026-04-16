@@ -71,14 +71,16 @@
                 />
               </div>
               <div>
-                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Asignado a (ID usuario)</label>
-                <input
+                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Asignado a</label>
+                <select
                   v-model="form.assignee_id"
-                  type="number"
-                  min="1"
-                  placeholder="Opcional"
                   class="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 dark:text-gray-100"
-                />
+                >
+                  <option value="">Sin asignar</option>
+                  <option v-for="user in assignees" :key="user.id" :value="user.id">
+                    {{ user.name }}
+                  </option>
+                </select>
               </div>
             </div>
 
@@ -126,6 +128,7 @@ const props = defineProps({
   task: { type: Object, default: null },
   defaultStatus: { type: String, default: 'todo' },
   busy: { type: Boolean, default: false },
+  assignees: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['update:modelValue', 'submit', 'delete']);

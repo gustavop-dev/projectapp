@@ -1,0 +1,156 @@
+import uuid
+
+from django.conf import settings
+from django.db import models
+
+
+class WebAppDiagnostic(models.Model):
+    """Diagnóstico técnico ofrecido a clientes que ya tienen una aplicación web.
+
+    Cada diagnóstico se ata a un cliente (UserProfile, role='client') y
+    contiene tres documentos (DiagnosticDocument). El flujo es:
+
+        DRAFT
+          → INITIAL_SENT     (Doc 1 enviado al cliente, sin precios todavía)
+          → IN_ANALYSIS      (cliente aceptó, equipo está analizando el repo)
+          → FINAL_SENT       (Docs 1+2+3 con pricing y radiografía completa)
+          → ACCEPTED | REJECTED
+    """
+
+    class Status(models.TextChoices):
+        DRAFT = 'draft', 'Draft'
+        INITIAL_SENT = 'initial_sent', 'Initial sent'
+        IN_ANALYSIS = 'in_analysis', 'In analysis'
+        FINAL_SENT = 'final_sent', 'Final sent'
+        ACCEPTED = 'accepted', 'Accepted'
+        REJECTED = 'rejected', 'Rejected'
+
+    ALLOWED_TRANSITIONS = {
+        Status.DRAFT:        frozenset({Status.INITIAL_SENT}),
+        Status.INITIAL_SENT: frozenset({Status.IN_ANALYSIS, Status.REJECTED}),
+        Status.IN_ANALYSIS:  frozenset({Status.FINAL_SENT, Status.REJECTED}),
+        Status.FINAL_SENT:   frozenset({Status.ACCEPTED, Status.REJECTED}),
+    }
+
+    class Currency(models.TextChoices):
+        COP = 'COP', 'COP'
+        USD = 'USD', 'USD'
+
+    class Language(models.TextChoices):
+        ES = 'es', 'Español'
+        EN = 'en', 'English'
+
+    class SizeCategory(models.TextChoices):
+        SMALL = 'small', 'Pequeña'
+        MEDIUM = 'medium', 'Mediana'
+        LARGE = 'large', 'Grande'
+
+    # Identidad
+    uuid = models.UUIDField(
+        default=uuid.uuid4, unique=True, editable=False, db_index=True,
+    )
+    title = models.CharField(max_length=255)
+    client = models.ForeignKey(
+        'accounts.UserProfile',
+        on_delete=models.PROTECT,
+        related_name='web_app_diagnostics',
+        limit_choices_to={'role': 'client'},
+    )
+    language = models.CharField(
+        max_length=2, choices=Language.choices, default=Language.ES,
+    )
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.DRAFT,
+    )
+
+    # Pricing (rellenado tras el análisis preliminar)
+    investment_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+    )
+    currency = models.CharField(
+        max_length=3, choices=Currency.choices, default=Currency.COP,
+    )
+    payment_terms = models.JSONField(
+        default=dict, blank=True,
+        help_text='Ej: {"initial_pct": 40, "final_pct": 60}',
+    )
+    duration_label = models.CharField(max_length=80, blank=True, default='')
+
+    # Radiografía técnica (alimenta variables del Anexo / Doc 3)
+    size_category = models.CharField(
+        max_length=10, choices=SizeCategory.choices, blank=True, default='',
+    )
+    radiography = models.JSONField(default=dict, blank=True)
+
+    # Engagement
+    view_count = models.PositiveIntegerField(default=0)
+    last_viewed_at = models.DateTimeField(null=True, blank=True)
+
+    # Timestamps de ciclo
+    initial_sent_at = models.DateTimeField(null=True, blank=True)
+    final_sent_at = models.DateTimeField(null=True, blank=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='+',
+    )
+
+    class Meta:
+        ordering = ['-updated_at']
+        verbose_name = 'Web App Diagnostic'
+        verbose_name_plural = 'Web App Diagnostics'
+
+    def __str__(self):
+        return f'{self.title} ({self.get_status_display()})'
+
+    @property
+    def public_url(self):
+        base = getattr(settings, 'FRONTEND_BASE_URL', '').rstrip('/')
+        return f'{base}/diagnostic/{self.uuid}/'
+
+    def can_transition_to(self, new_status):
+        return new_status in self.ALLOWED_TRANSITIONS.get(self.status, frozenset())
+
+
+class DiagnosticDocument(models.Model):
+    """Uno de los tres documentos del diagnóstico (cargado desde un .md)."""
+
+    class DocType(models.TextChoices):
+        INITIAL_PROPOSAL = 'initial_proposal', 'Propuesta de Diagnóstico'
+        TECHNICAL_PROPOSAL = 'technical_proposal', 'Propuesta de Diagnóstico Técnico'
+        SIZING_ANNEX = 'sizing_annex', 'Anexo de Dimensionamiento Preliminar'
+
+    DOC_TYPE_ORDER = {
+        DocType.INITIAL_PROPOSAL: 1,
+        DocType.TECHNICAL_PROPOSAL: 2,
+        DocType.SIZING_ANNEX: 3,
+    }
+
+    diagnostic = models.ForeignKey(
+        WebAppDiagnostic,
+        on_delete=models.CASCADE,
+        related_name='documents',
+    )
+    doc_type = models.CharField(max_length=30, choices=DocType.choices)
+    title = models.CharField(max_length=255)
+    content_md = models.TextField()
+    is_ready = models.BooleanField(
+        default=False,
+        help_text='Marca el documento como listo para incluir en el envío final.',
+    )
+    order = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [('diagnostic', 'doc_type')]
+        ordering = ['order', 'id']
+        verbose_name = 'Diagnostic Document'
+        verbose_name_plural = 'Diagnostic Documents'
+
+    def __str__(self):
+        return f'{self.diagnostic.title} — {self.get_doc_type_display()}'

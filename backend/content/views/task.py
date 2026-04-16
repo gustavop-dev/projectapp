@@ -1,4 +1,7 @@
+from django.contrib.auth import get_user_model
 from django.db import transaction
+
+User = get_user_model()
 from django.db.models import Max
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -140,3 +143,15 @@ def delete_task(request, task_id):
     task = get_object_or_404(Task, pk=task_id)
     task.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def list_task_assignees(request):
+    """Return all active staff users as assignee options for the task form dropdown."""
+    users = User.objects.filter(is_staff=True, is_active=True).order_by('first_name', 'username')
+    data = [
+        {'id': u.id, 'name': (u.get_full_name().strip() or u.username)}
+        for u in users
+    ]
+    return Response(data)

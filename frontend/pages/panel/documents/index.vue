@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
       <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Documentos</h1>
       <NuxtLink
         :to="createLink"
@@ -16,7 +16,30 @@
       </NuxtLink>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
+    <!-- Search bar -->
+    <div class="relative mb-5">
+      <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      <input
+        v-model="searchQuery"
+        type="text"
+        placeholder="Buscar por título o cliente..."
+        class="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none shadow-sm transition-colors"
+      />
+      <button
+        v-if="searchQuery"
+        type="button"
+        class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        @click="searchQuery = ''"
+      >
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 items-start">
       <FolderSidebar
         :folders="folderStore.folders"
         :active-id="documentStore.activeFolderId"
@@ -38,99 +61,195 @@
           />
         </div>
 
-    <!-- Loading -->
-    <div v-if="documentStore.isLoading" class="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">
-      Cargando...
-    </div>
+        <!-- Loading -->
+        <div v-if="documentStore.isLoading" class="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">
+          Cargando...
+        </div>
 
-    <!-- Empty state -->
-    <div v-else-if="documents.length === 0" class="text-center py-16 dark:text-gray-400">
-      <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      </div>
-      <p class="text-gray-500 dark:text-gray-400 text-sm">No hay documentos todavia.</p>
-      <NuxtLink
-        :to="localePath('/panel/documents/create')"
-        class="inline-flex items-center gap-1 mt-3 text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
-      >
-        Crear el primero →
-      </NuxtLink>
-    </div>
+        <div v-else-if="filteredDocuments.length === 0" class="text-center py-16 dark:text-gray-400">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+            <svg v-if="searchQuery" class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <svg v-else class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <template v-if="searchQuery">
+            <p class="text-gray-500 dark:text-gray-400 text-sm">
+              No se encontraron documentos para "<span class="font-medium">{{ searchQuery }}</span>".
+            </p>
+            <button
+              type="button"
+              class="mt-3 text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+              @click="searchQuery = ''"
+            >
+              Limpiar búsqueda
+            </button>
+          </template>
+          <template v-else>
+            <p class="text-gray-500 dark:text-gray-400 text-sm">No hay documentos todavia.</p>
+            <NuxtLink
+              :to="localePath('/panel/documents/create')"
+              class="inline-flex items-center gap-1 mt-3 text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+            >
+              Crear el primero →
+            </NuxtLink>
+          </template>
+        </div>
 
-    <!-- Desktop table -->
-    <div v-if="!documentStore.isLoading && documents.length > 0" class="hidden sm:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto dark:bg-gray-800 dark:border-gray-700">
-      <table class="w-full">
-        <thead>
-          <tr class="border-b border-gray-100 dark:border-gray-700 text-left">
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Titulo</th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Etiquetas</th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Creado</th>
-            <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
-          <tr
-            v-for="doc in documents"
-            :key="doc.id"
-            class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+        <!-- Desktop table -->
+        <div v-if="!documentStore.isLoading && filteredDocuments.length > 0" class="hidden sm:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto dark:bg-gray-800 dark:border-gray-700">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-gray-100 dark:border-gray-700 text-left">
+                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Titulo</th>
+                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Etiquetas</th>
+                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
+                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Creado</th>
+                <th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
+              <tr
+                v-for="doc in filteredDocuments"
+                :key="doc.id"
+                class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                @click="navigateTo(localePath(`/panel/documents/${doc.id}/edit`))"
+              >
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ doc.title }}</span>
+                    <span
+                      v-if="doc.folder_name"
+                      class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 flex-shrink-0"
+                      :title="`Carpeta: ${doc.folder_name}`"
+                    >
+                      📁 {{ doc.folder_name }}
+                    </span>
+                  </div>
+                  <div v-if="doc.client_name" class="text-xs text-gray-400 mt-0.5">{{ doc.client_name }}</div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex flex-wrap gap-1">
+                    <span
+                      v-for="tag in doc.tag_details"
+                      :key="tag.id"
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                      :class="tagBadgeClass(tag.color)"
+                    >
+                      <span class="w-1.5 h-1.5 rounded-full" :class="tagDotClass(tag.color)"></span>
+                      {{ tag.name }}
+                    </span>
+                    <span v-if="!doc.tag_details || doc.tag_details.length === 0" class="text-xs text-gray-400 dark:text-gray-500">—</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4">
+                  <span
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    :class="statusBadgeClass(doc.status)"
+                  >
+                    {{ statusLabel(doc.status) }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                  {{ formatDate(doc.created_at) }}
+                </td>
+                <td class="px-6 py-4" @click.stop>
+                  <div class="flex items-center gap-1">
+                    <NuxtLink
+                      :to="localePath(`/panel/documents/${doc.id}/edit`)"
+                      class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+                      title="Editar"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </NuxtLink>
+                    <button
+                      type="button"
+                      class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-violet-600 dark:hover:text-violet-400"
+                      title="Mover a carpeta"
+                      @click="handleMoveDoc(doc)"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm13 1l3 3-3 3" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                      title="Descargar PDF"
+                      @click="handleDownloadPdf(doc)"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-purple-600 dark:hover:text-purple-400"
+                      title="Duplicar"
+                      @click="handleDuplicate(doc.id)"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                      title="Eliminar"
+                      @click="handleDelete(doc)"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile cards -->
+        <div v-if="!documentStore.isLoading && filteredDocuments.length > 0" class="sm:hidden space-y-3">
+          <div
+            v-for="doc in filteredDocuments"
+            :key="`mobile-${doc.id}`"
+            class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 dark:bg-gray-800 dark:border-gray-700"
             @click="navigateTo(localePath(`/panel/documents/${doc.id}/edit`))"
           >
-            <td class="px-6 py-4">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ doc.title }}</span>
-                <span
-                  v-if="doc.folder_name"
-                  class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 flex-shrink-0"
-                  :title="`Carpeta: ${doc.folder_name}`"
-                >
-                  📁 {{ doc.folder_name }}
-                </span>
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ doc.title }}</h3>
+                <p v-if="doc.client_name" class="text-xs text-gray-400 mt-0.5">{{ doc.client_name }}</p>
               </div>
-              <div v-if="doc.client_name" class="text-xs text-gray-400 mt-0.5">{{ doc.client_name }}</div>
-            </td>
-            <td class="px-6 py-4">
-              <div class="flex flex-wrap gap-1">
-                <span
-                  v-for="tag in doc.tag_details"
-                  :key="tag.id"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                  :class="tagBadgeClass(tag.color)"
-                >
-                  <span class="w-1.5 h-1.5 rounded-full" :class="tagDotClass(tag.color)"></span>
-                  {{ tag.name }}
-                </span>
-                <span v-if="!doc.tag_details || doc.tag_details.length === 0" class="text-xs text-gray-400 dark:text-gray-500">—</span>
-              </div>
-            </td>
-            <td class="px-6 py-4">
               <span
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ml-2 flex-shrink-0"
                 :class="statusBadgeClass(doc.status)"
               >
                 {{ statusLabel(doc.status) }}
               </span>
-            </td>
-            <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-              {{ formatDate(doc.created_at) }}
-            </td>
-            <td class="px-6 py-4" @click.stop>
-              <div class="flex items-center gap-2">
-                <NuxtLink
-                  :to="localePath(`/panel/documents/${doc.id}/edit`)"
-                  class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400"
-                  title="Editar"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </NuxtLink>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-gray-400">{{ formatDate(doc.created_at) }}</span>
+              <div class="flex items-center gap-1" @click.stop>
                 <button
                   type="button"
-                  class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                  class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-violet-600"
+                  title="Mover a carpeta"
+                  @click="handleMoveDoc(doc)"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm13 1l3 3-3 3" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-blue-600"
                   title="Descargar PDF"
                   @click="handleDownloadPdf(doc)"
                 >
@@ -140,7 +259,7 @@
                 </button>
                 <button
                   type="button"
-                  class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-purple-600 dark:hover:text-purple-400"
+                  class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-purple-600"
                   title="Duplicar"
                   @click="handleDuplicate(doc.id)"
                 >
@@ -150,7 +269,7 @@
                 </button>
                 <button
                   type="button"
-                  class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                  class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-gray-400 hover:text-red-600"
                   title="Eliminar"
                   @click="handleDelete(doc)"
                 >
@@ -159,75 +278,16 @@
                   </svg>
                 </button>
               </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Mobile cards -->
-    <div v-if="!documentStore.isLoading && documents.length > 0" class="sm:hidden space-y-3">
-      <div
-        v-for="doc in documents"
-        :key="`mobile-${doc.id}`"
-        class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 dark:bg-gray-800 dark:border-gray-700"
-        @click="navigateTo(localePath(`/panel/documents/${doc.id}/edit`))"
-      >
-        <div class="flex items-start justify-between mb-2">
-          <div class="flex-1 min-w-0">
-            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ doc.title }}</h3>
-            <p v-if="doc.client_name" class="text-xs text-gray-400 mt-0.5">{{ doc.client_name }}</p>
-          </div>
-          <span
-            class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ml-2 flex-shrink-0"
-            :class="statusBadgeClass(doc.status)"
-          >
-            {{ statusLabel(doc.status) }}
-          </span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-xs text-gray-400">{{ formatDate(doc.created_at) }}</span>
-          <div class="flex items-center gap-1" @click.stop>
-            <button
-              type="button"
-              class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-blue-600"
-              title="Descargar PDF"
-              @click="handleDownloadPdf(doc)"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-gray-400 hover:text-purple-600"
-              title="Duplicar"
-              @click="handleDuplicate(doc.id)"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              class="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-gray-400 hover:text-red-600"
-              title="Eliminar"
-              @click="handleDelete(doc)"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
 
       </section>
     </div>
 
     <FolderManagerModal v-model="showFolderManager" @changed="handleFoldersChanged" />
     <TagManagerModal v-model="showTagManager" @changed="handleTagsChanged" />
+    <MoveFolderModal v-model="showMoveModal" :document="movingDoc" @changed="handleMoved" />
 
     <!-- Delete confirmation modal -->
     <Teleport to="body">
@@ -271,6 +331,7 @@ import FolderSidebar from '~/components/panel/documents/FolderSidebar.vue';
 import TagFilterChips from '~/components/panel/documents/TagFilterChips.vue';
 import FolderManagerModal from '~/components/panel/documents/FolderManagerModal.vue';
 import TagManagerModal from '~/components/panel/documents/TagManagerModal.vue';
+import MoveFolderModal from '~/components/panel/documents/MoveFolderModal.vue';
 import { tagBadgeClass, tagDotClass } from '~/utils/documentTagColors.js';
 
 const localePath = useLocalePath();
@@ -279,10 +340,24 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const documentStore = useDocumentStore();
 const folderStore = useDocumentFolderStore();
 const tagStore = useDocumentTagStore();
-const documents = computed(() => documentStore.documents);
+
+const searchQuery = ref('');
+const filteredDocuments = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return documentStore.documents;
+  return documentStore.documents.filter(
+    (d) => d.title?.toLowerCase().includes(q) || d.client_name?.toLowerCase().includes(q),
+  );
+});
+
 const deleteConfirm = ref(null);
 const showFolderManager = ref(false);
 const showTagManager = ref(false);
+const movingDoc = ref(null);
+const showMoveModal = computed({
+  get: () => !!movingDoc.value,
+  set: (v) => { if (!v) movingDoc.value = null; },
+});
 
 const createLink = computed(() => {
   const folder = documentStore.activeFolderId;
@@ -321,15 +396,22 @@ function openFolderManager() {
 }
 
 async function handleFoldersChanged() {
-  // Folder mutations can change documents' folder_name or detach them on delete,
-  // so refetch documents. The folder store keeps its own list in sync locally.
   await documentStore.fetchDocuments();
 }
 
 async function handleTagsChanged() {
-  // Tag mutations can change tag_details on documents (color/name) or detach
-  // them on delete; the tag store keeps its own list in sync locally.
   await documentStore.fetchDocuments();
+}
+
+function handleMoveDoc(doc) {
+  movingDoc.value = doc;
+}
+
+async function handleMoved() {
+  await Promise.all([
+    documentStore.fetchDocuments(),
+    folderStore.fetchFolders(),
+  ]);
 }
 
 function statusBadgeClass(status) {

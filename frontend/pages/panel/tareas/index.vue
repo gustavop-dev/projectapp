@@ -40,6 +40,7 @@
       :task="editingTask"
       :default-status="defaultStatus"
       :busy="taskStore.isUpdating"
+      :assignees="taskStore.assignees"
       @submit="handleSubmit"
       @delete="handleDelete"
     />
@@ -80,7 +81,7 @@ const columns = [
 ];
 
 onMounted(() => {
-  taskStore.fetchTasks();
+  Promise.all([taskStore.fetchTasks(), taskStore.fetchAssignees()]);
 });
 
 function openCreate(status) {

@@ -1,0 +1,17 @@
+{{ email_subject }} — ProjectApp
+
+{{ header_title }}
+{{ header_subtitle }}
+
+{{ intro_text }}
+
+---------------------------------
+Tarea:       {{ task_title }}
+Estado:      {{ task_status }}
+Prioridad:   {{ task_priority }}{% if task_assignee %}
+Asignado a:  {{ task_assignee }}{% endif %}
+Fecha límite: {{ task_due_date }}{% if days_overdue %}
+Días vencida: {{ days_overdue }} día(s){% endif %}
+---------------------------------
+
+Notificación automática — ProjectApp.co
