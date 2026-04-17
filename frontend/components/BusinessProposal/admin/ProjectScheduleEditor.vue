@@ -137,6 +137,9 @@
 import { computed, reactive, watch } from 'vue';
 import { useProposalStore } from '~/stores/proposals';
 import { useStageStatus } from '~/composables/useStageStatus';
+import { usePanelToast } from '~/composables/usePanelToast';
+
+const { showToast } = usePanelToast();
 
 const props = defineProps({
   proposal: { type: Object, required: true },
@@ -226,8 +229,10 @@ async function handleSave(stageKey) {
       stageKey,
       { start_date: dates.start_date, end_date: dates.end_date },
     );
-    if (!result.success) {
-      formError[stageKey] = 'No se pudo guardar. Revisa las fechas e inténtalo de nuevo.';
+    if (result.success) {
+      showToast({ type: 'success', text: 'Fechas de la etapa guardadas.' });
+    } else {
+      showToast({ type: 'error', text: 'No se pudo guardar. Revisa las fechas e inténtalo de nuevo.' });
     }
   } finally {
     isSaving[stageKey] = false;
@@ -237,7 +242,12 @@ async function handleSave(stageKey) {
 async function handleComplete(stageKey) {
   isCompleting[stageKey] = true;
   try {
-    await proposalStore.completeProjectStage(props.proposal.id, stageKey);
+    const result = await proposalStore.completeProjectStage(props.proposal.id, stageKey);
+    if (result.success) {
+      showToast({ type: 'success', text: 'Etapa marcada como completada.' });
+    } else {
+      showToast({ type: 'error', text: 'No se pudo marcar la etapa como completada.' });
+    }
   } finally {
     isCompleting[stageKey] = false;
   }

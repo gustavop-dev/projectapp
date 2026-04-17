@@ -139,10 +139,6 @@
         </button>
       </div>
 
-      <!-- Success message -->
-      <p v-if="sendSuccess" class="text-xs text-emerald-600 mt-2">
-        Documentos enviados correctamente.
-      </p>
     </section>
 
     <!-- Additional documents section -->
@@ -227,8 +223,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onBeforeUnmount } from 'vue';
+import { ref, computed } from 'vue';
 import SendDocumentsModal from '~/components/BusinessProposal/admin/SendDocumentsModal.vue';
+import { usePanelToast } from '~/composables/usePanelToast';
+
+const { showToast } = usePanelToast();
 
 const props = defineProps({
   proposal: { type: Object, required: true },
@@ -247,7 +246,6 @@ const fileInput = ref(null);
 // Send documents state
 const selectedMainDocs = ref(['draft_contract', 'commercial', 'technical']);
 const selectedAdditionalDocIds = ref([]);
-const sendSuccess = ref(false);
 const showSendModal = ref(false);
 
 const contractDoc = computed(() =>
@@ -281,14 +279,9 @@ const selectedAdditionalDocsList = computed(() =>
   additionalDocs.value.filter(d => selectedAdditionalDocIds.value.includes(d.id)),
 );
 
-let successTimer = null;
-onBeforeUnmount(() => { clearTimeout(successTimer); });
-
 function handleDocumentsSent() {
   showSendModal.value = false;
-  sendSuccess.value = true;
-  clearTimeout(successTimer);
-  successTimer = setTimeout(() => { sendSuccess.value = false; }, 5000);
+  showToast({ type: 'success', text: 'Documentos enviados correctamente.' });
 }
 
 async function handleUpload() {
@@ -310,6 +303,9 @@ async function handleUpload() {
     uploadCustomLabel.value = '';
     if (fileInput.value) fileInput.value.value = '';
     emit('refresh');
+    showToast({ type: 'success', text: 'Documento subido.' });
+  } else {
+    showToast({ type: 'error', text: 'No se pudo subir el documento.' });
   }
   isUploading.value = false;
 }
@@ -318,6 +314,9 @@ async function handleDelete(docId) {
   const result = await proposalStore.deleteProposalDocument(props.proposal.id, docId);
   if (result.success) {
     emit('refresh');
+    showToast({ type: 'success', text: 'Documento eliminado.' });
+  } else {
+    showToast({ type: 'error', text: 'No se pudo eliminar el documento.' });
   }
 }
 </script>

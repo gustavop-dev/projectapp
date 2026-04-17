@@ -1,23 +1,6 @@
 <template>
   <div>
-    <!-- Save toast notification -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition-all duration-300 ease-out"
-        leave-active-class="transition-all duration-200 ease-in"
-        enter-from-class="opacity-0 translate-y-4"
-        leave-to-class="opacity-0 translate-y-4"
-      >
-        <div
-          v-if="updateMsg"
-          class="fixed bottom-6 right-6 z-[9999] max-w-sm w-full px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-3"
-          :class="updateMsg.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'"
-        >
-          <span class="flex-1">{{ updateMsg.text }}</span>
-          <button type="button" class="opacity-70 hover:opacity-100 transition-opacity" @click="updateMsg = null">✕</button>
-        </div>
-      </Transition>
-    </Teleport>
+    <PanelToast />
 
     <ConfirmModal
       v-model="confirmState.open"
@@ -890,10 +873,6 @@
             <p class="text-xs text-gray-400 dark:text-green-light/40">Esto reemplazará la metadata y todas las secciones de la propuesta.</p>
           </div>
 
-          <!-- Import result message -->
-          <div v-if="jsonImportMsg" class="mt-3 text-sm px-4 py-3 rounded-xl" :class="jsonImportMsg.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'">
-            {{ jsonImportMsg.text }}
-          </div>
         </div>
       </div>
 
@@ -1016,9 +995,6 @@
             class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-mono bg-white dark:bg-esmerald-dark text-gray-800 dark:text-white resize-y outline-none focus:ring-2 focus:ring-emerald-500"
           />
           <div v-if="technicalJsonError" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-4 py-2 rounded-lg">{{ technicalJsonError }}</div>
-          <div v-if="technicalJsonMsg" class="text-sm px-4 py-2 rounded-lg" :class="technicalJsonMsg.type === 'success' ? 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'">
-            {{ technicalJsonMsg.text }}
-          </div>
           <button
             type="button"
             class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700"
@@ -1221,6 +1197,8 @@ import { buildProposalModuleLinkOptions } from '~/utils/proposalModuleLinkOption
 import { getProposalNextAction } from '~/utils/proposalNextAction';
 import { detectLegacyTechnicalFormat, downloadMigratedProposalJson, LEGACY_FIELD_LABELS } from '~/utils/proposalJsonMigration';
 import LegacyFormatWarning from '~/components/panel/LegacyFormatWarning.vue';
+import PanelToast from '~/components/panel/PanelToast.vue';
+import { usePanelToast } from '~/composables/usePanelToast';
 
 const localePath = useLocalePath();
 const { proposalEdit: tt } = useTooltipTexts();
@@ -1417,17 +1395,17 @@ async function handleLaunchToPlatform() {
   const result = await proposalStore.launchToPlatform(proposal.value.id, alreadyOnboarded);
   if (!result.success) {
     isLaunching.value = false;
-    updateMsg.value = {
+    showToast({
       type: 'error',
       text: result.errors?.error || 'Error al lanzar a la plataforma.',
-    };
+    });
     return;
   }
 
   proposal.value = result.data;
 
   if (result.data.platform_onboarding_status === 'pending') {
-    updateMsg.value = { type: 'success', text: 'Onboarding en progreso...' };
+    showToast({ type: 'success', text: 'Onboarding en progreso...' });
     cancelOnboardingPoll = proposalStore.pollOnboardingStatus(
       proposal.value.id,
       (updated) => {
@@ -1435,27 +1413,27 @@ async function handleLaunchToPlatform() {
         isLaunching.value = false;
         cancelOnboardingPoll = null;
         if (updated.platform_onboarding_status === 'completed') {
-          updateMsg.value = {
+          showToast({
             type: 'success',
             text: alreadyOnboarded ? 'Plataforma re-lanzada exitosamente.' : 'Propuesta lanzada a la plataforma.',
-          };
+          });
         } else {
-          updateMsg.value = {
+          showToast({
             type: 'error',
             text: 'El onboarding falló. Revisa los logs del servidor.',
-          };
+          });
         }
       },
     );
   } else {
     isLaunching.value = false;
     const succeeded = result.data.platform_onboarding_status === 'completed';
-    updateMsg.value = {
+    showToast({
       type: succeeded ? 'success' : 'error',
       text: succeeded
         ? (alreadyOnboarded ? 'Plataforma re-lanzada exitosamente.' : 'Propuesta lanzada a la plataforma.')
         : 'El onboarding falló. Revisa los logs del servidor.',
-    };
+    });
   }
 }
 
@@ -1484,6 +1462,7 @@ function cancelEditPrompt() {
 function saveEditPrompt() {
   promptSave(promptEditBuffer.value);
   promptIsEditing.value = false;
+  showToast({ type: 'success', text: 'Prompt comercial guardado.' });
 }
 async function handleCopyPrompt() {
   await promptCopy();
@@ -1520,6 +1499,7 @@ function cancelEditTechnicalPrompt() {
 function saveEditTechnicalPrompt() {
   technicalPromptSave(technicalPromptEditBuffer.value);
   technicalPromptIsEditing.value = false;
+  showToast({ type: 'success', text: 'Prompt técnico guardado.' });
 }
 async function handleCopyTechnicalPrompt() {
   await technicalPromptCopy();
@@ -1533,7 +1513,6 @@ function handleResetTechnicalPrompt() {
 
 const technicalJsonRaw = ref('');
 const technicalJsonError = ref('');
-const technicalJsonMsg = ref(null);
 
 function refreshTechnicalJsonFromProposal() {
   const s = technicalSection.value;
@@ -1551,7 +1530,6 @@ function refreshTechnicalJsonFromProposal() {
 
 async function handleApplyTechnicalJson() {
   technicalJsonError.value = '';
-  technicalJsonMsg.value = null;
   const sid = technicalSection.value?.id;
   if (!sid) {
     technicalJsonError.value = 'No hay sección técnica.';
@@ -1570,18 +1548,17 @@ async function handleApplyTechnicalJson() {
   }
   const result = await proposalStore.updateSection(sid, { content_json: parsed });
   if (result.success) {
-    technicalJsonMsg.value = { type: 'success', text: 'Detalle técnico actualizado.' };
+    showToast({ type: 'success', text: 'Detalle técnico actualizado.' });
     await proposalStore.fetchProposal(proposal.value.id);
     refreshTechnicalJsonFromProposal();
   } else {
-    technicalJsonMsg.value = { type: 'error', text: 'No se pudo guardar.' };
+    showToast({ type: 'error', text: 'No se pudo guardar.' });
   }
 }
 
 const isRefreshing = ref(false);
 const expandedSections = ref(new Set());
-const updateMsg = ref(null);
-const updateMsgTimer = ref(null);
+const { showToast } = usePanelToast();
 const isLaunching = ref(false);
 const syncPreviewVisible = ref(false);
 const syncPreviewData = ref(null);
@@ -1818,15 +1795,14 @@ async function toggleAutomationsPaused() {
     automations_paused: form.automations_paused,
   });
   if (result.success) {
-    updateMsg.value = { type: 'success', text: form.automations_paused ? 'Automatizaciones pausadas.' : 'Automatizaciones reactivadas.' };
+    showToast({ type: 'success', text: form.automations_paused ? 'Automatizaciones pausadas.' : 'Automatizaciones reactivadas.' });
   } else {
     form.automations_paused = !form.automations_paused;
-    updateMsg.value = { type: 'error', text: 'Error al cambiar automatizaciones.' };
+    showToast({ type: 'error', text: 'Error al cambiar automatizaciones.' });
   }
 }
 
 async function handleUpdate() {
-  updateMsg.value = null;
   const payload = { ...form };
   if (payload.expires_at) {
     payload.expires_at = new Date(payload.expires_at).toISOString();
@@ -1837,21 +1813,19 @@ async function handleUpdate() {
   if (result.success) {
     const syncResult = await syncInvestmentPercentagesFromGeneral();
     if (syncResult.success) {
-      updateMsg.value = { type: 'success', text: 'Propuesta actualizada.' };
+      showToast({ type: 'success', text: 'Propuesta actualizada.' });
     } else {
-      updateMsg.value = { type: 'error', text: 'Se actualizó la propuesta, pero falló la sincronización de porcentajes de inversión.' };
+      showToast({ type: 'error', text: 'Se actualizó la propuesta, pero falló la sincronización de porcentajes de inversión.' });
     }
   } else {
     const errors = result.errors;
-    updateMsg.value = {
+    showToast({
       type: 'error',
       text: errors
         ? Object.entries(errors).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' | ')
         : 'Error al actualizar.',
-    };
+    });
   }
-  clearTimeout(updateMsgTimer.value);
-  updateMsgTimer.value = setTimeout(() => { updateMsg.value = null; }, 5000);
 }
 
 const showSendChecklist = ref(false);
@@ -1899,9 +1873,9 @@ async function confirmSend() {
   showSendChecklist.value = false;
   const result = await proposalStore.sendProposal(proposal.value.id);
   if (result.success) {
-    updateMsg.value = { type: 'success', text: 'Propuesta enviada al cliente.' };
+    showToast({ type: 'success', text: 'Propuesta enviada al cliente.' });
   } else {
-    updateMsg.value = { type: 'error', text: result.errors?.error || 'Error al enviar.' };
+    showToast({ type: 'error', text: result.errors?.error || 'Error al enviar.' });
   }
 }
 
@@ -1914,9 +1888,9 @@ function handleResend() {
     onConfirm: async () => {
       const result = await proposalStore.resendProposal(proposal.value.id);
       if (result.success) {
-        updateMsg.value = { type: 'success', text: 'Propuesta re-enviada al cliente.' };
+        showToast({ type: 'success', text: 'Propuesta re-enviada al cliente.' });
       } else {
-        updateMsg.value = { type: 'error', text: result.errors?.error || 'Error al re-enviar.' };
+        showToast({ type: 'error', text: result.errors?.error || 'Error al re-enviar.' });
       }
     },
   });
@@ -1925,16 +1899,22 @@ function handleResend() {
 async function toggleTechnicalSectionEnabled() {
   const s = technicalSection.value;
   if (!s?.id) return;
-  await proposalStore.updateSection(s.id, { is_enabled: !s.is_enabled });
+  const willEnable = !s.is_enabled;
+  const result = await proposalStore.updateSection(s.id, { is_enabled: willEnable });
+  if (result.success) {
+    showToast({ type: 'success', text: willEnable ? 'Sección técnica habilitada.' : 'Sección técnica deshabilitada.' });
+  } else {
+    showToast({ type: 'error', text: 'No se pudo actualizar la sección técnica.' });
+  }
 }
 
 async function handleToggleActive() {
   const result = await proposalStore.toggleProposalActive(proposal.value.id);
   if (result.success) {
     const label = result.data.is_active ? 'activada' : 'desactivada';
-    updateMsg.value = { type: 'success', text: `Propuesta ${label}.` };
+    showToast({ type: 'success', text: `Propuesta ${label}.` });
   } else {
-    updateMsg.value = { type: 'error', text: 'Error al cambiar el estado.' };
+    showToast({ type: 'error', text: 'Error al cambiar el estado.' });
   }
 }
 
@@ -1962,17 +1942,16 @@ async function handleSaveSection({ sectionId, payload }) {
   const isTechDoc = section?.section_type === 'technical_document';
 
   if (isTechDoc && isAccepted) {
-    updateMsg.value = null;
     const previewResult = await proposalStore.previewSync(sectionId, payload.content_json);
     if (!previewResult.success) {
-      updateMsg.value = { type: 'error', text: 'No se pudo calcular la vista previa de sincronización.' };
+      showToast({ type: 'error', text: 'No se pudo calcular la vista previa de sincronización.' });
       return;
     }
     if (!previewResult.data.has_project) {
       const r = await proposalStore.updateSection(sectionId, payload);
-      updateMsg.value = r.success
+      showToast(r.success
         ? { type: 'success', text: 'Sección técnica guardada.' }
-        : { type: 'error', text: 'Error al guardar.' };
+        : { type: 'error', text: 'Error al guardar.' });
       if (r.success) collapseSection(sectionId);
       return;
     }
@@ -1994,9 +1973,9 @@ async function handleSyncConfirm() {
   syncPreviewVisible.value = false;
   syncPreviewData.value = null;
   pendingSyncPayload.value = null;
-  updateMsg.value = result.success
+  showToast(result.success
     ? { type: 'success', text: 'Sección técnica guardada y proyecto sincronizado.' }
-    : { type: 'error', text: 'Error al aplicar la sincronización.' };
+    : { type: 'error', text: 'Error al aplicar la sincronización.' });
   if (result.success) collapseSection(sectionId);
 }
 
@@ -2047,7 +2026,6 @@ const jsonImportRaw = ref('');
 const jsonImportParsed = ref(null);
 const jsonImportError = ref('');
 const jsonImportFileName = ref('');
-const jsonImportMsg = ref(null);
 const jsonImportLegacyIssues = ref([]);
 
 const exportJsonString = computed(() => {
@@ -2106,7 +2084,6 @@ function downloadExportJson() {
 function parseImportJson() {
   jsonImportError.value = '';
   jsonImportParsed.value = null;
-  jsonImportMsg.value = null;
   jsonImportLegacyIssues.value = [];
 
   const raw = jsonImportRaw.value.trim();
@@ -2165,8 +2142,6 @@ function handleApplyImportJson() {
     confirmText: 'Aplicar',
     cancelText: 'Cancelar',
     onConfirm: async () => {
-      jsonImportMsg.value = null;
-
       const sections = { ...jsonImportParsed.value };
       delete sections._meta;
       delete sections._seller_prompt;
@@ -2193,7 +2168,7 @@ function handleApplyImportJson() {
 
       const result = await proposalStore.updateProposalFromJSON(proposal.value.id, payload);
       if (result.success) {
-        jsonImportMsg.value = { type: 'success', text: 'Propuesta actualizada desde JSON.' };
+        showToast({ type: 'success', text: 'Propuesta actualizada desde JSON.' });
         jsonImportRaw.value = '';
         jsonImportParsed.value = null;
         jsonImportFileName.value = '';
@@ -2228,14 +2203,14 @@ function handleApplyImportJson() {
         await refreshExportJson();
       } else {
         const errors = result.errors;
-        jsonImportMsg.value = {
+        showToast({
           type: 'error',
           text: errors
             ? (typeof errors === 'object'
               ? Object.entries(errors).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' | ')
               : String(errors))
             : 'Error al aplicar el JSON.',
-        };
+        });
       }
     },
   });
@@ -2273,6 +2248,9 @@ async function submitActivity() {
     if (result.success) {
       activityForm.description = '';
       await proposalStore.fetchProposal(proposal.value.id);
+      showToast({ type: 'success', text: 'Actividad registrada.' });
+    } else {
+      showToast({ type: 'error', text: 'No se pudo registrar la actividad.' });
     }
   } finally {
     isSubmittingActivity.value = false;

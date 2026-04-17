@@ -1,6 +1,9 @@
 import { mount } from '@vue/test-utils';
 import { useProposalStore } from '~/stores/proposals';
 import ProjectScheduleEditor from '../../components/BusinessProposal/admin/ProjectScheduleEditor.vue';
+import { usePanelToast } from '../../composables/usePanelToast';
+
+const { toastMsg, clearToast } = usePanelToast();
 
 jest.mock('~/stores/proposals', () => ({
   useProposalStore: jest.fn(),
@@ -38,6 +41,7 @@ describe('ProjectScheduleEditor', () => {
 
   afterEach(() => {
     jest.useRealTimers();
+    clearToast();
   });
 
   it('renders placeholder stages when the proposal has no project stages', () => {
@@ -192,10 +196,13 @@ describe('ProjectScheduleEditor', () => {
     await wrapper.find('[data-testid="stage-start-design"]').setValue('2026-04-01');
     await wrapper.find('[data-testid="stage-end-design"]').setValue('2026-04-15');
     await wrapper.find('[data-testid="stage-save-design"]').trigger('click');
+    await Promise.resolve();
+    await Promise.resolve();
 
-    expect(wrapper.find('[data-testid="stage-error-design"]').text()).toContain(
-      'No se pudo guardar. Revisa las fechas e inténtalo de nuevo.',
-    );
+    expect(toastMsg.value).toEqual({
+      type: 'error',
+      text: 'No se pudo guardar. Revisa las fechas e inténtalo de nuevo.',
+    });
   });
 
   it('calls completeProjectStage when marking a stage as completed', async () => {

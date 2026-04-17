@@ -145,7 +145,6 @@
         <!-- Send button -->
         <div class="flex items-center justify-between pt-2">
           <p v-if="sendError" class="text-xs text-red-500">{{ sendError }}</p>
-          <p v-else-if="sendSuccess" class="text-xs text-emerald-600">Correo enviado correctamente.</p>
           <span v-else />
           <button type="button" :disabled="!canSend || sending" @click="handleSend"
             class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
@@ -318,8 +317,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import draggable from 'vuedraggable';
+import { usePanelToast } from '~/composables/usePanelToast';
+
+const { showToast } = usePanelToast();
 
 const props = defineProps({
   proposal: { type: Object, required: true },
@@ -350,7 +352,6 @@ const footer = ref(defaultFooter.value);
 const attachments = ref([]);
 const fileInput = ref(null);
 const sending = ref(false);
-const sendSuccess = ref(false);
 const sendError = ref('');
 
 // ── History state ──
@@ -408,14 +409,9 @@ const canSend = computed(() => {
   return true;
 });
 
-// ── Send ──
-let successTimer = null;
-onBeforeUnmount(() => { clearTimeout(successTimer); });
-
 async function handleSend() {
   sending.value = true;
   sendError.value = '';
-  sendSuccess.value = false;
 
   const formData = new FormData();
   formData.append('recipient_email', recipient.value.trim());
@@ -433,13 +429,11 @@ async function handleSend() {
   sending.value = false;
 
   if (result.success) {
-    sendSuccess.value = true;
+    showToast({ type: 'success', text: 'Correo enviado correctamente.' });
     resetForm();
     await loadHistory(1);
-    clearTimeout(successTimer);
-    successTimer = setTimeout(() => { sendSuccess.value = false; }, 5000);
   } else {
-    sendError.value = 'Error al enviar el correo. Intenta de nuevo.';
+    showToast({ type: 'error', text: 'Error al enviar el correo. Intenta de nuevo.' });
   }
 }
 
