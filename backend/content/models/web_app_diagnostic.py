@@ -91,6 +91,12 @@ class WebAppDiagnostic(models.Model):
     )
     radiography = models.JSONField(default=dict, blank=True)
 
+    # Acuerdo de Confidencialidad (NDA)
+    confidentiality_params = models.JSONField(
+        default=dict, blank=True,
+        help_text='Datos para rellenar placeholders del NDA (NIT cliente, representante legal, valor SMMLV, ciudad, etc.).',
+    )
+
     # Engagement
     view_count = models.PositiveIntegerField(default=0)
     last_viewed_at = models.DateTimeField(null=True, blank=True)

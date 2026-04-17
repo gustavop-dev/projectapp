@@ -238,3 +238,9 @@ export const ADMIN_DIAGNOSTIC_SECTIONS  = ['@flow:admin-diagnostic-sections',  '
 export const ADMIN_DIAGNOSTIC_ACTIVITY  = ['@flow:admin-diagnostic-activity',  '@module:admin', '@priority:P2'];
 export const ADMIN_DIAGNOSTIC_ANALYTICS = ['@flow:admin-diagnostic-analytics', '@module:admin', '@priority:P2'];
 export const ADMIN_DIAGNOSTIC_PROMPT    = ['@flow:admin-diagnostic-prompt',    '@module:admin', '@priority:P2'];
+
+// ── Diagnostic — Acuerdo de Confidencialidad (NDA) ──
+export const ADMIN_DIAGNOSTIC_CONFIDENTIALITY_GENERATE = ['@flow:admin-diagnostic-confidentiality-generate', '@module:admin', '@priority:P1'];
+
+// ── Diagnostic — JSON import (Apr 17, 2026) ──
+export const ADMIN_DIAGNOSTIC_JSON_IMPORT = ['@flow:admin-diagnostic-json-import', '@module:admin', '@priority:P2'];

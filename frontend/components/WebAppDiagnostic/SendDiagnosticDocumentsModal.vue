@@ -140,16 +140,22 @@ import { ref, watch } from 'vue';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 
 const DEFAULT_DESCRIPTIONS = {
+  confidentiality_agreement: 'Acuerdo de confidencialidad bajo legislación colombiana (Ley 1581/2012). Por favor revisarlo antes de la entrega del diagnóstico técnico.',
   amendment: 'Otrosí que modifica o complementa las condiciones del diagnóstico.',
   legal_annex: 'Anexo legal con información complementaria.',
   client_document: 'Documento proporcionado por el cliente como parte del proceso.',
   other: 'Documento adicional relacionado con el diagnóstico.',
 };
 
+const MAIN_DOC_LABELS = {
+  confidentiality_agreement: 'Acuerdo de Confidencialidad',
+};
+
 const props = defineProps({
   visible: { type: Boolean, default: false },
   diagnostic: { type: Object, default: () => ({}) },
   selectedAttachments: { type: Array, default: () => [] },
+  selectedMainDocs: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['cancel', 'sent']);
@@ -170,11 +176,16 @@ const emailForm = ref({
 });
 
 function buildDescriptions() {
-  return props.selectedAttachments.map((att) => ({
+  const mainDocs = props.selectedMainDocs.map((key) => ({
+    name: MAIN_DOC_LABELS[key] || key,
+    description: DEFAULT_DESCRIPTIONS[key] || DEFAULT_DESCRIPTIONS.other,
+  }));
+  const attachments = props.selectedAttachments.map((att) => ({
     name: att.title || att.document_type_display || 'Documento',
     description:
       DEFAULT_DESCRIPTIONS[att.document_type] || DEFAULT_DESCRIPTIONS.other,
   }));
+  return [...mainDocs, ...attachments];
 }
 
 watch(() => props.visible, (val) => {
@@ -197,6 +208,7 @@ async function handleSend() {
   sendError.value = '';
   const result = await store.sendAttachmentsToClient(props.diagnostic.id, {
     attachment_ids: props.selectedAttachments.map((a) => a.id),
+    documents: props.selectedMainDocs,
     subject: emailForm.value.subject,
     greeting: emailForm.value.greeting,
     body: emailForm.value.body,

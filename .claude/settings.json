@@ -11,6 +11,7 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "sonnet",
   "effortLevel": "high",
   "model": "sonnet"
 }

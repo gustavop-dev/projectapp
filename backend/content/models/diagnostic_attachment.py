@@ -8,12 +8,14 @@ class DiagnosticAttachment(models.Model):
     auxiliary PDFs) that can be emailed via the "Enviar documentos" modal.
     """
 
+    DOC_TYPE_CONFIDENTIALITY = 'confidentiality_agreement'
     DOC_TYPE_AMENDMENT = 'amendment'
     DOC_TYPE_LEGAL_ANNEX = 'legal_annex'
     DOC_TYPE_CLIENT_DOCUMENT = 'client_document'
     DOC_TYPE_OTHER = 'other'
 
     DOC_TYPE_CHOICES = [
+        (DOC_TYPE_CONFIDENTIALITY, 'Acuerdo de confidencialidad'),
         (DOC_TYPE_AMENDMENT, 'Otrosí'),
         (DOC_TYPE_LEGAL_ANNEX, 'Anexo legal'),
         (DOC_TYPE_CLIENT_DOCUMENT, 'Documento del cliente'),
@@ -41,6 +43,10 @@ class DiagnosticAttachment(models.Model):
         on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='diagnostic_attachments_uploaded',
+    )
+    is_generated = models.BooleanField(
+        default=False,
+        help_text='True for system-generated PDFs (NDA). Cannot be deleted by user.',
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

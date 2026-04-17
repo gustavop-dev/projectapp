@@ -1,6 +1,6 @@
 {
-  "version": "2.21.0",
-  "lastUpdated": "2026-04-16",
+  "version": "2.23.0",
+  "lastUpdated": "2026-04-17",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1757,7 +1757,7 @@
       "module": "admin",
       "roles": ["admin"],
       "priority": "P1",
-      "description": "Admin edits the 8 JSON sections from the Secciones tab of the diagnostic edit page. Each section type has a typed form (paragraphs, severity levels, 14-category findings, radiography table, timeline rows, etc.). Changes are debounced and PATCHed to /sections/<id>/update/. Plantillas tab shows the raw JSON with copy + bulk save.",
+      "description": "Admin edits the 8 JSON sections from the Secciones tab of the diagnostic edit page. Each section type has a typed form (paragraphs, severity levels, 14-category findings, radiography table, timeline rows, etc.). Changes are debounced and PATCHed to /sections/<id>/update/. The tab also exposes a completeness indicator (% + colored progress bar counting enabled sections with non-empty content_json) and a per-section 'Restaurar contenido por defecto' action (POST /sections/<id>/reset/). Raw-JSON read + bulk apply moved to the JSON tab — see admin-diagnostic-json-export / admin-diagnostic-json-import.",
       "expectedSpecs": 1
     },
     "admin-diagnostic-activity": {
@@ -1773,7 +1773,7 @@
       "module": "admin",
       "roles": ["admin"],
       "priority": "P2",
-      "description": "Admin reviews view_count, session count, per-section time heatbar, and lifecycle timestamps from the Analítica tab (GET /analytics/). Metrics accumulate from public DiagnosticViewEvent / DiagnosticSectionView rows created as the client navigates the public page.",
+      "description": "Admin reviews view_count, session count, per-section time heatbar, and lifecycle timestamps from the Analytics tab (GET /analytics/). Metrics accumulate from public DiagnosticViewEvent / DiagnosticSectionView rows created as the client navigates the public page.",
       "expectedSpecs": 1
     },
     "admin-diagnostic-prompt": {
@@ -1798,8 +1798,9 @@
       "module": "admin",
       "roles": ["admin"],
       "priority": "P2",
-      "description": "Admin uploads, manages, and sends file attachments (PDF, Word, Excel, images) from the Documentos tab of the diagnostic edit page. Checkbox selection enables the send-to-client button.",
-      "expectedSpecs": 1
+      "description": "Admin uploads, manages, and sends file attachments (PDF, Word, Excel, images) from the Documentos tab of the diagnostic edit page. Checkbox selection enables the send-to-client button. The send section also exposes a checkbox for the system-generated Acuerdo de Confidencialidad (when present) which is appended to the email as a watermarked draft. System-generated attachments (is_generated=true) cannot be deleted — DELETE returns HTTP 400; this backend protection is defensive only since the UI filters generated NDAs out of the deletable list.",
+      "expectedSpecs": 1,
+      "knownGaps": ["is_generated delete-blocked branch is backend-only (UI offers no delete button for generated NDAs); covered by backend tests, not E2E."]
     },
     "admin-task-alert-management": {
       "name": "Admin Task Alert Management",
@@ -1814,7 +1815,7 @@
       "module": "admin",
       "roles": ["admin"],
       "priority": "P2",
-      "description": "Admin edits top-level metadata of an existing WebAppDiagnostic (title, client, language, pricing, radiography). Changes are saved via PATCH /api/diagnostics/:id/update/. Section content is edited separately under admin-diagnostic-sections.",
+      "description": "Admin edits top-level metadata of an existing WebAppDiagnostic (title, client, language) from the General tab, and pricing + radiografía from the 'Det. técnico' tab which groups those two as sub-tabs (Pricing / Radiografía). Changes are saved via PATCH /api/diagnostics/:id/update/. Section content is edited separately under admin-diagnostic-sections; full-JSON round-trip lives under admin-diagnostic-json-export / admin-diagnostic-json-import.",
       "expectedSpecs": 1
     },
     "admin-diagnostic-delete": {
@@ -1823,8 +1824,51 @@
       "roles": ["admin"],
       "priority": "P2",
       "description": "Admin deletes an existing WebAppDiagnostic from the diagnostics list or edit page via confirm modal. DELETE /api/diagnostics/:id/delete/.",
+      "expectedSpecs": 1
+    },
+    "admin-diagnostic-confidentiality-generate": {
+      "name": "Admin Diagnostic NDA Generate",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Admin generates the Acuerdo de Confidencialidad (NDA) PDF from the Documentos tab of the diagnostic edit page. Section displays 'No generado' with a 'Generar acuerdo' CTA when no NDA exists. CTA opens ConfidentialityParamsModal with 12 fields (cliente: nombre/NIT/representante/email; consultor: nombre/NIT/email — defaults to Project App SAS / team@projectapp.co; acuerdo: ciudad — default Medellín, día/mes/año, cláusula penal — default 50 SMMLV). Submit posts to POST /api/diagnostics/:id/confidentiality/params/, which validates via ConfidentialityParamsSerializer, persists to diagnostic.confidentiality_params, and creates a DiagnosticAttachment with document_type='confidentiality_agreement' and is_generated=true. Section then shows 'Generado el {fecha}' with Descargar / Borrador / Editar parámetros buttons.",
+      "expectedSpecs": 1
+    },
+    "admin-diagnostic-confidentiality-edit": {
+      "name": "Admin Diagnostic NDA Edit Params",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin re-opens the ConfidentialityParamsModal via 'Editar parámetros' on a diagnostic that already has a generated NDA. Form pre-fills from diagnostic.confidentiality_params. Admin modifies one or more fields and submits — the existing DiagnosticAttachment file is replaced in place (same row id, file.delete + file.save, single .save() call). Section header still shows 'Generado el {fecha}' with the updated timestamp.",
       "expectedSpecs": 1,
       "knownGaps": ["Spec not yet written."]
+    },
+    "admin-diagnostic-confidentiality-download": {
+      "name": "Admin Diagnostic NDA Download",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin downloads the generated Acuerdo de Confidencialidad from the Documentos tab. 'Descargar' link → GET /api/diagnostics/:id/confidentiality/pdf/ (FileResponse, streams the saved PDF with placeholders filled from confidentiality_params). 'Borrador' link → GET /api/diagnostics/:id/confidentiality/draft-pdf/ (renders fresh with all placeholders forced to XXX-XXX-XXX and applies BORRADOR watermark). When no NDA exists, neither link is present and the section shows 'No generado' with 'Generar acuerdo' CTA.",
+      "expectedSpecs": 1,
+      "knownGaps": ["Spec not yet written."]
+    },
+    "admin-diagnostic-json-export": {
+      "name": "Admin Diagnostic JSON Export",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin opens the JSON tab of /panel/diagnostics/:id/edit. A read-only textarea renders the full diagnostic serialized as JSON (metadata + sections). Actualizar refetches /detail/ from the server; Copiar writes the current text to the clipboard; Descargar streams a {slug}.json Blob download. The string is lazy-computed from store.current so it rebuilds only when the tab is rendered.",
+      "expectedSpecs": 0,
+      "knownGaps": ["Spec not yet written — JSON tab replaced the previous 'Plantillas' textarea."]
+    },
+    "admin-diagnostic-json-import": {
+      "name": "Admin Diagnostic JSON Import",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin imports a JSON blob from the JSON tab of /panel/diagnostics/:id/edit, either by pasting into the textarea or uploading a .json file (FileReader → textarea). Parse runs on every input; validation requires a root object with an array `sections`. A preview strip shows client name, section count, and formatted investment. Aplicar JSON runs PATCH /update/ for metadata first, then POST /sections/bulk-update/; success emits an inline toast and resyncs the pricing/radiography forms. Errors surface inline and abort the apply.",
+      "expectedSpecs": 1,
+      "knownGaps": ["Legacy deep-links ?tab=plantillas|pricing|radiography redirect to the new tab ids — not yet asserted."]
     }
   }
 }

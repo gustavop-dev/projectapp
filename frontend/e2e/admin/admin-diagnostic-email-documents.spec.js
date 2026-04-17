@@ -246,4 +246,49 @@ test.describe('Admin Diagnostic — Documentos tab', () => {
 
     await expect(page.getByRole('button', { name: /Enviar al cliente/i })).toBeEnabled({ timeout: 10000 });
   });
+
+  test('selecting NDA checkbox sends documents:["confidentiality_agreement"] in the POST body', {
+    tag: [...ADMIN_DIAGNOSTIC_DOCUMENTS, '@role:admin'],
+  }, async ({ page }) => {
+    const ndaAtt = {
+      id: 42,
+      title: 'Acuerdo de Confidencialidad',
+      document_type: 'confidentiality_agreement',
+      document_type_display: 'Acuerdo de Confidencialidad',
+      file: '/media/nda.pdf',
+      file_url: '/media/nda.pdf',
+      is_generated: true,
+      created_at: '2026-04-16T10:00:00Z',
+    };
+    let sendBody = null;
+    await mockApi(page, async ({ apiPath, method, route }) => {
+      if (apiPath === 'auth/check/') return authOk;
+      if (apiPath === `diagnostics/${DIAG_ID}/detail/`) {
+        return {
+          status: 200, contentType: 'application/json',
+          body: JSON.stringify(buildDiagnostic({ status: 'negotiating', attachments: [ndaAtt] })),
+        };
+      }
+      if (apiPath === `diagnostics/${DIAG_ID}/attachments/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([ndaAtt]) };
+      }
+      if (apiPath === `diagnostics/${DIAG_ID}/attachments/send/` && method === 'POST') {
+        sendBody = route.request().postDataJSON();
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ message: 'sent' }) };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
+    await page.getByRole('button', { name: 'Documentos' }).click();
+
+    await page.getByRole('checkbox', { name: /Acuerdo de Confidencialidad/i }).check();
+    await page.getByRole('button', { name: /Enviar al cliente/i }).click();
+
+    await page.getByRole('button', { name: /Enviar documentos/i }).click();
+
+    await expect(() => expect(sendBody).not.toBeNull()).toPass({ timeout: 5000 });
+    expect(sendBody.documents).toContain('confidentiality_agreement');
+    expect(sendBody.attachment_ids).toEqual([]);
+  });
 });

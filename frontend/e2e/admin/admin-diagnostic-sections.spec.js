@@ -149,7 +149,7 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
     await expect(() => expect(logged?.description).toBe('Primer seguimiento')).toPass({ timeout: 5000 });
   });
 
-  test('Analítica tab shows view-count KPI card', {
+  test('Analytics tab shows view-count KPI card', {
     tag: [...ADMIN_DIAGNOSTIC_ANALYTICS, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
@@ -177,7 +177,7 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
     });
 
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
-    await page.getByRole('button', { name: 'Analítica' }).click();
+    await page.getByRole('button', { name: 'Analytics' }).click();
 
     await expect(page.getByText('Vistas totales')).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('7', { exact: true }).first()).toBeVisible();

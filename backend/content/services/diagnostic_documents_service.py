@@ -36,8 +36,13 @@ def send_attachments_to_client(
     body: str = '',
     footer: str = '',
     document_descriptions: list | None = None,
+    extra_files: list | None = None,
 ) -> tuple[bool, str | None]:
     """Attach the requested DiagnosticAttachments to an email and send it.
+
+    ``extra_files`` is an optional list of ``(filename, bytes, mime)`` tuples
+    appended to the email — used by callers that generate PDFs on the fly
+    (e.g. the watermarked Acuerdo de Confidencialidad draft).
 
     Returns ``(ok, error_message)``. ``error_message`` is None on success or
     a user-facing error string on failure.
@@ -63,6 +68,9 @@ def send_attachments_to_client(
                 mime,
             ))
 
+    for entry in extra_files or []:
+        files_payload.append(entry)
+
     if not files_payload:
         return False, 'No se pudieron adjuntar los documentos seleccionados.'
 
@@ -85,6 +93,7 @@ def send_attachments_to_client(
     log_metadata = {
         'diagnostic_uuid': str(diagnostic.uuid),
         'attached_doc_ids': [att.id for att in attachments_list],
+        'extra_filenames': [entry[0] for entry in extra_files or []],
     }
 
     try:

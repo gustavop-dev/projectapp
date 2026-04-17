@@ -1802,18 +1802,19 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P1
-- **Routes:** `/panel/diagnostics/:id/edit` (Secciones tab + Plantillas tab)
-- **Description:** Admin edits each of the 8 JSON sections through typed form components. Each section has its own form (paragraphs, severity scale, 14-category findings/recommendations, radiography table, timeline day distribution, cost payment description, etc.). Edits are debounced 600 ms and PATCHed to `/sections/:id/update/`. Plantillas tab shows the raw JSON of all sections with copy + bulk save (`/sections/bulk-update/`), and a "Restaurar contenido por defecto" action per section that reloads from the seed.
+- **Routes:** `/panel/diagnostics/:id/edit` (Secciones tab)
+- **Description:** Admin edits each of the 8 JSON sections through typed form components. Each section has its own form (paragraphs, severity scale, 14-category findings/recommendations, radiography table, timeline day distribution, cost payment description, etc.). Edits are debounced 600 ms and PATCHed to `/sections/:id/update/`. A per-section "Restaurar contenido por defecto" action reloads from the seed. The tab header shows a **completeness indicator** (progress bar + percentage) that counts how many enabled sections have non-empty `content_json`. Raw-JSON export/import is a separate flow (`admin-diagnostic-json-export` / `admin-diagnostic-json-import`).
 - **Steps:**
-  1. Admin opens the Secciones tab — the 8 seeded section cards render (collapsed).
+  1. Admin opens the Secciones tab — the completeness bar renders at the top and the 8 seeded section cards render (collapsed).
   2. Expands a section, edits its typed form (e.g., appends a finding in the Categorías section).
   3. After 600 ms of inactivity the change PATCHes; saving indicator flips to "Guardado HH:MM".
-  4. Alternatively opens the Plantillas tab, edits the raw JSON, clicks "Guardar cambios" → bulk PATCH.
+  4. Completeness percentage and color band (≥80 emerald / ≥50 amber / otherwise red) update as enabled sections gain content.
   5. A `section_updated` entry appears in the Actividad timeline.
 - **Branches:**
   - [Visibility toggle] Changing `visibility` between `initial` / `final` / `both` changes what the public page shows per phase.
-  - [Disable] Unchecking "Activa en la vista pública" hides the section without deleting it.
-  - [Reset] "Restaurar contenido por defecto" restores the section from `content.seeds.diagnostic_template.default_sections()`.
+  - [Disable] Unchecking "Activa en la vista pública" hides the section without deleting it and removes it from the completeness denominator.
+  - [Reset] "Restaurar contenido por defecto" restores the section from `content.seeds.diagnostic_template.default_sections()` via POST `/sections/:id/reset/`.
+  - [Completeness indicator] Progress bar reflects `sectionsWithContent / enabledSectionsCount`; empty content + disabled sections both drop the ratio.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-diagnostic-sections.spec.js`
 
@@ -1840,10 +1841,10 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P2
-- **Routes:** `/panel/diagnostics/:id/edit` (Analítica tab)
+- **Routes:** `/panel/diagnostics/:id/edit` (Analytics tab)
 - **Description:** Admin reviews engagement KPIs for a diagnostic: `view_count`, total sessions, aggregated time spent, per-section heat bar (sorted by `total_seconds`), and lifecycle timestamps (`initial_sent_at`, `final_sent_at`, `responded_at`). Metrics are sourced from `DiagnosticViewEvent` + `DiagnosticSectionView` rows created by the public page's per-section dwell tracker.
 - **Steps:**
-  1. Admin navigates to the Analítica tab — GET `/analytics/` fires on mount.
+  1. Admin navigates to the Analytics tab — GET `/analytics/` fires on mount.
   2. KPIs render: total views, sessions, total time, respuesta status.
   3. Heat bar lists sections sorted by total seconds with visit counts.
 - **Coverage:** ✅ Covered
@@ -1894,7 +1895,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/diagnostics/:id/edit` → Documentos tab
-- **Description:** Admin uploads, manages, and sends file attachments (PDF, Word, Excel, images) to the client from the Documentos tab of the diagnostic detail page. Supports document types: amendment, legal_annex, client_document, other.
+- **Description:** Admin uploads, manages, and sends file attachments (PDF, Word, Excel, images) to the client from the Documentos tab of the diagnostic detail page. Supports document types: `confidentiality_agreement` (system-generated, see `admin-diagnostic-confidentiality-*` flows), `amendment`, `legal_annex`, `client_document`, `other`.
 - **Steps:**
   1. Admin navigates to `/panel/diagnostics/:id/edit`.
   2. Clicks the "Documentos" tab.
@@ -1903,12 +1904,14 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   5. Admin selects one or more attachments via checkboxes and clicks "Enviar al cliente".
   6. `SendDiagnosticDocumentsModal` opens to compose the send email.
   7. Admin submits → `POST /api/diagnostics/:id/attachments/send/`.
-  8. Email is logged in `EmailLog` with `metadata.diagnostic_uuid` and `metadata.attached_doc_ids`.
+  8. Email is logged in `EmailLog` with `metadata.diagnostic_uuid`, `metadata.attached_doc_ids`, and `metadata.extra_filenames`.
 - **Branches:**
   - [No email] Send button disabled when no client email configured.
-  - [No selection] Send button disabled until at least one checkbox is checked.
-  - [Delete] Admin clicks delete on an attachment → `DELETE /api/diagnostics/:id/attachments/:att_id/delete/` → row removed.
-- **Coverage:** ✅ Covered
+  - [No selection] Send button disabled until at least one checkbox is checked (counts both `selectedIds` and `selectedMainDocs`).
+  - [NDA included] When the diagnostic has a generated NDA, an extra checkbox "📋 NDA — Acuerdo de Confidencialidad (borrador con marca de agua)" appears above the attachment list. When checked, the send payload includes `documents: ['confidentiality_agreement']` and the backend appends a freshly-generated draft NDA (with `BORRADOR` watermark and `XXX-XXX-XXX` placeholders) to the email.
+  - [Delete] Admin clicks delete on a non-generated attachment → `DELETE /api/diagnostics/:id/attachments/:att_id/delete/` → row removed.
+  - [Delete blocked] Generated NDA attachments (`is_generated=true`) cannot be deleted; backend returns HTTP 400 `{"error": "No se puede eliminar un documento generado por el sistema; regénerelo desde Editar parámetros."}`. They are filtered out of the user-attachments list, so the trash icon is not rendered for them.
+- **Coverage:** ✅ Covered (base flow); 🟡 NDA-checkbox branch + delete-blocked branch not yet asserted
 - **E2E Spec:** `e2e/admin/admin-diagnostic-email-documents.spec.js`
 
 ---
@@ -3665,3 +3668,192 @@ No active browser flow is registered for client profile editing at this time.
 | `admin-task-alert-management` | tasks | admin | P1 | ✅ Covered | `e2e/admin/admin-task-alerts.spec.js` |
 | `admin-diagnostic-edit` | diagnostics | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-edit-delete.spec.js` |
 | `admin-diagnostic-delete` | diagnostics | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-edit-delete.spec.js` |
+
+---
+
+## Section 16 — v2.22.0 Gaps (Diagnostic Acuerdo de Confidencialidad)
+
+> Flows registered during the v2.22.0 audit cycle. Covers the new system-generated Acuerdo de Confidencialidad (NDA) PDF on the diagnostic Documentos tab — mirrors the proposal contract pattern (`admin-proposal-contract-{generate,edit,download}`).
+
+### 16.1 Diagnostic NDA Generate
+
+#### FLOW: `admin-diagnostic-confidentiality-generate`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-confidentiality-generate` |
+| **Module** | diagnostics |
+| **Role** | admin |
+| **Priority** | P1 |
+| **Status** | ✅ Covered |
+| **Spec** | `e2e/admin/admin-diagnostic-confidentiality.spec.js` |
+
+**Routes:** `/panel/diagnostics/:id/edit` → Documentos tab.
+
+**Description:** Admin generates the Acuerdo de Confidencialidad (NDA) PDF for a diagnostic. The Documents tab opens with a dedicated "Acuerdo de confidencialidad" section above the send/upload sections. When no NDA exists, the section displays "No generado" plus a copy line ("Plantilla colombiana (Ley 1581/2012). Llena los datos del cliente y consultor para generar el PDF.") and a "Generar acuerdo" CTA. Clicking the CTA opens `ConfidentialityParamsModal` with three field groups: Cliente (nombre/NIT/representante legal/email — pre-filled from `diagnostic.client.name` and `.email` when available), Consultor (nombre — default "Project App SAS"; NIT; email — default "team@projectapp.co"), Datos del acuerdo (ciudad — default "Medellín"; día/mes/año; cláusula penal — default "CINCUENTA SALARIOS MÍNIMOS MENSUALES LEGALES VIGENTES (50 SMMLV)"). Submit POSTs trimmed/non-empty fields to `POST /api/diagnostics/:id/confidentiality/params/` (`{confidentiality_params: {...}}`); backend validates via `ConfidentialityParamsSerializer`, persists to `diagnostic.confidentiality_params`, then calls `_generate_and_save_confidentiality_pdf` which loads the default `ConfidentialityTemplate`, substitutes placeholders, renders the branded ProjectApp PDF (esmeralda + Lemon accent, "ACUERDO DE CONFIDENCIALIDAD" title page, two-column EL CLIENTE / EL CONSULTOR signature block), and creates a `DiagnosticAttachment(document_type='confidentiality_agreement', is_generated=True)`. A `DiagnosticChangeLog(UPDATED, field_name='confidentiality_agreement')` row is appended.
+
+**Steps:**
+1. Admin navigates to `/panel/diagnostics/:id/edit` and opens the **Documentos** tab.
+2. Admin sees the "Acuerdo de confidencialidad" section with "No generado" label and "Generar acuerdo" button.
+3. Admin clicks **Generar acuerdo** — `ConfidentialityParamsModal` opens, prefilling client name/email from the diagnostic plus contractor + city + penal clause defaults.
+4. Admin fills the cliente fields (nombre, NIT, representante legal) and confirms the others.
+5. Admin clicks **Guardar y generar PDF** → POST `/api/diagnostics/:id/confidentiality/params/`.
+6. Modal closes; the section now shows "Generado el {fecha}" plus three buttons: **Descargar**, **Borrador**, **Editar parámetros**.
+7. The new attachment also appears in the "Enviar documentos al cliente" section as a checkbox "📋 NDA — Acuerdo de Confidencialidad (borrador con marca de agua)".
+
+**Branches:**
+- [Empty params] Admin clicks "Generar acuerdo", leaves all fields blank, submits — request succeeds, PDF is generated with all `_______________` placeholders for missing fields (default `Project App SAS` / `Medellín` / 50 SMMLV still apply for contractor and city).
+- [Server failure] If `generate_confidentiality_pdf` returns `None`, response is HTTP 500 `{"error": "Parámetros guardados pero no se pudo generar el PDF."}` (params are still saved — admin can retry generate without re-entering data).
+
+**Expected outcome:** A `DiagnosticAttachment` with `document_type='confidentiality_agreement'` and `is_generated=True` exists for the diagnostic, with a downloadable PDF file.
+
+---
+
+### 16.2 Diagnostic NDA Edit Params
+
+#### FLOW: `admin-diagnostic-confidentiality-edit`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-confidentiality-edit` |
+| **Module** | diagnostics |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ⬜ Missing spec |
+
+**Routes:** `/panel/diagnostics/:id/edit` → Documentos tab.
+
+**Description:** Admin re-opens `ConfidentialityParamsModal` via the **Editar parámetros** button on a diagnostic that already has a generated NDA. The form pre-fills from `diagnostic.confidentiality_params` (with the same Project App / Medellín / 50 SMMLV defaults overlaid for any field still blank). Submit hits the same `POST /api/diagnostics/:id/confidentiality/params/` endpoint; the existing `DiagnosticAttachment` row is updated in place — `existing.file.delete(save=False)` then `existing.file.save(filename, ContentFile(pdf_bytes), save=False)` then a single `existing.save()`, so the attachment id is preserved and any prior file is removed from storage.
+
+**Steps:**
+1. Admin opens the Documentos tab for a diagnostic that already has an NDA (section header shows "Generado el {fecha}").
+2. Admin clicks **Editar parámetros** — `ConfidentialityParamsModal` opens with the saved params pre-filled.
+3. Admin modifies one or more fields (e.g. updates the client NIT) and clicks **Guardar y generar PDF**.
+4. Modal closes; section header now shows the new "Generado el {fecha}" timestamp.
+5. Admin clicks **Descargar** to verify the PDF reflects the new value.
+
+**Branches:**
+- [Same id, replaced file] The store updates `current.attachments` in place (matching by id from the response); the row count does not increase.
+
+**Expected outcome:** `diagnostic.confidentiality_params` is updated, the same `DiagnosticAttachment` row is reused, and the rendered PDF reflects the new params.
+
+---
+
+### 16.3 Diagnostic NDA Download
+
+#### FLOW: `admin-diagnostic-confidentiality-download`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-confidentiality-download` |
+| **Module** | diagnostics |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ⬜ Missing spec |
+
+**Routes:** `/panel/diagnostics/:id/edit` → Documentos tab.
+
+**Description:** Admin downloads the Acuerdo de Confidencialidad PDF in either of two modes from the Documentos tab. **Descargar** points to `GET /api/diagnostics/:id/confidentiality/pdf/` which returns the saved file via `FileResponse` (streamed, `Content-Type: application/pdf`, filename built via `_confidentiality_filename`). **Borrador** points to `GET /api/diagnostics/:id/confidentiality/draft-pdf/` which generates a fresh PDF with all params forced to `XXX-XXX-XXX` (no real data leaks) and applies `add_watermark_to_pdf` to stamp `BORRADOR` diagonally across each page; returned inline as `HttpResponse`.
+
+**Steps:**
+1. Admin opens the Documentos tab for a diagnostic with an existing NDA.
+2. Admin clicks **Descargar** — browser opens `/api/diagnostics/:id/confidentiality/pdf/` in a new tab; PDF renders with branded ProjectApp template, title "ACUERDO DE CONFIDENCIALIDAD", and placeholders filled from `confidentiality_params`.
+3. Admin clicks **Borrador** — browser opens `/api/diagnostics/:id/confidentiality/draft-pdf/` in a new tab; PDF renders with the same template but every value shows as `XXX-XXX-XXX` plus a diagonal `BORRADOR` watermark.
+
+**Branches:**
+- [Not generated] When no NDA exists, neither link is rendered; the section shows "No generado" plus the **Generar acuerdo** CTA. Hitting `/confidentiality/pdf/` directly returns HTTP 404 `{"error": "El acuerdo aún no ha sido generado."}`.
+
+**Expected outcome:** Both URLs return valid PDFs (≥ 50 KB each); the draft includes a watermark and no real client data.
+
+---
+
+### 16.4 New Flows Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `admin-diagnostic-confidentiality-generate` | diagnostics | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-confidentiality.spec.js` |
+| `admin-diagnostic-confidentiality-edit` | diagnostics | admin | P2 | ⬜ Missing spec | _proposed_: `e2e/admin/admin-diagnostic-confidentiality-edit.spec.js` |
+| `admin-diagnostic-confidentiality-download` | diagnostics | admin | P2 | ⬜ Missing spec | _proposed_: `e2e/admin/admin-diagnostic-confidentiality-download.spec.js` |
+| `admin-diagnostic-documents` (NDA branches) | diagnostics | admin | P2 | 🟡 Partial | Existing `e2e/admin/admin-diagnostic-email-documents.spec.js` covers base; NDA-checkbox + delete-blocked branches not yet asserted |
+
+---
+
+## Section 17 — v2.23.0 Gaps (Diagnostic Admin Tab Restructure)
+
+> Flows registered during the v2.23.0 audit cycle. Covers the diagnostic admin edit-page alignment with the proposals admin pattern: tab reorder, consolidation of Pricing + Radiografía into a single "Det. técnico" tab with sub-tabs, conditional visibility of Correos/Documentos by status, and the replacement of the raw-JSON "Plantillas" textarea with a full JSON export/import tab (parity with `admin-proposal-json`).
+
+### 17.1 Diagnostic JSON Export
+
+#### FLOW: `admin-diagnostic-json-export`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-json-export` |
+| **Module** | diagnostics |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ⬜ Missing spec |
+
+**Routes:** `/panel/diagnostics/:id/edit` → JSON tab.
+
+**Description:** Admin opens the JSON tab (replaces the prior "Plantillas" tab). A read-only `<textarea>` renders the full diagnostic serialized as JSON — `{metadata: {title, language, investment_amount, currency, payment_terms, duration_label, size_category, radiography, client: {id, name, email, company}}, sections: [...]}`. The string is lazy-computed from `store.current` so it only rebuilds when the tab is rendered (not on every debounced section save). Three buttons sit above the textarea: **Actualizar** refetches `/api/diagnostics/:id/detail/`; **Copiar** writes the textarea content to the clipboard and flips the label to "¡Copiado!" for ~1.5s; **Descargar** streams a Blob download named `{slug}.json` where `{slug}` is the diagnostic title lowercased with non-alphanumerics collapsed to `-`.
+
+**Steps:**
+1. Admin opens `/panel/diagnostics/:id/edit` and clicks the **JSON** tab.
+2. Read-only textarea renders with the current diagnostic's full JSON.
+3. Admin clicks **Copiar** — clipboard receives the text, label flips to "¡Copiado!" and reverts after ~1.5s.
+4. Admin clicks **Descargar** — browser downloads `{slug}.json` with the same payload.
+5. Admin clicks **Actualizar** — `fetchDetail` re-hits the server; textarea reflects any server-side changes.
+
+**Branches:**
+- [Legacy deep-link] `?tab=plantillas` redirects to `?tab=json` on initial mount and on in-session route changes.
+
+**Expected outcome:** The exported JSON round-trips back through `admin-diagnostic-json-import` without loss.
+
+---
+
+### 17.2 Diagnostic JSON Import
+
+#### FLOW: `admin-diagnostic-json-import`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-json-import` |
+| **Module** | diagnostics |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ⬜ Missing spec |
+
+**Routes:** `/panel/diagnostics/:id/edit` → JSON tab (Importar JSON section).
+
+**Description:** Admin imports a full-diagnostic JSON blob from the JSON tab, either by pasting into the import textarea or uploading a `.json` file (FileReader → textarea). `parseImportJson` runs on every `@input`; validation requires the root to be an object (not an array) with `sections` as an array. When parse succeeds, a green preview strip shows Cliente (`metadata.client.name`), # Secciones (`sections.length`), and Inversión (formatted with `formatMoney` + `currency`). **Aplicar JSON** first issues `PATCH /api/diagnostics/:id/update/` with the whitelisted metadata keys (title, language, investment_amount, currency, payment_terms, duration_label, size_category, radiography, client_id from `metadata.client?.id`); if that succeeds it then `POST`s `/sections/bulk-update/` with `{sections: [...]}` using id/title/order/is_enabled/visibility/content_json per row. On success the import state is cleared and `syncForms()` refreshes the Pricing/Radiography forms; on error the apply is aborted with an inline red message.
+
+**Steps:**
+1. Admin opens the JSON tab.
+2. Admin either pastes a JSON blob into the "Importar JSON" textarea or clicks **Subir .json** and picks a file.
+3. Parse succeeds → preview strip shows Cliente / Secciones / Inversión; **Aplicar JSON** button enables.
+4. Admin clicks **Aplicar JSON** — metadata PATCH fires first, then bulk sections POST.
+5. Success toast: "JSON aplicado correctamente." Textarea clears, preview hides, Pricing/Radiografía sub-tabs reflect the new values.
+
+**Branches:**
+- [Invalid JSON] Parse throws → red box with `JSON inválido: {message}`; Aplicar button stays disabled.
+- [Wrong root] Root is an array or lacks `sections` → red box: "`sections` debe ser un array." or "El JSON raíz debe ser un objeto con `metadata` y `sections`."
+- [Metadata error] Metadata PATCH fails → red box with backend error, sections bulk is skipped (no partial apply).
+- [Sections error — metadata not yet applied] Sections bulk fails and no metadata was sent → red box "Error al aplicar las secciones: {error}."
+- [Sections error — metadata already applied] Sections bulk fails after metadata succeeded → explicit partial-state red box: "Se aplicaron los datos generales, pero fallaron las secciones: {error}. Corrige el JSON y vuelve a aplicar — la metadata ya está actualizada." Admin knows exactly what persisted and what didn't.
+
+**Expected outcome:** On a valid payload, the diagnostic's metadata and all 8 sections reflect the imported JSON; the JSON export (17.1) round-trips identically.
+
+---
+
+### 17.3 New Flows Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `admin-diagnostic-json-export` | diagnostics | admin | P2 | ⬜ Missing spec | _proposed_: `e2e/admin/admin-diagnostic-json.spec.js` |
+| `admin-diagnostic-json-import` | diagnostics | admin | P2 | ⬜ Missing spec | _proposed_: `e2e/admin/admin-diagnostic-json.spec.js` |
+
+### 17.4 Out-of-scope behaviors documented but not registered as standalone flows
+
+- **Det. técnico sub-tabs (Pricing / Radiografía)** — the new inner pill nav is covered by the existing `admin-diagnostic-edit` flow; the sub-tab switch itself is UX navigation, not a user outcome. Deep-links `?tab=pricing` and `?tab=radiography` redirect to `?tab=technical` and preselect the correct sub-tab.
+- **Conditional tab visibility by status** — Correos appears from `sent` onward; Documentos from `negotiating` onward. This is asserted implicitly by `admin-diagnostic-send-initial` (Correos should appear after the transition) and `admin-diagnostic-send-final` / confidentiality flows (Documentos should be available). Added here as a documented branch rather than a new flow since no new user outcome is introduced.

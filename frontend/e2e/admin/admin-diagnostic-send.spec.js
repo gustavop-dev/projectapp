@@ -75,14 +75,13 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await mockApi(page, buildHandler(diagnostic));
 
     await page.goto('/panel/diagnostics/7/edit');
-    await expect(page.getByRole('button', { name: 'Resumen' })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('button', { name: 'Pricing' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Radiografía' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'General', exact: true })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('button', { name: 'Secciones' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Plantillas' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Prompt' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Det. técnico' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Prompt Diagnostic' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'JSON' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Actividad' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Analítica' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Analytics' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Correos' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
   });

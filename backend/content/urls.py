@@ -93,6 +93,8 @@ from content.views.diagnostic import (
     send_initial, mark_in_analysis, send_final,
     list_diagnostic_attachments, upload_diagnostic_attachment,
     delete_diagnostic_attachment, send_diagnostic_attachments,
+    update_confidentiality_params, generate_confidentiality_pdf_view,
+    download_confidentiality_pdf, download_draft_confidentiality_pdf,
     send_diagnostic_email, get_diagnostic_email_defaults,
     list_diagnostic_emails,
     retrieve_public_diagnostic, track_public_diagnostic,
@@ -304,6 +306,12 @@ urlpatterns = [
     path('diagnostics/<int:diagnostic_id>/attachments/upload/', upload_diagnostic_attachment, name='upload-diagnostic-attachment'),
     path('diagnostics/<int:diagnostic_id>/attachments/send/', send_diagnostic_attachments, name='send-diagnostic-attachments'),
     path('diagnostics/<int:diagnostic_id>/attachments/<int:attachment_id>/delete/', delete_diagnostic_attachment, name='delete-diagnostic-attachment'),
+
+    # Acuerdo de Confidencialidad (NDA)
+    path('diagnostics/<int:diagnostic_id>/confidentiality/params/', update_confidentiality_params, name='diagnostic-update-confidentiality-params'),
+    path('diagnostics/<int:diagnostic_id>/confidentiality/generate/', generate_confidentiality_pdf_view, name='diagnostic-generate-confidentiality'),
+    path('diagnostics/<int:diagnostic_id>/confidentiality/pdf/', download_confidentiality_pdf, name='diagnostic-download-confidentiality'),
+    path('diagnostics/<int:diagnostic_id>/confidentiality/draft-pdf/', download_draft_confidentiality_pdf, name='diagnostic-download-draft-confidentiality'),
 
     # Email composer (history + send)
     path('diagnostics/<int:diagnostic_id>/email/send/', send_diagnostic_email, name='send-diagnostic-email'),

@@ -24,6 +24,7 @@ from content.models import (
     WebAppDiagnostic,
 )
 from content.serializers.diagnostic import (
+    ConfidentialityParamsSerializer,
     DiagnosticChangeLogSerializer,
     DiagnosticDetailSerializer,
     DiagnosticListSerializer,
@@ -610,26 +611,85 @@ def delete_diagnostic_attachment(request, diagnostic_id, attachment_id):
         DiagnosticAttachment,
         pk=attachment_id, diagnostic_id=diagnostic_id,
     )
+    if attachment.is_generated:
+        return Response(
+            {'error': 'No se puede eliminar un documento generado por el sistema; regénerelo desde Editar parámetros.'},
+            status=http_status.HTTP_400_BAD_REQUEST,
+        )
     if attachment.file:
         attachment.file.delete(save=False)
     attachment.delete()
     return Response(status=http_status.HTTP_204_NO_CONTENT)
 
 
+_SEND_ALLOWED_DOC_KEYS = {DiagnosticAttachment.DOC_TYPE_CONFIDENTIALITY}
+
+
+def _diagnostic_pdf_meta(diagnostic):
+    """Return ``(client_label, date_str)`` used to build PDF filenames."""
+    client_label = (
+        getattr(diagnostic.client, 'company_name', None)
+        or diagnostic.title
+        or 'cliente'
+    )
+    date_str = (diagnostic.created_at or timezone.now()).strftime('%Y-%m-%d')
+    return client_label, date_str
+
+
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def send_diagnostic_attachments(request, diagnostic_id):
-    """Email selected DiagnosticAttachments to the client."""
+    """Email selected DiagnosticAttachments + system-generated docs to the client."""
     from content.services import diagnostic_documents_service
+    from content.services.confidentiality_pdf_service import generate_confidentiality_pdf
+    from content.services.pdf_utils import add_watermark_to_pdf, safe_pdf_filename
 
     diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
 
     attachment_ids = request.data.get('attachment_ids') or []
-    if not isinstance(attachment_ids, list) or not attachment_ids:
+    documents = request.data.get('documents') or []
+    if not isinstance(attachment_ids, list):
+        attachment_ids = []
+    if not isinstance(documents, list):
+        documents = []
+
+    invalid = set(documents) - _SEND_ALLOWED_DOC_KEYS
+    if invalid:
+        return Response(
+            {'error': f'Claves de documento no reconocidas: {sorted(invalid)}'},
+            status=http_status.HTTP_400_BAD_REQUEST,
+        )
+    if not attachment_ids and not documents:
         return Response(
             {'error': 'Debes seleccionar al menos un documento.'},
             status=http_status.HTTP_400_BAD_REQUEST,
         )
+
+    extra_files = []
+    if DiagnosticAttachment.DOC_TYPE_CONFIDENTIALITY in documents:
+        has_params = bool(diagnostic.confidentiality_params)
+        has_generated = diagnostic.attachments.filter(
+            document_type=DiagnosticAttachment.DOC_TYPE_CONFIDENTIALITY,
+            is_generated=True,
+        ).exists()
+        if not has_params and not has_generated:
+            return Response(
+                {'error': 'Debes generar el Acuerdo de Confidencialidad antes de enviarlo (Documentos → Generar acuerdo).'},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+        nda_bytes = generate_confidentiality_pdf(diagnostic, draft=True)
+        if not nda_bytes:
+            return Response(
+                {'error': 'No se pudo generar el Acuerdo de Confidencialidad.'},
+                status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        watermarked = add_watermark_to_pdf(nda_bytes)
+        client_label, date_str = _diagnostic_pdf_meta(diagnostic)
+        extra_files.append((
+            safe_pdf_filename('Acuerdo_Confidencialidad', client_label, date_str),
+            watermarked,
+            'application/pdf',
+        ))
 
     ok, error = diagnostic_documents_service.send_attachments_to_client(
         diagnostic,
@@ -639,6 +699,7 @@ def send_diagnostic_attachments(request, diagnostic_id):
         body=request.data.get('body') or '',
         footer=request.data.get('footer') or '',
         document_descriptions=request.data.get('document_descriptions') or [],
+        extra_files=extra_files,
     )
     if not ok:
         return Response(
@@ -652,6 +713,145 @@ def send_diagnostic_attachments(request, diagnostic_id):
         actor_type=DiagnosticChangeLog.ActorType.SELLER,
     )
     return Response({'message': 'Documentos enviados.'})
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Acuerdo de Confidencialidad (NDA) PDF
+# ──────────────────────────────────────────────────────────────────────────
+
+
+def _generate_and_save_confidentiality_pdf(diagnostic):
+    """Generate the NDA PDF for *diagnostic* and persist it as a generated
+    DiagnosticAttachment. Replaces any prior generated NDA in place.
+    """
+    from django.core.files.base import ContentFile
+
+    from content.services.confidentiality_pdf_service import generate_confidentiality_pdf
+    from content.services.pdf_utils import safe_pdf_filename
+
+    pdf_bytes = generate_confidentiality_pdf(diagnostic)
+    if not pdf_bytes:
+        return None
+
+    client_label, date_str = _diagnostic_pdf_meta(diagnostic)
+    filename = safe_pdf_filename('Acuerdo_Confidencialidad', client_label, date_str)
+
+    existing = diagnostic.attachments.filter(
+        document_type=DiagnosticAttachment.DOC_TYPE_CONFIDENTIALITY,
+        is_generated=True,
+    ).first()
+    if existing:
+        if existing.file:
+            existing.file.delete(save=False)
+        existing.file.save(filename, ContentFile(pdf_bytes), save=False)
+        existing.title = 'Acuerdo de Confidencialidad'
+        existing.save()
+        return existing
+
+    return DiagnosticAttachment.objects.create(
+        diagnostic=diagnostic,
+        document_type=DiagnosticAttachment.DOC_TYPE_CONFIDENTIALITY,
+        title='Acuerdo de Confidencialidad',
+        file=ContentFile(pdf_bytes, name=filename),
+        is_generated=True,
+        uploaded_by=None,
+    )
+
+
+@api_view(['POST', 'PATCH'])
+@permission_classes([IsAdminUser])
+def update_confidentiality_params(request, diagnostic_id):
+    """Update NDA params on the diagnostic and (re)generate the stored PDF."""
+    diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
+    serializer = ConfidentialityParamsSerializer(
+        data=request.data.get('confidentiality_params', request.data),
+    )
+    serializer.is_valid(raise_exception=True)
+
+    diagnostic.confidentiality_params = serializer.validated_data
+    diagnostic.save(update_fields=['confidentiality_params', 'updated_at'])
+
+    attachment = _generate_and_save_confidentiality_pdf(diagnostic)
+    if not attachment:
+        return Response(
+            {'error': 'Parámetros guardados pero no se pudo generar el PDF.'},
+            status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+    diagnostic_service.log_change(
+        diagnostic,
+        change_type=DiagnosticChangeLog.ChangeType.UPDATED,
+        field_name='confidentiality_agreement',
+        description='Acuerdo de Confidencialidad generado/actualizado.',
+        actor_type=DiagnosticChangeLog.ActorType.SELLER,
+    )
+    return Response({
+        'confidentiality_params': diagnostic.confidentiality_params,
+        'attachment': serialize_diagnostic_attachment(attachment),
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def generate_confidentiality_pdf_view(request, diagnostic_id):
+    """Force-regenerate the NDA PDF using the currently stored params."""
+    diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
+    attachment = _generate_and_save_confidentiality_pdf(diagnostic)
+    if not attachment:
+        return Response(
+            {'error': 'No se pudo generar el PDF.'},
+            status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+    return Response({'attachment': serialize_diagnostic_attachment(attachment)})
+
+
+def _confidentiality_filename(diagnostic, prefix):
+    from content.services.pdf_utils import safe_pdf_filename
+
+    client_label, date_str = _diagnostic_pdf_meta(diagnostic)
+    return safe_pdf_filename(prefix, client_label, date_str)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def download_confidentiality_pdf(request, diagnostic_id):
+    from django.http import FileResponse
+
+    diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
+    attachment = diagnostic.attachments.filter(
+        document_type=DiagnosticAttachment.DOC_TYPE_CONFIDENTIALITY,
+        is_generated=True,
+    ).first()
+    if not attachment or not attachment.file:
+        return Response(
+            {'error': 'El acuerdo aún no ha sido generado.'},
+            status=http_status.HTTP_404_NOT_FOUND,
+        )
+    return FileResponse(
+        attachment.file.open('rb'),
+        content_type='application/pdf',
+        filename=_confidentiality_filename(diagnostic, 'Acuerdo_Confidencialidad'),
+    )
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def download_draft_confidentiality_pdf(request, diagnostic_id):
+    from django.http import HttpResponse
+
+    from content.services.confidentiality_pdf_service import generate_confidentiality_pdf
+    from content.services.pdf_utils import add_watermark_to_pdf
+
+    diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
+    pdf_bytes = generate_confidentiality_pdf(diagnostic, draft=True)
+    if not pdf_bytes:
+        return Response(
+            {'error': 'No se pudo generar el borrador.'},
+            status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+    filename = _confidentiality_filename(diagnostic, 'Borrador_Acuerdo_Confidencialidad')
+    response = HttpResponse(add_watermark_to_pdf(pdf_bytes), content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="{filename}"'
+    return response
 
 
 # ──────────────────────────────────────────────────────────────────────────

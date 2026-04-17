@@ -510,7 +510,9 @@ updateMsgTimer.value = setTimeout(() => { updateMsg.value = null; }, 5000);
 
 Use `<Teleport to="body">` so the toast renders above all panel layout layers (sticky headers, sidebars) without z-index conflicts. Use Tailwind `transition-all` classes inline on `<Transition>` to avoid a separate `<style>` block.
 
-**Implemented in**: `frontend/pages/panel/proposals/[id]/edit.vue`.
+**Also clear on unmount.** Any `setTimeout` that mutates a reactive ref must be tracked in a module-scoped binding and cleared in `onUnmounted` — otherwise a click-then-navigate flips state on a gone component. Applies to every clipboard-feedback flag (`urlCopied`, `jsonCopied`) and toast timer. See `frontend/pages/panel/diagnostics/[id]/edit.vue` — both copy helpers capture their timer and the unmount hook clears all three (toast + url + json).
+
+**Implemented in**: `frontend/pages/panel/proposals/[id]/edit.vue`, `frontend/pages/panel/diagnostics/[id]/edit.vue`.
 
 ### Reusing Existing Transition Infrastructure for New Navigation Events
 

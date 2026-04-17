@@ -112,6 +112,7 @@ def serialize_diagnostic_attachment(att):
         'custom_type_label': att.custom_type_label,
         'title': att.title,
         'file': att.file.url if att.file else None,
+        'is_generated': att.is_generated,
         'uploaded_by_name': (
             att.uploaded_by.get_full_name() or att.uploaded_by.username
             if att.uploaded_by else ''
@@ -143,12 +144,15 @@ class DiagnosticDetailSerializer(DiagnosticListSerializer):
     change_logs = serializers.SerializerMethodField()
     payment_terms = serializers.JSONField()
     radiography = serializers.JSONField()
+    confidentiality_params = serializers.JSONField()
     render_context = serializers.SerializerMethodField()
+    available_transitions = serializers.SerializerMethodField()
 
     class Meta(DiagnosticListSerializer.Meta):
         fields = DiagnosticListSerializer.Meta.fields + [
-            'payment_terms', 'radiography',
+            'payment_terms', 'radiography', 'confidentiality_params',
             'sections', 'attachments', 'change_logs', 'render_context',
+            'available_transitions',
         ]
 
     def get_sections(self, diagnostic):
@@ -173,6 +177,13 @@ class DiagnosticDetailSerializer(DiagnosticListSerializer):
 
     def get_render_context(self, diagnostic):
         return _render_context_for(self, diagnostic)
+
+    def get_available_transitions(self, diagnostic):
+        return sorted(
+            t.value for t in WebAppDiagnostic.ALLOWED_TRANSITIONS.get(
+                diagnostic.status, frozenset(),
+            )
+        )
 
 
 class DiagnosticUpdateSerializer(serializers.ModelSerializer):
@@ -227,3 +238,24 @@ class PublicDiagnosticSerializer(serializers.ModelSerializer):
     def get_render_context(self, diagnostic):
         full = _render_context_for(self, diagnostic)
         return {k: v for k, v in full.items() if k in PUBLIC_RENDER_CONTEXT_KEYS}
+
+
+class ConfidentialityParamsSerializer(serializers.Serializer):
+    """Validate the params dict that fills the NDA template placeholders.
+
+    All fields are optional; missing/empty values render as ``_______________``
+    in the generated PDF, so the document can be printed and completed by hand.
+    """
+
+    client_full_name = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    client_cedula = serializers.CharField(required=False, allow_blank=True, max_length=64)
+    client_legal_representative = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    client_email = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    contractor_full_name = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    contractor_cedula = serializers.CharField(required=False, allow_blank=True, max_length=64)
+    contractor_email = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    contract_city = serializers.CharField(required=False, allow_blank=True, max_length=120)
+    contract_day = serializers.CharField(required=False, allow_blank=True, max_length=8)
+    contract_month = serializers.CharField(required=False, allow_blank=True, max_length=20)
+    contract_year = serializers.CharField(required=False, allow_blank=True, max_length=8)
+    penal_clause_value = serializers.CharField(required=False, allow_blank=True, max_length=255)

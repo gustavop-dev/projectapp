@@ -320,6 +320,67 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
       }
     },
 
+    // ── Acuerdo de Confidencialidad (NDA) ───────────────────────────
+    async updateConfidentialityParams(id, params) {
+      try {
+        const response = await create_request(
+          `diagnostics/${id}/confidentiality/params/`,
+          { confidentiality_params: params },
+        );
+        if (this.current?.id === id) {
+          const attachment = response.data?.attachment;
+          const existingAttachments = this.current.attachments || [];
+          let nextAttachments;
+          if (attachment) {
+            const idx = existingAttachments.findIndex((a) => a.id === attachment.id);
+            if (idx >= 0) {
+              nextAttachments = [...existingAttachments];
+              nextAttachments[idx] = attachment;
+            } else {
+              nextAttachments = [attachment, ...existingAttachments];
+            }
+          } else {
+            nextAttachments = existingAttachments;
+          }
+          this.current = {
+            ...this.current,
+            confidentiality_params: response.data?.confidentiality_params || params,
+            attachments: nextAttachments,
+          };
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          error: error?.response?.data?.error || 'save_failed',
+        };
+      }
+    },
+
+    async generateConfidentiality(id) {
+      try {
+        const response = await create_request(
+          `diagnostics/${id}/confidentiality/generate/`,
+          {},
+        );
+        if (this.current?.id === id && response.data?.attachment) {
+          const attachment = response.data.attachment;
+          const existingAttachments = this.current.attachments || [];
+          const idx = existingAttachments.findIndex((a) => a.id === attachment.id);
+          const nextAttachments = idx >= 0
+            ? existingAttachments.map((a, i) => (i === idx ? attachment : a))
+            : [attachment, ...existingAttachments];
+          this.current = { ...this.current, attachments: nextAttachments };
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          error: error?.response?.data?.error || 'generate_failed',
+        };
+      }
+    },
+
     // ── Email composer ──────────────────────────────────────────────
     async sendCustomEmail(id, formData) {
       try {

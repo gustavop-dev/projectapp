@@ -37,6 +37,7 @@ from .document_payment_method import DocumentPaymentMethod
 from .company_settings import CompanySettings
 from .proposal_document import ProposalDocument
 from .contract_template import ContractTemplate
+from .confidentiality_template import ConfidentialityTemplate
 from .linkedin_token import LinkedInToken
 from .task import Task
 from .task_alert import TaskAlert

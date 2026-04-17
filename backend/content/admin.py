@@ -19,6 +19,7 @@ from .models import (
     CompanySettings,
     ProposalDocument,
     ContractTemplate,
+    ConfidentialityTemplate,
     ProposalAlert,
     ProposalProjectStage,
     ProposalShareLink,
@@ -301,7 +302,7 @@ class ProjectAppAdminSite(admin.AdminSite):
                 'name': _('Contract Settings'),
                 'app_label': 'contract_settings',
                 'models': [m for m in content_models if m['object_name'] in [
-                    'CompanySettings', 'ContractTemplate', 'ProposalDocument',
+                    'CompanySettings', 'ContractTemplate', 'ConfidentialityTemplate', 'ProposalDocument',
                 ]],
             },
             {
@@ -354,6 +355,7 @@ admin_site.register(IssuerProfile)
 admin_site.register(CompanySettings)
 admin_site.register(ProposalDocument)
 admin_site.register(ContractTemplate)
+admin_site.register(ConfidentialityTemplate)
 
 admin_site.register(DocumentFolder)
 admin_site.register(DocumentItem)
