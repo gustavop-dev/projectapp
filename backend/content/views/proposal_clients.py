@@ -45,6 +45,7 @@ def _base_queryset():
         .annotate(
             proposals_count=Count('proposals', distinct=True),
             projects_count=Count('user__projects', distinct=True),
+            diagnostics_count=Count('web_app_diagnostics', distinct=True),
             last_proposal_at=Max('proposals__last_activity_at'),
             accepted_count=Count(
                 'proposals',

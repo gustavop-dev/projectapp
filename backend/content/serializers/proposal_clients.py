@@ -107,9 +107,14 @@ class ProposalClientSerializer(serializers.ModelSerializer):
         if self.get_total_proposals(obj) > 0:
             return False
         projects_annotated = getattr(obj, 'projects_count', None)
-        if projects_annotated is not None:
-            return projects_annotated == 0
-        return not obj.user.projects.exists()
+        if projects_annotated is not None and projects_annotated > 0:
+            return False
+        if projects_annotated is None and obj.user.projects.exists():
+            return False
+        diagnostics_annotated = getattr(obj, 'diagnostics_count', None)
+        if diagnostics_annotated is not None:
+            return diagnostics_annotated == 0
+        return not obj.web_app_diagnostics.exists()
 
     def get_accepted_count(self, obj):
         annotated = getattr(obj, 'accepted_count', None)

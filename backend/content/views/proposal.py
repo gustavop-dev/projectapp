@@ -379,6 +379,34 @@ def _build_effective_totals_map(proposals):
     }
 
 
+def _resync_investment_from_modules(proposal, fr_content_json):
+    """Update investment section totalInvestment & paymentOptions using effective total."""
+    effective = _calculate_effective_total_investment(
+        proposal.total_investment,
+        proposal.selected_modules,
+        fr_content_json,
+    )
+    inv_section = proposal.sections.filter(section_type=ProposalSection.SectionType.INVESTMENT).first()
+    if not inv_section or not inv_section.content_json:
+        return
+    total = int(effective)
+    formatted = f'${total:,}'.replace(',', '.')
+    cj = dict(inv_section.content_json)
+    if cj.get('totalInvestment') == formatted:
+        return
+    cj['totalInvestment'] = formatted
+    cj['currency'] = proposal.currency
+    if cj.get('paymentOptions'):
+        for opt in cj['paymentOptions']:
+            pct_match = re.search(r'(\d+)%', opt.get('label', ''))
+            if pct_match:
+                pct = Decimal(pct_match.group(1)) / Decimal(100)
+                amount = int(effective * pct)
+                opt['description'] = f'${amount:,}'.replace(',', '.') + f' {proposal.currency}'
+    inv_section.content_json = cj
+    inv_section.save(update_fields=['content_json'])
+
+
 # ---------------------------------------------------------------------------
 # Public endpoints (no auth required)
 # ---------------------------------------------------------------------------
@@ -1322,25 +1350,12 @@ def update_proposal(request, proposal_id):
         or old_values.get('currency') != str(proposal.currency)
     )
     if investment_changed:
-        inv_section = proposal.sections.filter(
-            section_type='investment',
+        fr_section = proposal.sections.filter(
+            section_type=ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS
         ).first()
-        if inv_section and inv_section.content_json:
-            total = int(proposal.total_investment)
-            formatted = f'${total:,}'.replace(',', '.')
-            cj = dict(inv_section.content_json)
-            cj['totalInvestment'] = formatted
-            cj['currency'] = proposal.currency
-            # Recalculate payment option descriptions based on new total
-            if cj.get('paymentOptions'):
-                for opt in cj['paymentOptions']:
-                    pct_match = re.search(r'(\d+)%', opt.get('label', ''))
-                    if pct_match:
-                        pct = Decimal(pct_match.group(1)) / Decimal(100)
-                        amount = int(proposal.total_investment * pct)
-                        opt['description'] = f'${amount:,}'.replace(',', '.') + f' {proposal.currency}'
-            inv_section.content_json = cj
-            inv_section.save(update_fields=['content_json'])
+        _resync_investment_from_modules(
+            proposal, fr_section.content_json if fr_section else None
+        )
 
     detail = ProposalDetailSerializer(
         proposal, context={'request': request, 'is_admin': True}
@@ -1849,7 +1864,7 @@ def update_proposal_section(request, section_id):
     """
     Update a section's content_json, title, order, is_enabled, etc.
     """
-    section = get_object_or_404(ProposalSection, pk=section_id)
+    section = get_object_or_404(ProposalSection.objects.select_related('proposal'), pk=section_id)
     serializer = ProposalSectionUpdateSerializer(
         section, data=request.data, partial=True
     )
@@ -1857,6 +1872,10 @@ def update_proposal_section(request, section_id):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     serializer.save()
+
+    if section.section_type == ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS:
+        _resync_investment_from_modules(section.proposal, section.content_json)
+
     from content.serializers.proposal import ProposalSectionDetailSerializer
     detail = ProposalSectionDetailSerializer(section)
     return Response(detail.data, status=status.HTTP_200_OK)
@@ -2517,6 +2536,12 @@ def track_calculator_interaction(request, proposal_uuid):
     if event == 'confirmed' and isinstance(selected, list):
         proposal.selected_modules = selected
         proposal.save(update_fields=['selected_modules', 'updated_at'])
+        fr_section = proposal.sections.filter(
+            section_type=ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS
+        ).first()
+        _resync_investment_from_modules(
+            proposal, fr_section.content_json if fr_section else None
+        )
 
     return Response({'status': 'ok'}, status=status.HTTP_200_OK)
 

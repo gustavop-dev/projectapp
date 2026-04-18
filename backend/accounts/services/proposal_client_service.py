@@ -311,13 +311,14 @@ def sync_snapshot(proposal):
 def delete_orphan_client(profile):
     """
     Delete a client profile (and its underlying ``User``) **only** if it has
-    no proposals and no platform projects. Raises ``ValueError`` with a
-    machine-readable code otherwise.
+    no proposals, no platform projects, and no diagnostics. Raises
+    ``ValueError`` with a machine-readable code otherwise.
 
     Error codes:
         - ``client_has_proposals``: linked to one or more BusinessProposals.
         - ``client_has_projects``: linked to one or more platform Projects
           (which transitively cover deliverables, requirements, etc.).
+        - ``client_has_diagnostics``: linked to one or more WebAppDiagnostics.
     """
     proposals_count = profile.proposals.count()
     if proposals_count > 0:
@@ -326,6 +327,10 @@ def delete_orphan_client(profile):
     projects_count = profile.user.projects.count()
     if projects_count > 0:
         raise ValueError(f'client_has_projects:{projects_count}')
+
+    diagnostics_count = profile.web_app_diagnostics.count()
+    if diagnostics_count > 0:
+        raise ValueError(f'client_has_diagnostics:{diagnostics_count}')
 
     user = profile.user
     profile.delete()
