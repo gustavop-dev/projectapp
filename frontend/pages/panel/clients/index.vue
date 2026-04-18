@@ -154,6 +154,17 @@
               <SidebarIcon name="external" class="w-4 h-4" />
             </button>
 
+            <!-- Edit button -->
+            <button
+              type="button"
+              :data-testid="`client-edit-${client.id}`"
+              class="p-1.5 rounded-lg text-gray-400 dark:text-green-light/60 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:text-white dark:hover:bg-white/[0.06] transition-colors"
+              title="Editar cliente"
+              @click.stop="openEditModal(client)"
+            >
+              <PencilSquareIcon class="w-4 h-4" />
+            </button>
+
             <!-- Trash button (orphans only) -->
             <button
               v-if="client.is_orphan"
@@ -322,6 +333,79 @@
       </div>
     </div>
 
+    <!-- Edit client modal -->
+    <div
+      v-if="editingClient"
+      class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      @click.self="closeEditModal"
+    >
+      <div class="bg-white dark:bg-esmerald dark:border dark:border-white/[0.06] rounded-2xl shadow-2xl dark:shadow-black/40 w-full max-w-md overflow-hidden">
+        <div class="px-6 pt-6 pb-2">
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white">Editar cliente</h3>
+          <p class="mt-1 text-sm text-gray-500 dark:text-green-light/60">
+            Los cambios se propagarán a todas las propuestas vinculadas a este cliente.
+          </p>
+        </div>
+        <form @submit.prevent="submitEdit" class="px-6 py-4 space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Nombre</label>
+            <input
+              v-model="editForm.name"
+              type="text"
+              required
+              data-testid="clients-edit-name"
+              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Email (opcional)</label>
+            <input
+              v-model="editForm.email"
+              type="email"
+              data-testid="clients-edit-email"
+              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Teléfono</label>
+            <input
+              v-model="editForm.phone"
+              type="tel"
+              data-testid="clients-edit-phone"
+              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Empresa</label>
+            <input
+              v-model="editForm.company"
+              type="text"
+              data-testid="clients-edit-company"
+              class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+            />
+          </div>
+          <p v-if="editError" class="text-xs text-red-600">{{ editError }}</p>
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-green-light bg-gray-100 dark:bg-white/[0.06] hover:bg-gray-200 dark:hover:bg-white/[0.10] rounded-xl transition-colors"
+              @click="closeEditModal"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              :disabled="clientsStore.isUpdating"
+              data-testid="clients-edit-submit"
+              class="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-xl transition-colors"
+            >
+              Guardar cambios
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Confirm modal for delete -->
     <ConfirmModal
       v-model="confirmState.open"
@@ -338,7 +422,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
-import { PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { PlusIcon, TrashIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
 import SidebarIcon from '~/components/platform/SidebarIcon.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
@@ -418,9 +502,17 @@ function handleResetFilters() {
   isFilterPanelOpen.value = false;
 }
 
-onMounted(loadClients);
+function handleEditEscape(e) {
+  if (e.key === 'Escape' && editingClient.value) closeEditModal();
+}
+
+onMounted(() => {
+  loadClients();
+  document.addEventListener('keydown', handleEditEscape);
+});
 onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer);
+  document.removeEventListener('keydown', handleEditEscape);
 });
 
 // -------------------------------------------------------------------
@@ -482,6 +574,50 @@ async function submitCreate() {
   } else {
     createError.value =
       result.errors?.message || 'No se pudo crear el cliente. Verifica los datos e intenta nuevamente.';
+  }
+}
+
+// -------------------------------------------------------------------
+// Edit modal
+// -------------------------------------------------------------------
+
+const editingClient = ref(null);
+const editForm = reactive({ name: '', email: '', phone: '', company: '' });
+const editError = ref('');
+
+function openEditModal(client) {
+  editingClient.value = client;
+  editForm.name = client.name || '';
+  editForm.email = client.is_email_placeholder ? '' : (client.email || '');
+  editForm.phone = client.phone || '';
+  editForm.company = client.company || '';
+  editError.value = '';
+}
+
+function closeEditModal() {
+  editingClient.value = null;
+  editError.value = '';
+}
+
+async function submitEdit() {
+  editError.value = '';
+  const payload = {
+    name: editForm.name.trim(),
+    email: editForm.email.trim(),
+    phone: editForm.phone.trim(),
+    company: editForm.company.trim(),
+  };
+  const result = await clientsStore.updateClient(editingClient.value.id, payload);
+  if (result.success) {
+    closeEditModal();
+  } else {
+    editError.value =
+      result.errors?.error ||
+      result.errors?.name?.[0] ||
+      result.errors?.email?.[0] ||
+      result.errors?.phone?.[0] ||
+      result.errors?.company?.[0] ||
+      'Error al actualizar el cliente.';
   }
 }
 

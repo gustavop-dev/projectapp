@@ -1805,7 +1805,8 @@ async function toggleAutomationsPaused() {
 async function handleUpdate() {
   const payload = { ...form };
   if (payload.expires_at) {
-    payload.expires_at = new Date(payload.expires_at).toISOString();
+    const d = new Date(payload.expires_at);
+    payload.expires_at = isNaN(d.getTime()) ? null : d.toISOString();
   } else {
     payload.expires_at = null;
   }
