@@ -911,18 +911,6 @@ const exportJsonString = computed(() => {
   return payload ? JSON.stringify(payload, null, 2) : '';
 });
 
-function sectionHasContent(section) {
-  const content = section?.content_json;
-  if (!content || typeof content !== 'object') return false;
-  return Object.values(content).some((v) => {
-    if (v == null) return false;
-    if (typeof v === 'string') return v.trim().length > 0;
-    if (Array.isArray(v)) return v.length > 0;
-    if (typeof v === 'object') return Object.keys(v).length > 0;
-    return true;
-  });
-}
-
 const jsonSummary = computed(() => {
   const sections = store.current?.sections || [];
   const total = sections.length;
