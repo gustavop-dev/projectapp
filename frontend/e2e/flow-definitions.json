@@ -1733,8 +1733,16 @@
       "module": "admin",
       "roles": ["admin"],
       "priority": "P1",
-      "description": "Admin sends the initial-phase diagnostic from the edit page via 'Enviar envío inicial' (SENT, initial_sent_at stamped), and later promotes it to NEGOTIATING via 'Marcar en análisis'. Public view exposes only sections with visibility ∈ {initial, both}.",
-      "expectedSpecs": 2
+      "description": "Admin sends the initial-phase diagnostic from the edit page via 'Enviar envío inicial' — POST /api/diagnostics/:id/send-initial/, stamps `initial_sent_at`, status moves DRAFT → SENT. Public view then exposes only sections with visibility ∈ {initial, both}. The follow-up SENT → NEGOTIATING transition is its own flow (`admin-diagnostic-mark-in-analysis`).",
+      "expectedSpecs": 1
+    },
+    "admin-diagnostic-mark-in-analysis": {
+      "name": "Admin Diagnostic Mark In Analysis",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P1",
+      "description": "Admin clicks 'Marcar en análisis' on a SENT diagnostic to acknowledge that the client authorized continuing — opens a ConfirmModal and POSTs /api/diagnostics/:id/mark-in-analysis/, transitioning SENT → NEGOTIATING. The button is only available after `initial_sent_at` is set; afterwards the 'Enviar diagnóstico final' action becomes the next user step.",
+      "expectedSpecs": 1
     },
     "admin-diagnostic-send-final": {
       "name": "Admin Diagnostic Send Final",
@@ -1749,8 +1757,16 @@
       "module": "diagnostic",
       "roles": ["guest"],
       "priority": "P1",
-      "description": "Client accesses the public diagnostic page via UUID link, navigates the JSON-driven section components (Purpose/Radiography/Categories/DeliveryStructure/ExecutiveSummary/Cost/Timeline/Scope), and responds (accept/reject) when in final-phase SENT.",
-      "expectedSpecs": 3
+      "description": "Client accesses the public diagnostic page via UUID link and navigates the JSON-driven section components (Purpose/Radiography/Categories/DeliveryStructure/ExecutiveSummary/Cost/Timeline/Scope). Initial-phase view hides `final`-only sections. Per-section dwell time is tracked via /api/diagnostics/public/<uuid>/track-section/. Accept/Reject is a separate flow (`diagnostic-public-respond`).",
+      "expectedSpecs": 2
+    },
+    "diagnostic-public-respond": {
+      "name": "Diagnostic Public Respond",
+      "module": "diagnostic",
+      "roles": ["guest"],
+      "priority": "P1",
+      "description": "On a final-phase SENT public diagnostic, the client clicks 'Aceptar propuesta' or 'Rechazar' in the footer — POST /api/diagnostics/public/<uuid>/respond/ with `decision` ('accept'|'reject'), the page swaps to the acceptance/rejection confirmation footer, and the backend transitions the diagnostic to ACCEPTED or REJECTED.",
+      "expectedSpecs": 1
     },
     "admin-diagnostic-sections": {
       "name": "Admin Diagnostic Sections Editor",
@@ -1815,7 +1831,7 @@
       "module": "admin",
       "roles": ["admin"],
       "priority": "P2",
-      "description": "Admin edits top-level metadata of an existing WebAppDiagnostic (title, client, language) from the General tab, and pricing + radiografía from the 'Det. técnico' tab which groups those two as sub-tabs (Pricing / Radiografía). Changes are saved via PATCH /api/diagnostics/:id/update/. Section content is edited separately under admin-diagnostic-sections; full-JSON round-trip lives under admin-diagnostic-json-export / admin-diagnostic-json-import.",
+      "description": "Admin edits top-level metadata of an existing WebAppDiagnostic from the General tab: title, client (via ClientAutocomplete) + client-snapshot fields (name/email/phone/company) + propagate-to-profile checkbox, language, investment amount + currency, payment terms (initial/final pct), duration label, and size category. Changes are saved via PATCH /api/diagnostics/:id/update/. Radiografía data is edited as a regular section from the Secciones tab. Section content is edited separately under admin-diagnostic-sections; full-JSON round-trip lives under admin-diagnostic-json-export / admin-diagnostic-json-import.",
       "expectedSpecs": 1
     },
     "admin-diagnostic-delete": {
@@ -1869,6 +1885,14 @@
       "description": "Admin imports a JSON blob from the JSON tab of /panel/diagnostics/:id/edit, either by pasting into the textarea or uploading a .json file (FileReader → textarea). Parse runs on every input; validation requires a root object with an array `sections`. A preview strip shows client name, section count, and formatted investment. Aplicar JSON runs PATCH /update/ for metadata first, then POST /sections/bulk-update/; success emits an inline toast and resyncs the pricing/radiography forms. Errors surface inline and abort the apply.",
       "expectedSpecs": 1,
       "knownGaps": ["Legacy deep-links ?tab=plantillas|pricing|radiography redirect to the new tab ids — not yet asserted."]
+    },
+    "admin-diagnostic-defaults-config": {
+      "name": "Admin Diagnostic Defaults Config",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin manages the per-language default config applied to new WebAppDiagnostic rows from /panel/diagnostics/defaults/. The General tab edits language, currency, default investment amount, default duration label, payment percentages (auto-synced to sum 100, default 60/40), and reminder/urgency/expiration days. Save PUTs /api/diagnostics/defaults/?lang= and the response is applied directly (no refetch). Reset opens a ConfirmModal and POSTs /defaults/reset/ to delete the row, falling back to the hardcoded seed. Sections, Plantillas de Email (link), Prompt (placeholder) and JSON tabs render from the same config payload.",
+      "expectedSpecs": 1
     }
   }
 }

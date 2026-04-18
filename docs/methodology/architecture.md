@@ -153,6 +153,7 @@ erDiagram
 | **ProposalChangeLog** | Full audit trail | proposal_fk, change_type (20 types), field_name, old_value, new_value |
 | **ProposalShareLink** | Multi-stakeholder sharing | proposal_fk, uuid, shared_by_name, recipient_name, view_count |
 | **ProposalDefaultConfig** | Default section templates per language | language (unique), sections_json |
+| **DiagnosticDefaultConfig** | Per-language defaults applied at `WebAppDiagnostic` creation | language (unique), sections_json, payment_initial_pct (60), payment_final_pct (40), default_currency, default_investment_amount, default_duration_label, expiration_days, reminder_days, urgency_reminder_days. `clean()` enforces payment sum = 100. Read by `diagnostic_service.create_diagnostic` and surfaced through `/api/diagnostics/defaults/`. |
 | **ProposalProjectStage** | Internal project execution tracking (Cronograma) — internal-only, gated by `is_admin` in serializer | proposal_fk, stage_key (`design`/`development`), order, start_date, end_date, completed_at, warning_sent_at, last_overdue_reminder_at |
 | **EmailTemplateConfig** | Admin-editable email content | template_key (unique), content_overrides, is_active |
 | **EmailLog** | Email deliverability tracking + composed email history | proposal_fk, template_key, recipient, status, error_message, metadata (JSONField) |

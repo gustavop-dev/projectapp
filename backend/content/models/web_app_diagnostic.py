@@ -65,6 +65,14 @@ class WebAppDiagnostic(models.Model):
         related_name='web_app_diagnostics',
         limit_choices_to={'role': 'client'},
     )
+
+    # Client identity snapshot — kept in sync via update_client_profile() cascade;
+    # survives profile renames without breaking historical records.
+    client_name    = models.CharField(max_length=255, blank=True)
+    client_email   = models.CharField(max_length=254, blank=True)
+    client_phone   = models.CharField(max_length=50,  blank=True)
+    client_company = models.CharField(max_length=255, blank=True)
+
     language = models.CharField(
         max_length=2, choices=Language.choices, default=Language.ES,
     )

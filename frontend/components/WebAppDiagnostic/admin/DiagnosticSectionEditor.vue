@@ -65,7 +65,7 @@
             <option v-for="opt in visibilityOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
         </div>
-        <div class="flex items-end gap-3">
+        <div class="flex items-center gap-3 sm:self-center">
           <label class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
             <input type="checkbox" v-model="localSection.is_enabled" class="rounded" @change="onMetaChange" />
             Activa en la vista pública

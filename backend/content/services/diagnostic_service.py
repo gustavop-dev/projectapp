@@ -15,11 +15,37 @@ from django.utils import timezone
 from accounts.services.proposal_client_service import build_client_display_name
 from content.models import (
     DiagnosticChangeLog,
+    DiagnosticDefaultConfig,
     DiagnosticSection,
     WebAppDiagnostic,
 )
 from content.seeds.diagnostic_template import default_sections
 from content.utils import format_cop_email
+
+
+DEFAULT_PAYMENT_INITIAL_PCT = 60
+DEFAULT_PAYMENT_FINAL_PCT = 40
+DEFAULT_EXPIRATION_DAYS = 21
+DEFAULT_REMINDER_DAYS = 7
+DEFAULT_URGENCY_REMINDER_DAYS = 14
+
+
+def get_hardcoded_section_specs() -> list[dict]:
+    """Return the hardcoded section specs used when no DB defaults exist."""
+    return list(default_sections())
+
+
+def get_default_config(language: str = 'es'):
+    """Return the persisted ``DiagnosticDefaultConfig`` for *language* or None."""
+    return DiagnosticDefaultConfig.objects.filter(language=language).first()
+
+
+def get_default_section_specs(language: str = 'es') -> list[dict]:
+    """Return the section specs to seed: DB config if present, otherwise the hardcoded seed."""
+    config = get_default_config(language)
+    if config and isinstance(config.sections_json, list) and config.sections_json:
+        return list(config.sections_json)
+    return get_hardcoded_section_specs()
 
 
 def _classify_size(value: int, thresholds: tuple[int, int]) -> str:
@@ -67,7 +93,7 @@ def build_render_context(diagnostic: WebAppDiagnostic) -> dict:
         size_label = WebAppDiagnostic.SizeCategory(diagnostic.size_category).label
 
     return {
-        'client_name': build_client_display_name(diagnostic.client),
+        'client_name': diagnostic.client_name or build_client_display_name(diagnostic.client),
         'investment_amount': format_cop_email(diagnostic.investment_amount),
         'currency': diagnostic.currency or '',
         'payment_initial_pct': payment.get('initial_pct', ''),
@@ -106,30 +132,49 @@ def build_render_context(diagnostic: WebAppDiagnostic) -> dict:
     }
 
 
-def seed_sections(diagnostic: WebAppDiagnostic) -> list[DiagnosticSection]:
-    """Create the default 8 sections for a diagnostic from the JSON seed."""
-    return DiagnosticSection.objects.bulk_create([
-        DiagnosticSection(
+def seed_sections(
+    diagnostic: WebAppDiagnostic,
+    config: DiagnosticDefaultConfig | None = None,
+) -> list[DiagnosticSection]:
+    """Create the default sections for a diagnostic.
+
+    Pulls specs from *config* (or the persisted ``DiagnosticDefaultConfig``
+    for the diagnostic's language when not supplied); otherwise falls back to
+    the hardcoded JSON seed. Skips any spec whose ``section_type`` is not a
+    valid choice.
+    """
+    if config is not None and isinstance(config.sections_json, list) and config.sections_json:
+        specs = list(config.sections_json)
+    else:
+        specs = get_default_section_specs(diagnostic.language)
+
+    valid_types = {value for value, _ in DiagnosticSection.SectionType.choices}
+    rows = []
+    for spec in specs:
+        section_type = spec.get('section_type')
+        if section_type not in valid_types:
+            continue
+        rows.append(DiagnosticSection(
             diagnostic=diagnostic,
-            section_type=spec['section_type'],
-            title=spec['title'],
-            order=spec['order'],
-            is_enabled=spec['is_enabled'],
-            visibility=spec['visibility'],
-            content_json=spec['content_json'],
-        )
-        for spec in default_sections()
-    ])
+            section_type=section_type,
+            title=spec.get('title', ''),
+            order=spec.get('order', 0),
+            is_enabled=spec.get('is_enabled', True),
+            visibility=spec.get('visibility', DiagnosticSection.Visibility.BOTH),
+            content_json=spec.get('content_json') or {},
+        ))
+    return DiagnosticSection.objects.bulk_create(rows)
 
 
 def reset_section(section: DiagnosticSection) -> DiagnosticSection:
-    """Restore a single section's ``content_json`` from the JSON seed."""
-    for spec in default_sections():
-        if spec['section_type'] == section.section_type:
-            section.content_json = spec['content_json']
-            section.title = spec['title']
-            section.visibility = spec['visibility']
-            section.is_enabled = spec['is_enabled']
+    """Restore a single section's ``content_json`` from the active defaults."""
+    language = section.diagnostic.language
+    for spec in get_default_section_specs(language):
+        if spec.get('section_type') == section.section_type:
+            section.content_json = spec.get('content_json') or {}
+            section.title = spec.get('title', section.title)
+            section.visibility = spec.get('visibility', section.visibility)
+            section.is_enabled = spec.get('is_enabled', section.is_enabled)
             section.save(update_fields=[
                 'content_json', 'title', 'visibility', 'is_enabled',
             ])
@@ -149,13 +194,39 @@ def create_diagnostic(
     if not title:
         title = f'Diagnóstico — {build_client_display_name(client)}'
 
+    config = get_default_config(language)
+    if config:
+        currency = config.default_currency or WebAppDiagnostic.Currency.COP
+        investment_amount = config.default_investment_amount
+        duration_label = config.default_duration_label or ''
+        payment_terms = {
+            'initial_pct': config.payment_initial_pct,
+            'final_pct': config.payment_final_pct,
+        }
+    else:
+        currency = WebAppDiagnostic.Currency.COP
+        investment_amount = None
+        duration_label = ''
+        payment_terms = {
+            'initial_pct': DEFAULT_PAYMENT_INITIAL_PCT,
+            'final_pct': DEFAULT_PAYMENT_FINAL_PCT,
+        }
+
     diagnostic = WebAppDiagnostic.objects.create(
         client=client,
         language=language,
         title=title,
+        client_name=build_client_display_name(client),
+        client_email=client.user.email or '',
+        client_phone=client.phone or '',
+        client_company=client.company_name or '',
+        currency=currency,
+        investment_amount=investment_amount,
+        duration_label=duration_label,
+        payment_terms=payment_terms,
         created_by=created_by,
     )
-    seed_sections(diagnostic)
+    seed_sections(diagnostic, config=config)
     log_change(
         diagnostic,
         change_type=DiagnosticChangeLog.ChangeType.CREATED,

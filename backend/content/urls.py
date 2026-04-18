@@ -99,6 +99,7 @@ from content.views.diagnostic import (
     list_diagnostic_emails,
     retrieve_public_diagnostic, track_public_diagnostic,
     track_diagnostic_section_view, respond_public_diagnostic,
+    diagnostic_defaults, reset_diagnostic_defaults,
 )
 
 urlpatterns = [
@@ -317,6 +318,10 @@ urlpatterns = [
     path('diagnostics/<int:diagnostic_id>/email/send/', send_diagnostic_email, name='send-diagnostic-email'),
     path('diagnostics/<int:diagnostic_id>/email/defaults/', get_diagnostic_email_defaults, name='diagnostic-email-defaults'),
     path('diagnostics/<int:diagnostic_id>/email/history/', list_diagnostic_emails, name='list-diagnostic-emails'),
+
+    # Diagnostics — default config (admin)
+    path('diagnostics/defaults/', diagnostic_defaults, name='diagnostic-defaults'),
+    path('diagnostics/defaults/reset/', reset_diagnostic_defaults, name='reset-diagnostic-defaults'),
 
     # Portfolio — admin CRUD (must come before slug catch-all)
     path('portfolio/admin/', list_admin_portfolio_works, name='list-admin-portfolio-works'),

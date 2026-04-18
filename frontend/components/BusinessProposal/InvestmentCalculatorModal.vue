@@ -185,6 +185,16 @@
 import { ref, computed, watch } from 'vue';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import { create_request } from '~/stores/services/request_http';
+import {
+  getProposalModuleSelectionStorageKey,
+  getProposalModuleSelectionConfirmedKey,
+  hasStoredConfirmedProposalModuleSelection,
+} from '~/utils/proposalModuleSelectionStorage';
+
+function isPreviewMode() {
+  return typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('preview') === '1';
+}
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -217,8 +227,7 @@ const openedAt = ref(null);
 
 function trackCalculatorEvent(event) {
   if (!props.proposalUuid) return;
-  // Skip tracking for admin previews
-  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1') return;
+  if (isPreviewMode()) return;
   const selectedIds = localModules.value.filter(m => m.selected).map(m => m.id);
   const deselectedIds = localModules.value.filter(m => !m.selected && !m._locked).map(m => m.id);
   const elapsedSeconds = openedAt.value ? Math.round((Date.now() - openedAt.value) / 1000) : 0;
@@ -299,12 +308,13 @@ const initialGroupOrder = ref([]);
 
 watch(() => props.visible, (val) => {
   if (val) {
-    const storageKey = `proposal-${props.proposalUuid}-modules`;
     let saved = null;
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) saved = JSON.parse(raw);
-    } catch (_e) { /* ignore */ }
+    if (hasStoredConfirmedProposalModuleSelection(props.proposalUuid)) {
+      try {
+        const raw = localStorage.getItem(getProposalModuleSelectionStorageKey(props.proposalUuid));
+        if (raw) saved = JSON.parse(raw);
+      } catch (_e) { /* ignore */ }
+    }
 
     localModules.value = props.modules.map(m => {
       const locked = m.is_required === true;
@@ -503,11 +513,12 @@ function toggleModule(mod) {
 
 function confirmSelection() {
   const selectedIds = localModules.value.filter(m => m.selected).map(m => m.id);
-  const storageKey = `proposal-${props.proposalUuid}-modules`;
-  try {
-    localStorage.setItem(storageKey, JSON.stringify(selectedIds));
-    localStorage.setItem(`proposal-${props.proposalUuid}-modules-confirmed`, '1');
-  } catch (_e) { /* ignore */ }
+  if (!isPreviewMode()) {
+    try {
+      localStorage.setItem(getProposalModuleSelectionStorageKey(props.proposalUuid), JSON.stringify(selectedIds));
+      localStorage.setItem(getProposalModuleSelectionConfirmedKey(props.proposalUuid), '1');
+    } catch (_e) { /* ignore */ }
+  }
   confirmed.value = true;
   trackCalculatorEvent('confirmed');
   emit('update:selection', { selectedIds, total: dynamicTotal.value, weeks: dynamicWeeks.value });

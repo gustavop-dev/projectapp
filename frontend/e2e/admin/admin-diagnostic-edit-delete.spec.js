@@ -57,7 +57,7 @@ test.describe('Admin Diagnostic — Edit page', () => {
     });
   });
 
-  test('edit page renders all 6 navigation tabs', {
+  test('edit page renders all navigation tabs', {
     tag: [...ADMIN_DIAGNOSTIC_EDIT, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
@@ -72,7 +72,6 @@ test.describe('Admin Diagnostic — Edit page', () => {
 
     await expect(page.getByRole('button', { name: 'General', exact: true })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('button', { name: 'Secciones' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Det. técnico' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Prompt Diagnostic' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'JSON' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Actividad' })).toBeVisible();

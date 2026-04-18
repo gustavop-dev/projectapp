@@ -167,7 +167,9 @@ class Command(BaseCommand):
                 size = random.choice(['small', 'medium', 'large'])
                 diagnostic.investment_amount = amount
                 diagnostic.currency = currency
-                diagnostic.payment_terms = {'initial_pct': 40, 'final_pct': 60}
+                # payment_terms inherits from DiagnosticDefaultConfig (or
+                # the 60/40 fallback) via create_diagnostic; only override
+                # when --with-pricing is meant to randomize the split.
                 diagnostic.duration_label = random.choice(DURATION_LABELS)
                 diagnostic.size_category = size
                 diagnostic.radiography = _RADIOGRAPHY[size]

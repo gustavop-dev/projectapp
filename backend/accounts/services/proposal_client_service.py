@@ -273,18 +273,29 @@ def update_client_profile(profile, *, name=None, email=None, phone=None, company
         profile_dirty.append('updated_at')
         profile.save(update_fields=profile_dirty)
 
-    # Cascade snapshots to all linked proposals (raw bulk update — no signals).
-    # Bump updated_at by hand because .update() bypasses auto_now.
+    # Cascade snapshots to all linked proposals and diagnostics (raw bulk
+    # update — no signals). Bump updated_at by hand because .update() bypasses
+    # auto_now.
     if user_dirty or profile_dirty:
         from django.utils import timezone
 
         from content.models import BusinessProposal
+        from content.models.web_app_diagnostic import WebAppDiagnostic
 
+        now = timezone.now()
+        display_name = build_client_display_name(profile)
         BusinessProposal.objects.filter(client=profile).update(
-            client_name=build_client_display_name(profile),
+            client_name=display_name,
             client_email=user.email,
             client_phone=profile.phone,
-            updated_at=timezone.now(),
+            updated_at=now,
+        )
+        WebAppDiagnostic.objects.filter(client=profile).update(
+            client_name=display_name,
+            client_email=user.email,
+            client_phone=profile.phone,
+            client_company=profile.company_name or '',
+            updated_at=now,
         )
 
     return profile

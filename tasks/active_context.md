@@ -8,6 +8,28 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ## Recent Focus Areas
 
+- **Diagnostic Defaults — Per-Language Singleton Config** (Apr 18, 2026):
+  - **Motivation**: parity with `/panel/proposals/defaults/`. Diagnostics now created from `panel/diagnostics/create.vue` had hardcoded payment terms (`{"initial_pct": 40, "final_pct": 60}` only as `help_text`, actually empty `{}` in practice), no admin-controllable default currency/investment/duration, and no editor over the section seed shipped from `content/seeds/diagnostic_template.py`. The product pricing default also flipped to **60% inicial / 40% final** — encoded in the new model defaults.
+  - **Backend model**: new `DiagnosticDefaultConfig` (`backend/content/models/diagnostic_default_config.py`) — singleton per `language` (es/en) holding `sections_json`, `payment_initial_pct=60`, `payment_final_pct=40`, `default_currency` (COP/USD), `default_investment_amount` (decimal, nullable), `default_duration_label`, `expiration_days=21`, `reminder_days=7`, `urgency_reminder_days=14`. `clean()` enforces `payment_initial_pct + payment_final_pct == 100`. Registered in `content/models/__init__.py`. Migration `0101_diagnostic_default_config.py`.
+  - **Serializer** (`backend/content/serializers/diagnostic.py:DiagnosticDefaultConfigSerializer`): mirrors the proposal pattern but trimmed — language and currency are validated by the model's `choices` (no redundant `validate_language`/`validate_default_currency`). Custom `validate_sections_json` ensures list of `{section_type, title, order, content_json}` dicts and normalizes missing/non-dict `content_json` to `{}`. Cross-field `validate()` re-checks the payment sum (catches PUT-time mismatches).
+  - **Service helpers** (`backend/content/services/diagnostic_service.py`): added module-level constants `DEFAULT_PAYMENT_INITIAL_PCT=60`, `DEFAULT_PAYMENT_FINAL_PCT=40`, `DEFAULT_EXPIRATION_DAYS=21`, `DEFAULT_REMINDER_DAYS=7`, `DEFAULT_URGENCY_REMINDER_DAYS=14`; new `get_default_config(lang)`, `get_default_section_specs(lang)`, `get_hardcoded_section_specs()`. `seed_sections(diagnostic, config=None)` now accepts a pre-fetched config to avoid a duplicate query, and filters out specs whose `section_type` isn't a valid choice. `create_diagnostic` calls `get_default_config(language)` once, applies `payment_terms`/`currency`/`investment_amount`/`duration_label` from it (or the constants when no row exists), then passes the same config to `seed_sections` — single DB read per create.
+  - **Views & URLs**: 2 new admin endpoints (`backend/content/views/diagnostic.py`): `GET/PUT /api/diagnostics/defaults/?lang=` (returns DB config or hardcoded fallback wrapped in the same shape; PUT upserts and preserves existing `sections_json` when the payload omits it) and `POST /api/diagnostics/defaults/reset/` (deletes the row for that language). Routes added under the diagnostics block in `content/urls.py`.
+  - **Frontend page** (`frontend/pages/panel/diagnostics/defaults.vue`): 5 tabs — **General** (idioma, moneda, inversión, duración, % pagos con auto-sync a 100, días de recordatorio/urgencia/expiración, botón Restablecer con `useConfirmModal`), **Secciones** (lista read-only de las 8 secciones del seed activo), **Plantillas de Email** (informativo, link a `/panel/email-templates`), **Prompt** (placeholder — todavía no hay defaults compartidos), **JSON** (vista cruda para debugging). Reusa `ResponsiveTabs`, `ConfirmModal`, `usePanelToast` (no inline `setTimeout` que se filtraría al desmontar) y `<PanelToast />`. `applyConfig(data)` actualiza `rawConfig` + `sectionsList` + `generalForm` desde la respuesta del backend; `handleSaveGeneral` no recarga del backend tras guardar — usa `result.data` directo, ahorrando una query.
+  - **Store** (`frontend/stores/diagnostics.js`): añadidos imports `put_request` + actions `fetchDiagnosticDefaults(lang)`, `saveDiagnosticDefaults(lang, sectionsJson, generalConfig)` (whitelist explícito de campos; ignora claves extra), `resetDiagnosticDefaults(lang)`. Mismo patrón Options API de `proposals.js:saveProposalDefaults`/`resetProposalDefaults`.
+  - **Nav**: `frontend/pages/panel/diagnostics/index.vue` ahora muestra un botón "Valores por Defecto" en el header (estilo idéntico al de `/panel/proposals/`).
+  - **Bug colateral arreglado**: una edición externa había dejado `penal_clause_value = serializers.CharField(...)` dentro de `DiagnosticDefaultConfigSerializer`. Movido a `ConfidentialityParamsSerializer` donde corresponde (placeholder del NDA; ya consumido por `confidentiality_pdf_service.py`).
+  - **Tests**: backend nuevos `test_diagnostic_default_config.py` (8) + `test_diagnostic_defaults_views.py` (16) — 24 verdes; las 29 tests del módulo `test_web_app_diagnostic.py` y 11 de `test_diagnostic_attachments_and_emails.py` siguen verdes (pasaron por el cambio de `seed_sections`/`create_diagnostic`). Frontend: 6 tests añadidos al final de `frontend/test/stores/diagnostics.test.js` para las 3 actions; `put_request` añadido al mock del módulo. Jest no se ejecutó localmente (binario ausente en `node_modules`), correr con `npm --prefix frontend install && npm --prefix frontend test -- test/stores/diagnostics.test.js` cuando se necesite.
+  - **No tocado** (a propósito): la página `panel/diagnostics/[id]/edit.vue` (los pagos por diagnóstico se editan ahí independiente del default), `panel/diagnostics/create.vue` (el backend ya aplica los defaults en `create_diagnostic`), las plantillas de email (`/panel/email-templates` ya las gestiona).
+  - **Ops**: `python manage.py migrate content 0101` aplica la nueva tabla en producción. Sin cambios de config ni nuevas dependencias.
+
+- **Diagnostic Edit — "Det. técnico" Tab Removed** (Apr 18, 2026):
+  - **Motivation**: the consolidated `technical` tab (Pricing + Radiografía sub-tabs) no longer matches the real workflow. Pricing fields already live in the **General** tab; the Radiografía is one of the 8 section rows and is edited from **Secciones**. The actual diagnostic deliverable is produced offline — the team downloads the three markdown documents (diagnóstico aplicación, diagnóstico técnico, anexo), completes them, and sends them to the client from the **Correos** tab. The tab had nothing left to drive.
+  - **Frontend change** (`frontend/pages/panel/diagnostics/[id]/edit.vue`): removed the `technical` entry from the `tabs` computed, the entire `<section v-if="activeTab === 'technical'">` template (outer visibility checkbox + Pricing/Radiografía sub-tab pills + `DiagnosticPricingForm`/`DiagnosticRadiographyForm`), their imports, and the matching script state (`technicalSubTab`, `formPricing`, `formRadiography`, `technicalSection` computed, `toggleTechnicalSectionEnabled`, `savePricing`, `saveRadiography`). The `syncForms` wrapper became a no-op and was inlined — the `watch(() => store.current?.id, …)` now calls `syncFormGeneral` directly.
+  - **Legacy deep-link redirects**: `LEGACY_TAB_REDIRECTS` updated from `{ pricing: 'technical', radiography: 'technical', … }` to `{ pricing: 'general', radiography: 'sections', technical: 'sections', … }`. Bookmarked URLs land on the new owner of that data.
+  - **Checkbox alignment** (`frontend/components/WebAppDiagnostic/admin/DiagnosticSectionEditor.vue`): the "Activa en la vista pública" checkbox used to hang off the bottom of the 3-col meta grid (`flex items-end`). Switched to `flex items-center gap-3 sm:self-center` so the grid item aligns itself to the row's vertical center — no more hand-rolled `sm:pt-5` compensation for the sibling labels.
+  - **Not touched** (preserved on purpose): the `radiography` JSONField on `WebAppDiagnostic`, `DiagnosticDetailSerializer.radiography`, the `radiography` seed in `diagnostic_template.py`, `build_render_context()` use, and the public `RadiographySection.vue`. All radiography data still round-trips through the sections array, just without the extra editor.
+  - **No backend/API/test changes.** Stale memory entries (tab list in the "Web App Diagnostics — JSON-Section Rewrite" / "Diagnostic Edit — UI/UX Parity" sections below) describe the superseded 10-tab layout; keep them as historical context.
+
 - **Diagnostic Edit — UI/UX Parity With Proposal Edit** (Apr 16, 2026):
   - **Motivation**: the diagnostic admin page had acquired all the functional tabs of the proposal editor but its shell had drifted (sticky header shape, tab order, card chrome, dark-mode palette). Admins switching between the two flows noticed the mismatch. This pass aligns only the shell — no functional or backend changes.
   - **Template rewrite** in `frontend/pages/panel/diagnostics/[id]/edit.vue`: back-link lifted above sticky header; sticky header now carries only title + investment + status (client name + public URL moved into the Resumen info grid); margin collapse unified to `-mx-4 sm:-mx-6 lg:-mx-8`; dark tokens migrated from `dark:bg-gray-*` / `dark:border-gray-*` to `dark:bg-esmerald[-dark]` / `dark:border-white/[0.06]` / `dark:text-green-light/60`.
@@ -199,7 +221,7 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ---
 
-## Verified Codebase Metrics (April 15, 2026 — refreshed post-WebApp-Diagnostics)
+## Verified Codebase Metrics (April 18, 2026 — refreshed post-Diagnostic-Defaults)
 
 | Metric | Count |
 |--------|-------|
@@ -217,14 +239,14 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 | Email templates | 61 (32 HTML + 29 TXT across `accounts` + `content`) |
 | Content services | 19 |
 | Accounts services | 11 |
-| Content migrations | 90 |
+| Content migrations | 101 |
 | Quality gate score | 100/100 (0 errors, 2 warnings) |
 
 ---
 
 ## Next Steps
 
-- **Apply pending migrations in production** — `python manage.py migrate` — required to activate the Kanban board (`0087_task.py`) and the Web App Diagnostics module (`0090_web_app_diagnostic.py`).
+- **Apply pending migrations in production** — `python manage.py migrate` — required to activate the Kanban board (`0087_task.py`), the Web App Diagnostics module (`0090_web_app_diagnostic.py`), and the new Diagnostic Defaults table (`0101_diagnostic_default_config.py`).
 - **Set `NOTIFICATION_EMAIL` in production env** to `team@projectapp.co,carlos18bp@gmail.com` so the new stage warning + overdue alerts reach the right inbox.
 - Consider extending `ProposalStageTracker.STAGE_DEFINITIONS` beyond design + development (e.g., QA, Lanzamiento, Entrega Final) — the model + service already support N stages, only the catalog constant needs an update.
 - Complete Document System PDF generation (branch `generate-pdf-with-template`): template rendering, preview, download flow — **folders & tags layer is now in place**

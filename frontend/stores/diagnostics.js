@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import {
   get_request,
   create_request,
+  put_request,
   patch_request,
   delete_request,
 } from './services/request_http';
@@ -478,6 +479,75 @@ export const useDiagnosticsStore = defineStore('diagnostics', {
       } catch (error) {
         this.error = error?.response?.data?.error || 'respond_failed';
         return { success: false, error: this.error };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    // ── Diagnostic Defaults (admin) ─────────────────────────────────
+    async fetchDiagnosticDefaults(lang = 'es') {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const response = await get_request(
+          `diagnostics/defaults/?lang=${encodeURIComponent(lang)}`
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'fetch_defaults_failed';
+        return { success: false, errors: error?.response?.data };
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async saveDiagnosticDefaults(lang, sectionsJson, generalConfig = null) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const payload = { language: lang };
+        if (Array.isArray(sectionsJson)) {
+          payload.sections_json = sectionsJson;
+        }
+        if (generalConfig && typeof generalConfig === 'object') {
+          const passthrough = [
+            'payment_initial_pct',
+            'payment_final_pct',
+            'default_currency',
+            'default_investment_amount',
+            'default_duration_label',
+            'expiration_days',
+            'reminder_days',
+            'urgency_reminder_days',
+          ];
+          for (const key of passthrough) {
+            if (generalConfig[key] !== undefined && generalConfig[key] !== null) {
+              payload[key] = generalConfig[key];
+            }
+          }
+        }
+        const response = await put_request('diagnostics/defaults/', payload);
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'save_defaults_failed';
+        return { success: false, errors: error?.response?.data };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    async resetDiagnosticDefaults(lang = 'es') {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          'diagnostics/defaults/reset/',
+          { language: lang }
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'reset_defaults_failed';
+        return { success: false, errors: error?.response?.data };
       } finally {
         this.isUpdating = false;
       }

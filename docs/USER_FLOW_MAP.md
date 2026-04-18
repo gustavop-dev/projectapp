@@ -1787,7 +1787,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Routes:** `/panel/diagnostics/:id/edit`
 - **Description:** Admin completes pricing and radiography data, finalises the `categories` section with findings/recommendations + the `executive_summary` section with severity counts, then sends the final-phase diagnostic from NEGOTIATING state, transitioning back to SENT with `final_sent_at` stamped. Public view now also exposes sections whose `visibility = final`.
 - **Steps:**
-  1. Admin edits Pricing and Radiografía tabs in `/panel/diagnostics/:id/edit`.
+  1. Admin updates pricing fields in the General tab and radiography data in the Secciones tab (as of 2026-04-18 the Pricing and Radiografía sub-tabs live in General/Secciones; the former "Det. técnico" tab was retired).
   2. Fills findings, strengths, and recommendations for each of the 14 categories in the Secciones tab.
   3. Completes the Resumen Ejecutivo section with severity counts + narrative.
   4. Clicks "Enviar diagnóstico final" → POST `/api/diagnostics/:id/send-final/`.
@@ -3780,7 +3780,7 @@ No active browser flow is registered for client profile editing at this time.
 
 ## Section 17 — v2.23.0 Gaps (Diagnostic Admin Tab Restructure)
 
-> Flows registered during the v2.23.0 audit cycle. Covers the diagnostic admin edit-page alignment with the proposals admin pattern: tab reorder, consolidation of Pricing + Radiografía into a single "Det. técnico" tab with sub-tabs, conditional visibility of Correos/Documentos by status, and the replacement of the raw-JSON "Plantillas" textarea with a full JSON export/import tab (parity with `admin-proposal-json`).
+> Flows registered during the v2.23.0 audit cycle. Covers the diagnostic admin edit-page alignment with the proposals admin pattern: tab reorder, conditional visibility of Correos/Documentos by status, and the replacement of the raw-JSON "Plantillas" textarea with a full JSON export/import tab (parity with `admin-proposal-json`). The short-lived "Det. técnico" tab (Pricing + Radiografía sub-tabs) was retired on 2026-04-18 — pricing now lives in General and radiografía is edited as a regular section from Secciones.
 
 ### 17.1 Diagnostic JSON Export
 
@@ -3833,7 +3833,7 @@ No active browser flow is registered for client profile editing at this time.
 2. Admin either pastes a JSON blob into the "Importar JSON" textarea or clicks **Subir .json** and picks a file.
 3. Parse succeeds → preview strip shows Cliente / Secciones / Inversión; **Aplicar JSON** button enables.
 4. Admin clicks **Aplicar JSON** — metadata PATCH fires first, then bulk sections POST.
-5. Success toast: "JSON aplicado correctamente." Textarea clears, preview hides, Pricing/Radiografía sub-tabs reflect the new values.
+5. Success toast: "JSON aplicado correctamente." Textarea clears, preview hides, General-tab pricing fields and the radiografía section reflect the new values.
 
 **Branches:**
 - [Invalid JSON] Parse throws → red box with `JSON inválido: {message}`; Aplicar button stays disabled.
@@ -3852,8 +3852,101 @@ No active browser flow is registered for client profile editing at this time.
 |---------|--------|------|----------|--------|------|
 | `admin-diagnostic-json-export` | diagnostics | admin | P2 | ⬜ Missing spec | _proposed_: `e2e/admin/admin-diagnostic-json.spec.js` |
 | `admin-diagnostic-json-import` | diagnostics | admin | P2 | ⬜ Missing spec | _proposed_: `e2e/admin/admin-diagnostic-json.spec.js` |
+| `admin-diagnostic-defaults-config` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-defaults.spec.js` |
+| `admin-diagnostic-mark-in-analysis` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` (`'Marcar en análisis' button POSTs…`) |
+| `diagnostic-public-respond` | diagnostic | guest | P1 | ✅ Covered | `e2e/public/diagnostic-public-view.spec.js` (`clicking 'Aceptar propuesta'…`) |
+
+---
+
+### 17.5 Diagnostic Defaults Config (Apr 18, 2026)
+
+#### FLOW: `admin-diagnostic-defaults-config`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-defaults-config` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ✅ Covered |
+
+**Routes:** `/panel/diagnostics/defaults`.
+
+**Description:** Admin manages the per-language defaults applied to every new `WebAppDiagnostic` from `panel/diagnostics/defaults.vue`. The page mirrors `/panel/proposals/defaults/` but is scoped to diagnostics. Five tabs render from one config payload: **General** (idioma, moneda, inversión, duración, % pagos con auto-sync 100, días de recordatorio/urgencia/expiración), **Secciones** (lista read-only de las 8 secciones del seed activo), **Plantillas de Email** (link a `/panel/email-templates`), **Prompt** (placeholder), **JSON** (vista cruda). Cuando no existe una `DiagnosticDefaultConfig` para el idioma, `GET /api/diagnostics/defaults/?lang=` devuelve los valores hardcoded del seed con 60% inicial / 40% final como pagos por defecto.
+
+**Steps:**
+1. Admin abre `/panel/diagnostics/defaults` desde el botón "Valores por Defecto" del header de `/panel/diagnostics`.
+2. La página llama `GET /api/diagnostics/defaults/?lang=es` y popula `generalForm` + `sectionsList` + `rawConfig` vía `applyConfig(data)`.
+3. El tab General muestra los inputs precargados (60/40, COP, 21/7/14 días).
+4. Admin edita el % inicial — `syncPaymentFinal()` mueve el % final automáticamente para mantener suma=100.
+5. Admin presiona "Guardar cambios" → `PUT /api/diagnostics/defaults/` con language + sections_json + payment_initial_pct + payment_final_pct + default_currency + default_investment_amount + default_duration_label + reminder/urgency/expiration days.
+6. La respuesta se aplica vía `applyConfig(result.data)` (sin re-fetch). `usePanelToast` muestra "Valores guardados correctamente."
+7. Cualquier diagnóstico creado a partir de ahora hereda esos valores en `payment_terms` / `currency` / `investment_amount` / `duration_label`.
+
+**Branches:**
+- [Branch A — Reset] Admin presiona "Restablecer a valores del sistema" → `useConfirmModal` muestra "¿Eliminar el config personalizado y volver a los valores del sistema (60/40, COP, 21 días)?" → al confirmar se ejecuta `POST /api/diagnostics/defaults/reset/`, se borra la fila DB y la página recarga el seed hardcoded.
+- [Branch B — Cambio de idioma] Admin cambia el `<select>` de idioma → `onLanguageChange` re-llama `GET /defaults/?lang=` con el idioma nuevo. La fila de la otra lengua queda intacta.
+- [Branch C — Pagos no suman 100] Si el cliente fuerza valores manuales que no sumen 100 (deshabilitando el sync), el botón Guardar queda disabled y se muestra el aviso "La suma debe ser exactamente 100% (actual: N%)". El backend valida con la misma regla por si la UI se salta.
+
+**Expected outcome:** El `DiagnosticDefaultConfig` para ese idioma queda persistido (o eliminado en el caso del reset). Cualquier llamada subsecuente a `diagnostic_service.create_diagnostic(language=...)` lee el config y lo aplica al nuevo diagnóstico antes de sembrar las secciones.
+
+**Backend Tests:** `content/tests/views/test_diagnostic_defaults_views.py` (16) + `content/tests/models/test_diagnostic_default_config.py` (8).
+**Frontend Tests:** `frontend/test/stores/diagnostics.test.js` (`fetchDiagnosticDefaults`/`saveDiagnosticDefaults`/`resetDiagnosticDefaults` — 6 cases).
+**E2E Spec:** `e2e/admin/admin-diagnostic-defaults.spec.js`.
+
+### 17.6 Diagnostic Lifecycle Transitions Split (Apr 18, 2026)
+
+Two transitions that were previously bundled into other flows now have their own IDs so the registry honestly reflects three distinct admin/client interactions:
+
+#### FLOW: `admin-diagnostic-mark-in-analysis`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-mark-in-analysis` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P1 |
+| **Status** | ✅ Covered (assertion already existed under `admin-diagnostic-send-initial`; tag now points to its own flow ID) |
+
+**Routes:** `/panel/diagnostics/:id/edit` — sticky bottom action bar.
+**Description:** After the initial diagnostic has been sent (status SENT, `initial_sent_at` stamped), the admin clicks **Marcar en análisis** to acknowledge the client authorized continuing. A `useConfirmModal` warns "¿Confirmar que el cliente autorizó? Se moverá a «En negociación»." On confirm, the store calls `POST /api/diagnostics/:id/mark-in-analysis/`, status transitions SENT → NEGOTIATING, the page toast shows "Diagnóstico en negociación.", and the action bar swaps the button for **Enviar diagnóstico final**.
+**Steps:**
+1. Admin opens a SENT diagnostic.
+2. Admin clicks **Marcar en análisis** in the action bar.
+3. Confirmation modal renders.
+4. Admin confirms → POST `/mark-in-analysis/`.
+5. Status updates to NEGOTIATING; toast shown; button row updates.
+**Branches:**
+- [Branch — Cancel] Admin cancels the modal → no state change.
+- [Branch — API error] Backend returns non-2xx → red toast with the error message; status unchanged.
+**E2E Spec:** `e2e/admin/admin-diagnostic-send.spec.js` ("Marcar en análisis" test).
+
+#### FLOW: `diagnostic-public-respond`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `diagnostic-public-respond` |
+| **Module** | diagnostic |
+| **Role** | guest |
+| **Priority** | P1 |
+| **Status** | ✅ Covered (assertion already existed under `diagnostic-public-view`; tag now points to its own flow ID) |
+
+**Routes:** `/diagnostic/:uuid/`.
+**Description:** On the public diagnostic page in final phase (status SENT with `final_sent_at` stamped), the footer exposes **Aceptar propuesta** and **Rechazar**. Clicking either calls `POST /api/diagnostics/public/<uuid>/respond/` with `{decision: 'accept' | 'reject'}`. The backend transitions to ACCEPTED or REJECTED, the page swaps to the acceptance / rejection confirmation footer, and the matching toast renders ("Tu aceptación quedó registrada." / "Tu respuesta quedó registrada.").
+**Steps:**
+1. Client opens a final-phase public diagnostic.
+2. Client clicks **Aceptar propuesta** (or **Rechazar**).
+3. Frontend POSTs `/respond/`.
+4. Confirmation footer renders; status reflected on next refresh.
+**Branches:**
+- [Branch A — Accept] decision=accept → ACCEPTED, acceptance footer.
+- [Branch B — Reject] decision=reject → REJECTED, rejection footer (typically with reason field).
+- [Branch C — Already responded] If the diagnostic was already responded to, the respond buttons are hidden and the footer shows the existing response state.
+**E2E Spec:** `e2e/public/diagnostic-public-view.spec.js` ("clicking 'Aceptar propuesta'…" test).
+
+---
 
 ### 17.4 Out-of-scope behaviors documented but not registered as standalone flows
 
-- **Det. técnico sub-tabs (Pricing / Radiografía)** — the new inner pill nav is covered by the existing `admin-diagnostic-edit` flow; the sub-tab switch itself is UX navigation, not a user outcome. Deep-links `?tab=pricing` and `?tab=radiography` redirect to `?tab=technical` and preselect the correct sub-tab.
+- **Legacy `?tab=technical|pricing|radiography` deep-links** — retired on 2026-04-18. `LEGACY_TAB_REDIRECTS` now maps `pricing → general`, `radiography → sections`, `technical → sections` so existing bookmarks land on the new owner of that data. Not a user outcome, documented here as a branch.
 - **Conditional tab visibility by status** — Correos appears from `sent` onward; Documentos from `negotiating` onward. This is asserted implicitly by `admin-diagnostic-send-initial` (Correos should appear after the transition) and `admin-diagnostic-send-final` / confidentiality flows (Documentos should be available). Added here as a documented branch rather than a new flow since no new user outcome is introduced.

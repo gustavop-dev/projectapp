@@ -127,8 +127,8 @@
                 class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             </div>
 
-            <!-- Client picker -->
-            <div class="space-y-3 border border-gray-100 dark:border-white/[0.06] rounded-xl p-4 bg-gray-50/30 dark:bg-white/[0.03]">
+            <!-- Client picker (autocomplete + snapshot fields) -->
+            <div class="space-y-4 border border-gray-100 dark:border-white/[0.06] rounded-xl p-4 bg-gray-50/30 dark:bg-white/[0.03]">
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Cliente</label>
                 <ClientAutocomplete
@@ -138,12 +138,61 @@
                   placeholder="Buscar cliente por nombre, email o empresa…"
                   @select="onClientSelected"
                 />
-                <p v-if="store.current.client" class="text-xs text-gray-500 dark:text-green-light/60 mt-2">
-                  Cliente actual: <span class="font-medium text-gray-700 dark:text-white">{{ store.current.client.name }}</span>
-                  <span v-if="store.current.client.email"> · {{ store.current.client.email }}</span>
-                  <span v-if="store.current.client.company"> · {{ store.current.client.company }}</span>
+                <p class="text-xs text-gray-400 mt-1">
+                  Busca y selecciona un cliente existente. Si no tiene email real, las automatizaciones de correo quedarán pausadas.
                 </p>
               </div>
+
+              <!-- Placeholder warning badge -->
+              <div
+                v-if="store.current?.client?.is_email_placeholder"
+                class="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20"
+              >
+                <span class="text-amber-700 dark:text-amber-300 text-xs font-medium">
+                  📧 Email pendiente — las automatizaciones de correo están pausadas para este cliente.
+                </span>
+              </div>
+
+              <!-- Snapshot fields -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Nombre snapshot</label>
+                  <input v-model="form.client_name" type="text"
+                    data-testid="diagnostic-edit-client-name"
+                    class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Email snapshot</label>
+                  <input v-model="form.client_email" type="email"
+                    data-testid="diagnostic-edit-client-email"
+                    class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Teléfono / WhatsApp</label>
+                  <input v-model="form.client_phone" type="tel" placeholder="+57 300 123 4567"
+                    data-testid="diagnostic-edit-client-phone"
+                    class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 mb-1">Empresa</label>
+                  <input v-model="form.client_company" type="text" placeholder="Acme Inc."
+                    data-testid="diagnostic-edit-client-company"
+                    class="w-full px-3 py-2 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+                </div>
+              </div>
+
+              <!-- Propagate-to-profile checkbox -->
+              <label class="flex items-start gap-2 cursor-pointer">
+                <input
+                  v-model="form.propagate_client_updates"
+                  type="checkbox"
+                  data-testid="diagnostic-edit-client-propagate"
+                  class="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span class="text-xs text-gray-600 dark:text-green-light/60">
+                  Actualizar el perfil del cliente con estos cambios (también se reflejarán en sus otras propuestas y diagnósticos).
+                </span>
+              </label>
             </div>
 
             <div>
@@ -292,69 +341,6 @@
             @update:section="(meta) => onSectionMetaChange(section, meta)"
             @reset="() => onSectionReset(section)"
           />
-        </div>
-      </section>
-
-      <!-- Det. técnico (Pricing + Radiografía como sub-tabs) -->
-      <section v-if="activeTab === 'technical'" class="max-w-5xl">
-        <label v-if="technicalSection" class="flex items-center gap-2 text-sm text-gray-600 dark:text-green-light/70 mb-4 cursor-pointer">
-          <input
-            type="checkbox"
-            class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-            :checked="technicalSection.is_enabled"
-            :disabled="store.isUpdating"
-            @change="toggleTechnicalSectionEnabled"
-          />
-          Visible en el diagnóstico público
-        </label>
-
-        <div class="flex gap-1 mb-4 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 max-w-sm">
-          <button
-            type="button"
-            :class="[
-              'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
-              technicalSubTab === 'pricing' ? 'bg-white dark:bg-gray-700 shadow-sm font-medium text-gray-900 dark:text-gray-100' : 'text-gray-500',
-            ]"
-            @click="technicalSubTab = 'pricing'"
-          >
-            Pricing
-          </button>
-          <button
-            type="button"
-            :class="[
-              'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
-              technicalSubTab === 'radiography' ? 'bg-white dark:bg-gray-700 shadow-sm font-medium text-gray-900 dark:text-gray-100' : 'text-gray-500',
-            ]"
-            @click="technicalSubTab = 'radiography'"
-          >
-            Radiografía
-          </button>
-        </div>
-        <div v-show="technicalSubTab === 'pricing'">
-          <div class="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-700/30 rounded-xl px-4 py-3 mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p class="text-sm text-amber-800 dark:text-amber-300">
-              Los campos de inversión, moneda y forma de pago se editan ahora en el tab <strong>General</strong>.
-            </p>
-            <button
-              type="button"
-              class="text-xs font-medium px-3 py-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
-              @click="activeTab = 'general'"
-            >
-              Ir a General
-            </button>
-          </div>
-          <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-8 opacity-75 pointer-events-none">
-            <DiagnosticPricingForm v-model="formPricing" :busy="true" @submit="() => {}" />
-          </div>
-        </div>
-        <div v-show="technicalSubTab === 'radiography'">
-          <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6 mb-6">
-            <div class="mb-4">
-              <h3 class="text-sm font-medium text-gray-900 dark:text-white">Radiografía técnica</h3>
-              <p class="text-xs text-gray-400 dark:text-green-light/40 mt-0.5">Stack, inventario de módulos y métricas que sustentan la evaluación técnica del diagnóstico.</p>
-            </div>
-            <DiagnosticRadiographyForm v-model="formRadiography" :busy="store.isUpdating" @submit="saveRadiography" />
-          </div>
         </div>
       </section>
 
@@ -539,8 +525,6 @@ import { ref, reactive, computed, watch, onMounted, onBeforeUnmount, onUnmounted
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 import { DIAGNOSTIC_STATUS } from '~/stores/diagnostics_constants';
 import DiagnosticStatusBadge from '~/components/WebAppDiagnostic/DiagnosticStatusBadge.vue';
-import DiagnosticPricingForm from '~/components/WebAppDiagnostic/DiagnosticPricingForm.vue';
-import DiagnosticRadiographyForm from '~/components/WebAppDiagnostic/DiagnosticRadiographyForm.vue';
 import DiagnosticSectionEditor from '~/components/WebAppDiagnostic/admin/DiagnosticSectionEditor.vue';
 import DiagnosticPromptPanel from '~/components/WebAppDiagnostic/admin/DiagnosticPromptPanel.vue';
 import DiagnosticActivityTab from '~/components/WebAppDiagnostic/admin/DiagnosticActivityTab.vue';
@@ -599,7 +583,6 @@ const tabs = computed(() => {
   if (hasDocumentsTab.value) base.push({ id: 'documents', label: 'Documentos' });
   base.push(
     { id: 'sections',  label: 'Secciones' },
-    { id: 'technical', label: 'Radiografía & Precios' },
     { id: 'prompt',    label: 'Prompt Diagnostic' },
     { id: 'json',      label: 'JSON' },
     { id: 'activity',  label: 'Actividad' },
@@ -609,9 +592,8 @@ const tabs = computed(() => {
 });
 const tabIds = computed(() => tabs.value.map((t) => t.id));
 
-const LEGACY_TAB_REDIRECTS = { pricing: 'technical', radiography: 'technical', plantillas: 'json', summary: 'general' };
+const LEGACY_TAB_REDIRECTS = { pricing: 'general', radiography: 'sections', technical: 'sections', plantillas: 'json', summary: 'general' };
 const initialQueryTab = route.query.tab;
-const technicalSubTab = ref(initialQueryTab === 'radiography' ? 'radiography' : 'pricing');
 
 // Apply legacy redirects eagerly; accept any string for now so a bookmarked tab
 // like `?tab=emails` is not prematurely dropped while `store.current` is still loading.
@@ -635,8 +617,6 @@ watch([tabIds, () => store.current], ([ids, current]) => {
 watch(() => route.query.tab, (raw) => {
   if (raw && LEGACY_TAB_REDIRECTS[raw] && activeTab.value !== LEGACY_TAB_REDIRECTS[raw]) {
     activeTab.value = LEGACY_TAB_REDIRECTS[raw];
-    if (raw === 'radiography') technicalSubTab.value = 'radiography';
-    else if (raw === 'pricing') technicalSubTab.value = 'pricing';
   }
 });
 
@@ -658,6 +638,11 @@ const form = reactive({
   title: '',
   client_id: null,
   client_label: '',
+  client_name: '',
+  client_email: '',
+  client_phone: '',
+  client_company: '',
+  propagate_client_updates: false,
   language: 'es',
   investment_amount: '',
   currency: 'COP',
@@ -670,8 +655,13 @@ const form = reactive({
 const showActionsModal = ref(false);
 
 function onClientSelected(client) {
-  form.client_id = client?.id || null;
-  if (client?.name) form.client_label = client.name;
+  if (!client) return;
+  form.client_id = client.id;
+  form.client_label = client.name || form.client_label;
+  form.client_name = client.name || form.client_name;
+  form.client_email = client.is_email_placeholder ? '' : (client.email || '');
+  form.client_phone = client.phone || form.client_phone;
+  form.client_company = client.company || form.client_company;
 }
 
 function syncFormGeneral() {
@@ -681,6 +671,11 @@ function syncFormGeneral() {
   form.title = c.title || '';
   form.client_id = c.client?.id || null;
   form.client_label = c.client?.name || '';
+  form.client_name = c.client_name || c.client?.name || '';
+  form.client_email = c.client_email || (c.client?.is_email_placeholder ? '' : c.client?.email) || '';
+  form.client_phone = c.client_phone || '';
+  form.client_company = c.client_company || c.client?.company || '';
+  form.propagate_client_updates = false;
   form.language = c.language || 'es';
   form.investment_amount = c.investment_amount ?? '';
   form.currency = c.currency || 'COP';
@@ -702,6 +697,11 @@ async function handleUpdate() {
     },
     duration_label: form.duration_label,
     size_category: form.size_category,
+    client_name: form.client_name,
+    client_email: form.client_email,
+    client_phone: form.client_phone,
+    client_company: form.client_company,
+    propagate_client_updates: form.propagate_client_updates,
   };
   if (form.client_id && form.client_id !== store.current?.client?.id) {
     payload.client_id = form.client_id;
@@ -713,53 +713,11 @@ async function handleUpdate() {
   );
 }
 
-// ── Pricing/Radiography forms ─────────────────────────────────────────
-const formPricing = ref({
-  investment_amount: '',
-  currency: 'COP',
-  payment_terms: { initial_pct: 40, final_pct: 60 },
-  duration_label: '',
-});
-const formRadiography = ref({ size_category: '', radiography: {} });
-
 function showToast(message, type) {
   panelToast.showToast({ type, text: message });
 }
 
-function syncForms() {
-  if (!store.current) return;
-  formPricing.value = {
-    investment_amount: store.current.investment_amount || '',
-    currency: store.current.currency || 'COP',
-    payment_terms: { ...(store.current.payment_terms || { initial_pct: 40, final_pct: 60 }) },
-    duration_label: store.current.duration_label || '',
-  };
-  formRadiography.value = {
-    size_category: store.current.size_category || '',
-    radiography: { ...(store.current.radiography || {}) },
-  };
-  syncFormGeneral();
-}
-
-watch(() => store.current?.id, syncForms, { immediate: true });
-
-// ── Det. técnico — radiography section visibility toggle ──────────────
-const technicalSection = computed(() => {
-  const sections = store.current?.sections || [];
-  return sections.find((s) => s.section_type === 'radiography') || null;
-});
-
-async function toggleTechnicalSectionEnabled(event) {
-  if (!technicalSection.value) return;
-  const next = Boolean(event?.target?.checked);
-  const r = await store.updateSection(id.value, technicalSection.value.id, { is_enabled: next });
-  showToast(
-    r.success
-      ? (next ? 'Sección visible en el diagnóstico público.' : 'Sección oculta del diagnóstico público.')
-      : (r.error || 'Error al actualizar la visibilidad.'),
-    r.success ? 'success' : 'error',
-  );
-}
+watch(() => store.current?.id, syncFormGeneral, { immediate: true });
 
 // ── Next action (sticky bar) ──────────────────────────────────────────
 const nextAction = computed(() => getDiagnosticNextAction(store.current));
@@ -770,15 +728,6 @@ function handleNextAction() {
   if (a.key === 'send') return onSendInitial();
   if (a.key === 'analyze') return onMarkAnalysis();
   if (a.key === 'send-final') return onSendFinal();
-}
-
-async function savePricing() {
-  const result = await store.update(id.value, formPricing.value);
-  showToast(result.success ? 'Pricing guardado.' : (result.error || 'Error al guardar.'), result.success ? 'success' : 'error');
-}
-async function saveRadiography() {
-  const result = await store.update(id.value, formRadiography.value);
-  showToast(result.success ? 'Radiografía guardada.' : (result.error || 'Error al guardar.'), result.success ? 'success' : 'error');
 }
 
 // ── Sections tab ──────────────────────────────────────────────────────
@@ -1066,7 +1015,7 @@ async function handleApplyImportJson() {
   jsonImportRaw.value = '';
   jsonImportParsed.value = null;
   jsonImportFileName.value = '';
-  syncForms();
+  syncFormGeneral();
 }
 
 // ── Activity ──────────────────────────────────────────────────────────

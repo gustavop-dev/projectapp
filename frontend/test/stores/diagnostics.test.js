@@ -7,6 +7,7 @@ import { useDiagnosticsStore } from '../../stores/diagnostics'
 jest.mock('../../stores/services/request_http', () => ({
   get_request: jest.fn(),
   create_request: jest.fn(),
+  put_request: jest.fn(),
   patch_request: jest.fn(),
   delete_request: jest.fn(),
 }))
@@ -14,6 +15,7 @@ jest.mock('../../stores/services/request_http', () => ({
 const {
   get_request,
   create_request,
+  put_request,
   patch_request,
   delete_request,
 } = require('../../stores/services/request_http')
@@ -424,5 +426,89 @@ describe('useDiagnosticsStore', () => {
     const result = await store.respondPublic('uuid', 'accept')
     expect(result.success).toBe(false)
     expect(store.error).toBe('invalid_transition')
+  })
+
+  // ── Diagnostic defaults ────────────────────────────────────────────────
+
+  it('fetchDiagnosticDefaults requests the lang-scoped endpoint', async () => {
+    get_request.mockResolvedValueOnce({
+      data: {
+        language: 'es',
+        payment_initial_pct: 60,
+        payment_final_pct: 40,
+        sections_json: [],
+      },
+    })
+    const result = await store.fetchDiagnosticDefaults('es')
+    expect(get_request).toHaveBeenCalledWith('diagnostics/defaults/?lang=es')
+    expect(result.success).toBe(true)
+    expect(result.data.payment_initial_pct).toBe(60)
+  })
+
+  it('fetchDiagnosticDefaults returns errors on failure', async () => {
+    get_request.mockRejectedValueOnce({ response: { data: { detail: 'oops' } } })
+    const result = await store.fetchDiagnosticDefaults('en')
+    expect(result.success).toBe(false)
+    expect(store.error).toBe('fetch_defaults_failed')
+  })
+
+  it('saveDiagnosticDefaults PUTs only the whitelisted general fields', async () => {
+    put_request.mockResolvedValueOnce({ data: { id: 1, language: 'es' } })
+    const result = await store.saveDiagnosticDefaults(
+      'es',
+      [{ section_type: 'purpose', title: 'X', order: 0, content_json: {} }],
+      {
+        payment_initial_pct: 70,
+        payment_final_pct: 30,
+        default_currency: 'USD',
+        default_investment_amount: 1500,
+        default_duration_label: '4 semanas',
+        expiration_days: 30,
+        reminder_days: 5,
+        urgency_reminder_days: 10,
+        ignored_field: 'should not be sent',
+      },
+    )
+    expect(put_request).toHaveBeenCalledTimes(1)
+    const [url, payload] = put_request.mock.calls[0]
+    expect(url).toBe('diagnostics/defaults/')
+    expect(payload).toEqual({
+      language: 'es',
+      sections_json: [{ section_type: 'purpose', title: 'X', order: 0, content_json: {} }],
+      payment_initial_pct: 70,
+      payment_final_pct: 30,
+      default_currency: 'USD',
+      default_investment_amount: 1500,
+      default_duration_label: '4 semanas',
+      expiration_days: 30,
+      reminder_days: 5,
+      urgency_reminder_days: 10,
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('saveDiagnosticDefaults can be called without a sections array', async () => {
+    put_request.mockResolvedValueOnce({ data: { id: 1 } })
+    await store.saveDiagnosticDefaults('en', null, { payment_initial_pct: 50, payment_final_pct: 50 })
+    const [, payload] = put_request.mock.calls[0]
+    expect(payload).not.toHaveProperty('sections_json')
+    expect(payload.payment_initial_pct).toBe(50)
+  })
+
+  it('saveDiagnosticDefaults surfaces validation errors', async () => {
+    put_request.mockRejectedValueOnce({
+      response: { data: { payment_initial_pct: ['must equal 100'] } },
+    })
+    const result = await store.saveDiagnosticDefaults('es', null, {})
+    expect(result.success).toBe(false)
+    expect(result.errors).toEqual({ payment_initial_pct: ['must equal 100'] })
+  })
+
+  it('resetDiagnosticDefaults POSTs the language and reports success', async () => {
+    create_request.mockResolvedValueOnce({ data: { status: 'reset', deleted: true } })
+    const result = await store.resetDiagnosticDefaults('es')
+    expect(create_request).toHaveBeenCalledWith('diagnostics/defaults/reset/', { language: 'es' })
+    expect(result.success).toBe(true)
+    expect(result.data.deleted).toBe(true)
   })
 })

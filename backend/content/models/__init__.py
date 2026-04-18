@@ -47,3 +47,4 @@ from .diagnostic_attachment import DiagnosticAttachment
 from .diagnostic_section import DiagnosticSection
 from .diagnostic_change_log import DiagnosticChangeLog
 from .diagnostic_view_event import DiagnosticViewEvent, DiagnosticSectionView
+from .diagnostic_default_config import DiagnosticDefaultConfig

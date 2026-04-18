@@ -9,7 +9,7 @@
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
-import { DIAGNOSTIC_PUBLIC_VIEW } from '../helpers/flow-tags.js';
+import { DIAGNOSTIC_PUBLIC_VIEW, DIAGNOSTIC_PUBLIC_RESPOND } from '../helpers/flow-tags.js';
 
 const TEST_UUID = 'aaaa-1111-bbbb-2222';
 
@@ -121,7 +121,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
   });
 
   test('clicking "Aceptar propuesta" POSTs accept decision and shows acceptance footer', {
-    tag: [...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
+    tag: [...DIAGNOSTIC_PUBLIC_RESPOND, '@role:guest'],
   }, async ({ page }) => {
     const diagnostic = buildPublicDiagnostic({ phase: 'final' });
     let respondCalled = false;

@@ -244,3 +244,10 @@ export const ADMIN_DIAGNOSTIC_CONFIDENTIALITY_GENERATE = ['@flow:admin-diagnosti
 
 // ── Diagnostic — JSON import (Apr 17, 2026) ──
 export const ADMIN_DIAGNOSTIC_JSON_IMPORT = ['@flow:admin-diagnostic-json-import', '@module:admin', '@priority:P2'];
+
+// ── Diagnostic — Default Config (Apr 18, 2026) ──
+export const ADMIN_DIAGNOSTIC_DEFAULTS_CONFIG = ['@flow:admin-diagnostic-defaults-config', '@module:admin', '@priority:P2'];
+
+// ── Diagnostic — split bundled flows (Apr 18, 2026) ──
+export const ADMIN_DIAGNOSTIC_MARK_IN_ANALYSIS = ['@flow:admin-diagnostic-mark-in-analysis', '@module:admin', '@priority:P1'];
+export const DIAGNOSTIC_PUBLIC_RESPOND = ['@flow:diagnostic-public-respond', '@module:diagnostic', '@priority:P1'];

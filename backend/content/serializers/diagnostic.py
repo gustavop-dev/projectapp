@@ -7,6 +7,7 @@ from accounts.services.proposal_client_service import build_client_display_name
 from content.models import (
     DiagnosticAttachment,
     DiagnosticChangeLog,
+    DiagnosticDefaultConfig,
     DiagnosticSection,
     WebAppDiagnostic,
 )
@@ -53,10 +54,11 @@ class _ClientSummarySerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
     company = serializers.CharField(source='company_name')
+    is_email_placeholder = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = UserProfile
-        fields = ['id', 'name', 'email', 'company']
+        fields = ['id', 'name', 'email', 'company', 'is_email_placeholder']
 
     def get_name(self, profile):
         return build_client_display_name(profile)
@@ -130,6 +132,7 @@ class DiagnosticListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'uuid', 'title', 'status', 'language',
             'client', 'public_url',
+            'client_name', 'client_email', 'client_phone', 'client_company',
             'investment_amount', 'currency', 'duration_label',
             'size_category',
             'view_count', 'last_viewed_at',
@@ -196,6 +199,9 @@ class DiagnosticUpdateSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=False,
     )
+    propagate_client_updates = serializers.BooleanField(
+        write_only=True, required=False, default=False,
+    )
 
     class Meta:
         model = WebAppDiagnostic
@@ -204,11 +210,21 @@ class DiagnosticUpdateSerializer(serializers.ModelSerializer):
             'investment_amount', 'currency', 'payment_terms',
             'duration_label', 'size_category', 'radiography',
             'client_id',
+            'client_name', 'client_email', 'client_phone', 'client_company',
+            'propagate_client_updates',
         ]
         extra_kwargs = {
             'title': {'required': False},
             'language': {'required': False},
+            'client_name': {'required': False, 'allow_blank': True},
+            'client_email': {'required': False, 'allow_blank': True},
+            'client_phone': {'required': False, 'allow_blank': True},
+            'client_company': {'required': False, 'allow_blank': True},
         }
+
+    def update(self, instance, validated_data):
+        validated_data.pop('propagate_client_updates', None)
+        return super().update(instance, validated_data)
 
 
 class PublicDiagnosticSerializer(serializers.ModelSerializer):
@@ -259,3 +275,66 @@ class ConfidentialityParamsSerializer(serializers.Serializer):
     contract_month = serializers.CharField(required=False, allow_blank=True, max_length=20)
     contract_year = serializers.CharField(required=False, allow_blank=True, max_length=8)
     penal_clause_value = serializers.CharField(required=False, allow_blank=True, max_length=255)
+
+
+class DiagnosticDefaultConfigSerializer(serializers.ModelSerializer):
+    """Serializer for the per-language diagnostic defaults singleton."""
+
+    class Meta:
+        model = DiagnosticDefaultConfig
+        fields = (
+            'id',
+            'language',
+            'sections_json',
+            'payment_initial_pct',
+            'payment_final_pct',
+            'default_currency',
+            'default_investment_amount',
+            'default_duration_label',
+            'expiration_days',
+            'reminder_days',
+            'urgency_reminder_days',
+            'created_at',
+            'updated_at',
+        )
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+    def validate_sections_json(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError(
+                'sections_json must be a JSON array (list).'
+            )
+        required_keys = {'section_type', 'title', 'order', 'content_json'}
+        normalized = []
+        for i, section in enumerate(value):
+            if not isinstance(section, dict):
+                raise serializers.ValidationError(
+                    f'Each section must be a dict (index {i}).'
+                )
+            missing = required_keys - set(section.keys())
+            if missing:
+                raise serializers.ValidationError(
+                    f'Section at index {i} is missing keys: {sorted(missing)}'
+                )
+            cloned = dict(section)
+            content_json = cloned.get('content_json')
+            cloned['content_json'] = content_json if isinstance(content_json, dict) else {}
+            normalized.append(cloned)
+        return normalized
+
+    def validate(self, attrs):
+        initial = attrs.get(
+            'payment_initial_pct',
+            getattr(self.instance, 'payment_initial_pct', 60),
+        )
+        final = attrs.get(
+            'payment_final_pct',
+            getattr(self.instance, 'payment_final_pct', 40),
+        )
+        if (initial or 0) + (final or 0) != 100:
+            raise serializers.ValidationError({
+                'payment_initial_pct': (
+                    'payment_initial_pct + payment_final_pct must equal 100.'
+                ),
+            })
+        return attrs

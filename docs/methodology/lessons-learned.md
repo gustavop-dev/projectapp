@@ -514,6 +514,8 @@ Use `<Teleport to="body">` so the toast renders above all panel layout layers (s
 
 **Implemented in**: `frontend/pages/panel/proposals/[id]/edit.vue`, `frontend/pages/panel/diagnostics/[id]/edit.vue`.
 
+**Preferred path for new admin pages**: import `usePanelToast` from `~/composables/usePanelToast` + mount `<PanelToast />` once in the template. The composable already encapsulates the timer + `clearTimeout` ceremony and a single `<PanelToast />` Teleport renders the bottom-right card. No need to re-implement `updateMsg`/`updateMsgTimer`/`setTimeout` pairs in each page — that pattern is reserved for legacy edit pages that already had inline toasts. New pages: `frontend/pages/panel/diagnostics/defaults.vue` (Apr 18, 2026) follows the composable path.
+
 ### Reusing Existing Transition Infrastructure for New Navigation Events
 
 Before adding a new CSS transition, check whether an existing overlay/transition already covers the visual effect you need. The `switch-mode-overlay` in `proposal/[uuid]/index.vue` was designed for gateway → mode transitions but works equally well for mode → gateway by adding a new sentinel value (`'gateway'`) to the icon/heading/subtitle ternary chain. No new CSS needed — the bouncy-scale enter/leave keyframes are reused as-is.

@@ -7,7 +7,11 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_DIAGNOSTIC_SEND_INITIAL, ADMIN_DIAGNOSTIC_SEND_FINAL } from '../helpers/flow-tags.js';
+import {
+  ADMIN_DIAGNOSTIC_SEND_INITIAL,
+  ADMIN_DIAGNOSTIC_SEND_FINAL,
+  ADMIN_DIAGNOSTIC_MARK_IN_ANALYSIS,
+} from '../helpers/flow-tags.js';
 
 const authOk = {
   status: 200,
@@ -68,7 +72,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     });
   });
 
-  test('edit page renders all 10 navigation tabs', {
+  test('edit page renders all navigation tabs', {
     tag: [...ADMIN_DIAGNOSTIC_SEND_INITIAL, '@role:admin'],
   }, async ({ page }) => {
     const diagnostic = buildMockDiagnostic();
@@ -77,7 +81,6 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await page.goto('/panel/diagnostics/7/edit');
     await expect(page.getByRole('button', { name: 'General', exact: true })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('button', { name: 'Secciones' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Det. técnico' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Prompt Diagnostic' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'JSON' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Actividad' })).toBeVisible();
@@ -127,7 +130,7 @@ test.describe('Admin Diagnostic — Send Flows', () => {
   });
 
   test('"Marcar en análisis" button POSTs to mark-in-analysis/ when initial has been sent', {
-    tag: [...ADMIN_DIAGNOSTIC_SEND_INITIAL, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_MARK_IN_ANALYSIS, '@role:admin'],
   }, async ({ page }) => {
     const diagnostic = buildMockDiagnostic({
       status: 'sent',

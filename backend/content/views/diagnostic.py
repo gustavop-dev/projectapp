@@ -15,9 +15,11 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
 from accounts.models import UserProfile
+from accounts.services.proposal_client_service import update_client_profile
 from content.models import (
     DiagnosticAttachment,
     DiagnosticChangeLog,
+    DiagnosticDefaultConfig,
     DiagnosticSection,
     DiagnosticSectionView,
     DiagnosticViewEvent,
@@ -26,6 +28,7 @@ from content.models import (
 from content.serializers.diagnostic import (
     ConfidentialityParamsSerializer,
     DiagnosticChangeLogSerializer,
+    DiagnosticDefaultConfigSerializer,
     DiagnosticDetailSerializer,
     DiagnosticListSerializer,
     DiagnosticSectionSerializer,
@@ -121,7 +124,16 @@ def update_diagnostic(request, diagnostic_id):
     if not serializer.is_valid():
         return Response(serializer.errors,
                         status=http_status.HTTP_400_BAD_REQUEST)
+    propagate = serializer.validated_data.get('propagate_client_updates', False)
     serializer.save()
+    if propagate:
+        update_client_profile(
+            diagnostic.client,
+            name=diagnostic.client_name or None,
+            email=diagnostic.client_email or None,
+            phone=diagnostic.client_phone or None,
+            company=diagnostic.client_company or None,
+        )
     diagnostic_service.log_change(
         diagnostic,
         change_type=DiagnosticChangeLog.ChangeType.UPDATED,
@@ -1012,3 +1024,75 @@ def list_diagnostic_emails(request, diagnostic_id):
     except (ValueError, TypeError):
         page = 1
     return Response(DiagnosticEmailService.list_emails(diagnostic, page=page))
+
+
+# ---------------------------------------------------------------------------
+# Diagnostic Default Config
+# ---------------------------------------------------------------------------
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAdminUser])
+def diagnostic_defaults(request):
+    """GET — DB config for *lang* or hardcoded fallback. PUT — upsert."""
+    lang = request.query_params.get('lang', request.data.get('language', 'es'))
+    if lang not in ('es', 'en'):
+        return Response(
+            {'detail': 'lang must be "es" or "en".'},
+            status=http_status.HTTP_400_BAD_REQUEST,
+        )
+
+    if request.method == 'GET':
+        config = DiagnosticDefaultConfig.objects.filter(language=lang).first()
+        if config:
+            return Response(DiagnosticDefaultConfigSerializer(config).data)
+        return Response({
+            'id': None,
+            'language': lang,
+            'sections_json': diagnostic_service.get_hardcoded_section_specs(),
+            'payment_initial_pct': diagnostic_service.DEFAULT_PAYMENT_INITIAL_PCT,
+            'payment_final_pct': diagnostic_service.DEFAULT_PAYMENT_FINAL_PCT,
+            'default_currency': WebAppDiagnostic.Currency.COP,
+            'default_investment_amount': None,
+            'default_duration_label': '',
+            'expiration_days': diagnostic_service.DEFAULT_EXPIRATION_DAYS,
+            'reminder_days': diagnostic_service.DEFAULT_REMINDER_DAYS,
+            'urgency_reminder_days': diagnostic_service.DEFAULT_URGENCY_REMINDER_DAYS,
+            'created_at': None,
+            'updated_at': None,
+        })
+
+    config = DiagnosticDefaultConfig.objects.filter(language=lang).first()
+    payload = dict(request.data)
+    payload['language'] = lang
+    if 'sections_json' not in payload:
+        if config and config.sections_json:
+            payload['sections_json'] = config.sections_json
+        else:
+            payload['sections_json'] = diagnostic_service.get_hardcoded_section_specs()
+
+    serializer = (
+        DiagnosticDefaultConfigSerializer(config, data=payload)
+        if config
+        else DiagnosticDefaultConfigSerializer(data=payload)
+    )
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=http_status.HTTP_400_BAD_REQUEST)
+    serializer.save()
+    return Response(serializer.data, status=http_status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def reset_diagnostic_defaults(request):
+    """Delete the DB-backed defaults for a language; reverts to hardcoded seed."""
+    lang = request.data.get('language', 'es')
+    if lang not in ('es', 'en'):
+        return Response(
+            {'detail': 'language must be "es" or "en".'},
+            status=http_status.HTTP_400_BAD_REQUEST,
+        )
+    deleted_count, _ = DiagnosticDefaultConfig.objects.filter(language=lang).delete()
+    return Response(
+        {'status': 'reset', 'deleted': deleted_count > 0},
+        status=http_status.HTTP_200_OK,
+    )
