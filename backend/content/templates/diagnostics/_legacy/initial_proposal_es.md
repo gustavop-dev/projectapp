@@ -10,7 +10,7 @@
 - [Categorías que se evalúan en el diagnóstico](#categorías-que-se-evalúan-en-el-diagnóstico)
   - [1. Arquitectura y Estructura Interna](#1-arquitectura-y-estructura-interna)
   - [2. Calidad del Código](#2-calidad-del-código)
-  - [3. Interfaz de Usuario y Experiencia](#3-interfaz-de-usuario-y-experiencia-lo-que-el-usuario-ve)
+  - [3. Interfaz de Usuario y Experiencia](#3-interfaz-de-usuario-y-experiencia)
   - [4. Base de Datos y Gestión de la Información](#4-base-de-datos-y-gestión-de-la-información)
   - [5. Seguridad](#5-seguridad)
   - [6. Rendimiento](#6-rendimiento)
@@ -21,7 +21,7 @@
   - [11. Integraciones y Comunicación entre Componentes](#11-integraciones-y-comunicación-entre-componentes)
   - [12. Vigencia Tecnológica](#12-vigencia-tecnológica)
   - [13. Documentación y Gestión del Conocimiento](#13-documentación-y-gestión-del-conocimiento)
-  - [14. Capacidades Funcionales](#14-capacidades-funcionales-qué-necesidades-resuelve-y-cómo)
+  - [14. Capacidades Funcionales](#14-capacidades-funcionales)
 - [Estructura de la Entrega](#estructura-de-la-entrega)
   - [Lo que se encontró bien](#lo-que-se-encontró-bien)
   - [Hallazgos y oportunidades de mejora](#hallazgos-y-oportunidades-de-mejora)
@@ -29,6 +29,8 @@
 - [Resumen Ejecutivo](#resumen-ejecutivo)
 - [Costo y Formas de Pago](#costo-y-formas-de-pago)
 - [Cronograma](#cronograma)
+  - [Distribución general](#distribución-general)
+- [Roadmap sugerido](#roadmap-sugerido)
 - [Alcance y Consideraciones](#alcance-y-consideraciones)
 
 ---
@@ -45,7 +47,7 @@ Esta propuesta presenta el alcance, las categorías de evaluación y la estructu
 
 Los hallazgos, oportunidades de mejora y recomendaciones resultantes del diagnóstico se clasifican usando la siguiente escala:
 
-| Nivel       | Significado                                                                                                                                          |
+| Nivel       | Criterio                                                                                                                                             |
 |-------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Crítico** | Representa un riesgo inmediato. Puede causar caídas, pérdida de datos, brechas de seguridad o bloqueo total del equipo. Debe atenderse con urgencia. |
 | **Alto**    | Problema serio que impacta significativamente la calidad, el rendimiento o la capacidad de evolución. Debe planificarse a corto plazo.               |
@@ -62,7 +64,7 @@ Como parte del diagnóstico, se levanta un inventario general de la aplicación 
 
 - **Tecnologías utilizadas:** Qué lenguajes, frameworks y herramientas principales se usan en el backend y en el frontend.
 - **Cantidad de pantallas o vistas:** Cuántas pantallas tiene la aplicación del lado del usuario.
-- **Cantidad de entidades o tablas:** Cuántas "cosas" maneja la aplicación (usuarios, productos, pedidos, etc.), reflejado en las tablas de la base de datos.
+- **Cantidad de entidades o modelos:** Cuántas "cosas" maneja la aplicación (usuarios, productos, pedidos, etc.), reflejado en los modelos y tablas de la base de datos.
 - **Cantidad de endpoints o rutas del backend:** Cuántos puntos de comunicación ofrece el backend (cada acción que el frontend le puede pedir al servidor).
 - **Cantidad de componentes del frontend:** Cuántas piezas reutilizables tiene la interfaz.
 - **Integraciones externas:** Con cuántos servicios de terceros se conecta la aplicación (pasarelas de pago, envío de correos, APIs externas, etc.).
@@ -72,14 +74,14 @@ Como parte del diagnóstico, se levanta un inventario general de la aplicación 
 
 Con base en este inventario, la aplicación se clasifica en una de las siguientes categorías de tamaño:
 
-| Dimensión                  | Pequeña       | Mediana        | Grande       |
-|----------------------------|---------------|----------------|--------------|
-| Entidades / tablas         | Menos de 15   | Entre 15 y 50  | Más de 50    |
-| Endpoints / rutas backend  | Menos de 30   | Entre 30 y 100 | Más de 100   |
-| Pantallas / vistas         | Menos de 15   | Entre 15 y 50  | Más de 50    |
-| Componentes frontend       | Menos de 20   | Entre 20 y 80  | Más de 80    |
-| Integraciones externas     | 0 a 2         | 3 a 7          | Más de 7     |
-| Módulos funcionales        | 1 a 3         | 4 a 8          | Más de 8     |
+| Dimensión                  | Pequeña | Mediana  | Grande |
+|----------------------------|---------|----------|--------|
+| Entidades / modelos        | < 15    | 15 – 50  | > 50   |
+| Endpoints / rutas backend  | < 30    | 30 – 100 | > 100  |
+| Pantallas / vistas         | < 15    | 15 – 50  | > 50   |
+| Componentes frontend       | < 20    | 20 – 80  | > 80   |
+| Integraciones externas     | 0 – 2   | 3 – 7    | > 7    |
+| Módulos funcionales        | 1 – 3   | 4 – 8    | > 8    |
 
 **¿Cómo se lee la tabla?** No es necesario que todas las dimensiones caigan en la misma columna. Se evalúa el panorama general. Si la mayoría de los indicadores apuntan a "mediana", la aplicación se clasifica como mediana, incluso si una dimensión cae en otra columna.
 
@@ -103,9 +105,9 @@ Qué tan limpio, legible y consistente es lo que está escrito. Si se siguen con
 
 ---
 
-### 3. Interfaz de Usuario y Experiencia (Lo que el usuario ve)
+### 3. Interfaz de Usuario y Experiencia
 
-Si la aplicación tiene partes construidas con tecnologías distintas (algunas más viejas que otras) y qué tan sostenible es esa mezcla. La velocidad de carga y la fluidez de la experiencia. Que funcione bien tanto en celular como en computador. La coherencia visual y de interacción entre las distintas partes de la aplicación.
+Lo que el usuario ve. Si la aplicación tiene partes construidas con tecnologías distintas (algunas más viejas que otras) y qué tan sostenible es esa mezcla. La velocidad de carga y la fluidez de la experiencia. Que funcione bien tanto en celular como en computador. La coherencia visual y de interacción entre las distintas partes de la aplicación.
 
 ---
 
@@ -169,9 +171,9 @@ Qué tanto está explicado y registrado. Si cualquier equipo nuevo podría enten
 
 ---
 
-### 14. Capacidades Funcionales (Qué necesidades resuelve y cómo)
+### 14. Capacidades Funcionales
 
-Desde el código y la estructura, qué funcionalidades ofrece la aplicación, qué problemas resuelve y de qué manera lo hace. Si hay módulos incompletos, lógica de negocio dispersa, soluciones improvisadas o funcionalidades abandonadas.
+Qué necesidades resuelve la aplicación y cómo. Desde el código y la estructura, qué funcionalidades ofrece, qué problemas resuelve y de qué manera lo hace. Si hay módulos incompletos, lógica de negocio dispersa, soluciones improvisadas o funcionalidades abandonadas.
 
 ---
 
@@ -191,25 +193,30 @@ Se documentan las prácticas, decisiones o implementaciones que hoy están funci
 
 ### Hallazgos y oportunidades de mejora
 
-Se documentan los problemas, riesgos o debilidades encontradas. Cada hallazgo se presenta con su respectiva clasificación de severidad.
+Se documentan los problemas, riesgos o debilidades encontradas. Cada hallazgo sigue esta estructura:
 
-| Hallazgo | Nivel | Descripción |
-|----------|-------|-------------|
-| No existen pruebas unitarias en el módulo de pagos | **Crítico** | El módulo más sensible del sistema no tiene ninguna cobertura de pruebas. Cualquier cambio puede introducir errores en cobros reales. |
-| Código duplicado en validaciones de formularios | **Medio** | La misma lógica de validación se repite en 5 controladores distintos. Genera inconsistencias y dificulta el mantenimiento. |
-| No hay documentación de la API | **Alto** | Los endpoints no están documentados. Un equipo nuevo no puede integrarse sin hacer ingeniería inversa del código. |
+```text
+Categoría:       [Nombre de la categoría]
+Hallazgo:        [Descripción concreta del problema o fortaleza]
+Severidad:       [Crítico | Alto | Medio | Bajo]
+Evidencia:       [Archivo, línea, query, endpoint, configuración concreta en el repositorio]
+Impacto:         [Qué consecuencia tiene o podría tener]
+Recomendación:   [Acción concreta sugerida]
+```
+
+Ejemplos:
+
+| Categoría | Hallazgo | Severidad | Evidencia | Impacto | Recomendación |
+|-----------|----------|-----------|-----------|---------|---------------|
+| Pruebas y Criterios de Calidad | No existen pruebas unitarias en el módulo de pagos | **Crítico** | `app/payments/` sin archivos de prueba en `tests/` | Cualquier cambio puede introducir errores en cobros reales | Implementar pruebas unitarias como prioridad inmediata |
+| Calidad del Código | Código duplicado en validaciones de formularios | **Medio** | 5 controladores distintos repiten la misma lógica | Genera inconsistencias y dificulta el mantenimiento | Crear un servicio centralizado de validación |
+| Documentación y Gestión del Conocimiento | No hay documentación de la API | **Alto** | Sin archivos OpenAPI / Swagger en el repositorio | Un equipo nuevo no puede integrarse sin ingeniería inversa | Generar documentación automática con Swagger/OpenAPI |
 
 ---
 
 ### Recomendaciones
 
-Se proponen acciones concretas para abordar los hallazgos identificados. Cada recomendación conserva el nivel de severidad del hallazgo que busca resolver.
-
-| Sugerencia | Nivel | Relación |
-|------------|-------|----------|
-| Implementar pruebas unitarias para el módulo de pagos como prioridad inmediata | **Crítico** | Resuelve la falta de cobertura en el módulo más sensible |
-| Crear un servicio centralizado de validación de formularios | **Medio** | Elimina la duplicación en los 5 controladores afectados |
-| Generar documentación automática con Swagger/OpenAPI | **Alto** | Cubre la falta de documentación de la API |
+Cada recomendación se deriva directamente del hallazgo que busca resolver, conservando su nivel de severidad y apuntando a una acción concreta (ya reflejada en la columna **Recomendación** de la tabla anterior).
 
 ---
 
@@ -253,8 +260,20 @@ La duración estimada del diagnóstico es de **{{duration_label}}**.
 
 ---
 
+## Roadmap sugerido
+
+Las recomendaciones se agrupan por prioridad en horizontes de acción para facilitar la toma de decisiones y la planeación técnica:
+
+- **Inmediato (0-2 semanas):** Hallazgos críticos que representan riesgo activo.
+- **Corto plazo (1-2 meses):** Hallazgos altos que impactan calidad y evolución.
+- **Mediano plazo (3-6 meses):** Hallazgos medios que reducen deuda técnica.
+- **Backlog:** Hallazgos bajos y mejoras incrementales.
+
+---
+
 ## Alcance y Consideraciones
 
+- Este documento es la **propuesta comercial** del diagnóstico: define alcance, entrega, costo y cronograma. La descripción metodológica extendida vive en la propuesta técnica, y la medición previa que sustenta precio y cronograma vive en el anexo de dimensionamiento.
 - El diagnóstico se realiza exclusivamente sobre los repositorios de código fuente (backend y frontend). No se evalúa infraestructura del servidor, procesos de despliegue ni sistemas de monitoreo.
 - La escala de severidad es una herramienta de priorización, no un juicio sobre el equipo que construyó la aplicación.
 - La clasificación de tamaño es orientativa y sirve como herramienta de dimensionamiento, no como un veredicto absoluto.

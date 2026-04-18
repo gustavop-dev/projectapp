@@ -10,6 +10,7 @@
   - [5.1. Stack tecnológico](#51-stack-tecnológico)
   - [5.2. Inventario funcional y técnico](#52-inventario-funcional-y-técnico)
   - [5.3. Clasificación por tamaño](#53-clasificación-por-tamaño)
+  - [5.4. Clasificación resultante](#54-clasificación-resultante)
 - [6. Implicaciones sobre el cronograma del diagnóstico](#6-implicaciones-sobre-el-cronograma-del-diagnóstico)
 - [7. Criterios usados para estimar el esfuerzo](#7-criterios-usados-para-estimar-el-esfuerzo)
 - [8. Conclusión](#8-conclusión)
@@ -55,6 +56,8 @@ Además de levantar métricas, esta lectura permite detectar observaciones concr
 
 ## 4. Resumen ejecutivo
 
+> Este resumen consolida el **dimensionamiento** de la aplicación, no los hallazgos del diagnóstico. El conteo de hallazgos por severidad aparece en la propuesta comercial, una vez ejecutado el diagnóstico.
+
 Con base en la medición del código, la aplicación presenta una complejidad general **{{size_category_label}}**, con elementos que permiten dimensionar el esfuerzo esperado del diagnóstico de forma objetiva.
 
 Desde una perspectiva de dimensionamiento, el resultado se ubica en un punto que requiere un alcance acotable en tiempo si se trabaja con una metodología clara y un alcance bien definido.
@@ -77,7 +80,7 @@ Desde una perspectiva de dimensionamiento, el resultado se ubica en un punto que
 | Métrica                | Valor                |
 |------------------------|----------------------|
 | Migraciones            | {{migrations_count}} |
-| Modelos / entidades    | {{entities_count}}   |
+| Entidades / modelos    | {{entities_count}}   |
 
 #### Backend
 
@@ -112,16 +115,18 @@ Desde una perspectiva de dimensionamiento, el resultado se ubica en un punto que
 
 ### 5.3. Clasificación por tamaño
 
+Tabla de valores medidos contra los rangos de referencia (Pequeña `< 15` / Mediana `15 – 50` / Grande `> 50`, ajustados por dimensión, ver propuesta comercial y técnica):
+
 | Dimensión                 | Valor medido               | Clasificación                  |
 |---------------------------|----------------------------|--------------------------------|
-| Entidades / tablas        | {{entities_count}}         | {{entities_size}}              |
+| Entidades / modelos       | {{entities_count}}         | {{entities_size}}              |
 | Endpoints / rutas backend | {{routes_total}}           | {{routes_size}}                |
 | Pantallas / vistas        | {{frontend_routes_count}}  | {{frontend_routes_size}}       |
 | Componentes frontend      | {{components_count}}       | {{components_size}}            |
 | Integraciones externas    | {{external_integrations}}  | {{integrations_size}}          |
 | Módulos funcionales       | {{modules_count}}          | {{modules_size}}               |
 
-### Clasificación resultante
+### 5.4. Clasificación resultante
 
 La clasificación general resultante es **{{size_category_label}}**.
 
@@ -161,6 +166,8 @@ Estos criterios permiten construir una base objetiva para definir el precio y el
 ---
 
 ## 8. Conclusión
+
+Este anexo es un **documento de dimensionamiento previo** que justifica el precio y el cronograma del diagnóstico. Complementa a la propuesta comercial (alcance, costo y entregables) y a la propuesta técnica (metodología y criterios por categoría).
 
 El análisis preliminar permite concluir que la aplicación requiere un diagnóstico formal con un alcance bien estructurado y una dedicación proporcional a su complejidad real. Este anexo cumple la función de justificar por qué el servicio debe valorarse y calendarizarse con criterios técnicos, y no únicamente con base en una impresión general del sistema o en el número aparente de pantallas o tablas.
 

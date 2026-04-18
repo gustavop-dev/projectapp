@@ -73,9 +73,9 @@
     <div class="text-right">
       <button
         type="submit"
-        class="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+        class="px-4 sm:px-5 py-2 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-100 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50"
         :disabled="busy"
-      >Guardar radiografía</button>
+      >{{ busy ? 'Guardando...' : 'Guardar radiografía' }}</button>
     </div>
   </form>
 </template>

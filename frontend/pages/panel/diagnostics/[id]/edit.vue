@@ -348,7 +348,11 @@
           </div>
         </div>
         <div v-show="technicalSubTab === 'radiography'">
-          <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-8">
+          <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6 mb-6">
+            <div class="mb-4">
+              <h3 class="text-sm font-medium text-gray-900 dark:text-white">Radiografía técnica</h3>
+              <p class="text-xs text-gray-400 dark:text-green-light/40 mt-0.5">Stack, inventario de módulos y métricas que sustentan la evaluación técnica del diagnóstico.</p>
+            </div>
             <DiagnosticRadiographyForm v-model="formRadiography" :busy="store.isUpdating" @submit="saveRadiography" />
           </div>
         </div>
@@ -361,6 +365,46 @@
 
       <!-- JSON (export + import) -->
       <section v-if="activeTab === 'json'" class="max-w-4xl">
+        <!-- Summary metrics -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4">
+            <p class="text-xs font-medium text-gray-400 dark:text-green-light/40 uppercase tracking-wide">Secciones</p>
+            <p class="mt-1.5 text-2xl font-light text-gray-900 dark:text-white tabular-nums">{{ jsonSummary.total }}</p>
+            <p class="text-xs text-gray-500 dark:text-green-light/60 mt-0.5">
+              {{ jsonSummary.enabled }} habilitadas · {{ jsonSummary.enabledPct }}%
+            </p>
+          </div>
+          <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4">
+            <p class="text-xs font-medium text-gray-400 dark:text-green-light/40 uppercase tracking-wide">Progreso</p>
+            <p class="mt-1.5 text-2xl font-light text-gray-900 dark:text-white tabular-nums">{{ jsonSummary.progressPct }}%</p>
+            <div class="mt-2 h-1.5 rounded-full bg-gray-100 dark:bg-white/[0.06] overflow-hidden">
+              <div
+                class="h-full bg-emerald-500 transition-all"
+                :style="{ width: `${jsonSummary.progressPct}%` }"
+              />
+            </div>
+            <p class="text-xs text-gray-500 dark:text-green-light/60 mt-1.5">
+              {{ jsonSummary.completed }}/{{ jsonSummary.enabled }} con contenido
+            </p>
+          </div>
+          <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4">
+            <p class="text-xs font-medium text-gray-400 dark:text-green-light/40 uppercase tracking-wide">Tamaño JSON</p>
+            <p class="mt-1.5 text-2xl font-light text-gray-900 dark:text-white tabular-nums">{{ jsonSummary.sizeLabel }}</p>
+            <p class="text-xs text-gray-500 dark:text-green-light/60 mt-0.5">Metadata + secciones</p>
+          </div>
+          <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4">
+            <p class="text-xs font-medium text-gray-400 dark:text-green-light/40 uppercase tracking-wide">Última actualización</p>
+            <p
+              class="mt-1.5 text-sm font-medium text-gray-900 dark:text-white"
+              :title="jsonSummary.updatedAt || ''"
+            >
+              <span v-if="jsonSummary.updatedAt">{{ formatDate(jsonSummary.updatedAt) }}</span>
+              <span v-else class="text-gray-400 dark:text-green-light/40">—</span>
+            </p>
+            <p class="text-xs text-gray-500 dark:text-green-light/60 mt-0.5">Al guardar cambios</p>
+          </div>
+        </div>
+
         <!-- Current JSON (read-only) -->
         <div class="bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] p-4 sm:p-6 mb-6">
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
@@ -451,7 +495,7 @@
               type="button"
               :disabled="store.isUpdating"
               class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm
-                     hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-wait"
+                     hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-100 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-wait"
               @click="handleApplyImportJson"
             >
               <svg v-if="store.isUpdating" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -486,25 +530,7 @@
       </div>
     </template>
 
-    <Teleport to="body">
-      <Transition name="toast-slide">
-        <div
-          v-if="actionToast"
-          class="fixed bottom-6 right-6 z-[9999] flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium pointer-events-none"
-          :class="actionToast.type === 'success'
-            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20'
-            : 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/20'"
-        >
-          <svg v-if="actionToast.type === 'success'" class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-          </svg>
-          <svg v-else class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-          {{ actionToast.message }}
-        </div>
-      </Transition>
-    </Teleport>
+    <PanelToast />
   </div>
 </template>
 
@@ -525,8 +551,10 @@ import DiagnosticActionsModal from '~/components/WebAppDiagnostic/DiagnosticActi
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
+import PanelToast from '~/components/panel/PanelToast.vue';
 import { DocumentDuplicateIcon, CheckIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { usePanelToast } from '~/composables/usePanelToast';
 import { getDiagnosticNextAction } from '~/utils/diagnosticNextAction';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -536,6 +564,7 @@ const router = useRouter();
 const localePath = useLocalePath();
 const store = useDiagnosticsStore();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
+const panelToast = usePanelToast();
 
 const moneyFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
 const dateTimeFormatter = new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
@@ -570,7 +599,7 @@ const tabs = computed(() => {
   if (hasDocumentsTab.value) base.push({ id: 'documents', label: 'Documentos' });
   base.push(
     { id: 'sections',  label: 'Secciones' },
-    { id: 'technical', label: 'Det. técnico' },
+    { id: 'technical', label: 'Radiografía & Precios' },
     { id: 'prompt',    label: 'Prompt Diagnostic' },
     { id: 'json',      label: 'JSON' },
     { id: 'activity',  label: 'Actividad' },
@@ -693,13 +722,8 @@ const formPricing = ref({
 });
 const formRadiography = ref({ size_category: '', radiography: {} });
 
-const actionToast = ref(null);
-let toastTimer = null;
-
 function showToast(message, type) {
-  if (toastTimer) clearTimeout(toastTimer);
-  actionToast.value = { message, type };
-  toastTimer = setTimeout(() => { actionToast.value = null; }, 3500);
+  panelToast.showToast({ type, text: message });
 }
 
 function syncForms() {
@@ -885,6 +909,41 @@ function buildDiagnosticExport() {
 const exportJsonString = computed(() => {
   const payload = buildDiagnosticExport();
   return payload ? JSON.stringify(payload, null, 2) : '';
+});
+
+function sectionHasContent(section) {
+  const content = section?.content_json;
+  if (!content || typeof content !== 'object') return false;
+  return Object.values(content).some((v) => {
+    if (v == null) return false;
+    if (typeof v === 'string') return v.trim().length > 0;
+    if (Array.isArray(v)) return v.length > 0;
+    if (typeof v === 'object') return Object.keys(v).length > 0;
+    return true;
+  });
+}
+
+const jsonSummary = computed(() => {
+  const sections = store.current?.sections || [];
+  const total = sections.length;
+  const enabled = sections.filter((s) => s.is_enabled).length;
+  const completed = sections.filter((s) => s.is_enabled && sectionHasContent(s)).length;
+  const enabledPct = total ? Math.round((enabled / total) * 100) : 0;
+  const progressPct = enabled ? Math.round((completed / enabled) * 100) : 0;
+  const bytes = new TextEncoder().encode(exportJsonString.value).length;
+  const sizeKb = bytes / 1024;
+  const sizeLabel = sizeKb >= 10
+    ? `${sizeKb.toFixed(0)} KB`
+    : `${sizeKb.toFixed(1)} KB`;
+  return {
+    total,
+    enabled,
+    enabledPct,
+    completed,
+    progressPct,
+    sizeLabel,
+    updatedAt: store.current?.updated_at || null,
+  };
 });
 
 const jsonCopied = ref(false);
@@ -1087,13 +1146,7 @@ function onDelete() {
 
 onMounted(() => store.fetchDetail(id.value));
 onUnmounted(() => {
-  if (toastTimer) clearTimeout(toastTimer);
   if (urlCopiedTimer) clearTimeout(urlCopiedTimer);
   if (jsonCopiedTimer) clearTimeout(jsonCopiedTimer);
 });
 </script>
-
-<style scoped>
-.toast-slide-enter-active, .toast-slide-leave-active { transition: opacity 0.25s ease, transform 0.25s ease; }
-.toast-slide-enter-from, .toast-slide-leave-to { opacity: 0; transform: translateY(8px); }
-</style>

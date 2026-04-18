@@ -29,6 +29,17 @@
       </NuxtLink>
     </header>
 
+    <!-- Saved filter tabs -->
+    <ProposalFilterTabs
+      :tabs="savedTabs"
+      :active-tab-id="filterTabId"
+      :is-tab-limit-reached="isTabLimitReached"
+      @select="selectFilterTab"
+      @create="handleCreateFilterTab"
+      @rename="renameFilterTab"
+      @delete="deleteFilterTab"
+    />
+
     <!-- Search + Filter toggle -->
     <div class="flex flex-col sm:flex-row gap-3 mb-4">
       <div class="relative flex-1 max-w-sm">
@@ -299,12 +310,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 import DiagnosticStatusBadge from '~/components/WebAppDiagnostic/DiagnosticStatusBadge.vue';
 import DiagnosticFilterPanel from '~/components/WebAppDiagnostic/DiagnosticFilterPanel.vue';
+import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { useDiagnosticFilters } from '~/composables/useDiagnosticFilters';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -329,7 +342,6 @@ const store = useDiagnosticsStore();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
 const searchQuery = ref('');
-const isFilterPanelOpen = ref(false);
 const actionsModalDiagnostic = ref(null);
 const copiedId = ref(null);
 const sortKey = ref('created_at');
@@ -337,60 +349,43 @@ const sortDir = ref('desc');
 const currentPage = ref(1);
 const pageSize = 15;
 
-const DEFAULT_FILTERS = {
-  statuses: [],
-  investmentMin: null,
-  investmentMax: null,
-  createdAfter: null,
-  createdBefore: null,
-};
-const currentFilters = reactive({ ...DEFAULT_FILTERS });
+const {
+  currentFilters,
+  savedTabs,
+  activeTabId: filterTabId,
+  isFilterPanelOpen,
+  activeFilterCount,
+  isTabLimitReached,
+  applyFilters,
+  resetFilters,
+  selectTab: selectFilterTab,
+  saveTab,
+  deleteTab: deleteFilterTab,
+  renameTab: renameFilterTab,
+} = useDiagnosticFilters();
 
-const activeFilterCount = computed(() => {
-  let count = 0;
-  if (currentFilters.statuses.length) count += 1;
-  if (currentFilters.investmentMin != null && currentFilters.investmentMin !== '') count += 1;
-  if (currentFilters.investmentMax != null && currentFilters.investmentMax !== '') count += 1;
-  if (currentFilters.createdAfter) count += 1;
-  if (currentFilters.createdBefore) count += 1;
-  return count;
-});
+function handleCreateFilterTab(name) {
+  saveTab(name);
+  isFilterPanelOpen.value = true;
+}
 
 function handleResetFilters() {
-  Object.assign(currentFilters, DEFAULT_FILTERS);
+  resetFilters();
 }
 
 const filteredDiagnostics = computed(() => {
   const needle = searchQuery.value.trim().toLowerCase();
-  const statuses = currentFilters.statuses;
-  const invMin = currentFilters.investmentMin;
-  const invMax = currentFilters.investmentMax;
-  const after = currentFilters.createdAfter ? new Date(currentFilters.createdAfter) : null;
-  const before = currentFilters.createdBefore ? new Date(currentFilters.createdBefore) : null;
-
-  return store.diagnostics.filter((d) => {
-    if (needle) {
+  const base = needle
+    ? store.diagnostics.filter((d) => {
       const haystack = [
         d.title || '',
         d.client?.name || '',
         d.client?.email || '',
       ].join(' ').toLowerCase();
-      if (!haystack.includes(needle)) return false;
-    }
-    if (statuses.length && !statuses.includes(d.status)) return false;
-
-    const amount = Number(d.investment_amount || 0);
-    if (invMin != null && invMin !== '' && amount < Number(invMin)) return false;
-    if (invMax != null && invMax !== '' && amount > Number(invMax)) return false;
-
-    if (after || before) {
-      if (!d.created_at) return false;
-      const created = new Date(d.created_at);
-      if (after && created < after) return false;
-      if (before && created > new Date(before.getTime() + 24 * 60 * 60 * 1000 - 1)) return false;
-    }
-    return true;
-  });
+      return haystack.includes(needle);
+    })
+    : store.diagnostics;
+  return applyFilters(base);
 });
 
 const sortedDiagnostics = computed(() => {

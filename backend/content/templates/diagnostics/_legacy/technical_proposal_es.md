@@ -10,7 +10,7 @@
 - [Categorías que se evalúan en el diagnóstico](#categorías-que-se-evalúan-en-el-diagnóstico)
   - [1. Arquitectura y Estructura Interna](#1-arquitectura-y-estructura-interna)
   - [2. Calidad del Código](#2-calidad-del-código)
-  - [3. Interfaz de Usuario y Experiencia (Capa de Presentación)](#3-interfaz-de-usuario-y-experiencia-capa-de-presentación)
+  - [3. Interfaz de Usuario y Experiencia](#3-interfaz-de-usuario-y-experiencia)
   - [4. Base de Datos y Gestión de la Información](#4-base-de-datos-y-gestión-de-la-información)
   - [5. Seguridad](#5-seguridad)
   - [6. Rendimiento](#6-rendimiento)
@@ -23,10 +23,13 @@
   - [13. Documentación y Gestión del Conocimiento](#13-documentación-y-gestión-del-conocimiento)
   - [14. Capacidades Funcionales](#14-capacidades-funcionales)
 - [Estructura de los Hallazgos](#estructura-de-los-hallazgos)
+- [Resumen Ejecutivo](#resumen-ejecutivo)
 - [Estructura de la Entrega](#estructura-de-la-entrega)
-  - [Resumen Ejecutivo](#resumen-ejecutivo)
-  - [Radiografía de la Aplicación](#radiografía-de-la-aplicación-1)
+  - [Radiografía en la entrega](#radiografía-en-la-entrega)
   - [Para cada categoría evaluada](#para-cada-categoría-evaluada)
+    - [Lo que se encontró bien](#lo-que-se-encontró-bien)
+    - [Hallazgos y oportunidades de mejora](#hallazgos-y-oportunidades-de-mejora)
+    - [Recomendaciones](#recomendaciones)
   - [Roadmap sugerido](#roadmap-sugerido)
 - [Alcance y Consideraciones](#alcance-y-consideraciones)
 
@@ -82,6 +85,8 @@ Como parte del diagnóstico, se levanta un inventario técnico que permite dimen
 | Integraciones externas    | 0 – 2   | 3 – 7    | > 7    |
 | Módulos funcionales       | 1 – 3   | 4 – 8    | > 8    |
 
+> Los rangos coinciden con los de la propuesta comercial. El anexo de dimensionamiento presenta los valores medidos sobre el código y la clasificación resultante.
+
 **Criterio de clasificación:** Se evalúa el panorama general. Si la mayoría de las dimensiones convergen en un rango, esa es la clasificación. Si hay dispersión (por ejemplo, pocas entidades pero muchos endpoints), se documenta la discrepancia y se clasifica por la tendencia dominante, dejando nota de la anomalía.
 
 **Propósito de la clasificación:** Dimensionar el esfuerzo del diagnóstico, establecer expectativas realistas y servir como referencia para estructurar el alcance y valor del servicio.
@@ -125,9 +130,9 @@ Como parte del diagnóstico, se levanta un inventario técnico que permite dimen
 
 ---
 
-### 3. Interfaz de Usuario y Experiencia (Capa de Presentación)
+### 3. Interfaz de Usuario y Experiencia
 
-**Qué se evalúa:** La capa visual, su coherencia, rendimiento percibido y sostenibilidad técnica.
+**Qué se evalúa:** La capa visual (capa de presentación), su coherencia, rendimiento percibido y sostenibilidad técnica.
 
 **Criterios de evaluación:**
 
@@ -214,54 +219,16 @@ Como parte del diagnóstico, se levanta un inventario técnico que permite dimen
 
 **Qué se evalúa:** La cobertura, los tipos y la madurez de las pruebas implementadas en los repositorios.
 
-**Tipos de pruebas a verificar:**
+**Criterios de evaluación:**
 
-**8.1. Pruebas unitarias**
-
-- ¿Existen pruebas que validen funciones, métodos y clases de forma aislada?
-- ¿Qué porcentaje de cobertura existe?
-- ¿Se prueban los casos de éxito y los casos de error?
-- ¿Los modelos, servicios y utilidades tienen cobertura?
-
-**8.2. Pruebas de contrato (Contract Testing)**
-
-- ¿Se valida que la estructura de las respuestas de la API (status codes, formato JSON, campos requeridos) se mantenga estable?
-- ¿Hay contratos definidos entre frontend y backend?
-- ¿Se detectaría automáticamente si un endpoint cambia su respuesta de forma incompatible?
-
-**8.3. Pruebas de integración**
-
-- ¿Se prueban flujos que involucran base de datos real, permisos, side-effects (envío de emails, creación de registros relacionados)?
-- ¿Se usa una base de datos de prueba o se mockea todo?
-- ¿Se validan transacciones completas de negocio?
-
-**8.4. Pruebas con mocking y edge cases**
-
-- ¿Se simulan dependencias externas (APIs de terceros, servicios de pago, servicios de email)?
-- ¿Se cubren escenarios límite: entradas vacías, valores extremos, caracteres especiales, concurrencia?
-- ¿Se prueban los caminos de error, no solo los caminos felices?
-
-**8.5. Pruebas de extremo a extremo (E2E)**
-
-- ¿Se prueban flujos completos como los haría un usuario real (navegación, formularios, flujos de compra, registro)?
-- ¿Qué herramienta se usa? ¿Están estables o son flaky tests?
-- ¿Cubren los flujos críticos del negocio?
-
-**8.6. Pruebas de carga y rendimiento (Performance Testing)**
-
-- ¿Existen scripts o configuraciones de pruebas de carga en el repositorio?
-- ¿Se han documentado puntos de quiebre o benchmarks?
-
-**8.7. Pruebas de seguridad y configuración (Security Testing)**
-
-- ¿Se escanean dependencias por vulnerabilidades conocidas (audit en lockfiles)?
-- ¿Se verifican configuraciones inseguras (debug mode, credenciales expuestas, permisos excesivos)?
-
-**Criterios transversales:**
-
-- ¿Existe configuración de CI que ejecute las pruebas automáticamente (archivos de pipeline en el repo)?
-- ¿Hay una política de cobertura mínima definida?
-- ¿Los tests existentes están mantenidos o hay tests rotos e ignorados?
+- **Pruebas unitarias:** cobertura de funciones, métodos y clases de forma aislada; porcentaje de cobertura; cobertura de casos de éxito y de error; cobertura en modelos, servicios y utilidades.
+- **Pruebas de contrato:** validación de la estructura de respuestas de la API (status codes, formato JSON, campos requeridos); contratos definidos entre frontend y backend; detección automática de cambios incompatibles en endpoints.
+- **Pruebas de integración:** flujos que involucran base de datos real, permisos y side-effects (emails, registros relacionados); uso de base de datos de prueba vs. mocking total; validación de transacciones completas de negocio.
+- **Pruebas con mocking y edge cases:** simulación de dependencias externas (APIs de terceros, pasarelas de pago, email); escenarios límite (entradas vacías, valores extremos, caracteres especiales, concurrencia); cobertura de caminos de error y no solo los caminos felices.
+- **Pruebas de extremo a extremo (E2E):** flujos completos como los ejecutaría un usuario real; herramienta utilizada y estabilidad (flakiness); cobertura de los flujos críticos del negocio.
+- **Pruebas de carga y rendimiento:** existencia de scripts o configuraciones de pruebas de carga; puntos de quiebre o benchmarks documentados.
+- **Pruebas de seguridad y configuración:** escaneo de dependencias por vulnerabilidades conocidas (audit sobre lockfiles); configuraciones inseguras detectables (debug mode, credenciales expuestas, permisos excesivos).
+- **Criterios transversales:** CI que ejecute las pruebas automáticamente (archivos de pipeline en el repo); política de cobertura mínima definida; estado de los tests existentes (mantenidos o rotos e ignorados).
 
 ---
 
@@ -374,9 +341,7 @@ Recomendación:   [Acción concreta sugerida]
 
 ---
 
-## Estructura de la Entrega
-
-### Resumen Ejecutivo
+## Resumen Ejecutivo
 
 La entrega incluye un conteo de hallazgos por severidad, la clasificación de tamaño de la aplicación y un párrafo de síntesis sobre su estado general.
 
@@ -387,25 +352,31 @@ La entrega incluye un conteo de hallazgos por severidad, la clasificación de ta
 | Medio   | X        |
 | Bajo    | X        |
 
-### Radiografía de la Aplicación
+---
 
-Se presenta el inventario técnico recopilado y la clasificación de tamaño resultante, con el fin de contextualizar los hallazgos y recomendaciones.
+## Estructura de la Entrega
+
+### Radiografía en la entrega
+
+Se presenta el inventario técnico recopilado y la clasificación de tamaño resultante, con el fin de contextualizar los hallazgos y recomendaciones. Es el mismo inventario descrito en la sección [Radiografía de la Aplicación](#radiografía-de-la-aplicación), materializado sobre los valores medidos para este proyecto.
 
 ### Para cada categoría evaluada
 
-**Lo que se encontró bien** — Se destacan las prácticas, decisiones o implementaciones que funcionan correctamente y que vale la pena conservar.
+#### Lo que se encontró bien
 
-**Hallazgos y oportunidades de mejora**
+Se destacan las prácticas, decisiones o implementaciones que funcionan correctamente y que vale la pena conservar.
 
-| Hallazgo | Severidad | Evidencia | Impacto |
-| -------- | --------- | --------- | ------- |
-| ...      | ...       | ...       | ...     |
+#### Hallazgos y oportunidades de mejora
 
-**Recomendaciones**
+Cada hallazgo sigue la plantilla declarada en [Estructura de los Hallazgos](#estructura-de-los-hallazgos) (6 campos). La vista tabular para lectura rápida es:
 
-| Recomendación | Severidad | Resuelve |
-| ------------- | --------- | -------- |
-| ...           | ...       | ...      |
+| Categoría | Hallazgo | Severidad | Evidencia | Impacto | Recomendación |
+| --------- | -------- | --------- | --------- | ------- | ------------- |
+| ...       | ...      | ...       | ...       | ...     | ...           |
+
+#### Recomendaciones
+
+Cada recomendación se deriva del hallazgo que busca resolver y conserva su nivel de severidad. La recomendación ya aparece en la tabla anterior; esta sección recoge una vista consolidada cuando conviene separarla del detalle del hallazgo.
 
 ### Roadmap sugerido
 
@@ -420,6 +391,7 @@ Las recomendaciones se agrupan por prioridad en horizontes de acción para facil
 
 ## Alcance y Consideraciones
 
+- Este documento es la **propuesta técnica (metodológica)** del diagnóstico. No incluye costo ni cronograma comercial — esos viven en la propuesta comercial. La medición previa que sustenta precio y cronograma vive en el anexo de dimensionamiento.
 - El diagnóstico se ejecuta exclusivamente sobre los repositorios de código fuente (backend y frontend). No se evalúa infraestructura del servidor, procesos de despliegue en producción ni sistemas de monitoreo externos.
 - Si en los repositorios existen archivos de configuración de CI/CD, Docker o monitoreo, se documentan como parte de la radiografía, pero no se valida su funcionamiento en un entorno real.
 - Toda afirmación debe estar respaldada por evidencia concreta (archivos, líneas de código, configuraciones, lockfiles), no por opiniones generales.
