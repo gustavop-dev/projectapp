@@ -269,7 +269,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
-import ConfirmModal from '~/components/ui/ConfirmModal.vue';
+import ConfirmModal from '~/components/ConfirmModal.vue';
 import PanelToast from '~/components/panel/PanelToast.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelToast } from '~/composables/usePanelToast';
