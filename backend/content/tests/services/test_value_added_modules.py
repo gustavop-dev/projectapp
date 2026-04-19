@@ -1,0 +1,62 @@
+"""Tests for the value_added_modules section and manual_module group."""
+import pytest
+
+from content.services.proposal_service import ProposalService
+
+pytestmark = pytest.mark.django_db
+
+
+class TestManualModule:
+    def test_manual_module_present_in_es_functional_requirements(self):
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        manual = next(g for g in fr['content_json']['groups'] if g['id'] == 'manual_module')
+        assert manual['price_percent'] == 0
+        assert manual['selected'] is True
+        assert manual.get('is_calculator_module', False) is False
+        assert len(manual['items']) >= 4
+
+    def test_manual_module_present_in_en_functional_requirements(self):
+        sections = ProposalService.get_default_sections('en')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        manual = next(g for g in fr['content_json']['groups'] if g['id'] == 'manual_module')
+        assert manual['price_percent'] == 0
+        assert manual['selected'] is True
+        assert 'Interactive User Manual' in manual['title']
+
+
+class TestValueAddedModulesSection:
+    @pytest.mark.parametrize('language', ['es', 'en'])
+    def test_section_present(self, language):
+        sections = ProposalService.get_default_sections(language)
+        section = next(s for s in sections if s['section_type'] == 'value_added_modules')
+        assert section['title']
+        cj = section['content_json']
+        assert cj['module_ids'] == [
+            'admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module',
+        ]
+        assert set(cj['justifications'].keys()) == set(cj['module_ids'])
+        for value in cj['justifications'].values():
+            assert isinstance(value, str) and value
+        assert cj['footer_note']
+
+    def test_section_order_is_before_functional_requirements(self):
+        sections = ProposalService.get_default_sections('es')
+        vam = next(s for s in sections if s['section_type'] == 'value_added_modules')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        assert vam['order'] < fr['order']
+
+    def test_orders_are_contiguous_after_shift(self):
+        """Sections at order >=9 should have been bumped so no duplicates remain.
+
+        We don't enforce strict contiguity (final_note/next_steps share an order
+        intentionally), but value_added_modules should sit at order 9 and
+        functional_requirements at 10.
+        """
+        sections = ProposalService.get_default_sections('es')
+        by_type = {s['section_type']: s['order'] for s in sections}
+        assert by_type['value_added_modules'] == 9
+        assert by_type['functional_requirements'] == 10
+        assert by_type['development_stages'] == 11
+        assert by_type['proposal_summary'] == 12
+        assert by_type['technical_document'] == 14

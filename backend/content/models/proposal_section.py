@@ -25,6 +25,7 @@ class ProposalSection(models.Model):
         FINAL_NOTE = 'final_note', 'Final Note'
         NEXT_STEPS = 'next_steps', 'Next Steps'
         TECHNICAL_DOCUMENT = 'technical_document', 'Technical Document'
+        VALUE_ADDED_MODULES = 'value_added_modules', 'Value Added Modules'
 
     proposal = models.ForeignKey(
         'BusinessProposal',

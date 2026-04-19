@@ -299,6 +299,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import draggable from 'vuedraggable';
 import { useEmailStore } from '~/stores/emails';
+import { validateEmailAttachments } from '~/utils/emailAttachments';
 
 definePageMeta({ layout: 'admin' });
 
@@ -338,26 +339,8 @@ function removeSection(idx) {
   }
 }
 
-// ── Attachments ──
-const ALLOWED_EXTENSIONS = new Set(['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.png', '.jpg', '.jpeg']);
-const MAX_FILE_SIZE = 15 * 1024 * 1024;
-
 function handleFilesChange(e) {
-  const files = Array.from(e.target.files || []);
-  const validFiles = [];
-  const errors = [];
-  for (const file of files) {
-    const ext = '.' + file.name.split('.').pop().toLowerCase();
-    if (!ALLOWED_EXTENSIONS.has(ext)) {
-      errors.push(`${file.name}: tipo no permitido`);
-      continue;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      errors.push(`${file.name}: excede 15 MB`);
-      continue;
-    }
-    validFiles.push(file);
-  }
+  const { validFiles, errors } = validateEmailAttachments(Array.from(e.target.files || []));
   sendError.value = errors.length ? errors.join(', ') : '';
   if (validFiles.length) attachments.value.push(...validFiles);
   if (fileInput.value) fileInput.value.value = '';

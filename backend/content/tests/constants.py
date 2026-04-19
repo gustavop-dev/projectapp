@@ -7,4 +7,4 @@ When the number of hardcoded default proposal sections changes (see
 """
 
 # Must match len(ProposalService.get_hardcoded_defaults('es')) when no DB override exists.
-EXPECTED_DEFAULT_SECTION_COUNT = 15
+EXPECTED_DEFAULT_SECTION_COUNT = 16

@@ -494,6 +494,7 @@ SECTION_KEY_MAP = {
     'finalNote': 'final_note',
     'nextSteps': 'next_steps',
     'technicalDocument': 'technical_document',
+    'valueAddedModules': 'value_added_modules',
 }
 
 SECTION_TYPE_TO_KEY = {v: k for k, v in SECTION_KEY_MAP.items()}

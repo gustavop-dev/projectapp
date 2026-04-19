@@ -313,12 +313,35 @@ DEFAULT_SECTIONS = [
         },
     },
     {
-        'section_type': 'functional_requirements',
-        'title': '🧩 Todo lo que incluye tu proyecto',
+        'section_type': 'value_added_modules',
+        'title': '🎁 Incluido sin costo adicional',
         'order': 9,
-        'is_wide_panel': True,
+        'is_wide_panel': False,
         'content_json': {
             'index': '9',
+            'title': 'Lo que sumamos a tu proyecto sin costo extra',
+            'intro': (
+                'Estos módulos no se cobran aparte. Se incluyen porque creemos que todo '
+                'entregable debería venir con las herramientas mínimas para operarlo, '
+                'medirlo y entenderlo desde el día uno.'
+            ),
+            'module_ids': ['admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module'],
+            'justifications': {
+                'admin_module': 'Para que no dependas de un desarrollador cada vez que necesites cambiar contenido.',
+                'analytics_dashboard': 'Para que sepas cómo se comporta tu audiencia sin contratar herramientas externas.',
+                'kpi_dashboard_module': 'Para tomar decisiones con datos en tiempo real, no con intuición.',
+                'manual_module': 'Para que cualquier persona del equipo entienda el sistema sin sesiones de capacitación.',
+            },
+            'footer_note': 'Total adicional: $0. Ya está cotizado dentro del precio del proyecto.',
+        },
+    },
+    {
+        'section_type': 'functional_requirements',
+        'title': '🧩 Todo lo que incluye tu proyecto',
+        'order': 10,
+        'is_wide_panel': True,
+        'content_json': {
+            'index': '10',
             'title': 'Requerimientos Funcionales del Proyecto',
             'intro': 'A continuación se detallan los requerimientos funcionales del proyecto.',
             'groups': [
@@ -490,6 +513,26 @@ DEFAULT_SECTIONS = [
                         {'icon': '📊', 'name': 'Gráficos interactivos', 'description': 'Dashboards visuales con gráficos de línea, barras y torta que permiten filtrar por período, categoría o segmento.'},
                         {'icon': '🔔', 'name': 'Alertas de rendimiento', 'description': 'Notificaciones automáticas cuando un KPI cae por debajo del umbral definido o supera una meta establecida.'},
                         {'icon': '📥', 'name': 'Exportación de reportes', 'description': 'Descarga reportes en CSV para compartir con tu equipo o stakeholders sin necesidad de acceder al sistema.'},
+                    ],
+                },
+                {
+                    'id': 'manual_module',
+                    'icon': '📘',
+                    'title': 'Manual de Usuario Interactivo',
+                    'is_visible': True,
+                    'selected': True,
+                    'price_percent': 0,
+                    'description': (
+                        'Manual/wiki interactivo no técnico, con índice navegable y buscador, '
+                        'que describe los procesos, flujos, dependencias, roles y responsabilidades '
+                        'de tu aplicación. Pensado para que cualquier persona del equipo pueda '
+                        'entender el sistema sin pedir ayuda al desarrollador.'
+                    ),
+                    'items': [
+                        {'icon': '🔎', 'name': 'Buscador y navegación por índice', 'description': 'Encuentra cualquier proceso, vista o rol en segundos.'},
+                        {'icon': '🧭', 'name': 'Procesos y flujos paso a paso', 'description': 'Cada flujo del sistema documentado en lenguaje claro, sin tecnicismos.'},
+                        {'icon': '👥', 'name': 'Roles y responsabilidades', 'description': 'Quién hace qué dentro de la aplicación y qué permisos tiene cada rol.'},
+                        {'icon': '🔗', 'name': 'Dependencias y reglas de negocio', 'description': 'Cómo se relacionan los módulos entre sí y qué reglas aplican.'},
                     ],
                 },
             ],
@@ -789,10 +832,10 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'development_stages',
         'title': '📌 Así avanzamos juntos',
-        'order': 10,
+        'order': 11,
         'is_wide_panel': True,
         'content_json': {
-            'index': '10',
+            'index': '11',
             'title': 'Etapas de contratación y desarrollo',
             'intro': 'Nuestro proceso está diseñado para ofrecer claridad, confianza y acompañamiento en cada fase 🧭:',
             'currentLabel': 'Actual',
@@ -883,10 +926,10 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'proposal_summary',
         'title': '📋 Resumen de la Propuesta',
-        'order': 11,
+        'order': 12,
         'is_wide_panel': False,
         'content_json': {
-            'index': '11',
+            'index': '12',
             'title': 'Resumen de la Propuesta',
             'subtitle': 'Los datos clave de esta propuesta en un vistazo:',
             'kpis': [
@@ -936,10 +979,10 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'final_note',
         'title': '📝 Nuestro compromiso contigo',
-        'order': 12,
+        'order': 13,
         'is_wide_panel': False,
         'content_json': {
-            'index': '12',
+            'index': '13',
             'title': 'Nota Final y Próximos Pasos',
             'message': (
                 'Creemos firmemente que esta propuesta representa una oportunidad excepcional '
@@ -982,10 +1025,10 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'next_steps',
         'title': '✅ ¿Listo para empezar?',
-        'order': 12,
+        'order': 13,
         'is_wide_panel': False,
         'content_json': {
-            'index': '12',
+            'index': '13',
             'title': 'Próximos pasos',
             'introMessage': (
                 'Estamos listos para comenzar este viaje juntos. '
@@ -1050,7 +1093,7 @@ DEFAULT_SECTIONS = [
     {
         'section_type': 'technical_document',
         'title': '🔧 Detalle técnico',
-        'order': 13,
+        'order': 14,
         'is_wide_panel': True,
         'content_json': deepcopy(EMPTY_TECHNICAL_DOCUMENT_JSON),
     },
@@ -1330,12 +1373,35 @@ DEFAULT_SECTIONS_EN = [
         },
     },
     {
-        'section_type': 'functional_requirements',
-        'title': '🧩 Functional Requirements',
+        'section_type': 'value_added_modules',
+        'title': '🎁 Included at no extra cost',
         'order': 9,
-        'is_wide_panel': True,
+        'is_wide_panel': False,
         'content_json': {
             'index': '9',
+            'title': 'What we add to your project at no extra cost',
+            'intro': (
+                'These modules are not billed separately. They are included because we believe '
+                'every deliverable should ship with the minimum tools to operate, measure and '
+                'understand it from day one.'
+            ),
+            'module_ids': ['admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module'],
+            'justifications': {
+                'admin_module': 'So you don\'t depend on a developer every time you need to change content.',
+                'analytics_dashboard': 'So you know how your audience behaves without paying for external tools.',
+                'kpi_dashboard_module': 'To make decisions with real-time data, not intuition.',
+                'manual_module': 'So anyone on your team can understand the system without training sessions.',
+            },
+            'footer_note': 'Additional total: $0. Already priced inside the project budget.',
+        },
+    },
+    {
+        'section_type': 'functional_requirements',
+        'title': '🧩 Functional Requirements',
+        'order': 10,
+        'is_wide_panel': True,
+        'content_json': {
+            'index': '10',
             'title': 'Functional Requirements',
             'intro': 'Below are the functional requirements for the project.',
             'groups': [
@@ -1508,6 +1574,26 @@ DEFAULT_SECTIONS_EN = [
                         {'icon': '📊', 'name': 'Interactive Charts', 'description': 'Visual dashboards with line, bar and pie charts that allow filtering by period, category or segment.'},
                         {'icon': '🔔', 'name': 'Performance Alerts', 'description': 'Automatic notifications when a KPI falls below the defined threshold or exceeds a set goal.'},
                         {'icon': '📥', 'name': 'Report Export', 'description': 'Download reports in CSV to share with your team or stakeholders without needing to access the system.'},
+                    ],
+                },
+                {
+                    'id': 'manual_module',
+                    'icon': '📘',
+                    'title': 'Interactive User Manual',
+                    'is_visible': True,
+                    'selected': True,
+                    'price_percent': 0,
+                    'description': (
+                        'A non-technical interactive manual/wiki, with a navigable index and search, '
+                        'that describes the processes, flows, dependencies, roles and responsibilities '
+                        'of your application. Designed so anyone on the team can understand the '
+                        'system without asking the developer for help.'
+                    ),
+                    'items': [
+                        {'icon': '🔎', 'name': 'Search and index navigation', 'description': 'Find any process, view or role in seconds.'},
+                        {'icon': '🧭', 'name': 'Step-by-step processes and flows', 'description': 'Every system flow documented in plain language, no jargon.'},
+                        {'icon': '👥', 'name': 'Roles and responsibilities', 'description': 'Who does what inside the application and what permissions each role has.'},
+                        {'icon': '🔗', 'name': 'Dependencies and business rules', 'description': 'How modules relate to each other and which rules apply.'},
                     ],
                 },
             ],
@@ -1805,10 +1891,10 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'development_stages',
         'title': '📌 Contracting & Development Stages',
-        'order': 10,
+        'order': 11,
         'is_wide_panel': True,
         'content_json': {
-            'index': '10',
+            'index': '11',
             'title': 'Contracting & Development Stages',
             'intro': 'Our process is designed to offer clarity, trust, and support at every stage 🧭:',
             'currentLabel': 'Current',
@@ -1894,10 +1980,10 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'proposal_summary',
         'title': '📋 Proposal Summary',
-        'order': 11,
+        'order': 12,
         'is_wide_panel': False,
         'content_json': {
-            'index': '11',
+            'index': '12',
             'title': 'Proposal Summary',
             'subtitle': 'Key details of this proposal at a glance:',
             'kpis': [
@@ -1947,10 +2033,10 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'final_note',
         'title': '📝 Final Note & Next Steps',
-        'order': 12,
+        'order': 13,
         'is_wide_panel': False,
         'content_json': {
-            'index': '12',
+            'index': '13',
             'title': 'Final Note & Next Steps',
             'message': (
                 'We firmly believe this proposal represents an exceptional opportunity '
@@ -1993,10 +2079,10 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'next_steps',
         'title': '✅ Closing & Next Steps',
-        'order': 12,
+        'order': 13,
         'is_wide_panel': False,
         'content_json': {
-            'index': '12',
+            'index': '13',
             'title': 'Closing & Next Steps',
             'introMessage': (
                 'We are ready to start this journey together. '
@@ -2061,7 +2147,7 @@ DEFAULT_SECTIONS_EN = [
     {
         'section_type': 'technical_document',
         'title': '🔧 Technical document',
-        'order': 13,
+        'order': 14,
         'is_wide_panel': True,
         'content_json': deepcopy(EMPTY_TECHNICAL_DOCUMENT_JSON),
     },
@@ -2299,3 +2385,11 @@ class ProposalService:
 
         source = DEFAULT_SECTIONS_EN if language == 'en' else DEFAULT_SECTIONS
         return copy.deepcopy(source)
+
+    @staticmethod
+    def get_default_section(language, section_type):
+        """Return the default config for a single section_type, or None."""
+        for cfg in ProposalService.get_default_sections(language=language):
+            if cfg['section_type'] == section_type:
+                return cfg
+        return None

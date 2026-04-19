@@ -553,7 +553,7 @@ def proposal_with_sections():
         proposal=proposal,
         section_type='functional_requirements',
         title='Requerimientos Funcionales',
-        order=9,
+        order=10,
         content_json={
             'groups': [
                 {

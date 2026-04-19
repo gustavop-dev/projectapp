@@ -1,5 +1,6 @@
 from django.db import models
-from django.utils.text import slugify
+
+from content.utils import safe_slug
 
 
 class DocumentTag(models.Model):
@@ -29,7 +30,7 @@ class DocumentTag(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            base = slugify(self.name) or 'tag'
+            base = safe_slug(self.name, 'tag')
             slug = base
             index = 2
             while DocumentTag.objects.filter(slug=slug).exclude(pk=self.pk).exists():

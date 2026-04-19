@@ -201,6 +201,7 @@
               :key="`editor-${selectedLang}-${section.section_type}-${idx}`"
               :section="toVirtualSection(section, idx)"
               :proposalData="{}"
+              :all-sections="sections"
               @save="handleSaveSection"
             />
           </div>

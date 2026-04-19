@@ -42,7 +42,7 @@ def technical_section(proposal):
         proposal=proposal,
         section_type=ProposalSection.SectionType.TECHNICAL_DOCUMENT,
         content_json={},
-        order=10,
+        order=14,
     )
 
 
@@ -52,7 +52,7 @@ def technical_section_with_deliverable(proposal_with_deliverable):
         proposal=proposal_with_deliverable,
         section_type=ProposalSection.SectionType.TECHNICAL_DOCUMENT,
         content_json={},
-        order=10,
+        order=14,
     )
 
 

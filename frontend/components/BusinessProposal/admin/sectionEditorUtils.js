@@ -24,6 +24,11 @@ export function textToArr(text) {
   return text.split('\n').map(l => l.trim()).filter(Boolean);
 }
 
+/** Module ids highlighted in the value_added_modules section by default. */
+export const VALUE_ADDED_DEFAULT_MODULE_IDS = [
+  'admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module',
+];
+
 /**
  * Build a reactive form object from a section's content_json.
  * @param {object} json - The content_json from the backend.
@@ -113,6 +118,23 @@ export function buildFormFromJson(json, type, proposalData) {
       return { index: j.index || '', title: j.title || '', introMessage: j.introMessage || '', steps: (j.steps || []).map(s => ({ ...s })), ctaMessage: j.ctaMessage || '', primaryCTA: { text: j.primaryCTA?.text || '', link: j.primaryCTA?.link || '' }, secondaryCTA: { text: j.secondaryCTA?.text || '', link: j.secondaryCTA?.link || '' }, contactMethods: (j.contactMethods || []).map(m => ({ ...m })), validityMessage: j.validityMessage || '', thankYouMessage: j.thankYouMessage || '' };
     case 'process_methodology':
       return { index: j.index || '', title: j.title || '', intro: j.intro || '', steps: (j.steps || []).map(s => ({ icon: s.icon || '', title: s.title || '', description: s.description || '', clientAction: s.clientAction || '' })) };
+    case 'value_added_modules': {
+      const ids = Array.isArray(j.module_ids) && j.module_ids.length
+        ? j.module_ids
+        : [...VALUE_ADDED_DEFAULT_MODULE_IDS];
+      const justifications = j.justifications || {};
+      return {
+        index: j.index || '',
+        title: j.title || '',
+        intro: j.intro || '',
+        module_ids: [...ids],
+        justifications: ids.reduce((acc, id) => {
+          acc[id] = justifications[id] || '';
+          return acc;
+        }, {}),
+        footer_note: j.footer_note || '',
+      };
+    }
     default:
       return {};
   }
@@ -198,6 +220,21 @@ export function formToJson(formData, type) {
       return { index: f.index, title: f.title, introMessage: f.introMessage, steps: f.steps, ctaMessage: f.ctaMessage, primaryCTA: f.primaryCTA, secondaryCTA: f.secondaryCTA, contactMethods: f.contactMethods, validityMessage: f.validityMessage, thankYouMessage: f.thankYouMessage };
     case 'process_methodology':
       return { index: f.index, title: f.title, intro: f.intro, steps: f.steps.map(s => ({ icon: s.icon, title: s.title, description: s.description, clientAction: s.clientAction })) };
+    case 'value_added_modules': {
+      const ids = Array.isArray(f.module_ids) ? f.module_ids : [];
+      const justifications = {};
+      for (const id of ids) {
+        justifications[id] = (f.justifications && f.justifications[id]) || '';
+      }
+      return {
+        index: f.index,
+        title: f.title,
+        intro: f.intro,
+        module_ids: ids,
+        justifications,
+        footer_note: f.footer_note || '',
+      };
+    }
     default:
       return {};
   }

@@ -320,6 +320,7 @@ import {
   NextSteps,
   ProposalSummary,
   ProcessMethodology,
+  ValueAddedModules,
 } from '~/components/BusinessProposal';
 import ProposalIndex from '~/components/BusinessProposal/ProposalIndex.vue';
 import SectionCounter from '~/components/BusinessProposal/SectionCounter.vue';
@@ -380,6 +381,7 @@ const sectionComponentMap = {
   process_methodology: ProcessMethodology,
   functional_requirements: FunctionalRequirements,
   functional_requirements_group: FunctionalRequirementsGroup,
+  value_added_modules: ValueAddedModules,
   timeline: Timeline,
   investment: Investment,
   final_note: FinalNote,
@@ -432,7 +434,7 @@ useHead({
 
 const viewMode = ref(null); // null = gateway, 'executive', 'detailed', 'technical'
 const EXECUTIVE_SECTION_TYPES = new Set([
-  'greeting', 'executive_summary', 'proposal_summary', 'functional_requirements', 'investment', 'timeline', 'proposal_closing',
+  'greeting', 'executive_summary', 'proposal_summary', 'value_added_modules', 'functional_requirements', 'investment', 'timeline', 'proposal_closing',
 ]);
 
 const hasTechnicalDocument = computed(() =>
@@ -762,6 +764,13 @@ function getSectionProps(section) {
       proposalTitle: content.proposalTitle || proposal.value?.title || '',
       clientName: content.clientName || proposal.value?.client_name || '',
       inspirationalQuote: content.inspirationalQuote,
+    };
+  }
+
+  if (section.section_type === 'value_added_modules') {
+    return {
+      section,
+      proposal: proposal.value || { sections: enabledSections.value },
     };
   }
 

@@ -2,7 +2,8 @@ import uuid
 
 from django.conf import settings
 from django.db import models
-from django.utils.text import slugify
+
+from content.utils import safe_slug
 
 
 class Document(models.Model):
@@ -153,5 +154,5 @@ class Document(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.title) or 'document'
+            self.slug = safe_slug(self.title)
         super().save(*args, **kwargs)

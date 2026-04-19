@@ -560,9 +560,9 @@ class ProposalEmailService:
             )
             email.attach_alternative(html_content, 'text/html')
 
-            from django.utils.text import slugify
+            from content.utils import safe_slug
 
-            safe_client = slugify(proposal.client_name) or 'Cliente'
+            safe_client = safe_slug(proposal.client_name, 'Cliente')
 
             # Commercial proposal PDF
             try:

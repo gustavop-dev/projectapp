@@ -34,6 +34,7 @@ from content.serializers.proposal import (
     SECTION_TYPE_TO_KEY,
     serialize_proposal_document,
 )
+from content.views._email_attachment import render_markdown_pdf_response
 
 logger = logging.getLogger(__name__)
 
@@ -392,7 +393,9 @@ def _resync_investment_from_modules(proposal, fr_content_json):
     total = int(effective)
     formatted = f'${total:,}'.replace(',', '.')
     cj = dict(inv_section.content_json)
-    if cj.get('totalInvestment') == formatted:
+    currency_changed = cj.get('currency') != proposal.currency
+    total_changed = cj.get('totalInvestment') != formatted
+    if not currency_changed and not total_changed:
         return
     cj['totalInvestment'] = formatted
     cj['currency'] = proposal.currency
@@ -5176,44 +5179,8 @@ def list_proposal_emails(request, proposal_id):
 @permission_classes([IsAdminUser])
 def generate_email_markdown_attachment(request, proposal_id):
     """Generate a transient PDF from markdown for email attachment (not persisted)."""
-    from django.http import HttpResponse
-    from django.utils.text import slugify
-    from content.services.document_pdf_service import DocumentPdfService
-
     proposal = get_object_or_404(BusinessProposal, pk=proposal_id)
-
-    title = (request.data.get('title') or '').strip()
-    markdown_text = request.data.get('markdown') or ''
-    if not title:
-        return Response({'error': 'title_required'},
-                        status=status.HTTP_400_BAD_REQUEST)
-    if not markdown_text.strip():
-        return Response({'error': 'markdown_required'},
-                        status=status.HTTP_400_BAD_REQUEST)
-
-    def _bool(key, default=True):
-        v = request.data.get(key, default)
-        if isinstance(v, bool):
-            return v
-        return str(v).lower() in ('true', '1', 'yes', 'on')
-
-    pdf_bytes = DocumentPdfService.generate_from_markdown(
-        title=title,
-        markdown_text=markdown_text,
-        client_name=proposal.client_name or '',
-        include_portada=_bool('include_portada'),
-        include_subportada=_bool('include_subportada'),
-        include_contraportada=_bool('include_contraportada'),
-        language='es',
-    )
-    if not pdf_bytes:
-        return Response({'error': 'pdf_generation_failed'},
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    filename = f'{slugify(title) or "documento"}.pdf'
-    response = HttpResponse(pdf_bytes, content_type='application/pdf')
-    response['Content-Disposition'] = f'inline; filename="{filename}"'
-    return response
+    return render_markdown_pdf_response(request, client_name=proposal.client_name or '')
 
 
 # ── Project schedule endpoints (Cronograma admin tab) ──

@@ -1,5 +1,6 @@
 from django.db import models
-from django.utils.text import slugify
+
+from content.utils import safe_slug
 
 
 class DocumentFolder(models.Model):
@@ -19,7 +20,7 @@ class DocumentFolder(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            base = slugify(self.name) or 'folder'
+            base = safe_slug(self.name, 'folder')
             slug = base
             index = 2
             while DocumentFolder.objects.filter(slug=slug).exclude(pk=self.pk).exists():

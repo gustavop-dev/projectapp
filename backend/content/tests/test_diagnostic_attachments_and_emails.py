@@ -2,39 +2,10 @@
 
 import json
 
-import pytest
-from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from accounts.models import UserProfile
 from content.models import DiagnosticAttachment, EmailLog
-from content.services import diagnostic_service
-
-
-User = get_user_model()
-
-
-@pytest.fixture
-def diag_client_profile(db):
-    user = User.objects.create_user(
-        username='diag_client', email='diag@example.com',
-        first_name='Ana', last_name='Cliente',
-    )
-    profile, _ = UserProfile.objects.get_or_create(
-        user=user,
-        defaults={'role': UserProfile.ROLE_CLIENT, 'company_name': 'Acme'},
-    )
-    profile.role = UserProfile.ROLE_CLIENT
-    profile.save()
-    return profile
-
-
-@pytest.fixture
-def diagnostic(db, diag_client_profile):
-    return diagnostic_service.create_diagnostic(
-        client=diag_client_profile, language='es',
-    )
 
 
 def _upload_file(content=b'%PDF-1.4 fake'):

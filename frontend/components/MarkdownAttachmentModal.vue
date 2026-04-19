@@ -113,7 +113,7 @@ import { getCookie } from '~/stores/services/request_http';
 
 const props = defineProps({
   open: { type: Boolean, default: false },
-  proposalId: { type: [Number, String], required: true },
+  endpoint: { type: String, required: true },
 });
 
 const emit = defineEmits(['close', 'attach']);
@@ -156,7 +156,7 @@ async function fetchPdfBlob() {
     include_contraportada: includeContraportada.value,
   };
   const response = await axios.post(
-    `/api/proposals/${props.proposalId}/proposal-email/markdown-attachment/`,
+    `/api/${props.endpoint}`,
     payload,
     {
       responseType: 'blob',

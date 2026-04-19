@@ -933,7 +933,7 @@ class TestExportProposalJSON:
             proposal=proposal,
             section_type='technical_document',
             title='Doc técnico',
-            order=13,
+            order=14,
             is_enabled=True,
             content_json={'purpose': 'Test purpose', 'epics': []},
         )
@@ -1059,7 +1059,7 @@ class TestUpdateProposalFromJSON:
             proposal=proposal,
             section_type='technical_document',
             title='Doc técnico',
-            order=13,
+            order=14,
             is_enabled=True,
             content_json={'purpose': 'Antes', 'epics': []},
         )

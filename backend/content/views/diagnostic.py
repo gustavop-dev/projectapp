@@ -38,6 +38,10 @@ from content.serializers.diagnostic import (
     serialize_diagnostic_attachment,
 )
 from content.services import diagnostic_service
+from content.views._email_attachment import (
+    inline_pdf_response,
+    render_markdown_pdf_response,
+)
 from content.utils import get_client_ip
 
 logger = logging.getLogger(__name__)
@@ -848,8 +852,6 @@ def download_confidentiality_pdf(request, diagnostic_id):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def download_draft_confidentiality_pdf(request, diagnostic_id):
-    from django.http import HttpResponse
-
     from content.services.confidentiality_pdf_service import generate_confidentiality_pdf
     from content.services.pdf_utils import add_watermark_to_pdf
 
@@ -861,9 +863,7 @@ def download_draft_confidentiality_pdf(request, diagnostic_id):
             status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     filename = _confidentiality_filename(diagnostic, 'Borrador_Acuerdo_Confidencialidad')
-    response = HttpResponse(add_watermark_to_pdf(pdf_bytes), content_type='application/pdf')
-    response['Content-Disposition'] = f'inline; filename="{filename}"'
-    return response
+    return inline_pdf_response(add_watermark_to_pdf(pdf_bytes), filename)
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -1024,6 +1024,14 @@ def list_diagnostic_emails(request, diagnostic_id):
     except (ValueError, TypeError):
         page = 1
     return Response(DiagnosticEmailService.list_emails(diagnostic, page=page))
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def generate_diagnostic_email_markdown_attachment(request, diagnostic_id):
+    """Generate a transient PDF from markdown for diagnostic email attachment."""
+    diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
+    return render_markdown_pdf_response(request, client_name=diagnostic.client_name or '')
 
 
 # ---------------------------------------------------------------------------

@@ -100,7 +100,7 @@ from content.views.diagnostic import (
     update_confidentiality_params, generate_confidentiality_pdf_view,
     download_confidentiality_pdf, download_draft_confidentiality_pdf,
     send_diagnostic_email, get_diagnostic_email_defaults,
-    list_diagnostic_emails,
+    list_diagnostic_emails, generate_diagnostic_email_markdown_attachment,
     retrieve_public_diagnostic, track_public_diagnostic,
     track_diagnostic_section_view, respond_public_diagnostic,
     diagnostic_defaults, reset_diagnostic_defaults,
@@ -323,6 +323,7 @@ urlpatterns = [
     path('diagnostics/<int:diagnostic_id>/email/send/', send_diagnostic_email, name='send-diagnostic-email'),
     path('diagnostics/<int:diagnostic_id>/email/defaults/', get_diagnostic_email_defaults, name='diagnostic-email-defaults'),
     path('diagnostics/<int:diagnostic_id>/email/history/', list_diagnostic_emails, name='list-diagnostic-emails'),
+    path('diagnostics/<int:diagnostic_id>/email/markdown-attachment/', generate_diagnostic_email_markdown_attachment, name='generate-diagnostic-email-markdown-attachment'),
 
     # Diagnostics — default config (admin)
     path('diagnostics/defaults/', diagnostic_defaults, name='diagnostic-defaults'),

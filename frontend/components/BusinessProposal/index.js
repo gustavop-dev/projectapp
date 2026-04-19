@@ -13,3 +13,4 @@ export { default as Investment } from './Investment.vue';
 export { default as FinalNote } from './FinalNote.vue';
 export { default as NextSteps } from './NextSteps.vue';
 export { default as ProposalSummary } from './ProposalSummary.vue';
+export { default as ValueAddedModules } from './ValueAddedModules.vue';

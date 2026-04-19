@@ -9,6 +9,8 @@ import dns.resolver
 from django.conf import settings
 from django.core.mail import send_mail
 from django.utils import timezone as dj_timezone
+from django.utils.text import slugify
+from rest_framework.fields import BooleanField
 
 logger = logging.getLogger(__name__)
 
@@ -237,4 +239,24 @@ def send_email_notification(subject, message, recipient_email=None):
         return True
     except Exception as e:
         print(f"❌ Error sending email notification: {e}")
-        return False 
+        return False
+
+
+def coerce_bool(value, default=True):
+    """Coerce request data (bool, str, None) to a Python bool.
+
+    Uses DRF's BooleanField.TRUE_VALUES as the truthy set; returns *default*
+    when *value* is None instead of raising (DRF raises).
+    """
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        value = value.lower()
+    return value in BooleanField.TRUE_VALUES
+
+
+def safe_slug(value, fallback='document'):
+    """Slugify *value*, falling back when the result is empty (or value is None)."""
+    return slugify(value or '') or fallback

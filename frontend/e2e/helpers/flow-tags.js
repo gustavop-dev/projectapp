@@ -251,3 +251,12 @@ export const ADMIN_DIAGNOSTIC_DEFAULTS_CONFIG = ['@flow:admin-diagnostic-default
 // ── Diagnostic — split bundled flows (Apr 18, 2026) ──
 export const ADMIN_DIAGNOSTIC_MARK_IN_ANALYSIS = ['@flow:admin-diagnostic-mark-in-analysis', '@module:admin', '@priority:P1'];
 export const DIAGNOSTIC_PUBLIC_RESPOND = ['@flow:diagnostic-public-respond', '@module:diagnostic', '@priority:P1'];
+
+// ── Diagnostic — Confidentiality & JSON Export (gaps registered Apr 19, 2026) ──
+export const ADMIN_DIAGNOSTIC_CONFIDENTIALITY_EDIT     = ['@flow:admin-diagnostic-confidentiality-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_CONFIDENTIALITY_DOWNLOAD = ['@flow:admin-diagnostic-confidentiality-download', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_JSON_EXPORT              = ['@flow:admin-diagnostic-json-export', '@module:admin', '@priority:P2'];
+
+// ── Diagnostic Templates & Markdown Attachment (Apr 19, 2026) ──
+export const ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES  = ['@flow:admin-proposal-diagnostic-templates', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT = ['@flow:admin-diagnostic-markdown-attachment', '@module:admin', '@priority:P2'];

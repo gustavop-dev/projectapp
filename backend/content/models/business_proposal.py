@@ -3,7 +3,7 @@ import uuid
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
-from django.utils.text import slugify
+from content.utils import safe_slug
 
 
 class BusinessProposal(models.Model):
@@ -279,7 +279,7 @@ class BusinessProposal(models.Model):
             slug_source = self.client_name
             if not slug_source and self.client_id:
                 slug_source = self.client.user.get_full_name() or self.client.user.email
-            self.slug = slugify(slug_source or 'propuesta')
+            self.slug = safe_slug(slug_source, 'propuesta')
         super().save(*args, **kwargs)
 
     @property

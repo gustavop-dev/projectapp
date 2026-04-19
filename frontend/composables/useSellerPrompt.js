@@ -159,10 +159,24 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 | \`includes\` | array de strings | **Exactamente 4 items.** Cada item comienza con un emoji seguido de espacio. Formato: "emoji Descripción de la actividad." |
 | \`closing\` | string | **1-2 oraciones.** Máx ~200 caracteres. |
 
-#### \`functionalRequirements\` 
+#### \`valueAddedModules\` (resumen "incluido sin costo")
+Sección de presentación que **agrupa los 4 módulos base sin costo extra** (admin_module, analytics_dashboard, kpi_dashboard_module, manual_module). Aparece tanto en modo ejecutivo como en modo completo. Los datos completos de cada módulo siguen viviendo en \`functionalRequirements.groups[]\`; aquí solo se editan título, intro, justificación corta por módulo y nota de cierre.
+
 | Campo | Tipo | Restricción |
 |---|---|---|
-| \`groups\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN grupo base.** Los 6 grupos base (views, components, features, admin_module, analytics_dashboard, kpi_dashboard_module) deben permanecer en \`groups[]\`. Solo modificar contenido interno (title, description, items). Se pueden AGREGAR grupos nuevos al final. **NO mover módulos de \`additionalModules\` a \`groups\`.** |
+| \`index\` | string | Numérico, ≤3 chars. Suele ser \`"9"\` (orden actual). |
+| \`title\` | string | ≤80 chars. Mensaje corto (ej. "Lo que sumamos a tu proyecto sin costo extra"). |
+| \`intro\` | string | ≤300 chars. 1 párrafo que explique por qué se incluyen sin costo. |
+| \`module_ids\` | array<string> | **Exactamente los 4 ids:** \`["admin_module","analytics_dashboard","kpi_dashboard_module","manual_module"]\`. NO eliminar ninguno. |
+| \`justifications\` | object<string,string> | Una entrada por id (mismas claves que \`module_ids\`). Cada valor: ≤180 chars, una oración explicando por qué ese módulo aporta valor. |
+| \`footer_note\` | string | ≤120 chars. Nota de cierre tipo "Total adicional: $0. Ya está cotizado dentro del precio del proyecto." |
+
+**Regla:** este bloque NO debe contener precios numéricos ni listados de items (esos viven en \`functionalRequirements\`). Solo justificación corta por módulo.
+
+#### \`functionalRequirements\`
+| Campo | Tipo | Restricción |
+|---|---|---|
+| \`groups\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN grupo base.** Los 7 grupos base (views, components, features, admin_module, analytics_dashboard, kpi_dashboard_module, manual_module) deben permanecer en \`groups[]\`. Solo modificar contenido interno (title, description, items). Se pueden AGREGAR grupos nuevos al final. **NO mover módulos de \`additionalModules\` a \`groups\`.** |
 | \`groups[].items\` | array de objetos | Cada item tiene \`icon\` (emoji), \`name\` y \`description\`. Se pueden agregar o modificar items dentro de un grupo, pero no eliminar el grupo completo. |
 | \`additionalModules\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN módulo opcional.** Los 12 módulos con \`is_calculator_module: true\` deben permanecer en \`additionalModules[]\`. Solo modificar contenido interno (title, description, items, invite_note). **NO moverlos a \`groups[]\`.** |
 
@@ -178,16 +192,17 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 | \`is_invite\` | boolean | \`true\` si el módulo no tiene precio fijo sino invitación a llamada. NO cambiar. |
 | \`invite_note\` | string | Texto de invitación. Personalizar con el nombre del negocio del cliente pero mantener tono y estructura similar. |
 
-**Referencia: \`groups[]\`** (6 grupos base — orden obligatorio):
+**Referencia: \`groups[]\`** (7 grupos base — orden obligatorio):
 
 | # | \`id\` | Tipo |
 |---|---|---|
 | 0 | \`views\` | Base |
 | 1 | \`components\` | Base |
 | 2 | \`features\` | Base |
-| 3 | \`admin_module\` | Base |
-| 4 | \`analytics_dashboard\` | Base |
-| 5 | \`kpi_dashboard_module\` | Base |
+| 3 | \`admin_module\` | Base (incluido sin costo) |
+| 4 | \`analytics_dashboard\` | Base (incluido sin costo) |
+| 5 | \`kpi_dashboard_module\` | Base (incluido sin costo) |
+| 6 | \`manual_module\` | Base (incluido sin costo) |
 
 **Referencia: \`additionalModules[]\`** (12 módulos opcionales — orden obligatorio):
 

@@ -102,3 +102,11 @@ This file tracks known errors, their context, and resolutions. When a reusable f
   Right after the existing `negotiating` branch in `respond_to_proposal`. Verified by re-running the failing test plus the full `TestRespondReengagement` class (4/4 green).
 - **Files Affected**: `backend/content/views/proposal.py:respond_to_proposal`
 - **Lesson**: When a docstring describes a side effect, write a test that asserts the side effect AND wire the side effect into the code. Tests-and-docstring drift is the most common silent regression source.
+
+### [ERR-008] DRF APIClient: `content_type='application/json'` with a dict causes KeyError
+- **Date**: 2026-04-19
+- **Context**: New backend tests for markdown PDF attachment endpoints used `client.post(url, data=dict, content_type='application/json')`. Tests that then accessed `response.data['error']` raised `KeyError` because the response body was a DRF validation error dict with a different shape.
+- **Root Cause**: Passing `content_type='application/json'` with a `dict` skips DRF's multipart parsing — the dict is JSON-serialized by Django's test client, but DRF's parser may not decode it as expected when `request.data` is checked. The simpler and correct form is `format='json'` with a plain dict.
+- **Resolution**: Replace `client.post(url, data=dict, content_type='application/json')` with `client.post(url, data=dict, format='json')` in all DRF `APIClient` tests. The `format='json'` kwarg sets the content type AND JSON-encodes the body in one step.
+- **Files Affected**: `backend/content/tests/views/test_diagnostic_email_attachment.py` (and any test file using manual `content_type='application/json'`)
+- **Lesson**: In DRF `APIClient` tests, always use `format='json'` for JSON payloads — never `content_type='application/json'` with a `dict`. The `format` kwarg is the canonical DRF approach.

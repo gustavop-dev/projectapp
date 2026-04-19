@@ -3,22 +3,22 @@ import logging
 
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from django.utils.text import slugify
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from content.models import Document
-from content.services.document_type_codes import COLLECTION_ACCOUNT
-from content.services.document_type_utils import get_markdown_document_type
 from content.serializers.document import (
     DocumentListSerializer,
     DocumentDetailSerializer,
     DocumentCreateUpdateSerializer,
     DocumentFromMarkdownSerializer,
 )
+from content.services.document_type_codes import COLLECTION_ACCOUNT
+from content.services.document_type_utils import get_markdown_document_type
 from content.services.markdown_parser import markdown_to_blocks
+from content.utils import safe_slug
 
 logger = logging.getLogger(__name__)
 
@@ -321,9 +321,7 @@ def download_document_pdf(request, document_id):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
-    # Build filename
-    safe_title = slugify(document.title) or 'document'
-    filename = f'{safe_title}.pdf'
+    filename = f'{safe_slug(document.title)}.pdf'
 
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'

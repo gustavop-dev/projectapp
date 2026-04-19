@@ -775,3 +775,39 @@ class TestEmailTemplateConfigSerializerValidation:
             partial=True,
         )
         assert serializer.is_valid(), serializer.errors
+
+
+class TestSectionKeyMapValueAddedModules:
+    """Round-trip contract for the valueAddedModules JSON key."""
+
+    def test_value_added_modules_pair_in_section_key_map(self):
+        from content.serializers.proposal import SECTION_KEY_MAP, SECTION_TYPE_TO_KEY
+
+        assert SECTION_KEY_MAP['valueAddedModules'] == 'value_added_modules'
+        assert SECTION_TYPE_TO_KEY['value_added_modules'] == 'valueAddedModules'
+
+    def test_section_key_map_is_symmetric(self):
+        from content.serializers.proposal import SECTION_KEY_MAP, SECTION_TYPE_TO_KEY
+
+        for camel, snake in SECTION_KEY_MAP.items():
+            assert SECTION_TYPE_TO_KEY[snake] == camel, (
+                f'Key map asymmetry for {camel} ↔ {snake}'
+            )
+
+    def test_default_value_added_modules_content_round_trips(self):
+        """Default content for value_added_modules preserves shape through key map."""
+        from content.serializers.proposal import SECTION_KEY_MAP, SECTION_TYPE_TO_KEY
+        from content.services.proposal_service import ProposalService
+
+        cfg = ProposalService.get_default_section('es', 'value_added_modules')
+        assert cfg is not None
+        snake = cfg['section_type']
+        camel = SECTION_TYPE_TO_KEY[snake]
+
+        payload = {camel: cfg['content_json']}
+        rehydrated_type = SECTION_KEY_MAP[camel]
+        rehydrated_content = payload[camel]
+
+        assert rehydrated_type == snake
+        assert rehydrated_content['module_ids'] == cfg['content_json']['module_ids']
+        assert rehydrated_content['justifications'] == cfg['content_json']['justifications']

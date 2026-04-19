@@ -516,6 +516,30 @@ Use `<Teleport to="body">` so the toast renders above all panel layout layers (s
 
 **Preferred path for new admin pages**: import `usePanelToast` from `~/composables/usePanelToast` + mount `<PanelToast />` once in the template. The composable already encapsulates the timer + `clearTimeout` ceremony and a single `<PanelToast />` Teleport renders the bottom-right card. No need to re-implement `updateMsg`/`updateMsgTimer`/`setTimeout` pairs in each page — that pattern is reserved for legacy edit pages that already had inline toasts. New pages: `frontend/pages/panel/diagnostics/defaults.vue` (Apr 18, 2026) follows the composable path.
 
+### Generic Modal Reuse via `endpoint` Prop (not `resourceId`)
+
+When a modal performs an HTTP action whose target (proposal vs. diagnostic vs. document) varies across callers, accept a relative `endpoint: String` prop instead of a typed `proposalId` / `diagnosticId`. Each caller constructs the path (`diagnostics/${id}/email/markdown-attachment/`); the modal prepends `/api/` and calls the endpoint without knowing the resource type.
+
+**Pattern**: `MarkdownAttachmentModal.vue` (`components/MarkdownAttachmentModal.vue`) — moved from `BusinessProposal/admin/` to `components/` root when it gained a second consumer (`DiagnosticEmailsTab`). Any future email-composing attachment modal should start here rather than as a copy inside the feature folder.
+
+**Anti-pattern**: `proposalId: [Number, String]` — forced the modal to hardcode the URL template, preventing reuse across resource types.
+
+### Shared Backend View Helpers for Identical Response Bodies
+
+When two or more views produce an identical response body (same validation, same service call, same error codes), extract the logic into a module-level helper in a dedicated file rather than duplicating 40 lines each time.
+
+**Pattern**: `backend/content/views/_email_attachment.py`:
+- `inline_pdf_response(pdf_bytes, filename)` — builds `HttpResponse` with `Content-Disposition: inline`.
+- `render_markdown_pdf_response(request, *, client_name)` — validates `title`/`markdown`, calls `DocumentPdfService.generate_from_markdown()`, returns the PDF response or a typed 400/500 error.
+
+Both markdown-attachment views (proposal + diagnostic) import these and are 3 lines each. The underscore prefix (`_email_attachment.py`) signals that the module is a helper, not a standalone view router.
+
+### `coerce_bool` vs. Inline `_bool()` for DRF Request Data
+
+DRF's `request.data` delivers form-submitted booleans as strings (`"true"`, `"false"`, `"1"`, `"0"`). Inline helpers that call `request.data.get(key, default)` accidentally return the *string* `"True"` when the key is missing — because the fallback is passed through unchanged.
+
+**Safe pattern**: `coerce_bool(value, default=True)` in `content/utils.py` — handles `None → return default`, `bool → return as-is`, `str → lowercase compare against DRF's BooleanField.TRUE_VALUES`. Never stringify the default.
+
 ### Reusing Existing Transition Infrastructure for New Navigation Events
 
 Before adding a new CSS transition, check whether an existing overlay/transition already covers the visual effect you need. The `switch-mode-overlay` in `proposal/[uuid]/index.vue` was designed for gateway → mode transitions but works equally well for mode → gateway by adding a new sentinel value (`'gateway'`) to the icon/heading/subtitle ternary chain. No new CSS needed — the bouncy-scale enter/leave keyframes are reused as-is.

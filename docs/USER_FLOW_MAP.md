@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.21.0
-> **Last updated:** 2026-04-16
+> **Version:** 2.22.0
+> **Last updated:** 2026-04-19
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -1913,6 +1913,63 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Delete blocked] Generated NDA attachments (`is_generated=true`) cannot be deleted; backend returns HTTP 400 `{"error": "No se puede eliminar un documento generado por el sistema; regénerelo desde Editar parámetros."}`. They are filtered out of the user-attachments list, so the trash icon is not rendered for them.
 - **Coverage:** ✅ Covered (base flow); 🟡 NDA-checkbox branch + delete-blocked branch not yet asserted
 - **E2E Spec:** `e2e/admin/admin-diagnostic-email-documents.spec.js`
+
+---
+
+### FLOW: `admin-proposal-diagnostic-templates`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/:id/edit` → "Documentos & Plantillas" tab
+- **Description:** Admin accesses 3 static markdown diagnostic templates (Diagnóstico de Aplicación, Diagnóstico Técnico, Anexo — Dimensionamiento) from the proposal edit page. Tab is visible when `proposal.status ∈ {sent, viewed, negotiating, accepted, rejected}` — the same condition as the Correos tab. Each template card shows the title, filename, and last-modified date. Three actions are available per card: **Copiar contenido** (fetches `GET /api/diagnostic-templates/:slug/` and writes to clipboard via `navigator.clipboard.writeText`; shows "¡Copiado!" feedback for 2 s; per-slug response cached in component `ref` to avoid duplicate requests), **Descargar .md** (Blob + temporary `<a download>` link click), and **Vista previa** (toggles an inline `<pre>` block with raw markdown).
+- **Steps:**
+  1. Admin opens a proposal in `sent` or later status via `/panel/proposals/:id/edit`.
+  2. Admin clicks the "Documentos & Plantillas" tab.
+  3. Template list fetches `GET /api/diagnostic-templates/` → 3 cards render.
+  4. Admin clicks "Copiar contenido" on a card → detail fetch → clipboard write → "¡Copiado!" appears.
+  5. Admin clicks "Descargar .md" → Blob download triggers.
+  6. Admin clicks "Vista previa" → inline `<pre>` block expands; "Ocultar" collapses it.
+- **Branches:**
+  - [Tab hidden] When `proposal.status === 'draft'`, the tab is not rendered.
+  - [Proposal documents sub-section] `ProposalDocumentsTab` (contract, generated PDFs) is only shown within this tab for `negotiating|accepted|rejected` — not for `sent|viewed`.
+- **API:** `GET /api/diagnostic-templates/` (list), `GET /api/diagnostic-templates/:slug/` (detail + content_markdown)
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-diagnostic-templates.spec.js`
+- **Unit Tests:** `frontend/test/components/ProposalDiagnosticTemplatesSection.test.js`
+- **Backend Tests:** `backend/content/tests/views/test_diagnostic_template_views.py`
+
+---
+
+### FLOW: `admin-diagnostic-markdown-attachment`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/diagnostics/:id/edit` → Correos tab
+- **Description:** When a diagnostic is in `negotiating` status, a "Crear documento desde markdown" button appears in the Correos tab of the diagnostic edit page. Admin uses it to compose a custom branded PDF (e.g., expanded scope, technical annex, pricing supplement) and attach it to the email composer without uploading a pre-built file.
+- **Steps:**
+  1. Admin opens a diagnostic in `negotiating` status via `/panel/diagnostics/:id/edit`.
+  2. Admin clicks the "Correos" tab.
+  3. "Crear documento desde markdown" button is visible.
+  4. Admin clicks the button → `MarkdownAttachmentModal` opens.
+  5. Admin fills in the **Título** (text input) and **Contenido en Markdown** (textarea).
+  6. Admin optionally unchecks one or more cover toggles (Portada / Subportada / Contraportada).
+  7. Admin clicks "Vista previa" → `POST /api/diagnostics/:id/email/markdown-attachment/` fires (FormData with title, markdown, cover booleans).
+  8. Backend generates PDF via `DocumentPdfService.generate_from_markdown()` and returns it inline (`Content-Disposition: inline`).
+  9. Axios fetches the response as a Blob → `URL.createObjectURL` → `<iframe>` renders the preview.
+  10. Admin clicks "Adjuntar" → Blob is converted to a `File` object, emitted via `@attach` → appended to the email composer's attachment list.
+  11. Success toast "Adjunto «title.pdf» agregado al correo." appears.
+  12. Modal closes automatically.
+- **Branches:**
+  - [Button absent] When `diagnostic.status !== 'negotiating'`, the button is not rendered.
+  - [Preview disabled] "Vista previa" button stays disabled until both title and markdown are non-empty.
+  - [Cache reuse] If admin generates a preview, changes nothing, and clicks "Adjuntar", a second POST is skipped — the previously fetched Blob is reused (tracked via `previewSnapshot` vs `currentSnapshot` comparison).
+- **API:** `POST /api/diagnostics/:id/email/markdown-attachment/`
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-diagnostic-markdown-attachment.spec.js`
+- **Unit Tests:** `frontend/test/components/MarkdownAttachmentModal.test.js`
+- **Backend Tests:** `backend/content/tests/views/test_diagnostic_email_markdown_attachment.py`
 
 ---
 
@@ -3851,10 +3908,12 @@ No active browser flow is registered for client profile editing at this time.
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
 | `admin-diagnostic-json-export` | diagnostics | admin | P2 | ⬜ Missing spec | _proposed_: `e2e/admin/admin-diagnostic-json.spec.js` |
-| `admin-diagnostic-json-import` | diagnostics | admin | P2 | ⬜ Missing spec | _proposed_: `e2e/admin/admin-diagnostic-json.spec.js` |
+| `admin-diagnostic-json-import` | diagnostics | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-json-import.spec.js` |
 | `admin-diagnostic-defaults-config` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-defaults.spec.js` |
 | `admin-diagnostic-mark-in-analysis` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` (`'Marcar en análisis' button POSTs…`) |
 | `diagnostic-public-respond` | diagnostic | guest | P1 | ✅ Covered | `e2e/public/diagnostic-public-view.spec.js` (`clicking 'Aceptar propuesta'…`) |
+| `admin-proposal-diagnostic-templates` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-diagnostic-templates.spec.js` |
+| `admin-diagnostic-markdown-attachment` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-markdown-attachment.spec.js` |
 
 ---
 

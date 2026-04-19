@@ -562,6 +562,51 @@
           <button type="button" class="text-xs text-emerald-600 font-medium" @click="form.steps.push({ icon: '', title: '', description: '', clientAction: '' })">+ Agregar paso</button>
         </div>
       </template>
+
+      <!-- VALUE ADDED MODULES (incluido sin costo) -->
+      <template v-else-if="sectionType === 'value_added_modules'">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FieldInput v-model="form.index" label="Índice" placeholder="9" />
+          <FieldInput v-model="form.title" label="Título" />
+        </div>
+        <FieldTextarea v-model="form.intro" label="Intro (por qué se incluyen sin costo)" :rows="3" :isSingle="true" />
+
+        <div>
+          <label class="block text-xs font-medium text-gray-500 dark:text-green-light/60 uppercase tracking-wider mb-2">Módulos a destacar</label>
+          <p class="text-[11px] text-gray-500 dark:text-green-light/60 mb-3">
+            Selecciona qué módulos base aparecerán en esta sección de "incluido sin costo". Los datos completos
+            (icono, título, items) viven en la sección Requerimientos funcionales.
+          </p>
+          <div class="space-y-3">
+            <div v-for="id in valueAddedAvailableIds" :key="id"
+                 class="border border-gray-200 dark:border-white/[0.08] rounded-xl p-3 bg-gray-50 dark:bg-white/[0.03]">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  :checked="form.module_ids.includes(id)"
+                  class="rounded border-gray-300 dark:border-white/[0.08] text-emerald-600 focus:ring-emerald-500"
+                  @change="toggleValueAddedId(id, $event.target.checked)"
+                />
+                <span class="text-sm font-medium text-gray-700 dark:text-white/80">
+                  {{ valueAddedModuleLabel(id) }}
+                </span>
+              </label>
+              <FieldTextarea
+                v-if="form.module_ids.includes(id)"
+                :modelValue="form.justifications[id] || ''"
+                label="Justificación corta"
+                help="Máx ~180 caracteres. Una oración explicando por qué este módulo aporta valor."
+                :rows="2"
+                :isSingle="true"
+                class="mt-2"
+                @update:modelValue="form.justifications[id] = $event"
+              />
+            </div>
+          </div>
+        </div>
+
+        <FieldTextarea v-model="form.footer_note" label="Nota de cierre" :rows="2" :isSingle="true" />
+      </template>
     </div>
 
     <!-- Functional requirements groups: always visible regardless of paste mode -->
@@ -827,6 +872,7 @@ import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/Technic
 import draggable from 'vuedraggable';
 import {
   arrToText, textToArr,
+  VALUE_ADDED_DEFAULT_MODULE_IDS,
   buildFormFromJson as _buildFormFromJson,
   formToJson as _formToJson,
   formToReadableText as _formToReadableText,
@@ -872,6 +918,8 @@ const props = defineProps({
   proposalData: { type: Object, default: () => ({}) },
   /** { id, label }[] for technical_document linked_module_ids */
   moduleLinkOptions: { type: Array, default: () => [] },
+  /** All sections in the proposal (used by value_added_modules to discover available group ids). */
+  allSections: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['save', 'syncHostingPercent']);
@@ -975,6 +1023,42 @@ const form = reactive(buildFormFromJson(props.section.content_json || {}, props.
 // Auto-fill investment from proposal data if section is empty
 if (sectionType.value === 'investment' && !form.totalInvestment && props.proposalData?.total_investment) {
   fillInvestmentFromProposal();
+}
+
+const valueAddedFreeGroups = computed(() => {
+  const fr = (props.allSections || []).find((s) => s.section_type === 'functional_requirements');
+  const groups = fr?.content_json?.groups || [];
+  return groups.filter((g) => g && g.id && (g.price_percent ?? 0) === 0);
+});
+
+const valueAddedLabelById = computed(() => {
+  const map = new Map();
+  for (const g of valueAddedFreeGroups.value) {
+    map.set(g.id, `${g.icon || ''} ${g.title || g.id}`.trim());
+  }
+  return map;
+});
+
+const valueAddedAvailableIds = computed(() => {
+  const fromGroups = valueAddedFreeGroups.value.map((g) => g.id);
+  if (fromGroups.length) return fromGroups;
+  return [...VALUE_ADDED_DEFAULT_MODULE_IDS];
+});
+
+function valueAddedModuleLabel(id) {
+  return valueAddedLabelById.value.get(id) || id;
+}
+
+function toggleValueAddedId(id, checked) {
+  if (!Array.isArray(form.module_ids)) form.module_ids = [];
+  if (!form.justifications) form.justifications = {};
+  const idx = form.module_ids.indexOf(id);
+  if (checked && idx === -1) {
+    form.module_ids.push(id);
+    if (!(id in form.justifications)) form.justifications[id] = '';
+  } else if (!checked && idx !== -1) {
+    form.module_ids.splice(idx, 1);
+  }
 }
 
 watch(() => props.section, (s) => {

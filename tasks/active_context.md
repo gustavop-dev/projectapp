@@ -8,6 +8,23 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ## Recent Focus Areas
 
+- **Diagnostic Markdown Attachment & Diagnostic Template Tab in Proposal** (Apr 19, 2026):
+  - **Motivation (Feature 1 — Templates tab)**: The 3 static markdown files used to build diagnostics (`diagnostico_aplicacion_es.md`, `diagnostico_tecnico_es.md`, `anexo_es.md`) were buried in `_legacy/` with no consumer. Sellers had to ask for a copy or dig through the repo. Added a "Documentos & Plantillas" tab to the proposal admin detail page to expose them with copy-to-clipboard, download, and inline preview buttons.
+  - **Motivation (Feature 2 — Markdown attachment)**: When a diagnostic is in `negotiating` status, the seller needs to compose and attach custom branded PDF documents (e.g., expanded scopes, annexes) directly from the email composer, without uploading pre-built PDFs.
+  - **Backend — diagnostic_template.py** (new view): `GET /api/diagnostic-templates/` → list 3 templates (slug, title, filename, size_bytes, updated_at); `GET /api/diagnostic-templates/<slug>/` → full content_markdown. Slugs hardcoded in a module-level `TEMPLATES` dict, path resolved via `pathlib.Path(__file__).parent.parent / "templates" / "diagnostics"`. No path traversal possible (slug validated against the dict). Both views gated by `IsAdminUser`.
+  - **Backend — _email_attachment.py** (new shared helper): Extracted the 40-line markdown→PDF view body into two reusable functions: `inline_pdf_response(pdf_bytes, filename)` builds the `HttpResponse` with `Content-Disposition: inline`; `render_markdown_pdf_response(request, *, client_name)` validates `title` + `markdown`, calls `DocumentPdfService.generate_from_markdown()`, and returns the response (or 400/500 on error). Both proposal and diagnostic markdown attachment views are now 3 lines each.
+  - **Backend — diagnostic.py additions**: `generate_diagnostic_email_markdown_attachment` (POST `/api/diagnostics/<id>/email/markdown-attachment/`) + `download_draft_confidentiality_pdf` refactored to use `inline_pdf_response`. `generate_email_markdown_attachment` added to proposal views.
+  - **Backend — URLs**: 4 new patterns: `diagnostic-templates/`, `diagnostic-templates/<slug>/`, `diagnostics/<id>/email/markdown-attachment/`, `proposals/<id>/proposal-email/markdown-attachment/`.
+  - **Backend — utils.py**: `coerce_bool(value, default=True)` uses DRF's `BooleanField.TRUE_VALUES` (handles bool/str/None without the stringified-default bug); `safe_slug(value, fallback='document')` guards `slugify(value or '') or fallback` (protects against `slugify(None)` → `'none'`). Both hoisted from inline helpers across views.
+  - **Frontend — ProposalDiagnosticTemplatesSection.vue**: New component. Fetches template list on mount via `request_http.js`. Renders 3 template cards each with "Copiar contenido" (fetches detail, `navigator.clipboard.writeText`, 2 s feedback) + "Descargar .md" (Blob + `<a download>` click) + expandable inline `<pre>` preview. Caches detail response per slug in a local `ref` to avoid repeat fetches.
+  - **Frontend — edit.vue (proposals)**: Tab `'Documentos'` renamed to `'Documentos & Plantillas'`; `hasDocumentsTab` condition expanded to include `sent|viewed` (in addition to `negotiating|accepted|rejected`); `ProposalDocumentsTab` (contract/PDFs sub-section) still only renders for `negotiating|accepted|rejected`.
+  - **Frontend — MarkdownAttachmentModal.vue**: Moved from `BusinessProposal/admin/` to `components/` root. Key refactor: prop changed from `proposalId: [Number, String]` to `endpoint: String` (caller constructs the full API path). Enables reuse from both the proposal and diagnostic email tabs.
+  - **Frontend — DiagnosticEmailsTab.vue**: Import `MarkdownAttachmentModal` + `useMarkdownAttachmentHandler` + `DIAGNOSTIC_STATUS`. When `diagnostic.status === 'negotiating'`, shows "Crear documento desde markdown" button. On `@attach`, pushes the File to `attachments` + shows success toast.
+  - **Frontend — New utilities**: `utils/emailAttachments.js` (`validateEmailAttachments`, `ALLOWED_EXTENSIONS`, `MAX_FILE_SIZE`); `composables/useMarkdownAttachmentHandler.js` (encapsulates attach-to-list + toast); `stores/proposals_constants.js` (frozen `PROPOSAL_STATUS` object).
+  - **Conftest**: Added `diag_client_profile` and `diagnostic` shared fixtures to `content/tests/conftest.py`, replacing local-only copies in multiple test files.
+  - **Tests**: Backend — 50 tests passed after all changes including fixture consolidation. Frontend unit — `ProposalDiagnosticTemplatesSection.test.js` + `MarkdownAttachmentModal.test.js` created (node_modules not installed locally; run with `npm --prefix frontend install && npm --prefix frontend test -- test/components/...`). E2E tests and `USER_FLOW_MAP.md` update pending.
+  - **Cleanup rounds**: 3x `/simplify` + 2x "implement discarded findings". Key fixes: `coerce_bool`/`safe_slug` lazy imports hoisted to module top; `props.proposal?.status` → `props.proposal.status` in `ProposalEmailsTab.vue` (required prop, no optional chaining needed); `safe_slug` import moved to first-party group in `document.py`; `business_proposal.py:save()` migrated to `safe_slug(slug_source, 'propuesta')`; conftest fixture double-write replaced with single `save(update_fields=['client_name'])`.
+
 - **Diagnostic Defaults — Per-Language Singleton Config** (Apr 18, 2026):
   - **Motivation**: parity with `/panel/proposals/defaults/`. Diagnostics now created from `panel/diagnostics/create.vue` had hardcoded payment terms (`{"initial_pct": 40, "final_pct": 60}` only as `help_text`, actually empty `{}` in practice), no admin-controllable default currency/investment/duration, and no editor over the section seed shipped from `content/seeds/diagnostic_template.py`. The product pricing default also flipped to **60% inicial / 40% final** — encoded in the new model defaults.
   - **Backend model**: new `DiagnosticDefaultConfig` (`backend/content/models/diagnostic_default_config.py`) — singleton per `language` (es/en) holding `sections_json`, `payment_initial_pct=60`, `payment_final_pct=40`, `default_currency` (COP/USD), `default_investment_amount` (decimal, nullable), `default_duration_label`, `expiration_days=21`, `reminder_days=7`, `urgency_reminder_days=14`. `clean()` enforces `payment_initial_pct + payment_final_pct == 100`. Registered in `content/models/__init__.py`. Migration `0101_diagnostic_default_config.py`.
@@ -221,21 +238,21 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ---
 
-## Verified Codebase Metrics (April 18, 2026 — refreshed post-Diagnostic-Defaults)
+## Verified Codebase Metrics (April 19, 2026 — refreshed post-Diagnostic-Templates + Markdown-Attachment)
 
 | Metric | Count |
 |--------|-------|
 | Backend test files | 125 |
-| Frontend unit tests | 77 |
+| Frontend unit tests | 79 (+2 new component test files created, not yet run) |
 | E2E spec files | 132 |
-| Vue components | 135 |
+| Vue components | 136 (+ProposalDiagnosticTemplatesSection.vue) |
 | Pages | 69 |
 | Pinia stores | 24 |
-| Composables | 35 |
+| Composables | 36 (+useMarkdownAttachmentHandler.js) |
 | Content model files | 30 |
 | Accounts model classes | 21 |
 | Accounts URL patterns | 65 |
-| Content URL patterns | ~138 |
+| Content URL patterns | ~142 (+4 new patterns) |
 | Email templates | 61 (32 HTML + 29 TXT across `accounts` + `content`) |
 | Content services | 19 |
 | Accounts services | 11 |
@@ -246,6 +263,8 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ## Next Steps
 
+- **Run pending frontend unit tests** — `npm --prefix frontend install && npm --prefix frontend test -- test/components/ProposalDiagnosticTemplatesSection.test.js test/components/MarkdownAttachmentModal.test.js` — the 2 test files from the Apr 19 feature work were created but not yet executed (node_modules absent locally).
+- **Write E2E tests and update USER_FLOW_MAP.md** for the two Apr 19 flows: (1) Proposal admin "Documentos & Plantillas" tab — template copy/download while in `sent` status; (2) Diagnostic email tab "Crear documento desde markdown" button while in `negotiating` status.
 - **Apply pending migrations in production** — `python manage.py migrate` — required to activate the Kanban board (`0087_task.py`), the Web App Diagnostics module (`0090_web_app_diagnostic.py`), and the new Diagnostic Defaults table (`0101_diagnostic_default_config.py`).
 - **Set `NOTIFICATION_EMAIL` in production env** to `team@projectapp.co,carlos18bp@gmail.com` so the new stage warning + overdue alerts reach the right inbox.
 - Consider extending `ProposalStageTracker.STAGE_DEFINITIONS` beyond design + development (e.g., QA, Lanzamiento, Entrega Final) — the model + service already support N stages, only the catalog constant needs an update.

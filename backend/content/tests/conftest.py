@@ -471,3 +471,32 @@ def company_settings(db):
         },
     )
     return obj
+
+
+@pytest.fixture
+def diag_client_profile(db):
+    """A client UserProfile suitable for attaching to a WebAppDiagnostic."""
+    from accounts.models import UserProfile
+
+    user = User.objects.create_user(
+        username='diag_client', email='diag@example.com',
+        first_name='Ana', last_name='Cliente',
+    )
+    profile, _ = UserProfile.objects.get_or_create(
+        user=user,
+        defaults={'role': UserProfile.ROLE_CLIENT, 'company_name': 'Acme'},
+    )
+    return profile
+
+
+@pytest.fixture
+def diagnostic(db, diag_client_profile):
+    """A WebAppDiagnostic with a populated client_name."""
+    from content.services import diagnostic_service
+
+    diag = diagnostic_service.create_diagnostic(
+        client=diag_client_profile, language='es',
+    )
+    diag.client_name = 'Ana Cliente'
+    diag.save(update_fields=['client_name'])
+    return diag

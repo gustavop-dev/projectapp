@@ -1,35 +1,9 @@
 """Targeted tests for the WebAppDiagnostic feature (JSON sections model)."""
 
 import pytest
-from django.contrib.auth import get_user_model
 
-from accounts.models import UserProfile
 from content.models import DiagnosticChangeLog, DiagnosticSection, WebAppDiagnostic
 from content.services import diagnostic_service
-
-
-User = get_user_model()
-
-
-# ── Fixtures ───────────────────────────────────────────────────────────────
-
-@pytest.fixture
-def client_user(db):
-    user = User.objects.create_user(
-        username='client1', email='client1@example.com',
-        first_name='María', last_name='Cliente',
-    )
-    profile, _ = UserProfile.objects.get_or_create(
-        user=user, defaults={'role': UserProfile.ROLE_CLIENT, 'company_name': 'Acme'},
-    )
-    profile.role = UserProfile.ROLE_CLIENT
-    profile.save()
-    return profile
-
-
-@pytest.fixture
-def diagnostic(db, client_user):
-    return diagnostic_service.create_diagnostic(client=client_user, language='es')
 
 
 # ── Service tests ──────────────────────────────────────────────────────────
@@ -136,10 +110,10 @@ def test_visible_sections_respects_status_and_phase(diagnostic):
 
 # ── API tests ──────────────────────────────────────────────────────────────
 
-def test_create_diagnostic_endpoint(admin_client, client_user):
+def test_create_diagnostic_endpoint(admin_client, diag_client_profile):
     response = admin_client.post(
         '/api/diagnostics/create/',
-        {'client_id': client_user.id, 'language': 'es'},
+        {'client_id': diag_client_profile.id, 'language': 'es'},
         format='json',
     )
     assert response.status_code == 201
@@ -163,7 +137,7 @@ def test_send_initial_transitions_status(admin_client, diagnostic, mailoutbox):
     assert diagnostic.status == 'sent'
     assert diagnostic.initial_sent_at is not None
     assert len(mailoutbox) == 1
-    assert 'client1@example.com' in mailoutbox[0].to
+    assert 'diag@example.com' in mailoutbox[0].to
 
 
 def test_public_retrieve_increments_view_count(api_client, diagnostic):

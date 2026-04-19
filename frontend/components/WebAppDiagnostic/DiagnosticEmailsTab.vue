@@ -86,10 +86,20 @@
 
         <div>
           <label class="block text-xs text-gray-500 dark:text-white/70 mb-1">Adjuntos</label>
-          <input ref="fileInput" type="file" multiple
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-            class="text-xs dark:text-white/70 file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-emerald-50 dark:file:bg-emerald-900/20 file:text-emerald-700 dark:file:text-emerald-400 file:rounded-lg hover:file:bg-emerald-100 dark:hover:file:bg-emerald-900/30"
-            @change="handleFilesChange" />
+          <div class="flex items-center gap-3 flex-wrap">
+            <input ref="fileInput" type="file" multiple
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+              class="text-xs dark:text-white/70 file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-emerald-50 dark:file:bg-emerald-900/20 file:text-emerald-700 dark:file:text-emerald-400 file:rounded-lg hover:file:bg-emerald-100 dark:hover:file:bg-emerald-900/30"
+              @change="handleFilesChange" />
+            <button v-if="canCreateMarkdownAttachment" type="button" @click="showMarkdownModal = true"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Crear documento desde markdown
+            </button>
+          </div>
           <div v-if="attachments.length" class="mt-2 space-y-1">
             <div v-for="(file, idx) in attachments" :key="idx"
               class="flex items-center justify-between py-1.5 px-3 bg-gray-50 dark:bg-white/[0.03] rounded-lg">
@@ -252,6 +262,13 @@
         </div>
       </div>
     </section>
+
+    <MarkdownAttachmentModal
+      :open="showMarkdownModal"
+      :endpoint="`diagnostics/${diagnostic.id}/email/markdown-attachment/`"
+      @close="showMarkdownModal = false"
+      @attach="handleMarkdownAttach"
+    />
   </div>
 </template>
 
@@ -259,6 +276,10 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import draggable from 'vuedraggable';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
+import { DIAGNOSTIC_STATUS } from '~/stores/diagnostics_constants';
+import MarkdownAttachmentModal from '~/components/MarkdownAttachmentModal.vue';
+import { useMarkdownAttachmentHandler } from '~/composables/useMarkdownAttachmentHandler';
+import { validateEmailAttachments } from '~/utils/emailAttachments';
 
 const props = defineProps({
   diagnostic: { type: Object, required: true },
@@ -298,25 +319,8 @@ function removeSection(idx) {
   if (sections.value.length > 1) sections.value.splice(idx, 1);
 }
 
-const ALLOWED_EXTENSIONS = new Set(['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.png', '.jpg', '.jpeg']);
-const MAX_FILE_SIZE = 15 * 1024 * 1024;
-
 function handleFilesChange(e) {
-  const files = Array.from(e.target.files);
-  const validFiles = [];
-  const errors = [];
-  for (const file of files) {
-    const ext = '.' + file.name.split('.').pop().toLowerCase();
-    if (!ALLOWED_EXTENSIONS.has(ext)) {
-      errors.push(`${file.name}: tipo no permitido`);
-      continue;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      errors.push(`${file.name}: excede 15 MB`);
-      continue;
-    }
-    validFiles.push(file);
-  }
+  const { validFiles, errors } = validateEmailAttachments(Array.from(e.target.files || []));
   sendError.value = errors.length ? errors.join(', ') : '';
   if (validFiles.length) attachments.value.push(...validFiles);
   if (fileInput.value) fileInput.value.value = '';
@@ -325,6 +329,13 @@ function handleFilesChange(e) {
 function removeAttachment(idx) {
   attachments.value.splice(idx, 1);
 }
+
+const showMarkdownModal = ref(false);
+const canCreateMarkdownAttachment = computed(
+  () => props.diagnostic.status === DIAGNOSTIC_STATUS.NEGOTIATING,
+);
+
+const { handleMarkdownAttach } = useMarkdownAttachmentHandler(attachments);
 
 const canSend = computed(() => {
   if (!recipient.value.trim()) return false;

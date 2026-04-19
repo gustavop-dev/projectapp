@@ -1,6 +1,6 @@
 {
-  "version": "2.23.0",
-  "lastUpdated": "2026-04-17",
+  "version": "2.24.0",
+  "lastUpdated": "2026-04-19",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1892,6 +1892,22 @@
       "roles": ["admin"],
       "priority": "P2",
       "description": "Admin manages the per-language default config applied to new WebAppDiagnostic rows from /panel/diagnostics/defaults/. The General tab edits language, currency, default investment amount, default duration label, payment percentages (auto-synced to sum 100, default 60/40), and reminder/urgency/expiration days. Save PUTs /api/diagnostics/defaults/?lang= and the response is applied directly (no refetch). Reset opens a ConfirmModal and POSTs /defaults/reset/ to delete the row, falling back to the hardcoded seed. Sections, Plantillas de Email (link), Prompt (placeholder) and JSON tabs render from the same config payload.",
+      "expectedSpecs": 1
+    },
+    "admin-proposal-diagnostic-templates": {
+      "name": "Proposal — Diagnostic Templates Tab",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "Admin accesses 3 static markdown diagnostic templates (Diagnóstico de Aplicación, Diagnóstico Técnico, Anexo — Dimensionamiento) from the 'Documentos & Plantillas' tab of the proposal edit page. Tab is visible for proposals in sent|viewed|negotiating|accepted|rejected status. Each template card shows title, filename, and last modified date, with Copy (fetches GET /api/diagnostic-templates/:slug/ and writes to clipboard), Download (.md Blob), and inline Preview (expands a <pre> block) buttons. Per-slug content is cached client-side to avoid duplicate requests.",
+      "expectedSpecs": 1
+    },
+    "admin-diagnostic-markdown-attachment": {
+      "name": "Diagnostic Email — Markdown to PDF Attachment",
+      "module": "admin",
+      "roles": ["admin"],
+      "priority": "P2",
+      "description": "When a diagnostic is in 'negotiating' status, admin sees a 'Crear documento desde markdown' button in the Correos tab. Clicking it opens MarkdownAttachmentModal, which takes a title, a markdown textarea, and three cover-toggle checkboxes. The Vista previa button is disabled until both title and markdown are filled; clicking it POSTs to POST /api/diagnostics/:id/email/markdown-attachment/ (returns an inline PDF). The PDF is rendered in an iframe for review. Clicking Adjuntar converts the blob to a File and emits @attach — appending it to the email attachments list with a success toast.",
       "expectedSpecs": 1
     }
   }

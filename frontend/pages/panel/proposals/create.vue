@@ -1169,8 +1169,8 @@ async function handleSendCreated() {
 const EXPECTED_SECTION_KEYS = [
   'general', 'executiveSummary', 'contextDiagnostic', 'conversionStrategy',
   'designUX', 'creativeSupport', 'developmentStages', 'processMethodology',
-  'functionalRequirements', 'timeline', 'investment', 'proposalSummary',
-  'finalNote', 'nextSteps', 'technicalDocument',
+  'valueAddedModules', 'functionalRequirements', 'timeline', 'investment',
+  'proposalSummary', 'finalNote', 'nextSteps', 'technicalDocument',
 ];
 
 const jsonRaw = ref('');
