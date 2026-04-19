@@ -38,6 +38,7 @@ from content.views.proposal import (
     delete_proposal_document,
     send_branded_email, get_branded_email_defaults, list_branded_emails,
     send_proposal_email, get_proposal_email_defaults, list_proposal_emails,
+    generate_email_markdown_attachment,
     update_project_stage, complete_project_stage,
 )
 from content.views.email_templates import (
@@ -82,6 +83,9 @@ from content.views.task import (
     archive_task, unarchive_task, list_archived_tasks,
     list_task_comments, create_task_comment, delete_task_comment,
     list_task_alerts, create_task_alert, delete_task_alert,
+)
+from content.views.diagnostic_template import (
+    list_diagnostic_templates, get_diagnostic_template,
 )
 from content.views.diagnostic import (
     list_diagnostics, create_diagnostic, retrieve_diagnostic,
@@ -182,6 +186,7 @@ urlpatterns = [
     path('proposals/<int:proposal_id>/proposal-email/send/', send_proposal_email, name='send-proposal-email'),
     path('proposals/<int:proposal_id>/proposal-email/defaults/', get_proposal_email_defaults, name='proposal-email-defaults'),
     path('proposals/<int:proposal_id>/proposal-email/history/', list_proposal_emails, name='list-proposal-emails'),
+    path('proposals/<int:proposal_id>/proposal-email/markdown-attachment/', generate_email_markdown_attachment, name='generate-email-markdown-attachment'),
 
     # Project schedule (Cronograma admin tab)
     path('proposals/<int:proposal_id>/stages/<str:stage_key>/', update_project_stage, name='update-project-stage'),
@@ -322,6 +327,10 @@ urlpatterns = [
     # Diagnostics — default config (admin)
     path('diagnostics/defaults/', diagnostic_defaults, name='diagnostic-defaults'),
     path('diagnostics/defaults/reset/', reset_diagnostic_defaults, name='reset-diagnostic-defaults'),
+
+    # Diagnostic markdown templates (static .md files exposed for sellers)
+    path('diagnostic-templates/', list_diagnostic_templates, name='list-diagnostic-templates'),
+    path('diagnostic-templates/<slug:slug>/', get_diagnostic_template, name='get-diagnostic-template'),
 
     # Portfolio — admin CRUD (must come before slug catch-all)
     path('portfolio/admin/', list_admin_portfolio_works, name='list-admin-portfolio-works'),

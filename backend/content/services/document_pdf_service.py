@@ -42,6 +42,44 @@ class DocumentPdfService:
     """Generate a branded PDF from a Document model instance."""
 
     @classmethod
+    def generate_from_markdown(
+        cls,
+        *,
+        title,
+        markdown_text,
+        client_name='',
+        include_portada=True,
+        include_subportada=True,
+        include_contraportada=True,
+        language='es',
+    ):
+        """Render PDF bytes from raw markdown without persisting a Document."""
+        from content.models import Document
+        from content.services.markdown_parser import markdown_to_blocks
+
+        blocks = markdown_to_blocks(markdown_text or '')
+        meta = {
+            'title': title,
+            'client_name': client_name,
+            'cover_type': 'generic',
+            'include_portada': include_portada,
+            'include_subportada': include_subportada,
+            'include_contraportada': include_contraportada,
+        }
+        document = Document(
+            title=title,
+            client_name=client_name,
+            language=language,
+            cover_type='generic',
+            include_portada=include_portada,
+            include_subportada=include_subportada,
+            include_contraportada=include_contraportada,
+            content_markdown=markdown_text or '',
+            content_json={'meta': meta, 'blocks': blocks},
+        )
+        return cls.generate(document)
+
+    @classmethod
     def generate(cls, document):
         """Generate PDF bytes from a Document instance.
 

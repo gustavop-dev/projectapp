@@ -124,10 +124,20 @@
         <!-- Attachments -->
         <div>
           <label class="block text-xs text-gray-500 dark:text-white/70 mb-1">Adjuntos</label>
-          <input ref="fileInput" type="file" multiple
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-            class="text-xs dark:text-white/70 file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-emerald-50 dark:file:bg-emerald-900/20 file:text-emerald-700 dark:file:text-emerald-400 file:rounded-lg hover:file:bg-emerald-100 dark:hover:file:bg-emerald-900/30"
-            @change="handleFilesChange" />
+          <div class="flex items-center gap-3 flex-wrap">
+            <input ref="fileInput" type="file" multiple
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+              class="text-xs dark:text-white/70 file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-emerald-50 dark:file:bg-emerald-900/20 file:text-emerald-700 dark:file:text-emerald-400 file:rounded-lg hover:file:bg-emerald-100 dark:hover:file:bg-emerald-900/30"
+              @change="handleFilesChange" />
+            <button v-if="canCreateMarkdownAttachment" type="button" @click="showMarkdownModal = true"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Crear documento desde markdown
+            </button>
+          </div>
           <div v-if="attachments.length" class="mt-2 space-y-1">
             <div v-for="(file, idx) in attachments" :key="idx"
               class="flex items-center justify-between py-1.5 px-3 bg-gray-50 dark:bg-white/[0.03] rounded-lg">
@@ -313,6 +323,12 @@
       </div>
     </section>
 
+    <MarkdownAttachmentModal
+      :open="showMarkdownModal"
+      :proposal-id="proposal.id"
+      @close="showMarkdownModal = false"
+      @attach="handleMarkdownAttach"
+    />
   </div>
 </template>
 
@@ -320,6 +336,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import draggable from 'vuedraggable';
 import { usePanelToast } from '~/composables/usePanelToast';
+import MarkdownAttachmentModal from '~/components/BusinessProposal/admin/MarkdownAttachmentModal.vue';
 
 const { showToast } = usePanelToast();
 
@@ -399,6 +416,19 @@ function handleFilesChange(e) {
 
 function removeAttachment(idx) {
   attachments.value.splice(idx, 1);
+}
+
+const showMarkdownModal = ref(false);
+const canCreateMarkdownAttachment = computed(
+  () => props.proposal?.status === 'negotiating',
+);
+
+function handleMarkdownAttach(file) {
+  attachments.value.push(file);
+  showToast({
+    type: 'success',
+    text: `Adjunto "${file.name}" agregado al correo.`,
+  });
 }
 
 // ── Validation ──

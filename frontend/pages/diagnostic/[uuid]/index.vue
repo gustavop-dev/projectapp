@@ -43,8 +43,9 @@
           />
         </article>
 
-        <div v-else class="bg-white rounded-2xl shadow-sm border p-6 text-center text-gray-500">
-          No hay secciones disponibles en este momento.
+        <div v-else class="bg-white rounded-2xl shadow-sm border p-6 text-center">
+          <p class="text-gray-700 font-medium">{{ emptyStateCopy.title }}</p>
+          <p class="text-sm text-gray-500 mt-2">{{ emptyStateCopy.hint }}</p>
         </div>
 
         <!-- Prev / next -->
@@ -141,6 +142,29 @@ const canRespond = computed(() => (
   store.current?.status === DIAGNOSTIC_STATUS.SENT
   && !!store.current?.final_sent_at
 ));
+
+const EMPTY_STATE_COPY = {
+  [DIAGNOSTIC_STATUS.DRAFT]: {
+    title: 'Este diagnóstico todavía no está publicado.',
+    hint: 'Nuestro equipo está preparando el contenido. Te avisaremos cuando esté listo para revisar.',
+  },
+  [DIAGNOSTIC_STATUS.EXPIRED]: {
+    title: 'Este diagnóstico ha expirado.',
+    hint: 'Si todavía te interesa avanzar, contáctanos y lo reactivamos.',
+  },
+  [DIAGNOSTIC_STATUS.FINISHED]: {
+    title: 'Este diagnóstico ya fue finalizado.',
+    hint: 'Si necesitas consultar la información, escríbenos y te ayudamos.',
+  },
+};
+const DEFAULT_EMPTY_STATE = {
+  title: 'No hay secciones disponibles en este momento.',
+  hint: 'Si crees que es un error, por favor contáctanos.',
+};
+
+const emptyStateCopy = computed(
+  () => EMPTY_STATE_COPY[store.current?.status] || DEFAULT_EMPTY_STATE,
+);
 
 function componentFor(type) {
   return COMPONENTS[type] || null;

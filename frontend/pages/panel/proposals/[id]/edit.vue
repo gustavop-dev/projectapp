@@ -578,9 +578,11 @@
         <ProposalEmailsTab v-if="proposal" :proposal="proposal" />
       </div>
 
-      <!-- Tab: Documentos -->
-      <div v-show="activeTab === 'documents'" class="max-w-4xl">
+      <!-- Tab: Documentos & Plantillas -->
+      <div v-show="activeTab === 'documents'" class="max-w-4xl space-y-8">
+        <ProposalDiagnosticTemplatesSection />
         <ProposalDocumentsTab
+          v-if="hasProposalDocuments"
           :proposal="proposal"
           :documents="proposal.proposal_documents || []"
           @refresh="proposalStore.fetchProposal(proposal.id).then(r => { if (r?.data) proposal = r.data; })"
@@ -1185,6 +1187,7 @@ import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnaly
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
 import ProposalActionsModal from '~/components/BusinessProposal/admin/ProposalActionsModal.vue';
 import ProposalDocumentsTab from '~/components/BusinessProposal/admin/ProposalDocumentsTab.vue';
+import ProposalDiagnosticTemplatesSection from '~/components/BusinessProposal/admin/ProposalDiagnosticTemplatesSection.vue';
 import ProposalEmailsTab from '~/components/BusinessProposal/admin/ProposalEmailsTab.vue';
 import ProjectScheduleEditor from '~/components/BusinessProposal/admin/ProjectScheduleEditor.vue';
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
@@ -1279,6 +1282,9 @@ const hasSendEmailTab = computed(() =>
   ['sent', 'viewed', 'negotiating', 'accepted', 'rejected'].includes(proposal.value?.status),
 );
 const hasDocumentsTab = computed(() =>
+  ['sent', 'viewed', 'negotiating', 'accepted', 'rejected'].includes(proposal.value?.status),
+);
+const hasProposalDocuments = computed(() =>
   ['negotiating', 'accepted', 'rejected'].includes(proposal.value?.status),
 );
 const hasScheduleTab = computed(() =>
@@ -1293,7 +1299,7 @@ const tabs = computed(() => {
     base.push({ id: 'emails', label: 'Correos' });
   }
   if (hasDocumentsTab.value) {
-    base.push({ id: 'documents', label: 'Documentos' });
+    base.push({ id: 'documents', label: 'Documentos & Plantillas' });
   }
   if (hasScheduleTab.value) {
     base.push({ id: 'schedule', label: 'Cronograma' });
