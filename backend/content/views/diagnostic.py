@@ -6,7 +6,7 @@ Admin endpoints use Django session auth + IsAdminUser. The 3 public endpoints
 
 import logging
 
-from django.db.models import Avg, Count, Sum
+from django.db.models import Avg, Count, Min, Sum
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status as http_status
@@ -296,60 +296,392 @@ def create_diagnostic_activity(request, diagnostic_id):
 # Admin — analytics
 # ──────────────────────────────────────────────────────────────────────────
 
+_ACTIVE_ENGAGEMENT_STATUSES = frozenset({
+    WebAppDiagnostic.Status.ACCEPTED,
+    WebAppDiagnostic.Status.FINISHED,
+    WebAppDiagnostic.Status.NEGOTIATING,
+})
+
+
+def _compute_diagnostic_engagement_score(
+    diagnostic, view_events, sections_data, unique_sessions,
+    first_viewed_at, coverage_ratio,
+):
+    """Engagement score (0-100) for a diagnostic.
+
+    Distribution:
+    - Recent sessions (last 7 days): 0-25 pts
+    - Section coverage ratio (visited / total enabled): 0-20 pts
+    - Time on cost section + total reading time: 0-15 pts
+    - Unique stakeholders (IPs): 0-15 pts
+    - Inverse days-without-response: 0-15 pts
+    - Re-visits (sessions > 1): 0-10 pts
+    """
+    from datetime import timedelta
+
+    score = 0
+
+    seven_days_ago = timezone.now() - timedelta(days=7)
+    recent = view_events.filter(viewed_at__gte=seven_days_ago).count()
+    score += min(25, recent * 8)
+
+    score += round(min(20, (coverage_ratio or 0) * 20))
+
+    total_time = sum(s.get('total_time_seconds', 0) for s in sections_data)
+    cost_time = sum(
+        s.get('total_time_seconds', 0)
+        for s in sections_data if s.get('section_type') == 'cost'
+    )
+    if total_time > 0:
+        if cost_time >= 30:
+            score += 10
+        elif cost_time >= 10:
+            score += 5
+        if total_time >= 120:
+            score += 5
+        elif total_time >= 40:
+            score += 3
+
+    unique_ips = (
+        view_events.exclude(ip_address__isnull=True)
+        .exclude(ip_address='')
+        .values('ip_address').distinct().count()
+    )
+    score += min(15, unique_ips * 8)
+
+    if diagnostic.status == WebAppDiagnostic.Status.SENT and first_viewed_at:
+        days_since = (timezone.now() - first_viewed_at).days
+        if days_since <= 1:
+            score += 15
+        elif days_since <= 3:
+            score += 10
+        elif days_since <= 7:
+            score += 5
+    elif diagnostic.status in _ACTIVE_ENGAGEMENT_STATUSES:
+        score += 15
+
+    if unique_sessions > 1:
+        score += min(10, (unique_sessions - 1) * 4)
+
+    return min(100, score)
+
+
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def diagnostic_analytics(request, diagnostic_id):
+    """Aggregated engagement analytics for a diagnostic.
+
+    Shape mirrors ``retrieve_proposal_analytics`` with the exceptions of
+    view modes, technical subsections and share links (no equivalent data
+    model for diagnostics).
+    """
     diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
+
+    view_events = diagnostic.view_events.all()
+    unique_sessions = view_events.values('session_id').distinct().count()
+
+    first_viewed_at = (
+        view_events.order_by('viewed_at')
+        .values_list('viewed_at', flat=True)
+        .first()
+    )
+    last_viewed_at = (
+        view_events.order_by('-viewed_at')
+        .values_list('viewed_at', flat=True)
+        .first()
+    )
+
+    time_to_first_view = None
+    if diagnostic.initial_sent_at and first_viewed_at:
+        delta = (first_viewed_at - diagnostic.initial_sent_at).total_seconds()
+        time_to_first_view = round(delta / 3600, 1)
+
+    time_to_response = None
+    if first_viewed_at and diagnostic.responded_at:
+        delta = (diagnostic.responded_at - first_viewed_at).total_seconds()
+        time_to_response = round(delta / 3600, 1)
 
     section_stats = (
         DiagnosticSectionView.objects
         .filter(view_event__diagnostic=diagnostic)
-        .values('section_type', 'section_title')
+        .values('section_type')
         .annotate(
-            total_seconds=Sum('time_spent_seconds'),
-            avg_seconds=Avg('time_spent_seconds'),
-            visits=Count('id'),
+            visit_count=Count('id'),
+            total_time_seconds=Sum('time_spent_seconds'),
+            avg_time_seconds=Avg('time_spent_seconds'),
+            reached_sessions=Count('view_event__session_id', distinct=True),
         )
-        .order_by('-total_seconds')
+        .order_by('section_type')
     )
-    total_sessions = diagnostic.view_events.count()
-    total_time = (
-        DiagnosticSectionView.objects
-        .filter(view_event__diagnostic=diagnostic)
-        .aggregate(total=Sum('time_spent_seconds'))['total'] or 0
+
+    visited_types = set()
+    sections_data = []
+    section_reach = {}
+    for stat in section_stats:
+        visited_types.add(stat['section_type'])
+        section_reach[stat['section_type']] = stat['reached_sessions']
+        latest = (
+            DiagnosticSectionView.objects
+            .filter(
+                view_event__diagnostic=diagnostic,
+                section_type=stat['section_type'],
+            )
+            .order_by('-entered_at')
+            .values_list('section_title', flat=True)
+            .first()
+        )
+        sections_data.append({
+            'section_type': stat['section_type'],
+            'section_title': latest or stat['section_type'],
+            'visit_count': stat['visit_count'],
+            'total_time_seconds': round(stat['total_time_seconds'] or 0, 1),
+            'avg_time_seconds': round(stat['avg_time_seconds'] or 0, 1),
+        })
+
+    enabled_sections = list(
+        diagnostic.sections
+        .filter(is_enabled=True)
+        .order_by('order')
+        .values_list('section_type', 'title')
+    )
+    skipped_sections = [
+        {'section_type': st, 'section_title': title}
+        for st, title in enabled_sections
+        if st not in visited_types
+    ]
+
+    # Tablet check must precede mobile because iPad UAs contain "Mobile".
+    device_counts = {'desktop': 0, 'mobile': 0, 'tablet': 0}
+    for ua in view_events.values_list('user_agent', flat=True):
+        ua_lower = (ua or '').lower()
+        if 'tablet' in ua_lower or 'ipad' in ua_lower:
+            device_counts['tablet'] += 1
+        elif 'mobile' in ua_lower or 'android' in ua_lower:
+            device_counts['mobile'] += 1
+        else:
+            device_counts['desktop'] += 1
+
+    sessions_data = []
+    recent_events = (
+        view_events.order_by('-viewed_at')
+        .prefetch_related('section_views')[:50]
+    )
+    for event in recent_events:
+        sv = list(event.section_views.all())
+        sessions_data.append({
+            'session_id': event.session_id,
+            'ip_address': event.ip_address or '',
+            'viewed_at': event.viewed_at.isoformat(),
+            'sections_viewed': len(sv),
+            'total_time_seconds': round(
+                sum(s.time_spent_seconds for s in sv), 1,
+            ),
+        })
+
+    timeline = [
+        {
+            'change_type': log.change_type,
+            'field_name': log.field_name,
+            'old_value': log.old_value,
+            'new_value': log.new_value,
+            'description': log.description,
+            'actor_type': log.actor_type,
+            'created_at': log.created_at.isoformat(),
+        }
+        for log in diagnostic.change_logs.order_by('-created_at')[:50]
+    ]
+
+    funnel_data = []
+    for section_type, section_title in enabled_sections:
+        reached = section_reach.get(section_type, 0)
+        drop_off = round(
+            (1 - reached / unique_sessions) * 100, 1,
+        ) if unique_sessions > 0 else 0
+        funnel_data.append({
+            'section_type': section_type,
+            'section_title': section_title,
+            'reached_count': reached,
+            'drop_off_percent': drop_off,
+        })
+
+    total_enabled = len(enabled_sections)
+    coverage_ratio = (
+        len(visited_types) / total_enabled if total_enabled > 0 else 0
+    )
+
+    # Global comparison — single aggregated query over all other diagnostics
+    # (per-diagnostic queries here would be N+1 on every admin page load).
+    other_qs = WebAppDiagnostic.objects.exclude(pk=diagnostic.pk)
+    first_views_map = dict(
+        DiagnosticViewEvent.objects
+        .filter(diagnostic__in=other_qs)
+        .values_list('diagnostic_id')
+        .annotate(first_viewed=Min('viewed_at'))
+        .values_list('diagnostic_id', 'first_viewed')
+    )
+
+    ttfv_values = []
+    ttr_values = []
+    for diag_id, initial_sent, responded in other_qs.values_list(
+        'id', 'initial_sent_at', 'responded_at',
+    ):
+        first = first_views_map.get(diag_id)
+        if first and initial_sent:
+            ttfv_values.append((first - initial_sent).total_seconds())
+        if first and responded:
+            ttr_values.append((responded - first).total_seconds())
+
+    avg_ttfv_global = (
+        round(sum(ttfv_values) / len(ttfv_values) / 3600, 1)
+        if ttfv_values else None
+    )
+    avg_ttr_global = (
+        round(sum(ttr_values) / len(ttr_values) / 3600, 1)
+        if ttr_values else None
+    )
+
+    avg_views_agg = (
+        other_qs.filter(view_count__gt=0).aggregate(avg=Avg('view_count'))['avg']
+    )
+    avg_views_global = round(avg_views_agg, 1) if avg_views_agg is not None else None
+
+    engagement_score = _compute_diagnostic_engagement_score(
+        diagnostic, view_events, sections_data, unique_sessions,
+        first_viewed_at, coverage_ratio,
     )
 
     return Response({
-        'view_count': diagnostic.view_count,
+        'total_views': diagnostic.view_count,
+        'unique_sessions': unique_sessions,
+        'first_viewed_at': (
+            first_viewed_at.isoformat() if first_viewed_at else None
+        ),
         'last_viewed_at': (
-            diagnostic.last_viewed_at.isoformat()
-            if diagnostic.last_viewed_at else None
+            last_viewed_at.isoformat() if last_viewed_at else None
         ),
-        'total_sessions': total_sessions,
-        'total_time_spent_seconds': float(total_time or 0),
-        'sections': [
-            {
-                'section_type': row['section_type'],
-                'section_title': row['section_title'],
-                'total_seconds': float(row['total_seconds'] or 0),
-                'avg_seconds': float(row['avg_seconds'] or 0),
-                'visits': row['visits'],
-            }
-            for row in section_stats
-        ],
-        'initial_sent_at': (
-            diagnostic.initial_sent_at.isoformat()
-            if diagnostic.initial_sent_at else None
-        ),
-        'final_sent_at': (
-            diagnostic.final_sent_at.isoformat()
-            if diagnostic.final_sent_at else None
-        ),
+        'time_to_first_view_hours': time_to_first_view,
+        'time_to_response_hours': time_to_response,
         'responded_at': (
             diagnostic.responded_at.isoformat()
             if diagnostic.responded_at else None
         ),
+        'sections': sections_data,
+        'skipped_sections': skipped_sections,
+        'device_breakdown': device_counts,
+        'sessions': sessions_data,
+        'timeline': timeline,
+        'funnel': funnel_data,
+        'comparison': {
+            'avg_time_to_first_view_hours': avg_ttfv_global,
+            'avg_time_to_response_hours': avg_ttr_global,
+            'avg_views': avg_views_global,
+        },
+        'engagement_score': engagement_score,
     })
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def export_diagnostic_analytics_csv(request, diagnostic_id):
+    """Export diagnostic analytics as a CSV file.
+
+    Sections combined: summary, per-section engagement, session history,
+    change log. Mirrors ``export_proposal_analytics_csv`` without view_mode
+    or share-links.
+    """
+    import csv
+
+    from django.http import HttpResponse as DjangoHttpResponse
+
+    diagnostic = get_object_or_404(WebAppDiagnostic, pk=diagnostic_id)
+
+    response = DjangoHttpResponse(content_type='text/csv')
+    filename = (
+        f'analytics_diagnostic_{diagnostic.client_name or "cliente"}_'
+        f'{diagnostic.id}.csv'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+
+    writer.writerow([f'Diagnostic Analytics: {diagnostic.title}'])
+    writer.writerow([f'Client: {diagnostic.client_name or ""}'])
+    writer.writerow([f'Status: {diagnostic.status}'])
+    writer.writerow([f'Total Views: {diagnostic.view_count}'])
+    writer.writerow([])
+
+    # Section engagement
+    writer.writerow(['--- SECTION ENGAGEMENT ---'])
+    writer.writerow([
+        'Section Type', 'Section Title', 'Visit Count',
+        'Total Time (s)', 'Avg Time (s)',
+    ])
+    section_stats = (
+        DiagnosticSectionView.objects
+        .filter(view_event__diagnostic=diagnostic)
+        .values('section_type')
+        .annotate(
+            visit_count=Count('id'),
+            total_time=Sum('time_spent_seconds'),
+            avg_time=Avg('time_spent_seconds'),
+        )
+        .order_by('section_type')
+    )
+    for stat in section_stats:
+        latest_title = (
+            DiagnosticSectionView.objects
+            .filter(
+                view_event__diagnostic=diagnostic,
+                section_type=stat['section_type'],
+            )
+            .order_by('-entered_at')
+            .values_list('section_title', flat=True)
+            .first()
+        ) or stat['section_type']
+        writer.writerow([
+            stat['section_type'],
+            latest_title,
+            stat['visit_count'],
+            round(stat['total_time'] or 0, 1),
+            round(stat['avg_time'] or 0, 1),
+        ])
+
+    writer.writerow([])
+    writer.writerow(['--- SESSION HISTORY ---'])
+    writer.writerow([
+        'Session ID', 'IP Address', 'Viewed At',
+        'Sections Viewed', 'Total Time (s)',
+    ])
+    recent_events = (
+        diagnostic.view_events.order_by('-viewed_at')
+        .prefetch_related('section_views')[:100]
+    )
+    for event in recent_events:
+        sv = list(event.section_views.all())
+        writer.writerow([
+            event.session_id,
+            event.ip_address or '',
+            event.viewed_at.isoformat(),
+            len(sv),
+            round(sum(s.time_spent_seconds for s in sv), 1),
+        ])
+
+    writer.writerow([])
+    writer.writerow(['--- CHANGE LOG ---'])
+    writer.writerow([
+        'Date', 'Type', 'Field', 'Old Value', 'New Value', 'Description',
+    ])
+    for log in diagnostic.change_logs.order_by('-created_at')[:100]:
+        writer.writerow([
+            log.created_at.isoformat(),
+            log.change_type,
+            log.field_name,
+            log.old_value,
+            log.new_value,
+            log.description,
+        ])
+
+    return response
 
 
 # ──────────────────────────────────────────────────────────────────────────

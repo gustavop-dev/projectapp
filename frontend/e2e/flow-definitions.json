@@ -1,5 +1,5 @@
 {
-  "version": "2.26.0",
+  "version": "2.28.0",
   "lastUpdated": "2026-04-20",
   "flows": {
     "layout-navbar-navigation": {
@@ -1809,7 +1809,17 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Admin reviews view_count, session count, per-section time heatbar, and lifecycle timestamps from the Analytics tab (GET /analytics/). Metrics accumulate from public DiagnosticViewEvent / DiagnosticSectionView rows created as the client navigates the public page.",
+      "description": "Admin reviews full analytics parity with proposal analytics tab: engagement score (0–100 color-coded), summary KPIs (total views, unique sessions, first view, reading time, coverage, last visit), comparison with global averages, funnel with drop-off %, device breakdown (desktop/mobile/tablet), suggested actions, skipped sections, section heatmap, engagement table, activity timeline, sessions history, and CSV export button. Data sourced from DiagnosticViewEvent + DiagnosticSectionView + DiagnosticChangeLog.",
+      "expectedSpecs": 2
+    },
+    "admin-diagnostic-engagement-score": {
+      "name": "Admin Diagnostic Engagement Score",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Engagement score card renders with correct color-coded level label: Alto engagement (≥70), Engagement moderado (40–69), Bajo engagement (<40). Card hidden when engagement_score is null.",
       "expectedSpecs": 1
     },
     "admin-diagnostic-prompt": {

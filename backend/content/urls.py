@@ -93,7 +93,7 @@ from content.views.diagnostic import (
     list_diagnostic_sections, update_diagnostic_section,
     bulk_update_diagnostic_sections, reset_diagnostic_section,
     list_diagnostic_activity, create_diagnostic_activity,
-    diagnostic_analytics,
+    diagnostic_analytics, export_diagnostic_analytics_csv,
     send_initial, mark_in_analysis, send_final,
     list_diagnostic_attachments, upload_diagnostic_attachment,
     delete_diagnostic_attachment, send_diagnostic_attachments,
@@ -306,6 +306,7 @@ urlpatterns = [
 
     # Analytics
     path('diagnostics/<int:diagnostic_id>/analytics/', diagnostic_analytics, name='diagnostic-analytics'),
+    path('diagnostics/<int:diagnostic_id>/analytics/csv/', export_diagnostic_analytics_csv, name='diagnostic-analytics-csv'),
 
     # Attachments (files uploaded to a diagnostic)
     path('diagnostics/<int:diagnostic_id>/attachments/', list_diagnostic_attachments, name='list-diagnostic-attachments'),

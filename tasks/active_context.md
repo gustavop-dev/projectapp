@@ -8,6 +8,25 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ## Recent Focus Areas
 
+- **Diagnostic Analytics — Full Parity with Proposal Analytics** (Apr 20, 2026):
+  - **Motivation**: `DiagnosticAnalytics.vue` was a ~136 LOC stub showing only 4 KPIs, a basic section heatbar, and 3 lifecycle timestamps. The proposal analytics tab (`ProposalAnalytics.vue`, ~1000 LOC) delivers engagement score, funnel, comparison with global averages, device breakdown, sessions history, activity timeline, suggested actions, and CSV export. The goal was full parity minus features that don't apply to the diagnostic data model (`view_mode`, `ProposalShareLink`, `subsection_key`).
+  - **Backend — `diagnostic_analytics` rewrite** (`backend/content/views/diagnostic.py`):
+    - Added `_ACTIVE_ENGAGEMENT_STATUSES` frozenset using `WebAppDiagnostic.Status` enum (replaces stringly-typed status checks).
+    - Added `_compute_diagnostic_engagement_score(recent_sessions, sections_data, has_cost_engagement, unique_ips, days_since_last_view, revisit_count)` — same 0–100 heuristic formula as proposals but without view_mode/share_link components.
+    - Response now includes: `total_views`, `unique_sessions`, `first_viewed_at`, `last_viewed_at`, `time_to_first_view_hours`, `time_to_response_hours`, `responded_at`, `sections`, `skipped_sections`, `device_breakdown`, `sessions`, `timeline`, `funnel`, `comparison`, `engagement_score`.
+    - **N+1 eliminations (3)**: funnel `reached_sessions` folded into main `section_stats` annotate (eliminates 8 per-section count queries); comparison uses a single `DiagnosticViewEvent.annotate(Min('viewed_at'))` map instead of per-diagnostic helper calls (2N → 2 queries); sessions loop uses `.prefetch_related('section_views')[:50]` (eliminates 50 N+1 queries).
+    - Device classification: tablet (iPad-first) / mobile / desktop from user-agent — identical to proposal logic.
+    - `first_viewed_at` computed on-demand from `DiagnosticViewEvent` (no model field needed).
+    - `skipped_sections`: enabled section types not present in any `DiagnosticSectionView`.
+    - Funnel: ordered by `DiagnosticSection.order`, `drop_off_percent` = `(1 - reached/max_reached) * 100`.
+    - Comparison: excludes the current diagnostic; averages over all other diagnostics with at least one view event.
+  - **Backend — `export_diagnostic_analytics_csv`** (new view): `GET /api/diagnostics/<id>/analytics/csv/` → `text/csv` attachment with 3 sections (SECTION ENGAGEMENT, SESSION HISTORY, CHANGE LOG). Same column structure as proposal CSV export minus view_mode and share_links columns. Gated by `IsAdminUser`.
+  - **Backend — `backend/content/urls.py`**: added `path('diagnostics/<int:diagnostic_id>/analytics/csv/', ...)` under the diagnostics block.
+  - **Frontend — `DiagnosticAnalytics.vue` rewrite** (~963 LOC): 12 collapsible `<details>` blocks in proposal order — CSV export button, engagement score (color-coded ≥70/≥40/<40), 6 summary KPI cards, global comparison (3 metrics with ↑↓ arrows), funnel (single tab — no executive/technical toggle), device breakdown, suggested actions (adapted for diagnostic sections, no investment/technical references), skipped sections warning, section interest heatmap + top-2 insights, section engagement table, activity timeline (`DiagnosticChangeLog` types with icons/colors), sessions history (no Mode column). Reuses `useTooltipTexts().analytics` composable for all tooltips. CSV download via `window.open(...)`.
+  - **Tests — new `backend/content/tests/views/test_diagnostic_analytics.py`** (10 tests): empty state, `first_viewed_at`/`time_to_first_view_hours`, `skipped_sections` excludes visited, device breakdown (iPad → tablet), funnel drop-off, engagement score 0–100 range, timeline includes change logs, comparison excludes self, CSV attachment headers/content, CSV requires admin (401/403). All 10 pass.
+  - **Tests — updated `test_web_app_diagnostic.py`**: `test_analytics_endpoint_summary` updated to use `unique_sessions` (was `total_sessions`) and `purpose_row['total_time_seconds']` (was `total_time_spent_seconds`) — keys removed in the simplify pass.
+  - **`/simplify` pass**: eliminated 3 N+1 patterns, removed backwards-compat legacy response keys, replaced stringly-typed status checks with enum constants, removed narration comments.
+
 - **Diagnostic Template Documents Audit & Restructure** (Apr 20, 2026):
   - **Motivation**: The three diagnostic template Markdown files (`diagnostico_aplicacion_es.md`, `diagnostico_tecnico_es.md`, `anexo_es.md`) had structural inconsistencies, redundant sections, and tone mismatches that could confuse clients or create maintenance risk.
   - **Audit findings**: 5 cross-doc duplications (identical Roadmap text, near-identical Escala de Severidad, same classification tables, repeated hallazgo plantilla, repetitive alcance phrase); 4 internal redundancies in técnico doc (plantilla repeated twice, Resumen Ejecutivo misplaced before Estructura de la Entrega, empty Recomendaciones subsection, orphaned table in Hallazgos); 2 high-severity structural issues (category 8 in comercial broke tone with a dense tech-only bullet list; Cronograma's fixed 5-day distribution conflicted with the `{{duration_label}}` placeholder).
@@ -264,21 +283,21 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ---
 
-## Verified Codebase Metrics (April 20, 2026 — refreshed post-Value-Added-Modules)
+## Verified Codebase Metrics (April 20, 2026 — refreshed post-Diagnostic-Analytics-Parity)
 
 | Metric | Count |
 |--------|-------|
-| Backend test files | 127 (+test_value_added_modules.py, +test_diagnostic_email_markdown_attachment.py) |
+| Backend test files | 128 (+test_diagnostic_analytics.py with 10 tests) |
 | Frontend unit tests | 80 (+3 new component test files created, not yet run) |
-| E2E spec files | 134 (+admin-proposal-diagnostic-templates.spec.js, +admin-diagnostic-markdown-attachment.spec.js) |
-| Vue components | 138 (+DiagnosticIndex.vue, +ValueAddedModules.vue) |
+| E2E spec files | 134 |
+| Vue components | 138 (DiagnosticAnalytics.vue rewritten, no new component) |
 | Pages | 69 |
 | Pinia stores | 24 |
-| Composables | 37 (+useMarkdownAttachmentHandler.js, +useDiagnosticFilters.js) |
+| Composables | 37 |
 | Content model files | 30 |
 | Accounts model classes | 21 |
 | Accounts URL patterns | 65 |
-| Content URL patterns | ~142 (+4 new patterns) |
+| Content URL patterns | ~143 (+1 analytics/csv/ route) |
 | Email templates | 61 (32 HTML + 29 TXT across `accounts` + `content`) |
 | Content services | 19 |
 | Accounts services | 11 |

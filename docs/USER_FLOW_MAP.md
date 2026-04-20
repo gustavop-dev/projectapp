@@ -1,6 +1,6 @@
 # User Flow Map
 
-> **Version:** 2.26.0
+> **Version:** 2.28.0
 > **Last updated:** 2026-04-20
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
@@ -1858,13 +1858,31 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/diagnostics/:id/edit` (Analytics tab)
-- **Description:** Admin reviews engagement KPIs for a diagnostic: `view_count`, total sessions, aggregated time spent, per-section heat bar (sorted by `total_seconds`), and lifecycle timestamps (`initial_sent_at`, `final_sent_at`, `responded_at`). Metrics are sourced from `DiagnosticViewEvent` + `DiagnosticSectionView` rows created by the public page's per-section dwell tracker.
+- **Description:** Admin reviews full analytics dashboard at parity with proposal analytics: engagement score (0–100 color-coded), 6 summary KPI cards (total views, unique sessions, first view, reading time, coverage %, last visit), global comparison (3 metrics with ↑↓ arrows), funnel with drop-off % per section, device breakdown (desktop/mobile/tablet via user-agent), suggested actions (heuristic), skipped sections warning, section interest heatmap + top-2 insights, section engagement table, activity timeline (DiagnosticChangeLog), sessions history (last 50, no Mode column), and CSV export. No view-mode comparison, no share-links table (not applicable to diagnostics).
 - **Steps:**
   1. Admin navigates to the Analytics tab — GET `/analytics/` fires on mount.
-  2. KPIs render: total views, sessions, total time, respuesta status.
-  3. Heat bar lists sections sorted by total seconds with visit counts.
+  2. Engagement score card renders with color-coded level label.
+  3. Summary cards show total_views, unique_sessions, first_viewed_at, etc.
+  4. Funnel rows render with section names and drop-off percentages.
+  5. Device breakdown card shows desktop/mobile/tablet counts.
+  6. CSV export button triggers download via `window.open`.
 - **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-diagnostic-sections.spec.js`
+- **E2E Spec:** `e2e/admin/admin-diagnostic-analytics.spec.js` (also smoke-tested in `e2e/admin/admin-diagnostic-sections.spec.js`)
+
+---
+
+### FLOW: `admin-diagnostic-engagement-score`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/diagnostics/:id/edit` (Analytics tab — Engagement Score card)
+- **Description:** Engagement score card renders with the correct color-coded label based on score value: ≥70 → "Alto engagement — prioridad de follow-up" (emerald), 40–69 → "Engagement moderado" (yellow), <40 → "Bajo engagement — necesita atención" (red). Card is hidden when `engagement_score` is null.
+- **Steps:**
+  1. Admin opens Analytics tab with score ≥70 → sees "Alto engagement" in emerald.
+  2. Admin opens Analytics tab with score <40 → sees "Bajo engagement" in red.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-diagnostic-analytics.spec.js`
 
 ---
 
@@ -3009,7 +3027,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-diagnostic-documents` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-email-documents.spec.js` |
 | `admin-diagnostic-sections` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
 | `admin-diagnostic-activity` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
-| `admin-diagnostic-analytics` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
+| `admin-diagnostic-analytics` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-analytics.spec.js` |
+| `admin-diagnostic-engagement-score` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-analytics.spec.js` |
 | `admin-diagnostic-prompt` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-prompt.spec.js` |
 | `diagnostic-public-view` | diagnostic | guest | P1 | ✅ Covered | `e2e/public/diagnostic-public-view.spec.js` + `e2e/admin/admin-diagnostic-sections.spec.js` |
 | `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
@@ -3653,7 +3672,8 @@ No active browser flow is registered for client profile editing at this time.
 | `admin-diagnostic-documents` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-email-documents.spec.js` |
 | `admin-diagnostic-sections` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
 | `admin-diagnostic-activity` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
-| `admin-diagnostic-analytics` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
+| `admin-diagnostic-analytics` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-analytics.spec.js` |
+| `admin-diagnostic-engagement-score` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-analytics.spec.js` |
 | `admin-diagnostic-prompt` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-prompt.spec.js` |
 | `diagnostic-public-view` | diagnostic | guest | P1 | ✅ Covered | `e2e/public/diagnostic-public-view.spec.js` + `e2e/admin/admin-diagnostic-sections.spec.js` |
 
@@ -4037,7 +4057,7 @@ Two transitions that were previously bundled into other flows now have their own
 
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
-| `admin-diagnostic-list` | admin | admin | P1 | ⬜ Missing spec | _proposed_: `e2e/admin/admin-diagnostic-list.spec.js` |
+| `admin-diagnostic-list` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-list.spec.js` |
 | `admin-diagnostic-filters` | admin | admin | P2 | 🟡 Partial | Covered by `e2e/admin/admin-diagnostic-advanced-filters.spec.js` |
 | `admin-diagnostic-advanced-filters` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-advanced-filters.spec.js` |
 | `admin-client-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-client-edit.spec.js` |
@@ -4054,7 +4074,7 @@ Two transitions that were previously bundled into other flows now have their own
 | **Module** | admin |
 | **Role** | admin |
 | **Priority** | P1 |
-| **Status** | ⬜ Missing spec |
+| **Status** | ✅ Covered — `e2e/admin/admin-diagnostic-list.spec.js` |
 
 **Routes:** `/panel/diagnostics/`
 

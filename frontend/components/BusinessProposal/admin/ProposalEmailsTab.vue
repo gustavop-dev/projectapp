@@ -338,7 +338,6 @@ import draggable from 'vuedraggable';
 import { usePanelToast } from '~/composables/usePanelToast';
 import { useMarkdownAttachmentHandler } from '~/composables/useMarkdownAttachmentHandler';
 import { validateEmailAttachments } from '~/utils/emailAttachments';
-import { PROPOSAL_STATUS } from '~/stores/proposals_constants';
 import MarkdownAttachmentModal from '~/components/MarkdownAttachmentModal.vue';
 
 const { showToast } = usePanelToast();
@@ -404,9 +403,7 @@ function removeAttachment(idx) {
 }
 
 const showMarkdownModal = ref(false);
-const canCreateMarkdownAttachment = computed(
-  () => props.proposal.status === PROPOSAL_STATUS.NEGOTIATING,
-);
+const canCreateMarkdownAttachment = true;
 
 const { handleMarkdownAttach } = useMarkdownAttachmentHandler(attachments);
 

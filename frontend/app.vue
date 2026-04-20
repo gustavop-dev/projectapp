@@ -76,7 +76,7 @@ const { trackWhatsAppClick } = useGtagConversions()
 
 const showNavbar = computed(() => {
   const path = route.path
-  return !path.includes('/panel') && !path.includes('/proposal') && !path.includes('/platform')
+  return !path.includes('/panel') && !path.includes('/proposal') && !path.includes('/platform') && !path.includes('/diagnostic')
 })
 
 const showWhatsApp = computed(() => {

@@ -274,9 +274,13 @@ def test_analytics_endpoint_summary(admin_client, api_client, diagnostic):
     response = admin_client.get(f'/api/diagnostics/{diagnostic.id}/analytics/')
     assert response.status_code == 200
     body = response.json()
-    assert body['total_sessions'] == 1
-    assert body['total_time_spent_seconds'] == pytest.approx(9.0)
-    assert any(row['section_type'] == 'purpose' for row in body['sections'])
+    assert body['unique_sessions'] == 1
+    purpose_row = next(
+        (row for row in body['sections'] if row['section_type'] == 'purpose'),
+        None,
+    )
+    assert purpose_row is not None
+    assert purpose_row['total_time_seconds'] == pytest.approx(9.0)
 
 
 # ── Edge cases ─────────────────────────────────────────────────────────────

@@ -162,14 +162,23 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            view_count: 7,
+            total_views: 7,
+            unique_sessions: 4,
+            first_viewed_at: '2026-04-16T12:00:00Z',
             last_viewed_at: '2026-04-16T12:00:00Z',
-            total_sessions: 4,
-            total_time_spent_seconds: 123.5,
+            time_to_first_view_hours: null,
+            time_to_response_hours: null,
+            responded_at: null,
             sections: [
-              { section_type: 'purpose', section_title: 'Propósito', total_seconds: 40, avg_seconds: 10, visits: 4 },
+              { section_type: 'purpose', section_title: 'Propósito', visit_count: 4, total_time_seconds: 40, avg_time_seconds: 10 },
             ],
-            initial_sent_at: null, final_sent_at: null, responded_at: null,
+            skipped_sections: [],
+            device_breakdown: { desktop: 0, mobile: 0, tablet: 0 },
+            sessions: [],
+            timeline: [],
+            funnel: [],
+            comparison: { avg_time_to_first_view_hours: null, avg_time_to_response_hours: null, avg_views: null },
+            engagement_score: 0,
           }),
         };
       }
@@ -179,7 +188,7 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
     await page.getByRole('button', { name: 'Analytics' }).click();
 
-    await expect(page.getByText('Vistas totales')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Vistas').first()).toBeVisible({ timeout: 15000 });
     await expect(page.getByText('7', { exact: true }).first()).toBeVisible();
     await expect(page.getByText(/Propósito/).first()).toBeVisible();
   });

@@ -238,8 +238,9 @@ export const ADMIN_DIAGNOSTIC_DELETE     = ['@flow:admin-diagnostic-delete', '@m
 // ── Diagnostic — JSON section rewrite (Apr 16, 2026) ──
 export const ADMIN_DIAGNOSTIC_SECTIONS  = ['@flow:admin-diagnostic-sections',  '@module:admin', '@priority:P1'];
 export const ADMIN_DIAGNOSTIC_ACTIVITY  = ['@flow:admin-diagnostic-activity',  '@module:admin', '@priority:P2'];
-export const ADMIN_DIAGNOSTIC_ANALYTICS = ['@flow:admin-diagnostic-analytics', '@module:admin', '@priority:P2'];
-export const ADMIN_DIAGNOSTIC_PROMPT    = ['@flow:admin-diagnostic-prompt',    '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_ANALYTICS        = ['@flow:admin-diagnostic-analytics',        '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_ENGAGEMENT_SCORE = ['@flow:admin-diagnostic-engagement-score', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_PROMPT           = ['@flow:admin-diagnostic-prompt',           '@module:admin', '@priority:P2'];
 
 // ── Diagnostic — Acuerdo de Confidencialidad (NDA) ──
 export const ADMIN_DIAGNOSTIC_CONFIDENTIALITY_GENERATE = ['@flow:admin-diagnostic-confidentiality-generate', '@module:admin', '@priority:P1'];
