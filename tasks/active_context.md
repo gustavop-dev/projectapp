@@ -8,6 +8,20 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ## Recent Focus Areas
 
+- **Diagnostic Template Documents Audit & Restructure** (Apr 20, 2026):
+  - **Motivation**: The three diagnostic template Markdown files (`diagnostico_aplicacion_es.md`, `diagnostico_tecnico_es.md`, `anexo_es.md`) had structural inconsistencies, redundant sections, and tone mismatches that could confuse clients or create maintenance risk.
+  - **Audit findings**: 5 cross-doc duplications (identical Roadmap text, near-identical Escala de Severidad, same classification tables, repeated hallazgo plantilla, repetitive alcance phrase); 4 internal redundancies in técnico doc (plantilla repeated twice, Resumen Ejecutivo misplaced before Estructura de la Entrega, empty Recomendaciones subsection, orphaned table in Hallazgos); 2 high-severity structural issues (category 8 in comercial broke tone with a dense tech-only bullet list; Cronograma's fixed 5-day distribution conflicted with the `{{duration_label}}` placeholder).
+  - **Comercial fixes**: Rewrote cat. 8 in accessible narrative tone; replaced fixed "Día 1/2-4/5" cronograma with relative Fase inicial/evaluación/consolidación; collapsed empty Recomendaciones section; promoted Resumen Ejecutivo and Roadmap as subsections of Estructura de la Entrega; grouped Costo + Cronograma under new "Términos Comerciales" parent; updated TOC; aligned alcance canonical phrase; fixed "vive en…vive en" repetition.
+  - **Técnico fixes**: Eliminated duplicate plantilla table inside Hallazgos (kept only the one in Estructura de los Hallazgos); moved Resumen Ejecutivo inside Estructura de la Entrega (as first subsection after Radiografía); removed empty Recomendaciones subsection; refactored run-on pruebas de integración sentence; updated TOC.
+  - **Anexo fixes**: Corrected ambiguous ranges note in 5.3; added clarifying `blockquote` for `{{test_coverage_label}}`; rewrote circular "alcance/alcance" phrase in sección 4; split run-on conclusion sentence.
+  - **Transversal**: Unified the canonical alcance phrase across all three docs ("El diagnóstico se ejecuta exclusivamente sobre los repositorios de código fuente (backend y frontend). No se evalúa infraestructura del servidor, procesos de despliegue ni sistemas de monitoreo externos."); added HTML sync comments (`<!-- Mantener sincronizado con... -->`) on both classification tables and both roadmap sections to flag cross-doc dependency.
+
+- **Diagnostic Public View — Sidebar Index & No Default Header** (Apr 20, 2026):
+  - **Motivation**: align the client-facing diagnostic URL (`/diagnostic/{uuid}`) with the proposal public view pattern. The page had `layout: 'default'` (showing the Nuxt site header) and a centered pill-style nav as section index. Proposals use `layout: false` and a floating sidebar index (`ProposalIndex.vue`).
+  - **New component** (`frontend/components/WebAppDiagnostic/public/DiagnosticIndex.vue`): adapted from `ProposalIndex.vue` — hamburger toggle fixed top-left, backdrop blur, panel fullscreen on mobile / floating left on desktop, numbered badges with visited checkmarks, emit `navigate`. Removed proposal-specific `viewMode`/`language` props and `switchToDetailed`/`backToGateway` action buttons.
+  - **Page changes** (`frontend/pages/diagnostic/[uuid]/index.vue`): `definePageMeta({ layout: false })` (was `'default'`); removed the "Project App / title / Preparado para" header block; replaced pill nav with `<DiagnosticIndex :sections :current-index :visited-ids @navigate>`; added `visitedIds = ref(new Set())` + `markSectionVisited(id)` helper (used in `selectSection` and `onMounted`). Prev/next controls and accept/reject footer unchanged.
+  - **Simplify pass**: extracted duplicate visited-tracking into `markSectionVisited`; simplified `v-if` guard; removed dead `update:open` emit from `DiagnosticIndex.vue`.
+
 - **Diagnostic Markdown Attachment & Diagnostic Template Tab in Proposal** (Apr 19, 2026):
   - **Motivation (Feature 1 — Templates tab)**: The 3 static markdown files used to build diagnostics (`diagnostico_aplicacion_es.md`, `diagnostico_tecnico_es.md`, `anexo_es.md`) were buried in `_legacy/` with no consumer. Sellers had to ask for a copy or dig through the repo. Added a "Documentos & Plantillas" tab to the proposal admin detail page to expose them with copy-to-clipboard, download, and inline preview buttons.
   - **Motivation (Feature 2 — Markdown attachment)**: When a diagnostic is in `negotiating` status, the seller needs to compose and attach custom branded PDF documents (e.g., expanded scopes, annexes) directly from the email composer, without uploading pre-built PDFs.
@@ -22,8 +36,20 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
   - **Frontend — DiagnosticEmailsTab.vue**: Import `MarkdownAttachmentModal` + `useMarkdownAttachmentHandler` + `DIAGNOSTIC_STATUS`. When `diagnostic.status === 'negotiating'`, shows "Crear documento desde markdown" button. On `@attach`, pushes the File to `attachments` + shows success toast.
   - **Frontend — New utilities**: `utils/emailAttachments.js` (`validateEmailAttachments`, `ALLOWED_EXTENSIONS`, `MAX_FILE_SIZE`); `composables/useMarkdownAttachmentHandler.js` (encapsulates attach-to-list + toast); `stores/proposals_constants.js` (frozen `PROPOSAL_STATUS` object).
   - **Conftest**: Added `diag_client_profile` and `diagnostic` shared fixtures to `content/tests/conftest.py`, replacing local-only copies in multiple test files.
-  - **Tests**: Backend — 50 tests passed after all changes including fixture consolidation. Frontend unit — `ProposalDiagnosticTemplatesSection.test.js` + `MarkdownAttachmentModal.test.js` created (node_modules not installed locally; run with `npm --prefix frontend install && npm --prefix frontend test -- test/components/...`). E2E tests and `USER_FLOW_MAP.md` update pending.
+  - **Tests**: Backend — 50 tests passed; `test_value_added_modules.py` and `test_diagnostic_email_markdown_attachment.py` also added in the same commit. Frontend unit — `ProposalDiagnosticTemplatesSection.test.js`, `MarkdownAttachmentModal.test.js`, `ValueAddedModules.test.js` created (node_modules not installed locally). E2E — `admin-proposal-diagnostic-templates.spec.js` + `admin-diagnostic-markdown-attachment.spec.js` created and registered in `flow-definitions.json` + `USER_FLOW_MAP.md`.
   - **Cleanup rounds**: 3x `/simplify` + 2x "implement discarded findings". Key fixes: `coerce_bool`/`safe_slug` lazy imports hoisted to module top; `props.proposal?.status` → `props.proposal.status` in `ProposalEmailsTab.vue` (required prop, no optional chaining needed); `safe_slug` import moved to first-party group in `document.py`; `business_proposal.py:save()` migrated to `safe_slug(slug_source, 'propuesta')`; conftest fixture double-write replaced with single `save(update_fields=['client_name'])`.
+
+- **Value Added Modules — New Proposal Section Type** (Apr 19, 2026):
+  - **Motivation**: Proposals lacked a structured place to present bonus or included-free modules (maintenance period, training, performance monitoring). The section surfaces these as a card grid on the client-facing proposal view, separate from `functional_requirements`.
+  - **Backend**: New `section_type = 'value_added_modules'` added to `ProposalSection` choices (migration `0102_value_added_modules_section.py`). Migration seeds the section from the `functional_requirements` default `manual_module` group for pre-existing proposals. `test_value_added_modules.py` verifies `manual_module` group schema in `es` defaults.
+  - **Frontend**: `components/BusinessProposal/ValueAddedModules.vue` — public-facing card grid. Props: `content` (title, intro, footer_note, cards[] with id/icon/title/justification/description), `language`. Shows `🎁` header, "Sin costo" badge, 2-column card grid, optional footer note. GSAP `data-animate` attributes consistent with existing section components. `frontend/test/components/ValueAddedModules.test.js` created (not yet run locally).
+
+- **Client Panel + Diagnostic Filters Enhancements** (Apr 18, 2026):
+  - **Edit client modal** (`panel/clients/index.vue`): inline "Editar" button per row opens a prefilled modal (name, email, phone, company). On save calls `proposalClients.updateClient()` — reuses existing `PUT /api/proposals/client-profiles/<id>/update/` endpoint.
+  - **Invalid date crash fix** (`panel/proposals/[id]/edit.vue`): `expires_at = "Invalid Date"` crashed the bidirectional days/date sync watcher; guarded with `isNaN(Date.parse(...))` before calling `getExpiryDaysFromStr()`.
+  - **Block client deletion with diagnostics** (`accounts/services/proposal_client_service.py`): `delete_orphan_client` now also checks for linked `WebAppDiagnostic` rows. Raises `ValueError('client_has_diagnostics:<count>')`, surfaced as `client_has_diagnostics` code in the API (same pattern as `client_has_proposals` / `client_has_projects`).
+  - **Auto-sync investment on module changes**: when a seller toggles a functional_requirements module, investment amount recomputes automatically without a full reload.
+  - **Diagnostic saved filter tabs** (`panel/diagnostics/index.vue`): new `useDiagnosticFilters.js` composable — 5 filter dimensions (statuses, investmentMin/Max, createdAfter/Before), saved tabs with localStorage (`diagnostic_filter_tabs`, max 12), URL sync. Same architecture as `useProposalFilters.js`. JSON metrics panel added above the diagnostics table.
 
 - **Diagnostic Defaults — Per-Language Singleton Config** (Apr 18, 2026):
   - **Motivation**: parity with `/panel/proposals/defaults/`. Diagnostics now created from `panel/diagnostics/create.vue` had hardcoded payment terms (`{"initial_pct": 40, "final_pct": 60}` only as `help_text`, actually empty `{}` in practice), no admin-controllable default currency/investment/duration, and no editor over the section seed shipped from `content/seeds/diagnostic_template.py`. The product pricing default also flipped to **60% inicial / 40% final** — encoded in the new model defaults.
@@ -238,17 +264,17 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ---
 
-## Verified Codebase Metrics (April 19, 2026 — refreshed post-Diagnostic-Templates + Markdown-Attachment)
+## Verified Codebase Metrics (April 20, 2026 — refreshed post-Value-Added-Modules)
 
 | Metric | Count |
 |--------|-------|
-| Backend test files | 125 |
-| Frontend unit tests | 79 (+2 new component test files created, not yet run) |
-| E2E spec files | 132 |
-| Vue components | 136 (+ProposalDiagnosticTemplatesSection.vue) |
+| Backend test files | 127 (+test_value_added_modules.py, +test_diagnostic_email_markdown_attachment.py) |
+| Frontend unit tests | 80 (+3 new component test files created, not yet run) |
+| E2E spec files | 134 (+admin-proposal-diagnostic-templates.spec.js, +admin-diagnostic-markdown-attachment.spec.js) |
+| Vue components | 138 (+DiagnosticIndex.vue, +ValueAddedModules.vue) |
 | Pages | 69 |
 | Pinia stores | 24 |
-| Composables | 36 (+useMarkdownAttachmentHandler.js) |
+| Composables | 37 (+useMarkdownAttachmentHandler.js, +useDiagnosticFilters.js) |
 | Content model files | 30 |
 | Accounts model classes | 21 |
 | Accounts URL patterns | 65 |
@@ -256,16 +282,15 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 | Email templates | 61 (32 HTML + 29 TXT across `accounts` + `content`) |
 | Content services | 19 |
 | Accounts services | 11 |
-| Content migrations | 101 |
+| Content migrations | 102 |
 | Quality gate score | 100/100 (0 errors, 2 warnings) |
 
 ---
 
 ## Next Steps
 
-- **Run pending frontend unit tests** — `npm --prefix frontend install && npm --prefix frontend test -- test/components/ProposalDiagnosticTemplatesSection.test.js test/components/MarkdownAttachmentModal.test.js` — the 2 test files from the Apr 19 feature work were created but not yet executed (node_modules absent locally).
-- **Write E2E tests and update USER_FLOW_MAP.md** for the two Apr 19 flows: (1) Proposal admin "Documentos & Plantillas" tab — template copy/download while in `sent` status; (2) Diagnostic email tab "Crear documento desde markdown" button while in `negotiating` status.
-- **Apply pending migrations in production** — `python manage.py migrate` — required to activate the Kanban board (`0087_task.py`), the Web App Diagnostics module (`0090_web_app_diagnostic.py`), and the new Diagnostic Defaults table (`0101_diagnostic_default_config.py`).
+- **Run pending frontend unit tests** — `npm --prefix frontend install && npm --prefix frontend test -- test/components/ProposalDiagnosticTemplatesSection.test.js test/components/MarkdownAttachmentModal.test.js test/components/ValueAddedModules.test.js` — 3 component test files created in Apr 19 commits but not yet executed (node_modules absent locally).
+- **Apply pending migrations in production** — `python manage.py migrate` — required to activate the Kanban board (`0087_task.py`), the Web App Diagnostics module (`0090_web_app_diagnostic.py`), the new Diagnostic Defaults table (`0101_diagnostic_default_config.py`), and the Value Added Modules section type (`0102_value_added_modules_section.py`).
 - **Set `NOTIFICATION_EMAIL` in production env** to `team@projectapp.co,carlos18bp@gmail.com` so the new stage warning + overdue alerts reach the right inbox.
 - Consider extending `ProposalStageTracker.STAGE_DEFINITIONS` beyond design + development (e.g., QA, Lanzamiento, Entrega Final) — the model + service already support N stages, only the catalog constant needs an update.
 - Complete Document System PDF generation (branch `generate-pdf-with-template`): template rendering, preview, download flow — **folders & tags layer is now in place**

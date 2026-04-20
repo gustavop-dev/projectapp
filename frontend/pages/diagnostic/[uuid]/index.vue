@@ -1,16 +1,14 @@
 <template>
-  <div class="min-h-screen bg-gray-50 py-10 px-4">
-    <div class="max-w-4xl mx-auto">
-      <header class="mb-8 text-center">
-        <p class="text-xs font-semibold tracking-widest text-emerald-700 uppercase">Project App</p>
-        <h1 class="text-3xl md:text-4xl font-light text-gray-900 mt-2">
-          {{ store.current?.title || 'Diagnóstico de Aplicaciones Web' }}
-        </h1>
-        <p v-if="store.current?.client_name" class="text-sm text-gray-500 mt-2">
-          Preparado para {{ store.current.client_name }}
-        </p>
-      </header>
+  <div class="min-h-screen bg-gray-50 py-16 px-4">
+    <DiagnosticIndex
+      v-if="sections.length > 1"
+      :sections="sections"
+      :current-index="activeIndex"
+      :visited-ids="visitedIds"
+      @navigate="selectSection"
+    />
 
+    <div class="max-w-4xl mx-auto">
       <div v-if="store.isLoading" class="text-center text-gray-500">Cargando…</div>
 
       <div v-else-if="store.error === 'not_found'" class="text-center py-16">
@@ -18,19 +16,6 @@
       </div>
 
       <template v-else-if="store.current">
-        <!-- Section nav -->
-        <nav v-if="sections.length > 1" class="flex flex-wrap justify-center gap-2 mb-6">
-          <button
-            v-for="(s, i) in sections"
-            :key="s.id"
-            class="px-4 py-1.5 rounded-full text-xs border"
-            :class="activeIndex === i
-              ? 'bg-emerald-600 text-white border-emerald-600'
-              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'"
-            @click="selectSection(i)"
-          >{{ i + 1 }}. {{ s.title }}</button>
-        </nav>
-
         <article
           v-if="sections.length"
           class="bg-white rounded-2xl shadow-sm border p-6 md:p-12 mb-6"
@@ -106,6 +91,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 import { DIAGNOSTIC_STATUS } from '~/stores/diagnostics_constants';
 
+import DiagnosticIndex from '~/components/WebAppDiagnostic/public/DiagnosticIndex.vue';
 import PurposeSection from '~/components/WebAppDiagnostic/public/PurposeSection.vue';
 import RadiographySection from '~/components/WebAppDiagnostic/public/RadiographySection.vue';
 import CategoriesSection from '~/components/WebAppDiagnostic/public/CategoriesSection.vue';
@@ -115,7 +101,7 @@ import CostSection from '~/components/WebAppDiagnostic/public/CostSection.vue';
 import TimelineSection from '~/components/WebAppDiagnostic/public/TimelineSection.vue';
 import ScopeSection from '~/components/WebAppDiagnostic/public/ScopeSection.vue';
 
-definePageMeta({ layout: 'default' });
+definePageMeta({ layout: false });
 
 const COMPONENTS = {
   purpose: PurposeSection,
@@ -134,6 +120,7 @@ const activeIndex = ref(0);
 const responseMsg = ref('');
 const sessionId = ref('');
 const sectionEnteredAt = ref(0);
+const visitedIds = ref(new Set());
 
 const sections = computed(() => store.current?.sections || []);
 const activeSection = computed(() => sections.value[activeIndex.value] || null);
@@ -170,10 +157,18 @@ function componentFor(type) {
   return COMPONENTS[type] || null;
 }
 
+function markSectionVisited(id) {
+  if (id == null) return;
+  const next = new Set(visitedIds.value);
+  next.add(id);
+  visitedIds.value = next;
+}
+
 function selectSection(idx) {
   flushSectionTracking();
   activeIndex.value = Math.max(0, Math.min(idx, sections.value.length - 1));
   sectionEnteredAt.value = Date.now();
+  markSectionVisited(sections.value[activeIndex.value]?.id);
 }
 
 function flushSectionTracking({ beacon = false } = {}) {
@@ -217,6 +212,7 @@ onMounted(async () => {
   await store.fetchPublic(route.params.uuid);
   await store.trackView(route.params.uuid, sessionId.value);
   sectionEnteredAt.value = Date.now();
+  markSectionVisited(sections.value[activeIndex.value]?.id);
 });
 
 onBeforeUnmount(() => flushSectionTracking({ beacon: true }));

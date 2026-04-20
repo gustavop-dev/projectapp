@@ -23,13 +23,12 @@
   - [13. Documentación y Gestión del Conocimiento](#13-documentación-y-gestión-del-conocimiento)
   - [14. Capacidades Funcionales](#14-capacidades-funcionales)
 - [Estructura de los Hallazgos](#estructura-de-los-hallazgos)
-- [Resumen Ejecutivo](#resumen-ejecutivo)
 - [Estructura de la Entrega](#estructura-de-la-entrega)
   - [Radiografía en la entrega](#radiografía-en-la-entrega)
+  - [Resumen Ejecutivo](#resumen-ejecutivo)
   - [Para cada categoría evaluada](#para-cada-categoría-evaluada)
     - [Lo que se encontró bien](#lo-que-se-encontró-bien)
     - [Hallazgos y oportunidades de mejora](#hallazgos-y-oportunidades-de-mejora)
-    - [Recomendaciones](#recomendaciones)
   - [Roadmap sugerido](#roadmap-sugerido)
 - [Alcance y Consideraciones](#alcance-y-consideraciones)
 
@@ -75,6 +74,8 @@ Como parte del diagnóstico, se levanta un inventario técnico que permite dimen
 | **Archivos de configuración**       | Presencia de Dockerfiles, docker-compose, archivos de CI/CD, archivos de entorno (.env.example)          |
 
 ### Clasificación por Tamaño
+
+<!-- Mantener sincronizado con la tabla equivalente en la propuesta comercial y el anexo. -->
 
 | Dimensión                 | Pequeña | Mediana  | Grande |
 | ------------------------- | ------- | -------- | ------ |
@@ -223,7 +224,7 @@ Como parte del diagnóstico, se levanta un inventario técnico que permite dimen
 
 - **Pruebas unitarias:** cobertura de funciones, métodos y clases de forma aislada; porcentaje de cobertura; cobertura de casos de éxito y de error; cobertura en modelos, servicios y utilidades.
 - **Pruebas de contrato:** validación de la estructura de respuestas de la API (status codes, formato JSON, campos requeridos); contratos definidos entre frontend y backend; detección automática de cambios incompatibles en endpoints.
-- **Pruebas de integración:** flujos que involucran base de datos real, permisos y side-effects (emails, registros relacionados); uso de base de datos de prueba vs. mocking total; validación de transacciones completas de negocio.
+- **Pruebas de integración:** flujos que involucran base de datos real y validan permisos y side-effects (emails, registros relacionados). Evalúa el uso de base de datos de prueba frente al mocking total y la cobertura de transacciones completas de negocio.
 - **Pruebas con mocking y edge cases:** simulación de dependencias externas (APIs de terceros, pasarelas de pago, email); escenarios límite (entradas vacías, valores extremos, caracteres especiales, concurrencia); cobertura de caminos de error y no solo los caminos felices.
 - **Pruebas de extremo a extremo (E2E):** flujos completos como los ejecutaría un usuario real; herramienta utilizada y estabilidad (flakiness); cobertura de los flujos críticos del negocio.
 - **Pruebas de carga y rendimiento:** existencia de scripts o configuraciones de pruebas de carga; puntos de quiebre o benchmarks documentados.
@@ -341,7 +342,13 @@ Recomendación:   [Acción concreta sugerida]
 
 ---
 
-## Resumen Ejecutivo
+## Estructura de la Entrega
+
+### Radiografía en la entrega
+
+Se presenta el inventario técnico recopilado y la clasificación de tamaño resultante, con el fin de contextualizar los hallazgos y recomendaciones. Es el mismo inventario descrito en la sección [Radiografía de la Aplicación](#radiografía-de-la-aplicación), materializado sobre los valores medidos para este proyecto.
+
+### Resumen Ejecutivo
 
 La entrega incluye un conteo de hallazgos por severidad, la clasificación de tamaño de la aplicación y un párrafo de síntesis sobre su estado general.
 
@@ -352,14 +359,6 @@ La entrega incluye un conteo de hallazgos por severidad, la clasificación de ta
 | Medio   | X        |
 | Bajo    | X        |
 
----
-
-## Estructura de la Entrega
-
-### Radiografía en la entrega
-
-Se presenta el inventario técnico recopilado y la clasificación de tamaño resultante, con el fin de contextualizar los hallazgos y recomendaciones. Es el mismo inventario descrito en la sección [Radiografía de la Aplicación](#radiografía-de-la-aplicación), materializado sobre los valores medidos para este proyecto.
-
 ### Para cada categoría evaluada
 
 #### Lo que se encontró bien
@@ -368,17 +367,11 @@ Se destacan las prácticas, decisiones o implementaciones que funcionan correcta
 
 #### Hallazgos y oportunidades de mejora
 
-Cada hallazgo sigue la plantilla declarada en [Estructura de los Hallazgos](#estructura-de-los-hallazgos) (6 campos). La vista tabular para lectura rápida es:
-
-| Categoría | Hallazgo | Severidad | Evidencia | Impacto | Recomendación |
-| --------- | -------- | --------- | --------- | ------- | ------------- |
-| ...       | ...      | ...       | ...       | ...     | ...           |
-
-#### Recomendaciones
-
-Cada recomendación se deriva del hallazgo que busca resolver y conserva su nivel de severidad. La recomendación ya aparece en la tabla anterior; esta sección recoge una vista consolidada cuando conviene separarla del detalle del hallazgo.
+Cada hallazgo se documenta siguiendo la plantilla declarada en [Estructura de los Hallazgos](#estructura-de-los-hallazgos). La recomendación forma parte de esa plantilla, conservando la severidad del hallazgo que busca resolver.
 
 ### Roadmap sugerido
+
+<!-- Mantener sincronizado con el Roadmap de la propuesta comercial. -->
 
 Las recomendaciones se agrupan por prioridad en horizontes de acción para facilitar la toma de decisiones y la planeación técnica:
 
@@ -391,8 +384,8 @@ Las recomendaciones se agrupan por prioridad en horizontes de acción para facil
 
 ## Alcance y Consideraciones
 
-- Este documento es la **propuesta técnica (metodológica)** del diagnóstico. No incluye costo ni cronograma comercial — esos viven en la propuesta comercial. La medición previa que sustenta precio y cronograma vive en el anexo de dimensionamiento.
-- El diagnóstico se ejecuta exclusivamente sobre los repositorios de código fuente (backend y frontend). No se evalúa infraestructura del servidor, procesos de despliegue en producción ni sistemas de monitoreo externos.
+- Este documento es la **propuesta técnica (metodológica)** del diagnóstico. No incluye costo ni cronograma comercial — esos se definen en la propuesta comercial. La medición previa que sustenta precio y cronograma se encuentra en el anexo de dimensionamiento.
+- El diagnóstico se ejecuta exclusivamente sobre los repositorios de código fuente (backend y frontend). No se evalúa infraestructura del servidor, procesos de despliegue ni sistemas de monitoreo externos.
 - Si en los repositorios existen archivos de configuración de CI/CD, Docker o monitoreo, se documentan como parte de la radiografía, pero no se valida su funcionamiento en un entorno real.
 - Toda afirmación debe estar respaldada por evidencia concreta (archivos, líneas de código, configuraciones, lockfiles), no por opiniones generales.
 - La escala de severidad es una herramienta de priorización, no un juicio sobre el equipo que construyó la aplicación.

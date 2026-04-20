@@ -25,12 +25,12 @@
 - [Estructura de la Entrega](#estructura-de-la-entrega)
   - [Lo que se encontró bien](#lo-que-se-encontró-bien)
   - [Hallazgos y oportunidades de mejora](#hallazgos-y-oportunidades-de-mejora)
-  - [Recomendaciones](#recomendaciones)
-- [Resumen Ejecutivo](#resumen-ejecutivo)
-- [Costo y Formas de Pago](#costo-y-formas-de-pago)
-- [Cronograma](#cronograma)
-  - [Distribución general](#distribución-general)
-- [Roadmap sugerido](#roadmap-sugerido)
+  - [Resumen Ejecutivo](#resumen-ejecutivo)
+  - [Roadmap sugerido](#roadmap-sugerido)
+- [Términos Comerciales](#términos-comerciales)
+  - [Costo y Formas de Pago](#costo-y-formas-de-pago)
+  - [Cronograma](#cronograma)
+    - [Distribución general](#distribución-general)
 - [Alcance y Consideraciones](#alcance-y-consideraciones)
 
 ---
@@ -71,6 +71,8 @@ Como parte del diagnóstico, se levanta un inventario general de la aplicación 
 - **Módulos o dominios funcionales:** Cuántas áreas de negocio distintas cubre la aplicación (autenticación, facturación, reportes, notificaciones, etc.).
 
 ### Clasificación por Tamaño
+
+<!-- Mantener sincronizado con la tabla equivalente en la propuesta técnica y el anexo. -->
 
 Con base en este inventario, la aplicación se clasifica en una de las siguientes categorías de tamaño:
 
@@ -137,7 +139,7 @@ No "¿qué tan rápida es hoy?" sino "¿está preparada para crecer?" Desde el c
 
 ### 8. Pruebas y Criterios de Calidad
 
-Qué tipos de pruebas existen y cuáles faltan. Cubre: pruebas unitarias, pruebas de contrato, pruebas de integración con base de datos real y permisos y efectos secundarios, pruebas con mocking y casos extremos, pruebas de extremo a extremo (E2E), pruebas de carga y rendimiento, y pruebas de seguridad y configuración. También evalúa qué tan automatizadas están y si se ejecutan como parte del proceso de desarrollo.
+Si la aplicación tiene pruebas automatizadas que respalden sus funcionalidades críticas, qué tan completas son y si se ejecutan automáticamente cada vez que el equipo hace cambios. En el informe se desglosan los tipos de prueba encontrados (unitarias, de integración, de extremo a extremo, de seguridad, de carga) y se señalan los vacíos.
 
 ---
 
@@ -212,17 +214,13 @@ Ejemplos:
 | Calidad del Código | Código duplicado en validaciones de formularios | **Medio** | 5 controladores distintos repiten la misma lógica | Genera inconsistencias y dificulta el mantenimiento | Crear un servicio centralizado de validación |
 | Documentación y Gestión del Conocimiento | No hay documentación de la API | **Alto** | Sin archivos OpenAPI / Swagger en el repositorio | Un equipo nuevo no puede integrarse sin ingeniería inversa | Generar documentación automática con Swagger/OpenAPI |
 
----
-
-### Recomendaciones
-
-Cada recomendación se deriva directamente del hallazgo que busca resolver, conservando su nivel de severidad y apuntando a una acción concreta (ya reflejada en la columna **Recomendación** de la tabla anterior).
+Cada hallazgo lleva su propia recomendación en la columna correspondiente, conservando su severidad.
 
 ---
 
-## Resumen Ejecutivo
+### Resumen Ejecutivo
 
-La entrega incluye un resumen ejecutivo con el conteo de hallazgos por nivel:
+Incluye el conteo de hallazgos por nivel:
 
 | Nivel   | Cantidad |
 |---------|----------|
@@ -235,32 +233,9 @@ Además, se incluye un párrafo que resume el estado general de la aplicación e
 
 ---
 
-## Costo y Formas de Pago
+### Roadmap sugerido
 
-La inversión de referencia para este diagnóstico es de **{{investment_amount}} {{currency}}**.
-
-La forma de pago propuesta es la siguiente:
-
-- **{{payment_initial_pct}}% al inicio** del servicio, para dar apertura formal al diagnóstico y reservar la dedicación del equipo.
-- **{{payment_final_pct}}% al final**, contra entrega del informe y la socialización de hallazgos.
-
-> **Nota:** Este valor puede ajustarse si durante el levantamiento inicial se identifica un alcance significativamente mayor al estimado en esta propuesta.
-
----
-
-## Cronograma
-
-La duración estimada del diagnóstico es de **{{duration_label}}**.
-
-### Distribución general
-
-- **Día 1:** Levantamiento y lectura estructural de backend y frontend.
-- **Días 2 a 4:** Evaluación por categorías, identificación de hallazgos y consolidación de evidencia.
-- **Día 5:** Construcción del informe final, resumen ejecutivo y recomendaciones priorizadas.
-
----
-
-## Roadmap sugerido
+<!-- Mantener sincronizado con el Roadmap de la propuesta técnica. -->
 
 Las recomendaciones se agrupan por prioridad en horizontes de acción para facilitar la toma de decisiones y la planeación técnica:
 
@@ -271,10 +246,37 @@ Las recomendaciones se agrupan por prioridad en horizontes de acción para facil
 
 ---
 
+## Términos Comerciales
+
+### Costo y Formas de Pago
+
+La inversión de referencia para este diagnóstico es de **{{investment_amount}} {{currency}}**.
+
+La forma de pago propuesta es la siguiente:
+
+- **{{payment_initial_pct}}% al inicio** del servicio, para dar apertura formal al diagnóstico y reservar la dedicación del equipo.
+- **{{payment_final_pct}}% al final**, contra entrega del informe y la socialización de hallazgos.
+
+> **Nota:** Este valor puede ajustarse si durante el levantamiento inicial se identifica un alcance significativamente mayor al estimado en esta propuesta.
+
+### Cronograma
+
+La duración estimada del diagnóstico es de **{{duration_label}}**.
+
+#### Distribución general
+
+El trabajo se organiza en tres fases proporcionales a la duración total:
+
+- **Fase inicial — Levantamiento:** lectura estructural de backend y frontend, inventario y dimensionamiento.
+- **Fase de evaluación:** recorrido por categorías, identificación de hallazgos y consolidación de evidencia.
+- **Fase de consolidación:** construcción del informe final, resumen ejecutivo y recomendaciones priorizadas.
+
+---
+
 ## Alcance y Consideraciones
 
-- Este documento es la **propuesta comercial** del diagnóstico: define alcance, entrega, costo y cronograma. La descripción metodológica extendida vive en la propuesta técnica, y la medición previa que sustenta precio y cronograma vive en el anexo de dimensionamiento.
-- El diagnóstico se realiza exclusivamente sobre los repositorios de código fuente (backend y frontend). No se evalúa infraestructura del servidor, procesos de despliegue ni sistemas de monitoreo.
+- Este documento es la **propuesta comercial** del diagnóstico: define alcance, entrega, costo y cronograma. La descripción metodológica extendida se encuentra en la propuesta técnica; la medición previa que sustenta precio y cronograma se encuentra en el anexo de dimensionamiento.
+- El diagnóstico se ejecuta exclusivamente sobre los repositorios de código fuente (backend y frontend). No se evalúa infraestructura del servidor, procesos de despliegue ni sistemas de monitoreo externos.
 - La escala de severidad es una herramienta de priorización, no un juicio sobre el equipo que construyó la aplicación.
 - La clasificación de tamaño es orientativa y sirve como herramienta de dimensionamiento, no como un veredicto absoluto.
 - Esta propuesta describe qué se evaluará, cómo se estructurará la entrega y qué tipo de valor puede esperar la empresa al contratar el diagnóstico.

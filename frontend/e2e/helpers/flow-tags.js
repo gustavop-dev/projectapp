@@ -215,6 +215,8 @@ export const ADMIN_DOCUMENT_PDF_DOWNLOAD = ['@flow:admin-document-pdf-download',
 export const PROPOSAL_OG_META_PERSONALIZED = ['@flow:proposal-og-meta-personalized', '@module:proposal', '@priority:P3'];
 
 // ── Web App Diagnostics ──
+export const ADMIN_DIAGNOSTIC_LIST         = ['@flow:admin-diagnostic-list', '@module:admin', '@priority:P1'];
+export const ADMIN_DIAGNOSTIC_FILTERS      = ['@flow:admin-diagnostic-filters', '@module:admin', '@priority:P2'];
 export const ADMIN_DIAGNOSTIC_CREATE       = ['@flow:admin-diagnostic-create', '@module:admin', '@priority:P1'];
 export const ADMIN_DIAGNOSTIC_SEND_INITIAL = ['@flow:admin-diagnostic-send-initial', '@module:admin', '@priority:P1'];
 export const ADMIN_DIAGNOSTIC_SEND_FINAL   = ['@flow:admin-diagnostic-send-final', '@module:admin', '@priority:P1'];
@@ -260,3 +262,10 @@ export const ADMIN_DIAGNOSTIC_JSON_EXPORT              = ['@flow:admin-diagnosti
 // ── Diagnostic Templates & Markdown Attachment (Apr 19, 2026) ──
 export const ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES  = ['@flow:admin-proposal-diagnostic-templates', '@module:admin', '@priority:P2'];
 export const ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT = ['@flow:admin-diagnostic-markdown-attachment', '@module:admin', '@priority:P2'];
+
+// ── Proposal — Value Added Modules (Apr 19, 2026) ──
+export const PROPOSAL_VALUE_ADDED_MODULES = ['@flow:proposal-value-added-modules', '@module:proposal', '@priority:P2'];
+
+// ── Diagnostic — Advanced Filters + Client Edit (Apr 20, 2026) ──
+export const ADMIN_DIAGNOSTIC_ADVANCED_FILTERS = ['@flow:admin-diagnostic-advanced-filters', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENT_EDIT                 = ['@flow:admin-client-edit', '@module:admin', '@priority:P2'];

@@ -1,6 +1,6 @@
 {
-  "version": "2.24.0",
-  "lastUpdated": "2026-04-19",
+  "version": "2.26.0",
+  "lastUpdated": "2026-04-20",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -1718,12 +1718,16 @@
       "priority": "P2",
       "description": "Admin downloads a Document entity as a branded PDF from the document edit page via the 'Descargar PDF' button.",
       "expectedSpecs": 0,
-      "knownGaps": ["Document PDF generation feature is in progress — endpoint exists (documents/<id>/pdf/) and UI button is present, but E2E spec not yet written."]
+      "knownGaps": [
+        "Document PDF generation feature is in progress — endpoint exists (documents/<id>/pdf/) and UI button is present, but E2E spec not yet written."
+      ]
     },
     "admin-diagnostic-create": {
       "name": "Admin Diagnostic Create",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Admin creates a new WebAppDiagnostic from /panel/diagnostics/create: searches for a client via autocomplete, selects language, submits → redirected to edit page with 8 JSON sections seeded from the default template.",
       "expectedSpecs": 3
@@ -1731,7 +1735,9 @@
     "admin-diagnostic-send-initial": {
       "name": "Admin Diagnostic Send Initial",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Admin sends the initial-phase diagnostic from the edit page via 'Enviar envío inicial' — POST /api/diagnostics/:id/send-initial/, stamps `initial_sent_at`, status moves DRAFT → SENT. Public view then exposes only sections with visibility ∈ {initial, both}. The follow-up SENT → NEGOTIATING transition is its own flow (`admin-diagnostic-mark-in-analysis`).",
       "expectedSpecs": 1
@@ -1739,7 +1745,9 @@
     "admin-diagnostic-mark-in-analysis": {
       "name": "Admin Diagnostic Mark In Analysis",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Admin clicks 'Marcar en análisis' on a SENT diagnostic to acknowledge that the client authorized continuing — opens a ConfirmModal and POSTs /api/diagnostics/:id/mark-in-analysis/, transitioning SENT → NEGOTIATING. The button is only available after `initial_sent_at` is set; afterwards the 'Enviar diagnóstico final' action becomes the next user step.",
       "expectedSpecs": 1
@@ -1747,7 +1755,9 @@
     "admin-diagnostic-send-final": {
       "name": "Admin Diagnostic Send Final",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Admin sends the final-phase diagnostic from NEGOTIATING via 'Enviar diagnóstico final' (SENT again, final_sent_at stamped). Public view now also exposes sections with visibility ∈ {final}.",
       "expectedSpecs": 2
@@ -1755,7 +1765,9 @@
     "diagnostic-public-view": {
       "name": "Diagnostic Public View",
       "module": "diagnostic",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P1",
       "description": "Client accesses the public diagnostic page via UUID link and navigates the JSON-driven section components (Purpose/Radiography/Categories/DeliveryStructure/ExecutiveSummary/Cost/Timeline/Scope). Initial-phase view hides `final`-only sections. Per-section dwell time is tracked via /api/diagnostics/public/<uuid>/track-section/. Accept/Reject is a separate flow (`diagnostic-public-respond`).",
       "expectedSpecs": 2
@@ -1763,7 +1775,9 @@
     "diagnostic-public-respond": {
       "name": "Diagnostic Public Respond",
       "module": "diagnostic",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P1",
       "description": "On a final-phase SENT public diagnostic, the client clicks 'Aceptar propuesta' or 'Rechazar' in the footer — POST /api/diagnostics/public/<uuid>/respond/ with `decision` ('accept'|'reject'), the page swaps to the acceptance/rejection confirmation footer, and the backend transitions the diagnostic to ACCEPTED or REJECTED.",
       "expectedSpecs": 1
@@ -1771,7 +1785,9 @@
     "admin-diagnostic-sections": {
       "name": "Admin Diagnostic Sections Editor",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Admin edits the 8 JSON sections from the Secciones tab of the diagnostic edit page. Each section type has a typed form (paragraphs, severity levels, 14-category findings, radiography table, timeline rows, etc.). Changes are debounced and PATCHed to /sections/<id>/update/. The tab also exposes a completeness indicator (% + colored progress bar counting enabled sections with non-empty content_json) and a per-section 'Restaurar contenido por defecto' action (POST /sections/<id>/reset/). Raw-JSON read + bulk apply moved to the JSON tab — see admin-diagnostic-json-export / admin-diagnostic-json-import.",
       "expectedSpecs": 1
@@ -1779,7 +1795,9 @@
     "admin-diagnostic-activity": {
       "name": "Admin Diagnostic Activity Timeline",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin records notes / call / meeting / followup events from the Actividad tab (POST /activity/create/). Timeline shows auto-logged events (created, status change, section updated, email sent, accepted, rejected) alongside manual notes.",
       "expectedSpecs": 1
@@ -1787,7 +1805,9 @@
     "admin-diagnostic-analytics": {
       "name": "Admin Diagnostic Analytics Dashboard",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin reviews view_count, session count, per-section time heatbar, and lifecycle timestamps from the Analytics tab (GET /analytics/). Metrics accumulate from public DiagnosticViewEvent / DiagnosticSectionView rows created as the client navigates the public page.",
       "expectedSpecs": 1
@@ -1795,16 +1815,19 @@
     "admin-diagnostic-prompt": {
       "name": "Admin Diagnostic Prompt Editor",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin copies / edits / downloads the two diagnostic prompts (commercial and technical) from the Prompt tab. State is persisted in localStorage per browser via usePromptState({storageKey, defaultPrompt}).",
-      "expectedSpecs": 0,
-      "knownGaps": ["Spec not yet written — edit/copy/reset is tested manually."]
+      "expectedSpecs": 1
     },
     "admin-diagnostic-email": {
       "name": "Admin Diagnostic Email Composer",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin sends a follow-up branded email from the Correos tab of the diagnostic edit page. Composer includes recipient, subject, draggable body sections, footer, and optional attachments. History lists previous sends.",
       "expectedSpecs": 1
@@ -1812,16 +1835,22 @@
     "admin-diagnostic-documents": {
       "name": "Admin Diagnostic Attachment Management",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin uploads, manages, and sends file attachments (PDF, Word, Excel, images) from the Documentos tab of the diagnostic edit page. Checkbox selection enables the send-to-client button. The send section also exposes a checkbox for the system-generated Acuerdo de Confidencialidad (when present) which is appended to the email as a watermarked draft. System-generated attachments (is_generated=true) cannot be deleted — DELETE returns HTTP 400; this backend protection is defensive only since the UI filters generated NDAs out of the deletable list.",
       "expectedSpecs": 1,
-      "knownGaps": ["is_generated delete-blocked branch is backend-only (UI offers no delete button for generated NDAs); covered by backend tests, not E2E."]
+      "knownGaps": [
+        "is_generated delete-blocked branch is backend-only (UI offers no delete button for generated NDAs); covered by backend tests, not E2E."
+      ]
     },
     "admin-task-alert-management": {
       "name": "Admin Task Alert Management",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Admin defines one or more manual date-based email alerts per task from the TaskFormModal Alertas section. Supports add (date + optional note), list with sent/pending badge, and delete. Alerts fire via Huey daily at 08:10.",
       "expectedSpecs": 1
@@ -1829,7 +1858,9 @@
     "admin-diagnostic-edit": {
       "name": "Admin Diagnostic Edit",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin edits top-level metadata of an existing WebAppDiagnostic from the General tab: title, client (via ClientAutocomplete) + client-snapshot fields (name/email/phone/company) + propagate-to-profile checkbox, language, investment amount + currency, payment terms (initial/final pct), duration label, and size category. Changes are saved via PATCH /api/diagnostics/:id/update/. Radiografía data is edited as a regular section from the Secciones tab. Section content is edited separately under admin-diagnostic-sections; full-JSON round-trip lives under admin-diagnostic-json-export / admin-diagnostic-json-import.",
       "expectedSpecs": 1
@@ -1837,7 +1868,9 @@
     "admin-diagnostic-delete": {
       "name": "Admin Diagnostic Delete",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin deletes an existing WebAppDiagnostic from the diagnostics list or edit page via confirm modal. DELETE /api/diagnostics/:id/delete/.",
       "expectedSpecs": 1
@@ -1845,7 +1878,9 @@
     "admin-diagnostic-confidentiality-generate": {
       "name": "Admin Diagnostic NDA Generate",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P1",
       "description": "Admin generates the Acuerdo de Confidencialidad (NDA) PDF from the Documentos tab of the diagnostic edit page. Section displays 'No generado' with a 'Generar acuerdo' CTA when no NDA exists. CTA opens ConfidentialityParamsModal with 12 fields (cliente: nombre/NIT/representante/email; consultor: nombre/NIT/email — defaults to Project App SAS / team@projectapp.co; acuerdo: ciudad — default Medellín, día/mes/año, cláusula penal — default 50 SMMLV). Submit posts to POST /api/diagnostics/:id/confidentiality/params/, which validates via ConfidentialityParamsSerializer, persists to diagnostic.confidentiality_params, and creates a DiagnosticAttachment with document_type='confidentiality_agreement' and is_generated=true. Section then shows 'Generado el {fecha}' with Descargar / Borrador / Editar parámetros buttons.",
       "expectedSpecs": 1
@@ -1853,43 +1888,52 @@
     "admin-diagnostic-confidentiality-edit": {
       "name": "Admin Diagnostic NDA Edit Params",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin re-opens the ConfidentialityParamsModal via 'Editar parámetros' on a diagnostic that already has a generated NDA. Form pre-fills from diagnostic.confidentiality_params. Admin modifies one or more fields and submits — the existing DiagnosticAttachment file is replaced in place (same row id, file.delete + file.save, single .save() call). Section header still shows 'Generado el {fecha}' with the updated timestamp.",
-      "expectedSpecs": 1,
-      "knownGaps": ["Spec not yet written."]
+      "expectedSpecs": 1
     },
     "admin-diagnostic-confidentiality-download": {
       "name": "Admin Diagnostic NDA Download",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin downloads the generated Acuerdo de Confidencialidad from the Documentos tab. 'Descargar' link → GET /api/diagnostics/:id/confidentiality/pdf/ (FileResponse, streams the saved PDF with placeholders filled from confidentiality_params). 'Borrador' link → GET /api/diagnostics/:id/confidentiality/draft-pdf/ (renders fresh with all placeholders forced to XXX-XXX-XXX and applies BORRADOR watermark). When no NDA exists, neither link is present and the section shows 'No generado' with 'Generar acuerdo' CTA.",
-      "expectedSpecs": 1,
-      "knownGaps": ["Spec not yet written."]
+      "expectedSpecs": 1
     },
     "admin-diagnostic-json-export": {
       "name": "Admin Diagnostic JSON Export",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin opens the JSON tab of /panel/diagnostics/:id/edit. A read-only textarea renders the full diagnostic serialized as JSON (metadata + sections). Actualizar refetches /detail/ from the server; Copiar writes the current text to the clipboard; Descargar streams a {slug}.json Blob download. The string is lazy-computed from store.current so it rebuilds only when the tab is rendered.",
-      "expectedSpecs": 0,
-      "knownGaps": ["Spec not yet written — JSON tab replaced the previous 'Plantillas' textarea."]
+      "expectedSpecs": 1
     },
     "admin-diagnostic-json-import": {
       "name": "Admin Diagnostic JSON Import",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin imports a JSON blob from the JSON tab of /panel/diagnostics/:id/edit, either by pasting into the textarea or uploading a .json file (FileReader → textarea). Parse runs on every input; validation requires a root object with an array `sections`. A preview strip shows client name, section count, and formatted investment. Aplicar JSON runs PATCH /update/ for metadata first, then POST /sections/bulk-update/; success emits an inline toast and resyncs the pricing/radiography forms. Errors surface inline and abort the apply.",
       "expectedSpecs": 1,
-      "knownGaps": ["Legacy deep-links ?tab=plantillas|pricing|radiography redirect to the new tab ids — not yet asserted."]
+      "knownGaps": [
+        "Legacy deep-links ?tab=plantillas|pricing|radiography redirect to the new tab ids — not yet asserted."
+      ]
     },
     "admin-diagnostic-defaults-config": {
       "name": "Admin Diagnostic Defaults Config",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin manages the per-language default config applied to new WebAppDiagnostic rows from /panel/diagnostics/defaults/. The General tab edits language, currency, default investment amount, default duration label, payment percentages (auto-synced to sum 100, default 60/40), and reminder/urgency/expiration days. Save PUTs /api/diagnostics/defaults/?lang= and the response is applied directly (no refetch). Reset opens a ConfirmModal and POSTs /defaults/reset/ to delete the row, falling back to the hardcoded seed. Sections, Plantillas de Email (link), Prompt (placeholder) and JSON tabs render from the same config payload.",
       "expectedSpecs": 1
@@ -1897,7 +1941,9 @@
     "admin-proposal-diagnostic-templates": {
       "name": "Proposal — Diagnostic Templates Tab",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "Admin accesses 3 static markdown diagnostic templates (Diagnóstico de Aplicación, Diagnóstico Técnico, Anexo — Dimensionamiento) from the 'Documentos & Plantillas' tab of the proposal edit page. Tab is visible for proposals in sent|viewed|negotiating|accepted|rejected status. Each template card shows title, filename, and last modified date, with Copy (fetches GET /api/diagnostic-templates/:slug/ and writes to clipboard), Download (.md Blob), and inline Preview (expands a <pre> block) buttons. Per-slug content is cached client-side to avoid duplicate requests.",
       "expectedSpecs": 1
@@ -1905,9 +1951,64 @@
     "admin-diagnostic-markdown-attachment": {
       "name": "Diagnostic Email — Markdown to PDF Attachment",
       "module": "admin",
-      "roles": ["admin"],
+      "roles": [
+        "admin"
+      ],
       "priority": "P2",
       "description": "When a diagnostic is in 'negotiating' status, admin sees a 'Crear documento desde markdown' button in the Correos tab. Clicking it opens MarkdownAttachmentModal, which takes a title, a markdown textarea, and three cover-toggle checkboxes. The Vista previa button is disabled until both title and markdown are filled; clicking it POSTs to POST /api/diagnostics/:id/email/markdown-attachment/ (returns an inline PDF). The PDF is rendered in an iframe for review. Clicking Adjuntar converts the blob to a File and emits @attach — appending it to the email attachments list with a success toast.",
+      "expectedSpecs": 1
+    },
+    "proposal-value-added-modules": {
+      "name": "Proposal Value Added Modules",
+      "module": "proposal",
+      "roles": [
+        "guest"
+      ],
+      "priority": "P2",
+      "description": "Public proposal section (section_type value_added_modules) renders a card grid of included-free modules resolved from the proposal's functional_requirements groups. Each card shows title, icon, justification text, and a 'Gratis' badge. An optional footer_note is displayed below the grid. Falls back to 'Incluido sin costo adicional' when no title is provided in content_json.",
+      "expectedSpecs": 1
+    },
+    "admin-diagnostic-list": {
+      "name": "Admin Diagnostic List",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Admin views the list of all WebAppDiagnostics, searches by client name or title, and navigates to create or edit flows.",
+      "expectedSpecs": 1
+    },
+    "admin-diagnostic-filters": {
+      "name": "Admin Diagnostic Filters",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Filter diagnostics using saved tabs with localStorage persistence and URL sync (?tab=<tabId>). Filter dimensions: statuses (multi-select), investmentMin/Max, createdAfter/Before. Tab bar supports add/rename/delete (max 12 tabs).",
+      "expectedSpecs": 1,
+      "knownGaps": [
+        "Covered by admin-diagnostic-advanced-filters.spec.js (4 tests: default view, filter toggle, tab creation, search)."
+      ]
+    },
+    "admin-diagnostic-advanced-filters": {
+      "name": "Admin Diagnostic Advanced Filters",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin filters diagnostics from /panel/diagnostics via DiagnosticFilterPanel + ProposalFilterTabs. Default view shows all diagnostics. 'Filtros' toggle opens/closes the filter panel (Estados dimension visible). '+' button creates a named saved-filter tab (persisted to localStorage). Search input filters the card list by title client-side.",
+      "expectedSpecs": 1
+    },
+    "admin-client-edit": {
+      "name": "Admin Client Edit",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin edits an existing client profile from /panel/clients by clicking the edit (pencil) icon on a client row. The edit modal opens pre-filled with the client's name, email, phone, and company. Admin modifies fields and submits — PUT /api/proposals/client-profiles/:id/update/ — modal closes on success. A 400 response surfaces validation errors and keeps the modal open.",
       "expectedSpecs": 1
     }
   }

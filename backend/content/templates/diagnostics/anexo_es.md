@@ -60,7 +60,7 @@ Además de levantar métricas, esta lectura permite detectar observaciones concr
 
 Con base en la medición del código, la aplicación presenta una complejidad general **{{size_category_label}}**, con elementos que permiten dimensionar el esfuerzo esperado del diagnóstico de forma objetiva.
 
-Desde una perspectiva de dimensionamiento, el resultado se ubica en un punto que requiere un alcance acotable en tiempo si se trabaja con una metodología clara y un alcance bien definido.
+Desde la perspectiva de dimensionamiento, el resultado permite acotar el servicio en un tiempo razonable cuando se trabaja con una metodología clara.
 
 ---
 
@@ -113,9 +113,11 @@ Desde una perspectiva de dimensionamiento, el resultado se ubica en un punto que
 | Archivos Docker                  | {{docker_files_count}}      |
 | Integraciones externas           | {{external_integrations}}   |
 
+> La cobertura de pruebas de negocio refleja lo reportado por las herramientas configuradas en el repositorio; no implica que las pruebas se ejecuten de forma continua ni que validen comportamiento en entornos reales.
+
 ### 5.3. Clasificación por tamaño
 
-Tabla de valores medidos contra los rangos de referencia (Pequeña `< 15` / Mediana `15 – 50` / Grande `> 50`, ajustados por dimensión, ver propuesta comercial y técnica):
+Tabla de valores medidos contra los rangos de referencia. Los rangos varían por dimensión: consultar la tabla completa en la propuesta comercial o técnica.
 
 | Dimensión                 | Valor medido               | Clasificación                  |
 |---------------------------|----------------------------|--------------------------------|
@@ -169,7 +171,7 @@ Estos criterios permiten construir una base objetiva para definir el precio y el
 
 Este anexo es un **documento de dimensionamiento previo** que justifica el precio y el cronograma del diagnóstico. Complementa a la propuesta comercial (alcance, costo y entregables) y a la propuesta técnica (metodología y criterios por categoría).
 
-El análisis preliminar permite concluir que la aplicación requiere un diagnóstico formal con un alcance bien estructurado y una dedicación proporcional a su complejidad real. Este anexo cumple la función de justificar por qué el servicio debe valorarse y calendarizarse con criterios técnicos, y no únicamente con base en una impresión general del sistema o en el número aparente de pantallas o tablas.
+El análisis preliminar permite concluir que la aplicación requiere un diagnóstico formal con un alcance bien estructurado y una dedicación proporcional a su complejidad real. Este anexo cumple la función de justificar por qué el servicio debe valorarse y calendarizarse con criterios técnicos. No debe determinarse únicamente con base en una impresión general del sistema o en el número aparente de pantallas o tablas.
 
 ---
 

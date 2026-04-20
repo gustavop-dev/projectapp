@@ -4,7 +4,8 @@
  * Covers:
  * - Initial phase renders sections visible in `initial`/`both` and hides `final`.
  * - Final phase shows all sections including `executive_summary` (visibility=final).
- * - Navigation between sections works.
+ * - Sidebar index: hamburger toggle opens/closes the floating nav.
+ * - Sidebar navigation changes the active section.
  * - Accept/Reject footer posts and swaps to the acceptance confirmation.
  */
 import { test, expect } from '../helpers/test.js';
@@ -98,13 +99,17 @@ test.describe('Diagnostic Public View — JSON sections', () => {
     const diagnostic = buildPublicDiagnostic({ phase: 'initial' });
     await mockPublicApi(page, diagnostic);
 
-    await page.goto(`/diagnostic/${TEST_UUID}/`);
-    await expect(page.getByRole('heading', { name: /Diagnóstico — TechCorp/i })).toBeVisible({ timeout: 15000 });
+    await page.goto(`/diagnostic/${TEST_UUID}/`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('diagnostic-index-toggle')).toBeVisible({ timeout: 15000 });
 
-    // Initial-only and both-visibility sections are reachable via tab nav.
+    // Open sidebar to inspect the section list.
+    await page.getByTestId('diagnostic-index-toggle').click();
+    await expect(page.getByText('Índice')).toBeVisible();
+
+    // Initial-only and both-visibility sections appear in the sidebar.
     await expect(page.getByRole('button', { name: /Propósito/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /Estructura de la Entrega/ })).toBeVisible();
-    // Final-only section must NOT appear.
+    // Final-only section must NOT be in the DOM at all.
     await expect(page.getByRole('button', { name: /Resumen Ejecutivo/ })).toHaveCount(0);
   });
 
@@ -114,10 +119,54 @@ test.describe('Diagnostic Public View — JSON sections', () => {
     const diagnostic = buildPublicDiagnostic({ phase: 'final' });
     await mockPublicApi(page, diagnostic);
 
-    await page.goto(`/diagnostic/${TEST_UUID}/`);
-    await expect(page.getByRole('button', { name: /Resumen Ejecutivo/ })).toBeVisible({ timeout: 15000 });
-    // delivery_structure is initial-only; final phase should hide it.
+    await page.goto(`/diagnostic/${TEST_UUID}/`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('diagnostic-index-toggle')).toBeVisible({ timeout: 15000 });
+
+    // Open sidebar to inspect the section list.
+    await page.getByTestId('diagnostic-index-toggle').click();
+    await expect(page.getByRole('button', { name: /Resumen Ejecutivo/ })).toBeVisible();
+    // delivery_structure is initial-only; final phase should not include it.
     await expect(page.getByRole('button', { name: /Estructura de la Entrega/ })).toHaveCount(0);
+  });
+
+  test('sidebar toggle opens and closes the index panel', {
+    tag: [...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
+  }, async ({ page }) => {
+    const diagnostic = buildPublicDiagnostic({ phase: 'initial' });
+    await mockPublicApi(page, diagnostic);
+
+    await page.goto(`/diagnostic/${TEST_UUID}/`, { waitUntil: 'domcontentloaded' });
+    const toggle = page.getByTestId('diagnostic-index-toggle');
+    await expect(toggle).toBeVisible({ timeout: 15000 });
+
+    // Sidebar is closed — "Índice" label not in viewport.
+    await expect(page.getByText('Índice')).not.toBeInViewport();
+
+    // Open sidebar.
+    await toggle.click();
+    await expect(page.getByText('Índice')).toBeVisible();
+
+    // Close sidebar via toggle again.
+    await toggle.click();
+    await expect(page.getByText('Índice')).not.toBeInViewport();
+  });
+
+  test('clicking a sidebar item navigates to that section', {
+    tag: [...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
+  }, async ({ page }) => {
+    const diagnostic = buildPublicDiagnostic({ phase: 'initial' });
+    await mockPublicApi(page, diagnostic);
+
+    await page.goto(`/diagnostic/${TEST_UUID}/`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText('Sección 1 de', { exact: false })).toBeVisible({ timeout: 15000 });
+
+    // Open sidebar and click the third section.
+    await page.getByTestId('diagnostic-index-toggle').click();
+    await expect(page.getByText('Índice')).toBeVisible();
+    await page.getByRole('button', { name: /Categorías Evaluadas/ }).click();
+
+    // After click the sidebar closes and section counter advances.
+    await expect(page.getByText('Sección 3 de', { exact: false })).toBeVisible();
   });
 
   test('clicking "Aceptar propuesta" POSTs accept decision and shows acceptance footer', {
@@ -127,7 +176,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
     let respondCalled = false;
     await mockPublicApi(page, diagnostic, { onRespond: () => { respondCalled = true; } });
 
-    await page.goto(`/diagnostic/${TEST_UUID}/`);
+    await page.goto(`/diagnostic/${TEST_UUID}/`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('button', { name: /aceptar propuesta/i })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: /aceptar propuesta/i }).click();
 
@@ -141,7 +190,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
     const diagnostic = buildPublicDiagnostic({ phase: 'final' });
     await mockPublicApi(page, diagnostic);
 
-    await page.goto(`/diagnostic/${TEST_UUID}/`);
+    await page.goto(`/diagnostic/${TEST_UUID}/`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByText('Sección 1 de', { exact: false })).toBeVisible({ timeout: 15000 });
     await page.getByRole('button', { name: /siguiente/i }).click();
     await expect(page.getByText('Sección 2 de', { exact: false })).toBeVisible();

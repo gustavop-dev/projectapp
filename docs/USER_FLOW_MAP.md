@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.22.0
-> **Last updated:** 2026-04-19
+> **Version:** 2.26.0
+> **Last updated:** 2026-04-20
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -1215,6 +1215,22 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   4. Client action tags indicate what input the client provides at each stage.
 - **Coverage:** ✅ Covered — `frontend/e2e/proposal/proposal-process-methodology.spec.js`
 
+### FLOW: `proposal-value-added-modules`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** The "Value Added Modules" section (`section_type: value_added_modules`) renders a card grid of included-free items. Each card is resolved from the proposal's `functional_requirements` groups using `module_ids`. Cards show module title, icon, justification text, and a "Gratis" badge. An optional `footer_note` appears below the grid. Falls back to "Incluido sin costo adicional" when no `title` is set in `content_json`.
+- **Steps:**
+  1. Client navigates to the Value Added Modules section.
+  2. Section title and intro text render.
+  3. Each module card resolves its title and icon from `functional_requirements.content_json.groups`.
+  4. Each card shows the justification text from `content_json.justifications`.
+  5. A "Gratis" badge appears on every card.
+  6. Optional `footer_note` renders at the bottom of the section.
+- **Coverage:** ✅ Covered — `frontend/e2e/proposal/proposal-value-added-modules.spec.js`
+
 ### FLOW: `proposal-calculator-modules`
 
 - **Module:** proposal
@@ -1863,8 +1879,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   1. Admin navigates to the Prompt tab.
   2. Selects a sub-tab (Comercial / Técnico).
   3. Clicks Copiar / Editar / Descargar / Restaurar — prompt text round-trips through `localStorage`.
-- **Coverage:** 🟡 Manual only
-- **E2E Spec:** _Not written — prompt copy/reset is covered by manual QA._
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-diagnostic-prompt.spec.js` (5 tests: sub-tabs visible, edit mode, save custom, restore original, technical sub-tab).
 
 ---
 
@@ -1979,14 +1995,14 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** guest (via UUID link in email)
 - **Priority:** P1
 - **Routes:** `/diagnostic/:uuid`
-- **Description:** Client opens the public diagnostic link and navigates the 8 JSON-driven section components (Purpose / Radiography / Categories / DeliveryStructure / ExecutiveSummary / Cost / Timeline / Scope). Server-side filtering returns only sections whose `visibility ∈ {phase, both}` where `phase = 'final' if final_sent_at else 'initial'`. Per-section dwell time is recorded via `DiagnosticViewEvent` + `DiagnosticSectionView`; the final row is flushed via `navigator.sendBeacon` on tab unload.
+- **Description:** Client opens the public diagnostic link (no Nuxt global header — `layout: false`) and navigates the 8 JSON-driven section components (Purpose / Radiography / Categories / DeliveryStructure / ExecutiveSummary / Cost / Timeline / Scope). Navigation is via a floating sidebar index (`DiagnosticIndex.vue`) — hamburger toggle top-left, panel slides in with numbered badges and visited checkmarks. Server-side filtering returns only sections whose `visibility ∈ {phase, both}` where `phase = 'final' if final_sent_at else 'initial'`. Per-section dwell time is recorded via `DiagnosticViewEvent` + `DiagnosticSectionView`; the final row is flushed via `navigator.sendBeacon` on tab unload.
 - **Steps:**
   1. Client navigates to `/diagnostic/:uuid` (no auth required).
   2. Page fetches GET `/api/diagnostics/public/:uuid/` (auto-increments `view_count`) and generates a client-side `session_id`.
   3. POST `/track/` with `session_id` creates a `DiagnosticViewEvent`.
-  4. [Branch: SENT + no `final_sent_at`] — Only `initial`/`both` sections render in the tab nav.
-  5. [Branch: SENT + `final_sent_at`] — Sections with `final` visibility (e.g. `executive_summary`) also render; footer shows accept/reject buttons.
-  6. Client navigates sections → each change POSTs `/track-section/` with elapsed seconds.
+  4. [Branch: SENT + no `final_sent_at`] — Only `initial`/`both` sections are returned by the API and appear in the sidebar index.
+  5. [Branch: SENT + `final_sent_at`] — Sections with `final` visibility (e.g. `executive_summary`) also appear; footer shows accept/reject buttons.
+  6. Client opens the sidebar (hamburger button) and clicks a section → sidebar closes, section changes, POST `/track-section/` fires with elapsed seconds.
   7. Client clicks "Aceptar propuesta" → POST `/api/diagnostics/public/:uuid/respond/` with `decision: 'accept'`.
   8. Status transitions to `accepted`; acceptance footer replaces the CTA.
 - **Coverage:** ✅ Covered
@@ -2054,6 +2070,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-metrics-manual` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-proposal-metrics-manual.spec.js` |
 | `proposal-welcome-back` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-welcome-back.spec.js` |
 | `proposal-process-methodology` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-process-methodology.spec.js` |
+| `proposal-value-added-modules` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-value-added-modules.spec.js` |
 | `admin-portfolio-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-list.spec.js` |
 | `admin-portfolio-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-create.spec.js` |
 | `admin-portfolio-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-portfolio-edit.spec.js` |
@@ -2993,7 +3010,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-diagnostic-sections` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
 | `admin-diagnostic-activity` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
 | `admin-diagnostic-analytics` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
-| `admin-diagnostic-prompt` | admin | admin | P2 | 🟡 Manual only | _not written_ |
+| `admin-diagnostic-prompt` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-prompt.spec.js` |
 | `diagnostic-public-view` | diagnostic | guest | P1 | ✅ Covered | `e2e/public/diagnostic-public-view.spec.js` + `e2e/admin/admin-diagnostic-sections.spec.js` |
 | `admin-admin-management` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-admin-management.spec.js` |
 | `admin-email-deliverability` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-email-deliverability.spec.js` |
@@ -3637,7 +3654,7 @@ No active browser flow is registered for client profile editing at this time.
 | `admin-diagnostic-sections` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
 | `admin-diagnostic-activity` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
 | `admin-diagnostic-analytics` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-sections.spec.js` |
-| `admin-diagnostic-prompt` | admin | admin | P2 | 🟡 Manual only | _not written_ |
+| `admin-diagnostic-prompt` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-prompt.spec.js` |
 | `diagnostic-public-view` | diagnostic | guest | P1 | ✅ Covered | `e2e/public/diagnostic-public-view.spec.js` + `e2e/admin/admin-diagnostic-sections.spec.js` |
 
 ---
@@ -3776,7 +3793,7 @@ No active browser flow is registered for client profile editing at this time.
 | **Module** | diagnostics |
 | **Role** | admin |
 | **Priority** | P2 |
-| **Status** | ⬜ Missing spec |
+| **Status** | ✅ Covered |
 
 **Routes:** `/panel/diagnostics/:id/edit` → Documentos tab.
 
@@ -3806,7 +3823,7 @@ No active browser flow is registered for client profile editing at this time.
 | **Module** | diagnostics |
 | **Role** | admin |
 | **Priority** | P2 |
-| **Status** | ⬜ Missing spec |
+| **Status** | ✅ Covered |
 
 **Routes:** `/panel/diagnostics/:id/edit` → Documentos tab.
 
@@ -3829,8 +3846,8 @@ No active browser flow is registered for client profile editing at this time.
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
 | `admin-diagnostic-confidentiality-generate` | diagnostics | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-confidentiality.spec.js` |
-| `admin-diagnostic-confidentiality-edit` | diagnostics | admin | P2 | ⬜ Missing spec | _proposed_: `e2e/admin/admin-diagnostic-confidentiality-edit.spec.js` |
-| `admin-diagnostic-confidentiality-download` | diagnostics | admin | P2 | ⬜ Missing spec | _proposed_: `e2e/admin/admin-diagnostic-confidentiality-download.spec.js` |
+| `admin-diagnostic-confidentiality-edit` | diagnostics | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-confidentiality-edit.spec.js` |
+| `admin-diagnostic-confidentiality-download` | diagnostics | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-confidentiality-download.spec.js` |
 | `admin-diagnostic-documents` (NDA branches) | diagnostics | admin | P2 | 🟡 Partial | Existing `e2e/admin/admin-diagnostic-email-documents.spec.js` covers base; NDA-checkbox + delete-blocked branches not yet asserted |
 
 ---
@@ -3849,7 +3866,7 @@ No active browser flow is registered for client profile editing at this time.
 | **Module** | diagnostics |
 | **Role** | admin |
 | **Priority** | P2 |
-| **Status** | ⬜ Missing spec |
+| **Status** | ✅ Covered |
 
 **Routes:** `/panel/diagnostics/:id/edit` → JSON tab.
 
@@ -3907,7 +3924,7 @@ No active browser flow is registered for client profile editing at this time.
 
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
-| `admin-diagnostic-json-export` | diagnostics | admin | P2 | ⬜ Missing spec | _proposed_: `e2e/admin/admin-diagnostic-json.spec.js` |
+| `admin-diagnostic-json-export` | diagnostics | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-json.spec.js` |
 | `admin-diagnostic-json-import` | diagnostics | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-json-import.spec.js` |
 | `admin-diagnostic-defaults-config` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-defaults.spec.js` |
 | `admin-diagnostic-mark-in-analysis` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-diagnostic-send.spec.js` (`'Marcar en análisis' button POSTs…`) |
@@ -4009,3 +4026,147 @@ Two transitions that were previously bundled into other flows now have their own
 
 - **Legacy `?tab=technical|pricing|radiography` deep-links** — retired on 2026-04-18. `LEGACY_TAB_REDIRECTS` now maps `pricing → general`, `radiography → sections`, `technical → sections` so existing bookmarks land on the new owner of that data. Not a user outcome, documented here as a branch.
 - **Conditional tab visibility by status** — Correos appears from `sent` onward; Documentos from `negotiating` onward. This is asserted implicitly by `admin-diagnostic-send-initial` (Correos should appear after the transition) and `admin-diagnostic-send-final` / confidentiality flows (Documentos should be available). Added here as a documented branch rather than a new flow since no new user outcome is introduced.
+
+---
+
+## Section 18 — Diagnostic List & Filter Flows (Apr 20, 2026)
+
+> Flows identified during the Apr 20 E2E coverage audit. The diagnostic list page had no registered flow, and the `DiagnosticFilterPanel` + `useDiagnosticFilters` feature (saved tabs, 5 filter dimensions) shipped Apr 18 with no E2E spec or flow ID.
+
+### 18.1 New Flows Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `admin-diagnostic-list` | admin | admin | P1 | ⬜ Missing spec | _proposed_: `e2e/admin/admin-diagnostic-list.spec.js` |
+| `admin-diagnostic-filters` | admin | admin | P2 | 🟡 Partial | Covered by `e2e/admin/admin-diagnostic-advanced-filters.spec.js` |
+| `admin-diagnostic-advanced-filters` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-advanced-filters.spec.js` |
+| `admin-client-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-client-edit.spec.js` |
+
+---
+
+### 18.2 Diagnostic List
+
+#### FLOW: `admin-diagnostic-list`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-list` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P1 |
+| **Status** | ⬜ Missing spec |
+
+**Routes:** `/panel/diagnostics/`
+
+**Description:** Admin views the list of all `WebAppDiagnostic` records. Each card shows title, client name, status badge (chip), investment amount, language, and creation date. The page exposes a search input, a "Valores por Defecto" header button, and a "+ Nuevo Diagnóstico" button. The list is fetched from `GET /api/diagnostics/` with the active filter params applied.
+
+**Steps:**
+1. Admin navigates to `/panel/diagnostics/`.
+2. `GET /api/diagnostics/` fires; diagnostic cards render.
+3. Admin sees each card with title, client name, status badge.
+4. Admin clicks a diagnostic card → navigated to `/panel/diagnostics/:id/edit`.
+5. Admin clicks "+ Nuevo Diagnóstico" → navigated to `/panel/diagnostics/create`.
+6. Admin clicks "Valores por Defecto" → navigated to `/panel/diagnostics/defaults`.
+
+**Branches:**
+- [Branch A — Empty list] When no diagnostics exist, the empty-state copy renders ("Aún no has creado diagnósticos.").
+- [Branch B — Search] Admin types in the search input → `searchQuery` filters the list client-side; matching cards remain visible, others hide.
+
+**Expected outcome:** Diagnostic cards are visible; navigation to create/edit/defaults works; empty state renders correctly when list is empty.
+
+**Flow tag:** `ADMIN_DIAGNOSTIC_LIST`
+
+---
+
+### 18.3 Diagnostic Filter Tabs
+
+#### FLOW: `admin-diagnostic-filters`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-filters` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ⬜ Missing spec |
+
+**Routes:** `/panel/diagnostics/`
+
+**Description:** Admin filters diagnostics via `DiagnosticFilterPanel` + `useDiagnosticFilters`. Five filter dimensions: `statuses` (multi-select chip list), `investmentMin` / `investmentMax` (number inputs), `createdAfter` / `createdBefore` (date inputs). Results are filtered client-side on the already-fetched list. Filter state is persisted per saved tab in localStorage (`diagnostic_filter_tabs`). Tab bar mirrors `ProposalFilterTabs` behaviour: up to 12 tabs, add / rename / delete, URL sync via `?tab=<tabId>`.
+
+**Steps:**
+1. Admin navigates to `/panel/diagnostics/`.
+2. Admin clicks "Filtros" toggle → `DiagnosticFilterPanel` expands.
+3. Admin selects one or more statuses (e.g. "sent") → card list updates immediately.
+4. Admin enters an investment range → cards outside the range are hidden.
+5. Admin clicks "+ Guardar filtro" → modal prompts for tab name → new tab appears in the tab bar.
+6. Admin reloads the page and selects the saved tab → the stored filters re-apply.
+7. Admin deletes the tab → it disappears from the tab bar.
+
+**Branches:**
+- [Branch A — No results] All diagnostics filtered out → "No hay diagnósticos que coincidan con los filtros." empty state renders.
+- [Branch B — Reset] Admin clicks "Restablecer" → all filter dimensions clear and full list shows.
+- [Branch C — URL deep-link] `/panel/diagnostics/?tab=<tabId>` pre-selects the matching saved tab on load.
+
+**Expected outcome:** Filter dimensions hide/show cards in real-time; tab save/load/delete persists to localStorage; URL reflects active tab.
+
+**Flow tag:** `ADMIN_DIAGNOSTIC_FILTERS`
+
+---
+
+#### FLOW: `admin-diagnostic-advanced-filters`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-diagnostic-advanced-filters` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ✅ Covered |
+
+**Routes:** `/panel/diagnostics/`
+
+**Description:** Advanced tab-based filter UI for diagnostics. Default view shows all diagnostics with no active filters. "Filtros" toggle button expands/collapses `DiagnosticFilterPanel` showing the Estados dimension. The "+" button opens a name input to create a saved filter tab (persisted to `localStorage['diagnostic_filter_tabs']`). The search input filters the rendered diagnostic list client-side by title.
+
+**Steps:**
+1. Admin navigates to `/panel/diagnostics/`.
+2. All diagnostics are visible with no active filters.
+3. Admin clicks "Filtros" → `DiagnosticFilterPanel` expands with status chips.
+4. Admin clicks "Filtros" again → panel collapses.
+5. Admin clicks "+" → name input appears → admin enters a name and confirms → new tab appears in the tab bar.
+6. Admin types in the search input → visible cards filter by title immediately.
+
+**E2E Spec:** `e2e/admin/admin-diagnostic-advanced-filters.spec.js` (4 tests).
+
+**Flow tag:** `ADMIN_DIAGNOSTIC_ADVANCED_FILTERS`
+
+---
+
+#### FLOW: `admin-client-edit`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-client-edit` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ✅ Covered |
+
+**Routes:** `/panel/clients/`
+
+**Description:** Admin edits an existing client profile from the Clientes list. Clicking the edit (pencil) icon on a client row opens a modal pre-filled with name, email, phone, and company. Admin changes one or more fields and submits. On success (`PUT /api/proposals/client-profiles/:id/update/` → 200), the modal closes. On validation error (400 with field errors), the modal stays open with the server error surfaced.
+
+**Steps:**
+1. Admin navigates to `/panel/clients/`.
+2. Admin clicks the edit button on a client row (`data-testid="client-edit-{id}"`).
+3. Modal opens with all fields pre-filled from the client profile.
+4. Admin modifies the name field.
+5. Admin clicks "Guardar" / submit.
+6. [Branch A — Success] Modal closes; client list may refresh.
+7. [Branch B — Error] Modal stays open; validation error message visible.
+
+**E2E Spec:** `e2e/admin/admin-client-edit.spec.js` (3 tests).
+
+**Flow tag:** `ADMIN_CLIENT_EDIT`
+
+---
