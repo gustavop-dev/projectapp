@@ -33,8 +33,13 @@
           <article
             v-for="card in resolvedCards"
             :key="card.id"
-            class="value-card bg-esmerald/5 p-6 rounded-2xl border border-esmerald/10 hover:border-esmerald/30 transition-colors"
+            class="value-card group bg-esmerald/5 p-6 rounded-2xl border border-esmerald/10 hover:border-esmerald/30 transition-colors cursor-pointer"
             :data-testid="`value-added-card-${card.id}`"
+            role="button"
+            tabindex="0"
+            @click="openModal(card)"
+            @keydown.enter.prevent="openModal(card)"
+            @keydown.space.prevent="openModal(card)"
           >
             <div class="flex items-start gap-4">
               <div class="w-11 h-11 rounded-xl bg-esmerald-light/60 border border-esmerald/10 flex items-center justify-center flex-shrink-0">
@@ -50,9 +55,15 @@
                 <p class="text-sm text-esmerald/75 font-light leading-relaxed mb-3">
                   {{ card.justification }}
                 </p>
-                <p v-if="card.description" class="text-xs text-esmerald/60 italic leading-relaxed">
+                <p v-if="card.description" class="text-xs text-esmerald/60 italic leading-relaxed mb-3">
                   {{ card.description }}
                 </p>
+                <span class="inline-flex items-center gap-1 text-xs font-semibold text-green-light group-hover:text-esmerald transition-colors">
+                  {{ viewDetailLabel }}
+                  <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </span>
               </div>
             </div>
           </article>
@@ -66,12 +77,20 @@
         </div>
       </div>
     </div>
+
+    <FunctionalRequirementsModal
+      :visible="modalVisible"
+      :group="selectedGroup"
+      @close="modalVisible = false"
+    />
   </section>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import { trackRequirementClick } from '~/utils/trackRequirementClick';
+import FunctionalRequirementsModal from './FunctionalRequirementsModal.vue';
 
 const props = defineProps({
   section: {
@@ -81,6 +100,10 @@ const props = defineProps({
   proposal: {
     type: Object,
     default: () => ({ sections: [] }),
+  },
+  proposalUuid: {
+    type: String,
+    default: '',
   },
 });
 
@@ -96,11 +119,13 @@ const i18n = {
     defaultTitle: 'Incluido sin costo adicional',
     noCost: 'Sin costo adicional',
     free: 'Gratis',
+    viewDetail: 'Ver detalle',
   },
   en: {
     defaultTitle: 'Included at no extra cost',
     noCost: 'No extra cost',
     free: 'Free',
+    viewDetail: 'View details',
   },
 };
 const t = computed(() => i18n[language.value] || i18n.es);
@@ -108,6 +133,7 @@ const t = computed(() => i18n[language.value] || i18n.es);
 const defaultTitle = computed(() => t.value.defaultTitle);
 const noCostLabel = computed(() => t.value.noCost);
 const freeBadge = computed(() => t.value.free);
+const viewDetailLabel = computed(() => t.value.viewDetail);
 
 const moduleCatalog = computed(() => {
   const sections = props.proposal?.sections || [];
@@ -135,11 +161,21 @@ const resolvedCards = computed(() => {
         icon: group.icon,
         title: group.title,
         description: group.description,
+        items: Array.isArray(group.items) ? group.items : [],
         justification: justifications[id] || '',
       };
     })
     .filter(Boolean);
 });
+
+const modalVisible = ref(false);
+const selectedGroup = ref({});
+
+function openModal(card) {
+  selectedGroup.value = card;
+  modalVisible.value = true;
+  trackRequirementClick(props.proposalUuid, card);
+}
 </script>
 
 <style scoped>
@@ -150,5 +186,10 @@ const resolvedCards = computed(() => {
 .value-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 18px rgba(7, 89, 73, 0.06);
+}
+
+.value-card:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.6);
+  outline-offset: 2px;
 }
 </style>

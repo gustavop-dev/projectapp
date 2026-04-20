@@ -59,4 +59,62 @@ describe('FunctionalRequirements', () => {
 
     expect(wrapper.findAll('.badge-count')).toHaveLength(2);
   });
+
+  describe('valueAddedModuleIds filter', () => {
+    const dataWithVamModules = {
+      index: '9',
+      title: 'Todo lo que incluye tu proyecto',
+      intro: 'A continuación se detallan los requerimientos funcionales.',
+      groups: [
+        { id: 'views', title: 'Vistas', description: 'Pantallas', icon: '🖥️', items: [{ name: 'Home' }], is_visible: true },
+        { id: 'components', title: 'Componentes', description: 'Reusables', icon: '🧩', items: [{ name: 'Header' }], is_visible: true },
+        { id: 'features', title: 'Funcionalidades', description: 'Acciones', icon: '⚙️', items: [{ name: 'Search' }], is_visible: true },
+        { id: 'admin_module', title: 'Módulo Administrativo', description: 'Admin', icon: '🛠️', items: [{ name: 'Products' }], is_visible: true },
+        { id: 'analytics_dashboard', title: 'Analítica', description: 'Reportes', icon: '📊', items: [{ name: 'Visitas' }], is_visible: true },
+        { id: 'kpi_dashboard_module', title: 'KPIs', description: 'Métricas', icon: '📊', items: [{ name: 'KPI' }], is_visible: true },
+        { id: 'manual_module', title: 'Manual', description: 'Wiki', icon: '📘', items: [{ name: 'Index' }], is_visible: true },
+      ],
+      additionalModules: [],
+    };
+
+    it('hides groups whose id is in valueAddedModuleIds when the array is non-empty', () => {
+      const wrapper = mount(FunctionalRequirements, {
+        props: {
+          data: dataWithVamModules,
+          valueAddedModuleIds: ['admin_module', 'analytics_dashboard', 'kpi_dashboard_module', 'manual_module'],
+        },
+        global: { stubs: { FunctionalRequirementsModal: true } },
+      });
+      const titles = wrapper.findAll('.overview-card').map(c => c.text());
+      expect(titles).toHaveLength(3);
+      expect(titles.some(t => t.includes('Vistas'))).toBe(true);
+      expect(titles.some(t => t.includes('Componentes'))).toBe(true);
+      expect(titles.some(t => t.includes('Funcionalidades'))).toBe(true);
+      expect(wrapper.text()).not.toContain('Módulo Administrativo');
+      expect(wrapper.text()).not.toContain('Analítica');
+      expect(wrapper.text()).not.toContain('KPIs');
+      expect(wrapper.text()).not.toContain('Manual');
+    });
+
+    it('shows all base groups when valueAddedModuleIds is empty (VAM section disabled)', () => {
+      const wrapper = mount(FunctionalRequirements, {
+        props: {
+          data: dataWithVamModules,
+          valueAddedModuleIds: [],
+        },
+        global: { stubs: { FunctionalRequirementsModal: true } },
+      });
+      expect(wrapper.findAll('.overview-card')).toHaveLength(7);
+      expect(wrapper.text()).toContain('Módulo Administrativo');
+      expect(wrapper.text()).toContain('Manual');
+    });
+
+    it('shows all base groups when valueAddedModuleIds prop is not provided (back-compat)', () => {
+      const wrapper = mount(FunctionalRequirements, {
+        props: { data: dataWithVamModules },
+        global: { stubs: { FunctionalRequirementsModal: true } },
+      });
+      expect(wrapper.findAll('.overview-card')).toHaveLength(7);
+    });
+  });
 });

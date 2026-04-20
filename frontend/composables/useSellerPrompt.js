@@ -174,10 +174,12 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 
 **Regla:** este bloque NO debe contener precios numéricos ni listados de items (esos viven en \`functionalRequirements\`). Solo justificación corta por módulo.
 
+**Regla UI (anti-duplicidad):** los 4 módulos base (\`admin_module\`, \`analytics_dashboard\`, \`kpi_dashboard_module\`, \`manual_module\`) **se muestran como tarjetas clickeables solo en \`valueAddedModules\`**. El render público de \`functionalRequirements\` los oculta automáticamente cuando \`valueAddedModules\` está habilitado, para evitar duplicidad visual. Sus definiciones completas (\`icon\`, \`description\`, \`items\`) siguen viviendo en \`functionalRequirements.groups[]\` como catálogo de datos que alimenta el modal de detalle — **NO eliminarlas de allí ni duplicarlas en \`valueAddedModules\`**.
+
 #### \`functionalRequirements\`
 | Campo | Tipo | Restricción |
 |---|---|---|
-| \`groups\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN grupo base.** Los 7 grupos base (views, components, features, admin_module, analytics_dashboard, kpi_dashboard_module, manual_module) deben permanecer en \`groups[]\`. Solo modificar contenido interno (title, description, items). Se pueden AGREGAR grupos nuevos al final. **NO mover módulos de \`additionalModules\` a \`groups\`.** |
+| \`groups\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN grupo base.** Los 7 grupos base (views, components, features, admin_module, analytics_dashboard, kpi_dashboard_module, manual_module) deben permanecer en \`groups[]\`. Solo modificar contenido interno (title, description, items). Se pueden AGREGAR grupos nuevos al final. **NO mover módulos de \`additionalModules\` a \`groups\`.** **Nota:** los 4 últimos (\`admin_module\`, \`analytics_dashboard\`, \`kpi_dashboard_module\`, \`manual_module\`) son catálogo de datos para el modal de \`valueAddedModules\`; el UI los oculta automáticamente del render de \`functionalRequirements\` cuando \`valueAddedModules\` está activa. Deben quedarse aquí de todas formas. |
 | \`groups[].items\` | array de objetos | Cada item tiene \`icon\` (emoji), \`name\` y \`description\`. Se pueden agregar o modificar items dentro de un grupo, pero no eliminar el grupo completo. |
 | \`additionalModules\` | array de objetos | **REGLA CRÍTICA: NO eliminar NINGÚN módulo opcional.** Los 12 módulos con \`is_calculator_module: true\` deben permanecer en \`additionalModules[]\`. Solo modificar contenido interno (title, description, items, invite_note). **NO moverlos a \`groups[]\`.** |
 

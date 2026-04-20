@@ -4,14 +4,42 @@ jest.mock('../../composables/useSectionAnimations', () => ({
   useSectionAnimations: jest.fn(),
 }));
 
+jest.mock('../../stores/services/request_http', () => ({
+  create_request: jest.fn(() => Promise.resolve({ data: {} })),
+}));
+
 import ValueAddedModules from '../../components/BusinessProposal/ValueAddedModules.vue';
+import { create_request } from '../../stores/services/request_http';
 
 const FR_GROUPS = [
-  { id: 'admin_module', icon: '🛠️', title: 'Módulo Administrativo', description: 'Admin desc' },
-  { id: 'analytics_dashboard', icon: '📊', title: 'Módulo de Analítica', description: 'Analytics desc' },
-  { id: 'kpi_dashboard_module', icon: '📊', title: 'Dashboard de KPIs', description: 'KPI desc' },
-  { id: 'manual_module', icon: '📘', title: 'Manual de Usuario Interactivo', description: 'Manual desc' },
+  {
+    id: 'admin_module',
+    icon: '🛠️',
+    title: 'Módulo Administrativo',
+    description: 'Admin desc',
+    items: [
+      { icon: '📂', name: 'Gestor de Productos', description: 'CRUD productos' },
+      { icon: '🗂️', name: 'Gestor de Categorías', description: 'CRUD categorías' },
+    ],
+  },
+  {
+    id: 'analytics_dashboard',
+    icon: '📊',
+    title: 'Módulo de Analítica',
+    description: 'Analytics desc',
+    items: [
+      { icon: '🔥', name: 'Más visitados', description: 'Top páginas' },
+    ],
+  },
+  { id: 'kpi_dashboard_module', icon: '📊', title: 'Dashboard de KPIs', description: 'KPI desc', items: [] },
+  { id: 'manual_module', icon: '📘', title: 'Manual de Usuario Interactivo', description: 'Manual desc', items: [] },
 ];
+
+const ModalStub = {
+  name: 'FunctionalRequirementsModal',
+  props: ['visible', 'group'],
+  template: '<div data-testid="frm-stub" v-if="visible" :data-group-id="group?.id" :data-items-count="group?.items?.length ?? 0" />',
+};
 
 function mountSection(overrides = {}) {
   const section = {
@@ -38,7 +66,16 @@ function mountSection(overrides = {}) {
     ],
     ...overrides.proposal,
   };
-  return mount(ValueAddedModules, { props: { section, proposal } });
+  return mount(ValueAddedModules, {
+    props: {
+      section,
+      proposal,
+      ...(overrides.props || {}),
+    },
+    global: {
+      stubs: { FunctionalRequirementsModal: ModalStub },
+    },
+  });
 }
 
 describe('ValueAddedModules', () => {
@@ -114,5 +151,73 @@ describe('ValueAddedModules', () => {
     expect(wrapper.text()).toContain('No extra cost');
     expect(wrapper.text()).toContain('Free');
     expect(wrapper.text()).toContain('Included at no extra cost');
+  });
+
+  describe('card click → modal', () => {
+    function setSearch(search) {
+      // history.pushState is supported by jsdom and updates window.location.search
+      window.history.pushState({}, '', `/proposal/abc${search}`);
+    }
+    beforeEach(() => {
+      create_request.mockClear();
+      setSearch('');
+    });
+    afterAll(() => {
+      setSearch('');
+    });
+
+    it('opens the modal with the clicked group (including items from the FR catalog)', async () => {
+      const wrapper = mountSection();
+      // Modal starts hidden
+      expect(wrapper.find('[data-testid="frm-stub"]').exists()).toBe(false);
+
+      await wrapper.find('[data-testid="value-added-card-admin_module"]').trigger('click');
+
+      const modal = wrapper.find('[data-testid="frm-stub"]');
+      expect(modal.exists()).toBe(true);
+      expect(modal.attributes('data-group-id')).toBe('admin_module');
+      expect(modal.attributes('data-items-count')).toBe('2');
+    });
+
+    it('opens the modal with an empty items array when the catalog group has no items', async () => {
+      const wrapper = mountSection();
+      await wrapper.find('[data-testid="value-added-card-kpi_dashboard_module"]').trigger('click');
+
+      const modal = wrapper.find('[data-testid="frm-stub"]');
+      expect(modal.exists()).toBe(true);
+      expect(modal.attributes('data-group-id')).toBe('kpi_dashboard_module');
+      expect(modal.attributes('data-items-count')).toBe('0');
+    });
+
+    it('opens the modal via keyboard Enter', async () => {
+      const wrapper = mountSection();
+      await wrapper.find('[data-testid="value-added-card-admin_module"]').trigger('keydown.enter');
+      expect(wrapper.find('[data-testid="frm-stub"]').exists()).toBe(true);
+    });
+
+    it('fires tracking when proposalUuid is provided and URL is not preview', async () => {
+      const wrapper = mountSection({ props: { proposalUuid: 'abc-123' } });
+      await wrapper.find('[data-testid="value-added-card-admin_module"]').trigger('click');
+
+      expect(create_request).toHaveBeenCalledTimes(1);
+      expect(create_request).toHaveBeenCalledWith(
+        'proposals/abc-123/track-requirement-click/',
+        { group_id: 'admin_module', group_title: 'Módulo Administrativo' },
+      );
+    });
+
+    it('does not fire tracking when preview=1 is set on the URL', async () => {
+      setSearch('?preview=1');
+      const wrapper = mountSection({ props: { proposalUuid: 'abc-123' } });
+      await wrapper.find('[data-testid="value-added-card-admin_module"]').trigger('click');
+
+      expect(create_request).not.toHaveBeenCalled();
+    });
+
+    it('does not fire tracking when proposalUuid is empty', async () => {
+      const wrapper = mountSection(); // no proposalUuid prop
+      await wrapper.find('[data-testid="value-added-card-admin_module"]').trigger('click');
+      expect(create_request).not.toHaveBeenCalled();
+    });
   });
 });

@@ -63,7 +63,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
-import { create_request } from '~/stores/services/request_http';
+import { trackRequirementClick } from '~/utils/trackRequirementClick';
 import FunctionalRequirementsModal from './FunctionalRequirementsModal.vue';
 
 const sectionRef = ref(null);
@@ -100,6 +100,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  valueAddedModuleIds: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const i18n = {
@@ -114,7 +118,11 @@ const allGroups = computed(() => {
   const groups = data.groups || [];
   const additional = data.additionalModules || [];
   const all = [...groups, ...additional].filter(g => g && g.is_visible !== false && (g.title || g.items?.length));
+  // Modules already showcased in the value_added_modules section are hidden here
+  // to avoid visual duplication; their canonical data stays in groups[] as catalog.
+  const hidden = new Set(props.valueAddedModuleIds);
   return all.filter(g => {
+    if (hidden.has(g.id)) return false;
     // Calculator modules: hide entirely when deselected (existing behavior)
     if (g.is_calculator_module) {
       return props.selectedCalculatorModules.includes(`module-${g.id}`);
@@ -147,14 +155,7 @@ function formatPrice(value) {
 function openModal(group) {
   selectedGroup.value = group;
   modalVisible.value = true;
-  // Track requirement card click (fire-and-forget, skip admin previews)
-  const isPreview = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1';
-  if (props.proposalUuid && !isPreview) {
-    create_request(`proposals/${props.proposalUuid}/track-requirement-click/`, {
-      group_id: group.id,
-      group_title: group.title,
-    }).catch(() => { /* silent */ });
-  }
+  trackRequirementClick(props.proposalUuid, group);
 }
 </script>
 

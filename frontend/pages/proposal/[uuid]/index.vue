@@ -784,6 +784,7 @@ function getSectionProps(section) {
     return {
       section,
       proposal: proposal.value || { sections: enabledSections.value },
+      proposalUuid: proposal.value?.uuid || '',
     };
   }
 
@@ -823,6 +824,14 @@ function getSectionProps(section) {
     }
     // Unified selected IDs: combine calculator module selections + group selections
     const allSelectedIds = [...selectedCalculatorModuleIds.value];
+    // Hide groups already showcased in the value_added_modules section (when enabled)
+    // to avoid visual duplication. Their canonical data stays in FR.groups[] as catalog.
+    const vamSection = enabledSections.value.find(
+      (s) => s.section_type === 'value_added_modules' && s.is_enabled !== false,
+    );
+    const valueAddedModuleIds = Array.isArray(vamSection?.content_json?.module_ids)
+      ? vamSection.content_json.module_ids
+      : [];
     return {
       data: {
         ...content,
@@ -834,6 +843,7 @@ function getSectionProps(section) {
       calculatorModulePrices: groupPriceMap,
       currency: investContent.currency || proposal.value?.currency || 'COP',
       proposalUuid: proposal.value?.uuid || '',
+      valueAddedModuleIds,
     };
   }
 
