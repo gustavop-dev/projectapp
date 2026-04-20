@@ -123,7 +123,6 @@ import { usePageEntrance } from '~/composables/usePageEntrance'
 import { usePlatformNotificationsStore } from '~/stores/platform-notifications'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
-useHead({ title: 'Notificaciones — ProjectApp' })
 usePageEntrance('#platform-notifications')
 
 const notifStore = usePlatformNotificationsStore()

@@ -219,10 +219,6 @@ definePageMeta({
   platformRole: 'admin',
 })
 
-useHead({
-  title: 'Clientes del portal — ProjectApp',
-})
-
 usePageEntrance('#platform-clients')
 
 const platformClientsStore = usePlatformClientsStore()

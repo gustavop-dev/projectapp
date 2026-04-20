@@ -283,9 +283,6 @@ definePageMeta({
   middleware: ['platform-auth'],
 })
 
-useHead({
-  title: 'Proyectos — ProjectApp',
-})
 
 usePageEntrance('#platform-projects')
 

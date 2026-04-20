@@ -1,50 +1,50 @@
 <template>
   <section>
     <SectionHeader :index="content.index" :title="content.title" fallback="Radiografía" />
-    <p v-if="content.intro" class="text-gray-700 leading-relaxed">{{ content.intro }}</p>
+    <p v-if="content.intro" class="text-esmerald/80 leading-relaxed">{{ content.intro }}</p>
 
     <div v-if="content.includes?.length" class="mt-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ content.includesTitle || '¿Qué incluye esta radiografía?' }}</h3>
-      <ul class="space-y-2">
-        <li v-for="(i, idx) in content.includes" :key="idx" class="flex gap-2">
-          <span class="text-emerald-600">•</span>
+      <h3 class="text-lg font-semibold text-esmerald mb-3">{{ content.includesTitle || '¿Qué incluye esta radiografía?' }}</h3>
+      <ul class="space-y-2.5">
+        <li v-for="(i, idx) in content.includes" :key="idx" class="flex gap-3">
+          <span class="mt-1.5 flex-none w-1.5 h-1.5 rounded-full bg-esmerald" />
           <div>
-            <strong class="text-gray-800">{{ i.title }}:</strong>
-            <span class="text-gray-700">{{ ' ' + (i.description || '') }}</span>
+            <strong class="text-esmerald">{{ i.title }}:</strong>
+            <span class="text-esmerald/75">{{ ' ' + (i.description || '') }}</span>
           </div>
         </li>
       </ul>
     </div>
 
     <div v-if="content.classificationRows?.length" class="mt-8">
-      <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ content.classificationTitle || 'Clasificación por tamaño' }}</h3>
-      <p v-if="content.classificationIntro" class="text-gray-700 mb-3">{{ content.classificationIntro }}</p>
+      <h3 class="text-lg font-semibold text-esmerald mb-2">{{ content.classificationTitle || 'Clasificación por tamaño' }}</h3>
+      <p v-if="content.classificationIntro" class="text-esmerald/75 mb-3">{{ content.classificationIntro }}</p>
       <div class="overflow-x-auto">
-        <table class="min-w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
-          <thead class="bg-gray-50">
+        <table class="min-w-full text-sm border border-esmerald/10 rounded-xl overflow-hidden">
+          <thead class="bg-esmerald/5">
             <tr>
-              <th class="px-3 py-2 text-left font-semibold text-gray-700">Dimensión</th>
-              <th class="px-3 py-2 text-left font-semibold text-gray-700">Pequeña</th>
-              <th class="px-3 py-2 text-left font-semibold text-gray-700">Mediana</th>
-              <th class="px-3 py-2 text-left font-semibold text-gray-700">Grande</th>
+              <th class="px-3 py-2 text-left font-semibold text-esmerald">Dimensión</th>
+              <th class="px-3 py-2 text-left font-semibold text-esmerald">Pequeña</th>
+              <th class="px-3 py-2 text-left font-semibold text-esmerald">Mediana</th>
+              <th class="px-3 py-2 text-left font-semibold text-esmerald">Grande</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(row, idx) in content.classificationRows" :key="idx" class="border-t border-gray-200">
-              <td class="px-3 py-2 text-gray-800">{{ row.dimension }}</td>
-              <td class="px-3 py-2 text-gray-700">{{ row.small }}</td>
-              <td class="px-3 py-2 text-gray-700">{{ row.medium }}</td>
-              <td class="px-3 py-2 text-gray-700">{{ row.large }}</td>
+            <tr v-for="(row, idx) in content.classificationRows" :key="idx" class="border-t border-esmerald/10">
+              <td class="px-3 py-2 text-esmerald">{{ row.dimension }}</td>
+              <td class="px-3 py-2 text-esmerald/75">{{ row.small }}</td>
+              <td class="px-3 py-2 text-esmerald/75">{{ row.medium }}</td>
+              <td class="px-3 py-2 text-esmerald/75">{{ row.large }}</td>
             </tr>
           </tbody>
         </table>
       </div>
-      <p v-if="content.classificationNote" class="text-xs text-gray-500 mt-2 italic">{{ content.classificationNote }}</p>
+      <p v-if="content.classificationNote" class="text-xs text-esmerald/55 mt-2 italic">{{ content.classificationNote }}</p>
     </div>
 
-    <div v-if="renderContext && hasStack" class="mt-8 bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm">
-      <h3 class="text-sm font-semibold text-gray-800 mb-2">Stack detectado</h3>
-      <ul class="space-y-1 text-gray-700">
+    <div v-if="renderContext && hasStack" class="mt-8 bg-bone/50 border border-esmerald/10 rounded-xl p-4 text-sm">
+      <h3 class="text-sm font-semibold text-esmerald mb-2">Stack detectado</h3>
+      <ul class="space-y-1 text-esmerald/80">
         <li v-if="renderContext.stack_backend_name">
           <strong>Backend:</strong> {{ renderContext.stack_backend_name }}
           <span v-if="renderContext.stack_backend_version"> ({{ renderContext.stack_backend_version }})</span>

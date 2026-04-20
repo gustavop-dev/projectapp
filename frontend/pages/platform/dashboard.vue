@@ -321,9 +321,6 @@ definePageMeta({
   middleware: ['platform-auth'],
 })
 
-useHead({
-  title: 'Dashboard del portal — ProjectApp',
-})
 
 usePageEntrance('#platform-dashboard')
 

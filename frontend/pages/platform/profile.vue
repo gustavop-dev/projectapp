@@ -245,9 +245,6 @@ definePageMeta({
   middleware: ['platform-auth'],
 })
 
-useHead({
-  title: 'Configuracion — ProjectApp',
-})
 
 usePageEntrance('#platform-profile')
 

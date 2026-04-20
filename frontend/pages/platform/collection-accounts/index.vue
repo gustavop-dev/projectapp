@@ -139,8 +139,6 @@ definePageMeta({
   middleware: ['platform-auth'],
 })
 
-useHead({ title: 'Collection accounts — ProjectApp' })
-
 const authStore = usePlatformAuthStore()
 const store = usePlatformCollectionAccountsStore()
 

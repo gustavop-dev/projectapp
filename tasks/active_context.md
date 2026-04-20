@@ -8,6 +8,60 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ## Recent Focus Areas
 
+- **UX — Dynamic Browser Tab Titles & Task Board Order** (Apr 20, 2026):
+  - **`layouts/admin.vue`**: added `useHead(() => ({ title: ... }))` with a reactive inline route map (`_panelRouteMap`, `_panelDynamic`) covering all 24 static panel routes and 5 dynamic `[id]/edit` routes. Title format: `Project App (ViewName)` when on a named view, `Project App.` otherwise. Updates reactively on navigation.
+  - **`layouts/platform.vue`**: same pattern — `_platformRouteMap` (12 routes) + `_platformDynamic` (11 regex patterns for project sub-routes and collection account/client detail pages).
+  - **`pages/panel/tasks/index.vue`**: moved `macro` board to first position in the `boards` array — `Macro-Tareas` now renders before `Sin periodicidad`, `Semanal`, `Mensual`.
+
+- **View Catalog — Diagnósticos Públicos Section** (Apr 20, 2026):
+  - `frontend/config/viewCatalog.js`: added a new `'public-diagnostics'` section between `'public-proposals'` and `'admin-panel'` with one entry: `Diagnóstico público` (`/diagnostic/:uuid`, `audience: 'public'`, `viewType: 'detail'`). Catalog total: 71 → 72 views. The diagnostic public page (`pages/diagnostic/[uuid]/index.vue`) was the only functional non-redirect page missing from the catalog.
+
+- **MarkdownAttachmentModal — Diagnostic Template Copy Buttons** (Apr 20, 2026):
+  - New prop `showDiagnosticTemplates: Boolean` (default `false`) on `MarkdownAttachmentModal.vue`.
+  - When true, renders a "Plantillas base" row with 3 copy-to-clipboard buttons above the markdown textarea — order: Diagnóstico de Aplicación → Diagnóstico Técnico → Anexo. Fetches via existing `GET /api/diagnostic-templates/<slug>/` (lazy, per-slug cache in `reactive({})`).
+  - `copyFeedbackTimer` ref tracks the 2 s "¡Copiado!" `setTimeout`; cleared on `resetState` (modal close) and `onBeforeUnmount` — no leak.
+  - `DiagnosticEmailsTab.vue` passes `show-diagnostic-templates` to the modal. No backend changes.
+  - Tests: 3 new cases in `MarkdownAttachmentModal.test.js` (hidden by default, correct order, fetch+clipboard on click). Fixed `resetModules: true` incompatibility by wrapping the `get_request` mock through a stable `mockGetRequest` function-level variable.
+
+- **Diagnostic Public View — Brand Redesign, PDF Download & Share** (Apr 20, 2026):
+  - **`diagnostic/[uuid]/index.vue`**: outer `<div>` gains `data-diagnostic-wrapper` + `diagnostic-public` class; all `gray-*` tokens replaced with brand tokens (`esmerald/xx`, `lemon`); cards use `rounded-3xl` + custom shadow; footer buttons use `esmerald`/`esmerald-dark`; three new fixed FAB buttons added bottom-right: `<ShareDiagnosticButton>`, `<DownloadDiagnosticPdfButton>`, and a dark-mode theme toggle.
+  - **`DownloadDiagnosticPdfButton.vue`** (new): fixed FAB at `bottom-[4.75rem] right-4`; calls `GET /api/diagnostics/public/{uuid}/pdf/`; Blob download with slugified title + date suffix; spinner while generating.
+  - **`ShareDiagnosticButton.vue`** (new): fixed FAB at `bottom-[8.5rem] right-4`; opens a Teleport modal with copy-link (2.5 s feedback) + native Web Share API fallback; bilingual (es/en via inline `i18nStrings`); `<Transition name="share-modal">` slide-up animation.
+  - **`useDiagnosticDarkMode.js`** (new): module-level singleton `isDark` ref (not per-component); `watch` registered at module load to apply `data-theme="dark|light"` to `[data-diagnostic-wrapper]` and persist to `localStorage('diagnostic-dark-mode')`; `onMounted` rehydrates from storage.
+  - **Public section components** (`CategoriesSection`, `CostSection`, `DeliveryStructureSection`, `ExecutiveSummarySection`, `PurposeSection`, `RadiographySection`, `ScopeSection`, `SectionHeader`, `TimelineSection`): updated to use brand/esmerald tokens and dark-mode-aware classes.
+  - **Backend** (`diagnostic.py`): new `download_public_diagnostic_pdf` view — `GET /api/diagnostics/public/<uuid>/pdf/` — gated by `PUBLIC_VISIBLE_STATUSES`, uses new `DiagnosticPdfService.generate(diagnostic)`, returns `attachment` PDF with `safe_pdf_filename`. Route added in `content/urls.py`.
+  - **`DiagnosticPdfService`** (`backend/content/services/diagnostic_pdf_service.py`, new): mirrors `ProposalPdfService` — per-section-type renderers walk `content_json`, shared helpers from `pdf_utils.py`.
+  - New E2E spec registered in `flow-definitions.json` + `flow-tags.js`.
+  - New frontend tests: `TimelineSectionDiagnostic.test.js`, `DefaultsShell.test.js`.
+
+- **Value Added Modules — Order Fix & Hide-when-empty** (Apr 20, 2026):
+  - **Backend** (`proposal_service.py`): swapped `value_added_modules` to `order=10` (was 9) and `functional_requirements` to `order=9`. Migration `0103_swap_value_added_modules_order.py` created (pending commit/apply).
+  - **Frontend** (`proposal/[uuid]/index.vue`): `displayPanels` computed now hides `value_added_modules` when none of its `module_ids` resolve against the current `functional_requirements` groups — prevents the section from rendering an empty card.
+  - **`useSellerPrompt.js`**: narrative flow updated to include "Incluido sin costo (módulos base)" between functional_requirements and investment; `index` field for `value_added_modules` corrected to `"10"`.
+
+- **FIX — Admin-auth Middleware Hardening & Dark Mode** (Apr 20, 2026):
+  - **`admin-auth.js`**: middleware rewritten — simplified conditional logic, removed unused branches.
+  - **Blog calendar** (`panel/blog/calendar.vue`): dark mode token fix.
+  - **Tasks page** (`panel/tasks/index.vue`): dark mode token fix.
+  - **`proposals.js` store**: minor fix; 16 new assertions added to `proposals.test.js` for the affected code path.
+
+- **Diagnostic Detail — UI Parity & NDA Email Attachment** (Apr 20, 2026):
+  - **Sticky title format**: replaced `formatMoney(amount) + currency` with `formatInvestment(amount, currency)` → format `$1.234.567 COP` identical to business proposal sticky header. Guard condition changed from `v-if="investment_amount"` to `v-if="investment_amount > 0"`.
+  - **Removed size_category from General tab**: the `<select>` (Tamaño), its reactive `form.size_category` init, `syncFormGeneral` sync, and `handleUpdate` payload key all removed. The DB field and `DiagnosticRadiographyForm.vue` usage are untouched — only the general-tab editor dropped it.
+  - **Tab width standardization**: removed `max-w-4xl` wrapper from Sections, Activity, and Analytics tabs in `panel/diagnostics/[id]/edit.vue` so they expand to full page width, matching business proposal parity (General stays `max-w-2xl`, Emails/Documents/Prompt/JSON stay `max-w-4xl`).
+  - **NDA checkbox in Correos tab** (`DiagnosticEmailsTab.vue`): `attachConfidentiality = ref(false)` checkbox appends `attach_confidentiality: '1'` to the `FormData`; reset in `resetForm`. Backend `_parse_diagnostic_email` reads the flag, calls `generate_confidentiality_pdf(diagnostic)` (returns bytes or None), appends `(nda_filename, pdf_bytes, 'application/pdf')` to attachments, or returns 400 when generation fails (params missing). `nda_filename` via existing `_confidentiality_filename` helper.
+  - **Tests**: 2 new backend tests in `test_diagnostic_attachments_and_emails.py` (happy path with monkeypatched PDF bytes + 400 when generator returns None). Redundant double-patch simplified to single service-module patch.
+
+- **Admin Panel — Unified Defaults Page** (Apr 20, 2026):
+  - **Motivation**: The sidebar "Sales" section had a "Proposal defaults" link buried mid-list. The diagnostic defaults page (`/panel/diagnostics/defaults`) existed (backed by `DiagnosticDefaultConfig` from Apr 18) but had no sidebar entry — only a header button from the diagnostics list. The UX goal: one top-level "Defaults" entry that switches between proposal and diagnostic config modes.
+  - **Sidebar** (`frontend/config/panelNav.js`): item renamed `'Proposal defaults'` → `'Defaults'`, moved to position 0 of the `commercial` section, href changed from `/panel/proposals/defaults` → `/panel/defaults`.
+  - **New unified shell** (`frontend/pages/panel/defaults.vue`): header with dynamic "Volver a…" back link, segmented-control mode switch ("Propuesta" / "Diagnóstico") synced to `?mode=` query param (computed, no separate ref), lazy-loads each panel via `defineAsyncComponent`. Layout: `admin`, middleware: `admin-auth`.
+  - **Extracted panel components** (`frontend/components/panel/defaults/`): `ProposalDefaultsPanel.vue` (full 6-tab proposal defaults UX extracted from the old page — General, Secciones, Det. técnico, Emails, Prompt, JSON) and `DiagnosticDefaultsPanel.vue` (full 5-tab diagnostic defaults UX — General with 60/40 default payments, Secciones, Emails, Prompt, JSON). Both had `definePageMeta` and their top navigation header stripped; all tabs, state, and API logic are unchanged.
+  - **Backward-compatible redirects**: `frontend/pages/panel/proposals/defaults.vue` → `/panel/defaults?mode=proposal` (preserves `?tab=`); `frontend/pages/panel/diagnostics/defaults.vue` → `/panel/defaults?mode=diagnostic` (preserves `?tab=`). Existing E2E tests that navigate to old URLs continue to pass via redirect.
+  - **Internal links updated**: `panel/diagnostics/index.vue:21` (header button), `panel/proposals/index.vue`, `panel/index.vue` (dashboard shortcut), `panel/proposals/email-templates.vue` (redirect chain), `config/viewCatalog.js`.
+  - **No backend changes**: `DiagnosticDefaultConfig` (60/40 payment default), `proposals/defaults/`, and `diagnostics/defaults/` endpoints are unchanged.
+  - **Simplify pass**: `mode` ref + watcher replaced with a single `computed(() => route.query.mode === 'diagnostic' ? 'diagnostic' : 'proposal')` — router is the sole source of truth. Both panels wrapped in `defineAsyncComponent` for code-splitting (ProposalDefaultsPanel is ~1518 lines with large sub-component tree).
+
 - **Diagnostic Analytics — Full Parity with Proposal Analytics** (Apr 20, 2026):
   - **Motivation**: `DiagnosticAnalytics.vue` was a ~136 LOC stub showing only 4 KPIs, a basic section heatbar, and 3 lifecycle timestamps. The proposal analytics tab (`ProposalAnalytics.vue`, ~1000 LOC) delivers engagement score, funnel, comparison with global averages, device breakdown, sessions history, activity timeline, suggested actions, and CSV export. The goal was full parity minus features that don't apply to the diagnostic data model (`view_mode`, `ProposalShareLink`, `subsection_key`).
   - **Backend — `diagnostic_analytics` rewrite** (`backend/content/views/diagnostic.py`):
@@ -283,33 +337,33 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 
 ---
 
-## Verified Codebase Metrics (April 20, 2026 — refreshed post-Diagnostic-Analytics-Parity)
+## Verified Codebase Metrics (April 20, 2026 — refreshed post-Diagnostic-Public-Redesign)
 
 | Metric | Count |
 |--------|-------|
-| Backend test files | 128 (+test_diagnostic_analytics.py with 10 tests) |
-| Frontend unit tests | 80 (+3 new component test files created, not yet run) |
-| E2E spec files | 134 |
-| Vue components | 138 (DiagnosticAnalytics.vue rewritten, no new component) |
-| Pages | 69 |
-| Pinia stores | 24 |
-| Composables | 37 |
+| Backend test files | 157 |
+| Frontend unit test files | 202 (+DefaultsShell.test.js + TimelineSectionDiagnostic.test.js) |
+| E2E spec files | 155 (+admin-defaults-unified.spec.js) |
+| Vue components | 170 (+DownloadDiagnosticPdfButton + ShareDiagnosticButton, +ProposalDefaultsPanel + DiagnosticDefaultsPanel) |
+| Pages | 72 (+panel/defaults.vue) |
+| Pinia stores | 27 |
+| Composables | 41 (+useDiagnosticDarkMode.js) |
 | Content model files | 30 |
 | Accounts model classes | 21 |
 | Accounts URL patterns | 65 |
-| Content URL patterns | ~143 (+1 analytics/csv/ route) |
+| Content URL patterns | ~146 (+public diagnostic pdf + 0103 order swap) |
 | Email templates | 61 (32 HTML + 29 TXT across `accounts` + `content`) |
-| Content services | 19 |
+| Content services | 20 (+diagnostic_pdf_service.py) |
 | Accounts services | 11 |
-| Content migrations | 102 |
-| Quality gate score | 100/100 (0 errors, 2 warnings) |
+| Content migrations | 103 (0103 swap_value_added_modules_order pending apply) |
+| Quality gate score | 100/100 |
 
 ---
 
 ## Next Steps
 
-- **Run pending frontend unit tests** — `npm --prefix frontend install && npm --prefix frontend test -- test/components/ProposalDiagnosticTemplatesSection.test.js test/components/MarkdownAttachmentModal.test.js test/components/ValueAddedModules.test.js` — 3 component test files created in Apr 19 commits but not yet executed (node_modules absent locally).
-- **Apply pending migrations in production** — `python manage.py migrate` — required to activate the Kanban board (`0087_task.py`), the Web App Diagnostics module (`0090_web_app_diagnostic.py`), the new Diagnostic Defaults table (`0101_diagnostic_default_config.py`), and the Value Added Modules section type (`0102_value_added_modules_section.py`).
+- **Run pending frontend unit tests** — `npm --prefix frontend test -- test/components/ProposalDiagnosticTemplatesSection.test.js test/components/ValueAddedModules.test.js` — `MarkdownAttachmentModal.test.js` is now verified (12/14 pass; 2 pre-existing failures at HEAD). `ProposalDiagnosticTemplatesSection.test.js` and `ValueAddedModules.test.js` still untested locally.
+- **Apply pending migrations in production** — `python manage.py migrate` — required to activate the Kanban board (`0087_task.py`), the Web App Diagnostics module (`0090_web_app_diagnostic.py`), the new Diagnostic Defaults table (`0101_diagnostic_default_config.py`), the Value Added Modules section type (`0102_value_added_modules_section.py`), and the order swap (`0103_swap_value_added_modules_order.py`).
 - **Set `NOTIFICATION_EMAIL` in production env** to `team@projectapp.co,carlos18bp@gmail.com` so the new stage warning + overdue alerts reach the right inbox.
 - Consider extending `ProposalStageTracker.STAGE_DEFINITIONS` beyond design + development (e.g., QA, Lanzamiento, Entrega Final) — the model + service already support N stages, only the catalog constant needs an update.
 - Complete Document System PDF generation (branch `generate-pdf-with-template`): template rendering, preview, download flow — **folders & tags layer is now in place**

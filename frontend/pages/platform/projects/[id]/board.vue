@@ -484,7 +484,6 @@ definePageMeta({
   middleware: ['platform-auth'],
 })
 
-useHead({ title: 'Tablero — ProjectApp' })
 usePageEntrance('#platform-board')
 
 const route = useRoute()

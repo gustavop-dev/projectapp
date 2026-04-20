@@ -7,6 +7,7 @@ Admin endpoints use Django session auth + IsAdminUser. The 3 public endpoints
 import logging
 
 from django.db.models import Avg, Count, Min, Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status as http_status
@@ -16,6 +17,8 @@ from rest_framework.response import Response
 
 from accounts.models import UserProfile
 from accounts.services.proposal_client_service import update_client_profile
+from content.services.diagnostic_pdf_service import DiagnosticPdfService
+from content.services.pdf_utils import safe_pdf_filename
 from content.models import (
     DiagnosticAttachment,
     DiagnosticChangeLog,
@@ -849,6 +852,39 @@ def track_diagnostic_section_view(request, diagnostic_uuid):
     return Response({'ok': True})
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def download_public_diagnostic_pdf(request, diagnostic_uuid):
+    """Stream a PDF of the diagnostic's enabled sections."""
+    diagnostic = get_object_or_404(
+        WebAppDiagnostic.objects.select_related('client__user'),
+        uuid=diagnostic_uuid,
+    )
+    if diagnostic.status not in diagnostic_service.PUBLIC_VISIBLE_STATUSES:
+        return Response(
+            {'error': 'not_available'},
+            status=http_status.HTTP_404_NOT_FOUND,
+        )
+
+    pdf_bytes = DiagnosticPdfService.generate(diagnostic)
+    if not pdf_bytes:
+        return Response(
+            {'error': 'pdf_generation_failed'},
+            status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    created = diagnostic.created_at or timezone.now()
+    filename = safe_pdf_filename(
+        'Diagnostico',
+        diagnostic.client_name or diagnostic.title or 'diagnostico',
+        created.strftime('%d-%m-%y'),
+    )
+
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def respond_public_diagnostic(request, diagnostic_uuid):
@@ -1292,6 +1328,22 @@ def _parse_diagnostic_email(request, diagnostic):
             )
         mime_type = mimetypes.guess_type(f.name)[0] or 'application/octet-stream'
         attachments.append((f.name, f.read(), mime_type))
+
+    attach_confidentiality = str(
+        request.data.get('attach_confidentiality', '')
+    ).strip().lower() in ('1', 'true', 'yes', 'on')
+    if attach_confidentiality:
+        from content.services.confidentiality_pdf_service import generate_confidentiality_pdf
+
+        pdf_bytes = generate_confidentiality_pdf(diagnostic)
+        if not pdf_bytes:
+            return None, Response(
+                {'error': 'No se pudo generar el acuerdo de confidencialidad. '
+                          'Completa los parámetros en la pestaña Documentos.'},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+        nda_filename = _confidentiality_filename(diagnostic, 'Acuerdo_Confidencialidad')
+        attachments.append((nda_filename, pdf_bytes, 'application/pdf'))
 
     return {
         'recipient_email': recipient_email,

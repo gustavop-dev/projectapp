@@ -167,6 +167,50 @@ async function handleLogout() {
   authStore.logout()
   await navigateTo(localePath('/platform/login'))
 }
+
+const _platformRouteMap = [
+  { path: localePath('/platform/collection-accounts'), label: 'Cuentas cobro' },
+  { path: localePath('/platform/complete-profile'), label: 'Completar perfil' },
+  { path: localePath('/platform/notifications'), label: 'Notificaciones' },
+  { path: localePath('/platform/deliverables'), label: 'Entregables' },
+  { path: localePath('/platform/dashboard'), label: 'Dashboard' },
+  { path: localePath('/platform/payments'), label: 'Pagos' },
+  { path: localePath('/platform/projects'), label: 'Proyectos' },
+  { path: localePath('/platform/clients'), label: 'Clientes' },
+  { path: localePath('/platform/changes'), label: 'Cambios' },
+  { path: localePath('/platform/profile'), label: 'Perfil' },
+  { path: localePath('/platform/board'), label: 'Tablero' },
+  { path: localePath('/platform/bugs'), label: 'Bugs' },
+]
+
+const _platformDynamic = [
+  { re: /\/platform\/projects\/[^/]+\/collection-accounts/, label: 'Cuentas cobro' },
+  { re: /\/platform\/projects\/[^/]+\/data-model/, label: 'Modelo datos' },
+  { re: /\/platform\/projects\/[^/]+\/deliverables\/[^/]+/, label: 'Entregable' },
+  { re: /\/platform\/projects\/[^/]+\/deliverables/, label: 'Entregables' },
+  { re: /\/platform\/projects\/[^/]+\/payments/, label: 'Pagos' },
+  { re: /\/platform\/projects\/[^/]+\/changes/, label: 'Cambios' },
+  { re: /\/platform\/projects\/[^/]+\/board/, label: 'Tablero' },
+  { re: /\/platform\/projects\/[^/]+\/bugs/, label: 'Bugs' },
+  { re: /\/platform\/projects\/[^/]+/, label: 'Proyecto' },
+  { re: /\/platform\/collection-accounts\/[^/]+/, label: 'Cuenta cobro' },
+  { re: /\/platform\/clients\/[^/]+/, label: 'Cliente' },
+]
+
+const _platformViewLabel = computed(() => {
+  const p = route.path
+  for (const { re, label } of _platformDynamic) {
+    if (re.test(p)) return label
+  }
+  for (const { path, label, exact } of _platformRouteMap) {
+    if (exact ? p === path : p === path || p.startsWith(path + '/')) return label
+  }
+  return null
+})
+
+useHead(() => ({
+  title: _platformViewLabel.value ? `Project App (${_platformViewLabel.value})` : 'Project App.',
+}))
 </script>
 
 <style scoped>

@@ -169,6 +169,43 @@ test.describe('Admin Diagnostic — Correos tab', () => {
 
     await expect(() => expect(sendCalled).toBe(true)).toPass({ timeout: 5000 });
   });
+
+  test('NDA checkbox is visible in the email composer', {
+    tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, baseHandler(buildDiagnostic({ status: 'sent' })));
+    await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
+
+    await page.getByRole('button', { name: 'Correos' }).click();
+
+    await expect(
+      page.getByLabel(/Adjuntar acuerdo de confidencialidad/i),
+    ).toBeVisible({ timeout: 10000 });
+  });
+
+  test('checking NDA checkbox includes attach_confidentiality in the POST body', {
+    tag: [...ADMIN_DIAGNOSTIC_EMAIL, '@role:admin'],
+  }, async ({ page }) => {
+    let capturedBody = '';
+    await mockApi(page, async ({ apiPath, method, route }) => {
+      const base = await baseHandler(buildDiagnostic({ status: 'sent' }))({ apiPath, method });
+      if (base) return base;
+      if (apiPath === `diagnostics/${DIAG_ID}/email/send/` && method === 'POST') {
+        capturedBody = route.request().postData() || '';
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ message: 'sent' }) };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
+    await page.getByRole('button', { name: 'Correos' }).click();
+
+    await page.locator('textarea').first().fill('Contenido del correo de seguimiento.');
+    await page.getByLabel(/Adjuntar acuerdo de confidencialidad/i).check();
+    await page.getByRole('button', { name: /Enviar correo/i }).click();
+
+    await expect(() => expect(capturedBody).toContain('attach_confidentiality')).toPass({ timeout: 5000 });
+  });
 });
 
 // ── Documents tab ─────────────────────────────────────────────────────────────

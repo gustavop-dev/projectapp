@@ -112,7 +112,6 @@ definePageMeta({
   middleware: ['platform-auth'],
 })
 
-useHead({ title: 'Solicitudes de cambio — ProjectApp' })
 usePageEntrance('#platform-unified-changes')
 
 const authStore = usePlatformAuthStore()

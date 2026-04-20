@@ -143,6 +143,21 @@ export const viewCatalogSections = [
     ],
   },
   {
+    id: 'public-diagnostics',
+    label: 'Diagnósticos públicos',
+    description: 'Vistas que ve el cliente al abrir un diagnóstico compartido.',
+    views: [
+      {
+        label: 'Diagnóstico público',
+        url: '/diagnostic/:uuid',
+        file: 'frontend/pages/diagnostic/[uuid]/index.vue',
+        reference: 'vista publica de diagnostico',
+        audience: 'public',
+        viewType: 'detail',
+      },
+    ],
+  },
+  {
     id: 'admin-panel',
     label: 'Panel administrativo',
     description: 'Vistas internas del panel para gestionar propuestas, contenido, documentos y usuarios admin.',
@@ -197,10 +212,10 @@ export const viewCatalogSections = [
         viewType: 'edit',
       },
       {
-        label: 'Valores por defecto de propuestas',
-        url: '/panel/proposals/defaults',
-        file: 'frontend/pages/panel/proposals/defaults.vue',
-        reference: 'vista de valores por defecto de propuestas',
+        label: 'Valores por defecto (propuestas y diagnósticos)',
+        url: '/panel/defaults',
+        file: 'frontend/pages/panel/defaults.vue',
+        reference: 'vista unificada de valores por defecto con switch propuesta/diagnóstico',
         audience: 'admin',
         viewType: 'config',
       },

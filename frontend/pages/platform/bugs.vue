@@ -107,7 +107,6 @@ const localePath = useLocalePath()
 import { usePlatformBugReportsStore } from '~/stores/platform-bug-reports'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
-useHead({ title: 'Reporte de bugs — ProjectApp' })
 usePageEntrance('#platform-unified-bugs')
 
 const authStore = usePlatformAuthStore()

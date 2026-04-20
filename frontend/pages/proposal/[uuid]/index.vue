@@ -503,12 +503,25 @@ const displayPanels = computed(() => {
   const panels = [];
   const isExecutive = viewMode.value === 'executive';
 
+  const frSection = enabledSections.value.find((s) => s.section_type === 'functional_requirements');
+  const frGroupIds = new Set(
+    (frSection?.content_json?.groups || [])
+      .map((g) => g && g.id)
+      .filter(Boolean),
+  );
+
   for (const section of enabledSections.value) {
     // Skip next_steps — its content is merged into final_note
     if (section.section_type === 'next_steps') continue;
     if (section.section_type === 'technical_document') continue;
     // In executive mode, skip sections not in the executive set
     if (isExecutive && !EXECUTIVE_SECTION_TYPES.has(section.section_type)) continue;
+    // Hide value_added_modules when no ids resolve against FR groups
+    if (section.section_type === 'value_added_modules') {
+      const ids = section.content_json?.module_ids || [];
+      const resolvable = ids.some((id) => frGroupIds.has(id));
+      if (!resolvable) continue;
+    }
     panels.push(section);
   }
 

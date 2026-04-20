@@ -160,4 +160,49 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
 
     await expect(page.getByRole('heading', { name: /Adjuntar documento PDF/i })).not.toBeVisible();
   });
+
+  test('modal shows 3 Plantillas base copy buttons in the correct order', {
+    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, baseHandler(buildDiagnostic({ status: 'negotiating' })));
+    await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
+
+    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('button', { name: /Crear documento desde markdown/i }).click();
+
+    await expect(page.getByRole('heading', { name: /Adjuntar documento PDF/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Plantillas base')).toBeVisible();
+
+    await expect(page.getByRole('button', { name: /Copiar Diagnóstico de Aplicación/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Copiar Diagnóstico Técnico/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Copiar Anexo/i })).toBeVisible();
+  });
+
+  test('clicking a Plantillas base button shows Copiado feedback after fetch', {
+    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      const base = await baseHandler(buildDiagnostic({ status: 'negotiating' }))({ apiPath, method });
+      if (base) return base;
+      if (apiPath === 'diagnostic-templates/diagnostico-aplicacion/' && method === 'GET') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ slug: 'diagnostico-aplicacion', content_markdown: '# Diagnóstico de Aplicación\n\nPlantilla base.' }),
+        };
+      }
+      return null;
+    });
+
+    await page.context().grantPermissions(['clipboard-write', 'clipboard-read']);
+    await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
+    await page.getByRole('button', { name: 'Correos' }).click();
+    await page.getByRole('button', { name: /Crear documento desde markdown/i }).click();
+
+    await expect(page.getByRole('heading', { name: /Adjuntar documento PDF/i })).toBeVisible({ timeout: 10000 });
+
+    await page.getByRole('button', { name: /Copiar Diagnóstico de Aplicación/i }).click();
+
+    await expect(page.getByText('¡Copiado!')).toBeVisible({ timeout: 5000 });
+  });
 });

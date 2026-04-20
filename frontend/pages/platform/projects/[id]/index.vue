@@ -293,9 +293,6 @@ const editForm = reactive({
 
 const project = computed(() => projectsStore.currentProject)
 
-useHead({
-  title: computed(() => project.value ? `${project.value.name} — ProjectApp` : 'Proyecto — ProjectApp'),
-})
 
 const daysRemaining = computed(() => {
   if (!project.value?.estimated_end_date) return null

@@ -189,10 +189,6 @@ definePageMeta({
   platformRole: 'admin',
 })
 
-useHead({
-  title: 'Detalle de cliente — ProjectApp',
-})
-
 usePageEntrance('#platform-client-detail')
 
 const route = useRoute()

@@ -187,10 +187,10 @@ const activeBoardForCreate = ref('standard');
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
 const boards = [
+  { key: 'macro',    label: 'Macro-Tareas' },
   { key: 'standard', label: 'Sin periodicidad' },
   { key: 'weekly',   label: 'Semanal' },
   { key: 'monthly',  label: 'Mensual' },
-  { key: 'macro',    label: 'Macro-Tareas' },
 ];
 
 const columns = [

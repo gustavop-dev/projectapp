@@ -347,7 +347,6 @@ import { usePlatformDeliverablesStore } from '~/stores/platform-deliverables'
 import { usePlatformProjectsStore } from '~/stores/platform-projects'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
-useHead({ title: 'Entregables — ProjectApp' })
 usePageEntrance('#platform-deliverables')
 
 const route = useRoute()

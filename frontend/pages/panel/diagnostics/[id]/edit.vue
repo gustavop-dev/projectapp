@@ -50,10 +50,10 @@
             {{ store.current.title }}
           </h1>
           <span
-            v-if="store.current.investment_amount"
+            v-if="store.current.investment_amount > 0"
             class="text-sm sm:text-base font-light text-gray-400 dark:text-green-light/60 whitespace-nowrap"
           >
-            ({{ formatMoney(store.current.investment_amount) }} {{ store.current.currency }})
+            ({{ formatInvestment(store.current.investment_amount, store.current.currency) }})
           </span>
           <DiagnosticStatusBadge :status="store.current.status" />
         </div>
@@ -246,17 +246,6 @@
               <input v-model="form.duration_label" type="text" placeholder="Ej: 1 semana"
                 class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Tamaño</label>
-              <select v-model="form.size_category"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
-                <option value="">— Sin definir —</option>
-                <option value="small">Pequeña</option>
-                <option value="medium">Mediana</option>
-                <option value="large">Grande</option>
-              </select>
-            </div>
           </div>
 
           <!-- Sticky action bar -->
@@ -307,7 +296,7 @@
       </div>
 
       <!-- Secciones (JSON-driven content) -->
-      <section v-if="activeTab === 'sections'" class="max-w-4xl">
+      <section v-if="activeTab === 'sections'">
         <div v-if="orderedSections.length" class="mb-4 bg-white dark:bg-esmerald rounded-xl shadow-sm border border-gray-100 dark:border-white/[0.06] px-5 py-4">
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Completitud de secciones</span>
@@ -500,7 +489,7 @@
       </section>
 
       <!-- Actividad -->
-      <div v-if="activeTab === 'activity'" class="max-w-4xl">
+      <div v-if="activeTab === 'activity'">
         <DiagnosticActivityTab
           :diagnostic="store.current"
           @log="onLogActivity"
@@ -508,7 +497,7 @@
       </div>
 
       <!-- Analytics -->
-      <div v-if="activeTab === 'analytics'" class="max-w-4xl">
+      <div v-if="activeTab === 'analytics'">
         <DiagnosticAnalytics
           :diagnostic-id="id"
           :loader="() => store.fetchAnalytics(id)"
@@ -557,6 +546,11 @@ function formatMoney(amount) {
   const n = Number(amount);
   if (Number.isNaN(n)) return amount;
   return moneyFormatter.format(n);
+}
+function formatInvestment(value, currency = 'COP') {
+  if (!value) return '';
+  const num = Number(value);
+  return '$' + num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' ' + currency;
 }
 function formatDate(iso) {
   if (!iso) return '';
@@ -649,7 +643,6 @@ const form = reactive({
   payment_initial_pct: 40,
   payment_final_pct: 60,
   duration_label: '',
-  size_category: '',
 });
 
 const showActionsModal = ref(false);
@@ -682,7 +675,6 @@ function syncFormGeneral() {
   form.payment_initial_pct = pt.initial_pct ?? 40;
   form.payment_final_pct = pt.final_pct ?? 60;
   form.duration_label = c.duration_label || '';
-  form.size_category = c.size_category || '';
 }
 
 async function handleUpdate() {
@@ -696,7 +688,6 @@ async function handleUpdate() {
       final_pct: Number(form.payment_final_pct) || 0,
     },
     duration_label: form.duration_label,
-    size_category: form.size_category,
     client_name: form.client_name,
     client_email: form.client_email,
     client_phone: form.client_phone,

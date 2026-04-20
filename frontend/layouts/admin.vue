@@ -98,4 +98,52 @@ provide('togglePanelSidebar', togglePanelSidebar)
 watch(() => route.fullPath, () => {
   closeMobile()
 })
+
+const _panelRouteMap = [
+  { path: localePath('/panel/proposals/email-deliverability'), label: 'Entregabilidad' },
+  { path: localePath('/panel/proposals/email-templates'), label: 'Plantillas' },
+  { path: localePath('/panel/proposals/create'), label: 'Nueva prop.' },
+  { path: localePath('/panel/proposals/defaults'), label: 'Prop. defaults' },
+  { path: localePath('/panel/diagnostics/create'), label: 'Nuevo diag.' },
+  { path: localePath('/panel/diagnostics/defaults'), label: 'Diag. defaults' },
+  { path: localePath('/panel/blog/calendar'), label: 'Calendario' },
+  { path: localePath('/panel/blog/create'), label: 'Nuevo post' },
+  { path: localePath('/panel/portfolio/create'), label: 'Nuevo item' },
+  { path: localePath('/panel/documents/create'), label: 'Nuevo doc.' },
+  { path: localePath('/panel/proposals'), label: 'Propuestas' },
+  { path: localePath('/panel/diagnostics'), label: 'Diagnósticos' },
+  { path: localePath('/panel/blog'), label: 'Blog' },
+  { path: localePath('/panel/portfolio'), label: 'Portfolio' },
+  { path: localePath('/panel/documents'), label: 'Documentos' },
+  { path: localePath('/panel/clients'), label: 'Clientes' },
+  { path: localePath('/panel/defaults'), label: 'Defaults' },
+  { path: localePath('/panel/emails'), label: 'Emails' },
+  { path: localePath('/panel/views'), label: 'Mapa' },
+  { path: localePath('/panel/admins'), label: 'Admins' },
+  { path: localePath('/panel/tasks'), label: 'Kanban' },
+  { path: localePath('/panel'), label: 'Dashboard', exact: true },
+]
+
+const _panelDynamic = [
+  { re: /\/panel\/proposals\/[^/]+\/edit/, label: 'Edit. propuesta' },
+  { re: /\/panel\/diagnostics\/[^/]+\/edit/, label: 'Edit. diagnóstico' },
+  { re: /\/panel\/blog\/[^/]+\/edit/, label: 'Edit. post' },
+  { re: /\/panel\/portfolio\/[^/]+\/edit/, label: 'Edit. portfolio' },
+  { re: /\/panel\/documents\/[^/]+\/edit/, label: 'Edit. documento' },
+]
+
+const _panelViewLabel = computed(() => {
+  const p = route.path
+  for (const { re, label } of _panelDynamic) {
+    if (re.test(p)) return label
+  }
+  for (const { path, label, exact } of _panelRouteMap) {
+    if (exact ? p === path : p === path || p.startsWith(path + '/')) return label
+  }
+  return null
+})
+
+useHead(() => ({
+  title: _panelViewLabel.value ? `Project App (${_panelViewLabel.value})` : 'Project App.',
+}))
 </script>

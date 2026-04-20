@@ -5,7 +5,7 @@ const localePath = useLocalePath();
 const router = useRouter();
 
 onMounted(() => {
-  router.replace(localePath('/panel/proposals/defaults') + '?tab=emails');
+  router.replace(localePath('/panel/defaults') + '?mode=proposal&tab=emails');
 });
 </script>
 

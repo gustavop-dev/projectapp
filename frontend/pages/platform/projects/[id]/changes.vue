@@ -421,7 +421,6 @@ definePageMeta({
   middleware: ['platform-auth'],
 })
 
-useHead({ title: 'Solicitudes de cambio — ProjectApp' })
 usePageEntrance('#platform-changes')
 
 const route = useRoute()

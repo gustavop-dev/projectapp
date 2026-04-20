@@ -114,6 +114,17 @@
           </div>
         </div>
 
+        <div class="flex items-start gap-2">
+          <input id="attach-nda" v-model="attachConfidentiality" type="checkbox"
+            class="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+          <label for="attach-nda" class="text-xs text-gray-600 dark:text-white/70 leading-relaxed">
+            Adjuntar acuerdo de confidencialidad
+            <span class="block text-[11px] text-gray-400 dark:text-white/40">
+              Se generará y anexará al correo como PDF.
+            </span>
+          </label>
+        </div>
+
         <div class="flex items-center justify-between pt-2">
           <p v-if="sendError" class="text-xs text-red-500">{{ sendError }}</p>
           <p v-else-if="sendSuccess" class="text-xs text-emerald-600">Correo enviado correctamente.</p>
@@ -266,6 +277,7 @@
     <MarkdownAttachmentModal
       :open="showMarkdownModal"
       :endpoint="`diagnostics/${diagnostic.id}/email/markdown-attachment/`"
+      show-diagnostic-templates
       @close="showMarkdownModal = false"
       @attach="handleMarkdownAttach"
     />
@@ -301,6 +313,7 @@ const greeting = ref(defaultGreeting.value);
 const sections = ref([{ id: nextSectionId(), text: '' }]);
 const footer = ref(defaultFooter.value);
 const attachments = ref([]);
+const attachConfidentiality = ref(false);
 const fileInput = ref(null);
 const sending = ref(false);
 const sendSuccess = ref(false);
@@ -363,6 +376,9 @@ async function handleSend() {
   for (const file of attachments.value) {
     formData.append('attachments', file);
   }
+  if (attachConfidentiality.value) {
+    formData.append('attach_confidentiality', '1');
+  }
 
   const result = await store.sendCustomEmail(props.diagnostic.id, formData);
   sending.value = false;
@@ -386,6 +402,7 @@ function resetForm() {
   footer.value = defaultFooter.value;
   sections.value = [{ id: nextSectionId(), text: '' }];
   attachments.value = [];
+  attachConfidentiality.value = false;
   if (fileInput.value) fileInput.value.value = '';
 }
 

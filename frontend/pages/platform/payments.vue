@@ -101,7 +101,6 @@ const localePath = useLocalePath()
 import { usePlatformPaymentsStore } from '~/stores/platform-payments'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
-useHead({ title: 'Pagos — ProjectApp' })
 usePageEntrance('#platform-payments')
 
 const authStore = usePlatformAuthStore()

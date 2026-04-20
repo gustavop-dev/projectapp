@@ -78,6 +78,29 @@ describe('ValueAddedModules', () => {
     expect(wrapper.text()).toContain('Gratis');
   });
 
+  it('does not render the section when module_ids is empty', () => {
+    const wrapper = mountSection({
+      contentJson: { module_ids: [], justifications: {} },
+    });
+    expect(wrapper.find('section').exists()).toBe(false);
+  });
+
+  it('does not render the section when no module_ids resolve in functional_requirements', () => {
+    const wrapper = mountSection({
+      contentJson: {
+        module_ids: ['foo', 'bar'],
+        justifications: { foo: 'x', bar: 'y' },
+      },
+      proposal: {
+        language: 'es',
+        sections: [
+          { section_type: 'functional_requirements', content_json: { groups: [] } },
+        ],
+      },
+    });
+    expect(wrapper.find('section').exists()).toBe(false);
+  });
+
   it('renders English i18n labels when proposal.language is "en"', () => {
     const wrapper = mountSection({
       contentJson: { title: '' },

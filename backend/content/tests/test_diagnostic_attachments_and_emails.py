@@ -135,6 +135,59 @@ def test_send_custom_email_logs_with_diagnostic_uuid(
     assert len(mail.outbox) == 1
 
 
+def test_send_custom_email_attaches_confidentiality_pdf(
+    admin_client, diagnostic, settings, monkeypatch,
+):
+    settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+
+    from content.services import confidentiality_pdf_service
+    monkeypatch.setattr(
+        confidentiality_pdf_service, 'generate_confidentiality_pdf',
+        lambda d, draft=False: b'%PDF-1.4 nda',
+    )
+
+    resp = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/email/send/',
+        {
+            'recipient_email': 'diag@example.com',
+            'subject': 'Seguimiento',
+            'greeting': 'Hola Ana',
+            'sections': json.dumps(['Primer bloque.']),
+            'footer': '',
+            'attach_confidentiality': '1',
+        },
+        format='multipart',
+    )
+    assert resp.status_code == 200
+    assert len(mail.outbox) == 1
+    attachment_names = [a[0] for a in mail.outbox[0].attachments]
+    assert any('Acuerdo_Confidencialidad' in name for name in attachment_names)
+
+
+def test_send_custom_email_attach_confidentiality_fails_without_params(
+    admin_client, diagnostic, monkeypatch,
+):
+    from content.services import confidentiality_pdf_service
+    monkeypatch.setattr(
+        confidentiality_pdf_service, 'generate_confidentiality_pdf',
+        lambda d, draft=False: None,
+    )
+    resp = admin_client.post(
+        f'/api/diagnostics/{diagnostic.id}/email/send/',
+        {
+            'recipient_email': 'diag@example.com',
+            'subject': 'Seguimiento',
+            'greeting': 'Hola',
+            'sections': json.dumps(['Bloque.']),
+            'footer': '',
+            'attach_confidentiality': '1',
+        },
+        format='multipart',
+    )
+    assert resp.status_code == 400
+    assert 'confidencialidad' in resp.data['error'].lower()
+
+
 def test_send_custom_email_rejects_empty_sections(admin_client, diagnostic):
     resp = admin_client.post(
         f'/api/diagnostics/{diagnostic.id}/email/send/',

@@ -387,6 +387,23 @@ def test_update_section_logs_section_updated_change(admin_client, diagnostic):
     assert log.field_name == 'scope'
 
 
+def test_public_pdf_blocked_on_draft(api_client, diagnostic):
+    response = api_client.get(f'/api/diagnostics/public/{diagnostic.uuid}/pdf/')
+    assert response.status_code == 404
+
+
+def test_public_pdf_returns_pdf_when_sent(api_client, diagnostic):
+    diagnostic_service.transition_status(diagnostic, WebAppDiagnostic.Status.SENT)
+    response = api_client.get(f'/api/diagnostics/public/{diagnostic.uuid}/pdf/')
+    assert response.status_code == 200
+    assert response['Content-Type'] == 'application/pdf'
+    assert 'attachment' in response['Content-Disposition']
+    assert 'Diagnostico_' in response['Content-Disposition']
+    body = response.content
+    assert body.startswith(b'%PDF')
+    assert len(body) > 500
+
+
 def test_send_initial_response_exposes_email_ok(admin_client, diagnostic):
     response = admin_client.post(
         f'/api/diagnostics/{diagnostic.id}/send-initial/', {}, format='json',

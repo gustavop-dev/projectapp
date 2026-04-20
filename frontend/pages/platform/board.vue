@@ -104,7 +104,6 @@ definePageMeta({
   middleware: ['platform-auth'],
 })
 
-useHead({ title: 'Tablero general — ProjectApp' })
 usePageEntrance('#platform-unified-board')
 
 const authStore = usePlatformAuthStore()

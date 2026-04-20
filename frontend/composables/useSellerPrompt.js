@@ -63,9 +63,10 @@ Resumen ejecutivo (la promesa)
     → Contexto y diagnóstico (el problema + urgencia)
         → Estrategia de conversión (la solución)
             → Requerimientos funcionales (lo tangible que se entrega)
-                → Inversión (el precio, ya anclado en valor)
-                    → Cronograma (certidumbre de ejecución)
-                        → Nota final (visión de futuro + llamado a la acción)
+                → Incluido sin costo (módulos base que refuerzan valor percibido)
+                    → Inversión (el precio, ya anclado en valor)
+                        → Cronograma (certidumbre de ejecución)
+                            → Nota final (visión de futuro + llamado a la acción)
 \`\`\`
 
 ### 6. Escribe como si hablaras con el dueño del negocio
@@ -164,7 +165,7 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 
 | Campo | Tipo | Restricción |
 |---|---|---|
-| \`index\` | string | Numérico, ≤3 chars. Suele ser \`"9"\` (orden actual). |
+| \`index\` | string | Numérico, ≤3 chars. Valor por defecto: \`"10"\` (va **después** de \`functionalRequirements\`, cuyo \`index\` es \`"9"\`). |
 | \`title\` | string | ≤80 chars. Mensaje corto (ej. "Lo que sumamos a tu proyecto sin costo extra"). |
 | \`intro\` | string | ≤300 chars. 1 párrafo que explique por qué se incluyen sin costo. |
 | \`module_ids\` | array<string> | **Exactamente los 4 ids:** \`["admin_module","analytics_dashboard","kpi_dashboard_module","manual_module"]\`. NO eliminar ninguno. |

@@ -103,6 +103,7 @@ from content.views.diagnostic import (
     list_diagnostic_emails, generate_diagnostic_email_markdown_attachment,
     retrieve_public_diagnostic, track_public_diagnostic,
     track_diagnostic_section_view, respond_public_diagnostic,
+    download_public_diagnostic_pdf,
     diagnostic_defaults, reset_diagnostic_defaults,
 )
 
@@ -283,6 +284,7 @@ urlpatterns = [
     path('diagnostics/public/<uuid:diagnostic_uuid>/track/', track_public_diagnostic, name='track-public-diagnostic'),
     path('diagnostics/public/<uuid:diagnostic_uuid>/track-section/', track_diagnostic_section_view, name='track-diagnostic-section-view'),
     path('diagnostics/public/<uuid:diagnostic_uuid>/respond/', respond_public_diagnostic, name='respond-public-diagnostic'),
+    path('diagnostics/public/<uuid:diagnostic_uuid>/pdf/', download_public_diagnostic_pdf, name='download-public-diagnostic-pdf'),
 
     # Admin CRUD
     path('diagnostics/', list_diagnostics, name='list-diagnostics'),

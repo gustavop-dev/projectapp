@@ -31,6 +31,25 @@
                 class="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/[0.08] dark:bg-white/[0.03] dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" />
             </div>
 
+            <div v-if="showDiagnosticTemplates">
+              <label class="block text-xs font-medium text-gray-700 dark:text-green-light mb-1">Plantillas base</label>
+              <div class="flex flex-wrap gap-2">
+                <button v-for="t in DIAGNOSTIC_TEMPLATES" :key="t.slug" type="button"
+                  :disabled="templateBusy[t.slug]"
+                  @click="copyTemplate(t.slug)"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-[11px] font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/30 disabled:opacity-50 transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  {{ templateCopied[t.slug] ? '¡Copiado!' : `Copiar ${t.label}` }}
+                </button>
+              </div>
+              <p class="text-[11px] text-gray-400 dark:text-green-light/40 mt-1">
+                Copia la plantilla, edítala y pégala en el contenido.
+              </p>
+            </div>
+
             <div>
               <label class="block text-xs font-medium text-gray-700 dark:text-green-light mb-1">Contenido (markdown)</label>
               <textarea v-model="markdown" rows="14"
@@ -107,14 +126,26 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import axios from 'axios';
-import { getCookie } from '~/stores/services/request_http';
+import { get_request, getCookie } from '~/stores/services/request_http';
 
 const props = defineProps({
   open: { type: Boolean, default: false },
   endpoint: { type: String, required: true },
+  showDiagnosticTemplates: { type: Boolean, default: false },
 });
+
+const DIAGNOSTIC_TEMPLATES = [
+  { slug: 'diagnostico-aplicacion', label: 'Diagnóstico de Aplicación' },
+  { slug: 'diagnostico-tecnico', label: 'Diagnóstico Técnico' },
+  { slug: 'anexo', label: 'Anexo' },
+];
+
+const templateCache = reactive({});
+const templateBusy = reactive({});
+const templateCopied = reactive({});
+let copyFeedbackTimer = null;
 
 const emit = defineEmits(['close', 'attach']);
 
@@ -215,6 +246,24 @@ async function attachToEmail() {
   }
 }
 
+async function copyTemplate(slug) {
+  templateBusy[slug] = true;
+  try {
+    if (!templateCache[slug]) {
+      const res = await get_request(`diagnostic-templates/${slug}/`);
+      templateCache[slug] = res.data?.content_markdown || '';
+    }
+    await navigator.clipboard.writeText(templateCache[slug]);
+    templateCopied[slug] = true;
+    clearTimeout(copyFeedbackTimer);
+    copyFeedbackTimer = setTimeout(() => { templateCopied[slug] = false; }, 2000);
+  } catch (e) {
+    error.value = 'No se pudo copiar la plantilla.';
+  } finally {
+    templateBusy[slug] = false;
+  }
+}
+
 function onClose() {
   emit('close');
 }
@@ -228,11 +277,17 @@ function resetState() {
   revokePreview();
   previewSnapshot.value = null;
   error.value = '';
+  clearTimeout(copyFeedbackTimer);
+  for (const k of Object.keys(templateCopied)) templateCopied[k] = false;
+  for (const k of Object.keys(templateBusy)) templateBusy[k] = false;
 }
 
 watch(() => props.open, (isOpen) => {
   if (!isOpen) resetState();
 });
 
-onBeforeUnmount(revokePreview);
+onBeforeUnmount(() => {
+  revokePreview();
+  clearTimeout(copyFeedbackTimer);
+});
 </script>

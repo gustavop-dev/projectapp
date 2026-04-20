@@ -1,6 +1,6 @@
 # User Flow Map
 
-> **Version:** 2.28.0
+> **Version:** 2.29.0
 > **Last updated:** 2026-04-20
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
@@ -901,10 +901,10 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P2
-- **Routes:** `/panel/proposals/defaults`
+- **Routes:** `/panel/defaults?mode=proposal` (old `/panel/proposals/defaults` redirects here)
 - **Description:** Admin manages the default section configurations used when creating new proposals. Supports both ES and EN languages. Changes are saved to a DB-backed config and applied to all future proposals. Includes reset-to-hardcoded functionality.
 - **Steps:**
-  1. Admin navigates to `/panel/proposals/defaults` via the "Valores por Defecto" button on the proposals list page.
+  1. Admin navigates to `/panel/defaults?mode=proposal` via the "Defaults" sidebar item or the "Valores por Defecto" button on the proposals list page.
   2. Default sections load from API (`GET /api/proposals/defaults/?lang=es`).
   3. Language selector allows switching between Español and English.
   4. Section accordion list renders with all default sections (same structure as proposal edit).
@@ -1918,7 +1918,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Error] If client has no email, send button is disabled.
   - [Rate limit] Backend enforces 1 send/minute; 429 surfaces as an error message.
-- **Coverage:** ✅ Covered
+  - [NDA attachment] Admin checks "Adjuntar acuerdo de confidencialidad" → `attach_confidentiality: '1'` appended to FormData → backend generates confidentiality PDF and attaches it to the email; if PDF generation fails (missing diagnostic params), backend returns 400 and frontend shows `sendError`.
+- **Coverage:** ✅ Covered (including NDA checkbox branch, Apr 20 2026)
 - **E2E Spec:** `e2e/admin/admin-diagnostic-email-documents.spec.js`
 
 ---
@@ -1987,19 +1988,21 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   2. Admin clicks the "Correos" tab.
   3. "Crear documento desde markdown" button is visible.
   4. Admin clicks the button → `MarkdownAttachmentModal` opens.
-  5. Admin fills in the **Título** (text input) and **Contenido en Markdown** (textarea).
-  6. Admin optionally unchecks one or more cover toggles (Portada / Subportada / Contraportada).
-  7. Admin clicks "Vista previa" → `POST /api/diagnostics/:id/email/markdown-attachment/` fires (FormData with title, markdown, cover booleans).
-  8. Backend generates PDF via `DocumentPdfService.generate_from_markdown()` and returns it inline (`Content-Disposition: inline`).
-  9. Axios fetches the response as a Blob → `URL.createObjectURL` → `<iframe>` renders the preview.
-  10. Admin clicks "Adjuntar" → Blob is converted to a `File` object, emitted via `@attach` → appended to the email composer's attachment list.
-  11. Success toast "Adjunto «title.pdf» agregado al correo." appears.
-  12. Modal closes automatically.
+  5. [Optional] Admin clicks one of the three **Plantillas base** buttons (Diagnóstico de Aplicación / Diagnóstico Técnico / Anexo) → `GET /api/diagnostic-templates/:slug/` fetches the template markdown and writes it to the clipboard; button shows "¡Copiado!" for 2 s. Subsequent clicks reuse an in-memory cache.
+  6. Admin fills in the **Título** (text input) and **Contenido en Markdown** (textarea).
+  7. Admin optionally unchecks one or more cover toggles (Portada / Subportada / Contraportada).
+  8. Admin clicks "Vista previa" → `POST /api/diagnostics/:id/email/markdown-attachment/` fires (FormData with title, markdown, cover booleans).
+  9. Backend generates PDF via `DocumentPdfService.generate_from_markdown()` and returns it inline (`Content-Disposition: inline`).
+  10. Axios fetches the response as a Blob → `URL.createObjectURL` → `<iframe>` renders the preview.
+  11. Admin clicks "Adjuntar" → Blob is converted to a `File` object, emitted via `@attach` → appended to the email composer's attachment list.
+  12. Success toast "Adjunto «title.pdf» agregado al correo." appears.
+  13. Modal closes automatically.
 - **Branches:**
   - [Button absent] When `diagnostic.status !== 'negotiating'`, the button is not rendered.
   - [Preview disabled] "Vista previa" button stays disabled until both title and markdown are non-empty.
   - [Cache reuse] If admin generates a preview, changes nothing, and clicks "Adjuntar", a second POST is skipped — the previously fetched Blob is reused (tracked via `previewSnapshot` vs `currentSnapshot` comparison).
-- **API:** `POST /api/diagnostics/:id/email/markdown-attachment/`
+  - [Template fetch error] If `GET /api/diagnostic-templates/:slug/` fails, `error.value` shows "No se pudo copiar la plantilla." and the button re-enables.
+- **API:** `POST /api/diagnostics/:id/email/markdown-attachment/`, `GET /api/diagnostic-templates/:slug/`
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-diagnostic-markdown-attachment.spec.js`
 - **Unit Tests:** `frontend/test/components/MarkdownAttachmentModal.test.js`
@@ -3597,10 +3600,10 @@ No active browser flow is registered for client profile editing at this time.
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P2
-- **Routes:** `/panel/tareas`
+- **Routes:** `/panel/tasks` (alias `/panel/tareas` redirects here)
 - **Description:** Internal Kanban task board for the admin team. Admin creates, edits, moves, and deletes tasks across four columns (Todo, In Progress, Blocked, Done). Tasks have priority labels (low/medium/high), optional assignee, and optional due date shown in red when overdue.
 - **Steps:**
-  1. Admin navigates to `/panel/tareas` from the "Tareas → Kanban" sidebar entry.
+  1. Admin navigates to `/panel/tasks` from the "Tareas → Kanban" sidebar entry.
   2. Board renders four columns loaded from `GET /api/content/tasks/`.
   3. Admin clicks "+ Nueva Tarea" → `TaskFormModal` opens.
   4. Admin fills title, priority, optional assignee, due date → submits → task appears in the "Todo" column.
@@ -3951,6 +3954,7 @@ No active browser flow is registered for client profile editing at this time.
 | `diagnostic-public-respond` | diagnostic | guest | P1 | ✅ Covered | `e2e/public/diagnostic-public-view.spec.js` (`clicking 'Aceptar propuesta'…`) |
 | `admin-proposal-diagnostic-templates` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-diagnostic-templates.spec.js` |
 | `admin-diagnostic-markdown-attachment` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-markdown-attachment.spec.js` |
+| `admin-defaults-unified` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-defaults-unified.spec.js` |
 
 ---
 
@@ -3966,12 +3970,12 @@ No active browser flow is registered for client profile editing at this time.
 | **Priority** | P2 |
 | **Status** | ✅ Covered |
 
-**Routes:** `/panel/diagnostics/defaults`.
+**Routes:** `/panel/defaults?mode=diagnostic` (old `/panel/diagnostics/defaults` redirects here).
 
 **Description:** Admin manages the per-language defaults applied to every new `WebAppDiagnostic` from `panel/diagnostics/defaults.vue`. The page mirrors `/panel/proposals/defaults/` but is scoped to diagnostics. Five tabs render from one config payload: **General** (idioma, moneda, inversión, duración, % pagos con auto-sync 100, días de recordatorio/urgencia/expiración), **Secciones** (lista read-only de las 8 secciones del seed activo), **Plantillas de Email** (link a `/panel/email-templates`), **Prompt** (placeholder), **JSON** (vista cruda). Cuando no existe una `DiagnosticDefaultConfig` para el idioma, `GET /api/diagnostics/defaults/?lang=` devuelve los valores hardcoded del seed con 60% inicial / 40% final como pagos por defecto.
 
 **Steps:**
-1. Admin abre `/panel/diagnostics/defaults` desde el botón "Valores por Defecto" del header de `/panel/diagnostics`.
+1. Admin abre `/panel/defaults?mode=diagnostic` desde el botón "Valores por Defecto" del header de `/panel/diagnostics` (o el ítem "Defaults" del sidebar con el switch en modo Diagnóstico).
 2. La página llama `GET /api/diagnostics/defaults/?lang=es` y popula `generalForm` + `sectionsList` + `rawConfig` vía `applyConfig(data)`.
 3. El tab General muestra los inputs precargados (60/40, COP, 21/7/14 días).
 4. Admin edita el % inicial — `syncPaymentFinal()` mueve el % final automáticamente para mantener suma=100.
@@ -3990,7 +3994,42 @@ No active browser flow is registered for client profile editing at this time.
 **Frontend Tests:** `frontend/test/stores/diagnostics.test.js` (`fetchDiagnosticDefaults`/`saveDiagnosticDefaults`/`resetDiagnosticDefaults` — 6 cases).
 **E2E Spec:** `e2e/admin/admin-diagnostic-defaults.spec.js`.
 
-### 17.6 Diagnostic Lifecycle Transitions Split (Apr 18, 2026)
+### 17.6 Unified Defaults Shell (Apr 20, 2026)
+
+#### FLOW: `admin-defaults-unified`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-defaults-unified` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ✅ Covered |
+
+**Routes:** `/panel/defaults` (with `?mode=proposal` or `?mode=diagnostic`).
+
+**Description:** Admin accesses a unified shell page that replaces the two separate defaults pages. A segmented mode switch toggles between the **Propuesta** panel and the **Diagnóstico** panel. The active mode is persisted via query param so reloads and direct links preserve it. The back link adapts to the active mode. Old routes `/panel/proposals/defaults` and `/panel/diagnostics/defaults` redirect here preserving existing `?tab=` params.
+
+**Steps:**
+1. Admin clicks **"Defaults"** in the Sales section of the sidebar → navigates to `/panel/defaults` (defaults to proposal mode).
+2. The mode switch shows **Propuesta** as active (highlighted with `bg-emerald-600`).
+3. `ProposalDefaultsPanel` lazy-loads and fetches `GET /api/proposals/defaults/?lang=es`.
+4. Admin clicks **"Diagnóstico"** in the mode switch → URL updates to `?mode=diagnostic`, tab param is cleared.
+5. `DiagnosticDefaultsPanel` lazy-loads and fetches `GET /api/diagnostics/defaults/?lang=es`.
+6. Back link shows "Volver a Diagnósticos" linking to `/panel/diagnostics`.
+
+**Branches:**
+- [Branch A — Direct diagnostic link] Navigating to `/panel/defaults?mode=diagnostic` starts in diagnostic mode.
+- [Branch B — Old URL redirect] `/panel/proposals/defaults?tab=sections` redirects to `/panel/defaults?mode=proposal&tab=sections`.
+- [Branch C — Old URL redirect] `/panel/diagnostics/defaults` redirects to `/panel/defaults?mode=diagnostic`.
+- [Branch D — Unknown mode] Unknown `?mode=` value falls back to proposal mode.
+
+**Unit Tests:** `frontend/test/components/DefaultsShell.test.js` (9 cases — mode computed, setMode, backLink).
+**E2E Spec:** `e2e/admin/admin-defaults-unified.spec.js`.
+
+---
+
+### 17.7 Diagnostic Lifecycle Transitions Split (Apr 18, 2026)
 
 Two transitions that were previously bundled into other flows now have their own IDs so the registry honestly reflects three distinct admin/client interactions:
 
@@ -4190,3 +4229,194 @@ Two transitions that were previously bundled into other flows now have their own
 **Flow tag:** `ADMIN_CLIENT_EDIT`
 
 ---
+
+## Section 19 — Diagnostic Public Client Affordances (Apr 20, 2026)
+
+> Flows added alongside the diagnostic public UI polish: PDF download endpoint, share modal, and dark mode toggle. These three affordances mirror the equivalent proposal client flows (`proposal-download-pdf`, `proposal-share`) and align the diagnostic public view with the proposal client experience.
+
+### 19.1 New Flows Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `diagnostic-public-pdf-download` | diagnostic | guest | P2 | ✅ Covered | `e2e/public/diagnostic-public-affordances.spec.js` |
+| `diagnostic-public-share`        | diagnostic | guest | P2 | ✅ Covered | `e2e/public/diagnostic-public-affordances.spec.js` |
+| `diagnostic-public-dark-mode`    | diagnostic | guest | P3 | ✅ Covered | `e2e/public/diagnostic-public-affordances.spec.js` |
+
+---
+
+### 19.2 Diagnostic Public PDF Download
+
+#### FLOW: `diagnostic-public-pdf-download`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `diagnostic-public-pdf-download` |
+| **Module** | diagnostic |
+| **Role** | guest |
+| **Priority** | P2 |
+| **Status** | ✅ Covered — `e2e/public/diagnostic-public-affordances.spec.js` |
+
+**Routes:** `/diagnostic/:uuid/`
+**Endpoint:** `GET /api/diagnostics/public/:uuid/pdf/` (AllowAny, returns `application/pdf` when status is SENT/ACCEPTED/NEGOTIATING; 404 on DRAFT).
+
+**Description:** The floating `DownloadDiagnosticPdfButton` (`data-testid="download-diagnostic-pdf-btn"`) appears once `store.current` is loaded. Clicking it calls the public PDF endpoint via `fetch()`, creates a blob URL, and triggers a browser download named `Diagnostico_<client>_<DD-MM-YY>.pdf`. The button disables and shows a spinner while the request is in flight and re-enables on completion. PDF is generated by `DiagnosticPdfService` (ReportLab), which renders all enabled sections in order using `pdf_utils` helpers.
+
+**Steps:**
+1. Client opens a SENT public diagnostic.
+2. Client clicks the floating PDF button.
+3. `GET /api/diagnostics/public/<uuid>/pdf/` fires.
+4. On 200: blob is downloaded; button re-enables.
+5. On error: console error logged; button re-enables.
+
+**Flow tag:** `DIAGNOSTIC_PUBLIC_PDF_DOWNLOAD`
+
+---
+
+### 19.3 Diagnostic Public Share
+
+#### FLOW: `diagnostic-public-share`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `diagnostic-public-share` |
+| **Module** | diagnostic |
+| **Role** | guest |
+| **Priority** | P2 |
+| **Status** | ✅ Covered — `e2e/public/diagnostic-public-affordances.spec.js` |
+
+**Routes:** `/diagnostic/:uuid/`
+
+**Description:** The floating `ShareDiagnosticButton` (`data-testid="share-diagnostic-btn"`) opens a bottom-sheet modal (Teleport to body) with the current URL and a **Copiar enlace** action using `navigator.clipboard`. If `navigator.share` is available (mobile / Chromium with flag), a **Compartir vía apps** button also appears. No backend tracking is performed (silent). Modal closes on backdrop click or the close button.
+
+**Steps:**
+1. Client opens the public diagnostic page.
+2. Client clicks the share button.
+3. Modal renders with "Compartir diagnóstico" heading and "Copiar enlace" button.
+4. Client clicks "Copiar enlace" → clipboard receives the URL; button changes to "¡Copiado!" for 2.5 s.
+5. [Branch — native share] If `navigator.share` available, client clicks "Compartir vía apps" → OS share sheet opens.
+
+**Flow tag:** `DIAGNOSTIC_PUBLIC_SHARE`
+
+---
+
+### 19.4 Diagnostic Public Dark Mode Toggle
+
+#### FLOW: `diagnostic-public-dark-mode`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `diagnostic-public-dark-mode` |
+| **Module** | diagnostic |
+| **Role** | guest |
+| **Priority** | P3 |
+| **Status** | ✅ Covered — `e2e/public/diagnostic-public-affordances.spec.js` |
+
+**Routes:** `/diagnostic/:uuid/`
+
+**Description:** A fixed bottom-left toggle button (`data-testid="diagnostic-theme-toggle"`) switches between light and dark mode by setting `data-theme` on `[data-diagnostic-wrapper]`. State is persisted to `localStorage['diagnostic-dark-mode']` via `useDiagnosticDarkMode` composable and restored on the next page load. Dark mode applies brand-aligned colors (`#0a1f1c` background, `#143d35` cards, `#E6EFEF` text) via scoped CSS `[data-theme="dark"] :deep(...)` rules.
+
+**Steps:**
+1. Client opens the public diagnostic page (light mode by default).
+2. Client clicks the toggle (`🌙` icon).
+3. `[data-diagnostic-wrapper]` receives `data-theme="dark"`; page styles update.
+4. `localStorage['diagnostic-dark-mode']` is set to `"true"`.
+5. Client reloads the page → composable reads localStorage on `onMounted`; dark mode is restored.
+6. Client clicks the toggle again (`☀️` icon) → reverts to light mode.
+
+**Flow tag:** `DIAGNOSTIC_PUBLIC_DARK_MODE`
+
+---
+
+## Section 20 — Flows Audit Gaps (Apr 20, 2026)
+
+> Flows identified by the `/e2e-user-flows-check` audit as missing from the registry. All three carry `expectedSpecs: 0` and ❌ coverage — they are registered for traceability and to prioritize future E2E work.
+
+---
+
+### 20.1 Admin Proposal → Platform Handoff
+
+#### FLOW: `admin-proposal-platform-handoff`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-proposal-platform-handoff` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P1 |
+| **Status** | ❌ Missing — no E2E spec |
+
+**Routes:** `/panel/proposals/:id/edit` (actions panel after acceptance)
+
+**Description:** After a proposal is accepted by the client, admin clicks **"Lanzar a plataforma"** — `POST /api/proposals/:id/launch-to-platform/` — which creates a `PlatformProject` linked to the proposal and sends the client an invitation email containing an OTP. Admin sees a **"Ver en plataforma"** action in the proposal actions panel; client then starts the platform onboarding flow (`platform-login` → `platform-verify-onboarding` → `platform-complete-profile`).
+
+**Steps:**
+1. Admin navigates to a proposal in `accepted` status.
+2. Actions panel shows "Lanzar a plataforma" button.
+3. Admin clicks the button → `POST /api/proposals/:id/launch-to-platform/` fires.
+4. Backend creates a `PlatformProject` (linked to proposal), sends invitation email with OTP.
+5. Admin sees "Ver en plataforma" link in actions panel.
+6. Client receives email, clicks link, enters OTP → platform onboarding starts.
+
+**Known gaps:** This cross-module flow (proposal → platform) has no E2E coverage. The backend endpoint (`launch-to-platform`) exists and is tested in Python. An E2E spec would mock both the proposal detail and the `launch-to-platform` POST and verify the UI transition.
+
+**Flow tag:** `ADMIN_PROPOSAL_PLATFORM_HANDOFF`
+
+---
+
+### 20.2 Diagnostic Public Phase Visibility
+
+#### FLOW: `diagnostic-public-phase-visibility`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `diagnostic-public-phase-visibility` |
+| **Module** | diagnostic |
+| **Role** | guest |
+| **Priority** | P2 |
+| **Status** | ❌ Missing — no dedicated E2E spec |
+
+**Routes:** `/diagnostic/:uuid/`
+
+**Description:** The public diagnostic page renders different sections depending on the diagnostic phase. After admin sends **initial phase** (`initial_sent_at` set, status=SENT), the API returns only sections with `visibility ∈ {initial, both}` and sections with `visibility='final'` are absent. After admin sends **final phase** (`final_sent_at` set), sections with `visibility='final'` (e.g. `executive_summary`, `cost`, `timeline`) are also returned.
+
+**Steps:**
+1. [Initial phase] Admin sends initial → client opens diagnostic link.
+2. API returns only `initial`/`both` sections; `final`-only sections are not in the response.
+3. Sidebar index and scroll containers show only the filtered sections.
+4. [Final phase] Admin sends final → `final_sent_at` is stamped.
+5. Client reloads → API now includes `final`-visibility sections.
+6. Sidebar index updates; accept/reject footer appears.
+
+**Known gaps:** `diagnostic-public-view` E2E covers section rendering for a single state but does not explicitly verify which section types appear or disappear when switching between initial and final phases.
+
+**Flow tag:** `DIAGNOSTIC_PUBLIC_PHASE_VISIBILITY`
+
+---
+
+### 20.3 Admin Proposal Section Disable/Enable Toggle
+
+#### FLOW: `admin-proposal-section-disable`
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `admin-proposal-section-disable` |
+| **Module** | admin |
+| **Role** | admin |
+| **Priority** | P2 |
+| **Status** | ❌ Missing — no E2E spec |
+
+**Routes:** `/panel/proposals/:id/edit` (Secciones tab)
+
+**Description:** Admin toggles section visibility (`is_enabled`) from the Secciones tab of the proposal edit page. Each section row has an enable/disable toggle; disabled sections are greyed out in the admin list and excluded from the public proposal view. Complements `admin-proposal-section-reorder` — both operations may be combined.
+
+**Steps:**
+1. Admin opens the Secciones tab of a proposal edit page.
+2. Each section row shows an enable/disable toggle.
+3. Admin clicks the toggle on a section → `PATCH /api/proposals/sections/:id/update/` with `{ is_enabled: false }`.
+4. Section row is greyed out in the admin list.
+5. Admin visits the public proposal link → the disabled section is not visible.
+6. Admin re-enables the section → `PATCH` with `{ is_enabled: true }` → section reappears on public view.
+
+**Known gaps:** `admin-proposal-section-reorder` covers drag reorder only. No E2E explicitly asserts that toggling `is_enabled` removes a section from the public proposal view.
+
+**Flow tag:** `ADMIN_PROPOSAL_SECTION_DISABLE`

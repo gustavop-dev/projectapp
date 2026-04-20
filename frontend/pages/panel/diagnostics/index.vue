@@ -18,7 +18,7 @@
       </div>
       <div class="flex items-center gap-3">
         <NuxtLink
-          :to="localePath('/panel/diagnostics/defaults')"
+          :to="localePath('/panel/defaults?mode=diagnostic')"
           class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-gray-600 border border-gray-200 rounded-xl
                  font-medium text-sm hover:bg-gray-50 hover:border-gray-300 transition-colors
                  dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:border-gray-500"

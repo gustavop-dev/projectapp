@@ -359,7 +359,6 @@ import { usePlatformProjectsStore } from '~/stores/platform-projects'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
 useHead({
-  title: 'Pagos — ProjectApp',
   script: [{ src: 'https://checkout.wompi.co/widget.js', async: true }],
 })
 usePageEntrance('#platform-project-payments')

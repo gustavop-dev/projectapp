@@ -1,25 +1,25 @@
 <template>
   <section>
     <SectionHeader :index="content.index" :title="content.title" fallback="Resumen Ejecutivo" />
-    <p v-if="content.intro" class="text-gray-700 mb-6">{{ content.intro }}</p>
+    <p v-if="content.intro" class="text-esmerald/80 mb-6">{{ content.intro }}</p>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
       <div
         v-for="(count, key) in counts"
         :key="key"
-        class="bg-white border border-gray-200 rounded-2xl p-4 text-center"
+        class="bg-white border border-esmerald/10 rounded-2xl p-4 text-center shadow-sm"
       >
         <div
           class="text-3xl font-semibold"
           :class="levelColor(key)"
         >{{ count }}</div>
-        <div class="text-xs font-medium text-gray-500 uppercase mt-1">{{ labelFor(key) }}</div>
+        <div class="text-xs font-medium text-esmerald/55 uppercase mt-1 tracking-wide">{{ labelFor(key) }}</div>
       </div>
     </div>
 
-    <p v-if="content.narrative" class="text-gray-700 leading-relaxed whitespace-pre-line">{{ content.narrative }}</p>
+    <p v-if="content.narrative" class="text-esmerald/80 leading-relaxed whitespace-pre-line">{{ content.narrative }}</p>
 
-    <ul v-if="content.highlights?.length" class="mt-4 list-disc pl-5 space-y-1 text-gray-700">
+    <ul v-if="content.highlights?.length" class="mt-4 list-disc pl-5 space-y-1 text-esmerald/80">
       <li v-for="(h, idx) in content.highlights" :key="idx">{{ h }}</li>
     </ul>
   </section>
@@ -46,7 +46,7 @@ function levelColor(key) {
     critico: 'text-rose-600',
     alto: 'text-amber-600',
     medio: 'text-yellow-600',
-    bajo: 'text-emerald-600',
-  }[key] || 'text-gray-600';
+    bajo: 'text-esmerald',
+  }[key] || 'text-esmerald/60';
 }
 </script>

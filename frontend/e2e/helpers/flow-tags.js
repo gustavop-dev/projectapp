@@ -270,3 +270,20 @@ export const PROPOSAL_VALUE_ADDED_MODULES = ['@flow:proposal-value-added-modules
 // ── Diagnostic — Advanced Filters + Client Edit (Apr 20, 2026) ──
 export const ADMIN_DIAGNOSTIC_ADVANCED_FILTERS = ['@flow:admin-diagnostic-advanced-filters', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_EDIT                 = ['@flow:admin-client-edit', '@module:admin', '@priority:P2'];
+
+// ── Unified Defaults Shell (Apr 20, 2026) ──
+export const ADMIN_DEFAULTS_UNIFIED = ['@flow:admin-defaults-unified', '@module:admin', '@priority:P2'];
+
+// ── Diagnostic Public — Client Affordances (Apr 20, 2026) ──
+export const DIAGNOSTIC_PUBLIC_PDF_DOWNLOAD = ['@flow:diagnostic-public-pdf-download', '@module:diagnostic', '@priority:P2'];
+export const DIAGNOSTIC_PUBLIC_SHARE        = ['@flow:diagnostic-public-share',        '@module:diagnostic', '@priority:P2'];
+export const DIAGNOSTIC_PUBLIC_DARK_MODE    = ['@flow:diagnostic-public-dark-mode',    '@module:diagnostic', '@priority:P3'];
+
+// ── Layout — Dynamic tab title mapping (Apr 20, 2026) ──
+export const ADMIN_LAYOUT_TITLE_MAPPING    = ['@flow:admin-layout-title-mapping',    '@module:admin',    '@priority:P3'];
+export const PLATFORM_LAYOUT_TITLE_MAPPING = ['@flow:platform-layout-title-mapping', '@module:platform', '@priority:P3'];
+
+// ── Flows Audit — Missing gaps registered (Apr 20, 2026) ──
+export const ADMIN_PROPOSAL_PLATFORM_HANDOFF      = ['@flow:admin-proposal-platform-handoff',      '@module:admin',      '@priority:P1'];
+export const DIAGNOSTIC_PUBLIC_PHASE_VISIBILITY   = ['@flow:diagnostic-public-phase-visibility',   '@module:diagnostic', '@priority:P2'];
+export const ADMIN_PROPOSAL_SECTION_DISABLE       = ['@flow:admin-proposal-section-disable',       '@module:admin',      '@priority:P2'];

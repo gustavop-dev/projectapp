@@ -1,24 +1,30 @@
 <template>
   <section>
     <SectionHeader :index="content.index" :title="content.title" fallback="Costo y Formas de Pago" />
-    <p v-if="content.intro" class="text-gray-700">{{ content.intro }}</p>
+    <p v-if="content.intro" class="text-esmerald/80">{{ content.intro }}</p>
 
     <div
       v-if="investmentFormatted"
-      class="my-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center"
+      class="my-6 relative overflow-hidden bg-esmerald text-bone rounded-2xl p-6 text-center shadow-lg"
     >
-      <div class="text-xs font-medium text-emerald-700 uppercase tracking-wide">Inversión</div>
-      <div class="text-3xl font-semibold text-emerald-900 mt-1">{{ investmentFormatted }} {{ diagnostic.currency || '' }}</div>
+      <div class="absolute inset-0 bg-gradient-to-br from-esmerald/0 via-lemon/5 to-lemon/20 pointer-events-none" />
+      <div class="relative">
+        <div class="text-xs font-medium text-bone/80 uppercase tracking-[0.2em]">Inversión</div>
+        <div class="text-4xl font-semibold text-lemon mt-2 tabular-nums">
+          {{ investmentFormatted }}
+          <span class="text-2xl text-bone/80 ml-1">{{ diagnostic.currency || '' }}</span>
+        </div>
+      </div>
     </div>
 
-    <ul v-if="paymentItems.length" class="space-y-2 text-gray-700">
+    <ul v-if="paymentItems.length" class="space-y-2 text-esmerald/80">
       <li
         v-for="(item, idx) in paymentItems"
         :key="idx"
         class="flex gap-3 items-baseline"
       >
-        <span class="shrink-0 font-semibold text-emerald-700">{{ item.pct }}% {{ item.label }}</span>
-        <span class="text-gray-600">{{ item.detail }}</span>
+        <span class="shrink-0 font-semibold text-esmerald">{{ item.pct }}% {{ item.label }}</span>
+        <span class="text-esmerald/70">{{ item.detail }}</span>
       </li>
     </ul>
 

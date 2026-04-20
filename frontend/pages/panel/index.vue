@@ -4,7 +4,7 @@
       <h1 class="text-2xl font-light text-gray-900 dark:text-white">Dashboard</h1>
       <div class="flex flex-wrap items-center gap-3">
         <NuxtLink
-          :to="localePath('/panel/proposals/defaults')"
+          :to="localePath('/panel/defaults?mode=proposal')"
           class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors
                  border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50
                  dark:border-gray-600 dark:bg-gray-800/80 dark:text-gray-300 dark:hover:border-gray-500 dark:hover:bg-gray-800"

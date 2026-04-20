@@ -384,7 +384,4 @@ async function uploadAttachment() {
 
 onMounted(load)
 
-useHead({
-  title: computed(() => (detail.value ? `${detail.value.title} — Entregable` : 'Entregable — ProjectApp')),
-})
 </script>

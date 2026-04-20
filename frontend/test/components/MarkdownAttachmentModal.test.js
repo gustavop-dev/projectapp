@@ -1,8 +1,11 @@
 import { mount, flushPromises } from '@vue/test-utils';
 
 jest.mock('axios', () => ({ post: jest.fn() }));
+
+const mockGetRequest = jest.fn();
 jest.mock('../../stores/services/request_http', () => ({
   getCookie: jest.fn(() => 'test-csrf-token'),
+  get_request: (...args) => mockGetRequest(...args),
 }));
 
 import MarkdownAttachmentModal from '../../components/MarkdownAttachmentModal.vue';
@@ -21,6 +24,7 @@ function mountModal(props = {}) {
 describe('MarkdownAttachmentModal', () => {
   beforeEach(() => {
     getAxiosMock().mockReset();
+    mockGetRequest.mockReset();
     URL.createObjectURL = jest.fn(() => 'blob:http://localhost/fake-id');
     URL.revokeObjectURL = jest.fn();
   });
@@ -131,6 +135,102 @@ describe('MarkdownAttachmentModal', () => {
     expect(wrapper.emitted('attach')[0][0]).toBeInstanceOf(File);
     expect(wrapper.emitted('attach')[0][0].name).toBe('mi-reporte.pdf');
     expect(wrapper.emitted('close')).toBeTruthy();
+  });
+
+  it('does not render diagnostic template buttons by default', () => {
+    const wrapper = mountModal();
+
+    const texts = wrapper.findAll('button').map((b) => b.text());
+    expect(texts.some((t) => t.startsWith('Copiar Diagnóstico'))).toBe(false);
+    expect(wrapper.text()).not.toContain('Plantillas base');
+  });
+
+  it('renders 3 diagnostic template copy buttons in the requested order when showDiagnosticTemplates is true', () => {
+    const wrapper = mountModal({ showDiagnosticTemplates: true });
+
+    const templateButtons = wrapper.findAll('button')
+      .map((b) => b.text())
+      .filter((t) => t.startsWith('Copiar '));
+
+    expect(templateButtons).toEqual([
+      'Copiar Diagnóstico de Aplicación',
+      'Copiar Diagnóstico Técnico',
+      'Copiar Anexo',
+    ]);
+    expect(wrapper.text()).toContain('Plantillas base');
+  });
+
+  it('fetches the template and writes its markdown to the clipboard when a copy button is clicked', async () => {
+    mockGetRequest.mockResolvedValue({
+      data: { content_markdown: '# Plantilla técnica\n\nContenido base.' },
+    });
+    const writeText = jest.fn().mockResolvedValue();
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    const wrapper = mountModal({ showDiagnosticTemplates: true });
+    const btn = wrapper.findAll('button')
+      .filter((b) => b.text().startsWith('Copiar '))[1];
+    await btn.trigger('click');
+    await flushPromises();
+
+    expect(mockGetRequest).toHaveBeenCalledWith('diagnostic-templates/diagnostico-tecnico/');
+    expect(writeText).toHaveBeenCalledWith('# Plantilla técnica\n\nContenido base.');
+    expect(wrapper.text()).toContain('¡Copiado!');
+  });
+
+  it('uses cached template on second click without re-fetching', async () => {
+    mockGetRequest.mockResolvedValue({
+      data: { content_markdown: '# Aplicación\n\nBase.' },
+    });
+    const writeText = jest.fn().mockResolvedValue();
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    const wrapper = mountModal({ showDiagnosticTemplates: true });
+    const btn = wrapper.findAll('button').filter((b) => b.text().startsWith('Copiar '))[0];
+
+    await btn.trigger('click');
+    await flushPromises();
+    await btn.trigger('click');
+    await flushPromises();
+
+    expect(mockGetRequest).toHaveBeenCalledTimes(1);
+    expect(writeText).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows error message when get_request rejects during copy', async () => {
+    mockGetRequest.mockRejectedValue(new Error('Network error'));
+    Object.assign(navigator, { clipboard: { writeText: jest.fn().mockResolvedValue() } });
+
+    const wrapper = mountModal({ showDiagnosticTemplates: true });
+    const btn = wrapper.findAll('button').filter((b) => b.text().startsWith('Copiar '))[0];
+    await btn.trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('No se pudo copiar la plantilla.');
+  });
+
+  it('shows error message when clipboard.writeText rejects', async () => {
+    mockGetRequest.mockResolvedValue({ data: { content_markdown: '# Contenido' } });
+    Object.assign(navigator, { clipboard: { writeText: jest.fn().mockRejectedValue(new Error('Clipboard denied')) } });
+
+    const wrapper = mountModal({ showDiagnosticTemplates: true });
+    const btn = wrapper.findAll('button').filter((b) => b.text().startsWith('Copiar '))[0];
+    await btn.trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('No se pudo copiar la plantilla.');
+  });
+
+  it('copy button is re-enabled after a failed request', async () => {
+    mockGetRequest.mockRejectedValue(new Error('Network error'));
+    Object.assign(navigator, { clipboard: { writeText: jest.fn() } });
+
+    const wrapper = mountModal({ showDiagnosticTemplates: true });
+    const btn = wrapper.findAll('button').filter((b) => b.text().startsWith('Copiar '))[0];
+    await btn.trigger('click');
+    await flushPromises();
+
+    expect(btn.element.disabled).toBe(false);
   });
 
   it('resets title and markdown when modal is closed', async () => {

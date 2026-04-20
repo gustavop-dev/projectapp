@@ -1,0 +1,79 @@
+<template>
+  <div>
+    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-6">
+      <div>
+        <h1 class="text-2xl font-light text-gray-900 dark:text-gray-100">Valores por Defecto</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Configura los valores iniciales que se aplicarán a las nuevas propuestas o diagnósticos.
+        </p>
+      </div>
+      <NuxtLink
+        :to="backLink.to"
+        class="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        {{ backLink.label }}
+      </NuxtLink>
+    </div>
+
+    <!-- Mode switch: Proposal / Diagnostic -->
+    <div class="mb-6 flex items-center gap-3 flex-wrap" data-testid="defaults-mode-switch">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Modo:</span>
+      <div class="flex gap-2">
+        <button
+          v-for="opt in modeOptions"
+          :key="opt.value"
+          type="button"
+          class="px-4 py-2 rounded-xl text-sm font-medium border transition-colors"
+          :class="mode === opt.value
+            ? 'bg-emerald-600 text-white border-emerald-600'
+            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:border-gray-500'"
+          :data-testid="`defaults-mode-${opt.value}`"
+          @click="setMode(opt.value)"
+        >
+          {{ opt.label }}
+        </button>
+      </div>
+    </div>
+
+    <ProposalDefaultsPanel v-if="mode === 'proposal'" />
+    <DiagnosticDefaultsPanel v-else />
+  </div>
+</template>
+
+<script setup>
+import { computed, defineAsyncComponent } from 'vue';
+
+const ProposalDefaultsPanel = defineAsyncComponent(
+  () => import('~/components/panel/defaults/ProposalDefaultsPanel.vue'),
+);
+const DiagnosticDefaultsPanel = defineAsyncComponent(
+  () => import('~/components/panel/defaults/DiagnosticDefaultsPanel.vue'),
+);
+
+definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
+
+const localePath = useLocalePath();
+const route = useRoute();
+const router = useRouter();
+
+const modeOptions = [
+  { value: 'proposal', label: 'Propuesta' },
+  { value: 'diagnostic', label: 'Diagnóstico' },
+];
+
+const mode = computed(() => (route.query.mode === 'diagnostic' ? 'diagnostic' : 'proposal'));
+
+function setMode(next) {
+  if (next === mode.value) return;
+  router.replace({ query: { ...route.query, mode: next, tab: undefined } });
+}
+
+const backLink = computed(() => (
+  mode.value === 'diagnostic'
+    ? { to: localePath('/panel/diagnostics'), label: 'Volver a Diagnósticos' }
+    : { to: localePath('/panel/proposals'), label: 'Volver a Propuestas' }
+));
+</script>

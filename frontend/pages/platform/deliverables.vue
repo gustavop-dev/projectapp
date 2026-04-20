@@ -93,7 +93,6 @@ const localePath = useLocalePath()
 import { usePlatformDeliverablesStore } from '~/stores/platform-deliverables'
 
 definePageMeta({ layout: 'platform', middleware: ['platform-auth'] })
-useHead({ title: 'Entregables — ProjectApp' })
 usePageEntrance('#platform-unified-deliverables')
 
 const authStore = usePlatformAuthStore()

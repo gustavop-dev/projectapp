@@ -281,7 +281,4 @@ onMounted(async () => {
   ])
 })
 
-useHead({
-  title: computed(() => 'Modelo de datos — ProjectApp'),
-})
 </script>
