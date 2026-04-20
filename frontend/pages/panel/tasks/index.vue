@@ -235,7 +235,7 @@ function boardLabel(key) {
 function priorityDot(priority) {
   if (priority === 'high') return 'bg-red-500';
   if (priority === 'medium') return 'bg-yellow-400';
-  return 'bg-gray-300';
+  return 'bg-gray-300 dark:bg-white/20';
 }
 
 onMounted(() => {

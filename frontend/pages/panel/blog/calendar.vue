@@ -45,7 +45,7 @@
         <div class="flex items-center gap-2">
           <button
             type="button"
-            class="px-3 py-1.5 text-xs font-medium text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors"
+            class="px-3 py-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors"
             @click="goToToday"
           >
             Hoy
@@ -109,15 +109,15 @@
     <!-- Legend -->
     <div class="flex items-center gap-6 text-xs text-gray-500 dark:text-green-light/60">
       <div class="flex items-center gap-1.5">
-        <span class="w-3 h-3 rounded bg-emerald-100 border border-emerald-200 inline-block" />
+        <span class="w-3 h-3 rounded bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 inline-block" />
         Publicado
       </div>
       <div class="flex items-center gap-1.5">
-        <span class="w-3 h-3 rounded bg-blue-100 border border-blue-200 inline-block" />
+        <span class="w-3 h-3 rounded bg-blue-100 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-500/30 inline-block" />
         Programado
       </div>
       <div class="flex items-center gap-1.5">
-        <span class="w-3 h-3 rounded bg-gray-100 border border-gray-200 inline-block" />
+        <span class="w-3 h-3 rounded bg-gray-100 dark:bg-white/[0.08] border border-gray-200 dark:border-white/[0.12] inline-block" />
         Borrador
       </div>
     </div>

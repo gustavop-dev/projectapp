@@ -798,6 +798,22 @@ describe('useProposalStore', () => {
 
       expect(result.success).toBe(false);
     });
+
+    it('exposes HTTP status when server responded', async () => {
+      get_request.mockRejectedValue({ response: { status: 403 } });
+
+      const result = await store.checkAdminAuth();
+
+      expect(result).toEqual({ success: false, status: 403 });
+    });
+
+    it('returns null status on network error', async () => {
+      get_request.mockRejectedValue(new Error('ECONNREFUSED'));
+
+      const result = await store.checkAdminAuth();
+
+      expect(result).toEqual({ success: false, status: null });
+    });
   });
 
   describe('duplicateProposal', () => {

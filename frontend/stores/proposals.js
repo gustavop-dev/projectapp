@@ -807,7 +807,7 @@ export const useProposalStore = defineStore('proposals', {
         const response = await get_request('auth/check/');
         return { success: true, user: response.data.user };
       } catch (error) {
-        return { success: false };
+        return { success: false, status: error?.response?.status ?? null };
       }
     },
 

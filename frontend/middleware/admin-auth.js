@@ -1,30 +1,16 @@
-/**
- * Route middleware that checks if the current user is an authenticated
- * Django staff member via session/CSRF auth.
- *
- * Redirects to Django admin login if not authenticated.
- */
+// Only redirect on explicit 401/403 so transient 5xx / network errors don't
+// boot a logged-in staff user out of the panel.
 export default defineNuxtRouteMiddleware(async (to) => {
   if (!to.path.includes('/panel')) return;
-
-  // Skip for the login page itself
   if (to.path.endsWith('/panel/login')) return;
+  if (import.meta.server) return;
 
-  try {
-    const { useProposalStore } = await import('~/stores/proposals');
-    const proposalStore = useProposalStore();
-    const result = await proposalStore.checkAdminAuth();
+  const { useProposalStore } = await import('~/stores/proposals');
+  const result = await useProposalStore().checkAdminAuth();
 
-    if (!result.success) {
-      if (import.meta.client) {
-        window.location.href = `/admin/login/?next=${to.fullPath}`;
-      }
-      return abortNavigation();
-    }
-  } catch {
-    if (import.meta.client) {
-      window.location.href = `/admin/login/?next=${to.fullPath}`;
-    }
+  if (result.success) return;
+  if (result.status === 401 || result.status === 403) {
+    window.location.href = `/admin/login/?next=${to.fullPath}`;
     return abortNavigation();
   }
 });
