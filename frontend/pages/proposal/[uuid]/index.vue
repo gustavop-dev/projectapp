@@ -862,8 +862,25 @@ function getSectionProps(section) {
     const formattedTotal = proposalTotal > 0
       ? '$' + proposalTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
       : content.totalInvestment || '';
+    // Model fields are the source of truth for hosting %/discounts; content_json.hostingPlan
+    // only supplies presentation (title, specs, copy). Override numeric fields so the public
+    // view never drifts from what the admin configured in the General tab.
+    const baseHostingPlan = content.hostingPlan || {};
+    const discountByFrequency = {
+      semiannual: proposal.value?.hosting_discount_semiannual,
+      quarterly: proposal.value?.hosting_discount_quarterly,
+    };
+    const hostingPlan = {
+      ...baseHostingPlan,
+      hostingPercent: proposal.value?.hosting_percent ?? baseHostingPlan.hostingPercent ?? 30,
+      billingTiers: (baseHostingPlan.billingTiers || []).map((tier) => {
+        const override = discountByFrequency[tier?.frequency];
+        return override != null ? { ...tier, discountPercent: override } : tier;
+      }),
+    };
     return {
       ...content,
+      hostingPlan,
       totalInvestment: formattedTotal,
       currency: proposalCurrency,
       language: proposal.value?.language || 'es',

@@ -21,15 +21,15 @@
     <!-- Mode switch: Proposal / Diagnostic -->
     <div class="mb-6 flex items-center gap-3 flex-wrap" data-testid="defaults-mode-switch">
       <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Modo:</span>
-      <div class="flex gap-2">
+      <div class="inline-flex rounded-lg p-0.5 bg-gray-100 dark:bg-gray-700/60">
         <button
           v-for="opt in modeOptions"
           :key="opt.value"
           type="button"
-          class="px-4 py-2 rounded-xl text-sm font-medium border transition-colors"
-          :class="mode === opt.value
-            ? 'bg-emerald-600 text-white border-emerald-600'
-            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:border-gray-500'"
+          :class="['px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+            mode === opt.value
+              ? 'bg-white dark:bg-gray-600 text-emerald-600 dark:text-emerald-400 shadow-sm'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']"
           :data-testid="`defaults-mode-${opt.value}`"
           @click="setMode(opt.value)"
         >

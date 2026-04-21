@@ -437,44 +437,48 @@
               <span class="text-sm text-gray-500">%</span>
             </div>
             <div v-if="form.hosting_percent > 0 && form.total_investment > 0" class="mt-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-700/30 rounded-xl overflow-hidden">
-              <div class="grid grid-cols-[1fr_auto] gap-x-4 text-sm divide-y divide-blue-100 dark:divide-blue-900/30">
+              <div class="px-4 py-2 text-[11px] uppercase tracking-wider text-blue-600 dark:text-blue-300/70 border-b border-blue-100 dark:border-blue-900/30">
+                Precio que verá el cliente (por mes)
+              </div>
+              <div class="grid grid-cols-[1fr_auto_auto] gap-x-4 text-sm divide-y divide-blue-100 dark:divide-blue-900/30">
                 <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Mensual</div>
-                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right">
-                  ${{ Math.round(form.total_investment * form.hosting_percent / 100 / 12).toLocaleString() }} {{ form.currency }}
+                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right whitespace-nowrap">
+                  ${{ hostingMonthlyBase.toLocaleString() }} {{ form.currency }}/mes
                 </div>
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Trimestral</div>
-                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right">
-                  ${{ Math.round(form.total_investment * form.hosting_percent / 100 / 12 * 3).toLocaleString() }} {{ form.currency }}
+                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">facturado mensual</div>
+
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
+                  Trimestral
+                  <span v-if="form.hosting_discount_quarterly" class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_quarterly }}% dcto)</span>
                 </div>
-                <template v-if="form.hosting_discount_quarterly">
-                  <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
-                    Trimestral
-                    <span class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_quarterly }}% dcto)</span>
-                  </div>
-                  <div class="px-4 py-2 text-emerald-700 dark:text-emerald-300 font-semibold text-right">
-                    ${{ Math.round(Math.round(form.total_investment * form.hosting_percent / 100 / 12) * (100 - form.hosting_discount_quarterly) / 100 * 3).toLocaleString() }} {{ form.currency }}
-                  </div>
-                </template>
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">Semestral</div>
-                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right">
-                  ${{ Math.round(form.total_investment * form.hosting_percent / 100 / 12 * 6).toLocaleString() }} {{ form.currency }}
+                <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
+                     :class="form.hosting_discount_quarterly ? 'text-emerald-700 dark:text-emerald-300' : 'text-blue-800 dark:text-blue-200'">
+                  ${{ hostingMonthlyWithDiscount(form.hosting_discount_quarterly).toLocaleString() }} {{ form.currency }}/mes
                 </div>
-                <template v-if="form.hosting_discount_semiannual">
-                  <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
-                    Semestral
-                    <span class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_semiannual }}% dcto)</span>
-                  </div>
-                  <div class="px-4 py-2 text-emerald-700 dark:text-emerald-300 font-semibold text-right">
-                    ${{ Math.round(Math.round(form.total_investment * form.hosting_percent / 100 / 12) * (100 - form.hosting_discount_semiannual) / 100 * 6).toLocaleString() }} {{ form.currency }}
-                  </div>
-                </template>
-                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">☁️ Anual</div>
-                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right">
-                  ${{ Math.round(form.total_investment * form.hosting_percent / 100).toLocaleString() }} {{ form.currency }}
+                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
+                  total ${{ hostingPeriodTotal(form.hosting_discount_quarterly, 3).toLocaleString() }} / 3 meses
                 </div>
+
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">
+                  Semestral
+                  <span v-if="form.hosting_discount_semiannual" class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">({{ form.hosting_discount_semiannual }}% dcto)</span>
+                </div>
+                <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
+                     :class="form.hosting_discount_semiannual ? 'text-emerald-700 dark:text-emerald-300' : 'text-blue-800 dark:text-blue-200'">
+                  ${{ hostingMonthlyWithDiscount(form.hosting_discount_semiannual).toLocaleString() }} {{ form.currency }}/mes
+                </div>
+                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">
+                  total ${{ hostingPeriodTotal(form.hosting_discount_semiannual, 6).toLocaleString() }} / 6 meses
+                </div>
+
+                <div class="px-4 py-2 text-blue-700 dark:text-blue-300 font-medium">☁️ Anual (referencia)</div>
+                <div class="px-4 py-2 text-blue-800 dark:text-blue-200 font-semibold text-right whitespace-nowrap">
+                  ${{ hostingAnnualAmount.toLocaleString() }} {{ form.currency }}
+                </div>
+                <div class="px-4 py-2 text-[11px] text-blue-500 dark:text-blue-300/60 text-right whitespace-nowrap">sin descuento</div>
               </div>
             </div>
-            <p class="text-xs text-gray-400 mt-1">Se sincroniza con el % del Plan de Hosting en la sección "Tu inversión y cómo pagar".</p>
+            <p class="text-xs text-gray-400 mt-1">Sincronizado automáticamente con el Plan de Hosting que ve el cliente en "Tu inversión y cómo pagar".</p>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -1998,6 +2002,21 @@ async function handleSyncHostingPercent(percent) {
     form.hosting_percent = percent;
     await proposalStore.updateProposal(proposal.value.id, { hosting_percent: percent });
   }
+}
+
+// Must match Investment.vue's hostingAnnualAmount / computedBillingTiers so admin preview
+// shows the exact same numbers the client will see (avoids rounding drift).
+const hostingAnnualAmount = computed(() =>
+  Math.round(form.total_investment * form.hosting_percent / 100)
+);
+const hostingMonthlyBase = computed(() =>
+  Math.round(hostingAnnualAmount.value / 12)
+);
+function hostingMonthlyWithDiscount(discountPercent) {
+  return Math.round(hostingMonthlyBase.value * (100 - (discountPercent || 0)) / 100);
+}
+function hostingPeriodTotal(discountPercent, months) {
+  return hostingMonthlyWithDiscount(discountPercent) * months;
 }
 
 function formatInvestment(value, currency = 'COP') {
