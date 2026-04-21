@@ -211,18 +211,18 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 
 | # | \`id\` | Tipo | \`price_percent\` |
 |---|---|---|---|
-| 0 | \`pwa_module\` | Opcional | 40% |
-| 1 | \`ai_module\` | Invitación | 0% |
-| 2 | \`integration_conversion_tracking\` | Invitación | 0% |
-| 3 | \`integration_electronic_invoicing\` | Opcional | 60% |
-| 4 | \`integration_international_payments\` | Opcional | 20% |
-| 5 | \`integration_regional_payments\` | Opcional | 20% |
-| 6 | \`email_marketing_module\` | Opcional | 10% |
-| 7 | \`reports_alerts_module\` | Opcional | 20% |
+| 0 | \`integration_electronic_invoicing\` | Opcional | 60% |
+| 1 | \`integration_regional_payments\` | Opcional | 20% |
+| 2 | \`integration_international_payments\` | Opcional | 20% |
+| 3 | \`pwa_module\` | Opcional | 40% |
+| 4 | \`ai_module\` | Invitación | 0% |
+| 5 | \`integration_conversion_tracking\` | Invitación | 0% |
+| 6 | \`reports_alerts_module\` | Opcional | 20% |
+| 7 | \`email_marketing_module\` | Opcional | 10% |
 | 8 | \`i18n_module\` | Opcional | 15% |
-| 9 | \`gift_cards_module\` | Opcional (oculto) | 20% |
+| 9 | \`live_chat_module\` | Opcional | 40% |
 | 10 | \`dark_mode_module\` | Opcional | 20% |
-| 11 | \`live_chat_module\` | Opcional | 40% |
+| 11 | \`gift_cards_module\` | Opcional (oculto) | 20% |
 
 #### \`developmentStages\` 
 | Campo | Tipo | Restricción |
@@ -311,12 +311,25 @@ Sección de presentación que **agrupa los 4 módulos base sin costo extra** (ad
 - \`whatsIncluded\`: Adapta las descripciones al proyecto específico. No dejes textos genéricos.
 - \`valueReasons\`: Razones que justifiquen el precio ANTES de que el cliente lo cuestione. Incluye diferenciadores: "diseñado a medida para el sector X", "integración con pasarela de pago colombiana", etc.
 
-### \`functionalRequirements\` 
+### \`functionalRequirements\`
 - **REGLA CRÍTICA**: NO elimines ningún grupo que tenga \`"_do_not_remove": true\`. Los 18 grupos deben permanecer. Solo modifica su contenido interno.
 - Adapta cada vista, componente y funcionalidad al negocio del cliente. Si es una pet shop, las categorías son "alimentos, accesorios, salud, juguetes". Si es una inmobiliaria, son "apartamentos, casas, locales".
-- La pasarela de pago que el cliente seleccionó debe tener \`"default_selected": true\`.
-- Los módulos que el cliente NO seleccionó deben tener \`"default_selected": false\`.
-- Los \`invite_note\` de módulos de invitación (\`ai_module\`, \`integration_conversion_tracking\`) deben personalizarse con el nombre del negocio del cliente.
+- **Auto-selección de módulos adicionales basada en los requerimientos del cliente.** Lee con atención la "Descripción del negocio", el "Contexto adicional" y los "Módulos opcionales seleccionados" del bloque de contexto del cliente. Para **cada** módulo en \`additionalModules\`, decide si el proyecto describe esa capacidad de forma explícita o implícita y, cuando haya evidencia, marca \`"default_selected": true\` Y \`"selected": true\` en ese módulo. Si no hay evidencia clara, déjalos en \`false\`. No inventes coincidencias.
+  - Mapeo de detección (usa cualquier mención, en español o inglés, literal o sinónimos):
+    - \`integration_electronic_invoicing\` → DIAN, factura electrónica, Siigo, Alegra, facturación, e-invoice, comprobantes fiscales.
+    - \`integration_regional_payments\` → PSE, Wompi, PayU, ePayco, Nequi, Daviplata, Bancolombia, pasarela Colombia, pagos locales.
+    - \`integration_international_payments\` → Stripe, PayPal, pagos internacionales, cuentas en USD/EUR, cross-border.
+    - \`pwa_module\` → PWA, app instalable, funciona sin internet, modo offline, notificaciones push.
+    - \`ai_module\` → IA, inteligencia artificial, chatbot inteligente, automatización con IA, agentes.
+    - \`integration_conversion_tracking\` → Meta Ads, Facebook Ads, Google Ads, Conversions API, CAPI, ROAS, pixel, Enhanced Conversions.
+    - \`reports_alerts_module\` → reportes, notificaciones, alertas por correo / WhatsApp / Telegram, avisos de ventas o stock.
+    - \`email_marketing_module\` → email marketing, Mailchimp, Brevo, SendGrid, captura de leads, newsletters.
+    - \`i18n_module\` → multi-idioma, internacionalización, i18n, múltiples países, traducción, catálogos por país.
+    - \`live_chat_module\` → chat en vivo, soporte en tiempo real, asesor en línea, widget de chat propio.
+    - \`dark_mode_module\` → modo oscuro, dark mode, cambio de tema, theme switcher.
+  - Cuando marques un módulo como seleccionado, **adapta** su \`description\` y reordena/reescribe sus \`items\` para que el texto refleje la terminología, proveedores y matices reales del brief (por ejemplo: si el cliente pidió "quiero recibir reportes por WhatsApp", deja el item de WhatsApp como primero en \`reports_alerts_module\` y menciona WhatsApp como canal principal en la \`description\`).
+  - No cambies el \`id\`, \`icon\`, \`price_percent\`, \`is_invite\` ni la posición del módulo en el array.
+  - Los \`invite_note\` de módulos de invitación (\`ai_module\`, \`integration_conversion_tracking\`) deben personalizarse con el nombre del negocio del cliente.
 
 ### \`timeline\` 
 - Mantén las duraciones realistas según la complejidad del proyecto.

@@ -538,6 +538,70 @@ DEFAULT_SECTIONS = [
             ],
             'additionalModules': [
                 {
+                    'id': 'integration_electronic_invoicing',
+                    'icon': '🧾',
+                    'title': 'Facturación Electrónica e Integración DIAN (Integración API)',
+                    'is_visible': True,
+                    'description': (
+                        'Conexión de la plataforma con el sistema de facturación del cliente para generar, '
+                        'enviar, consultar y reconciliar comprobantes electrónicos desde los flujos operativos '
+                        'del negocio. Incluye sincronización de clientes, productos, impuestos, facturas, '
+                        'notas crédito/débito y documentos soporte, con trazabilidad del estado fiscal y '
+                        'soporte para automatizaciones vía API.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 60,
+                    'is_invite': False,
+                    'items': [
+                        {'icon': '📄', 'name': 'Generación de comprobantes electrónicos', 'description': 'Creación automática de facturas, notas crédito/débito y documentos soporte desde los flujos operativos del negocio.'},
+                        {'icon': '🔄', 'name': 'Sincronización de datos fiscales', 'description': 'Sincronización bidireccional de clientes, productos, impuestos y comprobantes con el sistema de facturación.'},
+                        {'icon': '📊', 'name': 'Trazabilidad del estado fiscal', 'description': 'Consulta y seguimiento del estado de cada comprobante: emitido, aceptado, rechazado o en proceso ante la DIAN.'},
+                        {'icon': '🔗', 'name': 'Integración con proveedores colombianos', 'description': 'Conexión con Siigo, Alegra u otros proveedores con presencia y API documentada en Colombia.'},
+                        {'icon': '⚙️', 'name': 'Automatizaciones vía API', 'description': 'Flujos automáticos para reconciliación de pagos, emisión de facturas al completar pedidos y notificaciones de estado fiscal.'},
+                    ],
+                },
+                {
+                    'id': 'integration_regional_payments',
+                    'icon': '🇨🇴',
+                    'title': 'Pasarela de Pago Regional (Colombia) (Integración API)',
+                    'is_visible': True,
+                    'description': (
+                        'Integración con pasarelas de pago con presencia en el mercado colombiano '
+                        'para facilitar transacciones locales con múltiples métodos de pago.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 20,
+                    'is_invite': False,
+                    'items': [
+                        {'icon': '💳', 'name': 'PayU', 'description': 'Una de las más usadas en Colombia, permite pagos con tarjeta, PSE, Efecty, Baloto, Nequi, Daviplata.'},
+                        {'icon': '🏦', 'name': 'Wompi (Bancolombia)', 'description': 'Excelente opción local con soporte para PSE, tarjetas, Nequi y botón Bancolombia.'},
+                        {'icon': '💰', 'name': 'ePayco', 'description': 'Alternativa colombiana fácil de integrar, soporta múltiples métodos de pago como PSE, tarjetas y recaudos físicos.'},
+                    ],
+                },
+                {
+                    'id': 'integration_international_payments',
+                    'icon': '🌎',
+                    'title': 'Pasarela de Pago Internacional (Integración API)',
+                    'is_visible': True,
+                    'description': (
+                        'Integración con pasarelas de pago internacionales para facilitar '
+                        'transacciones globales con tarjeta de crédito/débito y cuentas internacionales.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 20,
+                    'is_invite': False,
+                    'items': [
+                        {'icon': '💳', 'name': 'Stripe', 'description': 'Ideal para recibir pagos con tarjeta de crédito/débito, muy usada a nivel mundial. Soporta suscripciones, pagos únicos y múltiples divisas.'},
+                        {'icon': '🅿️', 'name': 'PayPal', 'description': 'Plataforma reconocida globalmente, permite pagos con saldo PayPal, tarjeta y cuentas internacionales.'},
+                    ],
+                },
+                {
                     'id': 'pwa_module',
                     'icon': '📱',
                     'title': 'Aplicación Móvil Instalable (PWA)',
@@ -626,67 +690,25 @@ DEFAULT_SECTIONS = [
                     ],
                 },
                 {
-                    'id': 'integration_electronic_invoicing',
-                    'icon': '🧾',
-                    'title': 'Facturación Electrónica e Integración DIAN (Integración API)',
+                    'id': 'reports_alerts_module',
+                    'icon': '📬',
+                    'title': 'Reportes y Alertas vía Correo, WhatsApp o Telegram',
                     'is_visible': True,
                     'description': (
-                        'Conexión de la plataforma con el sistema de facturación del cliente para generar, '
-                        'enviar, consultar y reconciliar comprobantes electrónicos desde los flujos operativos '
-                        'del negocio. Incluye sincronización de clientes, productos, impuestos, facturas, '
-                        'notas crédito/débito y documentos soporte, con trazabilidad del estado fiscal y '
-                        'soporte para automatizaciones vía API.'
-                    ),
-                    'is_calculator_module': True,
-                    'default_selected': False,
-                    'selected': False,
-                    'price_percent': 60,
-                    'is_invite': False,
-                    'items': [
-                        {'icon': '📄', 'name': 'Generación de comprobantes electrónicos', 'description': 'Creación automática de facturas, notas crédito/débito y documentos soporte desde los flujos operativos del negocio.'},
-                        {'icon': '🔄', 'name': 'Sincronización de datos fiscales', 'description': 'Sincronización bidireccional de clientes, productos, impuestos y comprobantes con el sistema de facturación.'},
-                        {'icon': '📊', 'name': 'Trazabilidad del estado fiscal', 'description': 'Consulta y seguimiento del estado de cada comprobante: emitido, aceptado, rechazado o en proceso ante la DIAN.'},
-                        {'icon': '🔗', 'name': 'Integración con proveedores colombianos', 'description': 'Conexión con Siigo, Alegra u otros proveedores con presencia y API documentada en Colombia.'},
-                        {'icon': '⚙️', 'name': 'Automatizaciones vía API', 'description': 'Flujos automáticos para reconciliación de pagos, emisión de facturas al completar pedidos y notificaciones de estado fiscal.'},
-                    ],
-                },
-                {
-                    'id': 'integration_international_payments',
-                    'icon': '🌎',
-                    'title': 'Pasarela de Pago Internacional (Integración API)',
-                    'is_visible': True,
-                    'description': (
-                        'Integración con pasarelas de pago internacionales para facilitar '
-                        'transacciones globales con tarjeta de crédito/débito y cuentas internacionales.'
+                        'Mantente informado en todo momento con reportes automáticos y alertas '
+                        'personalizadas que llegan directamente a tu correo, WhatsApp o Telegram.'
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
                     'selected': False,
                     'price_percent': 20,
-                    'is_invite': False,
                     'items': [
-                        {'icon': '💳', 'name': 'Stripe', 'description': 'Ideal para recibir pagos con tarjeta de crédito/débito, muy usada a nivel mundial. Soporta suscripciones, pagos únicos y múltiples divisas.'},
-                        {'icon': '🅿️', 'name': 'PayPal', 'description': 'Plataforma reconocida globalmente, permite pagos con saldo PayPal, tarjeta y cuentas internacionales.'},
-                    ],
-                },
-                {
-                    'id': 'integration_regional_payments',
-                    'icon': '🇨🇴',
-                    'title': 'Pasarela de Pago Regional (Colombia) (Integración API)',
-                    'is_visible': True,
-                    'description': (
-                        'Integración con pasarelas de pago con presencia en el mercado colombiano '
-                        'para facilitar transacciones locales con múltiples métodos de pago.'
-                    ),
-                    'is_calculator_module': True,
-                    'default_selected': False,
-                    'selected': False,
-                    'price_percent': 20,
-                    'is_invite': False,
-                    'items': [
-                        {'icon': '💳', 'name': 'PayU', 'description': 'Una de las más usadas en Colombia, permite pagos con tarjeta, PSE, Efecty, Baloto, Nequi, Daviplata.'},
-                        {'icon': '🏦', 'name': 'Wompi (Bancolombia)', 'description': 'Excelente opción local con soporte para PSE, tarjetas, Nequi y botón Bancolombia.'},
-                        {'icon': '💰', 'name': 'ePayco', 'description': 'Alternativa colombiana fácil de integrar, soporta múltiples métodos de pago como PSE, tarjetas y recaudos físicos.'},
+                        {'icon': '📧', 'name': 'Reportes automáticos por correo', 'description': 'Recibe resúmenes periódicos con las métricas clave de tu negocio directamente en tu bandeja de entrada, sin tener que entrar al sistema.'},
+                        {'icon': '🔔', 'name': 'Alertas personalizadas', 'description': 'Configura notificaciones para eventos importantes: nuevas ventas, registros de usuarios, stock bajo, o cualquier métrica que definas.'},
+                        {'icon': '💚', 'name': 'Integración con WhatsApp', 'description': 'Recibe alertas y reportes instantáneos en tu número de WhatsApp a través de la API oficial, ideal para estar al tanto desde el mismo canal donde atiendes a tus clientes.'},
+                        {'icon': '✈️', 'name': 'Integración con Telegram', 'description': 'Recibe alertas y reportes instantáneos en tu chat de Telegram, ideal para estar al tanto desde cualquier lugar y en tiempo real.'},
+                        {'icon': '⏰', 'name': 'Programación de envíos', 'description': 'Define la frecuencia y horario de tus reportes: diario, semanal, mensual o en tiempo real según tus necesidades.'},
+                        {'icon': '📋', 'name': 'Resumen ejecutivo periódico', 'description': 'Informe consolidado con las métricas más relevantes de tu proyecto, diseñado para una lectura rápida y toma de decisiones ágil.'},
                     ],
                 },
                 {
@@ -709,27 +731,6 @@ DEFAULT_SECTIONS = [
                         {'icon': '🎯', 'name': 'Segmentación de audiencia', 'description': 'Clasifica a tus suscriptores por comportamiento, intereses y datos demográficos para enviar mensajes relevantes y personalizados.'},
                         {'icon': '📊', 'name': 'Analítica de campañas', 'description': 'Métricas detalladas de apertura, clics, conversiones y ROI de cada campaña para optimizar tu estrategia de comunicación.'},
                         {'icon': '🔗', 'name': 'Integración con plataformas', 'description': 'Conexión nativa con Mailchimp, SendGrid, Brevo u otras plataformas líderes de email marketing según tus necesidades.'},
-                    ],
-                },
-                {
-                    'id': 'reports_alerts_module',
-                    'icon': '📬',
-                    'title': 'Reportes y Alertas vía Correo o Telegram',
-                    'is_visible': True,
-                    'description': (
-                        'Mantente informado en todo momento con reportes automáticos y alertas '
-                        'personalizadas que llegan directamente a tu correo o Telegram.'
-                    ),
-                    'is_calculator_module': True,
-                    'default_selected': False,
-                    'selected': False,
-                    'price_percent': 20,
-                    'items': [
-                        {'icon': '📧', 'name': 'Reportes automáticos por correo', 'description': 'Recibe resúmenes periódicos con las métricas clave de tu negocio directamente en tu bandeja de entrada, sin tener que entrar al sistema.'},
-                        {'icon': '🔔', 'name': 'Alertas personalizadas', 'description': 'Configura notificaciones para eventos importantes: nuevas ventas, registros de usuarios, stock bajo, o cualquier métrica que definas.'},
-                        {'icon': '✈️', 'name': 'Integración con Telegram', 'description': 'Recibe alertas y reportes instantáneos en tu chat de Telegram, ideal para estar al tanto desde cualquier lugar y en tiempo real.'},
-                        {'icon': '⏰', 'name': 'Programación de envíos', 'description': 'Define la frecuencia y horario de tus reportes: diario, semanal, mensual o en tiempo real según tus necesidades.'},
-                        {'icon': '📋', 'name': 'Resumen ejecutivo periódico', 'description': 'Informe consolidado con las métricas más relevantes de tu proyecto, diseñado para una lectura rápida y toma de decisiones ágil.'},
                     ],
                 },
                 {
@@ -756,26 +757,28 @@ DEFAULT_SECTIONS = [
                     ],
                 },
                 {
-                    'id': 'gift_cards_module',
-                    'icon': '🎁',
-                    'title': 'Gift Cards y Vouchers Digitales',
-                    'is_visible': False,
+                    'id': 'live_chat_module',
+                    'icon': '💬',
+                    'title': 'Chat en Vivo First-Party',
+                    'is_visible': True,
                     'description': (
-                        'Creación, venta y canje de tarjetas de regalo digitales con saldo '
-                        'configurable, diseño de marca y código único verificable en checkout. '
-                        'Genera ingresos anticipados y captura nuevos clientes a través '
-                        'de los compradores existentes.'
+                        'Sistema de chat en tiempo real completamente alojado en la infraestructura '
+                        'del cliente — sin Intercom, Drift ni LiveChat — donde los agentes atienden '
+                        'desde el mismo panel administrativo. Los datos son 100% propios, sin costos '
+                        'de suscripción crecientes ni riesgo de que la herramienta muestre anuncios '
+                        'de competidores.'
                     ),
-                    'is_calculator_module': False,
+                    'is_calculator_module': True,
                     'default_selected': False,
                     'selected': False,
-                    'price_percent': 20,
+                    'price_percent': 40,
                     'items': [
-                        {'icon': '💳', 'name': 'Creación y venta de gift cards', 'description': 'Los clientes pueden comprar tarjetas de regalo digitales con saldo configurable directamente desde tu sitio web, con proceso de pago integrado.'},
-                        {'icon': '✅', 'name': 'Canje en checkout con código único', 'description': 'Cada gift card genera un código único verificable que el destinatario puede aplicar durante el proceso de compra como método de pago parcial o total.'},
-                        {'icon': '📊', 'name': 'Historial de saldo y movimientos', 'description': 'Tanto el comprador como el destinatario pueden consultar el saldo disponible, movimientos realizados y fecha de vencimiento de cada tarjeta.'},
-                        {'icon': '🎨', 'name': 'Diseño de marca personalizado', 'description': 'Las gift cards se generan con la identidad visual de tu marca, incluyendo logo, colores y mensaje personalizable del comprador para el destinatario.'},
-                        {'icon': '⏰', 'name': 'Vencimiento configurable', 'description': 'Define políticas de vencimiento por tipo de tarjeta: sin vencimiento, 6 meses, 1 año, o personalizado. Incluye notificaciones automáticas antes de la expiración.'},
+                        {'icon': '🔌', 'name': 'Widget de chat embebido', 'description': 'Componente flotante integrado en el sitio web que permite al visitante iniciar una conversación en tiempo real sin salir de la página que está navegando.'},
+                        {'icon': '🖥️', 'name': 'Panel de agente en el admin', 'description': 'Los agentes atienden las conversaciones directamente desde el panel administrativo del sitio, sin necesidad de aplicaciones externas ni cuentas adicionales.'},
+                        {'icon': '📡', 'name': 'Comunicación en tiempo real (WebSocket)', 'description': 'Mensajes instantáneos bidireccionales entre visitante y agente mediante conexión persistente, sin retrasos ni necesidad de recargar la página.'},
+                        {'icon': '🗄️', 'name': 'Historial de conversaciones propio', 'description': 'Todas las conversaciones se almacenan en la base de datos del cliente, con búsqueda, filtros por fecha y exportación. Los datos son 100% propiedad del cliente.'},
+                        {'icon': '🤖', 'name': 'Respuestas automáticas configurables', 'description': 'Mensajes de bienvenida, respuestas fuera de horario y FAQ automatizadas que mantienen la atención activa incluso cuando no hay agentes disponibles.'},
+                        {'icon': '🔔', 'name': 'Notificaciones de nuevos chats', 'description': 'Alertas en tiempo real al agente cuando un visitante inicia una conversación o envía un mensaje nuevo, garantizando tiempos de respuesta mínimos.'},
                     ],
                 },
                 {
@@ -802,28 +805,26 @@ DEFAULT_SECTIONS = [
                     ],
                 },
                 {
-                    'id': 'live_chat_module',
-                    'icon': '💬',
-                    'title': 'Chat en Vivo First-Party',
-                    'is_visible': True,
+                    'id': 'gift_cards_module',
+                    'icon': '🎁',
+                    'title': 'Gift Cards y Vouchers Digitales',
+                    'is_visible': False,
                     'description': (
-                        'Sistema de chat en tiempo real completamente alojado en la infraestructura '
-                        'del cliente — sin Intercom, Drift ni LiveChat — donde los agentes atienden '
-                        'desde el mismo panel administrativo. Los datos son 100% propios, sin costos '
-                        'de suscripción crecientes ni riesgo de que la herramienta muestre anuncios '
-                        'de competidores.'
+                        'Creación, venta y canje de tarjetas de regalo digitales con saldo '
+                        'configurable, diseño de marca y código único verificable en checkout. '
+                        'Genera ingresos anticipados y captura nuevos clientes a través '
+                        'de los compradores existentes.'
                     ),
-                    'is_calculator_module': True,
+                    'is_calculator_module': False,
                     'default_selected': False,
                     'selected': False,
-                    'price_percent': 40,
+                    'price_percent': 20,
                     'items': [
-                        {'icon': '🔌', 'name': 'Widget de chat embebido', 'description': 'Componente flotante integrado en el sitio web que permite al visitante iniciar una conversación en tiempo real sin salir de la página que está navegando.'},
-                        {'icon': '🖥️', 'name': 'Panel de agente en el admin', 'description': 'Los agentes atienden las conversaciones directamente desde el panel administrativo del sitio, sin necesidad de aplicaciones externas ni cuentas adicionales.'},
-                        {'icon': '📡', 'name': 'Comunicación en tiempo real (WebSocket)', 'description': 'Mensajes instantáneos bidireccionales entre visitante y agente mediante conexión persistente, sin retrasos ni necesidad de recargar la página.'},
-                        {'icon': '🗄️', 'name': 'Historial de conversaciones propio', 'description': 'Todas las conversaciones se almacenan en la base de datos del cliente, con búsqueda, filtros por fecha y exportación. Los datos son 100% propiedad del cliente.'},
-                        {'icon': '🤖', 'name': 'Respuestas automáticas configurables', 'description': 'Mensajes de bienvenida, respuestas fuera de horario y FAQ automatizadas que mantienen la atención activa incluso cuando no hay agentes disponibles.'},
-                        {'icon': '🔔', 'name': 'Notificaciones de nuevos chats', 'description': 'Alertas en tiempo real al agente cuando un visitante inicia una conversación o envía un mensaje nuevo, garantizando tiempos de respuesta mínimos.'},
+                        {'icon': '💳', 'name': 'Creación y venta de gift cards', 'description': 'Los clientes pueden comprar tarjetas de regalo digitales con saldo configurable directamente desde tu sitio web, con proceso de pago integrado.'},
+                        {'icon': '✅', 'name': 'Canje en checkout con código único', 'description': 'Cada gift card genera un código único verificable que el destinatario puede aplicar durante el proceso de compra como método de pago parcial o total.'},
+                        {'icon': '📊', 'name': 'Historial de saldo y movimientos', 'description': 'Tanto el comprador como el destinatario pueden consultar el saldo disponible, movimientos realizados y fecha de vencimiento de cada tarjeta.'},
+                        {'icon': '🎨', 'name': 'Diseño de marca personalizado', 'description': 'Las gift cards se generan con la identidad visual de tu marca, incluyendo logo, colores y mensaje personalizable del comprador para el destinatario.'},
+                        {'icon': '⏰', 'name': 'Vencimiento configurable', 'description': 'Define políticas de vencimiento por tipo de tarjeta: sin vencimiento, 6 meses, 1 año, o personalizado. Incluye notificaciones automáticas antes de la expiración.'},
                     ],
                 },
             ],
@@ -1599,6 +1600,70 @@ DEFAULT_SECTIONS_EN = [
             ],
             'additionalModules': [
                 {
+                    'id': 'integration_electronic_invoicing',
+                    'icon': '🧾',
+                    'title': 'Electronic Invoicing & DIAN Integration (API Integration)',
+                    'is_visible': True,
+                    'description': (
+                        'Platform connection with the client\'s invoicing system to generate, '
+                        'send, query, and reconcile electronic receipts from business operational flows. '
+                        'Includes synchronization of clients, products, taxes, invoices, '
+                        'credit/debit notes and support documents, with fiscal status traceability '
+                        'and support for API automations.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 60,
+                    'is_invite': False,
+                    'items': [
+                        {'icon': '📄', 'name': 'Electronic Receipt Generation', 'description': 'Automatic creation of invoices, credit/debit notes, and support documents from business operational flows.'},
+                        {'icon': '🔄', 'name': 'Fiscal Data Synchronization', 'description': 'Bidirectional synchronization of clients, products, taxes, and receipts with the invoicing system.'},
+                        {'icon': '📊', 'name': 'Fiscal Status Traceability', 'description': 'Query and track the status of each receipt: issued, accepted, rejected, or in process with DIAN.'},
+                        {'icon': '🔗', 'name': 'Colombian Provider Integration', 'description': 'Connection with Siigo, Alegra, or other providers with presence and documented API in Colombia.'},
+                        {'icon': '⚙️', 'name': 'API Automations', 'description': 'Automatic flows for payment reconciliation, invoice issuance upon order completion, and fiscal status notifications.'},
+                    ],
+                },
+                {
+                    'id': 'integration_regional_payments',
+                    'icon': '🇨🇴',
+                    'title': 'Regional Payment Gateway (Colombia) (API Integration)',
+                    'is_visible': True,
+                    'description': (
+                        'Integration with payment gateways present in the Colombian market '
+                        'to facilitate local transactions with multiple payment methods.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 20,
+                    'is_invite': False,
+                    'items': [
+                        {'icon': '💳', 'name': 'PayU', 'description': 'One of the most used in Colombia, supports card, PSE, Efecty, Baloto, Nequi, Daviplata.'},
+                        {'icon': '🏦', 'name': 'Wompi (Bancolombia)', 'description': 'Excellent local option with PSE, cards, Nequi, and Bancolombia button support.'},
+                        {'icon': '💰', 'name': 'ePayco', 'description': 'Easy-to-integrate Colombian alternative supporting PSE, cards, and physical collections.'},
+                    ],
+                },
+                {
+                    'id': 'integration_international_payments',
+                    'icon': '🌎',
+                    'title': 'International Payment Gateway (API Integration)',
+                    'is_visible': True,
+                    'description': (
+                        'Integration with international payment gateways to facilitate '
+                        'global transactions with credit/debit cards and international accounts.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 20,
+                    'is_invite': False,
+                    'items': [
+                        {'icon': '💳', 'name': 'Stripe', 'description': 'Ideal for credit/debit card payments, widely used worldwide. Supports subscriptions, one-time payments, and multiple currencies.'},
+                        {'icon': '🅿️', 'name': 'PayPal', 'description': 'Globally recognized platform, allows payments with PayPal balance, cards, and international accounts.'},
+                    ],
+                },
+                {
                     'id': 'pwa_module',
                     'icon': '📱',
                     'title': 'Installable Mobile App (PWA)',
@@ -1686,67 +1751,25 @@ DEFAULT_SECTIONS_EN = [
                     ],
                 },
                 {
-                    'id': 'integration_electronic_invoicing',
-                    'icon': '🧾',
-                    'title': 'Electronic Invoicing & DIAN Integration (API Integration)',
+                    'id': 'reports_alerts_module',
+                    'icon': '📬',
+                    'title': 'Reports & Alerts via Email, WhatsApp or Telegram',
                     'is_visible': True,
                     'description': (
-                        'Platform connection with the client\'s invoicing system to generate, '
-                        'send, query, and reconcile electronic receipts from business operational flows. '
-                        'Includes synchronization of clients, products, taxes, invoices, '
-                        'credit/debit notes and support documents, with fiscal status traceability '
-                        'and support for API automations.'
-                    ),
-                    'is_calculator_module': True,
-                    'default_selected': False,
-                    'selected': False,
-                    'price_percent': 60,
-                    'is_invite': False,
-                    'items': [
-                        {'icon': '📄', 'name': 'Electronic Receipt Generation', 'description': 'Automatic creation of invoices, credit/debit notes, and support documents from business operational flows.'},
-                        {'icon': '🔄', 'name': 'Fiscal Data Synchronization', 'description': 'Bidirectional synchronization of clients, products, taxes, and receipts with the invoicing system.'},
-                        {'icon': '📊', 'name': 'Fiscal Status Traceability', 'description': 'Query and track the status of each receipt: issued, accepted, rejected, or in process with DIAN.'},
-                        {'icon': '🔗', 'name': 'Colombian Provider Integration', 'description': 'Connection with Siigo, Alegra, or other providers with presence and documented API in Colombia.'},
-                        {'icon': '⚙️', 'name': 'API Automations', 'description': 'Automatic flows for payment reconciliation, invoice issuance upon order completion, and fiscal status notifications.'},
-                    ],
-                },
-                {
-                    'id': 'integration_international_payments',
-                    'icon': '🌎',
-                    'title': 'International Payment Gateway (API Integration)',
-                    'is_visible': True,
-                    'description': (
-                        'Integration with international payment gateways to facilitate '
-                        'global transactions with credit/debit cards and international accounts.'
+                        'Stay informed at all times with automated reports and customized alerts '
+                        'delivered directly to your email, WhatsApp or Telegram.'
                     ),
                     'is_calculator_module': True,
                     'default_selected': False,
                     'selected': False,
                     'price_percent': 20,
-                    'is_invite': False,
                     'items': [
-                        {'icon': '💳', 'name': 'Stripe', 'description': 'Ideal for credit/debit card payments, widely used worldwide. Supports subscriptions, one-time payments, and multiple currencies.'},
-                        {'icon': '🅿️', 'name': 'PayPal', 'description': 'Globally recognized platform, allows payments with PayPal balance, cards, and international accounts.'},
-                    ],
-                },
-                {
-                    'id': 'integration_regional_payments',
-                    'icon': '🇨🇴',
-                    'title': 'Regional Payment Gateway (Colombia) (API Integration)',
-                    'is_visible': True,
-                    'description': (
-                        'Integration with payment gateways present in the Colombian market '
-                        'to facilitate local transactions with multiple payment methods.'
-                    ),
-                    'is_calculator_module': True,
-                    'default_selected': False,
-                    'selected': False,
-                    'price_percent': 20,
-                    'is_invite': False,
-                    'items': [
-                        {'icon': '💳', 'name': 'PayU', 'description': 'One of the most used in Colombia, supports card, PSE, Efecty, Baloto, Nequi, Daviplata.'},
-                        {'icon': '🏦', 'name': 'Wompi (Bancolombia)', 'description': 'Excellent local option with PSE, cards, Nequi, and Bancolombia button support.'},
-                        {'icon': '💰', 'name': 'ePayco', 'description': 'Easy-to-integrate Colombian alternative supporting PSE, cards, and physical collections.'},
+                        {'icon': '📧', 'name': 'Automated Email Reports', 'description': 'Receive periodic summaries with key business metrics directly in your inbox, without having to log into the system.'},
+                        {'icon': '🔔', 'name': 'Custom Alerts', 'description': 'Set up notifications for important events: new sales, user registrations, low stock, or any metric you define.'},
+                        {'icon': '💚', 'name': 'WhatsApp Integration', 'description': 'Receive instant alerts and reports on your WhatsApp number through the official API, perfect for staying informed from the same channel where you serve your customers.'},
+                        {'icon': '✈️', 'name': 'Telegram Integration', 'description': 'Receive instant alerts and reports in your Telegram chat, perfect for staying informed from anywhere in real time.'},
+                        {'icon': '⏰', 'name': 'Scheduled Delivery', 'description': 'Define the frequency and timing of your reports: daily, weekly, monthly, or real-time based on your needs.'},
+                        {'icon': '📋', 'name': 'Periodic Executive Summary', 'description': 'Consolidated report with the most relevant metrics of your project, designed for quick reading and agile decision-making.'},
                     ],
                 },
                 {
@@ -1769,27 +1792,6 @@ DEFAULT_SECTIONS_EN = [
                         {'icon': '🎯', 'name': 'Audience Segmentation', 'description': 'Classify your subscribers by behavior, interests and demographics to send relevant, personalized messages.'},
                         {'icon': '📊', 'name': 'Campaign Analytics', 'description': 'Detailed metrics on opens, clicks, conversions and ROI of each campaign to optimize your communication strategy.'},
                         {'icon': '🔗', 'name': 'Platform Integration', 'description': 'Native connection with Mailchimp, SendGrid, Brevo or other leading email marketing platforms based on your needs.'},
-                    ],
-                },
-                {
-                    'id': 'reports_alerts_module',
-                    'icon': '📬',
-                    'title': 'Reports & Alerts via Email or Telegram',
-                    'is_visible': True,
-                    'description': (
-                        'Stay informed at all times with automated reports and customized alerts '
-                        'delivered directly to your email or Telegram.'
-                    ),
-                    'is_calculator_module': True,
-                    'default_selected': False,
-                    'selected': False,
-                    'price_percent': 20,
-                    'items': [
-                        {'icon': '📧', 'name': 'Automated Email Reports', 'description': 'Receive periodic summaries with key business metrics directly in your inbox, without having to log into the system.'},
-                        {'icon': '🔔', 'name': 'Custom Alerts', 'description': 'Set up notifications for important events: new sales, user registrations, low stock, or any metric you define.'},
-                        {'icon': '✈️', 'name': 'Telegram Integration', 'description': 'Receive instant alerts and reports in your Telegram chat, perfect for staying informed from anywhere in real time.'},
-                        {'icon': '⏰', 'name': 'Scheduled Delivery', 'description': 'Define the frequency and timing of your reports: daily, weekly, monthly, or real-time based on your needs.'},
-                        {'icon': '📋', 'name': 'Periodic Executive Summary', 'description': 'Consolidated report with the most relevant metrics of your project, designed for quick reading and agile decision-making.'},
                     ],
                 },
                 {
@@ -1816,29 +1818,29 @@ DEFAULT_SECTIONS_EN = [
                     ],
                 },
                 {
-                    'id': 'gift_cards_module',
-                    'icon': '🎁',
-                    'title': 'Gift Cards & Digital Vouchers',
-                    'is_visible': False,
+                    'id': 'live_chat_module',
+                    'icon': '💬',
+                    'title': 'First-Party Live Chat',
+                    'is_visible': True,
                     'description': (
-                        'Create, sell, and redeem digital gift cards with configurable balance, '
-                        'branded design, and a unique verifiable code at checkout. '
-                        'Generate upfront revenue and capture new customers through '
-                        'existing buyers.'
+                        'Real-time chat system fully hosted on the client\'s infrastructure '
+                        '— no Intercom, Drift, or LiveChat — where agents respond '
+                        'from the same admin panel. Data is 100% owned, with no growing '
+                        'subscription costs or risk of the tool displaying competitor ads.'
                     ),
-                    'is_calculator_module': False,
+                    'is_calculator_module': True,
                     'default_selected': False,
                     'selected': False,
-                    'price_percent': 20,
+                    'price_percent': 40,
                     'items': [
-                        {'icon': '💳', 'name': 'Gift Card Creation & Sales', 'description': 'Customers can purchase digital gift cards with configurable balance directly from your website, with an integrated payment process.'},
-                        {'icon': '✅', 'name': 'Checkout Redemption with Unique Code', 'description': 'Each gift card generates a unique verifiable code that the recipient can apply during checkout as a partial or full payment method.'},
-                        {'icon': '📊', 'name': 'Balance & Transaction History', 'description': 'Both the buyer and recipient can check the available balance, transactions made, and expiration date for each card.'},
-                        {'icon': '🎨', 'name': 'Custom Branded Design', 'description': 'Gift cards are generated with your brand\'s visual identity, including logo, colors, and a customizable message from the buyer to the recipient.'},
-                        {'icon': '⏰', 'name': 'Configurable Expiration', 'description': 'Define expiration policies per card type: no expiration, 6 months, 1 year, or custom. Includes automatic notifications before expiration.'},
+                        {'icon': '🔌', 'name': 'Embedded Chat Widget', 'description': 'Floating component integrated into the website that allows the visitor to start a real-time conversation without leaving the page they are browsing.'},
+                        {'icon': '🖥️', 'name': 'Agent Panel in Admin', 'description': 'Agents handle conversations directly from the site\'s admin panel, without needing external applications or additional accounts.'},
+                        {'icon': '📡', 'name': 'Real-time Communication (WebSocket)', 'description': 'Instant bidirectional messages between visitor and agent via persistent connection, with no delays or page reloads needed.'},
+                        {'icon': '🗄️', 'name': 'Owned Conversation History', 'description': 'All conversations are stored in the client\'s database, with search, date filters, and export. Data is 100% client-owned.'},
+                        {'icon': '🤖', 'name': 'Configurable Auto-responses', 'description': 'Welcome messages, after-hours responses, and automated FAQs that keep support active even when no agents are available.'},
+                        {'icon': '🔔', 'name': 'New Chat Notifications', 'description': 'Real-time alerts to the agent when a visitor starts a conversation or sends a new message, ensuring minimal response times.'},
                     ],
-                },
-                {
+                },                {
                     'id': 'dark_mode_module',
                     'icon': '🌙',
                     'title': 'Dynamic Theming Engine (Dark Mode)',
@@ -1862,29 +1864,29 @@ DEFAULT_SECTIONS_EN = [
                     ],
                 },
                 {
-                    'id': 'live_chat_module',
-                    'icon': '💬',
-                    'title': 'First-Party Live Chat',
-                    'is_visible': True,
+                    'id': 'gift_cards_module',
+                    'icon': '🎁',
+                    'title': 'Gift Cards & Digital Vouchers',
+                    'is_visible': False,
                     'description': (
-                        'Real-time chat system fully hosted on the client\'s infrastructure '
-                        '— no Intercom, Drift, or LiveChat — where agents respond '
-                        'from the same admin panel. Data is 100% owned, with no growing '
-                        'subscription costs or risk of the tool displaying competitor ads.'
+                        'Create, sell, and redeem digital gift cards with configurable balance, '
+                        'branded design, and a unique verifiable code at checkout. '
+                        'Generate upfront revenue and capture new customers through '
+                        'existing buyers.'
                     ),
-                    'is_calculator_module': True,
+                    'is_calculator_module': False,
                     'default_selected': False,
                     'selected': False,
-                    'price_percent': 40,
+                    'price_percent': 20,
                     'items': [
-                        {'icon': '🔌', 'name': 'Embedded Chat Widget', 'description': 'Floating component integrated into the website that allows the visitor to start a real-time conversation without leaving the page they are browsing.'},
-                        {'icon': '🖥️', 'name': 'Agent Panel in Admin', 'description': 'Agents handle conversations directly from the site\'s admin panel, without needing external applications or additional accounts.'},
-                        {'icon': '📡', 'name': 'Real-time Communication (WebSocket)', 'description': 'Instant bidirectional messages between visitor and agent via persistent connection, with no delays or page reloads needed.'},
-                        {'icon': '🗄️', 'name': 'Owned Conversation History', 'description': 'All conversations are stored in the client\'s database, with search, date filters, and export. Data is 100% client-owned.'},
-                        {'icon': '🤖', 'name': 'Configurable Auto-responses', 'description': 'Welcome messages, after-hours responses, and automated FAQs that keep support active even when no agents are available.'},
-                        {'icon': '🔔', 'name': 'New Chat Notifications', 'description': 'Real-time alerts to the agent when a visitor starts a conversation or sends a new message, ensuring minimal response times.'},
+                        {'icon': '💳', 'name': 'Gift Card Creation & Sales', 'description': 'Customers can purchase digital gift cards with configurable balance directly from your website, with an integrated payment process.'},
+                        {'icon': '✅', 'name': 'Checkout Redemption with Unique Code', 'description': 'Each gift card generates a unique verifiable code that the recipient can apply during checkout as a partial or full payment method.'},
+                        {'icon': '📊', 'name': 'Balance & Transaction History', 'description': 'Both the buyer and recipient can check the available balance, transactions made, and expiration date for each card.'},
+                        {'icon': '🎨', 'name': 'Custom Branded Design', 'description': 'Gift cards are generated with your brand\'s visual identity, including logo, colors, and a customizable message from the buyer to the recipient.'},
+                        {'icon': '⏰', 'name': 'Configurable Expiration', 'description': 'Define expiration policies per card type: no expiration, 6 months, 1 year, or custom. Includes automatic notifications before expiration.'},
                     ],
                 },
+
             ],
         },
     },

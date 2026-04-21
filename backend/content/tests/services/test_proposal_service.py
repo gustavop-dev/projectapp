@@ -32,12 +32,15 @@ EXPECTED_GROUP_ORDER = [
 ]
 
 EXPECTED_ADDITIONAL_MODULE_ORDER = [
+    'integration_electronic_invoicing',
+    'integration_regional_payments',
+    'integration_international_payments',
     'pwa_module', 'ai_module',
-    'integration_conversion_tracking', 'integration_electronic_invoicing',
-    'integration_international_payments', 'integration_regional_payments',
-    'email_marketing_module', 'reports_alerts_module',
-    'i18n_module', 'gift_cards_module',
-    'dark_mode_module', 'live_chat_module',
+    'integration_conversion_tracking',
+    'reports_alerts_module', 'email_marketing_module',
+    'i18n_module',
+    'live_chat_module', 'dark_mode_module',
+    'gift_cards_module',
 ]
 
 
@@ -203,14 +206,17 @@ class TestGetDefaultSections:
         assert ai['is_invite'] is True
         assert ai['price_percent'] == 0
 
-    def test_reports_alerts_module_has_5_items_and_default_not_selected(self):
+    def test_reports_alerts_module_has_6_items_and_default_not_selected(self):
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         reports = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'reports_alerts_module')
-        assert len(reports['items']) == 5
+        assert len(reports['items']) == 6
         assert reports['is_calculator_module'] is True
         assert reports['default_selected'] is False
         assert reports['price_percent'] == 20
+        assert 'WhatsApp' in reports['title']
+        item_names = [i['name'] for i in reports['items']]
+        assert 'Integración con WhatsApp' in item_names
 
     def test_en_calculator_modules_mirror_es(self):
         """EN additional modules match ES in item count, calculator flag, and price percent."""

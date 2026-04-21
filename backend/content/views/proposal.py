@@ -1121,11 +1121,41 @@ def get_proposal_json_template(request):
         ),
         'CRITICAL_functionalRequirements': (
             'Do NOT remove any groups or modules from the functionalRequirements section. '
-            'The 6 base groups in "groups" and the 12 optional modules in "additionalModules" '
-            'MUST remain in their respective arrays. Do NOT move modules between arrays. '
+            'All base groups in "groups" and all optional modules in "additionalModules" '
+            'MUST remain in their respective arrays, in their original order. '
+            'Do NOT move modules between arrays. '
             'You may modify content (title, description, items) and add new entries, '
             'but NEVER delete or relocate existing ones. The seller will remove them manually '
             'after the proposal is created if needed.'
+        ),
+        'CRITICAL_additionalModules_autoselect': (
+            'Scan the project requirements, brief, and notes provided by the seller. '
+            'For EACH module in functionalRequirements.additionalModules, decide whether '
+            'the requirements explicitly or implicitly describe that capability. '
+            'Detection hints: DIAN, electronic invoicing or e-invoicing, Siigo, Alegra -> '
+            '"integration_electronic_invoicing". PSE, Wompi, PayU, ePayco, Nequi, Daviplata, '
+            'Bancolombia or Colombian payments -> "integration_regional_payments". Stripe, '
+            'PayPal, cross-border or international payments -> '
+            '"integration_international_payments". Installable app, PWA, offline mode, push '
+            'notifications -> "pwa_module". AI, intelligent automation, chatbot, assistants '
+            '-> "ai_module". Meta Ads, Facebook Ads, Google Ads, Conversions API, CAPI, ROAS, '
+            'Enhanced Conversions -> "integration_conversion_tracking". Reports, notifications '
+            'or alerts via email/WhatsApp/Telegram, sales/stock alerts -> '
+            '"reports_alerts_module". Email marketing, Mailchimp, Brevo, SendGrid, lead '
+            'capture -> "email_marketing_module". Multi-language, i18n, multiple countries, '
+            'translations, per-country pricing -> "i18n_module". Live chat, real-time '
+            'support, in-house chat widget -> "live_chat_module". Dark mode, theme '
+            'switching -> "dark_mode_module". '
+            'When a module matches the brief, set BOTH "default_selected": true AND '
+            '"selected": true on that module object, and ADAPT its "description" and reorder '
+            'or rewrite its "items" so the wording reflects the exact terminology, providers '
+            'and nuances mentioned in the requirements (e.g. if the brief says "I want to '
+            'receive reports via WhatsApp", make sure the WhatsApp item in '
+            'reports_alerts_module leads the list and the description names WhatsApp as the '
+            'primary channel). '
+            'Never invent a match that is not supported by the requirements. When in doubt, '
+            'leave default_selected as false. Do NOT change the module id, icon, price_percent, '
+            'is_invite, or its position in the array.'
         ),
     }
 
