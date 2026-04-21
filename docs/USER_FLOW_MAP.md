@@ -697,6 +697,30 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-edit.spec.js`
 
+### FLOW: `admin-proposal-slug-edit`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/proposals/:id/edit` (General tab → URL personalizada)
+- **Description:** Admin sets or regenerates the human-friendly slug for the public proposal URL. The slug replaces the UUID in the shared link (`/proposal/<slug>/`) making it feel personal to the client. Includes format validation, uniqueness check, and one-click regeneration from client name.
+- **Steps:**
+  1. Admin opens a proposal and stays on the General tab.
+  2. The slug input shows the current slug (auto-generated on creation from default pattern or client name).
+  3. Admin types a new slug in the input field (lowercase, numbers, hyphens only).
+  4. Client validates format with regex `/^[a-z0-9]+(?:-[a-z0-9]+)*$/`; red error shown for invalid format.
+  5. Admin clicks "Guardar URL" → `PATCH /api/proposals/:id/update/` with `{ slug }`.
+  6. Server validates uniqueness; 400 error surfaced in UI if taken.
+  7. Success state (✓) shown; copy-link button and preview href update to use new slug.
+  8. [Branch] Admin clicks "Regenerar" to reset slug from client name via `toSlug(clientName)`.
+- **Branches:**
+  - [Branch A — Valid format] Save succeeds, slug persists, public URL updates.
+  - [Branch B — Invalid format] Red error message blocks save.
+  - [Branch C — Duplicate slug] Server 400 → "Esa URL ya está en uso" message.
+  - [Branch D — Regenerate] Slug input pre-filled with `toSlug(clientName)`; admin can still modify before saving.
+- **Coverage:** ❌ Not covered
+- **E2E Spec:** *(pending `e2e/admin/admin-proposal-slug-edit.spec.js`)*
+
 ### FLOW: `admin-proposal-section-edit-form`
 
 - **Module:** admin
@@ -919,6 +943,26 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-defaults.spec.js`
 - **Backend Tests:** `content/tests/views/test_proposal_defaults_views.py`, `content/tests/models/test_proposal_default_config.py`, `content/tests/services/test_proposal_service.py::TestGetDefaultSectionsFromDB`
+
+### FLOW: `admin-proposal-defaults-slug-pattern`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/defaults?mode=proposal` (General tab)
+- **Description:** Admin configures the default slug pattern used when new proposals are created. The pattern supports `{client_name}`, `{project_type}`, and `{year}` placeholders. A live preview below the input shows the slugified result (e.g., `{client_name}` → `/proposal/empresa-demo`). Saved to `ProposalDefaultConfig.default_slug_pattern`.
+- **Steps:**
+  1. Admin navigates to `/panel/defaults?mode=proposal`.
+  2. General tab renders. Slug pattern input shows current value (default: `{client_name}`).
+  3. Live preview below input updates reactively as admin types, showing the `toSlug()` result.
+  4. Admin edits the pattern (e.g., `{client_name}-{year}`).
+  5. Admin clicks "Guardar" → `PUT /api/proposals/defaults/` with `{ default_slug_pattern }`.
+  6. Future proposals auto-generate slugs using the new pattern.
+- **Branches:**
+  - [Branch A — Valid pattern] Pattern saved; new proposals use the pattern.
+  - [Branch B — Custom text] Any free-text pattern (no placeholders) works; becomes a fixed prefix with collision suffix appended.
+- **Coverage:** ❌ Not covered
+- **E2E Spec:** *(pending `e2e/admin/admin-proposal-defaults-slug-pattern.spec.js`)*
 
 ### FLOW: `admin-email-templates-config`
 
@@ -2064,6 +2108,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-client-autocomplete` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-client-autocomplete.spec.js` |
 | `admin-proposal-client-no-email` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-client-autocomplete.spec.js` |
 | `admin-proposal-edit` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-edit.spec.js` |
+| `admin-proposal-slug-edit` | admin | admin | P1 | ❌ Missing | pending `e2e/admin/admin-proposal-slug-edit.spec.js` |
 | `admin-proposal-section-edit-form` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-section-form.spec.js` |
 | `admin-proposal-section-edit-paste` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-section-paste.spec.js` |
 | `admin-proposal-section-reorder` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-section-reorder.spec.js` |
@@ -3955,6 +4000,7 @@ No active browser flow is registered for client profile editing at this time.
 | `admin-proposal-diagnostic-templates` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-proposal-diagnostic-templates.spec.js` |
 | `admin-diagnostic-markdown-attachment` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-diagnostic-markdown-attachment.spec.js` |
 | `admin-defaults-unified` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-defaults-unified.spec.js` |
+| `admin-proposal-defaults-slug-pattern` | admin | admin | P2 | ❌ Missing | pending `e2e/admin/admin-proposal-defaults-slug-pattern.spec.js` |
 
 ---
 

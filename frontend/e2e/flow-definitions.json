@@ -1,6 +1,6 @@
 {
-  "version": "2.30.0",
-  "lastUpdated": "2026-04-20",
+  "version": "2.32.0",
+  "lastUpdated": "2026-04-21",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -2121,6 +2121,42 @@
       "expectedSpecs": 0,
       "knownGaps": [
         "admin-proposal-section-reorder covers drag reorder only. No E2E explicitly asserts that toggling is_enabled on a section removes it from the public proposal view."
+      ]
+    },
+    "proposal-slug-access": {
+      "name": "Proposal Slug Access",
+      "module": "proposal",
+      "roles": [
+        "guest"
+      ],
+      "priority": "P1",
+      "description": "Client accesses a proposal via its human-friendly slug URL (/proposal/<slug>/). The store detects non-UUID identifiers and routes the request to the by-slug API endpoint. UUID-based access must still work for backward compatibility. Unknown slugs must render the 404/not-found state.",
+      "expectedSpecs": 3
+    },
+    "admin-proposal-slug-edit": {
+      "name": "Admin Proposal Slug Edit",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Admin sets or regenerates the human-friendly slug (URL personalizada) for a proposal from the General tab. Includes format validation (lowercase/numbers/hyphens), uniqueness error on 400, and one-click regeneration from client name. PATCH /api/proposals/:id/update/ with { slug }.",
+      "expectedSpecs": 0,
+      "knownGaps": [
+        "Slug input, save, and regenerate actions on the proposal edit General tab have no E2E coverage."
+      ]
+    },
+    "admin-proposal-defaults-slug-pattern": {
+      "name": "Admin Proposal Defaults — Slug Pattern",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin configures the default slug pattern used when new proposals are created (e.g. {client_name}, {client_name}-{year}). Live preview shows the slugified result. Saved to ProposalDefaultConfig.default_slug_pattern via PUT /api/proposals/defaults/.",
+      "expectedSpecs": 0,
+      "knownGaps": [
+        "Slug pattern input and preview in ProposalDefaultsPanel General tab have no E2E coverage."
       ]
     }
   }

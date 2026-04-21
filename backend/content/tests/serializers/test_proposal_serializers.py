@@ -811,3 +811,49 @@ class TestSectionKeyMapValueAddedModules:
         assert rehydrated_type == snake
         assert rehydrated_content['module_ids'] == cfg['content_json']['module_ids']
         assert rehydrated_content['justifications'] == cfg['content_json']['justifications']
+
+
+class TestSlugValidation:
+    def test_valid_slug_is_accepted(self):
+        s = ProposalCreateUpdateSerializer(data={'slug': 'maria-lopez'}, partial=True)
+        s.is_valid()
+        assert 'slug' not in s.errors
+
+    def test_slug_with_spaces_is_rejected(self):
+        s = ProposalCreateUpdateSerializer(data={'slug': 'maria lopez'}, partial=True)
+        s.is_valid()
+        assert 'slug' in s.errors
+
+    def test_slug_with_uppercase_is_rejected(self):
+        s = ProposalCreateUpdateSerializer(data={'slug': 'Maria-Lopez'}, partial=True)
+        s.is_valid()
+        assert 'slug' in s.errors
+
+    def test_slug_with_accents_is_rejected(self):
+        s = ProposalCreateUpdateSerializer(data={'slug': 'maría-lópez'}, partial=True)
+        s.is_valid()
+        assert 'slug' in s.errors
+
+    def test_slug_over_120_chars_is_rejected(self):
+        s = ProposalCreateUpdateSerializer(data={'slug': 'a' * 121}, partial=True)
+        s.is_valid()
+        assert 'slug' in s.errors
+
+    def test_duplicate_slug_is_rejected(self):
+        from content.models import BusinessProposal
+        BusinessProposal.objects.create(title='Existing', client_name='Someone', slug='taken-slug')
+        s = ProposalCreateUpdateSerializer(data={'slug': 'taken-slug'}, partial=True)
+        s.is_valid()
+        assert 'slug' in s.errors
+
+    def test_editing_own_slug_passes_uniqueness(self):
+        from content.models import BusinessProposal
+        proposal = BusinessProposal.objects.create(title='A', client_name='A', slug='my-slug')
+        s = ProposalCreateUpdateSerializer(instance=proposal, data={'slug': 'my-slug'}, partial=True)
+        s.is_valid()
+        assert 'slug' not in s.errors
+
+    def test_empty_slug_is_accepted(self):
+        s = ProposalCreateUpdateSerializer(data={'slug': ''}, partial=True)
+        s.is_valid()
+        assert 'slug' not in s.errors

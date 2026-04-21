@@ -4301,3 +4301,24 @@ class TestCompleteProjectStage:
             proposal=accepted_proposal, stage_key='design',
         )
         assert stage.completed_at is not None
+
+
+class TestProposalJsonTemplate:
+    def test_seller_prompt_autoselect_key_is_present(self, admin_client):
+        response = admin_client.get('/api/proposals/json-template/?lang=es')
+        assert response.status_code == 200
+        assert '_seller_prompt' in response.data
+        assert 'CRITICAL_additionalModules_autoselect' in response.data['_seller_prompt']
+
+    def test_seller_prompt_autoselect_maps_invoicing_keyword(self, admin_client):
+        response = admin_client.get('/api/proposals/json-template/?lang=es')
+        autoselect = response.data['_seller_prompt']['CRITICAL_additionalModules_autoselect']
+        assert 'integration_electronic_invoicing' in autoselect
+        assert 'DIAN' in autoselect
+
+    def test_seller_prompt_autoselect_maps_payments_keywords(self, admin_client):
+        response = admin_client.get('/api/proposals/json-template/?lang=es')
+        autoselect = response.data['_seller_prompt']['CRITICAL_additionalModules_autoselect']
+        assert 'integration_regional_payments' in autoselect
+        assert 'integration_international_payments' in autoselect
+        assert 'Stripe' in autoselect

@@ -39,6 +39,24 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
   - **Frontend** (`proposal/[uuid]/index.vue`): `displayPanels` computed now hides `value_added_modules` when none of its `module_ids` resolve against the current `functional_requirements` groups — prevents the section from rendering an empty card.
   - **`useSellerPrompt.js`**: narrative flow updated to include "Incluido sin costo (módulos base)" between functional_requirements and investment; `index` field for `value_added_modules` corrected to `"10"`.
 
+- **Business Proposal — Calculator Module Reorder + Seller Prompt Auto-Select** (Apr 21, 2026):
+  - `additionalModules` array in `proposal_service.py` reordered (ES + EN): payment integrations first (DIAN, regional, international), then PWA, AI, conversion tracking, reports, email marketing, i18n, live chat, dark mode.
+  - `reports_alerts_module` renamed to "Reportes y Alertas vía Correo, WhatsApp o Telegram"; 6th item (WhatsApp 💚) added to `items`.
+  - `_seller_prompt` in `proposal.py` gained `CRITICAL_additionalModules_autoselect` with keyword→module detection map. When requirements mention DIAN/PSE/Stripe/AI/chatbot/etc., Claude sets `default_selected: true` on the matched module and adapts its copy to the brief.
+  - `CRITICAL_functionalRequirements` count phrase made count-agnostic.
+  - Tests updated: new module order asserted; `reports_alerts_module` test now asserts 6 items + WhatsApp title.
+
+- **Business Proposal — Personal Slug URL** (Apr 21, 2026):
+  - New `slug` field (`SlugField, unique=True, blank=True, max_length=120`) on `BusinessProposal`. Auto-generated on `save()` from `ProposalDefaultConfig.default_slug_pattern` (interpolated via `render_slug_pattern`) or `client_name` fallback; collision-free via `resolve_unique_slug` (single `__startswith` DB query + Python set).
+  - `ProposalDefaultConfig` gained `default_slug_pattern = CharField(default='{client_name}')`.
+  - New shared utilities in `content/utils.py`: `render_slug_pattern`, `resolve_unique_slug`, `safe_slug`.
+  - `validate_slug()` in `ProposalCreateUpdateSerializer` enforces format + uniqueness.
+  - New URL `proposals/by-slug/<slug>/` delegates to `_serve_public_proposal` helper; UUID route fully preserved for backward compatibility. `'slug'` added to `tracked_fields` for audit log.
+  - Migrations `0104` (populate + dedupe + `unique=True`) + `0105` (`default_slug_pattern` field).
+  - Frontend: `frontend/utils/slugify.js` (`toSlug()` NFD normalize); `fetchPublicProposal` UUID/slug branch detection; editable slug input on proposal edit General tab (Save + Regenerate); live pattern preview in `ProposalDefaultsPanel.vue`. All copy-URL and public href references use `slug || uuid`.
+  - `public_url` property uses `slug or uuid` as identifier.
+  - Tests: `TestBusinessProposalSlug` (3 cases: auto-gen, collision suffix, preserved); `TestBusinessProposalPublicUrl` updated; 4 new by-slug API tests.
+
 - **FIX — Admin-auth Middleware Hardening & Dark Mode** (Apr 20, 2026):
   - **`admin-auth.js`**: middleware rewritten — simplified conditional logic, removed unused branches.
   - **Blog calendar** (`panel/blog/calendar.vue`): dark mode token fix.
@@ -351,11 +369,11 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 | Content model files | 30 |
 | Accounts model classes | 21 |
 | Accounts URL patterns | 65 |
-| Content URL patterns | ~146 (+public diagnostic pdf + 0103 order swap) |
+| Content URL patterns | ~148 (+proposals/by-slug/<slug>/ + public diagnostic pdf) |
 | Email templates | 61 (32 HTML + 29 TXT across `accounts` + `content`) |
 | Content services | 20 (+diagnostic_pdf_service.py) |
 | Accounts services | 11 |
-| Content migrations | 103 (0103 swap_value_added_modules_order pending apply) |
+| Content migrations | 105 (0103 swap + 0104 slug populate/unique + 0105 slug pattern field) |
 | Quality gate score | 100/100 |
 
 ---
@@ -363,7 +381,8 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 ## Next Steps
 
 - **Run pending frontend unit tests** — `npm --prefix frontend test -- test/components/ProposalDiagnosticTemplatesSection.test.js test/components/ValueAddedModules.test.js` — `MarkdownAttachmentModal.test.js` is now verified (12/14 pass; 2 pre-existing failures at HEAD). `ProposalDiagnosticTemplatesSection.test.js` and `ValueAddedModules.test.js` still untested locally.
-- **Apply pending migrations in production** — `python manage.py migrate` — required to activate the Kanban board (`0087_task.py`), the Web App Diagnostics module (`0090_web_app_diagnostic.py`), the new Diagnostic Defaults table (`0101_diagnostic_default_config.py`), the Value Added Modules section type (`0102_value_added_modules_section.py`), and the order swap (`0103_swap_value_added_modules_order.py`).
+- **Deploy 3 pending commits to production** — commits `e2f3785a` (module reorder + auto-select), `22512aac` (slug URL), and `5c7ba3fe` (simplify refactor) are on local `main` but not yet pushed. Run `git push`, then `/deploy-and-check`.
+- **Apply pending migrations in production** — `python manage.py migrate` — required to activate the Kanban board (`0087_task.py`), the Web App Diagnostics module (`0090_web_app_diagnostic.py`), the new Diagnostic Defaults table (`0101_diagnostic_default_config.py`), the Value Added Modules section type (`0102_value_added_modules_section.py`), the order swap (`0103_swap_value_added_modules_order.py`), and the new slug migrations (`0104` + `0105`).
 - **Set `NOTIFICATION_EMAIL` in production env** to `team@projectapp.co,carlos18bp@gmail.com` so the new stage warning + overdue alerts reach the right inbox.
 - Consider extending `ProposalStageTracker.STAGE_DEFINITIONS` beyond design + development (e.g., QA, Lanzamiento, Entrega Final) — the model + service already support N stages, only the catalog constant needs an update.
 - Complete Document System PDF generation (branch `generate-pdf-with-template`): template rendering, preview, download flow — **folders & tags layer is now in place**

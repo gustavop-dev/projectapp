@@ -287,3 +287,8 @@ export const PLATFORM_LAYOUT_TITLE_MAPPING = ['@flow:platform-layout-title-mappi
 export const ADMIN_PROPOSAL_PLATFORM_HANDOFF      = ['@flow:admin-proposal-platform-handoff',      '@module:admin',      '@priority:P1'];
 export const DIAGNOSTIC_PUBLIC_PHASE_VISIBILITY   = ['@flow:diagnostic-public-phase-visibility',   '@module:diagnostic', '@priority:P2'];
 export const ADMIN_PROPOSAL_SECTION_DISABLE       = ['@flow:admin-proposal-section-disable',       '@module:admin',      '@priority:P2'];
+
+// ── Proposal Slug URL (Apr 21, 2026) ──
+export const PROPOSAL_SLUG_ACCESS               = ['@flow:proposal-slug-access',                    '@module:proposal', '@priority:P1'];
+export const ADMIN_PROPOSAL_SLUG_EDIT           = ['@flow:admin-proposal-slug-edit',                '@module:admin',    '@priority:P1'];
+export const ADMIN_PROPOSAL_DEFAULTS_SLUG_PATTERN = ['@flow:admin-proposal-defaults-slug-pattern', '@module:admin',    '@priority:P2'];
