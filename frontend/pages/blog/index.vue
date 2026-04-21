@@ -350,14 +350,13 @@ const isEnglish = computed(() => locale.value.startsWith('en'));
 const blogLang = computed(() => isEnglish.value ? 'en' : 'es');
 const baseUrl = 'https://projectapp.co';
 
-const blogTitle = computed(() => 'Blog — Project App.');
+const blogTitle = 'Blog — Project App.';
 const blogDescription = computed(() => isEnglish.value
   ? 'Insights and trends in AI, software development, and digital transformation.'
   : 'Novedades y tendencias en IA, desarrollo de software y transformación digital.'
 );
 
 useHead({
-  title: blogTitle,
   meta: [
     { name: 'description', content: blogDescription },
     { name: 'keywords', content: computed(() => isEnglish.value

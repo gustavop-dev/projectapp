@@ -337,7 +337,6 @@ const articleTitle = computed(() => {
 const articleDescription = computed(() => post.value?.meta_description || post.value?.excerpt || '');
 
 useHead({
-  title: articleTitle,
   meta: [
     { name: 'description', content: articleDescription },
     { name: 'keywords', content: computed(() => post.value?.meta_keywords || '') },

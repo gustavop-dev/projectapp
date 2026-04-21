@@ -19,7 +19,6 @@ export function useSeoHead(metaKey, options = {}) {
   const ogLocale = () => locale.value === 'es-co' ? 'es_CO' : 'en_US'
 
   useHead({
-    title: () => t(`meta.${metaKey}.title`),
     meta: [
       { name: 'description', content: () => t(`meta.${metaKey}.description`) },
       { name: 'keywords', content: () => t(`meta.${metaKey}.keywords`) },

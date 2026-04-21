@@ -31,20 +31,12 @@ beforeEach(() => {
 });
 
 describe('useSeoHead', () => {
-  it('calls useHead with title function', () => {
+  it('does not set <title> (public pages use the global default)', () => {
     useSeoHead('aboutUs');
 
     expect(mockUseHead).toHaveBeenCalledTimes(1);
     const arg = mockUseHead.mock.calls[0][0];
-    expect(typeof arg.title).toBe('function');
-  });
-
-  it('generates correct title via t()', () => {
-    useSeoHead('aboutUs');
-
-    const arg = mockUseHead.mock.calls[0][0];
-    arg.title();
-    expect(mockT).toHaveBeenCalledWith('meta.aboutUs.title');
+    expect(arg.title).toBeUndefined();
   });
 
   it('generates correct description meta', () => {

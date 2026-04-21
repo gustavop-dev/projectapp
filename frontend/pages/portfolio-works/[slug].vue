@@ -224,10 +224,6 @@ const videoEmbedUrl = computed(() => {
 });
 
 useHead({
-  title: computed(() => {
-    if (!work.value) return 'Portfolio — Project App';
-    return work.value.meta_title || `${work.value.title} — Project App`;
-  }),
   meta: [
     { name: 'description', content: computed(() => work.value?.meta_description || work.value?.excerpt || '') },
     { property: 'og:title', content: computed(() => work.value?.meta_title || work.value?.title || '') },
