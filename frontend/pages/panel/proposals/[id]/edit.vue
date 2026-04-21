@@ -1245,6 +1245,7 @@ import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
 import { buildProposalModuleLinkOptions } from '~/utils/proposalModuleLinkOptions';
 import { getProposalNextAction } from '~/utils/proposalNextAction';
+import { toSlug } from '~/utils/slugify';
 import { detectLegacyTechnicalFormat, downloadMigratedProposalJson, LEGACY_FIELD_LABELS } from '~/utils/proposalJsonMigration';
 import LegacyFormatWarning from '~/components/panel/LegacyFormatWarning.vue';
 import PanelToast from '~/components/panel/PanelToast.vue';
@@ -1265,8 +1266,6 @@ const proposalModeLinks = [
   { label: 'Detalle técnico', labelUrl: 'URL detalle técnico', mode: 'technical' },
 ];
 
-// Public URL identifier: prefer the editable slug, fall back to UUID for
-// any legacy proposal that somehow still lacks one.
 const publicIdentifier = computed(
   () => proposal.value?.slug || proposal.value?.uuid || ''
 );
@@ -1303,14 +1302,7 @@ watch(
 );
 
 function regenerateSlugFromName() {
-  const source = proposal.value?.client_name || '';
-  slugDraft.value = source
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 120);
+  slugDraft.value = toSlug(proposal.value?.client_name);
   slugError.value = '';
 }
 
@@ -1318,6 +1310,7 @@ async function saveSlug() {
   const value = (slugDraft.value || '').trim();
   slugError.value = '';
   slugSaved.value = false;
+  if (value === (proposal.value?.slug || '')) return;
   if (value && !slugRegex.test(value)) {
     slugError.value = 'Solo minúsculas, números y guiones (sin espacios ni acentos).';
     return;

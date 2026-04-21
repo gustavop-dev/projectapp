@@ -418,8 +418,6 @@ def _serve_public_proposal(request, proposal):
     """Shared handler for the public proposal endpoint.
 
     Implements the full view-count / expired / alerts / analytics pipeline.
-    Both the UUID-based and the slug-based public endpoints delegate here so
-    behaviour stays identical regardless of which identifier the client used.
     """
     if not proposal.is_active:
         return Response(
@@ -569,12 +567,7 @@ def _serve_public_proposal(request, proposal):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def retrieve_public_proposal(request, proposal_uuid):
-    """
-    Retrieve a proposal by UUID for client viewing.
-
-    Legacy entry-point kept for backward compatibility with links that were
-    sent out before slugs existed. Delegates to ``_serve_public_proposal``.
-    """
+    """Retrieve a proposal by UUID for client viewing."""
     proposal = get_object_or_404(
         BusinessProposal.objects.select_related('client__user'),
         uuid=proposal_uuid,
@@ -1369,7 +1362,7 @@ def update_proposal(request, proposal_id):
     tracked_fields = [
         'title', 'total_investment', 'currency', 'client_name',
         'client_email', 'client_phone', 'discount_percent', 'status',
-        'language', 'project_type', 'market_type',
+        'language', 'project_type', 'market_type', 'slug',
         'expires_at', 'reminder_days', 'urgency_reminder_days',
     ]
     old_values = {f: str(getattr(proposal, f, '')) for f in tracked_fields}

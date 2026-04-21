@@ -284,16 +284,18 @@ def render_slug_pattern(pattern, proposal):
 def resolve_unique_slug(base, model, exclude_pk=None, slug_field='slug'):
     """Return a unique slug derived from *base*, appending ``-2``, ``-3``… on collision.
 
-    Case-insensitive collision detection (MySQL default); compared against the
-    persisted column using ``filter(<slug_field>=...)``.
+    Single DB round-trip: fetch every existing slug with the same prefix and
+    find the first free candidate in Python, instead of looping `.exists()`
+    per candidate.
     """
     base = base or 'propuesta'
-    qs = model.objects.all()
+    qs = model.objects.filter(**{f'{slug_field}__startswith': base})
     if exclude_pk:
         qs = qs.exclude(pk=exclude_pk)
-    candidate = base
+    taken = set(qs.values_list(slug_field, flat=True))
+    if base not in taken:
+        return base
     counter = 2
-    while qs.filter(**{slug_field: candidate}).exists():
-        candidate = f'{base}-{counter}'
+    while f'{base}-{counter}' in taken:
         counter += 1
-    return candidate
+    return f'{base}-{counter}'

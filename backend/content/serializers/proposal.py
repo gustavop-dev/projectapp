@@ -1,3 +1,4 @@
+from django.utils.text import slugify
 from rest_framework import serializers
 
 from accounts.models import UserProfile
@@ -360,12 +361,8 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
 
     def validate_slug(self, value):
         """Validate user-supplied slugs: format + uniqueness."""
-        from django.utils.text import slugify
-
         value = (value or '').strip()
         if not value:
-            # Empty is fine — the model's save() will auto-generate and
-            # resolve collisions deterministically.
             return value
         normalized = slugify(value)
         if normalized != value:

@@ -872,6 +872,7 @@ import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { toSlug } from '~/utils/slugify';
 
 
 const proposalStore = useProposalStore();
@@ -938,13 +939,7 @@ const slugPatternPreview = computed(() => {
   };
   let rendered = pattern;
   for (const [key, val] of Object.entries(sample)) rendered = rendered.split(key).join(val);
-  return rendered
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 120) || 'propuesta';
+  return toSlug(rendered, { fallback: 'propuesta' });
 });
 
 async function handleSaveGeneral() {

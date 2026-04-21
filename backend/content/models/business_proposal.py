@@ -285,12 +285,8 @@ class BusinessProposal(models.Model):
         if not self.slug:
             from content.models.proposal_default_config import ProposalDefaultConfig
 
-            pattern = None
-            try:
-                cfg = ProposalDefaultConfig.objects.filter(language=self.language).first()
-                pattern = cfg.default_slug_pattern if cfg else None
-            except Exception:
-                pattern = None
+            cfg = ProposalDefaultConfig.objects.filter(language=self.language).first()
+            pattern = cfg.default_slug_pattern if cfg else None
 
             if pattern:
                 base = render_slug_pattern(pattern, self)
@@ -322,11 +318,7 @@ class BusinessProposal(models.Model):
 
     @property
     def public_url(self):
-        """Build the client-facing URL for viewing this proposal.
-
-        Uses the editable ``slug`` when available, falling back to the UUID
-        for rows that somehow miss it (should not happen post-migration).
-        """
+        """Build the client-facing URL for viewing this proposal."""
         base = getattr(settings, 'FRONTEND_BASE_URL', 'http://localhost:3000')
         identifier = self.slug or self.uuid
         return f'{base}/proposal/{identifier}'

@@ -19,33 +19,25 @@ def _safe_slug(value, fallback):
 def populate_and_dedupe_slug(apps, schema_editor):
     BusinessProposal = apps.get_model('content', 'BusinessProposal')
 
-    # Build base-slug per row (derive if blank, truncate to 120 chars).
-    rows = list(BusinessProposal.objects.all().order_by('id').values('id', 'slug', 'client_name'))
-    desired_base = {}
-    for row in rows:
-        existing = (row['slug'] or '').strip()[:120]
-        if existing:
-            desired_base[row['id']] = existing
-        else:
-            desired_base[row['id']] = _safe_slug(row['client_name'], f"propuesta-{row['id']}")[:120]
-
-    # Deduplicate: first row keeps the base, subsequent rows get -2, -3…
+    instances = list(BusinessProposal.objects.all().order_by('id').only('id', 'slug', 'client_name'))
     taken = set()
-    final = {}
-    for row in rows:
-        base = desired_base[row['id']]
+    to_update = []
+    for inst in instances:
+        existing = (inst.slug or '').strip()[:120]
+        base = existing or _safe_slug(inst.client_name, f'propuesta-{inst.id}')[:120]
         candidate = base
         counter = 2
         while candidate in taken:
             suffix = f'-{counter}'
-            # Keep under max_length=120 including suffix.
-            candidate = (base[: 120 - len(suffix)] + suffix)
+            candidate = base[: 120 - len(suffix)] + suffix
             counter += 1
         taken.add(candidate)
-        final[row['id']] = candidate
+        if candidate != inst.slug:
+            inst.slug = candidate
+            to_update.append(inst)
 
-    for row_id, value in final.items():
-        BusinessProposal.objects.filter(pk=row_id).update(slug=value)
+    if to_update:
+        BusinessProposal.objects.bulk_update(to_update, ['slug'], batch_size=500)
 
 
 def noop_reverse(apps, schema_editor):

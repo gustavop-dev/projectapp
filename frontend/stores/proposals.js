@@ -50,10 +50,6 @@ export const useProposalStore = defineStore('proposals', {
 
     /**
      * fetchPublicProposal: Retrieve a proposal by UUID or slug for client viewing.
-     *
-     * Accepts either identifier: legacy UUID links still route to the UUID
-     * endpoint, while personalized slug URLs route to the by-slug endpoint.
-     *
      * @param {string} identifier - Proposal UUID or slug.
      */
     async fetchPublicProposal(identifier) {
