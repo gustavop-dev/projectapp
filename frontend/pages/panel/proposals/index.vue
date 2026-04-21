@@ -891,7 +891,7 @@ const proposalActions = computed(() => {
     icon: '👁️',
     label: 'Ver preview',
     info: 'Abre la propuesta tal como la ve el cliente, sin registrar vistas.',
-    href: `/proposal/${p.uuid}?preview=1`,
+    href: `/proposal/${p.slug || p.uuid}?preview=1`,
     bgClass: 'bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400',
     textClass: 'text-purple-700 dark:text-purple-300',
   });
@@ -1246,7 +1246,7 @@ async function handleDuplicate(id) {
 }
 
 function handleCopyLink(p) {
-  const url = `${window.location.origin}/proposal/${p.uuid}`;
+  const url = `${window.location.origin}/proposal/${p.slug || p.uuid}`;
   navigator.clipboard.writeText(url).then(() => {
     copiedId.value = p.id;
     setTimeout(() => { copiedId.value = null; }, 1500);
@@ -1337,7 +1337,7 @@ async function confirmQuickLog() {
 }
 
 function buildWhatsAppUrl(p) {
-  const url = `${window.location.origin}/proposal/${p.uuid}`;
+  const url = `${window.location.origin}/proposal/${p.slug || p.uuid}`;
   const phone = (p.client_phone || '').replace(/\D/g, '');
   const msg = encodeURIComponent(
     `Hola ${p.client_name}, te comparto la propuesta "${p.title}": ${url}\n\n¿Tienes alguna pregunta?`

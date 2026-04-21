@@ -260,3 +260,40 @@ def coerce_bool(value, default=True):
 def safe_slug(value, fallback='document'):
     """Slugify *value*, falling back when the result is empty (or value is None)."""
     return slugify(value or '') or fallback
+
+
+def render_slug_pattern(pattern, proposal):
+    """Render a slug pattern against a BusinessProposal instance.
+
+    Supported placeholders: ``{client_name}``, ``{project_type}``, ``{year}``.
+    Unknown placeholders are left as-is so slugify strips them cleanly.
+    The rendered string is then passed through :func:`safe_slug`.
+    """
+    pattern = (pattern or '').strip() or '{client_name}'
+    mapping = {
+        'client_name': proposal.client_name or '',
+        'project_type': proposal.get_project_type_display() if getattr(proposal, 'project_type', '') else '',
+        'year': str(proposal.created_at.year) if getattr(proposal, 'created_at', None) else '',
+    }
+    rendered = pattern
+    for key, val in mapping.items():
+        rendered = rendered.replace('{' + key + '}', str(val))
+    return safe_slug(rendered, 'propuesta')
+
+
+def resolve_unique_slug(base, model, exclude_pk=None, slug_field='slug'):
+    """Return a unique slug derived from *base*, appending ``-2``, ``-3``… on collision.
+
+    Case-insensitive collision detection (MySQL default); compared against the
+    persisted column using ``filter(<slug_field>=...)``.
+    """
+    base = base or 'propuesta'
+    qs = model.objects.all()
+    if exclude_pk:
+        qs = qs.exclude(pk=exclude_pk)
+    candidate = base
+    counter = 2
+    while qs.filter(**{slug_field: candidate}).exists():
+        candidate = f'{base}-{counter}'
+        counter += 1
+    return candidate

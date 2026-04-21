@@ -28,6 +28,16 @@ class ProposalDefaultConfig(models.Model):
         default=21,
         help_text='Default proposal expiration period in days.',
     )
+    default_slug_pattern = models.CharField(
+        max_length=200,
+        default='{client_name}',
+        blank=True,
+        help_text=(
+            'Template used to auto-generate the public slug when a seller does not '
+            'provide one at creation time. Placeholders: {client_name}, {project_type}, '
+            '{year}. The rendered value is slugified and deduplicated with numeric suffixes.'
+        ),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -132,15 +132,25 @@ describe('useProposalStore', () => {
   });
 
   describe('fetchPublicProposal', () => {
-    it('fetches proposal by UUID', async () => {
-      const data = { id: 1, uuid: 'abc-123', title: 'Test' };
+    it('fetches proposal by UUID via the UUID endpoint', async () => {
+      const realUuid = 'a1b2c3d4-e5f6-7890-abcd-1234567890ab';
+      const data = { id: 1, uuid: realUuid, slug: 'maria-lopez', title: 'Test' };
       get_request.mockResolvedValue({ data });
 
-      const result = await store.fetchPublicProposal('abc-123');
+      const result = await store.fetchPublicProposal(realUuid);
 
-      expect(get_request).toHaveBeenCalledWith('proposals/abc-123/');
+      expect(get_request).toHaveBeenCalledWith(`proposals/${realUuid}/`);
       expect(store.currentProposal).toEqual(data);
       expect(result.success).toBe(true);
+    });
+
+    it('fetches proposal by slug via the by-slug endpoint', async () => {
+      const data = { id: 2, uuid: 'a1b2c3d4-e5f6-7890-abcd-1234567890ab', slug: 'maria-lopez', title: 'Test' };
+      get_request.mockResolvedValue({ data });
+
+      await store.fetchPublicProposal('maria-lopez');
+
+      expect(get_request).toHaveBeenCalledWith('proposals/by-slug/maria-lopez/');
     });
 
     it('returns expired flag when response contains expired_meta', async () => {

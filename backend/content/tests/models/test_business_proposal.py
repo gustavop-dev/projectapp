@@ -159,13 +159,41 @@ class TestBusinessProposalDaysRemaining:
 
 
 class TestBusinessProposalPublicUrl:
-    def test_public_url_contains_uuid(self, proposal):
-        assert str(proposal.uuid) in proposal.public_url
-        assert 'proposal' in proposal.public_url
+    def test_public_url_uses_slug_not_uuid(self, proposal):
+        assert '/proposal/' in proposal.public_url
+        assert proposal.slug
+        assert proposal.slug in proposal.public_url
+        # UUID must no longer appear in the public URL once a slug is in place.
+        assert str(proposal.uuid) not in proposal.public_url
 
     def test_public_url_starts_with_base(self, proposal):
         assert '/proposal/' in proposal.public_url
-        assert str(proposal.uuid) in proposal.public_url
+
+
+class TestBusinessProposalSlug:
+    def test_slug_auto_generated_from_client_name(self, db):
+        prop = BusinessProposal.objects.create(
+            title='Alpha proposal',
+            client_name='María López',
+        )
+        assert prop.slug == 'maria-lopez'
+
+    def test_slug_collision_auto_suffixes(self, db):
+        a = BusinessProposal.objects.create(title='A', client_name='María López')
+        b = BusinessProposal.objects.create(title='B', client_name='María López')
+        c = BusinessProposal.objects.create(title='C', client_name='María López')
+        assert a.slug == 'maria-lopez'
+        assert b.slug == 'maria-lopez-2'
+        assert c.slug == 'maria-lopez-3'
+
+    def test_user_supplied_slug_is_kept(self, db):
+        prop = BusinessProposal.objects.create(
+            title='Custom',
+            client_name='María López',
+            slug='hola-maria',
+        )
+        assert prop.slug == 'hola-maria'
+        assert '/proposal/hola-maria' in prop.public_url
 
 
 class TestBusinessProposalStatusChoices:

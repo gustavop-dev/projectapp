@@ -3,7 +3,11 @@ import uuid
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
-from content.utils import safe_slug
+from content.utils import (
+    render_slug_pattern,
+    resolve_unique_slug,
+    safe_slug,
+)
 
 
 class BusinessProposal(models.Model):
@@ -50,7 +54,10 @@ class BusinessProposal(models.Model):
     title = models.CharField(max_length=255)
     client_name = models.CharField(max_length=255)
     client_email = models.EmailField(blank=True)
-    slug = models.SlugField(max_length=255, blank=True)
+    slug = models.SlugField(
+        max_length=120, unique=True, blank=True, db_index=True,
+        help_text='Personal, human-friendly handle used in the public URL /proposal/<slug>/.',
+    )
 
     # Language
     language = models.CharField(
@@ -276,10 +283,24 @@ class BusinessProposal(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            slug_source = self.client_name
-            if not slug_source and self.client_id:
-                slug_source = self.client.user.get_full_name() or self.client.user.email
-            self.slug = safe_slug(slug_source, 'propuesta')
+            from content.models.proposal_default_config import ProposalDefaultConfig
+
+            pattern = None
+            try:
+                cfg = ProposalDefaultConfig.objects.filter(language=self.language).first()
+                pattern = cfg.default_slug_pattern if cfg else None
+            except Exception:
+                pattern = None
+
+            if pattern:
+                base = render_slug_pattern(pattern, self)
+            else:
+                slug_source = self.client_name
+                if not slug_source and self.client_id:
+                    slug_source = self.client.user.get_full_name() or self.client.user.email
+                base = safe_slug(slug_source, 'propuesta')
+
+            self.slug = resolve_unique_slug(base, type(self), exclude_pk=self.pk)
         super().save(*args, **kwargs)
 
     @property
@@ -301,9 +322,14 @@ class BusinessProposal(models.Model):
 
     @property
     def public_url(self):
-        """Build the client-facing URL for viewing this proposal."""
+        """Build the client-facing URL for viewing this proposal.
+
+        Uses the editable ``slug`` when available, falling back to the UUID
+        for rows that somehow miss it (should not happen post-migration).
+        """
         base = getattr(settings, 'FRONTEND_BASE_URL', 'http://localhost:3000')
-        return f'{base}/proposal/{self.uuid}'
+        identifier = self.slug or self.uuid
+        return f'{base}/proposal/{identifier}'
 
 
 class ProposalAlert(models.Model):

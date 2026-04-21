@@ -414,21 +414,13 @@ def _resync_investment_from_modules(proposal, fr_content_json):
 # Public endpoints (no auth required)
 # ---------------------------------------------------------------------------
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def retrieve_public_proposal(request, proposal_uuid):
-    """
-    Retrieve a proposal by UUID for client viewing.
+def _serve_public_proposal(request, proposal):
+    """Shared handler for the public proposal endpoint.
 
-    Increments view_count, sets first_viewed_at on first visit,
-    updates status to VIEWED if currently SENT.
-    Returns 410 Gone if expired.
+    Implements the full view-count / expired / alerts / analytics pipeline.
+    Both the UUID-based and the slug-based public endpoints delegate here so
+    behaviour stays identical regardless of which identifier the client used.
     """
-    proposal = get_object_or_404(
-        BusinessProposal.objects.select_related('client__user'),
-        uuid=proposal_uuid,
-    )
-
     if not proposal.is_active:
         return Response(
             {'error': 'This proposal is not available.'},
@@ -572,6 +564,33 @@ def retrieve_public_proposal(request, proposal_uuid):
     if expired_meta:
         response_data['expired_meta'] = expired_meta
     return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def retrieve_public_proposal(request, proposal_uuid):
+    """
+    Retrieve a proposal by UUID for client viewing.
+
+    Legacy entry-point kept for backward compatibility with links that were
+    sent out before slugs existed. Delegates to ``_serve_public_proposal``.
+    """
+    proposal = get_object_or_404(
+        BusinessProposal.objects.select_related('client__user'),
+        uuid=proposal_uuid,
+    )
+    return _serve_public_proposal(request, proposal)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def retrieve_public_proposal_by_slug(request, proposal_slug):
+    """Retrieve a proposal by its editable slug for client viewing."""
+    proposal = get_object_or_404(
+        BusinessProposal.objects.select_related('client__user'),
+        slug=proposal_slug,
+    )
+    return _serve_public_proposal(request, proposal)
 
 
 @api_view(['GET'])
@@ -4458,6 +4477,7 @@ def proposal_defaults(request):
             'language': lang,
             'sections_json': hardcoded,
             'expiration_days': ProposalService.DEFAULT_EXPIRATION_DAYS,
+            'default_slug_pattern': '{client_name}',
             'created_at': None,
             'updated_at': None,
         })
@@ -4471,6 +4491,10 @@ def proposal_defaults(request):
             payload['sections_json'] = config.sections_json
         else:
             payload['sections_json'] = ProposalService.get_hardcoded_defaults(lang)
+    if 'default_slug_pattern' not in payload and config:
+        # Preserve the previously saved pattern when caller only updates
+        # other fields (e.g. general form submits without touching the pattern).
+        payload['default_slug_pattern'] = config.default_slug_pattern
 
     if config:
         serializer = ProposalDefaultConfigSerializer(config, data=payload)

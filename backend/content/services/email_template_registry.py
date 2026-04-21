@@ -22,7 +22,7 @@ def _client_sample():
     return {
         'client_name': 'Carlos Rodríguez',
         'title': 'Plataforma E-commerce Premium',
-        'proposal_url': 'https://projectapp.co/proposal/abc-123/',
+        'proposal_url': 'https://projectapp.co/proposal/maria-lopez/',
         'days_remaining': 12,
         'expires_at': '2026-04-15',
         'total_investment': format_cop_email(15000000),

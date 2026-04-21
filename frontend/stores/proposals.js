@@ -49,14 +49,25 @@ export const useProposalStore = defineStore('proposals', {
     // -----------------------------------------------------------------
 
     /**
-     * fetchPublicProposal: Retrieve a proposal by UUID for client viewing.
-     * @param {string} uuid - Proposal UUID.
+     * fetchPublicProposal: Retrieve a proposal by UUID or slug for client viewing.
+     *
+     * Accepts either identifier: legacy UUID links still route to the UUID
+     * endpoint, while personalized slug URLs route to the by-slug endpoint.
+     *
+     * @param {string} identifier - Proposal UUID or slug.
      */
-    async fetchPublicProposal(uuid) {
+    async fetchPublicProposal(identifier) {
       this.isLoading = true;
       this.error = null;
+      const uuid = identifier;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        String(identifier || '')
+      );
+      const path = isUuid
+        ? `proposals/${identifier}/`
+        : `proposals/by-slug/${identifier}/`;
       try {
-        const response = await get_request(`proposals/${uuid}/`);
+        const response = await get_request(path);
         this.currentProposal = response.data;
         // Expired proposals now return 200 with full data + expired_meta
         if (response.data?.expired_meta) {
@@ -881,6 +892,9 @@ export const useProposalStore = defineStore('proposals', {
         const expirationDays = Number(generalConfig?.expiration_days);
         if (Number.isInteger(expirationDays) && expirationDays > 0) {
           payload.expiration_days = expirationDays;
+        }
+        if (typeof generalConfig?.default_slug_pattern === 'string') {
+          payload.default_slug_pattern = generalConfig.default_slug_pattern;
         }
         const response = await put_request('proposals/defaults/', {
           ...payload,

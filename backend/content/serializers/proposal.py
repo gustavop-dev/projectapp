@@ -358,6 +358,33 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
     def validate_client_email(self, value):
         return _validate_client_email_mx(value)
 
+    def validate_slug(self, value):
+        """Validate user-supplied slugs: format + uniqueness."""
+        from django.utils.text import slugify
+
+        value = (value or '').strip()
+        if not value:
+            # Empty is fine — the model's save() will auto-generate and
+            # resolve collisions deterministically.
+            return value
+        normalized = slugify(value)
+        if normalized != value:
+            raise serializers.ValidationError(
+                'Solo se permiten minúsculas, números y guiones (sin espacios ni acentos).'
+            )
+        if len(value) > 120:
+            raise serializers.ValidationError(
+                'La URL personalizada no puede superar 120 caracteres.'
+            )
+        qs = BusinessProposal.objects.filter(slug=value)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError(
+                'Esa URL ya está en uso por otra propuesta. Elige una distinta.'
+            )
+        return value
+
     def validate_expires_at(self, value):
         """Ensure expiration date is in the future when provided."""
         if value is not None:
@@ -603,6 +630,7 @@ class ProposalDefaultConfigSerializer(serializers.ModelSerializer):
             'language',
             'sections_json',
             'expiration_days',
+            'default_slug_pattern',
             'created_at',
             'updated_at',
         )

@@ -95,6 +95,25 @@
             class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100" />
           <p class="text-xs text-gray-400 mt-1">0 = sin descuento en email de urgencia.</p>
         </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Patrón de URL personalizada</label>
+          <input
+            v-model="generalForm.default_slug_pattern"
+            type="text"
+            data-testid="defaults-slug-pattern"
+            class="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none dark:bg-gray-700 dark:text-gray-100"
+            placeholder="{client_name}"
+          />
+          <p class="text-xs text-gray-400 mt-1">
+            Placeholders: <code class="px-1 bg-gray-100 dark:bg-gray-700 rounded">{client_name}</code>,
+            <code class="px-1 bg-gray-100 dark:bg-gray-700 rounded">{project_type}</code>,
+            <code class="px-1 bg-gray-100 dark:bg-gray-700 rounded">{year}</code>.
+            Se aplica al crear una propuesta si el vendedor no escribe una URL manualmente.
+          </p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Vista previa: <span class="font-mono text-emerald-600 dark:text-emerald-400">/proposal/{{ slugPatternPreview }}</span>
+          </p>
+        </div>
         <div class="flex items-center gap-3 pt-2">
           <button type="submit" :disabled="isSaving"
             class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50">
@@ -907,6 +926,25 @@ const generalForm = ref({
   reminder_days: 3,
   urgency_reminder_days: 7,
   discount_percent: 0,
+  default_slug_pattern: '{client_name}',
+});
+
+const slugPatternPreview = computed(() => {
+  const pattern = (generalForm.value.default_slug_pattern || '').trim() || '{client_name}';
+  const sample = {
+    '{client_name}': 'María López',
+    '{project_type}': 'E-commerce',
+    '{year}': String(new Date().getFullYear()),
+  };
+  let rendered = pattern;
+  for (const [key, val] of Object.entries(sample)) rendered = rendered.split(key).join(val);
+  return rendered
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 120) || 'propuesta';
 });
 
 async function handleSaveGeneral() {
@@ -1090,6 +1128,9 @@ async function loadDefaults(lang) {
         expiration_days: Number.isInteger(Number(result.data.expiration_days))
           ? Number(result.data.expiration_days)
           : 21,
+        default_slug_pattern: typeof result.data.default_slug_pattern === 'string'
+          ? result.data.default_slug_pattern
+          : '{client_name}',
       };
     }
   } finally {

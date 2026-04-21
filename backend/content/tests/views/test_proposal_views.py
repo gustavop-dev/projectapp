@@ -36,6 +36,34 @@ class TestRetrievePublicProposal:
         response = api_client.get(url)
         assert response.status_code == 200
 
+    def test_by_slug_returns_same_payload(self, api_client, sent_proposal):
+        """The slug-based endpoint must serve the same body as the UUID one."""
+        url_slug = reverse(
+            'retrieve-public-proposal-by-slug',
+            kwargs={'proposal_slug': sent_proposal.slug},
+        )
+        response = api_client.get(url_slug)
+        assert response.status_code == 200
+        assert response.data['uuid'] == str(sent_proposal.uuid)
+        assert response.data['slug'] == sent_proposal.slug
+
+    def test_by_slug_increments_view_count_like_uuid(self, api_client, sent_proposal):
+        url_slug = reverse(
+            'retrieve-public-proposal-by-slug',
+            kwargs={'proposal_slug': sent_proposal.slug},
+        )
+        api_client.get(url_slug)
+        sent_proposal.refresh_from_db()
+        assert sent_proposal.view_count == 1
+
+    def test_by_slug_returns_404_for_unknown_slug(self, api_client, db):
+        url_slug = reverse(
+            'retrieve-public-proposal-by-slug',
+            kwargs={'proposal_slug': 'no-such-slug'},
+        )
+        response = api_client.get(url_slug)
+        assert response.status_code == 404
+
     def test_increments_view_count(self, api_client, sent_proposal):
         url = reverse('retrieve-public-proposal', kwargs={'proposal_uuid': sent_proposal.uuid})
         api_client.get(url)

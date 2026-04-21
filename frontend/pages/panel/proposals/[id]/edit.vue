@@ -72,6 +72,48 @@
 
       <!-- Tab: General -->
       <div v-show="activeTab === 'general'" class="max-w-2xl">
+        <!-- Editable slug (URL personalizada) -->
+        <div class="bg-white dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06] rounded-xl p-4 sm:p-5 mb-4">
+          <label class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" for="proposal-slug-input">
+            URL personalizada
+          </label>
+          <div class="mt-2 flex flex-wrap items-stretch gap-2">
+            <div class="flex-1 min-w-[260px] flex items-stretch rounded-lg border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.03] focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
+              <span class="px-3 flex items-center text-xs text-gray-400 border-r border-gray-200 dark:border-white/[0.08] select-none">/proposal/</span>
+              <input
+                id="proposal-slug-input"
+                v-model="slugDraft"
+                type="text"
+                data-testid="proposal-slug-input"
+                class="flex-1 bg-transparent px-3 py-2 text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none font-mono"
+                placeholder="maria-lopez"
+                maxlength="120"
+                @keydown.enter.prevent="saveSlug"
+              />
+            </div>
+            <button
+              type="button"
+              class="px-3 py-2 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+              :disabled="slugSaving || slugDraft === (proposal.slug || '')"
+              @click="saveSlug"
+            >
+              {{ slugSaving ? 'Guardando…' : (slugSaved ? 'Guardado' : 'Guardar') }}
+            </button>
+            <button
+              type="button"
+              class="px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 dark:border-white/[0.08] text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/[0.2]"
+              :title="'Regenerar desde el nombre del cliente'"
+              @click="regenerateSlugFromName"
+            >
+              Regenerar
+            </button>
+          </div>
+          <p v-if="slugError" class="text-xs text-rose-500 mt-2">{{ slugError }}</p>
+          <p v-else class="text-xs text-gray-400 mt-2">
+            Solo minúsculas, números y guiones. El cliente verá esta URL en el enlace.
+          </p>
+        </div>
+
         <!-- Read-only info -->
         <div class="bg-gray-50 dark:bg-white/[0.03] rounded-xl p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
@@ -90,8 +132,8 @@
               </button>
             </div>
             <p class="mt-0.5">
-              <a :href="'/proposal/' + proposal.uuid" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
-                /proposal/{{ proposal.uuid }}
+              <a :href="'/proposal/' + publicIdentifier" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
+                /proposal/{{ publicIdentifier }}
               </a>
             </p>
             <div v-for="link in proposalModeLinks" :key="link.mode" class="mt-2">
@@ -106,8 +148,8 @@
                 </button>
               </div>
               <p class="mt-0.5">
-                <a :href="'/proposal/' + proposal.uuid + '?mode=' + link.mode" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
-                  /proposal/{{ proposal.uuid }}?mode={{ link.mode }}
+                <a :href="'/proposal/' + publicIdentifier + '?mode=' + link.mode" target="_blank" class="text-emerald-600 hover:underline text-xs break-all">
+                  /proposal/{{ publicIdentifier }}?mode={{ link.mode }}
                 </a>
               </p>
             </div>
@@ -1223,9 +1265,15 @@ const proposalModeLinks = [
   { label: 'Detalle técnico', labelUrl: 'URL detalle técnico', mode: 'technical' },
 ];
 
+// Public URL identifier: prefer the editable slug, fall back to UUID for
+// any legacy proposal that somehow still lacks one.
+const publicIdentifier = computed(
+  () => proposal.value?.slug || proposal.value?.uuid || ''
+);
+
 const copied = ref(false);
 function copyUrl() {
-  const url = `${window.location.origin}/proposal/${proposal.value?.uuid}`;
+  const url = `${window.location.origin}/proposal/${publicIdentifier.value}`;
   navigator.clipboard.writeText(url).then(() => {
     copied.value = true;
     setTimeout(() => { copied.value = false; }, 2000);
@@ -1234,11 +1282,65 @@ function copyUrl() {
 
 const copiedMode = ref(null);
 function copyModeUrl(mode) {
-  const url = `${window.location.origin}/proposal/${proposal.value?.uuid}?mode=${mode}`;
+  const url = `${window.location.origin}/proposal/${publicIdentifier.value}?mode=${mode}`;
   navigator.clipboard.writeText(url).then(() => {
     copiedMode.value = mode;
     setTimeout(() => { copiedMode.value = null; }, 2000);
   });
+}
+
+// Editable slug UI state
+const slugDraft = ref('');
+const slugError = ref('');
+const slugSaving = ref(false);
+const slugSaved = ref(false);
+const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+watch(
+  () => proposal.value?.slug,
+  (value) => { slugDraft.value = value || ''; },
+  { immediate: true },
+);
+
+function regenerateSlugFromName() {
+  const source = proposal.value?.client_name || '';
+  slugDraft.value = source
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 120);
+  slugError.value = '';
+}
+
+async function saveSlug() {
+  const value = (slugDraft.value || '').trim();
+  slugError.value = '';
+  slugSaved.value = false;
+  if (value && !slugRegex.test(value)) {
+    slugError.value = 'Solo minúsculas, números y guiones (sin espacios ni acentos).';
+    return;
+  }
+  if (value.length > 120) {
+    slugError.value = 'La URL personalizada no puede superar 120 caracteres.';
+    return;
+  }
+  slugSaving.value = true;
+  try {
+    const result = await proposalStore.updateProposal(proposal.value.id, { slug: value });
+    if (result?.success) {
+      slugDraft.value = proposal.value?.slug || value;
+      slugSaved.value = true;
+      setTimeout(() => { slugSaved.value = false; }, 2000);
+    } else {
+      slugError.value = result?.errors?.slug?.[0]
+        || result?.error
+        || 'No se pudo guardar la URL personalizada.';
+    }
+  } finally {
+    slugSaving.value = false;
+  }
 }
 const allSections = computed(() =>
   [...(proposal.value?.sections || [])].sort((a, b) => a.order - b.order)
