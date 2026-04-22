@@ -625,6 +625,28 @@ DEFAULT_SECTIONS = [
                     ],
                 },
                 {
+                    'id': 'corporate_branding_module',
+                    'icon': '🎨',
+                    'title': 'Identidad Visual e Imagen Corporativa',
+                    'is_visible': True,
+                    'description': (
+                        'Aplicamos tu identidad visual de forma consistente en cada punto de contacto del '
+                        'sistema — correos, documentos, redes sociales y pantallas internas — para que tu '
+                        'marca se perciba profesional y coherente en todo lugar donde tus clientes interactúan.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 35,
+                    'items': [
+                        {'icon': '✉️', 'name': 'Correos transaccionales con identidad corporativa', 'description': 'Plantillas HTML con logo, colores, tipografía y firma de marca aplicadas en todos los correos del sistema — bienvenida, confirmaciones, alertas, recuperación de contraseña y notificaciones — en lugar de correos en texto plano o genéricos.'},
+                        {'icon': '📄', 'name': 'PDFs y exportables con branding', 'description': 'Facturas, reportes, certificados, recibos y descargas Excel/CSV generados desde el sistema con encabezado con logo, paleta corporativa y pie de marca. Cada documento que sale de la plataforma refuerza la imagen profesional del negocio.'},
+                        {'icon': '🔗', 'name': 'Tarjetas de previsualización en redes (Open Graph)', 'description': 'Cuando alguien comparte un link del sitio o una propuesta en WhatsApp, Facebook, LinkedIn o X, aparece una tarjeta con logo, imagen y colores de marca — no un link plano. Impacto directo en percepción y CTR.'},
+                        {'icon': '🖥️', 'name': 'Pantallas del sistema con identidad de marca', 'description': 'Páginas de error (404, 500), mantenimiento, login y estados de carga (loading, skeletons) con identidad visual y mensajes en la voz de la marca, en vez de las pantallas genéricas del framework.'},
+                        {'icon': '🔎', 'name': 'Metadatos estructurados para buscadores e IA', 'description': 'JSON-LD Organization con logo, colores, redes sociales y datos de contacto — para que Google, Bing y asistentes como ChatGPT o Perplexity muestren correctamente la marca en panel de conocimiento, resultados enriquecidos y citaciones.'},
+                    ],
+                },
+                {
                     'id': 'ai_module',
                     'icon': '🤖',
                     'title': 'Integración y Automatización con IA',
@@ -1684,6 +1706,28 @@ DEFAULT_SECTIONS_EN = [
                         {'icon': '🎨', 'name': 'Custom Splash Screen', 'description': 'Branded splash screen with your visual identity when opening the app, creating a professional experience from the first moment.'},
                         {'icon': '🔄', 'name': 'Background Sync', 'description': 'Data syncs automatically when the device reconnects, ensuring up-to-date information without user intervention.'},
                         {'icon': '⬆️', 'name': 'Automatic Updates', 'description': 'The application updates transparently without requiring any user action, always running the latest version.'},
+                    ],
+                },
+                {
+                    'id': 'corporate_branding_module',
+                    'icon': '🎨',
+                    'title': 'Visual Identity & Corporate Branding',
+                    'is_visible': True,
+                    'description': (
+                        'We apply your visual identity consistently across every system touchpoint — emails, '
+                        'documents, social previews and internal screens — so your brand feels professional and '
+                        'coherent everywhere your customers interact with it.'
+                    ),
+                    'is_calculator_module': True,
+                    'default_selected': False,
+                    'selected': False,
+                    'price_percent': 35,
+                    'items': [
+                        {'icon': '✉️', 'name': 'Branded Transactional Emails', 'description': 'HTML templates with logo, colors, typography and brand signature applied across all system emails — welcome, confirmations, alerts, password recovery and notifications — instead of plain-text or generic messages.'},
+                        {'icon': '📄', 'name': 'PDFs & Exports with Branding', 'description': 'Invoices, reports, certificates, receipts and Excel/CSV downloads generated from the system with branded headers, corporate color palette and brand footers. Every document that leaves the platform reinforces the business\'s professional image.'},
+                        {'icon': '🔗', 'name': 'Social Link Preview Cards (Open Graph)', 'description': 'When someone shares a link to the site or a proposal on WhatsApp, Facebook, LinkedIn or X, a card with logo, image and brand colors appears — not a plain link. Direct impact on perception and CTR.'},
+                        {'icon': '🖥️', 'name': 'System Screens with Brand Identity', 'description': 'Error pages (404, 500), maintenance, login and loading states (skeletons, spinners) with visual identity and messaging in the brand\'s voice, instead of the framework\'s generic screens.'},
+                        {'icon': '🔎', 'name': 'Structured Metadata for Search & AI', 'description': 'JSON-LD Organization with logo, colors, social profiles and contact data — so Google, Bing and assistants like ChatGPT or Perplexity correctly display the brand in knowledge panels, enriched results and citations.'},
                     ],
                 },
                 {

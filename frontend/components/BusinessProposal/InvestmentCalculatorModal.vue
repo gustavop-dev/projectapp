@@ -369,6 +369,7 @@ const groupLabels = {
   admin_module: { es: '🛠️ Módulo administrativo', en: '🛠️ Admin module' },
   analytics_dashboard: { es: '📊 Analítica', en: '📊 Analytics' },
   pwa_module: { es: '📱 Aplicación Móvil Instalable (PWA)', en: '📱 Installable Mobile App (PWA)' },
+  corporate_branding_module: { es: '🎨 Identidad Visual e Imagen Corporativa', en: '🎨 Visual Identity & Corporate Branding' },
   ai_module: { es: '🤖 Integración con IA', en: '🤖 AI Integration' },
   reports_alerts_module: { es: '📬 Reportes y Alertas', en: '📬 Reports & Alerts' },
   kpi_dashboard_module: { es: '📊 Dashboard de KPIs', en: '📊 KPI Dashboard' },

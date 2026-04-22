@@ -18,7 +18,7 @@ pytestmark = pytest.mark.django_db
 
 # Module-level constants for reusable payloads
 CALCULATOR_MODULE_IDS = (
-    'pwa_module', 'ai_module', 'reports_alerts_module',
+    'pwa_module', 'corporate_branding_module', 'ai_module', 'reports_alerts_module',
     'email_marketing_module',
     'i18n_module',
     'integration_international_payments', 'integration_regional_payments',
@@ -35,7 +35,7 @@ EXPECTED_ADDITIONAL_MODULE_ORDER = [
     'integration_electronic_invoicing',
     'integration_regional_payments',
     'integration_international_payments',
-    'pwa_module', 'ai_module',
+    'pwa_module', 'corporate_branding_module', 'ai_module',
     'integration_conversion_tracking',
     'reports_alerts_module', 'email_marketing_module',
     'i18n_module',
@@ -98,13 +98,13 @@ class TestGetDefaultSections:
         assert 'Resumen' in es_section['content_json']['title']
 
     def test_functional_requirements_has_default_groups(self):
-        """Verify ES functional_requirements has 6 groups and 12 additionalModules."""
+        """Verify ES functional_requirements has 6 groups and 13 additionalModules."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
         additional = fr['content_json']['additionalModules']
         assert len(groups) == 7
-        assert len(additional) == 12
+        assert len(additional) == 13
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
@@ -114,7 +114,7 @@ class TestGetDefaultSections:
         assert additional_ids == {
             'integration_international_payments', 'integration_regional_payments',
             'integration_electronic_invoicing', 'integration_conversion_tracking',
-            'pwa_module', 'ai_module', 'reports_alerts_module',
+            'pwa_module', 'corporate_branding_module', 'ai_module', 'reports_alerts_module',
             'email_marketing_module',
             'i18n_module', 'gift_cards_module',
             'dark_mode_module', 'live_chat_module',
@@ -197,6 +197,17 @@ class TestGetDefaultSections:
         assert pwa['default_selected'] is False
         assert pwa['price_percent'] == 40
 
+    def test_corporate_branding_module_has_5_items_and_35_percent(self):
+        sections = ProposalService.get_default_sections('es')
+        fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+        cb = next(g for g in fr['content_json']['additionalModules'] if g['id'] == 'corporate_branding_module')
+        assert len(cb['items']) == 5
+        assert cb['is_calculator_module'] is True
+        assert cb['default_selected'] is False
+        assert cb['price_percent'] == 35
+        assert cb.get('is_invite', False) is False
+        assert cb['is_visible'] is True
+
     def test_ai_module_has_11_items_and_is_invite(self):
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
@@ -231,14 +242,14 @@ class TestGetDefaultSections:
             assert es_g['is_calculator_module'] == en_g['is_calculator_module']
             assert es_g.get('price_percent') == en_g.get('price_percent')
 
-    def test_en_functional_requirements_has_7_groups_and_12_modules(self):
-        """Verify EN functional_requirements has 7 groups and 12 additionalModules."""
+    def test_en_functional_requirements_has_7_groups_and_13_modules(self):
+        """Verify EN functional_requirements has 7 groups and 13 additionalModules."""
         sections = ProposalService.get_default_sections('en')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         groups = fr['content_json']['groups']
         additional = fr['content_json']['additionalModules']
         assert len(groups) == 7
-        assert len(additional) == 12
+        assert len(additional) == 13
         group_ids = {g['id'] for g in groups}
         assert group_ids == {
             'views', 'components', 'features',
@@ -248,7 +259,7 @@ class TestGetDefaultSections:
         assert additional_ids == {
             'integration_international_payments', 'integration_regional_payments',
             'integration_electronic_invoicing', 'integration_conversion_tracking',
-            'pwa_module', 'ai_module', 'reports_alerts_module',
+            'pwa_module', 'corporate_branding_module', 'ai_module', 'reports_alerts_module',
             'email_marketing_module',
             'i18n_module', 'gift_cards_module',
             'dark_mode_module', 'live_chat_module',
