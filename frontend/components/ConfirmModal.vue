@@ -19,6 +19,21 @@
               <div class="flex-1 min-w-0">
                 <h3 class="text-lg font-bold text-esmerald dark:text-white">{{ title }}</h3>
                 <p class="mt-1 text-sm text-esmerald/70 dark:text-green-light/60 leading-relaxed">{{ message }}</p>
+                <div v-if="requireTypeText" class="mt-4">
+                  <label class="block text-xs text-esmerald/70 dark:text-green-light/60 mb-1.5">
+                    Escribe <span class="font-mono font-bold text-esmerald dark:text-white">{{ requireTypeText }}</span> para confirmar
+                  </label>
+                  <input
+                    ref="typeInputRef"
+                    v-model="typedValue"
+                    type="text"
+                    autocomplete="off"
+                    spellcheck="false"
+                    data-testid="confirm-type-input"
+                    :placeholder="requireTypeText"
+                    class="w-full px-3 py-2 text-sm font-mono text-esmerald dark:text-white bg-esmerald-light/40 dark:bg-white/[0.06] border border-esmerald-light dark:border-white/[0.08] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500/60"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -26,6 +41,7 @@
           <!-- Actions -->
           <div class="flex items-center justify-end gap-3 px-6 py-4">
             <button
+              v-if="!hideCancel"
               type="button"
               class="px-4 py-2 text-sm font-medium text-esmerald/70 dark:text-green-light bg-esmerald-light/60 dark:bg-white/[0.06] hover:bg-esmerald-light dark:hover:bg-white/[0.10] rounded-xl transition-colors"
               @click="handleCancel"
@@ -34,8 +50,10 @@
             </button>
             <button
               type="button"
-              class="px-4 py-2 text-sm font-bold rounded-xl transition-colors"
+              data-testid="confirm-modal-confirm"
+              class="px-4 py-2 text-sm font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               :class="variantClasses.confirmBtn"
+              :disabled="!canConfirm"
               @click="handleConfirm"
             >
               {{ confirmText }}
@@ -48,7 +66,7 @@
 </template>
 
 <script setup>
-import { computed, watch, onMounted, onBeforeUnmount, h } from 'vue'
+import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount, h } from 'vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -61,9 +79,19 @@ const props = defineProps({
     default: 'warning',
     validator: v => ['warning', 'danger', 'info'].includes(v),
   },
+  requireTypeText: { type: String, default: '' },
+  hideCancel: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:modelValue', 'confirm', 'cancel'])
+
+const typeInputRef = ref(null)
+const typedValue = ref('')
+
+const canConfirm = computed(() => {
+  if (!props.requireTypeText) return true
+  return typedValue.value === props.requireTypeText
+})
 
 const variantClasses = computed(() => {
   const map = {
@@ -110,6 +138,7 @@ const variantIcon = computed(() => {
 })
 
 function handleConfirm() {
+  if (!canConfirm.value) return
   emit('confirm')
   emit('update:modelValue', false)
 }
@@ -124,8 +153,15 @@ function handleEscape(e) {
 }
 
 watch(() => props.modelValue, (val) => {
-  if (val) document.body.style.overflow = 'hidden'
-  else document.body.style.overflow = ''
+  typedValue.value = ''
+  if (val) {
+    document.body.style.overflow = 'hidden'
+    if (props.requireTypeText) {
+      nextTick(() => typeInputRef.value?.focus())
+    }
+  } else {
+    document.body.style.overflow = ''
+  }
 })
 
 onMounted(() => document.addEventListener('keydown', handleEscape))
