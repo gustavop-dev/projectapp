@@ -84,5 +84,6 @@ rm -rf /home/ryzepeck/webapps/projectapp/frontend/node_modules
 ## Notes
 
 - VPS operations scripts live in `/home/ryzepeck/webapps/ops/vps/scripts/`.
+- `~/scripts` is a symlink to `/home/ryzepeck/webapps/ops/vps/`.
 - Frontend uses `npm run build:django` which runs `nuxi generate` with `NUXT_APP_CDN_URL=/static/frontend/` and copies output to `backend/static/frontend/`.
 - `DJANGO_SETTINGS_MODULE=projectapp.settings_prod` must be set for migrate and collectstatic commands (manage.py defaults to settings_dev).

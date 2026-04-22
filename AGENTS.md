@@ -527,3 +527,24 @@ cd backend && <command>
 #### [ERR-004] Playwright strict mode violations from sidebar + page content
 - `getByText()` matched both sidebar links and page headings
 - **Resolution**: Scope to `page.locator('main')`, use `getByRole('heading')`, or `{ exact: true }`
+
+---
+
+# ProjectApp - Codex Compatibility Instructions
+
+This repository's historical agent configuration is versioned under `CLAUDE.md`, `backend/CLAUDE.md`, `frontend/CLAUDE.md`, and `.claude/`.
+
+For Codex-compatible work in this repo:
+- Treat `CLAUDE.md` as the authoritative root project instruction set.
+- Treat `backend/CLAUDE.md` and `frontend/CLAUDE.md` as the authoritative scoped instructions for those directories.
+- Treat `.agents/skills/*` as the Codex-facing equivalents of the versioned `.claude/skills/*` workflows.
+- Treat `.codex/config.toml` as the Codex runtime defaults for this project.
+
+When both Claude and Codex compatibility files exist:
+- Prefer the versioned `.claude/` and `CLAUDE.md` content as the source of truth unless the user explicitly asks to change Codex-only compatibility files.
+- Keep `.agents/skills/*` aligned with `.claude/skills/*` and any intentionally converted `.claude/commands/*`.
+
+Operational notes:
+- Read the relevant methodology docs in `docs/methodology/` and planning context in `tasks/` when the task needs them.
+- Do not delete local compatibility files or extra local skills unless the user explicitly asks.
+- In subdirectories, also follow the nearest `AGENTS.md`.
