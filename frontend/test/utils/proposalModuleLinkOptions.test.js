@@ -189,4 +189,66 @@ describe('buildProposalModuleLinkOptions', () => {
     expect(normalized.epics[0].requirements[0].linked_module_ids).toEqual(['module-pwa_module'])
     expect(normalized.epics[0].requirements[0].linkedModuleIds).toBeUndefined()
   })
+
+  it('skips null group entries in array', () => {
+    const sections = [
+      {
+        section_type: 'functional_requirements',
+        content_json: {
+          groups: [null, { id: 1, title: 'Valid', is_calculator_module: true, price_percent: 0 }],
+        },
+      },
+    ]
+    const opts = buildProposalModuleLinkOptions(sections)
+    expect(opts).toHaveLength(1)
+  })
+
+  it('includes group with items even without title', () => {
+    const sections = [
+      {
+        section_type: 'functional_requirements',
+        content_json: {
+          groups: [{ id: 2, items: ['a'], is_calculator_module: true, price_percent: 0 }],
+        },
+      },
+    ]
+    const opts = buildProposalModuleLinkOptions(sections)
+    expect(opts).toHaveLength(1)
+    expect(opts[0].id).toBe('module-2')
+  })
+
+  it('converts numeric investment module id to string', () => {
+    const sections = [
+      { section_type: 'investment', content_json: { modules: [{ id: 42, title: 'Num' }] } },
+    ]
+    const opts = buildProposalModuleLinkOptions(sections)
+    expect(opts).toEqual([{ id: '42', label: 'Num' }])
+  })
+
+  it('skips investment module when modules key is missing', () => {
+    const sections = [
+      { section_type: 'investment', content_json: {} },
+    ]
+    expect(buildProposalModuleLinkOptions(sections)).toEqual([])
+  })
+
+  it('skips null investment module', () => {
+    const sections = [
+      { section_type: 'investment', content_json: { modules: [null, { id: 'ok', title: 'OK' }] } },
+    ]
+    const opts = buildProposalModuleLinkOptions(sections)
+    expect(opts).toHaveLength(1)
+  })
+
+  it('falls back to id as label when title is missing', () => {
+    const sections = [
+      { section_type: 'investment', content_json: { modules: [{ id: 'fallback' }] } },
+    ]
+    const opts = buildProposalModuleLinkOptions(sections)
+    expect(opts[0].label).toBe('fallback')
+  })
+
+  it('returns empty array when neither functional_requirements nor investment present', () => {
+    expect(buildProposalModuleLinkOptions([{ section_type: 'other' }])).toEqual([])
+  })
 })

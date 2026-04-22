@@ -135,4 +135,26 @@ describe('useAnimatedNumber', () => {
     flushRaf(600);
     expect(animated.value).toBe(50);
   });
+
+  it('uses default 600ms duration when not provided', async () => {
+    const target = ref(0);
+    const { animated } = useAnimatedNumber(target);
+
+    target.value = 100;
+    await nextTick();
+
+    flushRaf(600);
+    expect(animated.value).toBe(100);
+  });
+
+  it('snaps to target immediately when elapsed exceeds duration on first frame', async () => {
+    const target = ref(0);
+    const { animated } = useAnimatedNumber(target, 100);
+
+    target.value = 50;
+    await nextTick();
+
+    flushRaf(200);
+    expect(animated.value).toBe(50);
+  });
 });

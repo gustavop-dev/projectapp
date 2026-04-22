@@ -157,6 +157,7 @@ export const PLATFORM_COLLECTION_ACCOUNTS_LIST = ['@flow:platform-collection-acc
 export const PLATFORM_COLLECTION_ACCOUNT_DETAIL = ['@flow:platform-collection-account-detail', '@module:platform', '@priority:P2'];
 export const PLATFORM_PROJECT_COLLECTION_ACCOUNTS = ['@flow:platform-project-collection-accounts', '@module:platform', '@priority:P2'];
 export const PLATFORM_DELIVERABLE_DETAIL = ['@flow:platform-deliverable-detail', '@module:platform', '@priority:P2'];
+export const PLATFORM_ACCESS_VIEW = ['@flow:platform-access-view', '@module:platform', '@priority:P2'];
 
 // ── v2.7.0 new flows ──
 export const ADMIN_DOCUMENT_LIST = ['@flow:admin-document-list', '@module:admin', '@priority:P2'];

@@ -79,10 +79,8 @@ describe('useMarkdownPreview', () => {
   })
 
   it('returns single-row table block as-is when no separator row', () => {
-    // Single row matches table pattern but rows.length < 2 → returned unchanged
     const md = '| A | B |\n'
     const html = parseMarkdown(md)
-    // No table element produced since < 2 rows
     expect(html).not.toContain('<table')
   })
 
@@ -93,8 +91,58 @@ describe('useMarkdownPreview', () => {
     expect(html).not.toContain('<thead>')
   })
 
-  it('skips empty blocks in paragraph splitting', () => {
+  it('renders table without separator row as plain data rows', () => {
+    const html = parseMarkdown('|a|b|\n|c|d|\n')
+    expect(html).toContain('<table')
+    expect(html).not.toContain('<thead')
+  })
+
+  it('does not transform a single-row table block', () => {
+    const html = parseMarkdown('|a|b|\n')
+    expect(html).not.toContain('<table')
+  })
+
+  it('renders bold italic combined formatting', () => {
+    const html = parseMarkdown('***both***')
+    expect(html).toContain('<strong><em>both</em></strong>')
+  })
+
+  it('renders plain bold formatting', () => {
+    const html = parseMarkdown('**bold**')
+    expect(html).toContain('<strong>bold</strong>')
+  })
+
+  it('renders italic with single star', () => {
+    const html = parseMarkdown('*emph*')
+    expect(html).toContain('<em>emph</em>')
+  })
+
+  it('renders headings h4 through h6', () => {
+    const html = parseMarkdown('#### h4\n##### h5\n###### h6')
+    expect(html).toContain('md-h4')
+    expect(html).toContain('md-h5')
+    expect(html).toContain('md-h6')
+  })
+
+  it.each(['TIP', 'IMPORTANT', 'WARNING', 'CAUTION'])('renders callout directive type %s', (type) => {
+    const html = parseMarkdown(`> [!${type}]\n> body`)
+    expect(html).toContain(`callout-${type.toLowerCase()}`)
+  })
+
+  it('preserves nested ordered list', () => {
+    const html = parseMarkdown('1. parent\n   1. child')
+    expect(html).toContain('<ol')
+    expect(html).toContain('<li>parent')
+  })
+
+  it('preserves paragraph with inline br on single newlines', () => {
+    const html = parseMarkdown('line one\nline two')
+    expect(html).toContain('<br')
+  })
+
+  it('skips empty blocks between double newlines', () => {
     const html = parseMarkdown('first\n\n\n\nsecond')
-    expect(html).toContain('md-p')
+    expect(html).toContain('<p class="md-p">first</p>')
+    expect(html).toContain('<p class="md-p">second</p>')
   })
 })

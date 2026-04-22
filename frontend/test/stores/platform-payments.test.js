@@ -366,4 +366,83 @@ describe('usePlatformPaymentsStore', () => {
       expect(store.currentPeriodPayment).toBeNull()
     })
   })
+
+  it('currentPeriodPayment ignores pending without due_date', () => {
+    store.payments = [{ id: 1, status: 'pending' }]
+    expect(store.currentPeriodPayment).toBeNull()
+  })
+
+  it('fetchProjectSubscription defaults payments to empty array when response omits field', async () => {
+    mockGet.mockResolvedValueOnce({ data: { id: 1 } })
+    await store.fetchProjectSubscription(3)
+    expect(store.payments).toEqual([])
+  })
+
+  it('fetchProposals uses fallback message when error has no detail', async () => {
+    mockGet.mockRejectedValueOnce({})
+    const result = await store.fetchProposals()
+    expect(result.message).toBe('Error cargando propuestas.')
+  })
+
+  it('fetchSubscriptions uses fallback message when error has no detail', async () => {
+    mockGet.mockRejectedValueOnce({})
+    const result = await store.fetchSubscriptions()
+    expect(result.message).toBe('No pudimos cargar las suscripciones.')
+  })
+
+  it('fetchProjectSubscription uses fallback message when non-404 error has no detail', async () => {
+    mockGet.mockRejectedValueOnce({ response: { status: 500 } })
+    const result = await store.fetchProjectSubscription(1)
+    expect(result.message).toBe('Error cargando suscripción.')
+  })
+
+  it('fetchProjectSubscription uses fallback message when error has no response', async () => {
+    mockGet.mockRejectedValueOnce({})
+    const result = await store.fetchProjectSubscription(1)
+    expect(result.message).toBe('Error cargando suscripción.')
+  })
+
+  it('fetchProjectPayments uses fallback message when error has no detail', async () => {
+    mockGet.mockRejectedValueOnce({})
+    const result = await store.fetchProjectPayments(1)
+    expect(result.message).toBe('Error cargando pagos.')
+  })
+
+  it('updateSubscription uses fallback message when error has no detail', async () => {
+    mockPatch.mockRejectedValueOnce({})
+    const result = await store.updateSubscription(1, {})
+    expect(result.message).toBe('Error actualizando suscripción.')
+  })
+
+  it('payWithCard uses fallback message when error has no detail', async () => {
+    mockPost.mockRejectedValueOnce({})
+    const result = await store.payWithCard(1, 2, {})
+    expect(result.message).toBe('Error procesando el pago con tarjeta.')
+  })
+
+  it('verifyTransaction uses fallback message when error has no detail', async () => {
+    mockPost.mockRejectedValueOnce({})
+    const result = await store.verifyTransaction(1, 2, 'x')
+    expect(result.message).toBe('Error verificando transacción.')
+  })
+
+  it('fetchWidgetData uses fallback message when error has no detail', async () => {
+    mockGet.mockRejectedValueOnce({})
+    const result = await store.fetchWidgetData(1, 2)
+    expect(result.message).toBe('Error obteniendo datos de pago.')
+  })
+
+  it('generatePaymentLink leaves list intact when paymentId not in list', async () => {
+    store.payments = [{ id: 7, status: 'pending', wompi_payment_link_url: null }]
+    mockPost.mockResolvedValueOnce({ data: { wompi_payment_link_url: 'https://pay' } })
+    await store.generatePaymentLink(1, 99)
+    expect(store.payments[0].status).toBe('pending')
+    expect(store.payments[0].wompi_payment_link_url).toBeNull()
+  })
+
+  it('generatePaymentLink uses fallback message when error has no detail', async () => {
+    mockPost.mockRejectedValueOnce({})
+    const result = await store.generatePaymentLink(1, 2)
+    expect(result.message).toBe('Error generando link de pago.')
+  })
 })

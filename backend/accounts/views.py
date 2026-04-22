@@ -737,13 +737,61 @@ def project_detail_view(request, project_id):
     data = serializer.validated_data
 
     update_fields = ['updated_at']
-    for field in ('name', 'description', 'status', 'progress', 'start_date', 'estimated_end_date'):
+    simple_fields = (
+        'name', 'description', 'status', 'progress',
+        'start_date', 'estimated_end_date',
+        'production_url', 'staging_url', 'admin_url', 'repository_url',
+        'admin_username',
+    )
+    for field in simple_fields:
         if field in data:
             setattr(project, field, data[field])
             update_fields.append(field)
+
+    if 'admin_password' in data:
+        from accounts.services.credential_cipher import encrypt_password
+        project.admin_password_encrypted = encrypt_password(data['admin_password'])
+        update_fields.append('admin_password_encrypted')
+
     project.save(update_fields=update_fields)
 
     return Response(ProjectDetailSerializer(project, context={'request': request}).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminRole])
+def project_access_list_view(request):
+    """Admin-only quick-access list: project URLs + decrypted admin credentials."""
+    from accounts.services.credential_cipher import decrypt_password
+
+    qs = (
+        Project.objects.select_related('client', 'client__profile')
+        .exclude(status=Project.STATUS_ARCHIVED)
+        .order_by('name')
+    )
+
+    data = []
+    for p in qs:
+        client = p.client
+        client_name = f'{client.first_name} {client.last_name}'.strip() or client.email
+        company = getattr(getattr(client, 'profile', None), 'company_name', '') or ''
+        data.append({
+            'id': p.id,
+            'name': p.name,
+            'status': p.status,
+            'client_id': client.id,
+            'client_name': client_name,
+            'client_email': client.email,
+            'client_company': company,
+            'production_url': p.production_url,
+            'staging_url': p.staging_url,
+            'admin_url': p.admin_url,
+            'repository_url': p.repository_url,
+            'admin_username': p.admin_username,
+            'admin_password': decrypt_password(p.admin_password_encrypted),
+        })
+
+    return Response(data)
 
 
 @api_view(['POST'])

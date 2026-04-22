@@ -33,7 +33,7 @@
 | **Profiling** | django-silk (optional) | >=5.0.0 |
 | **Config Management** | python-decouple | >=3.8,<3.9 |
 | **Fake Data** | Faker | 28.4.1 |
-| **Token Encryption** | cryptography (Fernet) | via cryptography | LinkedIn OAuth token encryption |
+| **Token Encryption** | cryptography (Fernet) | >=42,<46 | LinkedIn OAuth token + Project admin credential encryption |
 
 ---
 
@@ -125,16 +125,16 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 | `ENABLE_SILK` | `false` | Enable query profiler |
 | `DJANGO_CORS_ALLOWED_ORIGINS` | `http://127.0.0.1:5173,...` | CORS origins |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | `http://127.0.0.1:5173,...` | CSRF trusted |
+| `PROJECT_ACCESS_CIPHER_KEY` | *(required in prod)* | Fernet key for project admin credential encryption. Generate: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
 
 ---
 
 ## 4. Key Technical Decisions
 
-### Authentication: Session + CSRF (No JWT)
-- Django session-based auth for admin panel
-- CSRF token validation for all mutations
-- Nuxt middleware `admin-auth.js` checks `/api/auth/check/` endpoint
-- Unauthenticated users redirected to Django admin login
+### Authentication: Dual Strategy
+- **Panel (`/panel/`)**: Django session + CSRF; middleware `admin-auth.js` checks `/api/auth/check/`; unauthenticated → Django admin login
+- **Platform (`/platform/`)**: JWT via SimpleJWT (access + refresh tokens); middleware `platform-auth.js`; platform stores use `composables/usePlatformApi.js` (axios with JWT interceptors)
+- Never mix the two HTTP clients across contexts
 
 ### Hybrid Rendering (SSR + SPA)
 - **SSR**: Home, landing pages, about-us, portfolio, blog (SEO-critical)
@@ -165,12 +165,13 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 ### Backend Patterns
 
 - **Function-based views** (`@api_view`) — all DRF views are FBV, not class-based
-- **Service layer** — business logic in `content/services/` (ProposalService, ProposalEmailService, ProposalPdfService, ProposalStageTracker, ContractPdfService, EmailTemplateRegistry, PdfUtils, DocumentPdfService, MarkdownParser, CollectionAccountService, CollectionAccountPdfService, TechnicalDocumentPdf, TechnicalDocumentFilter, PlatformOnboardingPdf) and in `accounts/services/` (`onboarding`, `proposal_client_service`). Services are class-based with `@classmethod` static methods (matching `ProposalEmailService`), or function modules for stateless flows. `proposal_client_service` is the silent variant of `accounts/services/onboarding.create_client` — same User+UserProfile shape but **never sends invitation emails**, so the proposal admin panel can create/reuse clients without triggering platform onboarding.
+- **Service layer** — business logic in `content/services/` (ProposalService, ProposalEmailService, ProposalPdfService, ProposalStageTracker, ContractPdfService, EmailTemplateRegistry, PdfUtils, DocumentPdfService, MarkdownParser, CollectionAccountService, CollectionAccountPdfService, TechnicalDocumentPdf, TechnicalDocumentFilter, PlatformOnboardingPdf) and in `accounts/services/` (archive, credential_cipher, image_utils, notifications, onboarding, payment_history, proposal_client_service, proposal_platform_onboarding, technical_requirements_sync, tokens, verification, wompi). Services are class-based with `@classmethod` static methods (matching `ProposalEmailService`), or function modules for stateless flows. `proposal_client_service` is the silent variant of `accounts/services/onboarding.create_client` — same User+UserProfile shape but **never sends invitation emails**, so the proposal admin panel can create/reuse clients without triggering platform onboarding.
 - **Model layer** — thin models with properties (`is_expired`, `days_remaining`, `public_url`)
 - **Huey tasks** — async operations: reminders, expiration, engagement-based emails, project-stage deadline scans
-- **Custom admin site** — `content/admin.py` with custom `AdminSite` class
+- **Custom admin site** — `content/admin.py` with custom `AdminSite` class; `accounts/admin.py` registers `ProjectAdmin` (URLs + encrypted credentials)
 - **Management commands** — fake data generation for development/testing
 - **Email template registry** — centralized email content management with admin-editable overrides
+- **Fernet encryption** — `accounts/services/credential_cipher.py`; `encrypt_password`/`decrypt_password` with key from `PROJECT_ACCESS_CIPHER_KEY`; `@lru_cache` on cipher instance
 - **Bogotá time helpers** (`content/utils.py`) — `now_bogota()`, `today_bogota()`, `to_bogota_date(dt)`, `format_bogota_date(d)` (accepts both `date` and `datetime`), `format_bogota_datetime(dt)`. Use these for any day-level arithmetic instead of `date.today()` (UTC). Bogotá is fixed UTC-5 with no DST.
 - **Internal-only fields gated by `is_admin`** — when a model is internal-only (e.g., `ProposalProjectStage`), expose it via `SerializerMethodField` returning `[]` for non-admin context, never `read_only=True` model nesting. Precedent: `ProposalDetailSerializer.get_project_stages`.
 - **Internal team notifications skip `_log_email`** — `EmailLog` rows are reserved for client-facing single-recipient sends. Internal team alerts (`send_first_view_notification`, `send_stage_warning`, etc.) use `logger.info` only.
@@ -180,7 +181,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - **Pinia Options API** — all stores use Options API (state, getters, actions), not Composition API
 - **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place by index (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
 - **Composables** — 35 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, `useProposalFilters`, `useClientFilters`, `useSeoJsonLd`, `useIncludeArchivedQuery`, `useStageStatus`, etc.)
-- **Component architecture** — 122 Vue component/source files under `frontend/components/`; 50 files under `components/BusinessProposal/`; admin-only proposal components live under `components/BusinessProposal/admin/` (e.g., `ProjectScheduleEditor.vue`, `ProposalEmailsTab.vue`, `ProposalDocumentsTab.vue`)
+- **Component architecture** — 122 Vue component/source files under `frontend/components/`; 50 files under `components/BusinessProposal/`; admin-only proposal components live under `components/BusinessProposal/admin/` (e.g., `ProjectScheduleEditor.vue`, `ProposalEmailsTab.vue`, `ProposalDocumentsTab.vue`); quick-access micro-components under `components/platform/access/` (`CopyField.vue`, `UrlRow.vue`)
 - **GSAP animations** — horizontal scroll with ScrollTrigger for proposal client view, reveal animations for marketing pages
 - **Layouts** — `default.vue` (public pages with navbar), `admin.vue` (admin panel with sidebar), `platform.vue` (platform with sidebar + theme)
 - **Middleware** — `admin-auth.js` route guard for `/panel/**` routes, `platform-auth.js` route guard for `/platform/**` routes
@@ -197,7 +198,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Fixtures: `conftest.py` at root and `content/tests/conftest.py` (provides `proposal`, `accepted_proposal`, `admin_user`, `admin_client`, etc.)
 - Coverage: custom terminal report with per-file bars and Top-N focus
 - Config: `backend/pytest.ini`
-- Run: `source venv/bin/activate && pytest backend/content/tests/<specific_file> -v`
+- Run: `source .venv/bin/activate && cd backend && pytest path/to/test_file.py -v --no-cov`
 
 ### Frontend Unit (Jest)
 
@@ -249,9 +250,10 @@ Triggers: Push/PR to `main`/`master`. Concurrency group cancels in-progress runs
 ```
 projectapp/
 ├── backend/
-│   ├── accounts/               # Platform app (auth, onboarding, projects, kanban, bug reports, changes, deliverables, notifications, payments)
+│   ├── accounts/               # Platform app (auth, onboarding, projects, kanban, bug reports, changes, deliverables, notifications, payments, collection accounts, quick-access)
 │   │   ├── models.py            # 21 models (UserProfile, VerificationCode, Project, Requirement, RequirementComment, RequirementHistory, BugReport, BugComment, ChangeRequest, ChangeRequestComment, Deliverable, DeliverableVersion, DeliverableFile, DeliverableClientFolder, DeliverableClientUpload, DataModelEntity, ProjectDataModelEntity, Notification, HostingSubscription, Payment, PaymentHistory)
-│   │   ├── services/            # 11 service modules (archive, image_utils, notifications, onboarding, payment_history, proposal_client_service, proposal_platform_onboarding, technical_requirements_sync, tokens, verification, wompi)
+│   │   ├── admin.py             # ProjectAdmin — URL + encrypted credential fields
+│   │   ├── services/            # 12 service modules (archive, credential_cipher, image_utils, notifications, onboarding, payment_history, proposal_client_service, proposal_platform_onboarding, technical_requirements_sync, tokens, verification, wompi)
 │   │   ├── management/commands/ # 4 commands (create_platform_admin, seed_demo_clients, seed_platform_data, seed_mihuella)
 │   │   ├── tests/               # 28 test files
 │   │   └── urls.py              # 65 URL patterns
@@ -273,12 +275,13 @@ projectapp/
 ├── frontend/
 │   ├── pages/                   # Nuxt file-based routing (64 pages)
 │   │   ├── panel/               # Admin pages (proposals, blog, portfolio, clients, documents, admins, tareas). Proposal edit page has Cronograma tab. `/panel/tareas` is the internal Kanban board.
-│   │   ├── platform/            # Platform pages (dashboard, board, projects, kanban, bugs, changes, deliverables, notifications, payments, clients, collection-accounts, profile, data-model)
+│   │   ├── platform/            # Platform pages (dashboard, board, projects, kanban, bugs, changes, deliverables, notifications, payments, clients, collection-accounts, profile, data-model, access)
 │   │   ├── blog/                # Blog listing + detail
 │   │   ├── portfolio-works/     # Portfolio listing + detail
 │   │   └── proposal/            # Client proposal view
 │   ├── components/              # Vue components (130 files)
 │   │   ├── BusinessProposal/    # 50 proposal component/source files. Admin-only under `admin/` (incl. `ProjectScheduleEditor.vue`)
+│   │   ├── platform/access/     # CopyField.vue, UrlRow.vue — quick-access micro-components
 │   │   └── Tasks/               # TaskCard.vue, TaskColumn.vue (vuedraggable), TaskFormModal.vue — internal Kanban board
 │   ├── stores/                  # 23 Pinia stores (proposals, blog, portfolio_works, contacts, language, documents, document_folders, document_tags, tasks, emails, panel_admins, proposalClients, platform-auth, platform-clients, platform-projects, platform-requirements, platform-bug-reports, platform-change-requests, platform-deliverables, platform-notifications, platform-payments, platform-collection-accounts, platform-data-model)
 │   ├── composables/             # 35 composables (incl. useStageStatus.js)
@@ -298,11 +301,12 @@ projectapp/
 
 ## 9. Technical Constraints
 
-1. **Dual auth** — `content`/`panel` uses session/CSRF; `accounts`/`platform` uses JWT (SimpleJWT); never mix the two HTTP clients
-2. **Two Django apps** — `content` (proposals, blog, portfolio, documents, contracts) + `accounts` (platform users, projects, deliverables, data models)
+1. **Dual auth** — `content`/`panel` uses session/CSRF; `accounts`/`platform` uses JWT (SimpleJWT); never mix the two HTTP clients (`request_http` vs `usePlatformApi`)
+2. **Two Django apps** — `content` (proposals, blog, portfolio, documents, contracts) + `accounts` (platform users, projects, deliverables, data models, quick-access)
 3. **GoDaddy SMTP** — email delivery limited by provider (port 465 SSL only)
 4. **Redis required** — for Huey task queue (even if immediate mode in dev)
 5. **Nuxt builds to Django static** — production frontend is pre-rendered and served by Django, not a separate server
 6. **Large service files** — `proposal_service.py`, `proposal_pdf_service.py`, `proposal_email_service.py`, and `pdf_utils.py` remain large and would benefit from further splitting
 7. **Bogotá timezone for day-level arithmetic** — Django's `TIME_ZONE='UTC'` means `date.today()` returns UTC date. For day-level logic (e.g., the daily Huey task computing "is the stage overdue today?") always use `today_bogota()` from `content/utils.py`. Bogotá is fixed UTC-5 with no DST so the offset is stable year-round.
 8. **Huey cron schedule is in UTC** — `crontab(hour='13', minute='30')` means 13:30 UTC = 08:30 Bogotá. Document the offset in a comment above any periodic task that's meant to land in the team inbox at a specific local time.
+9. **`PROJECT_ACCESS_CIPHER_KEY` required** — must be set in production `.env`; generate with Fernet before first deploy of quick-access feature

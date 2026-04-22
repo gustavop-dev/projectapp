@@ -310,6 +310,138 @@ describe('usePlatformClientsStore', () => {
       expect(result.success).toBe(false)
       expect(store.error).toBe('Error al reenviar.')
     })
+
+    it('uses fallback message when response has no detail', async () => {
+      store.clients = [SAMPLE_CLIENT]
+      mockPost.mockResolvedValueOnce({ data: {} })
+
+      const result = await store.resendInvite(1)
+
+      expect(result.message).toBe('Invitación reenviada.')
+    })
+
+    it('uses fallback message when error has no detail', async () => {
+      mockPost.mockRejectedValueOnce({})
+
+      const result = await store.resendInvite(1)
+
+      expect(result.message).toBe('No pudimos reenviar la invitación.')
+    })
+
+    it('does not touch list when userId not found', async () => {
+      store.clients = [SAMPLE_CLIENT]
+      mockPost.mockResolvedValueOnce({ data: { detail: 'ok' } })
+
+      await store.resendInvite(9999)
+
+      expect(store.clients[0].is_onboarded).toBe(true)
+    })
+
+    it('updates currentClient when userId matches', async () => {
+      store.currentClient = { ...SAMPLE_CLIENT, is_active: false, is_onboarded: true }
+      mockPost.mockResolvedValueOnce({ data: { detail: 'ok' } })
+
+      await store.resendInvite(1)
+
+      expect(store.currentClient.is_active).toBe(true)
+      expect(store.currentClient.is_onboarded).toBe(false)
+    })
+  })
+
+  describe('createClient filter branches', () => {
+    it('skips prepending to list when activeFilter is inactive', async () => {
+      store.activeFilter = 'inactive'
+      store.clients = [SAMPLE_CLIENT]
+      mockPost.mockResolvedValueOnce({ data: { ...SAMPLE_CLIENT, user_id: 2 } })
+
+      await store.createClient({
+        email: 'new@test.com', first_name: 'New', last_name: 'Client',
+      })
+
+      expect(store.clients).toHaveLength(1)
+    })
+
+    it('prepends to list when activeFilter is pending', async () => {
+      store.activeFilter = 'pending'
+      store.clients = [SAMPLE_CLIENT]
+      mockPost.mockResolvedValueOnce({ data: { ...SAMPLE_CLIENT, user_id: 2 } })
+
+      await store.createClient({
+        email: 'new@test.com', first_name: 'New', last_name: 'Client',
+      })
+
+      expect(store.clients).toHaveLength(2)
+      expect(store.clients[0].user_id).toBe(2)
+    })
+
+    it('uses fallback message when error has no detail', async () => {
+      mockPost.mockRejectedValueOnce({})
+
+      const result = await store.createClient({
+        email: 'a@b.com', first_name: 'A', last_name: 'B',
+      })
+
+      expect(result.message).toBe('No pudimos crear el cliente.')
+    })
+
+    it('returns errors field when server sends field errors', async () => {
+      mockPost.mockRejectedValueOnce({ response: { data: { email: ['duplicate'] } } })
+
+      const result = await store.createClient({
+        email: 'a@b.com', first_name: 'A', last_name: 'B',
+      })
+
+      expect(result.errors).toEqual({ email: ['duplicate'] })
+    })
+  })
+
+  describe('fetchClients fallback', () => {
+    it('uses fallback message when error has no detail', async () => {
+      mockGet.mockRejectedValueOnce({})
+
+      const result = await store.fetchClients()
+
+      expect(result.message).toBe('No pudimos cargar los clientes.')
+    })
+  })
+
+  describe('fetchClient fallback', () => {
+    it('uses fallback message when error has no detail', async () => {
+      mockGet.mockRejectedValueOnce({})
+
+      const result = await store.fetchClient(1)
+
+      expect(result.message).toBe('No pudimos cargar el detalle del cliente.')
+    })
+  })
+
+  describe('updateClient fallback', () => {
+    it('uses fallback message when error has no detail', async () => {
+      mockPatch.mockRejectedValueOnce({})
+
+      const result = await store.updateClient(1, {})
+
+      expect(result.message).toBe('No pudimos actualizar el cliente.')
+    })
+  })
+
+  describe('deactivateClient branches', () => {
+    it('does not touch list when userId not in list', async () => {
+      store.clients = [SAMPLE_CLIENT]
+      mockDelete.mockResolvedValueOnce({})
+
+      await store.deactivateClient(9999)
+
+      expect(store.clients[0].is_active).toBe(true)
+    })
+
+    it('uses fallback message when error has no detail', async () => {
+      mockDelete.mockRejectedValueOnce({})
+
+      const result = await store.deactivateClient(1)
+
+      expect(result.message).toBe('No pudimos desactivar el cliente.')
+    })
   })
 
   describe('error fallback messages', () => {

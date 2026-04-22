@@ -2225,15 +2225,16 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-comment-from-closing` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-comment-flow.spec.js` |
 | `proposal-rejection-smart-recovery` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-rejection-recovery.spec.js` |
 | `proposal-functional-requirements-modal` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-requirements-modal.spec.js` |
+| `platform-access-view` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-access.spec.js` |
 
 ### Summary
 
-- **Total flows:** 141
+- **Total flows:** 142
 - **P1 (Critical):** 29
-- **P2 (High):** 90
+- **P2 (High):** 91
 - **P3 (Medium):** 19
 - **P4 (Nice-to-have):** 1
-- **Covered (full):** 129 (91%)
+- **Covered (full):** 130 (92%)
 - **Backend-only:** 10 (7%) — system-triggered alerts and automation covered by backend unit tests
 - **Partial:** 0 (0%)
 - **Missing:** 0 (0%)
@@ -2798,7 +2799,34 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/platform/platform-data-model.spec.js`
 
-### 8.12 Platform Coverage Index
+### 8.12 Quick Access
+
+#### FLOW: `platform-access-view`
+
+- **Module:** platform
+- **Role:** platform-admin
+- **Priority:** P2
+- **Routes:** `/platform/access`
+- **API:** `GET /api/accounts/projects/access/`
+- **Description:** Admin-only quick-access hub with a searchable grid of project cards. Each card shows the project name, client, and status badge, plus four clickable URL rows (production, staging, Django admin, repository) and a credential block with copy and reveal controls.
+- **Steps:**
+  1. Admin navigates to `/platform/access` (via "Accesos" item in the Administración sidebar group).
+  2. `GET /api/accounts/projects/access/` fetches the admin-only list with decrypted credentials.
+  3. Project cards render in a responsive grid.
+  4. Each card shows up to four URL rows; rows with no URL render a dash.
+  5. Admin clicks a URL row → external link opens in a new tab.
+  6. Admin clicks "Copiar" on a credential field → value copied to clipboard → flash feedback appears.
+  7. Admin clicks "Revelar" → password unmasks; "Ocultar" re-masks it.
+  8. Admin types in the search input → cards filter by project name, client, or URL substring.
+  9. Admin clicks "Actualizar" → list re-fetches from API.
+- **Branches:**
+  - [Branch A — No projects] API returns empty list → "Todavía no hay proyectos con accesos configurados." empty state.
+  - [Branch B — Search no match] Search term matches no project → "Ningún proyecto coincide con esa búsqueda."
+  - [Branch C — Access guard] Client role navigates to page → middleware redirects to `/platform/dashboard`.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-access.spec.js`
+
+### 8.13 Platform Coverage Index
 
 | Flow ID | Module | Role | Priority | Status | Spec |
 |---------|--------|------|----------|--------|------|
@@ -2826,16 +2854,17 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `platform-project-collection-accounts` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-collection-accounts.spec.js` |
 | `platform-deliverable-detail` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-deliverables.spec.js` |
 | `platform-project-data-model` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-data-model.spec.js` |
+| `platform-access-view` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-access.spec.js` |
 | `platform-admin-project-create` | platform | platform-admin | P3 | ✅ Covered | `e2e/platform/platform-project-create.spec.js` |
 | `platform-kanban-card-comments` | platform | platform-admin/client | P3 | ✅ Covered | `e2e/platform/platform-kanban-comments.spec.js` |
 
 ### Platform Coverage Summary
 
-- **Total platform flows:** 26
+- **Total platform flows:** 27
 - **P1 (Critical):** 5
-- **P2 (High):** 19
+- **P2 (High):** 20
 - **P3 (Medium):** 2
-- **Covered:** 26 (100%)
+- **Covered:** 27 (100%)
 - **Missing:** 0
 - **Deferred:** 0
 

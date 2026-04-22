@@ -335,6 +335,103 @@ describe('usePlatformRequirementsStore', () => {
       expect(result.success).toBe(false)
       expect(result.message).toBe('No pudimos agregar el comentario.')
     })
+
+    it('skips appending when currentRequirement id does not match reqId', async () => {
+      store.currentRequirement = { ...SAMPLE_REQ, id: 99, comments: [] }
+      mockPost.mockResolvedValueOnce({ data: { id: 5, content: 'Hi' } })
+
+      const result = await store.addComment(1, 7, 1, 'Hi', false)
+
+      expect(result.success).toBe(true)
+      expect(store.currentRequirement.comments).toHaveLength(0)
+    })
+
+    it('skips appending when currentRequirement has no comments array', async () => {
+      store.currentRequirement = { ...SAMPLE_REQ, id: 1 }
+      mockPost.mockResolvedValueOnce({ data: { id: 5, content: 'Hi' } })
+
+      const result = await store.addComment(1, 7, 1, 'Hi', false)
+
+      expect(result.success).toBe(true)
+      expect(store.currentRequirement.comments).toBeUndefined()
+    })
+
+    it('uses default fallback message when error has no detail', async () => {
+      mockPost.mockRejectedValueOnce({})
+
+      const result = await store.addComment(1, 7, 1, 'Hi', false)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No pudimos agregar el comentario.')
+    })
+  })
+
+  describe('backlog getters', () => {
+    beforeEach(() => {
+      store.requirements = [
+        { ...SAMPLE_REQ, id: 10, status: 'backlog', order: 2 },
+        { ...SAMPLE_REQ, id: 11, status: 'backlog', order: 0 },
+        { ...SAMPLE_REQ, id: 12, status: 'todo', order: 0 },
+      ]
+    })
+
+    it('backlogCards returns only backlog items sorted by order', () => {
+      const cards = store.backlogCards
+
+      expect(cards).toHaveLength(2)
+      expect(cards[0].id).toBe(11)
+      expect(cards[1].id).toBe(10)
+    })
+
+    it('backlogCount returns only backlog count', () => {
+      expect(store.backlogCount).toBe(2)
+    })
+  })
+
+  describe('moveRequirement success list update', () => {
+    it('replaces requirement entry in list with server response data', async () => {
+      store.requirements = [{ ...SAMPLE_REQ, id: 1, status: 'todo', order: 0 }]
+      const serverResponse = {
+        ...SAMPLE_REQ, id: 1, status: 'in_progress', order: 3, updated_at: '2025-02-01T00:00:00Z',
+      }
+      mockPost.mockResolvedValueOnce({ data: serverResponse })
+
+      await store.moveRequirement(1, 7, 1, 'in_progress', 3)
+
+      expect(store.requirements[0]).toEqual(serverResponse)
+    })
+
+    it('uses default fallback message when move error has no detail', async () => {
+      store.requirements = [{ ...SAMPLE_REQ, id: 1, status: 'todo', order: 0 }]
+      mockPost.mockRejectedValueOnce({})
+
+      const result = await store.moveRequirement(1, 7, 1, 'done', 0)
+
+      expect(result.message).toBe('No pudimos mover el requerimiento.')
+    })
+  })
+
+  describe('updateRequirement does not touch unmatched current', () => {
+    it('does not overwrite currentRequirement when id differs', async () => {
+      store.requirements = [SAMPLE_REQ]
+      store.currentRequirement = { ...SAMPLE_REQ, id: 99 }
+      mockPatch.mockResolvedValueOnce({ data: { ...SAMPLE_REQ, title: 'Updated' } })
+
+      await store.updateRequirement(1, 7, 1, { title: 'Updated' })
+
+      expect(store.currentRequirement.id).toBe(99)
+      expect(store.currentRequirement.title).toBe(SAMPLE_REQ.title)
+    })
+
+    it('skips list update when requirement not in list', async () => {
+      store.requirements = []
+      mockPatch.mockResolvedValueOnce({ data: { ...SAMPLE_REQ, title: 'Updated' } })
+
+      const result = await store.updateRequirement(1, 7, 1, { title: 'Updated' })
+
+      expect(result.success).toBe(true)
+      expect(store.requirements).toHaveLength(0)
+    })
   })
 
   describe('bulkUpload', () => {
@@ -360,6 +457,29 @@ describe('usePlatformRequirementsStore', () => {
       expect(store.requirements).toHaveLength(1)
     })
 
+    it('appends returned requirements to list on success', async () => {
+      store.requirements = [SAMPLE_REQ]
+      mockPost.mockResolvedValueOnce({
+        data: { requirements: [{ ...SAMPLE_REQ, id: 20 }, { ...SAMPLE_REQ, id: 21 }] },
+      })
+
+      const result = await store.bulkUpload(1, 7, [{ title: 'A' }, { title: 'B' }])
+
+      expect(result.success).toBe(true)
+      expect(store.requirements).toHaveLength(3)
+      expect(store.requirements.map((r) => r.id)).toEqual([1, 20, 21])
+    })
+
+    it('does not touch list when response has no requirements key', async () => {
+      store.requirements = [SAMPLE_REQ]
+      mockPost.mockResolvedValueOnce({ data: { message: 'queued' } })
+
+      const result = await store.bulkUpload(1, 7, [{ title: 'A' }])
+
+      expect(result.success).toBe(true)
+      expect(store.requirements).toHaveLength(1)
+    })
+
     it('returns failure on error', async () => {
       mockPost.mockRejectedValueOnce({ response: { data: { detail: 'bad' } } })
       const result = await store.bulkUpload(1, 7, [])
@@ -371,6 +491,31 @@ describe('usePlatformRequirementsStore', () => {
       const result = await store.bulkUpload(1, 7, [])
       expect(result.success).toBe(false)
       expect(result.message).toBe('Error al cargar requerimientos.')
+    })
+
+    it('sets error with default message when upload rejects without detail', async () => {
+      mockPost.mockRejectedValueOnce({})
+
+      const result = await store.bulkUpload(1, 7, [])
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('Error al cargar requerimientos.')
+    })
+
+    it('sets error with server detail when provided', async () => {
+      mockPost.mockRejectedValueOnce({ response: { data: { detail: 'Too many rows.' } } })
+
+      const result = await store.bulkUpload(1, 7, [])
+
+      expect(result.message).toBe('Too many rows.')
+    })
+
+    it('clears isUpdating when upload completes', async () => {
+      mockPost.mockResolvedValueOnce({ data: { requirements: [] } })
+
+      await store.bulkUpload(1, 7, [])
+
+      expect(store.isUpdating).toBe(false)
     })
   })
 
@@ -513,6 +658,15 @@ describe('usePlatformRequirementsStore', () => {
 
       expect(result.success).toBe(false)
       expect(mockGet).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('requirementsBase validation', () => {
+    it('throws when deliverableId is missing on fetchRequirements', async () => {
+      await expect(store.fetchRequirements(1, null)).resolves.toEqual(
+        expect.objectContaining({ success: false }),
+      )
+      expect(store.error).toBe('No pudimos cargar los requerimientos.')
     })
   })
 })

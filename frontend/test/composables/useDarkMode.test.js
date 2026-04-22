@@ -170,4 +170,14 @@ describe('useDarkMode', () => {
       global.document = originalDocument;
     });
   });
+
+  describe('onMounted handles invalid stored JSON', () => {
+    it('silently handles JSON parse errors in stored value', () => {
+      localStorage.setItem('projectapp-dark-mode', 'not-valid-json');
+      const { isDark } = useDarkMode();
+
+      expect(() => mockMountedCbs[0]()).not.toThrow();
+      expect(isDark.value).toBe(false);
+    });
+  });
 });

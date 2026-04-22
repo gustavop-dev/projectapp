@@ -194,3 +194,56 @@ describe('FRAGMENT_ORDER', () => {
     expect(FRAGMENT_ORDER[0]).toBe('intro')
   })
 })
+
+describe('technicalFragmentHasContent additional branches', () => {
+  const { technicalFragmentHasContent } = require('~/utils/technicalProposalPanels')
+
+  it('detects architecture content from diagramNote only', () => {
+    expect(technicalFragmentHasContent('architecture', { architecture: { diagramNote: 'note' } })).toBe(true)
+  })
+
+  it('detects dataModel content from relationships only', () => {
+    expect(technicalFragmentHasContent('dataModel', { dataModel: { relationships: 'rel' } })).toBe(true)
+  })
+
+  it('detects growthReadiness content from summary only', () => {
+    expect(technicalFragmentHasContent('growthReadiness', { growthReadiness: { summary: 'g' } })).toBe(true)
+  })
+
+  it('detects api content from apiSummary only', () => {
+    expect(technicalFragmentHasContent('api', { apiSummary: 'sum' })).toBe(true)
+  })
+
+  it('detects integrations content from notes only', () => {
+    expect(technicalFragmentHasContent('integrations', { integrations: { notes: 'n' } })).toBe(true)
+  })
+
+  it('detects environments content from environmentsNote only', () => {
+    expect(technicalFragmentHasContent('environments', { environmentsNote: 'note' })).toBe(true)
+  })
+
+  it('detects quality content from criticalFlowsNote only', () => {
+    expect(technicalFragmentHasContent('quality', { quality: { criticalFlowsNote: 'cf' } })).toBe(true)
+  })
+
+  it('returns false for unknown fragment', () => {
+    expect(technicalFragmentHasContent('unknown-fragment', {})).toBe(false)
+  })
+
+  it('returns false when doc is null', () => {
+    expect(technicalFragmentHasContent('stack', null)).toBe(false)
+  })
+
+  it('returns false when doc is not an object', () => {
+    expect(technicalFragmentHasContent('stack', 'string')).toBe(false)
+  })
+
+  it('epics detects content via requirement configuration field', () => {
+    const doc = { epics: [{ requirements: [{ configuration: 'cfg' }] }] }
+    expect(technicalFragmentHasContent('epics', doc)).toBe(true)
+  })
+
+  it('epics returns false for empty epic with empty requirement', () => {
+    expect(technicalFragmentHasContent('epics', { epics: [{ requirements: [{}] }] })).toBe(false)
+  })
+})

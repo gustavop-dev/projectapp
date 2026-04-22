@@ -417,4 +417,3 @@ ProjectApp is in **production** at projectapp.co. Core features are deployed. Ac
 - Consider splitting the largest proposal/backend modules (`views/proposal.py`, `proposal_service.py`, `proposal_email_service.py`) now that the shared PDF helpers already live in `pdf_utils.py`
 - Credential rotation for production secrets exposed in git history
 - Explore API rate limiting for public endpoints
-- Kill rogue `kore_project` Next.js server on port 3000 permanently (respawns from Windsurf terminal)

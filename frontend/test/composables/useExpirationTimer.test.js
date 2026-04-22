@@ -230,6 +230,26 @@ describe('useExpirationTimer', () => {
 
       expiresAt.value = '2026-03-02T00:00:00Z';
     });
+
+    it('isCountdownMode returns true when under 48h and not expired', () => {
+      const expiresAt = ref('2026-03-02T00:00:00Z');
+      const { isCountdownMode } = useExpirationTimer(expiresAt);
+
+      expect(isCountdownMode.value).toBe(true);
+    });
+
+    it('isCountdownMode returns false when expired', () => {
+      const expiresAt = ref('2026-02-28T12:00:00Z');
+      const { isCountdownMode } = useExpirationTimer(expiresAt);
+
+      expect(isCountdownMode.value).toBe(false);
+    });
+
+    it('isCountdownMode returns false when expiresAt is null', () => {
+      const { isCountdownMode } = useExpirationTimer(ref(null));
+
+      expect(isCountdownMode.value).toBe(false);
+    });
   });
 
   describe('edge case: exactly 0 days but totalHours >= 48', () => {

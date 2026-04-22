@@ -2069,6 +2069,7 @@ class TestAutoArchiveZombieProposalsTask:
         assert proposal.is_active is True
 
 
+
 class TestExpireStaleProposalsAutoExtend:
     """Tests for the auto-extend branch in expire_stale_proposals (lines 255-265, 274)."""
 
@@ -2095,6 +2096,28 @@ class TestExpireStaleProposalsAutoExtend:
         assert proposal.expires_at > now
 
     @freeze_time('2026-03-10 10:00:00')
+    def test_extends_expiry_when_client_viewed_in_last_3_days(self):
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Recently Viewed',
+            client_name='Client',
+            status='viewed',
+            expires_at=now - timedelta(days=1),
+        )
+        ProposalViewEvent.objects.create(
+            proposal=proposal,
+            session_id='sess-1',
+            viewed_at=now - timedelta(hours=2),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.expire_stale_proposals.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.status == 'viewed'
+        assert proposal.expires_at == now + timedelta(days=7)
+
+    @freeze_time('2026-03-10 10:00:00')
     def test_auto_extend_creates_change_log(self):
         """A system change log entry is created when a proposal is auto-extended."""
         now = timezone.now()
@@ -2118,6 +2141,30 @@ class TestExpireStaleProposalsAutoExtend:
             change_type='updated',
         ).exists()
 
+    @freeze_time('2026-03-10 10:00:00')
+    def test_creates_changelog_when_auto_extended(self):
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='Recently Viewed',
+            client_name='Client',
+            status='sent',
+            expires_at=now - timedelta(hours=1),
+        )
+        ProposalViewEvent.objects.create(
+            proposal=proposal,
+            session_id='sess-2',
+            viewed_at=now - timedelta(days=1),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.expire_stale_proposals.call_local()
+
+        assert ProposalChangeLog.objects.filter(
+            proposal=proposal,
+            change_type='updated',
+            actor_type='system',
+        ).exists()
+
 
 class TestEscalateSellerInactivityContinue:
     """Tests for the continue branch in escalate_seller_inactivity (line 304)."""
@@ -2136,6 +2183,32 @@ class TestEscalateSellerInactivityContinue:
             status='viewed',
             sent_at=now - timedelta(days=2),
             first_viewed_at=now - timedelta(days=1),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.escalate_seller_inactivity.call_local()
+
+        assert mock_send.call_count == 0
+
+
+class TestEscalateSellerInactivityRefDateFallback:
+    @freeze_time('2026-03-10 12:00:00')
+    @patch(
+        'content.services.proposal_email_service.ProposalEmailService.send_seller_inactivity_escalation',
+        return_value=True,
+    )
+    def test_skips_candidate_without_last_activity_or_sent_at(self, mock_send):
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='No Dates',
+            client_name='Client',
+            client_email='client@test.com',
+            status='viewed',
+            first_viewed_at=now - timedelta(days=6),
+        )
+        BusinessProposal.objects.filter(pk=proposal.pk).update(
+            last_activity_at=None,
+            sent_at=None,
         )
 
         import content.tasks as tasks_module
@@ -2196,6 +2269,103 @@ class TestCalculatorAbandonmentEmptyDescription:
         ).first()
         assert alert is not None
         assert 'abandonó' in alert.message
+
+
+class TestRefreshCachedHeatScoresTask:
+    @patch('content.views.proposal._compute_heat_score_for_proposal')
+    def test_updates_cached_score_when_new_value_differs(self, mock_score):
+        mock_score.return_value = 7
+        proposal = BusinessProposal.objects.create(
+            title='Heat Update',
+            client_name='Client',
+            status='sent',
+            cached_heat_score=3,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.refresh_cached_heat_scores.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.cached_heat_score == 7
+
+    @patch('content.views.proposal._compute_heat_score_for_proposal')
+    def test_skips_update_when_new_value_matches_current(self, mock_score):
+        mock_score.return_value = 5
+        proposal = BusinessProposal.objects.create(
+            title='Heat Same',
+            client_name='Client',
+            status='viewed',
+            cached_heat_score=5,
+        )
+        original_updated_at = proposal.updated_at
+
+        import content.tasks as tasks_module
+        tasks_module.refresh_cached_heat_scores.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.cached_heat_score == 5
+        assert proposal.updated_at == original_updated_at
+
+    @patch('content.views.proposal._compute_heat_score_for_proposal')
+    def test_ignores_inactive_proposals(self, mock_score):
+        mock_score.return_value = 9
+        proposal = BusinessProposal.objects.create(
+            title='Inactive',
+            client_name='Client',
+            status='sent',
+            is_active=False,
+            cached_heat_score=1,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.refresh_cached_heat_scores.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.cached_heat_score == 1
+        assert mock_score.call_count == 0
+
+    @patch('content.views.proposal._compute_heat_score_for_proposal')
+    def test_ignores_draft_proposals(self, mock_score):
+        mock_score.return_value = 9
+        proposal = BusinessProposal.objects.create(
+            title='Draft',
+            client_name='Client',
+            status='draft',
+            cached_heat_score=1,
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.refresh_cached_heat_scores.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.cached_heat_score == 1
+        assert mock_score.call_count == 0
+
+
+class TestCalculatorAbandonmentFollowupDescriptionFallback:
+    @freeze_time('2026-03-10 12:00:00')
+    def test_treats_abandoned_log_without_description_as_low_intent(self):
+        now = timezone.now()
+        proposal = BusinessProposal.objects.create(
+            title='No Description',
+            client_name='Client',
+            client_email='client@test.com',
+            status='sent',
+        )
+        log = ProposalChangeLog.objects.create(
+            proposal=proposal,
+            change_type='calc_abandoned',
+            description='',
+        )
+        ProposalChangeLog.objects.filter(pk=log.pk).update(
+            created_at=now - timedelta(days=2),
+        )
+
+        import content.tasks as tasks_module
+        tasks_module.check_calculator_abandonment_followup.call_local()
+
+        proposal.refresh_from_db()
+        assert proposal.calculator_followup_sent_at is not None
 
 
 class TestRefreshCachedHeatScores:
@@ -2343,7 +2513,6 @@ class TestNotifyProposalStageDeadlines:
         )
         ProposalProjectStage.objects.create(
             proposal=proposal, stage_key='design', order=0,
-            # no dates
         )
 
         import content.tasks as tasks_module

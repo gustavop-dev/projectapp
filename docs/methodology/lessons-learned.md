@@ -188,6 +188,15 @@ venv/bin/python <command>
 - `services/tokens.py` — JWT token generation/refresh
 - `services/verification.py` — OTP code generation and validation
 - `services/image_utils.py` — avatar processing
+- `services/credential_cipher.py` — Fernet encrypt/decrypt for project admin passwords; `_get_cipher()` is `@lru_cache(maxsize=1)` so the key is read once; `PROJECT_ACCESS_CIPHER_KEY` env var; call `_get_cipher.cache_clear()` in tests after setting the env var
+
+### Encrypted Credential Pattern (Quick Access)
+- Admin passwords stored as Fernet ciphertexts in `Project.admin_password_encrypted` (TextField)
+- Plain-text password is never stored; always encrypt before saving (`encrypt_password()`)
+- Django admin form uses `PasswordInput(render_value=False)` — password field always blank on edit; leave empty to keep existing
+- `ProjectDetailSerializer.to_representation()` blanks all admin-only fields in a single pass for non-admin — avoids N × `is_admin` checks from multiple `SerializerMethodField` getters
+- The dedicated `GET /api/accounts/projects/access/` endpoint uses `IsAdminRole` permission class (same as all other admin-only views in `accounts/views.py`); returns decrypted passwords only to admin
+- Frontend: password never persisted in store or localStorage; held in ephemeral Vue ref; `revealed` reactive object tracks per-card reveal state; `flashTimer` must be cleared in `onUnmounted`
 
 ### Platform Layout
 - `layouts/platform.vue` with collapsible sidebar, mobile drawer, theme toggle

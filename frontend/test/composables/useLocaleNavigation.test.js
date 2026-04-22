@@ -123,6 +123,27 @@ describe('useLocaleNavigation', () => {
 
       Storage.prototype.setItem = original;
     });
+
+    it('persists target locale in localStorage', () => {
+      const { switchLocale } = useLocaleNavigation();
+
+      switchLocale('es-co');
+
+      expect(localStorage.getItem('preferred_locale')).toBe('es-co');
+    });
+
+    it('silently handles localStorage setItem errors', () => {
+      const original = Storage.prototype.setItem;
+      Storage.prototype.setItem = jest.fn(() => { throw new Error('quota'); });
+      try {
+        const { switchLocale } = useLocaleNavigation();
+
+        expect(() => switchLocale('es-co')).not.toThrow();
+        expect(mockRouterPush).toHaveBeenCalledWith('/es-co/current-page');
+      } finally {
+        Storage.prototype.setItem = original;
+      }
+    });
   });
 
   describe('getLocaleUrl', () => {

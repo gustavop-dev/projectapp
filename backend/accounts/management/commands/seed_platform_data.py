@@ -293,6 +293,11 @@ class Command(BaseCommand):
             progress=18,
             start_date=today - timedelta(days=30),
             estimated_end_date=today + timedelta(days=60),
+            production_url='https://tienda-demo.projectapp.co',
+            staging_url='https://staging-tienda.projectapp.co',
+            admin_url='https://staging-tienda.projectapp.co/admin/',
+            repository_url='https://github.com/projectapp/ecommerce-demo',
+            admin_username='admin_demo',
         )
 
         prop_deliverable = Deliverable.objects.create(

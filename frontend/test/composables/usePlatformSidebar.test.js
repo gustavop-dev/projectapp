@@ -9,6 +9,8 @@ const STORAGE_KEY = 'platform_sidebar_collapsed'
 
 let usePlatformSidebar
 
+const ORIGINAL_INNER_WIDTH = window.innerWidth
+
 describe('usePlatformSidebar', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -20,6 +22,7 @@ describe('usePlatformSidebar', () => {
   afterEach(() => {
     const { cleanupResizeListener } = usePlatformSidebar()
     cleanupResizeListener()
+    Object.defineProperty(window, 'innerWidth', { value: ORIGINAL_INNER_WIDTH, writable: true })
   })
 
   describe('hydrate', () => {
@@ -47,6 +50,26 @@ describe('usePlatformSidebar', () => {
       hydrate()
 
       expect(typeof isCollapsed.value).toBe('boolean')
+    })
+
+    it('defaults to collapsed when no stored value and width below 1024', () => {
+      Object.defineProperty(window, 'innerWidth', { value: 800, writable: true })
+      const { hydrate, isCollapsed } = usePlatformSidebar()
+      isCollapsed.value = false
+
+      hydrate()
+
+      expect(isCollapsed.value).toBe(true)
+    })
+
+    it('defaults to expanded when no stored value and width at 1024 or above', () => {
+      Object.defineProperty(window, 'innerWidth', { value: 1440, writable: true })
+      const { hydrate, isCollapsed } = usePlatformSidebar()
+      isCollapsed.value = true
+
+      hydrate()
+
+      expect(isCollapsed.value).toBe(false)
     })
   })
 
