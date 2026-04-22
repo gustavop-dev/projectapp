@@ -110,3 +110,9 @@ This file tracks known errors, their context, and resolutions. When a reusable f
 - **Resolution**: Replace `client.post(url, data=dict, content_type='application/json')` with `client.post(url, data=dict, format='json')` in all DRF `APIClient` tests. The `format='json'` kwarg sets the content type AND JSON-encodes the body in one step.
 - **Files Affected**: `backend/content/tests/views/test_diagnostic_email_attachment.py` (and any test file using manual `content_type='application/json'`)
 - **Lesson**: In DRF `APIClient` tests, always use `format='json'` for JSON payloads — never `content_type='application/json'` with a `dict`. The `format` kwarg is the canonical DRF approach.
+### [ERR-009] Documents tab hidden for sent proposals and contract actions enabled too early
+- **Date**: 2026-04-22
+- **Context**: Proposal admin detail only showed the `Documentos` tab for `negotiating/accepted/rejected`, while the intended flow needs it from `sent` onward
+- **Root Cause**: Frontend tab visibility was gated by a narrow status list, and the contract row did not distinguish between `sent/viewed` and `negotiating`
+- **Resolution**: Show the tab for every non-`draft` proposal and disable contract actions in `sent/viewed` with a tooltip until the proposal reaches `negotiating`
+- **Files Affected**: `frontend/pages/panel/proposals/[id]/edit.vue`, `frontend/components/BusinessProposal/admin/ProposalDocumentsTab.vue`, `frontend/e2e/admin/admin-proposal-contract-generate.spec.js`

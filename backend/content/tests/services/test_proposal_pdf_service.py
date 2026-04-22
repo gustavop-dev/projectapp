@@ -32,6 +32,7 @@ from content.services.proposal_pdf_service import (
     PAGE_H,
     SECTION_RENDERERS,
     ProposalPdfService,
+    default_selected_modules_from_content,
     _clean_inline_bold,
     _clean_url_display,
     _draw_banner_box,
@@ -2521,3 +2522,134 @@ class TestCalculatorModuleInvalidPricePercent:
         assert result is not None
         assert result[:5] == b'%PDF-'
         mock_cover.exists.assert_called()
+        mock_back.exists.assert_called()
+
+
+# ── default_selected_modules_from_content tests ─────────────
+
+class TestDefaultSelectedModulesFromContent:
+    """Regression coverage for the PDF module-selection fallback.
+
+    When the PDF endpoint receives no ``?selected_modules=`` query
+    param, it must derive the default selection from the current
+    ``content_json`` — not from the stale ``BusinessProposal.selected_modules``
+    field — so admin edits to ``additionalModules[i].selected`` propagate
+    to the PDF immediately.
+    """
+
+    def _make_proposal(self, fr_content=None, investment_content=None, persisted=None):
+        proposal = BusinessProposal.objects.create(
+            title='Selection Defaults',
+            client_name='Client',
+            client_email='client@test.com',
+            language='es',
+            total_investment=Decimal('5000000'),
+            currency='COP',
+            status='sent',
+            expires_at=timezone.now() + timezone.timedelta(days=15),
+            selected_modules=persisted or [],
+        )
+        if fr_content is not None:
+            ProposalSection.objects.create(
+                proposal=proposal,
+                section_type='functional_requirements',
+                title='FR', order=1, is_enabled=True,
+                content_json=fr_content,
+            )
+        if investment_content is not None:
+            ProposalSection.objects.create(
+                proposal=proposal,
+                section_type='investment',
+                title='Inversión', order=2, is_enabled=True,
+                content_json=investment_content,
+            )
+        return proposal
+
+    def test_includes_calc_module_when_selected_true(self):
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='pwa', selected=True),
+            ]),
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'module-pwa' in result
+
+    def test_excludes_calc_module_when_selected_false(self):
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='pwa', selected=False),
+            ]),
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'module-pwa' not in result
+
+    def test_excludes_group_when_is_visible_false(self):
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='hidden', selected=True, is_visible=False),
+            ]),
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'module-hidden' not in result
+
+    def test_ignores_stale_persisted_selected_modules_field(self):
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='pwa', selected=False),
+            ]),
+            persisted=['module-pwa'],
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'module-pwa' not in result
+
+    def test_includes_all_investment_modules_by_default(self):
+        proposal = self._make_proposal(
+            investment_content=_investment_content_json(modules=[
+                {'id': 'mod-a', 'name': 'A', 'price': 100},
+                {'id': 'mod-b', 'name': 'B', 'price': 200},
+            ]),
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'mod-a' in result
+        assert 'mod-b' in result
+
+    def test_includes_regular_group_as_group_prefix(self):
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(groups=[{
+                'id': 'views', 'title': 'Vistas',
+                'is_visible': True, 'is_calculator_module': False,
+                'items': [],
+            }]),
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'group-views' in result
+
+    def test_falls_back_to_default_selected_when_selected_absent(self):
+        proposal = self._make_proposal(
+            fr_content=_fr_section_content_json(additionalModules=[
+                _calculator_module_group(id='pwa', default_selected=True),
+            ]),
+        )
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert 'module-pwa' in result
+
+    def test_returns_empty_list_for_proposal_without_sections(self):
+        proposal = self._make_proposal()
+
+        result = default_selected_modules_from_content(proposal)
+
+        assert result == []

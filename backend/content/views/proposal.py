@@ -600,7 +600,24 @@ def download_proposal_pdf(request, proposal_uuid):
             status=status.HTTP_410_GONE,
         )
 
+    from content.services.proposal_pdf_service import (
+        ProposalPdfService,
+        default_selected_modules_from_content,
+    )
+
     doc_variant = (request.query_params.get('doc') or '').strip().lower()
+    selected_modules_param = request.query_params.get('selected_modules', '')
+    selected_modules = (
+        [m.strip() for m in selected_modules_param.split(',') if m.strip()]
+        if selected_modules_param
+        else None
+    )
+    # Derive defaults from current content_json so admin toggles of
+    # additionalModules[i].selected propagate to the PDF even when the
+    # client never opened the calculator (localStorage empty).
+    if selected_modules is None:
+        selected_modules = default_selected_modules_from_content(proposal)
+
     if doc_variant == 'technical':
         from content.services.technical_document_pdf import generate_technical_document_pdf
 

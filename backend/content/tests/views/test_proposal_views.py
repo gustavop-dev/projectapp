@@ -192,7 +192,9 @@ class TestDownloadProposalPdf:
         assert response.status_code == 200
         assert response['Content-Type'] == 'application/pdf'
         assert b'%PDF-technical-fake' in response.content
-        mock_tech.assert_called_once_with(sent_proposal, selected_modules=None)
+        # Without ?selected_modules=, the view derives defaults from content_json.
+        # sent_proposal has no FR/investment sections here, so defaults → [].
+        mock_tech.assert_called_once_with(sent_proposal, selected_modules=[])
 
     @patch('content.services.technical_document_pdf.generate_technical_document_pdf')
     def test_doc_technical_passes_selected_modules_query(

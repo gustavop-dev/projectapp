@@ -421,19 +421,21 @@
             </select>
             <p class="text-xs text-gray-400 mt-1">Solo afecta los títulos por defecto al crear. Cambiar aquí no regenera las secciones existentes.</p>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Inversión total</label>
-              <input v-model.number="form.total_investment" type="number" min="0" step="0.01"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Moneda</label>
-              <select v-model="form.currency"
-                class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
-                <option value="COP">COP</option>
-                <option value="USD">USD</option>
-              </select>
+          <div data-testid="general-finance-sidebar">
+            <div data-testid="general-finance-investment-card" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Inversión total</label>
+                <input v-model.number="form.total_investment" data-testid="general-finance-total-investment" type="number" min="0" step="0.01"
+                  class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Moneda</label>
+                <select v-model="form.currency" data-testid="general-finance-currency"
+                  class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none bg-white">
+                  <option value="COP">COP</option>
+                  <option value="USD">USD</option>
+                </select>
+              </div>
             </div>
           </div>
           <div v-if="investmentSection" class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/30 rounded-xl px-4 py-3">
@@ -468,7 +470,7 @@
             <p v-else class="text-xs text-emerald-700 dark:text-emerald-300">No se detectaron porcentajes en "Secciones → Inversión → Opciones de pago".</p>
             <p class="text-xs text-emerald-700 dark:text-emerald-300 mt-2">Se sincroniza con los porcentajes definidos en "Secciones → Inversión → Opciones de pago".</p>
           </div>
-          <div>
+          <div data-testid="general-finance-hosting-card">
             <div class="flex items-center gap-1.5 mb-1">
               <label class="block text-sm font-medium text-gray-700">Hosting (% de inversión total)</label>
               <UiTooltip position="right">
@@ -479,7 +481,7 @@
               </UiTooltip>
             </div>
             <div class="flex items-center gap-3">
-              <input v-model.number="form.hosting_percent" type="number" min="0" max="100"
+              <input v-model.number="form.hosting_percent" data-testid="general-finance-hosting-percent" type="number" min="0" max="100"
                 class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
               <span class="text-sm text-gray-500">%</span>
             </div>
@@ -527,15 +529,15 @@
             </div>
             <p class="text-xs text-gray-400 mt-1">Sincronizado automáticamente con el Plan de Hosting que ve el cliente en "Tu inversión y cómo pagar".</p>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div data-testid="general-finance-discounts-card" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. semestral (%)</label>
-              <input v-model.number="form.hosting_discount_semiannual" type="number" min="0" max="100"
+              <input v-model.number="form.hosting_discount_semiannual" data-testid="general-finance-semiannual-discount" type="number" min="0" max="100"
                 class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-white/70 mb-1">Dcto. trimestral (%)</label>
-              <input v-model.number="form.hosting_discount_quarterly" type="number" min="0" max="100"
+              <input v-model.number="form.hosting_discount_quarterly" data-testid="general-finance-quarterly-discount" type="number" min="0" max="100"
                 class="w-32 px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             </div>
           </div>
@@ -581,7 +583,7 @@
                 {{ tt.discount }}
               </UiTooltip>
             </div>
-            <input v-model.number="form.discount_percent" type="number" min="0" max="100"
+            <input v-model.number="form.discount_percent" data-testid="general-finance-general-discount" type="number" min="0" max="100"
               class="w-full px-4 py-2.5 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none" />
             <p class="text-xs text-gray-400 mt-1">0 = sin descuento en email de urgencia.</p>
           </div>
@@ -637,7 +639,7 @@
           v-if="hasProposalDocuments"
           :proposal="proposal"
           :documents="proposal.proposal_documents || []"
-          @refresh="proposalStore.fetchProposal(proposal.id).then(r => { if (r?.data) proposal = r.data; })"
+          @refresh="refreshData"
           @edit-contract="openContractModal(true)"
           @generate-contract="openContractModal(false)"
         />
@@ -849,14 +851,17 @@
           <div v-if="jsonExportLoading" class="text-center py-8 text-gray-400 text-sm">
             Cargando JSON...
           </div>
-          <textarea
-            v-else
-            :value="exportJsonString"
-            readonly
-            rows="18"
-            class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-mono leading-relaxed
-                   bg-gray-50 dark:bg-esmerald-dark text-gray-700 dark:text-gray-300 outline-none resize-y cursor-text select-all"
-          />
+          <template v-else>
+            <JsonStatsPanel class="mb-4" :stats="proposalJsonStats" test-id="proposal-json-stats" />
+            <textarea
+              :value="exportJsonString"
+              readonly
+              data-testid="proposal-export-json-textarea"
+              :rows="JSON_TEXTAREA_ROWS"
+              class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-mono leading-relaxed
+                     bg-gray-50 dark:bg-esmerald-dark text-gray-700 dark:text-gray-300 outline-none resize-y cursor-text select-all"
+            />
+          </template>
         </div>
 
           </template>
@@ -883,7 +888,8 @@
 
           <textarea
             v-model="jsonImportRaw"
-            rows="10"
+            data-testid="proposal-import-json-textarea"
+            :rows="JSON_TEXTAREA_ROWS"
             placeholder='Pega aquí el JSON completo de la propuesta...'
             class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] dark:bg-esmerald-dark dark:text-white dark:placeholder:text-green-light/40 rounded-xl text-xs font-mono leading-relaxed
                    focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none resize-y"
@@ -1005,6 +1011,7 @@
         <div class="flex gap-1 mb-4 bg-gray-100 dark:bg-gray-800 rounded-xl p-1 max-w-sm">
           <button
             type="button"
+            data-testid="technical-editor-subtab"
             :class="[
               'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
               technicalSubTab === 'editor' ? 'bg-white dark:bg-gray-700 shadow-sm font-medium text-gray-900 dark:text-gray-100' : 'text-gray-500',
@@ -1015,6 +1022,7 @@
           </button>
           <button
             type="button"
+            data-testid="technical-json-subtab"
             :class="[
               'flex-1 px-3 py-2 text-sm rounded-lg transition-all',
               technicalSubTab === 'json' ? 'bg-white dark:bg-gray-700 shadow-sm font-medium text-gray-900 dark:text-gray-100' : 'text-gray-500',
@@ -1050,9 +1058,11 @@
           <p class="text-xs text-gray-500 dark:text-white/40">
             Solo el objeto <code class="bg-gray-100 dark:bg-white/[0.06] px-1 rounded">content_json</code> del detalle técnico. Debe ser JSON válido (mismo esquema que el editor).
           </p>
+          <JsonStatsPanel :stats="technicalJsonStats" test-id="technical-json-stats" />
           <textarea
             v-model="technicalJsonRaw"
-            rows="22"
+            data-testid="technical-json-textarea"
+            :rows="JSON_TEXTAREA_ROWS"
             class="w-full px-4 py-3 border border-gray-200 dark:border-white/[0.08] rounded-xl text-xs font-mono bg-white dark:bg-esmerald-dark text-gray-800 dark:text-white resize-y outline-none focus:ring-2 focus:ring-emerald-500"
           />
           <div v-if="technicalJsonError" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 px-4 py-2 rounded-lg">{{ technicalJsonError }}</div>
@@ -1249,6 +1259,7 @@ import ProposalActionsModal from '~/components/BusinessProposal/admin/ProposalAc
 import ProposalDocumentsTab from '~/components/BusinessProposal/admin/ProposalDocumentsTab.vue';
 import ProposalEmailsTab from '~/components/BusinessProposal/admin/ProposalEmailsTab.vue';
 import ProjectScheduleEditor from '~/components/BusinessProposal/admin/ProjectScheduleEditor.vue';
+import JsonStatsPanel from '~/components/BusinessProposal/admin/JsonStatsPanel.vue';
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import ResponsiveTabs from '~/components/ui/ResponsiveTabs.vue';
@@ -2153,6 +2164,15 @@ const EXPECTED_SECTION_KEYS = [
   'proposalSummary', 'finalNote', 'nextSteps', 'technicalDocument',
 ];
 
+const TECHNICAL_EXPECTED_KEYS = [
+  'purpose', 'stack', 'architecture', 'dataModel', 'growthReadiness',
+  'epics', 'apiSummary', 'apiDomains', 'integrations', 'environmentsNote',
+  'environments', 'security', 'performanceQuality', 'backupsNote',
+  'quality', 'decisions',
+];
+
+const JSON_TEXTAREA_ROWS = 18;
+
 const jsonExportLoading = ref(false);
 const exportJsonData = ref(null);
 const jsonCopied = ref(false);
@@ -2166,6 +2186,70 @@ const jsonImportLegacyIssues = ref([]);
 const exportJsonString = computed(() => {
   if (!exportJsonData.value) return '';
   return JSON.stringify(exportJsonData.value, null, 2);
+});
+
+function countPresentKeys(source, expectedKeys) {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return 0;
+  return expectedKeys.filter((key) => key in source).length;
+}
+
+function calculateProgress(completed, total) {
+  if (!total) return 0;
+  return Math.round((completed / total) * 100);
+}
+
+function formatJsonSize(raw) {
+  const normalized = typeof raw === 'string' ? raw : JSON.stringify(raw || {}, null, 2);
+  const bytes = new Blob([normalized]).size;
+  if (bytes < 1024) return `${bytes} B`;
+  const kilobytes = bytes / 1024;
+  return `${kilobytes >= 10 ? kilobytes.toFixed(0) : kilobytes.toFixed(1)} KB`;
+}
+
+function formatDateTime(value) {
+  if (!value) return '—';
+  return new Date(value).toLocaleString();
+}
+
+function makeJsonStats({ sourceRef, rawStringRef, expectedKeys }) {
+  return computed(() => {
+    const source = sourceRef.value;
+    const sectionCount = countPresentKeys(source, expectedKeys);
+    const rawString = rawStringRef?.value || (source ? JSON.stringify(source, null, 2) : '');
+    return {
+      sectionCount,
+      progress: calculateProgress(sectionCount, expectedKeys.length),
+      size: formatJsonSize(rawString),
+      updatedAt: formatDateTime(proposal.value?.updated_at),
+    };
+  });
+}
+
+const proposalJsonStats = makeJsonStats({
+  sourceRef: exportJsonData,
+  rawStringRef: exportJsonString,
+  expectedKeys: EXPECTED_SECTION_KEYS,
+});
+
+const technicalJsonParsed = computed(() => {
+  const raw = technicalJsonRaw.value.trim();
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+});
+
+const technicalJsonSource = computed(
+  () => technicalJsonParsed.value || technicalSection.value?.content_json || null,
+);
+
+const technicalJsonStats = makeJsonStats({
+  sourceRef: technicalJsonSource,
+  rawStringRef: technicalJsonRaw,
+  expectedKeys: TECHNICAL_EXPECTED_KEYS,
 });
 
 const jsonImportPreview = computed(() => {

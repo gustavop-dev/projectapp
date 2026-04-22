@@ -107,6 +107,55 @@ def _filter_calculator_groups(groups, sel_ids):
     ]
 
 
+def default_selected_modules_from_content(proposal):
+    """Derive default selected module IDs from the current ``content_json``.
+
+    Mirrors the frontend ``computeAllModuleIds`` / ``allGroupCalculatorItems``
+    logic so the PDF renders the same selection an admin currently has in the
+    editor — independent of the stale ``BusinessProposal.selected_modules``
+    field, which is only updated by client-side calculator interactions.
+
+    Returns a list of module IDs ready to be passed as ``selected_modules``
+    to :meth:`ProposalPdfService.generate`.
+    """
+    selected = []
+    sections = list(proposal.sections.all())
+
+    inv = next((s for s in sections if s.section_type == 'investment'), None)
+    if inv and inv.content_json:
+        for mod in inv.content_json.get('modules') or []:
+            mid = mod.get('id') if isinstance(mod, dict) else None
+            if mid:
+                selected.append(mid)
+
+    fr = next(
+        (s for s in sections if s.section_type == 'functional_requirements'),
+        None,
+    )
+    if fr and fr.content_json:
+        cj = fr.content_json
+        groups = list(cj.get('groups') or []) + list(cj.get('additionalModules') or [])
+        for grp in groups:
+            if not isinstance(grp, dict):
+                continue
+            if grp.get('is_visible') is False:
+                continue
+            is_calc = grp.get('is_calculator_module') is True
+            default_sel = grp.get('selected')
+            if default_sel is None:
+                default_sel = grp.get('default_selected')
+            if default_sel is None:
+                default_sel = not is_calc
+            if not default_sel:
+                continue
+            gid = grp.get('id')
+            if not gid:
+                continue
+            selected.append(f'module-{gid}' if is_calc else f'group-{gid}')
+
+    return selected
+
+
 # ─────────────────────────────────────────────────────────────
 # Section renderers
 # ─────────────────────────────────────────────────────────────

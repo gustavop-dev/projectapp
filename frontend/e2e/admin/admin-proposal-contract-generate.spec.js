@@ -90,6 +90,35 @@ test.describe('Admin Proposal Contract Generate', () => {
     await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
   });
 
+  test('Documents tab is visible for sent proposals and contract stays locked', {
+    tag: [...ADMIN_PROPOSAL_CONTRACT_GENERATE, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildApiHandler({
+      proposal: { ...mockProposal, status: 'sent' },
+    }));
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
+
+    await expect(page.getByRole('button', { name: 'Documentos' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Generar contrato/i })).toBeDisabled();
+
+    await page.getByText('Disponible en negociación').hover();
+    await expect(page.getByText('El contrato se habilita cuando la propuesta pase a negociación.')).toHaveCount(2);
+  });
+
+  test('contract stays locked for viewed proposals until negotiation', {
+    tag: [...ADMIN_PROPOSAL_CONTRACT_GENERATE, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildApiHandler({
+      proposal: { ...mockProposal, status: 'viewed' },
+    }));
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
+
+    await expect(page.getByRole('button', { name: /Generar contrato/i })).toBeDisabled();
+    await expect(page.getByText('Disponible en negociación')).toBeVisible();
+  });
+
   test('contract section shows "No generado" when no contract exists', {
     tag: [...ADMIN_PROPOSAL_CONTRACT_GENERATE, '@role:admin'],
   }, async ({ page }) => {
@@ -98,6 +127,17 @@ test.describe('Admin Proposal Contract Generate', () => {
     await page.waitForLoadState('domcontentloaded');
 
     await expect(page.getByText('No generado', { exact: true })).toBeVisible();
+  });
+
+  test('contract actions are enabled once proposal is negotiating', {
+    tag: [...ADMIN_PROPOSAL_CONTRACT_GENERATE, '@role:admin'],
+  }, async ({ page }) => {
+    await mockApi(page, buildApiHandler());
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit?tab=documents`);
+    await page.waitForLoadState('domcontentloaded');
+
+    await expect(page.getByRole('button', { name: /Generar contrato/i })).toBeEnabled();
+    await expect(page.getByText('Disponible en negociación')).toHaveCount(0);
   });
 
   test('opens ContractParamsModal in default mode with company settings', {
